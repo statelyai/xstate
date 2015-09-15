@@ -32,7 +32,8 @@ machine.transition('red', 'timer');
 var light = 'green';
 
 setTimeout(function() {
-  console.log(machine.transition(light, 'timer'));
+  light = machine.transition(light, 'timer');
+  console.log(light);
 }, 1000);
 // => 'yellow'
 // => 'red'
