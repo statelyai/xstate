@@ -8,7 +8,7 @@ npm install estado --save
 ```
 
 **index.js**
-```
+```js
 var machine = require('estado');
 
 var trafficLight = machine({
