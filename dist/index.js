@@ -27,8 +27,12 @@ var Machine = (function () {
 
   _createClass(Machine, [{
     key: 'transition',
-    value: function transition(state) {
+    value: function transition(stateName) {
       var symbol = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
+      var state = this.states.find(function (_state) {
+        return _state.name === stateName;
+      });
 
       return this.transitionFn(state, symbol);
     }
@@ -37,36 +41,57 @@ var Machine = (function () {
   return Machine;
 })();
 
+var State = function State(name) {
+  var transitionMap = arguments.length <= 1 || arguments[1] === undefined ? {} : arguments[1];
+
+  _classCallCheck(this, State);
+
+  this.name = name;
+
+  this.transitions = Object.keys(transitionMap).map(function (toState) {
+    return new Transition(name, toState, transitionMap[toState]);
+  });
+};
+
+var Transition = function Transition(fromState, toState, symbol) {
+  _classCallCheck(this, Transition);
+
+  this.from = fromState;
+  this.to = toState;
+  this.symbol = symbol;
+};
+
 function machine(transitionGraph) {
 
-  var states = new Set(Object.keys(transitionGraph).map(function (state) {
-    return [state].concat(Object.keys(transitionGraph[state]));
-  }).reduce(function (a, b) {
-    return a.concat(b);
-  }));
+  var states = Object.keys(transitionGraph).map(function (state) {
+    return new State(state, transitionGraph[state]);
+  });
 
   var symbols = new Set(Object.keys(transitionGraph).map(function (state) {
     return Object.values(transitionGraph[state]);
   }).reduce(function (a, b) {
     return a.concat(b);
   }));
+
+  var initialState = states[0];
+
+  return new Machine(symbols, states, initialState, dfaTransition);
 }
 
-function dfaTransition(transitionGraph, state, symbol) {
-  var stateGraph = transitionGraph[state];
-
-  return Object.keys(stateGraph).find(function (toState) {
-    return stateGraph[toState] === symbol;
-  });
+function dfaTransition(state, symbol) {
+  return state.transitions.find(function (transition) {
+    return transition.symbol === symbol;
+  }).to;
 }
 
 console.log(machine({
-  red: {
-    green: 'timer',
-    blink: 'bang'
+  green: {
+    yellow: 'timer'
   },
   yellow: {
-    red: 'timer',
-    blink: 'bang'
+    red: 'timer'
+  },
+  red: {
+    green: 'timer'
   }
-}));
+}).transition('red', 'timer'));

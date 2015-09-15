@@ -10,38 +10,58 @@ class Machine {
     this.finalStates = finalStates;
   }
 
-  transition(state, symbol = null) {
+  transition(stateName, symbol = null) {
+    let state = this.states.find((_state) => _state.name === stateName);
+
     return this.transitionFn(state, symbol);
   }
 }
 
+class State {
+  constructor(name, transitionMap = {}) {
+    this.name = name;
+
+    this.transitions = Object.keys(transitionMap)
+      .map((toState) => new Transition(name, toState, transitionMap[toState]));
+  }
+}
+
+class Transition {
+  constructor(fromState, toState, symbol) {
+    this.from = fromState;
+    this.to = toState;
+    this.symbol = symbol;
+  }
+}
+
 function machine(transitionGraph) {
-  
-  let states = new Set(Object.keys(transitionGraph)
-    .map((state) => [state].concat(Object.keys(transitionGraph[state])))
-    .reduce((a, b) => a.concat(b)));
+
+  let states = Object.keys(transitionGraph)
+    .map((state) => new State(state, transitionGraph[state]));
 
   let symbols = new Set(Object.keys(transitionGraph)
     .map((state) => Object.values(transitionGraph[state]))
     .reduce((a, b) => a.concat(b)));
 
-  
+  let initialState = states[0];
+
+  return new Machine(symbols, states, initialState, dfaTransition);
 }
 
-function dfaTransition(transitionGraph, state, symbol) {
-  let stateGraph = transitionGraph[state];
-
-  return Object.keys(stateGraph)
-    .find((toState) => stateGraph[toState] === symbol);
+function dfaTransition(state, symbol) {
+  return state.transitions
+    .find((transition) => transition.symbol === symbol)
+    .to;
 }
 
 console.log(machine({
-  red: {
-    green: 'timer',
-    blink: 'bang'
+  green: {
+    yellow: 'timer'
   },
   yellow: {
-    red: 'timer',
-    blink: 'bang'
+    red: 'timer'
+  },
+  red: {
+    green: 'timer'
   }
-}));
+}).transition('red', 'timer'));
