@@ -1,0 +1,27 @@
+{
+  "name": "estado",
+  "version": "0.0.0",
+  "description": "Simple JavaScript Finite State Machines.",
+  "main": "index.js",
+  "scripts": {
+    "start": "babel -w ./src -d ./dist",
+    "test": "npm test"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/davidkpiano/estado.git"
+  },
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "license": "MIT",
+  "bugs": {
+    "url": "https://github.com/davidkpiano/estado/issues"
+  },
+  "homepage": "https://github.com/davidkpiano/estado#readme",
+  "devDependencies": {
+    "babel": "^5.8.23",
+    "babel-core": "^5.8.24"
+  },
+  "dependencies": {
+    "lodash": "^3.10.1"
+  }
+}
