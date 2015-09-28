@@ -1,9 +1,12 @@
-import 'babel-core/polyfill';
+if (!global._babelPolyfill) {
+  require('babel-core/polyfill');
+}
+
 import _ from 'lodash';
 
 class Machine {
-  constructor(symbols, states, initialState, transitionFn, finalStates = []) {
-    this.symbols = symbols;
+  constructor(signals, states, initialState, transitionFn, finalStates = []) {
+    this.signals = signals;
     this.states = states;
     this.initialState = initialState;
     this.transitionFn = transitionFn;
@@ -27,10 +30,10 @@ class State {
 }
 
 class Transition {
-  constructor(fromState, toState, symbols) {
+  constructor(fromState, toState, signals) {
     this.from = fromState;
     this.to = toState;
-    this.symbols = symbols;
+    this.signals = signals;
   }
 }
 
@@ -48,25 +51,39 @@ class Transition {
  * @param  {Array}  finalStates     Array of final states (defaults to [])
  * @return {Machine}                Returns an estado Machine instance.
  */
-export default function machine(transitionGraph, finalStates = []) {
+export function machine(transitionGraph, finalStates = []) {
 
-  let states = Object.keys(transitionGraph)
-    .filter((state) => _.isObject(transitionGraph[state]))
-    .map((state) => new State(state, transitionGraph[state]));
+  let states = getStates(transitionGraph);
 
-  let symbols = _.unique(Object.keys(transitionGraph)
-    .filter((state) => _.isObject(transitionGraph[state]))
-    .map((state) => _.flatten(Object.values(transitionGraph[state])))
-    .reduce((a, b) => a.concat(b)));
+  let signals = getSignals(transitionGraph);
 
   let initialState = states[0];
 
-  return new Machine(symbols, states, initialState, dfaTransition, finalStates);
+  return new Machine(signals, states, initialState, dfaTransition, finalStates);
+}
+
+function getStates(transitionGraph) {
+  return Object.keys(transitionGraph)
+    .map((stateName) => new State(stateName, transitionGraph[stateName] || {}));
+}
+
+function getSignals(transitionGraph) {
+  let signals = [];
+
+  if (_.isString(transitionGraph) || _.isArray(transitionGraph)) {
+    signals = Array.prototype.concat([], transitionGraph);
+  } else if (_.isObject(transitionGraph)) {
+    signals = _.values(transitionGraph)
+      .map((stateValue) => getSignals(stateValue))
+      .reduce((a, b) => a.concat(b));
+  }
+
+  return _.unique(signals);
 }
 
 function dfaTransition(state, symbol) {
   let transition = state.transitions
-    .find((transition) => _.contains(transition.symbols, symbol));
+    .find((transition) => _.contains(transition.signals, symbol));
 
   if (transition) {
     return transition.to;
@@ -74,18 +91,5 @@ function dfaTransition(state, symbol) {
 
   console.error(`State '${state.name}' does not have a valid transition for symbol '${symbol}'`);
 }
-
-console.log(machine({
-  green: {
-    yellow: 'timer'
-  },
-  yellow: {
-    red: ['timer', 'else']
-  },
-  red: {
-    green: ['timer', 'a', 'b']
-  },
-  black: null
-}).transition('green', 'timer'));
 
 

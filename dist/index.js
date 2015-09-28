@@ -6,25 +6,27 @@ Object.defineProperty(exports, '__esModule', {
 
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
-exports['default'] = machine;
+exports.machine = machine;
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-require('babel-core/polyfill');
-
 var _lodash = require('lodash');
 
 var _lodash2 = _interopRequireDefault(_lodash);
 
+if (!global._babelPolyfill) {
+  require('babel-core/polyfill');
+}
+
 var Machine = (function () {
-  function Machine(symbols, states, initialState, transitionFn) {
+  function Machine(signals, states, initialState, transitionFn) {
     var finalStates = arguments.length <= 4 || arguments[4] === undefined ? [] : arguments[4];
 
     _classCallCheck(this, Machine);
 
-    this.symbols = symbols;
+    this.signals = signals;
     this.states = states;
     this.initialState = initialState;
     this.transitionFn = transitionFn;
@@ -59,12 +61,12 @@ var State = function State(name) {
   });
 };
 
-var Transition = function Transition(fromState, toState, symbols) {
+var Transition = function Transition(fromState, toState, signals) {
   _classCallCheck(this, Transition);
 
   this.from = fromState;
   this.to = toState;
-  this.symbols = symbols;
+  this.signals = signals;
 }
 
 /**
@@ -86,28 +88,40 @@ var Transition = function Transition(fromState, toState, symbols) {
 function machine(transitionGraph) {
   var finalStates = arguments.length <= 1 || arguments[1] === undefined ? [] : arguments[1];
 
-  var states = Object.keys(transitionGraph).filter(function (state) {
-    return _lodash2['default'].isObject(transitionGraph[state]);
-  }).map(function (state) {
-    return new State(state, transitionGraph[state]);
-  });
+  var states = getStates(transitionGraph);
 
-  var symbols = _lodash2['default'].unique(Object.keys(transitionGraph).filter(function (state) {
-    return _lodash2['default'].isObject(transitionGraph[state]);
-  }).map(function (state) {
-    return _lodash2['default'].flatten(Object.values(transitionGraph[state]));
-  }).reduce(function (a, b) {
-    return a.concat(b);
-  }));
+  var signals = getSignals(transitionGraph);
 
   var initialState = states[0];
 
-  return new Machine(symbols, states, initialState, dfaTransition, finalStates);
+  return new Machine(signals, states, initialState, dfaTransition, finalStates);
+}
+
+function getStates(transitionGraph) {
+  return Object.keys(transitionGraph).map(function (stateName) {
+    return new State(stateName, transitionGraph[stateName] || {});
+  });
+}
+
+function getSignals(transitionGraph) {
+  var signals = [];
+
+  if (_lodash2['default'].isString(transitionGraph) || _lodash2['default'].isArray(transitionGraph)) {
+    signals = Array.prototype.concat([], transitionGraph);
+  } else if (_lodash2['default'].isObject(transitionGraph)) {
+    signals = _lodash2['default'].values(transitionGraph).map(function (stateValue) {
+      return getSignals(stateValue);
+    }).reduce(function (a, b) {
+      return a.concat(b);
+    });
+  }
+
+  return _lodash2['default'].unique(signals);
 }
 
 function dfaTransition(state, symbol) {
   var transition = state.transitions.find(function (transition) {
-    return _lodash2['default'].contains(transition.symbols, symbol);
+    return _lodash2['default'].contains(transition.signals, symbol);
   });
 
   if (transition) {
@@ -116,17 +130,3 @@ function dfaTransition(state, symbol) {
 
   console.error('State \'' + state.name + '\' does not have a valid transition for symbol \'' + symbol + '\'');
 }
-
-console.log(machine({
-  green: {
-    yellow: 'timer'
-  },
-  yellow: {
-    red: ['timer', 'else']
-  },
-  red: {
-    green: ['timer', 'a', 'b']
-  },
-  black: null
-}).transition('green', 'timer'));
-module.exports = exports['default'];
