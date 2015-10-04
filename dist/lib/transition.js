@@ -36,7 +36,7 @@ var Transition = (function () {
     value: function isValid(signal) {
       signal = new _signal2['default'](signal);
 
-      return signal.event === this.event && !!this.cond(signal);
+      return signal.event === this.event && !!this.cond(signal.payload);
     }
   }]);
 

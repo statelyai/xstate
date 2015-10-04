@@ -5,6 +5,35 @@ import machine, { Signal } from '../dist/index';
 import _ from 'lodash';
 
 describe('machine', () => {
+  let pedestrianMachine = {
+    id: 'pedestrian',
+    states: [
+      {
+        id: 'walk',
+        initial: true,
+        transitions: [
+          {
+            event: 'PED_COUNTDOWN',
+            target: 'wait'
+          }
+        ]
+      },
+      {
+        id: 'wait',
+        transitions: [
+          {
+            event: 'PED_COUNTDOWN',
+            target: 'stop',
+            cond: (data) => data.value >= 20
+          }
+        ]
+      },
+      {
+        id: 'stop'
+      }
+    ]
+  };
+
   let testMachine = machine({
     states: [
       {
@@ -32,6 +61,7 @@ describe('machine', () => {
       },
       {
         id: 'red',
+        states: [ pedestrianMachine ],
         transitions: [
           {
             event: 'TIMER',
