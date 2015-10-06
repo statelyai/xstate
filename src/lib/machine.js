@@ -1,5 +1,6 @@
 
 import State from './state';
+import _ from 'lodash';
 
 const STATE_DELIMITER = '.';
 

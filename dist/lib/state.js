@@ -14,6 +14,12 @@ var _transition = require('./transition');
 
 var _transition2 = _interopRequireDefault(_transition);
 
+Array.prototype.log = function (msg) {
+  console.log(msg, this);
+
+  return this;
+};
+
 var State = (function () {
   function State(data) {
     _classCallCheck(this, State);
@@ -36,6 +42,8 @@ var State = (function () {
   _createClass(State, [{
     key: 'transition',
     value: function transition() {
+      var _this = this;
+
       var signal = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
       var activeStates = this.states.filter(function (state) {
@@ -44,15 +52,15 @@ var State = (function () {
         return state.transition(signal);
       }).reduce(function (a, b) {
         return a.concat(b);
-      }, []);
+      }, []).map(function (id) {
+        return _this.id + '.' + id;
+      });
 
       var validTransitions = this.transitions.filter(function (transition) {
         return transition.isValid(signal);
       });
 
-      return activeStates.length ? activeStates.map(function (state) {
-        return state.id;
-      }) : validTransitions.length ? validTransitions.map(function (transition) {
+      return activeStates.length ? activeStates : validTransitions.length ? validTransitions.map(function (transition) {
         return transition.target;
       }) : this.id;
     }

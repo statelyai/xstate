@@ -7,6 +7,7 @@ import _ from 'lodash';
 describe('machine', () => {
   let pedestrianMachine = {
     id: 'pedestrian',
+    initial: true,
     states: [
       {
         id: 'walk',
@@ -34,7 +35,7 @@ describe('machine', () => {
     ]
   };
 
-  let testMachine = machine({
+  let lightMachine = machine({
     states: [
       {
         id: 'green',
@@ -74,14 +75,13 @@ describe('machine', () => {
 
   describe('machine.states', () => {
     it('should properly register machine states', () => {
-
       assert.deepEqual(
-        _.pluck(testMachine.states, 'id'),
+        _.pluck(lightMachine.states, 'id'),
         ['green', 'yellow', 'red']);
     });
 
     it('should create instances of State class', () => {
-      assert.ok(_.every(testMachine.states,
+      assert.ok(_.every(lightMachine.states,
         (state) => state.constructor.name === 'State'));
     });
   });
@@ -89,11 +89,11 @@ describe('machine', () => {
   describe('machine.transition()', () => {
     it('should properly transition states based on string event', () => {
       assert.deepEqual(
-        testMachine.transition('green', 'TIMER'),
+        lightMachine.transition('green', 'TIMER'),
         ['yellow']);
 
       assert.deepEqual(
-        testMachine.transition('green', 'POWER_OUTAGE'),
+        lightMachine.transition('green', 'POWER_OUTAGE'),
         ['red']);
     });
 
@@ -103,13 +103,13 @@ describe('machine', () => {
       };
 
       assert.deepEqual(
-        testMachine.transition('yellow', signal),
+        lightMachine.transition('yellow', signal),
         ['red']);
     });
 
     it('should return initial state(s) without any arguments for transition()', () => {
       assert.deepEqual(
-        testMachine.transition(),
+        lightMachine.transition(),
         ['green']);
     });
   });

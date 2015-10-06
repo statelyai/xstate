@@ -1,6 +1,12 @@
 
 import Transition from './transition';
 
+Array.prototype.log = function(msg) {
+  console.log(msg, this);
+
+  return this;
+}
+
 export default class State {
   constructor(data) {
     this.id = data.id;
@@ -21,17 +27,17 @@ export default class State {
   }
 
   transition(signal = null) {
-    
     let activeStates = this.states
       .filter((state) => state.initial)
       .map((state) => state.transition(signal))
-      .reduce((a, b) => a.concat(b), []);
+      .reduce((a, b) => a.concat(b), [])
+      .map((id) => `${this.id}.${id}`);
 
     let validTransitions = this.transitions
       .filter((transition) => transition.isValid(signal));
 
     return activeStates.length
-      ? activeStates.map((state) => state.id)
+      ? activeStates
       : validTransitions.length
         ? validTransitions.map((transition) => transition.target)
         : this.id;

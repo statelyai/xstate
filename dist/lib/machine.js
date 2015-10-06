@@ -14,6 +14,10 @@ var _state = require('./state');
 
 var _state2 = _interopRequireDefault(_state);
 
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
 var STATE_DELIMITER = '.';
 
 var Machine = (function () {
@@ -50,7 +54,7 @@ var Machine = (function () {
   }, {
     key: 'getState',
     value: function getState(id) {
-      var substates = _.isArray(id) ? id : id.split(STATE_DELIMITER);
+      var substates = _lodash2['default'].isArray(id) ? id : id.split(STATE_DELIMITER);
 
       var substate = this.states.find(function (state) {
         return state.id === substates[0];
