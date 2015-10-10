@@ -120,31 +120,31 @@ describe('machine', () => {
     });
   });
 
-  // describe('machine.transition()', () => {
-  //   it('should properly transition states based on string event', () => {
-  //     assert.deepEqual(
-  //       lightMachine.transition('green', 'TIMER'),
-  //       ['yellow']);
+  describe('machine.transition()', () => {
+    it('should properly transition states based on string event', () => {
+      assert.deepEqual(
+        lightMachine.transition('green', 'TIMER'),
+        ['yellow']);
 
-  //     assert.deepEqual(
-  //       lightMachine.transition('green', 'POWER_OUTAGE'),
-  //       ['red']);
-  //   });
+      assert.deepEqual(
+        lightMachine.transition('green', 'POWER_OUTAGE'),
+        ['red']);
+    });
 
-  //   it('should properly transition states based on signal-like object', () => {
-  //     let signal = {
-  //       event: 'TIMER'
-  //     };
+    // it('should properly transition states based on signal-like object', () => {
+    //   let signal = {
+    //     event: 'TIMER'
+    //   };
 
-  //     assert.deepEqual(
-  //       lightMachine.transition('yellow', signal),
-  //       ['red']);
-  //   });
+    //   assert.deepEqual(
+    //     lightMachine.transition('yellow', signal),
+    //     ['red']);
+    // });
 
-  //   it('should return initial state(s) without any arguments for transition()', () => {
-  //     assert.deepEqual(
-  //       lightMachine.transition(),
-  //       ['green']);
-  //   });
-  // });
+    // it('should return initial state(s) without any arguments for transition()', () => {
+    //   assert.deepEqual(
+    //     lightMachine.transition(),
+    //     ['green']);
+    // });
+  });
 });
