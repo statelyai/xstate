@@ -218,6 +218,10 @@ describe('machine', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.wait', 'TIMER'),
         ['green']);
+
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian', 'TIMER'),
+        ['green']);
     });
   });
 });
