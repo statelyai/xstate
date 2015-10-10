@@ -53,44 +53,39 @@ var State = (function () {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
       var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
+      var substateIds = this.getSubstateIds(fromState);
       var initialStates = this.states.filter(function (state) {
         return state.initial;
       });
-      var substateIds = this.getSubstateIds(fromState);
-      var substate = this.getState(substateIds[0]);
       var nextStates = [];
 
       if (substateIds.length) {
         nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal);
 
-        if (nextStates.length) {
-          return nextStates;
+        if (!nextStates.length) {
+          nextStates = this.transitions.filter(function (transition) {
+            return transition.isValid(signal);
+          }).map(function (transition) {
+            return transition.target;
+          });
         }
-      }
-
-      if (!initialStates.length && !substateIds.length) {
+      } else if (initialStates.length) {
+        nextStates = initialStates.map(function (state) {
+          return state.transition(null, signal);
+        }).reduce(_lodash2['default'].flatten).map(function (id) {
+          return _this.id + '.' + id;
+        });
+      } else if (signal) {
         nextStates = this.transitions.filter(function (transition) {
           return transition.isValid(signal);
         }).map(function (transition) {
           return transition.target;
         });
-
-        return nextStates.length ? nextStates : [this.id];
-      }
-
-      if (initialStates.length && !substateIds.length) {
-        return initialStates.map(function (state) {
-          return state.transition(null, signal);
-        }).reduce(_lodash2['default'].flatten).map(function (id) {
-          return _this.id + '.' + id;
-        });
-      }
-
-      if (!initialStates.length) {
+      } else {
         return [this.id];
       }
 
-      return substate.transition(substateIds.slice(1), signal);
+      return nextStates;
     }
   }, {
     key: 'getSubstateIds',

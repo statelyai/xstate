@@ -136,6 +136,18 @@ describe('machine', () => {
   });
 
   describe('machine.transition()', () => {
+    it('should properly execute a simple transition from state', () => {
+      assert.deepEqual(
+        lightMachine.getState('green').transition(null, 'TIMER'),
+        ['yellow']);
+    });
+
+    it('should implicitly transition from initial states', () => {
+      assert.deepEqual(
+        lightMachine.transition(null, 'TIMER'),
+        ['light-machine.yellow']);
+    })
+
     it('should properly transition states based on string event', () => {
       assert.deepEqual(
         lightMachine.transition('green', 'TIMER'),
@@ -190,6 +202,22 @@ describe('machine', () => {
       assert.deepEqual(
         lightMachine.transition('red', 'PED_COUNTDOWN'),
         ['red.pedestrian.wait']);
-    })
-  })
+    });
+
+    it('should transition to initial nested states with no signal', () => {
+      assert.deepEqual(
+        lightMachine.transition('red'),
+        ['red.pedestrian.walk']);
+
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian'),
+        ['pedestrian.walk']);
+    });
+
+    it('should bubble up signals that child states cannot handle', () => {
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian.wait', 'TIMER'),
+        ['green']);
+    });
+  });
 });

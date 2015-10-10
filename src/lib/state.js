@@ -31,43 +31,34 @@ export default class State {
   }
 
   transition(fromState = null, signal = null) {
+    let substateIds = this.getSubstateIds(fromState);
     let initialStates = this.states
       .filter((state) => state.initial);
-    let substateIds = this.getSubstateIds(fromState);
-    let substate = this.getState(substateIds[0]);
     let nextStates = [];
 
     if (substateIds.length) {
       nextStates = this.getState(substateIds[0])
         .transition(substateIds.slice(1), signal);
 
-      if (nextStates.length) {
-        return nextStates;
+      if (!nextStates.length) {
+        nextStates = this.transitions
+          .filter((transition) => transition.isValid(signal))
+          .map((transition) => transition.target);
       }
-    }
-
-    if (!initialStates.length && !substateIds.length) {
+    } else if (initialStates.length) {
+      nextStates = initialStates
+        .map((state) => state.transition(null, signal))
+        .reduce(_.flatten)
+        .map((id) => `${this.id}.${id}`);
+    } else if (signal) {
       nextStates = this.transitions
         .filter((transition) => transition.isValid(signal))
         .map((transition) => transition.target);
-
-      return nextStates.length
-        ? nextStates
-        : [this.id];
-    }
-
-    if (initialStates.length && !substateIds.length) {
-      return initialStates
-        .map((state) => state.transition(null, signal))
-        .reduce(_.flatten)
-        .map((id) => `${this.id}.${id}`)
-    }
-
-    if (!initialStates.length) {
+    } else {
       return [this.id];
     }
 
-    return substate.transition(substateIds.slice(1), signal);
+    return nextStates;
   }
 
   getSubstateIds(fromState) {
