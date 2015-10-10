@@ -184,6 +184,12 @@ describe('machine', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian', 'PED_COUNTDOWN'),
         ['pedestrian.wait']);
+    });
+
+    it('should transition from deep initial nested states', () => {
+      assert.deepEqual(
+        lightMachine.transition('red', 'PED_COUNTDOWN'),
+        ['red.pedestrian.wait']);
     })
   })
 });
