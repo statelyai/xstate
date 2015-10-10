@@ -36,6 +36,7 @@ describe('machine', () => {
   };
 
   let lightMachine = machine({
+    id: 'light-machine',
     states: [
       {
         id: 'green',
@@ -86,7 +87,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.fromState()', () => {
+  describe('machine.getState()', () => {
     it('should find a substate from a string state ID', () => {
       assert.equal(
         lightMachine.getState('yellow').id,
@@ -118,6 +119,20 @@ describe('machine', () => {
         lightMachine.getState('red.partially.fake'),
         false);
     });
+
+    it('should return the original state for falsey fromState values', () => {
+      assert.equal(
+        lightMachine.getState().id,
+        'light-machine');
+
+      assert.equal(
+        lightMachine.getState(null).id,
+        'light-machine');
+
+      assert.equal(
+        lightMachine.getState('red').getState().id,
+        'red');
+    });
   });
 
   describe('machine.transition()', () => {
@@ -131,20 +146,44 @@ describe('machine', () => {
         ['red']);
     });
 
-    // it('should properly transition states based on signal-like object', () => {
-    //   let signal = {
-    //     event: 'TIMER'
-    //   };
+    it('should transition from the original state when fromState is empty', () => {
+      assert.deepEqual(
+        lightMachine.getState('green').transition(null, 'TIMER'),
+        ['yellow']);
+    });
 
-    //   assert.deepEqual(
-    //     lightMachine.transition('yellow', signal),
-    //     ['red']);
-    // });
+    it('should properly transition states based on signal-like object', () => {
+      let signal = {
+        event: 'TIMER'
+      };
 
-    // it('should return initial state(s) without any arguments for transition()', () => {
-    //   assert.deepEqual(
-    //     lightMachine.transition(),
-    //     ['green']);
-    // });
+      assert.deepEqual(
+        lightMachine.transition('yellow', signal),
+        ['red']);
+    });
+
+    it('should return initial state(s) without any arguments for transition()', () => {
+      assert.deepEqual(
+        lightMachine.transition(),
+        ['light-machine.green']);
+
+      assert.deepEqual(
+        lightMachine.getState('green').transition(),
+        ['green']);
+    });
   });
+
+  describe('machine.transition() with nested states', () => {
+    it('should properly transition a nested state', () => {
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian.walk', 'PED_COUNTDOWN'),
+        ['wait']);
+    });
+
+    it('should transition from initial nested states', () => {
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian', 'PED_COUNTDOWN'),
+        ['pedestrian.wait']);
+    })
+  })
 });

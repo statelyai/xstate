@@ -31,38 +31,59 @@ export default class State {
   }
 
   transition(fromState = null, signal = null) {
+    let initialStates = this.states
+      .filter((state) => state.initial);
+    let substateIds = this.getSubstateIds(fromState);
+    let substate = this.getState(substateIds[0]);
     let nextStates = [];
 
-    fromState = this.getState(fromState);
+    if (substateIds.length) {
+      nextStates = this.getState(substateIds[0])
+        .transition(substateIds.slice(1), signal);
 
-    console.log('fromState = ', fromState.id);
-
-    if (fromState) {    
-      nextStates = fromState.transition(signal);
-    } else {    
-      nextStates = this.states
-        .filter((state) => state.initial)
-        .map((state) => state.transition(signal))
-        .reduce(_.flatten, []);
+      if (nextStates.length) {
+        return nextStates;
+      }
     }
 
-    if (!nextStates) {
+    if (!initialStates.length && !substateIds.length) {
       nextStates = this.transitions
         .filter((transition) => transition.isValid(signal))
         .map((transition) => transition.target);
+
+      return nextStates.length
+        ? nextStates
+        : [this.id];
     }
 
-    return nextStates.length
-      ? nextStates.map((id) => `${this.id}.${id}`)
-      : false;
+    if (initialStates.length && !substateIds.length) {
+      return initialStates
+        .map((state) => state.transition(null, signal))
+        .reduce(_.flatten)
+        .map((id) => `${this.id}.${id}`)
+    }
+
+    if (!initialStates.length) {
+      return [this.id];
+    }
+
+    return substate.transition(substateIds.slice(1), signal);
+  }
+
+  getSubstateIds(fromState) {
+    fromState = fromState || [];
+
+    return _.isArray(fromState)
+      ? fromState
+      : _.isString(fromState)
+        ? fromState.split(STATE_DELIMITER)
+        : false;
   }
 
   getState(substates) {
-    substates = _.isArray(substates)
-      ? substates
-      : substates.split(STATE_DELIMITER);
+    substates = this.getSubstateIds(substates);
 
-    if (!substates || !substates.length) {
+    if (!substates.length) {
       return this;
     }
 
@@ -70,7 +91,9 @@ export default class State {
       .find((state) => state.id === substates[0]);
 
     return substate
-      ? substate.getState(substates.slice(1))
+      ? substates.length > 1
+        ? substate.getState(substates.slice(1))
+        : substate
       : false;
   }
 }

@@ -53,40 +53,58 @@ var State = (function () {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
       var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
+      var initialStates = this.states.filter(function (state) {
+        return state.initial;
+      });
+      var substateIds = this.getSubstateIds(fromState);
+      var substate = this.getState(substateIds[0]);
       var nextStates = [];
 
-      fromState = this.getState(fromState);
+      if (substateIds.length) {
+        nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal);
 
-      console.log('fromState = ', fromState.id);
-
-      if (fromState) {
-        nextStates = fromState.transition(signal);
-      } else {
-        nextStates = this.states.filter(function (state) {
-          return state.initial;
-        }).map(function (state) {
-          return state.transition(signal);
-        }).reduce(_lodash2['default'].flatten, []);
+        if (nextStates.length) {
+          return nextStates;
+        }
       }
 
-      if (!nextStates) {
+      if (!initialStates.length && !substateIds.length) {
         nextStates = this.transitions.filter(function (transition) {
           return transition.isValid(signal);
         }).map(function (transition) {
           return transition.target;
         });
+
+        return nextStates.length ? nextStates : [this.id];
       }
 
-      return nextStates.length ? nextStates.map(function (id) {
-        return _this.id + '.' + id;
-      }) : false;
+      if (initialStates.length && !substateIds.length) {
+        return initialStates.map(function (state) {
+          return state.transition(null, signal);
+        }).reduce(_lodash2['default'].flatten).map(function (id) {
+          return _this.id + '.' + id;
+        });
+      }
+
+      if (!initialStates.length) {
+        return [this.id];
+      }
+
+      return substate.transition(substateIds.slice(1), signal);
+    }
+  }, {
+    key: 'getSubstateIds',
+    value: function getSubstateIds(fromState) {
+      fromState = fromState || [];
+
+      return _lodash2['default'].isArray(fromState) ? fromState : _lodash2['default'].isString(fromState) ? fromState.split(STATE_DELIMITER) : false;
     }
   }, {
     key: 'getState',
     value: function getState(substates) {
-      substates = _lodash2['default'].isArray(substates) ? substates : substates.split(STATE_DELIMITER);
+      substates = this.getSubstateIds(substates);
 
-      if (!substates || !substates.length) {
+      if (!substates.length) {
         return this;
       }
 
@@ -94,7 +112,7 @@ var State = (function () {
         return state.id === substates[0];
       });
 
-      return substate ? substate.getState(substates.slice(1)) : false;
+      return substate ? substates.length > 1 ? substate.getState(substates.slice(1)) : substate : false;
     }
   }]);
 
