@@ -1,5 +1,9 @@
 
 import Transition from './transition';
+import _ from 'lodash';
+
+const STATE_DELIMITER = '.';
+
 
 Array.prototype.log = function(msg) {
   console.log(msg, this);
@@ -9,7 +13,7 @@ Array.prototype.log = function(msg) {
 
 export default class State {
   constructor(data) {
-    this.id = data.id;
+    this.id = data.id || 'root';
 
     this.states = data.states
       ? data.states
@@ -26,29 +30,39 @@ export default class State {
     this.final = !!data.final;
   }
 
-  transition(signal = null) {
-    let activeStates = this.states
-      .filter((state) => state.initial)
-      .map((state) => state.transition(signal))
-      .reduce((a, b) => a.concat(b), [])
-      .map((id) => `${this.id}.${id}`);
+  transition(fromState = null, signal = null) {
+    let nextStates = [];
 
-    let validTransitions = this.transitions
-      .filter((transition) => transition.isValid(signal));
+    fromState = this.getState(fromState);
 
-    return activeStates.length
-      ? activeStates
-      : validTransitions.length
-        ? validTransitions.map((transition) => transition.target)
-        : this.id;
+    console.log('fromState = ', fromState.id);
+
+    if (fromState) {    
+      nextStates = fromState.transition(signal);
+    } else {    
+      nextStates = this.states
+        .filter((state) => state.initial)
+        .map((state) => state.transition(signal))
+        .reduce(_.flatten, []);
+    }
+
+    if (!nextStates) {
+      nextStates = this.transitions
+        .filter((transition) => transition.isValid(signal))
+        .map((transition) => transition.target);
+    }
+
+    return nextStates.length
+      ? nextStates.map((id) => `${this.id}.${id}`)
+      : false;
   }
 
   getState(substates) {
-    substates = _.isArray(id)
-      ? id
-      : id.split(STATE_DELIMITER);
+    substates = _.isArray(substates)
+      ? substates
+      : substates.split(STATE_DELIMITER);
 
-    if (!substates.length) {
+    if (!substates || !substates.length) {
       return this;
     }
 

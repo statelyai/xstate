@@ -14,6 +14,12 @@ var _transition = require('./transition');
 
 var _transition2 = _interopRequireDefault(_transition);
 
+var _lodash = require('lodash');
+
+var _lodash2 = _interopRequireDefault(_lodash);
+
+var STATE_DELIMITER = '.';
+
 Array.prototype.log = function (msg) {
   console.log(msg, this);
 
@@ -24,7 +30,7 @@ var State = (function () {
   function State(data) {
     _classCallCheck(this, State);
 
-    this.id = data.id;
+    this.id = data.id || 'root';
 
     this.states = data.states ? data.states.map(function (state) {
       return new State(state);
@@ -44,32 +50,43 @@ var State = (function () {
     value: function transition() {
       var _this = this;
 
-      var signal = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
+      var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
+      var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
-      var activeStates = this.states.filter(function (state) {
-        return state.initial;
-      }).map(function (state) {
-        return state.transition(signal);
-      }).reduce(function (a, b) {
-        return a.concat(b);
-      }, []).map(function (id) {
+      var nextStates = [];
+
+      fromState = this.getState(fromState);
+
+      console.log('fromState = ', fromState.id);
+
+      if (fromState) {
+        nextStates = fromState.transition(signal);
+      } else {
+        nextStates = this.states.filter(function (state) {
+          return state.initial;
+        }).map(function (state) {
+          return state.transition(signal);
+        }).reduce(_lodash2['default'].flatten, []);
+      }
+
+      if (!nextStates) {
+        nextStates = this.transitions.filter(function (transition) {
+          return transition.isValid(signal);
+        }).map(function (transition) {
+          return transition.target;
+        });
+      }
+
+      return nextStates.length ? nextStates.map(function (id) {
         return _this.id + '.' + id;
-      });
-
-      var validTransitions = this.transitions.filter(function (transition) {
-        return transition.isValid(signal);
-      });
-
-      return activeStates.length ? activeStates : validTransitions.length ? validTransitions.map(function (transition) {
-        return transition.target;
-      }) : this.id;
+      }) : false;
     }
   }, {
     key: 'getState',
     value: function getState(substates) {
-      substates = _.isArray(id) ? id : id.split(STATE_DELIMITER);
+      substates = _lodash2['default'].isArray(substates) ? substates : substates.split(STATE_DELIMITER);
 
-      if (!substates.length) {
+      if (!substates || !substates.length) {
         return this;
       }
 

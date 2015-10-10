@@ -86,31 +86,65 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.transition()', () => {
-    it('should properly transition states based on string event', () => {
-      assert.deepEqual(
-        lightMachine.transition('green', 'TIMER'),
-        ['yellow']);
+  describe('machine.fromState()', () => {
+    it('should find a substate from a string state ID', () => {
+      assert.equal(
+        lightMachine.getState('yellow').id,
+        'yellow');
 
-      assert.deepEqual(
-        lightMachine.transition('green', 'POWER_OUTAGE'),
-        ['red']);
+      assert.ok(
+        lightMachine.getState('yellow').constructor.name === 'State');
     });
 
-    it('should properly transition states based on signal-like object', () => {
-      let signal = {
-        event: 'TIMER'
-      };
+    it('should find a nested substate from a delimited string state ID', () => {
+      assert.equal(
+        lightMachine.getState('red.pedestrian.walk').id,
+        'walk');
 
-      assert.deepEqual(
-        lightMachine.transition('yellow', signal),
-        ['red']);
+      assert.ok(
+        lightMachine.getState('red.pedestrian.walk').constructor.name === 'State');
     });
 
-    it('should return initial state(s) without any arguments for transition()', () => {
-      assert.deepEqual(
-        lightMachine.transition(),
-        ['green']);
+    it('should return false for invalid substates', () => {
+      assert.equal(
+        lightMachine.getState('fake'),
+        false);
+
+      assert.equal(
+        lightMachine.getState('fake.nested.substate'),
+        false);
+
+      assert.equal(
+        lightMachine.getState('red.partially.fake'),
+        false);
     });
   });
+
+  // describe('machine.transition()', () => {
+  //   it('should properly transition states based on string event', () => {
+  //     assert.deepEqual(
+  //       lightMachine.transition('green', 'TIMER'),
+  //       ['yellow']);
+
+  //     assert.deepEqual(
+  //       lightMachine.transition('green', 'POWER_OUTAGE'),
+  //       ['red']);
+  //   });
+
+  //   it('should properly transition states based on signal-like object', () => {
+  //     let signal = {
+  //       event: 'TIMER'
+  //     };
+
+  //     assert.deepEqual(
+  //       lightMachine.transition('yellow', signal),
+  //       ['red']);
+  //   });
+
+  //   it('should return initial state(s) without any arguments for transition()', () => {
+  //     assert.deepEqual(
+  //       lightMachine.transition(),
+  //       ['green']);
+  //   });
+  // });
 });
