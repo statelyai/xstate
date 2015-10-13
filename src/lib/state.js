@@ -16,8 +16,8 @@ export default class State {
     this.id = data.id || 'root';
 
     this._id = parent
-      ? `${parent._id}.${this.id}`
-      : this.id;
+      ? parent._id.concat(this.id)
+      : [this.id];
 
     this.states = data.states
       ? data.states
@@ -46,6 +46,17 @@ export default class State {
     });
 
     return this;
+  }
+
+  relativeId(fromState = null) {
+    if (!fromState) {
+      return this.id;
+    }
+
+    return _.zip(this._id, fromState._id)
+      .filter(([a, b]) => !b)
+      .map(([a]) => a)
+      .join('.');
   }
 
   transition(fromState = null, signal = null) {

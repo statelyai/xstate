@@ -74,6 +74,30 @@ describe('machine', () => {
     ]
   });
 
+  let testMachine = machine({
+    states: [
+      {
+        id: 'a',
+        transitions: [
+          {
+            event: 'T',
+            target: 'b.b1'
+          }
+        ]
+      },
+      {
+        id: 'b',
+        states: [
+          {
+            id: 'b1'
+          }
+        ]
+      }
+    ]
+  });
+
+  console.log(testMachine.getState('b.b1').relativeId(testMachine));
+
   describe('machine.states', () => {
     it('should properly register machine states', () => {
       assert.deepEqual(
@@ -239,10 +263,21 @@ describe('machine', () => {
         []);
     });
 
-    // it('should transition to initial substates without any signal', () => {
-    //   assert.deepEqual(
-    //     lightMachine.)
-    // })
+    it('should transition to initial substates without any signal', () => {
+      assert.deepEqual(
+        lightMachine.transition('red'),
+        ['red.pedestrian.walk']);
+
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian'),
+        ['pedestrian.walk']);
+    });
+
+    it('should transition to nested states as target', () => {
+      assert.deepEqual(
+        testMachine.transition('a', 'T'),
+        ['b.b1']);
+    });
   });
 
   describe('machine.transition() with nested states', () => {
@@ -287,6 +322,10 @@ describe('machine', () => {
     it('should return no states for illegal transitions in nested states that composite states cannot handle', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.walk', 'FAKE'),
+        []);
+
+      assert.deepEqual(
+        lightMachine.transition('red', 'FAKE'),
         []);
     });
   });
