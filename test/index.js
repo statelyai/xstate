@@ -87,6 +87,59 @@ describe('machine', () => {
     });
   });
 
+  describe('machine.getInitialStates()', () => {
+    let testMachine = machine({
+      states: [
+        {
+          id: 'a',
+          initial: true
+        },
+        {
+          id: 'b',
+          initial: true
+        },
+        {
+          id: 'c',
+          initial: true,
+          states: [
+            {
+              id: 'c1',
+              initial: true
+            },
+            {
+              id: 'c2',
+              initial: true
+            },
+          ]
+        },
+      ]
+    });
+
+    it('should return an array of all initial states', () => {
+      assert.deepEqual(
+        lightMachine.getInitialStates(),
+        ['light-machine.green']);
+    });
+
+    it('should recursively return an array of all initial states', () => {
+
+      assert.deepEqual(
+        testMachine.getInitialStates(),
+        [
+          'root.a',
+          'root.b',
+          'root.c.c1',
+          'root.c.c2'
+        ]);
+    });
+
+    it('should return initial states from a specified state', () => {
+      assert.deepEqual(
+        testMachine.getState('c').getInitialStates(),
+        ['c.c1', 'c.c2']);
+    });
+  });
+
   describe('machine.getState()', () => {
     it('should find a substate from a string state ID', () => {
       assert.equal(

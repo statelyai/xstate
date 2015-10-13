@@ -27,6 +27,8 @@ var Machine = (function (_State) {
     _classCallCheck(this, Machine);
 
     _get(Object.getPrototypeOf(Machine.prototype), 'constructor', this).call(this, data);
+
+    this.mapStateRefs();
   }
 
   return Machine;

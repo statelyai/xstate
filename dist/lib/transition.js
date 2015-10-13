@@ -19,7 +19,7 @@ var _signal = require('./signal');
 var _signal2 = _interopRequireDefault(_signal);
 
 var Transition = (function () {
-  function Transition(data) {
+  function Transition(data, fromState) {
     _classCallCheck(this, Transition);
 
     this.event = data.event;

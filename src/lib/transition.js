@@ -3,7 +3,7 @@ import _ from 'lodash';
 import Signal from './signal';
 
 export default class Transition {
-  constructor(data) {
+  constructor(data, fromState) {
     this.event = data.event;
 
     this.target = data.target;

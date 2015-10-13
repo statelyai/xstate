@@ -52,9 +52,26 @@ var State = (function () {
   }
 
   _createClass(State, [{
+    key: 'mapStateRefs',
+    value: function mapStateRefs() {
+      var _this2 = this;
+
+      this.states = this.states.map(function (state) {
+        state.transitions = state.transitions.map(function (transition) {
+          transition.targetState = _this2.getState(transition.target);
+
+          return transition;
+        });
+
+        return state.mapStateRefs();
+      });
+
+      return this;
+    }
+  }, {
     key: 'transition',
     value: function transition() {
-      var _this2 = this;
+      var _this3 = this;
 
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
       var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
@@ -74,42 +91,53 @@ var State = (function () {
           }).map(function (transition) {
             return transition.target;
           });
-        } else {
-          // nextStates = nextStates
-          //   .map((id) => this.getState(id))
-          //   .filter(_.identity)
-          //   .map((state) => state.getInitialStates())
-          //   .reduce((a, b) => a.concat(b), []);
-        }
-      } else if (initialStates.length) {
-          nextStates = initialStates.map(function (state) {
-            return state.transition(null, signal);
+        } else if (!substateIds.slice(1)) {
+
+          nextStates = nextStates.map(function (id) {
+            return _this3.getState(id);
+          }).filter(_lodash2['default'].identity).map(function (state) {
+            return state.getInitialStates();
           }).reduce(function (a, b) {
             return a.concat(b);
-          }).map(function (id) {
-            return _this2.id + '.' + id;
-          });
-        } else if (signal) {
-          nextStates = this.transitions.filter(function (transition) {
-            return transition.isValid(signal);
-          }).map(function (transition) {
-            return transition.target;
-          });
-        } else {
-          return initialStates.concat(this.id);
+          }, []);
         }
+      } else if (initialStates.length) {
+        nextStates = initialStates.map(function (state) {
+          return state.transition(null, signal);
+        }).reduce(function (a, b) {
+          return a.concat(b);
+        }).map(function (id) {
+          return _this3.id + '.' + id;
+        });
+      } else if (signal) {
+        nextStates = this.transitions.filter(function (transition) {
+          return transition.isValid(signal);
+        }).map(function (transition) {
+          return transition.targetState.getInitialStates();
+        }).reduce(function (a, b) {
+          return a.concat(b);
+        }, []);
+      } else {
+        nextStates = initialStates.concat(this.id);
+      }
 
       return nextStates;
     }
   }, {
     key: 'getInitialStates',
     value: function getInitialStates() {
+      var _this4 = this;
+
       var initialStates = this.states.filter(function (state) {
         return state.initial;
       });
 
       return initialStates.length ? initialStates.map(function (state) {
-        return state._id;
+        return state.getInitialStates();
+      }).reduce(function (a, b) {
+        return a.concat(b);
+      }, []).map(function (id) {
+        return _this4.id + '.' + id;
       }) : [this.id];
     }
   }, {

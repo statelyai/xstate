@@ -34,6 +34,20 @@ export default class State {
     this.final = !!data.final;
   }
 
+  mapStateRefs() {
+    this.states = this.states.map((state) => {
+      state.transitions = state.transitions.map((transition) => {
+        transition.targetState = this.getState(transition.target);
+
+        return transition;
+      });
+
+      return state.mapStateRefs();
+    });
+
+    return this;
+  }
+
   transition(fromState = null, signal = null) {
     let substateIds = this.getSubstateIds(fromState);
     let initialStates = this.states
@@ -48,12 +62,13 @@ export default class State {
         nextStates = this.transitions
           .filter((transition) => transition.isValid(signal))
           .map((transition) => transition.target);
-      } else {
-        // nextStates = nextStates
-        //   .map((id) => this.getState(id))
-        //   .filter(_.identity)
-        //   .map((state) => state.getInitialStates())
-        //   .reduce((a, b) => a.concat(b), []);
+      } else if (!substateIds.slice(1)) {
+
+        nextStates = nextStates
+          .map((id) => this.getState(id))
+          .filter(_.identity)
+          .map((state) => state.getInitialStates())
+          .reduce((a, b) => a.concat(b), []);
       }
     } else if (initialStates.length) {
       nextStates = initialStates
@@ -63,9 +78,10 @@ export default class State {
     } else if (signal) {
       nextStates = this.transitions
         .filter((transition) => transition.isValid(signal))
-        .map((transition) => transition.target);
+        .map((transition) => transition.targetState.getInitialStates())
+        .reduce((a, b) => a.concat(b), [])
     } else {
-      return initialStates.concat(this.id);
+      nextStates = initialStates.concat(this.id);
     }
 
     return nextStates;
@@ -76,7 +92,9 @@ export default class State {
       .filter((state) => state.initial);
 
     return initialStates.length
-      ? initialStates.map((state) => state._id)
+      ? initialStates.map((state) => state.getInitialStates())
+        .reduce((a,b) => a.concat(b), [])
+        .map((id) => this.id + '.' + id)
       : [this.id];
   }
 
