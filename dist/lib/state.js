@@ -28,12 +28,18 @@ Array.prototype.log = function (msg) {
 
 var State = (function () {
   function State(data) {
+    var _this = this;
+
+    var parent = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+
     _classCallCheck(this, State);
 
     this.id = data.id || 'root';
 
+    this._id = parent ? parent._id + '.' + this.id : this.id;
+
     this.states = data.states ? data.states.map(function (state) {
-      return new State(state);
+      return new State(state, _this);
     }) : [];
 
     this.transitions = data.transitions ? data.transitions.map(function (transition) {
@@ -48,7 +54,7 @@ var State = (function () {
   _createClass(State, [{
     key: 'transition',
     value: function transition() {
-      var _this = this;
+      var _this2 = this;
 
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
       var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
@@ -68,24 +74,43 @@ var State = (function () {
           }).map(function (transition) {
             return transition.target;
           });
+        } else {
+          // nextStates = nextStates
+          //   .map((id) => this.getState(id))
+          //   .filter(_.identity)
+          //   .map((state) => state.getInitialStates())
+          //   .reduce((a, b) => a.concat(b), []);
         }
       } else if (initialStates.length) {
-        nextStates = initialStates.map(function (state) {
-          return state.transition(null, signal);
-        }).reduce(_lodash2['default'].flatten).map(function (id) {
-          return _this.id + '.' + id;
-        });
-      } else if (signal) {
-        nextStates = this.transitions.filter(function (transition) {
-          return transition.isValid(signal);
-        }).map(function (transition) {
-          return transition.target;
-        });
-      } else {
-        return [this.id];
-      }
+          nextStates = initialStates.map(function (state) {
+            return state.transition(null, signal);
+          }).reduce(function (a, b) {
+            return a.concat(b);
+          }).map(function (id) {
+            return _this2.id + '.' + id;
+          });
+        } else if (signal) {
+          nextStates = this.transitions.filter(function (transition) {
+            return transition.isValid(signal);
+          }).map(function (transition) {
+            return transition.target;
+          });
+        } else {
+          return initialStates.concat(this.id);
+        }
 
       return nextStates;
+    }
+  }, {
+    key: 'getInitialStates',
+    value: function getInitialStates() {
+      var initialStates = this.states.filter(function (state) {
+        return state.initial;
+      });
+
+      return initialStates.length ? initialStates.map(function (state) {
+        return state._id;
+      }) : [this.id];
     }
   }, {
     key: 'getSubstateIds',

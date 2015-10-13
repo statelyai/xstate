@@ -152,10 +152,6 @@ describe('machine', () => {
       assert.deepEqual(
         lightMachine.transition('green', 'TIMER'),
         ['yellow']);
-
-      assert.deepEqual(
-        lightMachine.transition('green', 'POWER_OUTAGE'),
-        ['red']);
     });
 
     it('should transition from the original state when fromState is empty', () => {
@@ -170,8 +166,8 @@ describe('machine', () => {
       };
 
       assert.deepEqual(
-        lightMachine.transition('yellow', signal),
-        ['red']);
+        lightMachine.transition('green', signal),
+        ['yellow']);
     });
 
     it('should return initial state(s) without any arguments for transition()', () => {
@@ -183,6 +179,17 @@ describe('machine', () => {
         lightMachine.getState('green').transition(),
         ['green']);
     });
+
+    it('should return no states for illegal transitions', () => {
+      assert.deepEqual(
+        lightMachine.transition('green', 'FAKE'),
+        []);
+    });
+
+    // it('should transition to initial substates without any signal', () => {
+    //   assert.deepEqual(
+    //     lightMachine.)
+    // })
   });
 
   describe('machine.transition() with nested states', () => {
@@ -214,7 +221,7 @@ describe('machine', () => {
         ['pedestrian.walk']);
     });
 
-    it('should bubble up signals that child states cannot handle', () => {
+    it('should bubble up signals that nested states cannot handle', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.wait', 'TIMER'),
         ['green']);
@@ -222,6 +229,59 @@ describe('machine', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian', 'TIMER'),
         ['green']);
+    });
+
+    it('should return no states for illegal transitions in nested states that composite states cannot handle', () => {
+      assert.deepEqual(
+        lightMachine.transition('red.pedestrian.walk', 'FAKE'),
+        []);
+    });
+  });
+
+  describe('parallel states', () => {
+    let parallelMachine = machine({
+      id: 'parallel-machine',
+      states: [
+        {
+          id: 'a',
+          initial: true
+        },
+        {
+          id: 'b',
+          initial: true,
+          transitions: [
+            {
+              event: 'T',
+              target: 'c'
+            }
+          ]
+        },
+        {
+          id: 'c',
+          states: [
+            {
+              id: 'c1',
+              initial: true
+            },
+            {
+              id: 'c2',
+              initial: true
+            }
+          ]
+        }
+      ]
+    });
+
+    it('should return all initial (parallel) states without any arguments for transition()', () => {
+      assert.deepEqual(
+        parallelMachine.transition(),
+        ['parallel-machine.a', 'parallel-machine.b']);
+    });
+
+    it('should return all initial (parallel) nested states when transitioning to a state', () => {
+      assert.deepEqual(
+        parallelMachine.transition('b', 'T'),
+        ['c.c1', 'c.c2']);
     });
   });
 });

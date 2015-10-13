@@ -12,12 +12,16 @@ Array.prototype.log = function(msg) {
 }
 
 export default class State {
-  constructor(data) {
+  constructor(data, parent = null) {
     this.id = data.id || 'root';
+
+    this._id = parent
+      ? `${parent._id}.${this.id}`
+      : this.id;
 
     this.states = data.states
       ? data.states
-        .map((state) => new State(state))
+        .map((state) => new State(state, this))
       : [];
 
     this.transitions = data.transitions
@@ -44,21 +48,36 @@ export default class State {
         nextStates = this.transitions
           .filter((transition) => transition.isValid(signal))
           .map((transition) => transition.target);
+      } else {
+        // nextStates = nextStates
+        //   .map((id) => this.getState(id))
+        //   .filter(_.identity)
+        //   .map((state) => state.getInitialStates())
+        //   .reduce((a, b) => a.concat(b), []);
       }
     } else if (initialStates.length) {
       nextStates = initialStates
         .map((state) => state.transition(null, signal))
-        .reduce(_.flatten)
+        .reduce((a, b) => a.concat(b))
         .map((id) => `${this.id}.${id}`);
     } else if (signal) {
       nextStates = this.transitions
         .filter((transition) => transition.isValid(signal))
         .map((transition) => transition.target);
     } else {
-      return [this.id];
+      return initialStates.concat(this.id);
     }
 
     return nextStates;
+  }
+
+  getInitialStates() {
+    let initialStates = this.states
+      .filter((state) => state.initial);
+
+    return initialStates.length
+      ? initialStates.map((state) => state._id)
+      : [this.id];
   }
 
   getSubstateIds(fromState) {
