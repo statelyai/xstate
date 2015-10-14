@@ -53,10 +53,7 @@ export default class State {
       return this.id;
     }
 
-    return _.zip(this._id, fromState._id)
-      .filter(([a, b]) => !b)
-      .map(([a]) => a)
-      .join('.');
+    return this._id.slice(fromState._id.length - 1).join('.');
   }
 
   transition(fromState = null, signal = null) {
@@ -70,32 +67,43 @@ export default class State {
         .transition(substateIds.slice(1), signal);
 
       if (!nextStates.length) {
-        nextStates = this.transitions
+        return this.transitions
           .filter((transition) => transition.isValid(signal))
-          .map((transition) => transition.target);
+          .map((transition) => transition.targetState)
+          .map((state) => state.relativeId(this))
       } else if (!substateIds.slice(1)) {
 
-        nextStates = nextStates
+        return nextStates
           .map((id) => this.getState(id))
-          .filter(_.identity)
           .map((state) => state.getInitialStates())
           .reduce((a, b) => a.concat(b), []);
       }
     } else if (initialStates.length) {
-      nextStates = initialStates
+      return initialStates
         .map((state) => state.transition(null, signal))
         .reduce((a, b) => a.concat(b))
         .map((id) => `${this.id}.${id}`);
     } else if (signal) {
-      nextStates = this.transitions
+      return this.transitions
         .filter((transition) => transition.isValid(signal))
-        .map((transition) => transition.targetState.getInitialStates())
+        .map((transition) => transition.targetState.initialStates())
         .reduce((a, b) => a.concat(b), [])
+        .map((state) => state.relativeId(this))
     } else {
-      nextStates = initialStates.concat(this.id);
+      return this.initialStates().map(s=>s.id);
     }
 
     return nextStates;
+  }
+
+  initialStates() {
+    let initialStates = this.states
+      .filter((state) => state.initial);
+
+    return initialStates.length
+      ? initialStates.map((state) => state.initialStates())
+        .reduce((a,b) => a.concat(b), [])
+      : [this];
   }
 
   getInitialStates() {

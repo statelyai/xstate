@@ -96,8 +96,6 @@ describe('machine', () => {
     ]
   });
 
-  console.log(testMachine.getState('b.b1').relativeId(testMachine));
-
   describe('machine.states', () => {
     it('should properly register machine states', () => {
       assert.deepEqual(
@@ -111,7 +109,7 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.getInitialStates()', () => {
+  xdescribe('machine.getInitialStates()', () => {
     let testMachine = machine({
       states: [
         {

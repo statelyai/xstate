@@ -4,8 +4,6 @@ Object.defineProperty(exports, '__esModule', {
   value: true
 });
 
-var _slicedToArray = (function () { function sliceIterator(arr, i) { var _arr = []; var _n = true; var _d = false; var _e = undefined; try { for (var _i = arr[Symbol.iterator](), _s; !(_n = (_s = _i.next()).done); _n = true) { _arr.push(_s.value); if (i && _arr.length === i) break; } } catch (err) { _d = true; _e = err; } finally { try { if (!_n && _i['return']) _i['return'](); } finally { if (_d) throw _e; } } return _arr; } return function (arr, i) { if (Array.isArray(arr)) { return arr; } else if (Symbol.iterator in Object(arr)) { return sliceIterator(arr, i); } else { throw new TypeError('Invalid attempt to destructure non-iterable instance'); } }; })();
-
 var _createClass = (function () { function defineProperties(target, props) { for (var i = 0; i < props.length; i++) { var descriptor = props[i]; descriptor.enumerable = descriptor.enumerable || false; descriptor.configurable = true; if ('value' in descriptor) descriptor.writable = true; Object.defineProperty(target, descriptor.key, descriptor); } } return function (Constructor, protoProps, staticProps) { if (protoProps) defineProperties(Constructor.prototype, protoProps); if (staticProps) defineProperties(Constructor, staticProps); return Constructor; }; })();
 
 function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
@@ -79,18 +77,7 @@ var State = (function () {
         return this.id;
       }
 
-      return _lodash2['default'].zip(this._id, fromState._id).filter(function (_ref) {
-        var _ref2 = _slicedToArray(_ref, 2);
-
-        var a = _ref2[0];
-        var b = _ref2[1];
-        return !b;
-      }).map(function (_ref3) {
-        var _ref32 = _slicedToArray(_ref3, 1);
-
-        var a = _ref32[0];
-        return a;
-      }).join('.');
+      return this._id.slice(fromState._id.length - 1).join('.');
     }
   }, {
     key: 'transition',
@@ -110,23 +97,25 @@ var State = (function () {
         nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal);
 
         if (!nextStates.length) {
-          nextStates = this.transitions.filter(function (transition) {
+          return this.transitions.filter(function (transition) {
             return transition.isValid(signal);
           }).map(function (transition) {
-            return transition.target;
+            return transition.targetState;
+          }).map(function (state) {
+            return state.relativeId(_this3);
           });
         } else if (!substateIds.slice(1)) {
 
-          nextStates = nextStates.map(function (id) {
+          return nextStates.map(function (id) {
             return _this3.getState(id);
-          }).filter(_lodash2['default'].identity).map(function (state) {
+          }).map(function (state) {
             return state.getInitialStates();
           }).reduce(function (a, b) {
             return a.concat(b);
           }, []);
         }
       } else if (initialStates.length) {
-        nextStates = initialStates.map(function (state) {
+        return initialStates.map(function (state) {
           return state.transition(null, signal);
         }).reduce(function (a, b) {
           return a.concat(b);
@@ -134,18 +123,35 @@ var State = (function () {
           return _this3.id + '.' + id;
         });
       } else if (signal) {
-        nextStates = this.transitions.filter(function (transition) {
+        return this.transitions.filter(function (transition) {
           return transition.isValid(signal);
         }).map(function (transition) {
-          return transition.targetState.getInitialStates();
+          return transition.targetState.initialStates();
         }).reduce(function (a, b) {
           return a.concat(b);
-        }, []);
+        }, []).map(function (state) {
+          return state.relativeId(_this3);
+        });
       } else {
-        nextStates = initialStates.concat(this.id);
+        return this.initialStates().map(function (s) {
+          return s.id;
+        });
       }
 
       return nextStates;
+    }
+  }, {
+    key: 'initialStates',
+    value: function initialStates() {
+      var initialStates = this.states.filter(function (state) {
+        return state.initial;
+      });
+
+      return initialStates.length ? initialStates.map(function (state) {
+        return state.initialStates();
+      }).reduce(function (a, b) {
+        return a.concat(b);
+      }, []) : [this];
     }
   }, {
     key: 'getInitialStates',
