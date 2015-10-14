@@ -73,11 +73,7 @@ var State = (function () {
     value: function relativeId() {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
-      if (!fromState) {
-        return this.id;
-      }
-
-      return this._id.slice(fromState._id.length - 1).join('.');
+      return !fromState ? this._id : this._id.slice(fromState._id.length - 1).join('.');
     }
   }, {
     key: 'transition',
@@ -109,10 +105,12 @@ var State = (function () {
           return nextStates.map(function (id) {
             return _this3.getState(id);
           }).map(function (state) {
-            return state.getInitialStates();
+            return state.initialStates();
           }).reduce(function (a, b) {
             return a.concat(b);
-          }, []);
+          }, []).map(function (state) {
+            return state.relativeId(_this3);
+          });
         }
       } else if (initialStates.length) {
         return initialStates.map(function (state) {
@@ -152,23 +150,6 @@ var State = (function () {
       }).reduce(function (a, b) {
         return a.concat(b);
       }, []) : [this];
-    }
-  }, {
-    key: 'getInitialStates',
-    value: function getInitialStates() {
-      var _this4 = this;
-
-      var initialStates = this.states.filter(function (state) {
-        return state.initial;
-      });
-
-      return initialStates.length ? initialStates.map(function (state) {
-        return state.getInitialStates();
-      }).reduce(function (a, b) {
-        return a.concat(b);
-      }, []).map(function (id) {
-        return _this4.id + '.' + id;
-      }) : [this.id];
     }
   }, {
     key: 'getSubstateIds',
