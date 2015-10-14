@@ -39,21 +39,19 @@ export default class State {
       state.transitions = state.transitions.map((transition) => {
         transition.targetState = this.getState(transition.target);
 
-        return transition;
+        return Object.freeze(transition);
       });
 
       return state.mapStateRefs();
     });
 
-    return this;
+    return Object.freeze(this);
   }
 
-  relativeId(fromState = null) {
-    return !fromState
-      ? this._id
-      : this._id
-        .slice(fromState._id.length - 1)
-        .join('.');
+  relativeId(fromState = null) {    
+    return this._id
+      .slice(fromState && fromState._id.length - 1)
+      .join('.');
   }
 
   transition(fromState = null, signal = null) {

@@ -60,20 +60,20 @@ var State = (function () {
         state.transitions = state.transitions.map(function (transition) {
           transition.targetState = _this2.getState(transition.target);
 
-          return transition;
+          return Object.freeze(transition);
         });
 
         return state.mapStateRefs();
       });
 
-      return this;
+      return Object.freeze(this);
     }
   }, {
     key: 'relativeId',
     value: function relativeId() {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
-      return !fromState ? this._id : this._id.slice(fromState._id.length - 1).join('.');
+      return this._id.slice(fromState && fromState._id.length - 1).join('.');
     }
   }, {
     key: 'transition',
