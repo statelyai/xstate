@@ -1,7 +1,7 @@
 
 import assert from 'assert';
 import should from 'should';
-import machine from '../dist/index';
+import machine from '../dist/nfa';
 import _ from 'lodash';
 
 describe('machine', () => {
