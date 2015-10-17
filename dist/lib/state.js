@@ -73,7 +73,7 @@ var State = (function () {
     value: function relativeId() {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
-      return this._id.slice(fromState && fromState._id.length - 1).join('.');
+      return _lodash2['default'].difference(this._id, fromState._id).join('.');
     }
   }, {
     key: 'transition',
@@ -97,8 +97,6 @@ var State = (function () {
             return transition.isValid(signal);
           }).map(function (transition) {
             return transition.targetState;
-          }).map(function (state) {
-            return state.relativeId(_this3);
           });
         } else if (!substateIds.slice(1)) {
 
@@ -108,18 +106,14 @@ var State = (function () {
             return state.initialStates();
           }).reduce(function (a, b) {
             return a.concat(b);
-          }, []).map(function (state) {
-            return state.relativeId(_this3);
-          });
+          }, []);
         }
       } else if (initialStates.length) {
         return initialStates.map(function (state) {
           return state.transition(null, signal);
         }).reduce(function (a, b) {
           return a.concat(b);
-        }).map(function (id) {
-          return _this3.id + '.' + id;
-        });
+        }, []);
       } else if (signal) {
         return this.transitions.filter(function (transition) {
           return transition.isValid(signal);
@@ -127,13 +121,9 @@ var State = (function () {
           return transition.targetState.initialStates();
         }).reduce(function (a, b) {
           return a.concat(b);
-        }, []).map(function (state) {
-          return state.relativeId(_this3);
-        });
+        }, []);
       } else {
-        return this.initialStates().map(function (s) {
-          return s.id;
-        });
+        return this.initialStates();
       }
 
       return nextStates;
@@ -154,6 +144,12 @@ var State = (function () {
   }, {
     key: 'getSubstateIds',
     value: function getSubstateIds(fromState) {
+      if (!fromState) return [];
+
+      if (fromState instanceof State) {
+        return fromState._id;
+      }
+
       fromState = fromState || [];
 
       return _lodash2['default'].isArray(fromState) ? fromState : _lodash2['default'].isString(fromState) ? fromState.split(STATE_DELIMITER) : false;
@@ -161,6 +157,10 @@ var State = (function () {
   }, {
     key: 'getState',
     value: function getState(substates) {
+      if (substates instanceof State) {
+        return substates;
+      }
+
       substates = this.getSubstateIds(substates);
 
       if (!substates.length) {

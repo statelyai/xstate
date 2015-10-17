@@ -48,10 +48,8 @@ export default class State {
     return Object.freeze(this);
   }
 
-  relativeId(fromState = null) {    
-    return this._id
-      .slice(fromState && fromState._id.length - 1)
-      .join('.');
+  relativeId(fromState = null) {
+    return _.difference(this._id, fromState._id).join('.');
   }
 
   transition(fromState = null, signal = null) {
@@ -68,28 +66,24 @@ export default class State {
         return this.transitions
           .filter((transition) => transition.isValid(signal))
           .map((transition) => transition.targetState)
-          .map((state) => state.relativeId(this))
       } else if (!substateIds.slice(1)) {
 
         return nextStates
           .map((id) => this.getState(id))
           .map((state) => state.initialStates())
           .reduce((a, b) => a.concat(b), [])
-          .map((state) => state.relativeId(this))
       }
     } else if (initialStates.length) {
       return initialStates
         .map((state) => state.transition(null, signal))
-        .reduce((a, b) => a.concat(b))
-        .map((id) => `${this.id}.${id}`);
+        .reduce((a, b) => a.concat(b), [])
     } else if (signal) {
       return this.transitions
         .filter((transition) => transition.isValid(signal))
         .map((transition) => transition.targetState.initialStates())
         .reduce((a, b) => a.concat(b), [])
-        .map((state) => state.relativeId(this))
     } else {
-      return this.initialStates().map(s=>s.id);
+      return this.initialStates();
     }
 
     return nextStates;
@@ -106,6 +100,12 @@ export default class State {
   }
 
   getSubstateIds(fromState) {
+    if (!fromState) return [];
+
+    if (fromState instanceof State) {
+      return fromState._id;
+    }
+
     fromState = fromState || [];
 
     return _.isArray(fromState)
@@ -116,6 +116,10 @@ export default class State {
   }
 
   getState(substates) {
+    if (substates instanceof State) {
+      return substates;
+    }
+
     substates = this.getSubstateIds(substates);
 
     if (!substates.length) {
