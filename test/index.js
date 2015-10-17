@@ -158,12 +158,6 @@ describe('machine', () => {
   });
 
   describe('machine.transition()', () => {
-    it('should properly execute a simple transition from state', () => {
-      assert.deepEqual(
-        lightMachine.getState('green').transition(null, 'TIMER')
-          .map(s=>s.id),
-        ['yellow']);
-    });
 
     it('should implicitly transition from initial states', () => {
       assert.deepEqual(
@@ -174,13 +168,6 @@ describe('machine', () => {
     it('should properly transition states based on string event', () => {
       assert.deepEqual(
         lightMachine.transition('green', 'TIMER'),
-        ['yellow']);
-    });
-
-    it('should transition from the original state when fromState is empty', () => {
-      assert.deepEqual(
-        lightMachine.getState('green').transition(null, 'TIMER')
-          .map(s=>s.id),
         ['yellow']);
     });
 

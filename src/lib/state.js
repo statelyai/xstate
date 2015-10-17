@@ -52,7 +52,7 @@ export default class State {
     return _.difference(this._id, fromState._id).join('.');
   }
 
-  transition(fromState = null, signal = null) {
+  transition(fromState = null, signal = null, returnFlag = true) {
     let substateIds = this.getSubstateIds(fromState);
     let initialStates = this.states
       .filter((state) => state.initial);
@@ -60,33 +60,30 @@ export default class State {
 
     if (substateIds.length) {
       nextStates = this.getState(substateIds[0])
-        .transition(substateIds.slice(1), signal);
+        .transition(substateIds.slice(1), signal, false);
 
       if (!nextStates.length) {
-        return this.transitions
+        nextStates = this.transitions
           .filter((transition) => transition.isValid(signal))
-          .map((transition) => transition.targetState)
-      } else if (!substateIds.slice(1)) {
-
-        return nextStates
-          .map((id) => this.getState(id))
-          .map((state) => state.initialStates())
+          .map((transition) => transition.targetState.initialStates())
           .reduce((a, b) => a.concat(b), [])
       }
     } else if (initialStates.length) {
-      return initialStates
-        .map((state) => state.transition(null, signal))
+      nextStates = initialStates
+        .map((state) => state.transition(null, signal, false))
         .reduce((a, b) => a.concat(b), [])
     } else if (signal) {
-      return this.transitions
+      nextStates = this.transitions
         .filter((transition) => transition.isValid(signal))
         .map((transition) => transition.targetState.initialStates())
         .reduce((a, b) => a.concat(b), [])
     } else {
-      return this.initialStates();
+      nextStates = this.initialStates();
     }
 
-    return nextStates;
+    return returnFlag
+      ? nextStates.map((state) => state.relativeId(this))
+      : nextStates;
   }
 
   initialStates() {

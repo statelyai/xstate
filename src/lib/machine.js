@@ -9,11 +9,5 @@ export default class Machine extends State {
 
     this.mapStateRefs();
   }
-
-  transition(fromState = null, signal = null) {
-    let states = super.transition(fromState, signal);
-
-    return states.map((state) => state.relativeId(this));
-  }
 }
 

@@ -78,10 +78,12 @@ var State = (function () {
   }, {
     key: 'transition',
     value: function transition() {
+      var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
+
       var _this3 = this;
 
-      var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
       var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+      var returnFlag = arguments.length <= 2 || arguments[2] === undefined ? true : arguments[2];
 
       var substateIds = this.getSubstateIds(fromState);
       var initialStates = this.states.filter(function (state) {
@@ -90,32 +92,25 @@ var State = (function () {
       var nextStates = [];
 
       if (substateIds.length) {
-        nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal);
+        nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal, false);
 
         if (!nextStates.length) {
-          return this.transitions.filter(function (transition) {
+          nextStates = this.transitions.filter(function (transition) {
             return transition.isValid(signal);
           }).map(function (transition) {
-            return transition.targetState;
-          });
-        } else if (!substateIds.slice(1)) {
-
-          return nextStates.map(function (id) {
-            return _this3.getState(id);
-          }).map(function (state) {
-            return state.initialStates();
+            return transition.targetState.initialStates();
           }).reduce(function (a, b) {
             return a.concat(b);
           }, []);
         }
       } else if (initialStates.length) {
-        return initialStates.map(function (state) {
-          return state.transition(null, signal);
+        nextStates = initialStates.map(function (state) {
+          return state.transition(null, signal, false);
         }).reduce(function (a, b) {
           return a.concat(b);
         }, []);
       } else if (signal) {
-        return this.transitions.filter(function (transition) {
+        nextStates = this.transitions.filter(function (transition) {
           return transition.isValid(signal);
         }).map(function (transition) {
           return transition.targetState.initialStates();
@@ -123,10 +118,12 @@ var State = (function () {
           return a.concat(b);
         }, []);
       } else {
-        return this.initialStates();
+        nextStates = this.initialStates();
       }
 
-      return nextStates;
+      return returnFlag ? nextStates.map(function (state) {
+        return state.relativeId(_this3);
+      }) : nextStates;
     }
   }, {
     key: 'initialStates',
