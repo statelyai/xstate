@@ -66,9 +66,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _dfa2 = _interopRequireDefault(_dfa);
 
-	var _nfa = __webpack_require__(29);
+	var _nfa = __webpack_require__(26);
 
-	var _stateReducer = __webpack_require__(30);
+	var _stateReducer = __webpack_require__(28);
 
 	var _stateReducer2 = _interopRequireDefault(_stateReducer);
 
@@ -479,7 +479,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var _state = __webpack_require__(27);
+	var _state = __webpack_require__(29);
 
 	var _state2 = _interopRequireDefault(_state);
 
@@ -883,12 +883,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _libMachine = __webpack_require__(14);
+	var _machine = __webpack_require__(14);
 
-	var _libMachine2 = _interopRequireDefault(_libMachine);
+	var _machine2 = _interopRequireDefault(_machine);
 
 	function machine(data) {
-	  return new _libMachine2['default'](data, {
+	  return new _machine2['default'](data, {
 	    deterministic: true
 	  });
 	}
@@ -897,6 +897,31 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 26 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+	exports['default'] = machine;
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	var _machine = __webpack_require__(14);
+
+	var _machine2 = _interopRequireDefault(_machine);
+
+	function machine(data) {
+	  return new _machine2['default'](data, {
+	    deterministic: false
+	  });
+	}
+
+	module.exports = exports['default'];
+
+/***/ },
+/* 27 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -925,7 +950,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	  }
 
 	  if ((0, _lodashLangIsString2['default'])(data)) {
-	    this.event = data;
+	    this.type = data;
 	    this.payload = null;
 	  }
 	};
@@ -934,7 +959,38 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 27 */
+/* 28 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	var _lodashFunctionCurry = __webpack_require__(15);
+
+	var _lodashFunctionCurry2 = _interopRequireDefault(_lodashFunctionCurry);
+
+	function stateReducer(machine, signalMapper) {
+	  return function (state, action) {
+	    var signal = signalMapper(action);
+
+	    if (!signal) {
+	      return state || machine.transition(state);
+	    }
+
+	    return machine.transition(state, signal);
+	  };
+	}
+
+	exports['default'] = (0, _lodashFunctionCurry2['default'])(stateReducer);
+	module.exports = exports['default'];
+
+/***/ },
+/* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -949,7 +1005,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _transition = __webpack_require__(28);
+	var _transition = __webpack_require__(30);
 
 	var _transition2 = _interopRequireDefault(_transition);
 
@@ -1131,7 +1187,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 28 */
+/* 30 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1146,7 +1202,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _signal = __webpack_require__(26);
+	var _signal = __webpack_require__(27);
 
 	var _signal2 = _interopRequireDefault(_signal);
 
@@ -1168,7 +1224,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function isValid(signal) {
 	      signal = new _signal2['default'](signal);
 
-	      return signal.event === this.event && !!this.cond(signal.payload);
+	      return signal.type === this.event && !!this.cond(signal.payload);
 	    }
 	  }]);
 
@@ -1176,62 +1232,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	})();
 
 	exports['default'] = Transition;
-	module.exports = exports['default'];
-
-/***/ },
-/* 29 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-	exports['default'] = machine;
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-	var _libMachine = __webpack_require__(14);
-
-	var _libMachine2 = _interopRequireDefault(_libMachine);
-
-	function machine(data) {
-	  return new _libMachine2['default'](data, {
-	    deterministic: false
-	  });
-	}
-
-	module.exports = exports['default'];
-
-/***/ },
-/* 30 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-	var _lodashFunctionCurry = __webpack_require__(15);
-
-	var _lodashFunctionCurry2 = _interopRequireDefault(_lodashFunctionCurry);
-
-	function stateReducer(machine, signalMapper) {
-	  return function (state, action) {
-	    var signal = signalMapper(action);
-
-	    if (!signal) {
-	      return state || machine.transition(state);
-	    }
-
-	    return machine.transition(state, signal);
-	  };
-	}
-
-	exports['default'] = (0, _lodashFunctionCurry2['default'])(stateReducer);
 	module.exports = exports['default'];
 
 /***/ },
