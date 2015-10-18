@@ -1,6 +1,6 @@
 import assert from 'assert';
 import should from 'should';
-import machine from '../dist/dfa';
+import machine from '../lib/dfa';
 import _ from 'lodash';
 
 describe('deterministic machine', () => {

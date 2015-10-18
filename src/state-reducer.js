@@ -5,7 +5,7 @@ function stateReducer(machine, signalMapper) {
     let signal = signalMapper(action);
 
     if (!signal) {
-      return state;
+      return state || machine.transition(state);
     }
 
     return machine.transition(state, signal);

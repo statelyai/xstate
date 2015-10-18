@@ -1,13 +1,14 @@
 
 import assert from 'assert';
 import should from 'should';
-import { machine, stateReducer } from '../dist/index';
+import { machine, stateReducer } from '../lib/index';
 
 describe('stateReducer', () => {
   let testMachine = machine({
     states: [
       {
         id: 'a',
+        initial: true,
         transitions: [
           {
             event: 'T',
@@ -59,6 +60,18 @@ describe('stateReducer', () => {
 
     assert.equal(
       reducer('a', invalidAction),
+      'a');
+  });
+
+  it('should transition to the initial state with falsey state and signal', () => {
+    let reducer = stateReducer(testMachine, (a) => a);
+
+    assert.equal(
+      reducer(),
+      'a');
+
+    assert.equal(
+      reducer(undefined, null),
       'a');
   });
 });

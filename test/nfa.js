@@ -1,6 +1,6 @@
 import assert from 'assert';
 import should from 'should';
-import machine from '../dist/nfa';
+import machine from '../lib/nfa';
 import _ from 'lodash';
 
 describe('nondeterministic machine', () => {
