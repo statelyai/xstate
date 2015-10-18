@@ -1,5 +1,3 @@
-import _ from 'lodash';
-
 import Signal from './signal';
 
 export default class Transition {

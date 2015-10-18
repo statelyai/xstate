@@ -14,9 +14,17 @@ var _transition = require('./transition');
 
 var _transition2 = _interopRequireDefault(_transition);
 
-var _lodash = require('lodash');
+var _lodashArrayDifference = require('lodash/array/difference');
 
-var _lodash2 = _interopRequireDefault(_lodash);
+var _lodashArrayDifference2 = _interopRequireDefault(_lodashArrayDifference);
+
+var _lodashLangIsArray = require('lodash/lang/isArray');
+
+var _lodashLangIsArray2 = _interopRequireDefault(_lodashLangIsArray);
+
+var _lodashLangIsString = require('lodash/lang/isString');
+
+var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
 
 var STATE_DELIMITER = '.';
 
@@ -73,7 +81,7 @@ var State = (function () {
     value: function relativeId() {
       var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
 
-      return _lodash2['default'].difference(this._id, fromState._id).join('.');
+      return (0, _lodashArrayDifference2['default'])(this._id, fromState._id).join('.');
     }
   }, {
     key: 'transition',
@@ -154,7 +162,7 @@ var State = (function () {
 
       fromState = fromState || [];
 
-      return _lodash2['default'].isArray(fromState) ? fromState : _lodash2['default'].isString(fromState) ? fromState.split(STATE_DELIMITER) : false;
+      return (0, _lodashLangIsArray2['default'])(fromState) ? fromState : (0, _lodashLangIsString2['default'])(fromState) ? fromState.split(STATE_DELIMITER) : false;
     }
   }, {
     key: 'getState',

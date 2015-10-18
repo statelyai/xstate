@@ -1,9 +1,10 @@
 
 import Transition from './transition';
-import _ from 'lodash';
+import difference from 'lodash/array/difference';
+import isArray from 'lodash/lang/isArray';
+import isString from 'lodash/lang/isString';
 
 const STATE_DELIMITER = '.';
-
 
 Array.prototype.log = function(msg) {
   console.log(msg, this);
@@ -49,7 +50,7 @@ export default class State {
   }
 
   relativeId(fromState = null) {
-    return _.difference(this._id, fromState._id).join('.');
+    return difference(this._id, fromState._id).join('.');
   }
 
   transition(fromState = null, signal = null, returnFlag = true) {
@@ -112,9 +113,9 @@ export default class State {
 
     fromState = fromState || [];
 
-    return _.isArray(fromState)
+    return isArray(fromState)
       ? fromState
-      : _.isString(fromState)
+      : isString(fromState)
         ? fromState.split(STATE_DELIMITER)
         : false;
   }

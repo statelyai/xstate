@@ -8,18 +8,22 @@ function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'd
 
 function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-var _lodash = require('lodash');
+var _lodashLangIsString = require('lodash/lang/isString');
 
-var _lodash2 = _interopRequireDefault(_lodash);
+var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
+
+var _lodashLangIsPlainObject = require('lodash/lang/isPlainObject');
+
+var _lodashLangIsPlainObject2 = _interopRequireDefault(_lodashLangIsPlainObject);
 
 var Signal = function Signal(data) {
   _classCallCheck(this, Signal);
 
-  if (data instanceof Signal || _lodash2['default'].isPlainObject(data)) {
+  if (data instanceof Signal || (0, _lodashLangIsPlainObject2['default'])(data)) {
     Object.assign(this, data);
   }
 
-  if (_lodash2['default'].isString(data)) {
+  if ((0, _lodashLangIsString2['default'])(data)) {
     this.event = data;
     this.payload = null;
   }
