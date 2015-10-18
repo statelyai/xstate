@@ -2,9 +2,9 @@
   "name": "estado",
   "version": "0.2.0",
   "description": "Simple JavaScript Finite State Machines.",
-  "main": "index.js",
+  "main": "lib/index.js",
   "scripts": {
-    "start": "babel -w ./src -d ./dist",
+    "start": "babel -w ./src -d ./lib",
     "test": "mocha --compilers js:babel/register",
     "build:lib": "babel src --out-dir lib",
     "build:umd": "webpack src/index.js dist/estado.js --config webpack.config.development.js",
