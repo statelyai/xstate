@@ -70,10 +70,10 @@ There are a few small differences, though, in order to keep the schema as side-e
 ### State Schema
 ```js
 {
-  id: 'green', // (string) state ID
-  initial: true, // (boolean) is initial state? (default: false)
-  final: false, // (boolean) is final/accepting state? (default: false)
-  states: [...], // (States[]) array of nested States (default: [])
+  id: 'green',       // (string) state ID
+  initial: true,     // (boolean) is initial state? (default: false)
+  final: false,      // (boolean) is final/accepting state? (default: false)
+  states: [...],     // (States[]) array of nested States (default: [])
   transitions: [...] // (Transitions[]) array of Transitions (default: [])
 }
 ```
@@ -83,8 +83,8 @@ _Note:_ A **machine** has the same schema as a **state**, as machines are just a
 ### Transition Schema
 ```js
 {
-  event: 'TIMER', // (string) name/type of event
-  target: 'yellow', // (string) target state
+  event: 'TIMER',           // (string) name/type of event
+  target: 'yellow',         // (string) target state
   cond: (Signal) => { ... } // (function -> boolean) condition function (default: () => true)
 }
 ```
@@ -94,7 +94,41 @@ _Note:_ A **machine** has the same schema as a **state**, as machines are just a
 {
   type: 'TIMER' // (string) name/type of signal event
 }
+
+// A signal can be a plain string as well:
+let signal = 'timer';
 ```
 
-Signals can contain any arbitrary data.
+Signals can contain any arbitrary data. Signals can also be plain strings.
 
+## API
+
+#### machine(data, options = {})
+Creates a new `Machine()` instance with the specified data (see the schema above) and options (optional).
+
+- `data`: (object) The definition of the state machine.
+- `options`: (object) Machine-specific options:
+  - `deterministic`: (boolean) Specifies whether the machine is deterministic or nondeterministic (default: `true`)
+
+#### Machine.transition(state = null, signal = null)
+Returns the next state, given a current state and a signal. If no state nor signal is provided, the initial state is returned.
+
+_Note:_ This is a pure function, and does not maintain internal state.
+
+- `state`: (string) The current state ID.
+- `signal`: (string | Signal) The signal that triggers the transition from the `state` to the next state.
+
+**Example:**
+```js
+lightMachine.transition();
+// => 'green'
+
+lightMachine.transition('green', 'TIMER');
+// => 'yellow'
+
+lightMachine.transition('yellow', { type: 'TIMER' });
+// => 'red'
+
+lightMachine.transition('yellow');
+// => 'yellow'
+```
