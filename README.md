@@ -1,7 +1,7 @@
 # Estado
 Simple, stateless JavaScript finite-state machines.
 
-**What is it?** Estado is a tiny JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, signal) -> state`.
+**What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, signal) -> state`.
 
 ## Getting Started
 1. Install via NPM: `npm install estado --save`
