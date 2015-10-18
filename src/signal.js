@@ -9,7 +9,6 @@ export default class Signal {
 
     if (isString(data)) {
       this.type = data;
-      this.payload = null;
     }
   }
 }

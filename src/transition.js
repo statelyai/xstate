@@ -13,6 +13,6 @@ export default class Transition {
     signal = new Signal(signal);
 
     return signal.type === this.event
-      && !!this.cond(signal.payload);
+      && !!this.cond(signal);
   }
 }
