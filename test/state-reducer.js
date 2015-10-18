@@ -45,12 +45,12 @@ describe('stateReducer', () => {
   it('should filter signals from falsey actions and return original state', () => {
     let reducer = stateReducer(testMachine, (a) => a.valid && a);
     let validAction = {
-      event: 'T',
+      type: 'T',
       valid: true
     };
 
     let invalidAction = {
-      event: 'T',
+      type: 'T',
       valid: false
     };
 

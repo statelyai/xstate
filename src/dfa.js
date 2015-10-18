@@ -1,5 +1,5 @@
 
-import Machine from './lib/machine';
+import Machine from './machine';
 
 export default function machine(data) {
   return new Machine(data, {

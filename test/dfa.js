@@ -111,7 +111,7 @@ describe('deterministic machine', () => {
 
     it('should properly transition states based on signal-like object', () => {
       let signal = {
-        event: 'TIMER'
+        type: 'TIMER'
       };
 
       assert.deepEqual(
