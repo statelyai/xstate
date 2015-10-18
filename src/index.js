@@ -3,7 +3,9 @@ if (!global._babelPolyfill) {
 }
 
 import machine from './dfa';
+import stateReducer from './state-reducer'
 
 export {
-  machine
+  machine,
+  stateReducer
 };

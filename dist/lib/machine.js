@@ -43,8 +43,6 @@ var Machine = (function (_State) {
 
       var states = _get(Object.getPrototypeOf(Machine.prototype), 'transition', this).call(this, fromState, signal);
 
-      // console.log(states, states[0]);
-
       if (this.options.deterministic) {
         return states.length ? states[0] : false;
       }

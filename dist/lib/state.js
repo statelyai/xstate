@@ -90,9 +90,14 @@ var State = (function () {
         return state.initial;
       });
       var nextStates = [];
+      var currentSubstate = substateIds.length ? this.getState(substateIds[0]) : null;
 
       if (substateIds.length) {
-        nextStates = this.getState(substateIds[0]).transition(substateIds.slice(1), signal, false);
+        if (!currentSubstate) {
+          return [];
+        }
+
+        nextStates = currentSubstate.transition(substateIds.slice(1), signal, false);
 
         if (!nextStates.length) {
           nextStates = this.transitions.filter(function (transition) {

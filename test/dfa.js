@@ -1,10 +1,9 @@
-
 import assert from 'assert';
 import should from 'should';
-import machine from '../dist/nfa';
+import machine from '../dist/dfa';
 import _ from 'lodash';
 
-describe('machine', () => {
+describe('deterministic machine', () => {
   let pedestrianMachine = {
     id: 'pedestrian',
     initial: true,
@@ -96,79 +95,18 @@ describe('machine', () => {
     ]
   });
 
-  describe('machine.states', () => {
-    it('should properly register machine states', () => {
-      assert.deepEqual(
-        _.pluck(lightMachine.states, 'id'),
-        ['green', 'yellow', 'red']);
-    });
-
-    it('should create instances of State class', () => {
-      assert.ok(_.every(lightMachine.states,
-        (state) => state.constructor.name === 'State'));
-    });
-  });
-
-  describe('machine.getState()', () => {
-    it('should find a substate from a string state ID', () => {
-      assert.equal(
-        lightMachine.getState('yellow').id,
-        'yellow');
-
-      assert.ok(
-        lightMachine.getState('yellow').constructor.name === 'State');
-    });
-
-    it('should find a nested substate from a delimited string state ID', () => {
-      assert.equal(
-        lightMachine.getState('red.pedestrian.walk').id,
-        'walk');
-
-      assert.ok(
-        lightMachine.getState('red.pedestrian.walk').constructor.name === 'State');
-    });
-
-    it('should return false for invalid substates', () => {
-      assert.equal(
-        lightMachine.getState('fake'),
-        false);
-
-      assert.equal(
-        lightMachine.getState('fake.nested.substate'),
-        false);
-
-      assert.equal(
-        lightMachine.getState('red.partially.fake'),
-        false);
-    });
-
-    it('should return the original state for falsey fromState values', () => {
-      assert.equal(
-        lightMachine.getState().id,
-        'light-machine');
-
-      assert.equal(
-        lightMachine.getState(null).id,
-        'light-machine');
-
-      assert.equal(
-        lightMachine.getState('red').getState().id,
-        'red');
-    });
-  });
-
   describe('machine.transition()', () => {
 
     it('should implicitly transition from initial states', () => {
       assert.deepEqual(
         lightMachine.transition(null, 'TIMER'),
-        ['yellow']);
+        'yellow');
     })
 
     it('should properly transition states based on string event', () => {
       assert.deepEqual(
         lightMachine.transition('green', 'TIMER'),
-        ['yellow']);
+        'yellow');
     });
 
     it('should properly transition states based on signal-like object', () => {
@@ -178,35 +116,47 @@ describe('machine', () => {
 
       assert.deepEqual(
         lightMachine.transition('green', signal),
-        ['yellow']);
+        'yellow');
     });
 
     it('should return initial state(s) without any arguments for transition()', () => {
       assert.deepEqual(
         lightMachine.transition(),
-        ['green']);
+        'green');
     });
 
     it('should return no states for illegal transitions', () => {
       assert.deepEqual(
         lightMachine.transition('green', 'FAKE'),
-        []);
+        false);
     });
 
     it('should transition to initial substates without any signal', () => {
       assert.deepEqual(
         lightMachine.transition('red'),
-        ['red.pedestrian.walk']);
+        'red.pedestrian.walk');
 
       assert.deepEqual(
         lightMachine.transition('red.pedestrian'),
-        ['red.pedestrian.walk']);
+        'red.pedestrian.walk');
     });
 
     it('should transition to nested states as target', () => {
       assert.deepEqual(
         testMachine.transition('a', 'T'),
-        ['b.b1']);
+        'b.b1');
+    });
+
+    it('should return an empty array for transitions from invalid states', () => {
+      assert.deepEqual(
+        testMachine.transition('fake', 'T'),
+        false);
+    });
+
+    it('should return an empty array for transitions from invalid substates', () => {
+      assert.deepEqual(
+        testMachine.transition('a.fake', 'T'),
+        false);
     });
   });
 
@@ -214,96 +164,49 @@ describe('machine', () => {
     it('should properly transition a nested state', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.walk', 'PED_COUNTDOWN'),
-        ['red.pedestrian.wait']);
+        'red.pedestrian.wait');
     });
 
     it('should transition from initial nested states', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian', 'PED_COUNTDOWN'),
-        ['red.pedestrian.wait']);
+        'red.pedestrian.wait');
     });
 
     it('should transition from deep initial nested states', () => {
       assert.deepEqual(
         lightMachine.transition('red', 'PED_COUNTDOWN'),
-        ['red.pedestrian.wait']);
+        'red.pedestrian.wait');
     });
 
     it('should transition to initial nested states with no signal', () => {
       assert.deepEqual(
         lightMachine.transition('red'),
-        ['red.pedestrian.walk']);
+        'red.pedestrian.walk');
 
       assert.deepEqual(
         lightMachine.transition('red.pedestrian'),
-        ['red.pedestrian.walk']);
+        'red.pedestrian.walk');
     });
 
     it('should bubble up signals that nested states cannot handle', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.wait', 'TIMER'),
-        ['green']);
+        'green');
 
       assert.deepEqual(
         lightMachine.transition('red.pedestrian', 'TIMER'),
-        ['green']);
+        'green');
     });
 
     it('should return no states for illegal transitions in nested states that composite states cannot handle', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.walk', 'FAKE'),
-        []);
+        false);
 
       assert.deepEqual(
         lightMachine.transition('red', 'FAKE'),
-        []);
-    });
-  });
-
-  describe('parallel states', () => {
-    let parallelMachine = machine({
-      id: 'parallel-machine',
-      states: [
-        {
-          id: 'a',
-          initial: true
-        },
-        {
-          id: 'b',
-          initial: true,
-          transitions: [
-            {
-              event: 'T',
-              target: 'c'
-            }
-          ]
-        },
-        {
-          id: 'c',
-          states: [
-            {
-              id: 'c1',
-              initial: true
-            },
-            {
-              id: 'c2',
-              initial: true
-            }
-          ]
-        }
-      ]
-    });
-
-    it('should return all initial (parallel) states without any arguments for transition()', () => {
-      assert.deepEqual(
-        parallelMachine.transition(),
-        ['a', 'b']);
-    });
-
-    it('should return all initial (parallel) nested states when transitioning to a state', () => {
-      assert.deepEqual(
-        parallelMachine.transition('b', 'T'),
-        ['c.c1', 'c.c2']);
+        false);
     });
   });
 });

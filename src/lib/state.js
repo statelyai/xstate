@@ -57,9 +57,16 @@ export default class State {
     let initialStates = this.states
       .filter((state) => state.initial);
     let nextStates = [];
+    let currentSubstate = substateIds.length
+      ? this.getState(substateIds[0])
+      : null;
 
     if (substateIds.length) {
-      nextStates = this.getState(substateIds[0])
+      if (!currentSubstate) {
+        return [];
+      }
+
+      nextStates = currentSubstate
         .transition(substateIds.slice(1), signal, false);
 
       if (!nextStates.length) {
