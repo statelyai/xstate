@@ -12,6 +12,7 @@ let lightMachine = machine({
   states: [
     {
       id: 'green',
+      initial: true,
       transitions: [
         {
           event: 'TIMER',
