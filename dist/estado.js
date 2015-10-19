@@ -2041,9 +2041,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	  });
 
 	  if (result.length) {
-	    return (0, _lodashCollectionMax2['default'])(result, function (s) {
+	    result = (0, _lodashCollectionMax2['default'])(result, function (s) {
 	      return s.length;
 	    });
+
+	    if (typeof result !== 'number') return result;
 	  }
 
 	  return null;
