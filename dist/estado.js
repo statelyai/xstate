@@ -2036,16 +2036,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	var _lodashFunctionCurry2 = _interopRequireDefault(_lodashFunctionCurry);
 
 	function mapState(stateMap, state) {
-	  var result = (0, _lodashCollectionFilter2['default'])(stateMap, function (value, stateId) {
+	  var result = Object.keys(stateMap).filter(function (stateId) {
 	    return (0, _matchesState2['default'])(state, stateId);
 	  });
 
 	  if (result.length) {
-	    result = (0, _lodashCollectionMax2['default'])(result, function (s) {
+	    return stateMap[(0, _lodashCollectionMax2['default'])(result, function (s) {
 	      return s.length;
-	    });
-
-	    if (typeof result !== 'number') return result;
+	    })];
 	  }
 
 	  return null;
