@@ -956,7 +956,6 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  if ((0, _lodashLangIsString2['default'])(data)) {
 	    this.type = data;
-	    this.payload = null;
 	  }
 	};
 
@@ -1216,7 +1215,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    value: function isValid(signal) {
 	      signal = new _signal2['default'](signal);
 
-	      return signal.type === this.event && !!this.cond(signal.payload);
+	      return signal.type === this.event && !!this.cond(signal);
 	    }
 	  }]);
 
