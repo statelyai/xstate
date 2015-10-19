@@ -1247,6 +1247,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	  };
 
 	  return function (state, signal) {
+	    if (!state) {
+	      return stateReducer();
+	    }
+
 	    if (!filter(signal)) {
 	      return state;
 	    }
