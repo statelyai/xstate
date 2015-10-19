@@ -1,6 +1,6 @@
 {
   "name": "estado",
-  "version": "0.3.4",
+  "version": "0.3.5",
   "description": "Simple JavaScript Finite State Machines.",
   "main": "lib/index.js",
   "scripts": {
