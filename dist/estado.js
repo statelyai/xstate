@@ -874,6 +874,8 @@ return /******/ (function(modules) { // webpackBootstrap
 	function matchesState(state, superState) {
 	  if (state === superState) return true;
 
+	  if (!state || !superState) return false;
+
 	  var _map = [state, superState].map(function (id) {
 	    return id.split('.');
 	  });
