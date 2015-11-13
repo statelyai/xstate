@@ -343,42 +343,64 @@ module.exports = (function() {
     }
 
     function peg$parseState() {
-      var s0, s1, s2, s3, s4, s5, s6, s7;
+      var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9;
 
       s0 = peg$currPos;
-      s1 = peg$parseStateId();
+      s1 = [];
+      s2 = peg$parsews();
+      while (s2 !== peg$FAILED) {
+        s1.push(s2);
+        s2 = peg$parsews();
+      }
       if (s1 !== peg$FAILED) {
-        s2 = [];
-        s3 = peg$parsews();
-        while (s3 !== peg$FAILED) {
-          s2.push(s3);
-          s3 = peg$parsews();
-        }
+        s2 = peg$parseStateId();
         if (s2 !== peg$FAILED) {
-          s3 = peg$parseFinalToken();
+          s3 = [];
+          s4 = peg$parsews();
+          while (s4 !== peg$FAILED) {
+            s3.push(s4);
+            s4 = peg$parsews();
+          }
           if (s3 !== peg$FAILED) {
-            s4 = [];
-            s5 = peg$parsews();
-            while (s5 !== peg$FAILED) {
-              s4.push(s5);
-              s5 = peg$parsews();
-            }
+            s4 = peg$parseFinalToken();
             if (s4 !== peg$FAILED) {
-              s5 = peg$parseStates();
-              if (s5 === peg$FAILED) {
-                s5 = null;
+              s5 = [];
+              s6 = peg$parsews();
+              while (s6 !== peg$FAILED) {
+                s5.push(s6);
+                s6 = peg$parsews();
               }
               if (s5 !== peg$FAILED) {
-                s6 = [];
-                s7 = peg$parseTransition();
-                while (s7 !== peg$FAILED) {
-                  s6.push(s7);
-                  s7 = peg$parseTransition();
+                s6 = peg$parseStates();
+                if (s6 === peg$FAILED) {
+                  s6 = null;
                 }
                 if (s6 !== peg$FAILED) {
-                  peg$savedPos = s0;
-                  s1 = peg$c6(s1, s3, s5, s6);
-                  s0 = s1;
+                  s7 = [];
+                  s8 = peg$parseTransition();
+                  while (s8 !== peg$FAILED) {
+                    s7.push(s8);
+                    s8 = peg$parseTransition();
+                  }
+                  if (s7 !== peg$FAILED) {
+                    s8 = [];
+                    s9 = peg$parsews();
+                    while (s9 !== peg$FAILED) {
+                      s8.push(s9);
+                      s9 = peg$parsews();
+                    }
+                    if (s8 !== peg$FAILED) {
+                      peg$savedPos = s0;
+                      s1 = peg$c6(s2, s4, s6, s7);
+                      s0 = s1;
+                    } else {
+                      peg$currPos = s0;
+                      s0 = peg$FAILED;
+                    }
+                  } else {
+                    peg$currPos = s0;
+                    s0 = peg$FAILED;
+                  }
                 } else {
                   peg$currPos = s0;
                   s0 = peg$FAILED;

@@ -13,7 +13,7 @@ States
 }
 
 State
-= id:StateId ws* final:FinalToken ws* states:States? transitions:Transition*
+= ws* id:StateId ws* final:FinalToken ws* states:States? transitions:Transition* ws*
 {
   return {
     id: id,
