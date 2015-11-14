@@ -1,3 +1,4 @@
+
 Machine
 = states:State*
 {
@@ -7,26 +8,26 @@ Machine
 }
 
 States
-= "{" states:State* "}"
+= ws* "{" states:State* "}" ws*
 {
   return states
 }
 
 State
-= ws* id:StateId ws* final:FinalToken ws* states:States? transitions:Transition* ws*
+= ws* id:StateId ws* final:FinalToken? ws* states:States? ws* transitions:Transition* ws*
 {
   return {
     id: id,
-    final,
+    final: !!final,
     states: states || [],
     transitions: transitions.map(t => ({
       target: t.target === true ? id : t.target,
       event: t.event
     }))
-  }
+  };
 }
 
-StateId = id:identifier+ ws*
+StateId = id:identifier+
 {
   return id.join('');
 }
@@ -52,7 +53,7 @@ SignalType
 = identifier
 
 FinalToken
-= final:"!"? {
+= final:"!" {
   return !!final;
 }
 
@@ -60,6 +61,6 @@ ws
 = [ \n\t]
 
 identifier
-= id:[a-z0-9\-\_]i+ {
+= id:[a-z0-9\_]i+ {
   return id.join('')
 }

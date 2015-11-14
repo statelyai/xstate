@@ -1,7 +1,7 @@
 import { inspect } from 'util';
 import assert from 'assert';
 import should from 'should';
-import { parser } from '../src/index';
+import { parse, machine } from '../src/index';
 
 describe('parser', () => {
 
@@ -10,7 +10,7 @@ describe('parser', () => {
       foo -> bar (baz)
     `;
 
-    let mapping = parser.parse(test);
+    let mapping = parse(test);
 
     let expected = {
       states: [
@@ -42,7 +42,7 @@ describe('parser', () => {
       three
     `;
 
-    let mapping = parser.parse(test);
+    let mapping = parse(test);
 
     let expected = {
       states: [
@@ -96,7 +96,7 @@ describe('parser', () => {
       red -> green (TIMER)
     `;
 
-    let mapping = parser.parse(traffic);
+    let mapping = parse(traffic);
 
     let expected = {
       states: [
@@ -144,8 +144,10 @@ describe('parser', () => {
       parent {
         foo -> bar (BAZ)
         bar -> foo (BAZ)
-      } -> other (EVENT)
+      } -> second (FOO)
     `;
+
+    let mapping = parse(nested);
 
     let expected = {
       states: [
@@ -175,9 +177,109 @@ describe('parser', () => {
                 }
               ]
             }
+          ],
+          transitions: [
+            {
+              target: 'second',
+              event: 'FOO'
+            }
           ]
         }
-      ];
-    }
+      ]
+    };
+
+    assert.deepStrictEqual(mapping, expected);
+  });
+
+  it('should parse deeply nested states', () => {
+    let deeplyNested = `
+      a { b { c -> d (E) }}
+    `;
+
+    let mapping = parse(deeplyNested);
+
+    let expected = {
+      states: [
+        {
+          id: 'a',
+          final: false,
+          states: [
+            {
+              id: 'b',
+              final: false,
+              states: [
+                {
+                  id: 'c',
+                  final: false,
+                  states: [],
+                  transitions: [
+                    {
+                      target: 'd',
+                      event: 'E'
+                    }
+                  ]
+                }
+              ],
+              transitions: []
+            }
+          ],
+          transitions: []
+        }
+      ]
+    };
+
+    assert.deepStrictEqual(mapping, expected);
+  });
+
+  it('should handle varying levels of whitespace', () => {
+    let tests = [
+      `a->b(c)->d(e)`,
+      `  a   ->  b  (c)    ->  d   (e)`,
+      `
+          a
+              ->
+              b
+              (c)
+              ->d
+                    (e)
+      `
+    ];
+
+    let expected = {
+      states: [
+        {
+          id: 'a',
+          final: false,
+          states: [],
+          transitions: [
+            {
+              target: 'b',
+              event: 'c'
+            },
+            {
+              target: 'd',
+              event: 'e'
+            }
+          ]
+        }
+      ]
+    };
+
+    tests.forEach((test) => {
+      assert.deepStrictEqual(parse(test), expected);
+    });
+  });
+
+  it('should identify final states', () => {
+    let finalTest = `
+      a -> b
+      b!
+    `;
+
+    let mapping = parse(finalTest);
+    let testMachine = machine(mapping);
+
+    assert.equal(testMachine.getState('a').final, false);
+    assert.equal(testMachine.getState('b').final, true);
   })
 });

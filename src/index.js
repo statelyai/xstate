@@ -4,7 +4,7 @@ import stateReducer from './state-reducer'
 import signalFilter from './utils/signal-filter';
 import mapState from './utils/map-state';
 import matchesState from './utils/matches-state';
-import parser from './parser';
+import { parse } from './parser';
 
 export {
   machine,
@@ -13,5 +13,5 @@ export {
   signalFilter,
   mapState,
   matchesState,
-  parser
+  parse
 };
