@@ -32,11 +32,13 @@ let initialState = lightMachine.transition();
 Estado allows you to parse an easy-to-learn DSL for declaratively writing finite state machines.
 
 **States**
+
 A state is just an alphanumeric string (underscores are allowed) without quotes or spaces: `some_valid_state`. Final states are appended with an exclamation point: `someFinalState!`.
 
 By default, the first state declared in a state group is an initial state.
 
 **Transitions**
+
 A transition (edge) between states is denoted with an arrow: `->`. A state can transition to itself with a reverse arrow: `<-`. In the example below, `state1` transitions to `state2` on the `FOO` event. `state2` transitions to itself on the `BAR` event.
 
 ```
@@ -45,9 +47,11 @@ state2 <- (BAR)
 ```
 
 **Signals**
+
 A signal is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Signals are optional (but encouraged for proper state machine design).
 
 **Nested States**
+
 States can be hierarchical (nested) by including them inside brackets after a state declaration. They can be deeply nested an infinite amount of levels. This is useful for implementing statecharts.
 
 ```
