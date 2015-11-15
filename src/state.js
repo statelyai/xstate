@@ -3,6 +3,7 @@ import Transition from './transition';
 import difference from 'lodash/array/difference';
 import isArray from 'lodash/lang/isArray';
 import isString from 'lodash/lang/isString';
+import { parse } from './parser';
 
 const STATE_DELIMITER = '.';
 
@@ -14,6 +15,10 @@ Array.prototype.log = function(msg) {
 
 export default class State {
   constructor(data, parent = null) {
+    data = isString(data)
+      ? parse(data)
+      : data;
+      
     this.id = data.id || 'root';
 
     this._id = parent

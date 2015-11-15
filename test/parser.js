@@ -20,6 +20,31 @@ describe('parser', () => {
     chai.assert.ok(parse(test) instanceof Machine);
   });
 
+  it('should be invoked when passing a string to the machine factory', () => {
+    let test = `
+      foo -> bar (baz)
+    `;
+
+    let expected = {
+      states: [
+        {
+          id: 'foo',
+          transitions: [
+            {
+              target: 'bar',
+              event: 'baz'
+            }
+          ]
+        }
+      ]
+    };
+
+    let testMachine = machine(test);
+
+    chai.assert.ok(testMachine instanceof Machine);
+    chai.assert.containSubset(testMachine, expected);
+  });
+
   it('should parse a simple state machine with the DSL', () => {
     let test = `
       foo -> bar (baz)
