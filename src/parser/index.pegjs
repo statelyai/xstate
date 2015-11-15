@@ -1,19 +1,26 @@
 {
   const State = require('../state');
+  const Machine = require('../machine');
 }
 
 Machine
 = states:State*
 {
-  return {
-    states
+  if (states.length) {
+    states[0].initial = true;
   }
+  
+  return new Machine({ states: states });
 }
 
 States
 = ws* "{" states:State* "}" ws*
 {
-  return states.map((state) => new State(state));
+  if (states.length) {
+    states[0].initial = true;
+  }
+
+  return states;
 }
 
 State

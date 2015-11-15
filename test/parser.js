@@ -1,5 +1,4 @@
 import { inspect } from 'util';
-import assert from 'assert';
 import chai from 'chai';
 import chaiSubset from 'chai-subset';
 import { parse, machine } from '../src/index';
@@ -19,8 +18,6 @@ describe('parser', () => {
       states: [
         {
           id: 'foo',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'bar',
@@ -51,8 +48,6 @@ describe('parser', () => {
       states: [
         {
           id: 'foo',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'bar',
@@ -70,21 +65,12 @@ describe('parser', () => {
         },
         {
           id: 'bar',
-          final: false,
-          states: [],
-          transitions: []
         },
         {
           id: 'one',
-          final: false,
-          states: [],
-          transitions: []
         },
         {
           id: 'three',
-          final: false,
-          states: [],
-          transitions: []
         }
       ]
     };
@@ -105,8 +91,6 @@ describe('parser', () => {
       states: [
         {
           id: 'green',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'yellow',
@@ -116,8 +100,6 @@ describe('parser', () => {
         },
         {
           id: 'yellow',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'red',
@@ -127,8 +109,6 @@ describe('parser', () => {
         },
         {
           id: 'red',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'green',
@@ -156,12 +136,9 @@ describe('parser', () => {
       states: [
         {
           id: 'parent',
-          final: false,
           states: [
             {
               id: 'foo',
-              final: false,
-              states: [],
               transitions: [
                 {
                   target: 'bar',
@@ -171,8 +148,6 @@ describe('parser', () => {
             },
             {
               id: 'bar',
-              final: false,
-              states: [],
               transitions: [
                 {
                   target: 'foo',
@@ -205,16 +180,12 @@ describe('parser', () => {
       states: [
         {
           id: 'a',
-          final: false,
           states: [
             {
               id: 'b',
-              final: false,
               states: [
                 {
                   id: 'c',
-                  final: false,
-                  states: [],
                   transitions: [
                     {
                       target: 'd',
@@ -222,11 +193,9 @@ describe('parser', () => {
                     }
                   ]
                 }
-              ],
-              transitions: []
+              ]
             }
-          ],
-          transitions: []
+          ]
         }
       ]
     };
@@ -252,8 +221,6 @@ describe('parser', () => {
       states: [
         {
           id: 'a',
-          final: false,
-          states: [],
           transitions: [
             {
               target: 'b',
@@ -273,6 +240,18 @@ describe('parser', () => {
     });
   });
 
+  it('should identify initial states implicitly', () => {
+    let initialTest = `
+      a -> b
+      b -> c
+    `;
+
+    let mapping = parse(initialTest);
+
+    chai.assert.containSubset(mapping.states[0], { initial: true });
+    chai.assert.containSubset(mapping.states[1], { initial: false });
+  });
+
   it('should identify final states', () => {
     let finalTest = `
       a -> b
@@ -280,9 +259,8 @@ describe('parser', () => {
     `;
 
     let mapping = parse(finalTest);
-    let testMachine = machine(mapping);
 
-    chai.assert.containSubset(testMachine.getState('a').final, false);
-    chai.assert.containSubset(testMachine.getState('b').final, true);
-  })
+    chai.assert.containSubset(mapping.states[0], { final: false });
+    chai.assert.containSubset(mapping.states[1], { final: true });
+  });
 });

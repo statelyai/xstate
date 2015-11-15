@@ -37,16 +37,22 @@ module.exports = (function() {
         peg$startRuleFunction  = peg$parseMachine,
 
         peg$c0 = function(states) {
-          return {
-            states
+          if (states.length) {
+            states[0].initial = true;
           }
+          
+          return new Machine({ states: states });
         },
         peg$c1 = "{",
         peg$c2 = { type: "literal", value: "{", description: "\"{\"" },
         peg$c3 = "}",
         peg$c4 = { type: "literal", value: "}", description: "\"}\"" },
         peg$c5 = function(states) {
-          return states.map((state) => new State(state));
+          if (states.length) {
+            states[0].initial = true;
+          }
+
+          return states;
         },
         peg$c6 = function(id, final, states, transitions) {
           return {
@@ -731,6 +737,7 @@ module.exports = (function() {
 
 
       const State = require('../state');
+      const Machine = require('../machine');
 
 
     peg$result = peg$startRuleFunction();
