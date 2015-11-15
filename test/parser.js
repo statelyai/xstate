@@ -3,9 +3,22 @@ import chai from 'chai';
 import chaiSubset from 'chai-subset';
 import { parse, machine } from '../src/index';
 
+import Machine from '../src/machine';
+
 chai.use(chaiSubset);
 
 describe('parser', () => {
+
+  it('should produce a machine', () => {
+    let test = `
+      foo -> bar (baz)
+        -> quo (test)
+      bar -> quo (test)
+      quo!
+    `;
+
+    chai.assert.ok(parse(test) instanceof Machine);
+  });
 
   it('should parse a simple state machine with the DSL', () => {
     let test = `
