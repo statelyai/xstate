@@ -46,7 +46,7 @@ module.exports = (function() {
         peg$c3 = "}",
         peg$c4 = { type: "literal", value: "}", description: "\"}\"" },
         peg$c5 = function(states) {
-          return states
+          return states.map((state) => new State(state));
         },
         peg$c6 = function(id, final, states, transitions) {
           return {
@@ -728,6 +728,10 @@ module.exports = (function() {
 
       return s0;
     }
+
+
+      const State = require('../state');
+
 
     peg$result = peg$startRuleFunction();
 

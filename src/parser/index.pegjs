@@ -1,3 +1,6 @@
+{
+  const State = require('../state');
+}
 
 Machine
 = states:State*
@@ -10,7 +13,7 @@ Machine
 States
 = ws* "{" states:State* "}" ws*
 {
-  return states
+  return states.map((state) => new State(state));
 }
 
 State

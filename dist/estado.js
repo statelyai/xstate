@@ -68,15 +68,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _nfa = __webpack_require__(48);
 
-	var _stateReducer = __webpack_require__(50);
+	var _stateReducer = __webpack_require__(51);
 
 	var _stateReducer2 = _interopRequireDefault(_stateReducer);
 
-	var _utilsSignalFilter = __webpack_require__(54);
+	var _utilsSignalFilter = __webpack_require__(55);
 
 	var _utilsSignalFilter2 = _interopRequireDefault(_utilsSignalFilter);
 
-	var _utilsMapState = __webpack_require__(53);
+	var _utilsMapState = __webpack_require__(54);
 
 	var _utilsMapState2 = _interopRequireDefault(_utilsMapState);
 
@@ -84,12 +84,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _utilsMatchesState2 = _interopRequireDefault(_utilsMatchesState);
 
+	var _parser = __webpack_require__(49);
+
 	exports.machine = _dfa2['default'];
 	exports.nfaMachine = _nfa.machine;
 	exports.stateReducer = _stateReducer2['default'];
 	exports.signalFilter = _utilsSignalFilter2['default'];
 	exports.mapState = _utilsMapState2['default'];
 	exports.matchesState = _utilsMatchesState2['default'];
+	exports.parse = _parser.parse;
 
 /***/ },
 /* 1 */
@@ -213,7 +216,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 5 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isNative = __webpack_require__(113);
+	var isNative = __webpack_require__(114);
 
 	/**
 	 * Gets the native function at `key` of `object`.
@@ -285,7 +288,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	var getNative = __webpack_require__(5),
 	    isArrayLike = __webpack_require__(6),
 	    isObject = __webpack_require__(2),
-	    shimKeys = __webpack_require__(108);
+	    shimKeys = __webpack_require__(109);
 
 	/* Native method references for those with the same name as other `lodash` methods. */
 	var nativeKeys = getNative(Object, 'keys');
@@ -429,7 +432,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 12 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createCurry = __webpack_require__(92);
+	var createCurry = __webpack_require__(93);
 
 	/** Used to compose bitmasks for wrapper metadata. */
 	var CURRY_FLAG = 8;
@@ -582,11 +585,11 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 15 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseMatches = __webpack_require__(80),
-	    baseMatchesProperty = __webpack_require__(81),
+	var baseMatches = __webpack_require__(81),
+	    baseMatchesProperty = __webpack_require__(82),
 	    bindCallback = __webpack_require__(32),
 	    identity = __webpack_require__(21),
-	    property = __webpack_require__(122);
+	    property = __webpack_require__(123);
 
 	/**
 	 * The base implementation of `_.callback` which supports specifying the
@@ -652,8 +655,8 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 17 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseForOwn = __webpack_require__(77),
-	    createBaseEach = __webpack_require__(89);
+	var baseForOwn = __webpack_require__(78),
+	    createBaseEach = __webpack_require__(90);
 
 	/**
 	 * The base implementation of `_.forEach` without support for callback
@@ -808,7 +811,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _inherits(subClass, superClass) { if (typeof superClass !== 'function' && superClass !== null) { throw new TypeError('Super expression must either be null or a function, not ' + typeof superClass); } subClass.prototype = Object.create(superClass && superClass.prototype, { constructor: { value: subClass, enumerable: false, writable: true, configurable: true } }); if (superClass) Object.setPrototypeOf ? Object.setPrototypeOf(subClass, superClass) : subClass.__proto__ = superClass; }
 
-	var _state = __webpack_require__(51);
+	var _state = __webpack_require__(52);
 
 	var _state2 = _interopRequireDefault(_state);
 
@@ -867,7 +870,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
 
-	var _lodashArrayUnion = __webpack_require__(57);
+	var _lodashArrayUnion = __webpack_require__(58);
 
 	var _lodashArrayUnion2 = _interopRequireDefault(_lodashArrayUnion);
 
@@ -921,7 +924,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var arrayPush = __webpack_require__(66),
+	var arrayPush = __webpack_require__(67),
 	    isArguments = __webpack_require__(11),
 	    isArray = __webpack_require__(1),
 	    isArrayLike = __webpack_require__(6),
@@ -968,7 +971,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 26 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createBaseFor = __webpack_require__(90);
+	var createBaseFor = __webpack_require__(91);
 
 	/**
 	 * The base implementation of `baseForIn` and `baseForOwn` which iterates
@@ -1026,7 +1029,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 28 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var indexOfNaN = __webpack_require__(103);
+	var indexOfNaN = __webpack_require__(104);
 
 	/**
 	 * The base implementation of `_.indexOf` without support for binary searches.
@@ -1059,7 +1062,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 29 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseIsEqualDeep = __webpack_require__(78),
+	var baseIsEqualDeep = __webpack_require__(79),
 	    isObject = __webpack_require__(2),
 	    isObjectLike = __webpack_require__(3);
 
@@ -1288,7 +1291,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 36 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var SetCache = __webpack_require__(63),
+	/* WEBPACK VAR INJECTION */(function(global) {var SetCache = __webpack_require__(64),
 	    getNative = __webpack_require__(5);
 
 	/** Native method references. */
@@ -1317,7 +1320,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ function(module, exports, __webpack_require__) {
 
 	var metaMap = __webpack_require__(41),
-	    noop = __webpack_require__(121);
+	    noop = __webpack_require__(122);
 
 	/**
 	 * Gets metadata for `func`.
@@ -1464,7 +1467,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseSetData = __webpack_require__(31),
-	    now = __webpack_require__(62);
+	    now = __webpack_require__(63);
 
 	/** Used to detect when a function becomes hot. */
 	var HOT_COUNT = 150,
@@ -1510,7 +1513,7 @@ return /******/ (function(modules) { // webpackBootstrap
 /* 44 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseToString = __webpack_require__(84),
+	var baseToString = __webpack_require__(85),
 	    isArray = __webpack_require__(1);
 
 	/** Used to match property names within property paths. */
@@ -1703,6 +1706,768 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 49 */
+/***/ function(module, exports) {
+
+	"use strict";
+
+	module.exports = (function () {
+	  "use strict";
+
+	  /*
+	   * Generated by PEG.js 0.9.0.
+	   *
+	   * http://pegjs.org/
+	   */
+
+	  function peg$subclass(child, parent) {
+	    function ctor() {
+	      this.constructor = child;
+	    }
+	    ctor.prototype = parent.prototype;
+	    child.prototype = new ctor();
+	  }
+
+	  function peg$SyntaxError(message, expected, found, location) {
+	    this.message = message;
+	    this.expected = expected;
+	    this.found = found;
+	    this.location = location;
+	    this.name = "SyntaxError";
+
+	    if (typeof Error.captureStackTrace === "function") {
+	      Error.captureStackTrace(this, peg$SyntaxError);
+	    }
+	  }
+
+	  peg$subclass(peg$SyntaxError, Error);
+
+	  function peg$parse(input) {
+	    var options = arguments.length > 1 ? arguments[1] : {},
+	        parser = this,
+	        peg$FAILED = {},
+	        peg$startRuleFunctions = { Machine: peg$parseMachine },
+	        peg$startRuleFunction = peg$parseMachine,
+	        peg$c0 = function peg$c0(states) {
+	      return {
+	        states: states
+	      };
+	    },
+	        peg$c1 = "{",
+	        peg$c2 = { type: "literal", value: "{", description: "\"{\"" },
+	        peg$c3 = "}",
+	        peg$c4 = { type: "literal", value: "}", description: "\"}\"" },
+	        peg$c5 = function peg$c5(states) {
+	      return states;
+	    },
+	        peg$c6 = function peg$c6(id, final, states, transitions) {
+	      return {
+	        id: id,
+	        final: !!final,
+	        states: states || [],
+	        transitions: transitions.map(function (t) {
+	          return {
+	            target: t.target === true ? id : t.target,
+	            event: t.event
+	          };
+	        })
+	      };
+	    },
+	        peg$c7 = function peg$c7(id) {
+	      return id.join('');
+	    },
+	        peg$c8 = "->",
+	        peg$c9 = { type: "literal", value: "->", description: "\"->\"" },
+	        peg$c10 = function peg$c10(target, event) {
+	      return { target: target, event: event };
+	    },
+	        peg$c11 = "<-",
+	        peg$c12 = { type: "literal", value: "<-", description: "\"<-\"" },
+	        peg$c13 = function peg$c13(event) {
+	      return { target: true, event: event };
+	    },
+	        peg$c14 = "(",
+	        peg$c15 = { type: "literal", value: "(", description: "\"(\"" },
+	        peg$c16 = ")",
+	        peg$c17 = { type: "literal", value: ")", description: "\")\"" },
+	        peg$c18 = function peg$c18(type) {
+	      return type;
+	    },
+	        peg$c19 = "!",
+	        peg$c20 = { type: "literal", value: "!", description: "\"!\"" },
+	        peg$c21 = function peg$c21(final) {
+	      return !!final;
+	    },
+	        peg$c22 = /^[ \n\t]/,
+	        peg$c23 = { type: "class", value: "[ \\n\\t]", description: "[ \\n\\t]" },
+	        peg$c24 = /^[a-z0-9_]/i,
+	        peg$c25 = { type: "class", value: "[a-z0-9\\_]i", description: "[a-z0-9\\_]i" },
+	        peg$c26 = function peg$c26(id) {
+	      return id.join('');
+	    },
+	        peg$currPos = 0,
+	        peg$savedPos = 0,
+	        peg$posDetailsCache = [{ line: 1, column: 1, seenCR: false }],
+	        peg$maxFailPos = 0,
+	        peg$maxFailExpected = [],
+	        peg$silentFails = 0,
+	        peg$result;
+
+	    if ("startRule" in options) {
+	      if (!(options.startRule in peg$startRuleFunctions)) {
+	        throw new Error("Can't start parsing from rule \"" + options.startRule + "\".");
+	      }
+
+	      peg$startRuleFunction = peg$startRuleFunctions[options.startRule];
+	    }
+
+	    function text() {
+	      return input.substring(peg$savedPos, peg$currPos);
+	    }
+
+	    function location() {
+	      return peg$computeLocation(peg$savedPos, peg$currPos);
+	    }
+
+	    function expected(description) {
+	      throw peg$buildException(null, [{ type: "other", description: description }], input.substring(peg$savedPos, peg$currPos), peg$computeLocation(peg$savedPos, peg$currPos));
+	    }
+
+	    function error(message) {
+	      throw peg$buildException(message, null, input.substring(peg$savedPos, peg$currPos), peg$computeLocation(peg$savedPos, peg$currPos));
+	    }
+
+	    function peg$computePosDetails(pos) {
+	      var details = peg$posDetailsCache[pos],
+	          p,
+	          ch;
+
+	      if (details) {
+	        return details;
+	      } else {
+	        p = pos - 1;
+	        while (!peg$posDetailsCache[p]) {
+	          p--;
+	        }
+
+	        details = peg$posDetailsCache[p];
+	        details = {
+	          line: details.line,
+	          column: details.column,
+	          seenCR: details.seenCR
+	        };
+
+	        while (p < pos) {
+	          ch = input.charAt(p);
+	          if (ch === "\n") {
+	            if (!details.seenCR) {
+	              details.line++;
+	            }
+	            details.column = 1;
+	            details.seenCR = false;
+	          } else if (ch === "\r" || ch === "\u2028" || ch === "\u2029") {
+	            details.line++;
+	            details.column = 1;
+	            details.seenCR = true;
+	          } else {
+	            details.column++;
+	            details.seenCR = false;
+	          }
+
+	          p++;
+	        }
+
+	        peg$posDetailsCache[pos] = details;
+	        return details;
+	      }
+	    }
+
+	    function peg$computeLocation(startPos, endPos) {
+	      var startPosDetails = peg$computePosDetails(startPos),
+	          endPosDetails = peg$computePosDetails(endPos);
+
+	      return {
+	        start: {
+	          offset: startPos,
+	          line: startPosDetails.line,
+	          column: startPosDetails.column
+	        },
+	        end: {
+	          offset: endPos,
+	          line: endPosDetails.line,
+	          column: endPosDetails.column
+	        }
+	      };
+	    }
+
+	    function peg$fail(expected) {
+	      if (peg$currPos < peg$maxFailPos) {
+	        return;
+	      }
+
+	      if (peg$currPos > peg$maxFailPos) {
+	        peg$maxFailPos = peg$currPos;
+	        peg$maxFailExpected = [];
+	      }
+
+	      peg$maxFailExpected.push(expected);
+	    }
+
+	    function peg$buildException(message, expected, found, location) {
+	      function cleanupExpected(expected) {
+	        var i = 1;
+
+	        expected.sort(function (a, b) {
+	          if (a.description < b.description) {
+	            return -1;
+	          } else if (a.description > b.description) {
+	            return 1;
+	          } else {
+	            return 0;
+	          }
+	        });
+
+	        while (i < expected.length) {
+	          if (expected[i - 1] === expected[i]) {
+	            expected.splice(i, 1);
+	          } else {
+	            i++;
+	          }
+	        }
+	      }
+
+	      function buildMessage(expected, found) {
+	        function stringEscape(s) {
+	          function hex(ch) {
+	            return ch.charCodeAt(0).toString(16).toUpperCase();
+	          }
+
+	          return s.replace(/\\/g, '\\\\').replace(/"/g, '\\"').replace(/\x08/g, '\\b').replace(/\t/g, '\\t').replace(/\n/g, '\\n').replace(/\f/g, '\\f').replace(/\r/g, '\\r').replace(/[\x00-\x07\x0B\x0E\x0F]/g, function (ch) {
+	            return '\\x0' + hex(ch);
+	          }).replace(/[\x10-\x1F\x80-\xFF]/g, function (ch) {
+	            return '\\x' + hex(ch);
+	          }).replace(/[\u0100-\u0FFF]/g, function (ch) {
+	            return "\\u0" + hex(ch);
+	          }).replace(/[\u1000-\uFFFF]/g, function (ch) {
+	            return "\\u" + hex(ch);
+	          });
+	        }
+
+	        var expectedDescs = new Array(expected.length),
+	            expectedDesc,
+	            foundDesc,
+	            i;
+
+	        for (i = 0; i < expected.length; i++) {
+	          expectedDescs[i] = expected[i].description;
+	        }
+
+	        expectedDesc = expected.length > 1 ? expectedDescs.slice(0, -1).join(", ") + " or " + expectedDescs[expected.length - 1] : expectedDescs[0];
+
+	        foundDesc = found ? "\"" + stringEscape(found) + "\"" : "end of input";
+
+	        return "Expected " + expectedDesc + " but " + foundDesc + " found.";
+	      }
+
+	      if (expected !== null) {
+	        cleanupExpected(expected);
+	      }
+
+	      return new peg$SyntaxError(message !== null ? message : buildMessage(expected, found), expected, found, location);
+	    }
+
+	    function peg$parseMachine() {
+	      var s0, s1, s2;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      s2 = peg$parseState();
+	      while (s2 !== peg$FAILED) {
+	        s1.push(s2);
+	        s2 = peg$parseState();
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$savedPos = s0;
+	        s1 = peg$c0(s1);
+	      }
+	      s0 = s1;
+
+	      return s0;
+	    }
+
+	    function peg$parseStates() {
+	      var s0, s1, s2, s3, s4, s5, s6;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      s2 = peg$parsews();
+	      while (s2 !== peg$FAILED) {
+	        s1.push(s2);
+	        s2 = peg$parsews();
+	      }
+	      if (s1 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 123) {
+	          s2 = peg$c1;
+	          peg$currPos++;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c2);
+	          }
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$parseState();
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$parseState();
+	          }
+	          if (s3 !== peg$FAILED) {
+	            if (input.charCodeAt(peg$currPos) === 125) {
+	              s4 = peg$c3;
+	              peg$currPos++;
+	            } else {
+	              s4 = peg$FAILED;
+	              if (peg$silentFails === 0) {
+	                peg$fail(peg$c4);
+	              }
+	            }
+	            if (s4 !== peg$FAILED) {
+	              s5 = [];
+	              s6 = peg$parsews();
+	              while (s6 !== peg$FAILED) {
+	                s5.push(s6);
+	                s6 = peg$parsews();
+	              }
+	              if (s5 !== peg$FAILED) {
+	                peg$savedPos = s0;
+	                s1 = peg$c5(s3);
+	                s0 = s1;
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$FAILED;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$FAILED;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$FAILED;
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parseState() {
+	      var s0, s1, s2, s3, s4, s5, s6, s7, s8, s9, s10;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      s2 = peg$parsews();
+	      while (s2 !== peg$FAILED) {
+	        s1.push(s2);
+	        s2 = peg$parsews();
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = peg$parseStateId();
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$parsews();
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$parsews();
+	          }
+	          if (s3 !== peg$FAILED) {
+	            s4 = peg$parseFinalToken();
+	            if (s4 === peg$FAILED) {
+	              s4 = null;
+	            }
+	            if (s4 !== peg$FAILED) {
+	              s5 = [];
+	              s6 = peg$parsews();
+	              while (s6 !== peg$FAILED) {
+	                s5.push(s6);
+	                s6 = peg$parsews();
+	              }
+	              if (s5 !== peg$FAILED) {
+	                s6 = peg$parseStates();
+	                if (s6 === peg$FAILED) {
+	                  s6 = null;
+	                }
+	                if (s6 !== peg$FAILED) {
+	                  s7 = [];
+	                  s8 = peg$parsews();
+	                  while (s8 !== peg$FAILED) {
+	                    s7.push(s8);
+	                    s8 = peg$parsews();
+	                  }
+	                  if (s7 !== peg$FAILED) {
+	                    s8 = [];
+	                    s9 = peg$parseTransition();
+	                    while (s9 !== peg$FAILED) {
+	                      s8.push(s9);
+	                      s9 = peg$parseTransition();
+	                    }
+	                    if (s8 !== peg$FAILED) {
+	                      s9 = [];
+	                      s10 = peg$parsews();
+	                      while (s10 !== peg$FAILED) {
+	                        s9.push(s10);
+	                        s10 = peg$parsews();
+	                      }
+	                      if (s9 !== peg$FAILED) {
+	                        peg$savedPos = s0;
+	                        s1 = peg$c6(s2, s4, s6, s8);
+	                        s0 = s1;
+	                      } else {
+	                        peg$currPos = s0;
+	                        s0 = peg$FAILED;
+	                      }
+	                    } else {
+	                      peg$currPos = s0;
+	                      s0 = peg$FAILED;
+	                    }
+	                  } else {
+	                    peg$currPos = s0;
+	                    s0 = peg$FAILED;
+	                  }
+	                } else {
+	                  peg$currPos = s0;
+	                  s0 = peg$FAILED;
+	                }
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$FAILED;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$FAILED;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$FAILED;
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parseStateId() {
+	      var s0, s1, s2;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      s2 = peg$parseidentifier();
+	      if (s2 !== peg$FAILED) {
+	        while (s2 !== peg$FAILED) {
+	          s1.push(s2);
+	          s2 = peg$parseidentifier();
+	        }
+	      } else {
+	        s1 = peg$FAILED;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$savedPos = s0;
+	        s1 = peg$c7(s1);
+	      }
+	      s0 = s1;
+
+	      return s0;
+	    }
+
+	    function peg$parseTransition() {
+	      var s0, s1, s2, s3, s4;
+
+	      s0 = peg$currPos;
+	      if (input.substr(peg$currPos, 2) === peg$c8) {
+	        s1 = peg$c8;
+	        peg$currPos += 2;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c9);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        s2 = [];
+	        s3 = peg$parsews();
+	        while (s3 !== peg$FAILED) {
+	          s2.push(s3);
+	          s3 = peg$parsews();
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = peg$parseStateId();
+	          if (s3 !== peg$FAILED) {
+	            s4 = peg$parseSignal();
+	            if (s4 === peg$FAILED) {
+	              s4 = null;
+	            }
+	            if (s4 !== peg$FAILED) {
+	              peg$savedPos = s0;
+	              s1 = peg$c10(s3, s4);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$FAILED;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$FAILED;
+	      }
+	      if (s0 === peg$FAILED) {
+	        s0 = peg$currPos;
+	        if (input.substr(peg$currPos, 2) === peg$c11) {
+	          s1 = peg$c11;
+	          peg$currPos += 2;
+	        } else {
+	          s1 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c12);
+	          }
+	        }
+	        if (s1 !== peg$FAILED) {
+	          s2 = [];
+	          s3 = peg$parsews();
+	          while (s3 !== peg$FAILED) {
+	            s2.push(s3);
+	            s3 = peg$parsews();
+	          }
+	          if (s2 !== peg$FAILED) {
+	            s3 = peg$parseSignal();
+	            if (s3 === peg$FAILED) {
+	              s3 = null;
+	            }
+	            if (s3 !== peg$FAILED) {
+	              peg$savedPos = s0;
+	              s1 = peg$c13(s3);
+	              s0 = s1;
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$FAILED;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parseSignal() {
+	      var s0, s1, s2, s3, s4, s5, s6, s7, s8;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      s2 = peg$parsews();
+	      while (s2 !== peg$FAILED) {
+	        s1.push(s2);
+	        s2 = peg$parsews();
+	      }
+	      if (s1 !== peg$FAILED) {
+	        if (input.charCodeAt(peg$currPos) === 40) {
+	          s2 = peg$c14;
+	          peg$currPos++;
+	        } else {
+	          s2 = peg$FAILED;
+	          if (peg$silentFails === 0) {
+	            peg$fail(peg$c15);
+	          }
+	        }
+	        if (s2 !== peg$FAILED) {
+	          s3 = [];
+	          s4 = peg$parsews();
+	          while (s4 !== peg$FAILED) {
+	            s3.push(s4);
+	            s4 = peg$parsews();
+	          }
+	          if (s3 !== peg$FAILED) {
+	            s4 = peg$parseidentifier();
+	            if (s4 !== peg$FAILED) {
+	              s5 = [];
+	              s6 = peg$parsews();
+	              while (s6 !== peg$FAILED) {
+	                s5.push(s6);
+	                s6 = peg$parsews();
+	              }
+	              if (s5 !== peg$FAILED) {
+	                if (input.charCodeAt(peg$currPos) === 41) {
+	                  s6 = peg$c16;
+	                  peg$currPos++;
+	                } else {
+	                  s6 = peg$FAILED;
+	                  if (peg$silentFails === 0) {
+	                    peg$fail(peg$c17);
+	                  }
+	                }
+	                if (s6 !== peg$FAILED) {
+	                  s7 = [];
+	                  s8 = peg$parsews();
+	                  while (s8 !== peg$FAILED) {
+	                    s7.push(s8);
+	                    s8 = peg$parsews();
+	                  }
+	                  if (s7 !== peg$FAILED) {
+	                    peg$savedPos = s0;
+	                    s1 = peg$c18(s4);
+	                    s0 = s1;
+	                  } else {
+	                    peg$currPos = s0;
+	                    s0 = peg$FAILED;
+	                  }
+	                } else {
+	                  peg$currPos = s0;
+	                  s0 = peg$FAILED;
+	                }
+	              } else {
+	                peg$currPos = s0;
+	                s0 = peg$FAILED;
+	              }
+	            } else {
+	              peg$currPos = s0;
+	              s0 = peg$FAILED;
+	            }
+	          } else {
+	            peg$currPos = s0;
+	            s0 = peg$FAILED;
+	          }
+	        } else {
+	          peg$currPos = s0;
+	          s0 = peg$FAILED;
+	        }
+	      } else {
+	        peg$currPos = s0;
+	        s0 = peg$FAILED;
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parseFinalToken() {
+	      var s0, s1;
+
+	      s0 = peg$currPos;
+	      if (input.charCodeAt(peg$currPos) === 33) {
+	        s1 = peg$c19;
+	        peg$currPos++;
+	      } else {
+	        s1 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c20);
+	        }
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$savedPos = s0;
+	        s1 = peg$c21(s1);
+	      }
+	      s0 = s1;
+
+	      return s0;
+	    }
+
+	    function peg$parsews() {
+	      var s0;
+
+	      if (peg$c22.test(input.charAt(peg$currPos))) {
+	        s0 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s0 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c23);
+	        }
+	      }
+
+	      return s0;
+	    }
+
+	    function peg$parseidentifier() {
+	      var s0, s1, s2;
+
+	      s0 = peg$currPos;
+	      s1 = [];
+	      if (peg$c24.test(input.charAt(peg$currPos))) {
+	        s2 = input.charAt(peg$currPos);
+	        peg$currPos++;
+	      } else {
+	        s2 = peg$FAILED;
+	        if (peg$silentFails === 0) {
+	          peg$fail(peg$c25);
+	        }
+	      }
+	      if (s2 !== peg$FAILED) {
+	        while (s2 !== peg$FAILED) {
+	          s1.push(s2);
+	          if (peg$c24.test(input.charAt(peg$currPos))) {
+	            s2 = input.charAt(peg$currPos);
+	            peg$currPos++;
+	          } else {
+	            s2 = peg$FAILED;
+	            if (peg$silentFails === 0) {
+	              peg$fail(peg$c25);
+	            }
+	          }
+	        }
+	      } else {
+	        s1 = peg$FAILED;
+	      }
+	      if (s1 !== peg$FAILED) {
+	        peg$savedPos = s0;
+	        s1 = peg$c26(s1);
+	      }
+	      s0 = s1;
+
+	      return s0;
+	    }
+
+	    peg$result = peg$startRuleFunction();
+
+	    if (peg$result !== peg$FAILED && peg$currPos === input.length) {
+	      return peg$result;
+	    } else {
+	      if (peg$result !== peg$FAILED && peg$currPos < input.length) {
+	        peg$fail({ type: "end", description: "end of input" });
+	      }
+
+	      throw peg$buildException(null, peg$maxFailExpected, peg$maxFailPos < input.length ? input.charAt(peg$maxFailPos) : null, peg$maxFailPos < input.length ? peg$computeLocation(peg$maxFailPos, peg$maxFailPos + 1) : peg$computeLocation(peg$maxFailPos, peg$maxFailPos));
+	    }
+	  }
+
+	  return {
+	    SyntaxError: peg$SyntaxError,
+	    parse: peg$parse
+	  };
+	})();
+
+/***/ },
+/* 50 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1719,11 +2484,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
 
-	var _lodashLangIsPlainObject = __webpack_require__(114);
+	var _lodashLangIsPlainObject = __webpack_require__(115);
 
 	var _lodashLangIsPlainObject2 = _interopRequireDefault(_lodashLangIsPlainObject);
 
-	var _lodashObjectExtend = __webpack_require__(118);
+	var _lodashObjectExtend = __webpack_require__(119);
 
 	var _lodashObjectExtend2 = _interopRequireDefault(_lodashObjectExtend);
 
@@ -1743,7 +2508,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 50 */
+/* 51 */
 /***/ function(module, exports) {
 
 	"use strict";
@@ -1761,7 +2526,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports["default"];
 
 /***/ },
-/* 51 */
+/* 52 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1776,11 +2541,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _transition = __webpack_require__(52);
+	var _transition = __webpack_require__(53);
 
 	var _transition2 = _interopRequireDefault(_transition);
 
-	var _lodashArrayDifference = __webpack_require__(55);
+	var _lodashArrayDifference = __webpack_require__(56);
 
 	var _lodashArrayDifference2 = _interopRequireDefault(_lodashArrayDifference);
 
@@ -1958,7 +2723,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 52 */
+/* 53 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -1973,7 +2738,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _signal = __webpack_require__(49);
+	var _signal = __webpack_require__(50);
 
 	var _signal2 = _interopRequireDefault(_signal);
 
@@ -2006,7 +2771,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 53 */
+/* 54 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -2021,15 +2786,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _matchesState2 = _interopRequireDefault(_matchesState);
 
-	var _lodashCollectionFind = __webpack_require__(60);
+	var _lodashCollectionFind = __webpack_require__(61);
 
 	var _lodashCollectionFind2 = _interopRequireDefault(_lodashCollectionFind);
 
-	var _lodashCollectionFilter = __webpack_require__(59);
+	var _lodashCollectionFilter = __webpack_require__(60);
 
 	var _lodashCollectionFilter2 = _interopRequireDefault(_lodashCollectionFilter);
 
-	var _lodashCollectionMax = __webpack_require__(61);
+	var _lodashCollectionMax = __webpack_require__(62);
 
 	var _lodashCollectionMax2 = _interopRequireDefault(_lodashCollectionMax);
 
@@ -2055,7 +2820,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 54 */
+/* 55 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -2092,10 +2857,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	module.exports = exports['default'];
 
 /***/ },
-/* 55 */
+/* 56 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseDifference = __webpack_require__(71),
+	var baseDifference = __webpack_require__(72),
 	    baseFlatten = __webpack_require__(25),
 	    isArrayLike = __webpack_require__(6),
 	    isObjectLike = __webpack_require__(3),
@@ -2127,7 +2892,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 56 */
+/* 57 */
 /***/ function(module, exports) {
 
 	/**
@@ -2152,11 +2917,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 57 */
+/* 58 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseFlatten = __webpack_require__(25),
-	    baseUniq = __webpack_require__(85),
+	    baseUniq = __webpack_require__(86),
 	    restParam = __webpack_require__(13);
 
 	/**
@@ -2182,7 +2947,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 58 */
+/* 59 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var LazyWrapper = __webpack_require__(14),
@@ -2190,7 +2955,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	    baseLodash = __webpack_require__(18),
 	    isArray = __webpack_require__(1),
 	    isObjectLike = __webpack_require__(3),
-	    wrapperClone = __webpack_require__(110);
+	    wrapperClone = __webpack_require__(111);
 
 	/** Used for native method references. */
 	var objectProto = Object.prototype;
@@ -2313,12 +3078,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 59 */
+/* 60 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var arrayFilter = __webpack_require__(65),
+	var arrayFilter = __webpack_require__(66),
 	    baseCallback = __webpack_require__(15),
-	    baseFilter = __webpack_require__(73),
+	    baseFilter = __webpack_require__(74),
 	    isArray = __webpack_require__(1);
 
 	/**
@@ -2380,11 +3145,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 60 */
+/* 61 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseEach = __webpack_require__(17),
-	    createFind = __webpack_require__(94);
+	    createFind = __webpack_require__(95);
 
 	/**
 	 * Iterates over elements of `collection`, returning the first element
@@ -2442,14 +3207,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 61 */
+/* 62 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(116);
+	module.exports = __webpack_require__(117);
 
 
 /***/ },
-/* 62 */
+/* 63 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var getNative = __webpack_require__(5);
@@ -2479,10 +3244,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 63 */
+/* 64 */
 /***/ function(module, exports, __webpack_require__) {
 
-	/* WEBPACK VAR INJECTION */(function(global) {var cachePush = __webpack_require__(87),
+	/* WEBPACK VAR INJECTION */(function(global) {var cachePush = __webpack_require__(88),
 	    getNative = __webpack_require__(5);
 
 	/** Native method references. */
@@ -2515,7 +3280,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 64 */
+/* 65 */
 /***/ function(module, exports) {
 
 	/**
@@ -2551,7 +3316,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 65 */
+/* 66 */
 /***/ function(module, exports) {
 
 	/**
@@ -2582,7 +3347,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 66 */
+/* 67 */
 /***/ function(module, exports) {
 
 	/**
@@ -2608,7 +3373,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 67 */
+/* 68 */
 /***/ function(module, exports) {
 
 	/**
@@ -2637,7 +3402,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 68 */
+/* 69 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var keys = __webpack_require__(8);
@@ -2675,10 +3440,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 69 */
+/* 70 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseCopy = __webpack_require__(70),
+	var baseCopy = __webpack_require__(71),
 	    keys = __webpack_require__(8);
 
 	/**
@@ -2700,7 +3465,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 70 */
+/* 71 */
 /***/ function(module, exports) {
 
 	/**
@@ -2729,7 +3494,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 71 */
+/* 72 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseIndexOf = __webpack_require__(28),
@@ -2790,7 +3555,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 72 */
+/* 73 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseEach = __webpack_require__(17);
@@ -2825,7 +3590,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 73 */
+/* 74 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseEach = __webpack_require__(17);
@@ -2853,7 +3618,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 74 */
+/* 75 */
 /***/ function(module, exports) {
 
 	/**
@@ -2884,7 +3649,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 75 */
+/* 76 */
 /***/ function(module, exports) {
 
 	/**
@@ -2913,7 +3678,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 76 */
+/* 77 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseFor = __webpack_require__(26),
@@ -2936,7 +3701,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 77 */
+/* 78 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseFor = __webpack_require__(26),
@@ -2959,14 +3724,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 78 */
+/* 79 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var equalArrays = __webpack_require__(98),
-	    equalByTag = __webpack_require__(99),
-	    equalObjects = __webpack_require__(100),
+	var equalArrays = __webpack_require__(99),
+	    equalByTag = __webpack_require__(100),
+	    equalObjects = __webpack_require__(101),
 	    isArray = __webpack_require__(1),
-	    isTypedArray = __webpack_require__(115);
+	    isTypedArray = __webpack_require__(116);
 
 	/** `Object#toString` result references. */
 	var argsTag = '[object Arguments]',
@@ -3067,7 +3832,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 79 */
+/* 80 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseIsEqual = __webpack_require__(29),
@@ -3125,11 +3890,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 80 */
+/* 81 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseIsMatch = __webpack_require__(79),
-	    getMatchData = __webpack_require__(102),
+	var baseIsMatch = __webpack_require__(80),
+	    getMatchData = __webpack_require__(103),
 	    toObject = __webpack_require__(4);
 
 	/**
@@ -3161,16 +3926,16 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 81 */
+/* 82 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseGet = __webpack_require__(27),
 	    baseIsEqual = __webpack_require__(29),
-	    baseSlice = __webpack_require__(83),
+	    baseSlice = __webpack_require__(84),
 	    isArray = __webpack_require__(1),
 	    isKey = __webpack_require__(39),
 	    isStrictComparable = __webpack_require__(40),
-	    last = __webpack_require__(56),
+	    last = __webpack_require__(57),
 	    toObject = __webpack_require__(4),
 	    toPath = __webpack_require__(44);
 
@@ -3212,7 +3977,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 82 */
+/* 83 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseGet = __webpack_require__(27),
@@ -3237,7 +4002,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 83 */
+/* 84 */
 /***/ function(module, exports) {
 
 	/**
@@ -3275,7 +4040,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 84 */
+/* 85 */
 /***/ function(module, exports) {
 
 	/**
@@ -3294,7 +4059,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 85 */
+/* 86 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseIndexOf = __webpack_require__(28),
@@ -3360,7 +4125,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 86 */
+/* 87 */
 /***/ function(module, exports) {
 
 	/**
@@ -3388,7 +4153,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 87 */
+/* 88 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(2);
@@ -3414,7 +4179,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 88 */
+/* 89 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var bindCallback = __webpack_require__(32),
@@ -3461,7 +4226,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 89 */
+/* 90 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var getLength = __webpack_require__(38),
@@ -3498,7 +4263,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 90 */
+/* 91 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var toObject = __webpack_require__(4);
@@ -3531,7 +4296,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 91 */
+/* 92 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var createCtorWrapper = __webpack_require__(19);
@@ -3560,10 +4325,10 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 92 */
+/* 93 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createWrapper = __webpack_require__(97),
+	var createWrapper = __webpack_require__(98),
 	    isIterateeCall = __webpack_require__(20);
 
 	/**
@@ -3589,15 +4354,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 93 */
+/* 94 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var arrayExtremum = __webpack_require__(64),
+	var arrayExtremum = __webpack_require__(65),
 	    baseCallback = __webpack_require__(15),
-	    baseExtremum = __webpack_require__(72),
+	    baseExtremum = __webpack_require__(73),
 	    isArray = __webpack_require__(1),
 	    isIterateeCall = __webpack_require__(20),
-	    toIterable = __webpack_require__(109);
+	    toIterable = __webpack_require__(110);
 
 	/**
 	 * Creates a `_.max` or `_.min` function.
@@ -3628,12 +4393,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 94 */
+/* 95 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseCallback = __webpack_require__(15),
-	    baseFind = __webpack_require__(74),
-	    baseFindIndex = __webpack_require__(75),
+	    baseFind = __webpack_require__(75),
+	    baseFindIndex = __webpack_require__(76),
 	    isArray = __webpack_require__(1);
 
 	/**
@@ -3659,15 +4424,15 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 95 */
+/* 96 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var arrayCopy = __webpack_require__(9),
 	    composeArgs = __webpack_require__(34),
 	    composeArgsRight = __webpack_require__(35),
 	    createCtorWrapper = __webpack_require__(19),
-	    isLaziable = __webpack_require__(104),
-	    reorder = __webpack_require__(107),
+	    isLaziable = __webpack_require__(105),
+	    reorder = __webpack_require__(108),
 	    replaceHolders = __webpack_require__(42),
 	    setData = __webpack_require__(43);
 
@@ -3777,7 +4542,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 96 */
+/* 97 */
 /***/ function(module, exports, __webpack_require__) {
 
 	/* WEBPACK VAR INJECTION */(function(global) {var createCtorWrapper = __webpack_require__(19);
@@ -3827,15 +4592,15 @@ return /******/ (function(modules) { // webpackBootstrap
 	/* WEBPACK VAR INJECTION */}.call(exports, (function() { return this; }())))
 
 /***/ },
-/* 97 */
+/* 98 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseSetData = __webpack_require__(31),
-	    createBindWrapper = __webpack_require__(91),
-	    createHybridWrapper = __webpack_require__(95),
-	    createPartialWrapper = __webpack_require__(96),
+	    createBindWrapper = __webpack_require__(92),
+	    createHybridWrapper = __webpack_require__(96),
+	    createPartialWrapper = __webpack_require__(97),
 	    getData = __webpack_require__(37),
-	    mergeData = __webpack_require__(105),
+	    mergeData = __webpack_require__(106),
 	    setData = __webpack_require__(43);
 
 	/** Used to compose bitmasks for wrapper metadata. */
@@ -3919,10 +4684,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 98 */
+/* 99 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var arraySome = __webpack_require__(67);
+	var arraySome = __webpack_require__(68);
 
 	/**
 	 * A specialized version of `baseIsEqualDeep` for arrays with support for
@@ -3976,7 +4741,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 99 */
+/* 100 */
 /***/ function(module, exports) {
 
 	/** `Object#toString` result references. */
@@ -4030,7 +4795,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 100 */
+/* 101 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var keys = __webpack_require__(8);
@@ -4103,10 +4868,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 101 */
+/* 102 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var realNames = __webpack_require__(106);
+	var realNames = __webpack_require__(107);
 
 	/**
 	 * Gets the name of `func`.
@@ -4134,11 +4899,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 102 */
+/* 103 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isStrictComparable = __webpack_require__(40),
-	    pairs = __webpack_require__(119);
+	    pairs = __webpack_require__(120);
 
 	/**
 	 * Gets the propery names, values, and compare flags of `object`.
@@ -4161,7 +4926,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 103 */
+/* 104 */
 /***/ function(module, exports) {
 
 	/**
@@ -4190,13 +4955,13 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 104 */
+/* 105 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var LazyWrapper = __webpack_require__(14),
 	    getData = __webpack_require__(37),
-	    getFuncName = __webpack_require__(101),
-	    lodash = __webpack_require__(58);
+	    getFuncName = __webpack_require__(102),
+	    lodash = __webpack_require__(59);
 
 	/**
 	 * Checks if `func` has a lazy counterpart.
@@ -4223,7 +4988,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 105 */
+/* 106 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var arrayCopy = __webpack_require__(9),
@@ -4318,7 +5083,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 106 */
+/* 107 */
 /***/ function(module, exports) {
 
 	/** Used to lookup unminified function names. */
@@ -4328,7 +5093,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 107 */
+/* 108 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var arrayCopy = __webpack_require__(9),
@@ -4363,7 +5128,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 108 */
+/* 109 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isArguments = __webpack_require__(11),
@@ -4410,12 +5175,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 109 */
+/* 110 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isArrayLike = __webpack_require__(6),
 	    isObject = __webpack_require__(2),
-	    values = __webpack_require__(120);
+	    values = __webpack_require__(121);
 
 	/**
 	 * Converts `value` to an array-like object if it's not one.
@@ -4438,7 +5203,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 110 */
+/* 111 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var LazyWrapper = __webpack_require__(14),
@@ -4462,7 +5227,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 111 */
+/* 112 */
 /***/ function(module, exports) {
 
 	/**
@@ -4493,7 +5258,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 112 */
+/* 113 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isObject = __webpack_require__(2);
@@ -4537,10 +5302,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 113 */
+/* 114 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var isFunction = __webpack_require__(112),
+	var isFunction = __webpack_require__(113),
 	    isObjectLike = __webpack_require__(3);
 
 	/** Used to detect host constructors (Safari > 5). */
@@ -4591,10 +5356,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 114 */
+/* 115 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseForIn = __webpack_require__(76),
+	var baseForIn = __webpack_require__(77),
 	    isArguments = __webpack_require__(11),
 	    isObjectLike = __webpack_require__(3);
 
@@ -4668,7 +5433,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 115 */
+/* 116 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var isLength = __webpack_require__(7),
@@ -4748,11 +5513,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 116 */
+/* 117 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var createExtremum = __webpack_require__(93),
-	    gt = __webpack_require__(111);
+	var createExtremum = __webpack_require__(94),
+	    gt = __webpack_require__(112);
 
 	/** Used as references for `-Infinity` and `Infinity`. */
 	var NEGATIVE_INFINITY = Number.NEGATIVE_INFINITY;
@@ -4810,12 +5575,12 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 117 */
+/* 118 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var assignWith = __webpack_require__(68),
-	    baseAssign = __webpack_require__(69),
-	    createAssigner = __webpack_require__(88);
+	var assignWith = __webpack_require__(69),
+	    baseAssign = __webpack_require__(70),
+	    createAssigner = __webpack_require__(89);
 
 	/**
 	 * Assigns own enumerable properties of source object(s) to the destination
@@ -4859,14 +5624,14 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 118 */
+/* 119 */
 /***/ function(module, exports, __webpack_require__) {
 
-	module.exports = __webpack_require__(117);
+	module.exports = __webpack_require__(118);
 
 
 /***/ },
-/* 119 */
+/* 120 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var keys = __webpack_require__(8),
@@ -4905,10 +5670,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 120 */
+/* 121 */
 /***/ function(module, exports, __webpack_require__) {
 
-	var baseValues = __webpack_require__(86),
+	var baseValues = __webpack_require__(87),
 	    keys = __webpack_require__(8);
 
 	/**
@@ -4944,7 +5709,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 121 */
+/* 122 */
 /***/ function(module, exports) {
 
 	/**
@@ -4969,11 +5734,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 
 /***/ },
-/* 122 */
+/* 123 */
 /***/ function(module, exports, __webpack_require__) {
 
 	var baseProperty = __webpack_require__(30),
-	    basePropertyDeep = __webpack_require__(82),
+	    basePropertyDeep = __webpack_require__(83),
 	    isKey = __webpack_require__(39);
 
 	/**

@@ -1,7 +1,10 @@
 import { inspect } from 'util';
 import assert from 'assert';
-import should from 'should';
+import chai from 'chai';
+import chaiSubset from 'chai-subset';
 import { parse, machine } from '../src/index';
+
+chai.use(chaiSubset);
 
 describe('parser', () => {
 
@@ -28,7 +31,7 @@ describe('parser', () => {
       ]
     };
 
-    assert.deepStrictEqual(mapping, expected);
+    chai.assert.containSubset(mapping, expected);
   });
 
   it('should parse multiple transitions', () => {
@@ -86,7 +89,7 @@ describe('parser', () => {
       ]
     };
 
-    assert.deepStrictEqual(mapping, expected);
+    chai.assert.containSubset(mapping, expected);
   });
 
   it('should parse cyclic transitions', () => {
@@ -136,7 +139,7 @@ describe('parser', () => {
       ]
     };
 
-    assert.deepStrictEqual(mapping, expected);
+    chai.assert.containSubset(mapping, expected);
   });
 
   it('should parse nested states', () => {
@@ -188,7 +191,7 @@ describe('parser', () => {
       ]
     };
 
-    assert.deepStrictEqual(mapping, expected);
+    chai.assert.containSubset(mapping, expected);
   });
 
   it('should parse deeply nested states', () => {
@@ -228,7 +231,7 @@ describe('parser', () => {
       ]
     };
 
-    assert.deepStrictEqual(mapping, expected);
+    chai.assert.containSubset(mapping, expected);
   });
 
   it('should handle varying levels of whitespace', () => {
@@ -266,7 +269,7 @@ describe('parser', () => {
     };
 
     tests.forEach((test) => {
-      assert.deepStrictEqual(parse(test), expected);
+      chai.assert.containSubset(parse(test), expected);
     });
   });
 
@@ -279,7 +282,7 @@ describe('parser', () => {
     let mapping = parse(finalTest);
     let testMachine = machine(mapping);
 
-    assert.equal(testMachine.getState('a').final, false);
-    assert.equal(testMachine.getState('b').final, true);
+    chai.assert.containSubset(testMachine.getState('a').final, false);
+    chai.assert.containSubset(testMachine.getState('b').final, true);
   })
 });
