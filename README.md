@@ -10,38 +10,11 @@ Simple, stateless JavaScript finite-state machines.
 ```js
 import { machine } from 'estado';
 
-let lightMachine = machine({
-  states: [
-    {
-      id: 'green',
-      initial: true,
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'yellow'
-        }
-      ]
-    },
-    {
-      id: 'yellow',
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'red'
-        }
-      ]
-    },
-    {
-      id: 'red',
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'green'
-        }
-      ]
-    }
-  ]
-});
+let lightMachine = `
+  green -> yellow (TIMER)
+  yellow -> red (TIMER)
+  red -> green (TIMER)
+`;
 
 // Pure, stateless transition functions
 let currentState = lightMachine.transition('green', 'TIMER');
