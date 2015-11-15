@@ -252,6 +252,19 @@ describe('parser', () => {
     chai.assert.containSubset(mapping.states[1], { initial: false });
   });
 
+  it('should identify deep initial states implicitly', () => {
+    let test = `
+      a { b -> c d! } -> b
+      b
+    `;
+
+    let mapping = parse(test);
+
+    chai.assert.containSubset(mapping.states[0].states[0], { initial: true });
+    chai.assert.containSubset(mapping.states[0].states[1], { initial: false });
+    chai.assert.containSubset(mapping.states[1], { initial: false });
+  });
+
   it('should identify final states', () => {
     let finalTest = `
       a -> b
@@ -262,5 +275,34 @@ describe('parser', () => {
 
     chai.assert.containSubset(mapping.states[0], { final: false });
     chai.assert.containSubset(mapping.states[1], { final: true });
+  });
+
+  it('should identify self-transitioning states', () => {
+    let selfTest = `
+      a -> b
+      b <-
+    `;
+
+    let mapping = parse(selfTest);
+
+    chai.assert.containSubset(mapping.states[1].transitions[0], { target: 'b' });
+  });
+
+  it('should allow empty transitions', () => {
+    let emptyTest = `a b`;
+
+    let mapping = parse(emptyTest);
+
+    chai.assert.equal(mapping.states.length, 2);
+    chai.assert.equal(mapping.states[0].transitions.length, 0);
+  });
+
+  it('should allow underscores in identifiers', () => {
+    let underscoreTest = `
+      a_b { c_d -> e_f (gg_hh) } -> _ijk
+      lmn__op -> qrs__->tuv
+    `;
+
+    chai.assert.ok(parse(underscoreTest));
   });
 });
