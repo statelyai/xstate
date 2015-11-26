@@ -10,38 +10,11 @@ Simple, stateless JavaScript finite-state machines.
 ```js
 import { machine } from 'estado';
 
-let lightMachine = machine({
-  states: [
-    {
-      id: 'green',
-      initial: true,
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'yellow'
-        }
-      ]
-    },
-    {
-      id: 'yellow',
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'red'
-        }
-      ]
-    },
-    {
-      id: 'red',
-      transitions: [
-        {
-          event: 'TIMER',
-          target: 'green'
-        }
-      ]
-    }
-  ]
-});
+let lightMachine = machine`
+  green -> yellow (TIMER)
+  yellow -> red (TIMER)
+  red -> green (TIMER)
+`;
 
 // Pure, stateless transition functions
 let currentState = lightMachine.transition('green', 'TIMER');
@@ -55,58 +28,57 @@ let initialState = lightMachine.transition();
 // => 'green'
 ```
 
-## State Machine Schema
-The state machine is always represented as a plain JavaScript object, or as JSON. The schema is closely aligned with [SCION-CORE](https://github.com/jbeard4/SCION-CORE#statecharts-model-schema), which itself is a plain JavaScript object representation of [State Chart XML](http://www.w3.org/TR/scxml/), a W3C recommendation.
+## The Estado language
+Estado allows you to parse an easy-to-learn DSL for declaratively writing finite state machines.
 
-There are a few small differences, though, in order to keep the schema as side-effect-free as possible:
+####States
 
-- There is neither an `onEntry` nor an `onExit` property for state - these are unwanted side-effects.
-- Each state can have a `states` property for nested states (replaces `substates` in SCION-CORE)
-- There is no `$type` property.
-- Each state can have an `initial: Boolean` property
-- Each state can have a `final: Boolean` property
-- The `history` state property has not been implemented yet.
+A state is just an alphanumeric string (underscores are allowed) without quotes or spaces: `some_valid_state`. Final states are appended with an exclamation point: `someFinalState!`.
 
-### State Schema
-```js
-{
-  id: 'green',       // (string) state ID
-  initial: true,     // (boolean) is initial state? (default: false)
-  final: false,      // (boolean) is final/accepting state? (default: false)
-  states: [...],     // (States[]) array of nested States (default: [])
-  transitions: [...] // (Transitions[]) array of Transitions (default: [])
-}
+By default, the first state declared in a state group is an initial state.
+
+####Transitions
+
+A transition (edge) between states is denoted with an arrow: `->`. A state can transition to itself with a reverse arrow: `<-`. In the example below, `state1` transitions to `state2` on the `FOO` event. `state2` transitions to itself on the `BAR` event.
+
+```
+state1 -> state2 (FOO)
+state2 <- (BAR)
 ```
 
-_Note:_ A **machine** has the same schema as a **state**, as machines are just abstract states.
+####Signals
 
-### Transition Schema
-```js
-{
-  event: 'TIMER',           // (string) name/type of event
-  target: 'yellow',         // (string) target state
-  cond: (Signal) => { ... } // (function -> boolean) condition function (default: () => true)
-}
+A signal is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Signals are optional (but encouraged for proper state machine design).
+
+####Nested States
+
+States can be hierarchical (nested) by including them inside brackets after a state declaration. They can be deeply nested an infinite amount of levels. This is useful for implementing statecharts.
+
+```
+state1 {
+  nestedState1 -> nestedState2 (FOO)
+  nestedState2!
+} -> state2 (BAR)
+  -> state3 (BAZ)
+state2!
+state3!
 ```
 
-### Signal Schema
-```js
-{
-  type: 'TIMER' // (string) name/type of signal event
-}
+####Formatting / Best Practices
+- Indent transitions on a new line for each transition.
+- Always declare all states used in the state machine (be explicit!)
+- Keep signals on the same line as their transition.
+- Indent nested states on a new line for each nested state.
 
-// A signal can be a plain string as well:
-let signal = 'timer';
-```
-
-Signals can contain any arbitrary data. Signals can also be plain strings.
+###AST / State Machine Schema
+[Read here](https://github.com/davidkpiano/estado/wiki/Schema) if you're curious to the AST and State Machine Schema that this language produces.
 
 ## API
 
 #### machine(data, options = {})
 Creates a new `Machine()` instance with the specified data (see the schema above) and options (optional).
 
-- `data`: (object) The definition of the state machine.
+- `data`: (object | string) The definition of the state machine.
 - `options`: (object) Machine-specific options:
   - `deterministic`: (boolean) Specifies whether the machine is deterministic or nondeterministic (default: `true`)
 
