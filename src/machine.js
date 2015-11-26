@@ -4,7 +4,7 @@ import curry from 'lodash/function/curry';
 
 
 export default class Machine extends State {
-  constructor(data, options) {    
+  constructor(data, options = {}) {    
     super(data);
 
     this.options = options;

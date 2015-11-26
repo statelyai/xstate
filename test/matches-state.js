@@ -34,4 +34,13 @@ describe('matchesState()', () => {
 
     assert.ok(!matchesState('a', false));
   });
+
+  it('should handle cases when states and substates are the same', () => {
+    assert.ok(!matchesState('idle.idle', 'foo'));
+    assert.ok(!matchesState('idle.idle', 'idle.foo'));
+    assert.ok(!matchesState('idle', 'idle.idle'));
+    assert.ok(!matchesState('idle.idle', 'idle.idle.idle'));
+
+    assert.ok(matchesState('idle.idle.idle.idle', 'idle.idle'));
+  });
 });
