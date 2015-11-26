@@ -1,4 +1,4 @@
-import assert from 'assert';
+import chai from 'chai';
 import should from 'should';
 import { machine } from '../lib/index';
 import _ from 'lodash';
@@ -75,62 +75,70 @@ describe('machine', () => {
 
   describe('machine.states', () => {
     it('should properly register machine states', () => {
-      assert.deepEqual(
+      chai.assert.deepEqual(
         _.pluck(lightMachine.states, 'id'),
         ['green', 'yellow', 'red']);
     });
 
     it('should create instances of State class', () => {
-      assert.ok(_.every(lightMachine.states,
+      chai.assert.ok(_.every(lightMachine.states,
         (state) => state.constructor.name === 'State'));
     });
   });
 
   describe('machine.getState()', () => {
     it('should find a substate from a string state ID', () => {
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('yellow').id,
         'yellow');
 
-      assert.ok(
+      chai.assert.ok(
         lightMachine.getState('yellow').constructor.name === 'State');
     });
 
     it('should find a nested substate from a delimited string state ID', () => {
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('red.pedestrian.walk').id,
         'walk');
 
-      assert.ok(
+      chai.assert.ok(
         lightMachine.getState('red.pedestrian.walk').constructor.name === 'State');
     });
 
     it('should return false for invalid substates', () => {
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('fake'),
         false);
 
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('fake.nested.substate'),
         false);
 
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('red.partially.fake'),
         false);
     });
 
     it('should return the original state for falsey fromState values', () => {
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState().id,
         'light-machine');
 
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState(null).id,
         'light-machine');
 
-      assert.equal(
+      chai.assert.equal(
         lightMachine.getState('red').getState().id,
         'red');
+    });
+  });
+
+  describe('machine.getAlphabet()', () => {
+    it('should return the set of signals accepted by machine', () => {
+      chai.assert.sameMembers(
+        lightMachine.getAlphabet(),
+        ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);
     });
   });
 });

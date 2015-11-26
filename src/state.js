@@ -1,17 +1,12 @@
 
 import Transition from './transition';
 import difference from 'lodash/array/difference';
+import unique from 'lodash/array/unique';
 import isArray from 'lodash/lang/isArray';
 import isString from 'lodash/lang/isString';
 import { parse } from './parser';
 
 const STATE_DELIMITER = '.';
-
-Array.prototype.log = function(msg) {
-  console.log(msg, this);
-
-  return this;
-}
 
 export default class State {
   constructor(data, parent = null) {
@@ -34,6 +29,8 @@ export default class State {
       ? data.transitions
         .map((transition) => new Transition(transition))
       : [];
+
+    this.alphabet = this.getAlphabet();
 
     this.initial = !!data.initial;
 
@@ -144,5 +141,13 @@ export default class State {
         ? substate.getState(substates.slice(1))
         : substate
       : false;
+  }
+
+  getAlphabet() {
+    return unique(this.states
+      .map((state) => state.getAlphabet())
+      .concat(this.transitions
+        .map((transition) => transition.event))
+      .reduce((a,b) => a.concat(b), []));
   }
 }
