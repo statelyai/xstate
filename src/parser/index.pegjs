@@ -42,9 +42,13 @@ StateId = id:identifier+
   return id.join('');
 }
 
+TargetId = target:StateId subTarget:("." TargetId)?
+{
+  return [target, (subTarget || []).join('')].join('');
+}
 
 Transition
-= "->" ws* target:StateId event:Signal? 
+= "->" ws* target:TargetId event:Signal? 
   {
     return { target, event }
   }

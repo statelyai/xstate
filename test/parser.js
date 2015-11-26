@@ -343,4 +343,19 @@ describe('parser', () => {
 
     chai.assert.ok(parse(underscoreTest));
   });
+
+  it('should recognize compound (nested) state IDs', () => {
+    let compoundTest = `
+      foo {
+        foo1 -> foo2 (TEST)
+        foo2!
+      } -> bar (TEST2)
+
+      bar -> foo.foo2 (TEST)
+    `;
+
+    let compoundMachine = parse(compoundTest);
+
+    chai.assert.equal(compoundMachine.transition('bar', 'TEST'), 'foo.foo2');
+  });
 });
