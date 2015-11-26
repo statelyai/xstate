@@ -139,6 +139,10 @@ describe('machine', () => {
       chai.assert.sameMembers(
         lightMachine.getAlphabet(),
         ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);
+
+      chai.assert.sameMembers(
+        lightMachine.alphabet,
+        ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);
     });
   });
 });

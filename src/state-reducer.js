@@ -1,5 +1,13 @@
+
+
 function stateReducer(machine) {
-  return (state, signal) => {
+  let initialState = machine.transition();
+
+  return (state = initialState, signal) => {
+    if (!signal || !machine.isValidSignal(signal)) {
+      return state;
+    }
+
     return machine.transition(state, signal);
   }
 }

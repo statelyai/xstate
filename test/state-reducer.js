@@ -28,36 +28,23 @@ describe('stateReducer', () => {
     assert.equal(reducer('a', 'T'), 'b');
   });
 
-  // it('should filter signals from falsey actions and return original state', () => {
-  //   let reducer = stateReducer(testMachine, (a) => a.valid && a);
-  //   let validAction = {
-  //     type: 'T',
-  //     valid: true
-  //   };
-
-  //   let invalidAction = {
-  //     type: 'T',
-  //     valid: false
-  //   };
-
-  //   assert.equal(
-  //     reducer('a', validAction),
-  //     'b');
-
-  //   assert.equal(
-  //     reducer('a', invalidAction),
-  //     'a');
-  // });
-
-  it('should transition to the initial state with falsey state and signal', () => {
+  it('should transition to the initial state with falsey signal', () => {
     let reducer = stateReducer(testMachine);
 
     assert.equal(
       reducer(),
       'a');
+  });
+
+  it('should transition to the same state from invalid signals', () => {
+    let reducer = stateReducer(testMachine);
 
     assert.equal(
-      reducer(false),
+      reducer('a', false),
+      'a');
+
+    assert.equal(
+      reducer('a', 'FAKE'),
       'a');
   });
 });

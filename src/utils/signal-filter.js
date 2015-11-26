@@ -10,6 +10,7 @@ function signalFilter(filter = () => true, stateReducer) {
       return state;
     }
 
+
     return stateReducer(state, signal);
   }
 }

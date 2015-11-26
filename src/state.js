@@ -4,7 +4,9 @@ import difference from 'lodash/array/difference';
 import unique from 'lodash/array/unique';
 import isArray from 'lodash/lang/isArray';
 import isString from 'lodash/lang/isString';
+
 import { parse } from './parser';
+import Signal from './signal';
 
 const STATE_DELIMITER = '.';
 
@@ -144,10 +146,18 @@ export default class State {
   }
 
   getAlphabet() {
-    return unique(this.states
+    return this.alphabet || unique(this.states
       .map((state) => state.getAlphabet())
       .concat(this.transitions
         .map((transition) => transition.event))
       .reduce((a,b) => a.concat(b), []));
+  }
+
+  isValidSignal(signal) {
+    if (!signal) return false;
+
+    let signalType = (new Signal(signal)).type;
+
+    return this.getAlphabet().indexOf(signalType) !== -1;
   }
 }
