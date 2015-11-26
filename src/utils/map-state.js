@@ -4,7 +4,7 @@ import filter from 'lodash/collection/filter';
 import max from 'lodash/collection/max';
 import curry from 'lodash/function/curry';
 
-function mapState(stateMap, state) {
+const mapState = curry((stateMap, state) => {
   let result = Object.keys(stateMap)
     .filter((stateId) => matchesState(state, stateId));
 
@@ -13,6 +13,28 @@ function mapState(stateMap, state) {
   }
 
   return null;
-}
+});
 
-export default curry(mapState);
+const mapOnEntry = curry((stateMap, state, prevState = null) => {
+  // If state hasn't changed, don't do anything
+  if (matchesState(prevState, state)) {
+    return null;
+  }
+
+  return mapState(stateMap, state);
+});
+
+const mapOnExit = curry((stateMap, state, prevState = null) => {
+  // If state hasn't changed, don't do anything
+  if (prevState === state) {
+    return null;
+  }
+
+  return mapState(stateMap, prevState);
+});
+
+export {
+  mapState,
+  mapOnEntry,
+  mapOnExit
+}
