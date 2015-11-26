@@ -112,19 +112,21 @@ describe('mapOnExit()', () => {
 
     assert.strictEqual(mappingFn('b', 'a.a1'), 'past state a.a1');
 
-    assert.strictEqual(mappingFn('a.a1', 'a'), 'past state a');
-
     assert.strictEqual(mappingFn('a', 'a.a1'), 'past state a.a1');
 
     assert.strictEqual(mappingFn('a.a1', 'a.a1.a2'), 'past state a.a1.a2');
   });
 
-  it('should return null if new state is same as previous state', () => {
+  it('should return null if previous state is superstate of new state', () => {
     let mappingFn = mapOnExit({
       'a': 'past state a',
       'a.a1': 'past state a.a1',
       'b': 'past state b'
     });
+
+    assert.strictEqual(mappingFn('a.a1', 'a'), null);
+
+    assert.strictEqual(mappingFn('a.a1.a2', 'a.a1'), null);
 
     assert.strictEqual(mappingFn('a', 'a'), null);
 

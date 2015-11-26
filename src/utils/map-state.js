@@ -4,15 +4,23 @@ import filter from 'lodash/collection/filter';
 import max from 'lodash/collection/max';
 import curry from 'lodash/function/curry';
 
-const mapState = curry((stateMap, state) => {
+const getMatchingStateId = (stateMap, state) => {
   let result = Object.keys(stateMap)
     .filter((stateId) => matchesState(state, stateId));
 
   if (result.length) {
-    return stateMap[ max(result, (s) => s.length) ];
+    return max(result, (s) => s.length);
   }
 
   return null;
+}
+
+const mapState = curry((stateMap, state) => {
+  let matchingStateId = getMatchingStateId(stateMap, state);
+
+  if (!matchingStateId) return null;
+
+  return stateMap[ matchingStateId ];
 });
 
 const mapOnEntry = curry((stateMap, state, prevState = null) => {
@@ -21,16 +29,28 @@ const mapOnEntry = curry((stateMap, state, prevState = null) => {
     return null;
   }
 
-  return mapState(stateMap, state);
+  let matchingStateId = getMatchingStateId(stateMap, state);
+
+  if (matchingStateId !== state) {
+    return mapOnEntry(stateMap, matchingStateId, prevState);
+  }
+
+  return stateMap[ matchingStateId ];
 });
 
 const mapOnExit = curry((stateMap, state, prevState = null) => {
   // If state hasn't changed, don't do anything
-  if (prevState === state) {
+  if (matchesState(state, prevState)) {
     return null;
   }
 
-  return mapState(stateMap, prevState);
+  let matchingStateId = getMatchingStateId(stateMap, prevState);
+
+  if (matchingStateId !== prevState) {
+    return mapOnExit(stateMap, state, matchingStateId);
+  }
+
+  return stateMap[ matchingStateId ];
 });
 
 export {
