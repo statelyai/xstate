@@ -3,6 +3,10 @@ Simple, stateless JavaScript finite-state machines.
 
 **What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, action) -> state`.
 
+**Why?** (Article coming soon!) TL;DR: Finite state machines are extremely useful for representing the various states your application can be in, and how each state transitions to another state when an action is performed. Also, declaring your state machine as data (Estado language parses to pure JSON, and is SCXML-compatible) means you can use your state machine, well, anywhere. Any language.
+
+(Example coming soon!)
+
 ## Getting Started
 1. Install via NPM: `npm install estado --save`
 2. Import the state machine creator into your project:
@@ -48,7 +52,7 @@ state2 <- (BAR)
 
 ####Actions
 
-An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
+An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 <- (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
 
 ####Nested States
 
@@ -63,6 +67,19 @@ state1 {
 state2!
 state3!
 ```
+
+Here's a more pragmatic example:
+```
+green -> yellow (TIMER)
+yellow -> red (TIMER)
+red {
+  walk -> countdown (COUNTDOWN_START)
+  countdown -> stop (COUNTDOWN_STOP)
+  stop!
+} -> green (TIMER)
+```
+
+When you enter the `red` state from `yellow`, you immediately go into `red.walk` (which allows pedestrians to walk). Upon reaching `red.stop` (which disallows pedestrians from walking), actions are handled from the parent `red` state, so the `TIMER` going off would transition it back to the `green` state.
 
 ####Formatting / Best Practices
 - Indent transitions on a new line for each transition.
