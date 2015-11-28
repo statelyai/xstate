@@ -52,7 +52,7 @@ state2 <- (BAR)
 
 ####Actions
 
-An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
+An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 <- (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
 
 ####Nested States
 
@@ -67,6 +67,19 @@ state1 {
 state2!
 state3!
 ```
+
+Here's a more pragmatic example:
+```
+green -> yellow (TIMER)
+yellow -> red (TIMER)
+red {
+  walk -> countdown (COUNTDOWN_START)
+  countdown -> stop (COUNTDOWN_STOP)
+  stop!
+} -> green (TIMER)
+```
+
+When you enter the `red` state from `yellow`, you immediately go into `red.walk` (which allows pedestrians to walk). Upon reaching `red.stop` (which disallows pedestrians from walking), actions are handled from the parent `red` state, so the `TIMER` going off would transition it back to the `green` state.
 
 ####Formatting / Best Practices
 - Indent transitions on a new line for each transition.
