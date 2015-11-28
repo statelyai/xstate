@@ -1,7 +1,7 @@
 # Estado
 Simple, stateless JavaScript finite-state machines.
 
-**What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, signal) -> state`.
+**What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, action) -> state`.
 
 ## Getting Started
 1. Install via NPM: `npm install estado --save`
@@ -46,9 +46,9 @@ state1 -> state2 (FOO)
 state2 <- (BAR)
 ```
 
-####Signals
+####Actions
 
-A signal is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Signals are optional (but encouraged for proper state machine design).
+An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 -< (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
 
 ####Nested States
 
@@ -67,7 +67,7 @@ state3!
 ####Formatting / Best Practices
 - Indent transitions on a new line for each transition.
 - Always declare all states used in the state machine (be explicit!)
-- Keep signals on the same line as their transition.
+- Keep actions on the same line as their transition.
 - Indent nested states on a new line for each nested state.
 
 ###AST / State Machine Schema
@@ -82,13 +82,13 @@ Creates a new `Machine()` instance with the specified data (see the schema above
 - `options`: (object) Machine-specific options:
   - `deterministic`: (boolean) Specifies whether the machine is deterministic or nondeterministic (default: `true`)
 
-#### Machine.transition(state = null, signal = null)
-Returns the next state, given a current state and a signal. If no state nor signal is provided, the initial state is returned.
+#### Machine.transition(state = null, action = null)
+Returns the next state, given a current state and an action. If no state nor action is provided, the initial state is returned.
 
 _Note:_ This is a pure function, and does not maintain internal state.
 
 - `state`: (string) The current state ID.
-- `signal`: (string | Signal) The signal that triggers the transition from the `state` to the next state.
+- `action`: (string | Action) The action that triggers the transition from the `state` to the next state.
 
 **Example:**
 ```js
