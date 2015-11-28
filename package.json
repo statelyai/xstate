@@ -32,9 +32,11 @@
     "chai": "^3.4.1",
     "chai-subset": "^1.1.0",
     "dagre-d3": "^0.4.10",
+    "greuler": "^0.5.5",
     "pegjs": "^0.9.0",
     "pegjs-loader": "^0.2.2",
     "should": "^7.1.0",
+    "webcola": "github:tgdwyer/WebCola#master",
     "webpack": "^1.12.2"
   },
   "dependencies": {

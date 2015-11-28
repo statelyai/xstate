@@ -28,7 +28,7 @@ describe('stateReducer', () => {
     assert.equal(reducer('a', 'T'), 'b');
   });
 
-  it('should transition to the initial state with falsey signal', () => {
+  it('should transition to the initial state with falsey action', () => {
     let reducer = stateReducer(testMachine);
 
     assert.equal(
@@ -36,7 +36,7 @@ describe('stateReducer', () => {
       'a');
   });
 
-  it('should transition to the same state from invalid signals', () => {
+  it('should transition to the same state from invalid actions', () => {
     let reducer = stateReducer(testMachine);
 
     assert.equal(

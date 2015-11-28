@@ -1,4 +1,4 @@
-import Signal from './signal';
+import Action from './action';
 
 export default class Transition {
   constructor(data, fromState) {
@@ -9,10 +9,10 @@ export default class Transition {
     this.cond = data.cond || () => true;
   }
 
-  isValid(signal) {
-    signal = new Signal(signal);
+  isValid(action) {
+    action = new Action(action);
 
-    return signal.type === this.event
-      && !!this.cond(signal);
+    return action.type === this.event
+      && !!this.cond(action);
   }
 }

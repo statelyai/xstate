@@ -14,8 +14,8 @@ export default class Machine extends State {
     this.mapStateRefs();
   }
 
-  transition(fromState = null, signal = null) {
-    let states = super.transition(fromState, signal);
+  transition(fromState = null, action = null) {
+    let states = super.transition(fromState, action);
 
     if (this.options.deterministic) {
       return states.length

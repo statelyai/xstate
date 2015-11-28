@@ -3,12 +3,12 @@
 function stateReducer(machine) {
   let initialState = machine.transition();
 
-  return (state = initialState, signal) => {
-    if (!signal || !machine.isValidSignal(signal)) {
+  return (state = initialState, action) => {
+    if (!action || !machine.isValidAction(action)) {
       return state;
     }
 
-    return machine.transition(state, signal);
+    return machine.transition(state, action);
   }
 }
 

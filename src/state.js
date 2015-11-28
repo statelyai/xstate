@@ -6,7 +6,7 @@ import isArray from 'lodash/lang/isArray';
 import isString from 'lodash/lang/isString';
 
 import { parse } from './parser';
-import Signal from './signal';
+import Action from './action';
 
 const STATE_DELIMITER = '.';
 
@@ -57,7 +57,7 @@ export default class State {
     return difference(this._id, fromState._id).join('.');
   }
 
-  transition(fromState = null, signal = null, returnFlag = true) {
+  transition(fromState = null, action = null, returnFlag = true) {
     let substateIds = this.getSubstateIds(fromState);
     let initialStates = this.states
       .filter((state) => state.initial);
@@ -72,21 +72,21 @@ export default class State {
       }
 
       nextStates = currentSubstate
-        .transition(substateIds.slice(1), signal, false);
+        .transition(substateIds.slice(1), action, false);
 
       if (!nextStates.length) {
         nextStates = this.transitions
-          .filter((transition) => transition.isValid(signal))
+          .filter((transition) => transition.isValid(action))
           .map((transition) => transition.targetState.initialStates())
           .reduce((a, b) => a.concat(b), [])
       }
     } else if (initialStates.length) {
       nextStates = initialStates
-        .map((state) => state.transition(null, signal, false))
+        .map((state) => state.transition(null, action, false))
         .reduce((a, b) => a.concat(b), [])
-    } else if (signal) {
+    } else if (action) {
       nextStates = this.transitions
-        .filter((transition) => transition.isValid(signal))
+        .filter((transition) => transition.isValid(action))
         .map((transition) => transition.targetState.initialStates())
         .reduce((a, b) => a.concat(b), [])
     } else {
@@ -153,11 +153,11 @@ export default class State {
       .reduce((a,b) => a.concat(b), []));
   }
 
-  isValidSignal(signal) {
-    if (!signal) return false;
+  isValidAction(action) {
+    if (!action) return false;
 
-    let signalType = (new Signal(signal)).type;
+    let actionType = (new Action(action)).type;
 
-    return this.getAlphabet().indexOf(signalType) !== -1;
+    return this.getAlphabet().indexOf(actionType) !== -1;
   }
 }

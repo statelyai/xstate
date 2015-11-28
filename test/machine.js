@@ -135,7 +135,7 @@ describe('machine', () => {
   });
 
   describe('machine.getAlphabet()', () => {
-    it('should return the set of signals accepted by machine', () => {
+    it('should return the set of actions accepted by machine', () => {
       chai.assert.sameMembers(
         lightMachine.getAlphabet(),
         ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);

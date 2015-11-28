@@ -1,10 +1,10 @@
 
 import assert from 'assert';
 import should from 'should';
-import { machine, signalFilter, stateReducer } from '../lib/index';
+import { machine, actionFilter, stateReducer } from '../lib/index';
 import isFunction from 'lodash/lang/isFunction';
 
-describe('signalFilter', () => {
+describe('actionFilter', () => {
   let testMachine = machine({
     states: [
       {
@@ -24,14 +24,14 @@ describe('signalFilter', () => {
   });
 
   it('should return a reducer', () => {
-    let reducer = signalFilter((a) => a, stateReducer(testMachine));
+    let reducer = actionFilter((a) => a, stateReducer(testMachine));
 
     assert.ok(isFunction(reducer));
     assert.equal(reducer('a', 'T'), 'b');
   });
 
-  it('should filter signals from falsey actions and return original state', () => {
-    let reducer = signalFilter((a) => a.valid, stateReducer(testMachine));
+  it('should filter actions from falsey actions and return original state', () => {
+    let reducer = actionFilter((a) => a.valid, stateReducer(testMachine));
     let validAction = {
       type: 'T',
       valid: true
@@ -52,7 +52,7 @@ describe('signalFilter', () => {
   });
 
   it('should be able to be curried', () => {
-    let reducer = signalFilter((a) => a.valid)(stateReducer(testMachine));
+    let reducer = actionFilter((a) => a.valid)(stateReducer(testMachine));
 
     let validAction = {
       type: 'T',

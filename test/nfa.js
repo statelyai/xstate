@@ -109,13 +109,13 @@ describe('nondeterministic machine', () => {
         ['yellow']);
     });
 
-    it('should properly transition states based on signal-like object', () => {
-      let signal = {
+    it('should properly transition states based on action-like object', () => {
+      let action = {
         type: 'TIMER'
       };
 
       assert.deepEqual(
-        lightMachine.transition('green', signal),
+        lightMachine.transition('green', action),
         ['yellow']);
     });
 
@@ -131,7 +131,7 @@ describe('nondeterministic machine', () => {
         []);
     });
 
-    it('should transition to initial substates without any signal', () => {
+    it('should transition to initial substates without any action', () => {
       assert.deepEqual(
         lightMachine.transition('red'),
         ['red.pedestrian.walk']);
@@ -179,7 +179,7 @@ describe('nondeterministic machine', () => {
         ['red.pedestrian.wait']);
     });
 
-    it('should transition to initial nested states with no signal', () => {
+    it('should transition to initial nested states with no action', () => {
       assert.deepEqual(
         lightMachine.transition('red'),
         ['red.pedestrian.walk']);
@@ -189,7 +189,7 @@ describe('nondeterministic machine', () => {
         ['red.pedestrian.walk']);
     });
 
-    it('should bubble up signals that nested states cannot handle', () => {
+    it('should bubble up actions that nested states cannot handle', () => {
       assert.deepEqual(
         lightMachine.transition('red.pedestrian.wait', 'TIMER'),
         ['green']);

@@ -48,22 +48,22 @@ TargetId = target:StateId subTarget:("." TargetId)?
 }
 
 Transition
-= "->" ws* target:TargetId event:Signal? 
+= "->" ws* target:TargetId event:Action? 
   {
     return { target, event }
   }
-/ "<-" ws* event:Signal?
+/ "<-" ws* event:Action?
   {
     return { target: true, event }
   }
 
-Signal
-= ws* "(" ws* type:SignalType ws* ")" ws*
+Action
+= ws* "(" ws* type:ActionType ws* ")" ws*
 {
   return type;
 }
 
-SignalType
+ActionType
 = identifier
 
 FinalToken
