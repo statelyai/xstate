@@ -3,6 +3,10 @@ Simple, stateless JavaScript finite-state machines.
 
 **What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, action) -> state`.
 
+**Why?** (Article coming soon!) TL;DR: Finite state machines are extremely useful for representing the various states your application can be in, and how each state transitions to another state when an action is performed. Also, declaring your state machine as data (Estado language parses to pure JSON, and is SCXML-compatible) means you can use your state machine, well, anywhere. Any language.
+
+(Example coming soon!)
+
 ## Getting Started
 1. Install via NPM: `npm install estado --save`
 2. Import the state machine creator into your project:
