@@ -72,22 +72,22 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _stateReducer2 = _interopRequireDefault(_stateReducer);
 
-	var _utilsSignalFilter = __webpack_require__(57);
+	var _utilsActionFilter = __webpack_require__(56);
 
-	var _utilsSignalFilter2 = _interopRequireDefault(_utilsSignalFilter);
+	var _utilsActionFilter2 = _interopRequireDefault(_utilsActionFilter);
 
-	var _utilsMapState = __webpack_require__(56);
+	var _utilsMapState = __webpack_require__(57);
 
 	var _utilsMatchesState = __webpack_require__(26);
 
 	var _utilsMatchesState2 = _interopRequireDefault(_utilsMatchesState);
 
-	var _parser = __webpack_require__(23);
+	var _parser = __webpack_require__(24);
 
 	exports.machine = _dfa2['default'];
 	exports.nfaMachine = _nfa.machine;
 	exports.stateReducer = _stateReducer2['default'];
-	exports.signalFilter = _utilsSignalFilter2['default'];
+	exports.actionFilter = _utilsActionFilter2['default'];
 	exports.mapState = _utilsMapState.mapState;
 	exports.mapOnEntry = _utilsMapState.mapOnEntry;
 	exports.mapOnExit = _utilsMapState.mapOnExit;
@@ -620,9 +620,9 @@ return /******/ (function(modules) { // webpackBootstrap
 	    key: 'transition',
 	    value: function transition() {
 	      var fromState = arguments.length <= 0 || arguments[0] === undefined ? null : arguments[0];
-	      var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+	      var action = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 
-	      var states = _get(Object.getPrototypeOf(Machine.prototype), 'transition', this).call(this, fromState, signal);
+	      var states = _get(Object.getPrototypeOf(Machine.prototype), 'transition', this).call(this, fromState, action);
 
 	      if (this.options.deterministic) {
 	        return states.length ? states[0] : false;
@@ -864,6 +864,47 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 23 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
+
+	var _lodashLangIsString = __webpack_require__(49);
+
+	var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
+
+	var _lodashLangIsPlainObject = __webpack_require__(121);
+
+	var _lodashLangIsPlainObject2 = _interopRequireDefault(_lodashLangIsPlainObject);
+
+	var _lodashObjectExtend = __webpack_require__(125);
+
+	var _lodashObjectExtend2 = _interopRequireDefault(_lodashObjectExtend);
+
+	var Action = function Action(data) {
+	  _classCallCheck(this, Action);
+
+	  if (data instanceof Action || (0, _lodashLangIsPlainObject2['default'])(data)) {
+	    (0, _lodashObjectExtend2['default'])(this, data);
+	  }
+
+	  if ((0, _lodashLangIsString2['default'])(data)) {
+	    this.type = data;
+	  }
+	};
+
+	exports['default'] = Action;
+	module.exports = exports['default'];
+
+/***/ },
+/* 24 */
 /***/ function(module, exports, __webpack_require__) {
 
 	"use strict";
@@ -1430,7 +1471,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	        if (s2 !== peg$FAILED) {
 	          s3 = peg$parseTargetId();
 	          if (s3 !== peg$FAILED) {
-	            s4 = peg$parseSignal();
+	            s4 = peg$parseAction();
 	            if (s4 === peg$FAILED) {
 	              s4 = null;
 	            }
@@ -1473,7 +1514,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	            s3 = peg$parsews();
 	          }
 	          if (s2 !== peg$FAILED) {
-	            s3 = peg$parseSignal();
+	            s3 = peg$parseAction();
 	            if (s3 === peg$FAILED) {
 	              s3 = null;
 	            }
@@ -1498,7 +1539,7 @@ return /******/ (function(modules) { // webpackBootstrap
 	      return s0;
 	    }
 
-	    function peg$parseSignal() {
+	    function peg$parseAction() {
 	      var s0, s1, s2, s3, s4, s5, s6, s7, s8;
 
 	      s0 = peg$currPos;
@@ -1687,47 +1728,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	})();
 
 /***/ },
-/* 24 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
-
-	var _lodashLangIsString = __webpack_require__(49);
-
-	var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
-
-	var _lodashLangIsPlainObject = __webpack_require__(121);
-
-	var _lodashLangIsPlainObject2 = _interopRequireDefault(_lodashLangIsPlainObject);
-
-	var _lodashObjectExtend = __webpack_require__(125);
-
-	var _lodashObjectExtend2 = _interopRequireDefault(_lodashObjectExtend);
-
-	var Signal = function Signal(data) {
-	  _classCallCheck(this, Signal);
-
-	  if (data instanceof Signal || (0, _lodashLangIsPlainObject2['default'])(data)) {
-	    (0, _lodashObjectExtend2['default'])(this, data);
-	  }
-
-	  if ((0, _lodashLangIsString2['default'])(data)) {
-	    this.type = data;
-	  }
-	};
-
-	exports['default'] = Signal;
-	module.exports = exports['default'];
-
-/***/ },
 /* 25 */
 /***/ function(module, exports, __webpack_require__) {
 
@@ -1763,11 +1763,11 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	var _lodashLangIsString2 = _interopRequireDefault(_lodashLangIsString);
 
-	var _parser = __webpack_require__(23);
+	var _parser = __webpack_require__(24);
 
-	var _signal = __webpack_require__(24);
+	var _action = __webpack_require__(23);
 
-	var _signal2 = _interopRequireDefault(_signal);
+	var _action2 = _interopRequireDefault(_action);
 
 	var STATE_DELIMITER = '.';
 
@@ -1831,7 +1831,7 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	      var _this3 = this;
 
-	      var signal = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
+	      var action = arguments.length <= 1 || arguments[1] === undefined ? null : arguments[1];
 	      var returnFlag = arguments.length <= 2 || arguments[2] === undefined ? true : arguments[2];
 
 	      var substateIds = this.getSubstateIds(fromState);
@@ -1846,11 +1846,11 @@ return /******/ (function(modules) { // webpackBootstrap
 	          return [];
 	        }
 
-	        nextStates = currentSubstate.transition(substateIds.slice(1), signal, false);
+	        nextStates = currentSubstate.transition(substateIds.slice(1), action, false);
 
 	        if (!nextStates.length) {
 	          nextStates = this.transitions.filter(function (transition) {
-	            return transition.isValid(signal);
+	            return transition.isValid(action);
 	          }).map(function (transition) {
 	            return transition.targetState.initialStates();
 	          }).reduce(function (a, b) {
@@ -1859,13 +1859,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	        }
 	      } else if (initialStates.length) {
 	        nextStates = initialStates.map(function (state) {
-	          return state.transition(null, signal, false);
+	          return state.transition(null, action, false);
 	        }).reduce(function (a, b) {
 	          return a.concat(b);
 	        }, []);
-	      } else if (signal) {
+	      } else if (action) {
 	        nextStates = this.transitions.filter(function (transition) {
-	          return transition.isValid(signal);
+	          return transition.isValid(action);
 	        }).map(function (transition) {
 	          return transition.targetState.initialStates();
 	        }).reduce(function (a, b) {
@@ -1936,13 +1936,13 @@ return /******/ (function(modules) { // webpackBootstrap
 	      }, []));
 	    }
 	  }, {
-	    key: 'isValidSignal',
-	    value: function isValidSignal(signal) {
-	      if (!signal) return false;
+	    key: 'isValidAction',
+	    value: function isValidAction(action) {
+	      if (!action) return false;
 
-	      var signalType = new _signal2['default'](signal).type;
+	      var actionType = new _action2['default'](action).type;
 
-	      return this.getAlphabet().indexOf(signalType) !== -1;
+	      return this.getAlphabet().indexOf(actionType) !== -1;
 	    }
 	  }]);
 
@@ -2932,14 +2932,14 @@ return /******/ (function(modules) { // webpackBootstrap
 	function stateReducer(machine) {
 	  var initialState = machine.transition();
 
-	  return function (state, signal) {
+	  return function (state, action) {
 	    if (state === undefined) state = initialState;
 
-	    if (!signal || !machine.isValidSignal(signal)) {
+	    if (!action || !machine.isValidAction(action)) {
 	      return state;
 	    }
 
-	    return machine.transition(state, signal);
+	    return machine.transition(state, action);
 	  };
 	}
 
@@ -2962,9 +2962,9 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	function _classCallCheck(instance, Constructor) { if (!(instance instanceof Constructor)) { throw new TypeError('Cannot call a class as a function'); } }
 
-	var _signal = __webpack_require__(24);
+	var _action = __webpack_require__(23);
 
-	var _signal2 = _interopRequireDefault(_signal);
+	var _action2 = _interopRequireDefault(_action);
 
 	var Transition = (function () {
 	  function Transition(data, fromState) {
@@ -2981,10 +2981,10 @@ return /******/ (function(modules) { // webpackBootstrap
 
 	  _createClass(Transition, [{
 	    key: 'isValid',
-	    value: function isValid(signal) {
-	      signal = new _signal2['default'](signal);
+	    value: function isValid(action) {
+	      action = new _action2['default'](action);
 
-	      return signal.type === this.event && !!this.cond(signal);
+	      return action.type === this.event && !!this.cond(action);
 	    }
 	  }]);
 
@@ -2996,6 +2996,43 @@ return /******/ (function(modules) { // webpackBootstrap
 
 /***/ },
 /* 56 */
+/***/ function(module, exports, __webpack_require__) {
+
+	'use strict';
+
+	Object.defineProperty(exports, '__esModule', {
+	  value: true
+	});
+
+	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
+
+	var _lodashFunctionCurry = __webpack_require__(16);
+
+	var _lodashFunctionCurry2 = _interopRequireDefault(_lodashFunctionCurry);
+
+	function actionFilter(filter, stateReducer) {
+	  if (filter === undefined) filter = function () {
+	    return true;
+	  };
+
+	  return function (state, action) {
+	    if (!state) {
+	      return stateReducer();
+	    }
+
+	    if (!filter(action)) {
+	      return state;
+	    }
+
+	    return stateReducer(state, action);
+	  };
+	}
+
+	exports['default'] = (0, _lodashFunctionCurry2['default'])(actionFilter);
+	module.exports = exports['default'];
+
+/***/ },
+/* 57 */
 /***/ function(module, exports, __webpack_require__) {
 
 	'use strict';
@@ -3085,43 +3122,6 @@ return /******/ (function(modules) { // webpackBootstrap
 	exports.mapState = mapState;
 	exports.mapOnEntry = mapOnEntry;
 	exports.mapOnExit = mapOnExit;
-
-/***/ },
-/* 57 */
-/***/ function(module, exports, __webpack_require__) {
-
-	'use strict';
-
-	Object.defineProperty(exports, '__esModule', {
-	  value: true
-	});
-
-	function _interopRequireDefault(obj) { return obj && obj.__esModule ? obj : { 'default': obj }; }
-
-	var _lodashFunctionCurry = __webpack_require__(16);
-
-	var _lodashFunctionCurry2 = _interopRequireDefault(_lodashFunctionCurry);
-
-	function signalFilter(filter, stateReducer) {
-	  if (filter === undefined) filter = function () {
-	    return true;
-	  };
-
-	  return function (state, signal) {
-	    if (!state) {
-	      return stateReducer();
-	    }
-
-	    if (!filter(signal)) {
-	      return state;
-	    }
-
-	    return stateReducer(state, signal);
-	  };
-	}
-
-	exports['default'] = (0, _lodashFunctionCurry2['default'])(signalFilter);
-	module.exports = exports['default'];
 
 /***/ },
 /* 58 */
