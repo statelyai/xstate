@@ -79,7 +79,7 @@
 	  'dispensing.err_dispensing': 'ERROR: Please wait until your drink is dispensed.'
 	};
 
-	var title = {
+	var titles = {
 	  'idle': 'Please insert a coin.',
 	  'wait_for_select': 'Please make a selection.',
 	  'dispensing': 'Please wait; dispensing your selection.'
@@ -109,11 +109,9 @@
 	        'dispensing': { type: 'DISPENSED' }
 	      }, nextProps.vending, vending);
 
-	      if (action) {
-	        setTimeout(function () {
-	          return dispatch(action);
-	        }, 2000);
-	      }
+	      action && setTimeout(function () {
+	        return dispatch(action);
+	      }, 2000);
 	    }
 	  }, {
 	    key: 'render',
@@ -128,7 +126,7 @@
 	        _react2.default.createElement(
 	          'h3',
 	          null,
-	          (0, _index.mapState)(title, vending)
+	          (0, _index.mapState)(titles, vending)
 	        ),
 	        _react2.default.createElement(
 	          'button',

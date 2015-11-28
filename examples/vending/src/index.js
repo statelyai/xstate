@@ -44,7 +44,7 @@ let messages = {
   'dispensing.err_dispensing': 'ERROR: Please wait until your drink is dispensed.'
 };
 
-let title = {
+let titles = {
   'idle': 'Please insert a coin.',
   'wait_for_select': 'Please make a selection.',
   'dispensing': 'Please wait; dispensing your selection.',
@@ -62,20 +62,20 @@ class App extends React.Component {
       'dispensing': {type: 'DISPENSED'}
     }, nextProps.vending, vending);
 
-    if (action) {
-      setTimeout(() => dispatch(action), 2000);
-    }
+    action && setTimeout(() => dispatch(action), 2000);
   }
 
   render() {
     let { dispatch, vending } = this.props;
 
-    return <div>
-      <h3>{ mapState(title, vending) }</h3>
-      <button onClick={() => dispatch({type: 'COIN'})}>COIN</button>
-      <button onClick={() => dispatch({type: 'SELECT'})}>SELECT</button>
-      <div>{ mapState(messages, vending) }</div>
-    </div>
+    return (
+      <div>
+        <h3>{ mapState(titles, vending) }</h3>
+        <button onClick={() => dispatch({type: 'COIN'})}>COIN</button>
+        <button onClick={() => dispatch({type: 'SELECT'})}>SELECT</button>
+        <div>{ mapState(messages, vending) }</div>
+      </div>
+    );
   }
 }
 
