@@ -7,7 +7,7 @@ import Machine from '../src/machine';
 
 chai.use(chaiSubset);
 
-describe('parser', () => {
+xdescribe('parser', () => {
 
   it('should produce a machine', () => {
     let test = `

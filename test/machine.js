@@ -1,7 +1,8 @@
 import chai from 'chai';
 import should from 'should';
 import { machine } from '../lib/index';
-import _ from 'lodash';
+import pluck from 'lodash/collection/pluck';
+import every from 'lodash/collection/every';
 
 describe('machine', () => {
   let pedestrianMachine = {
@@ -76,12 +77,12 @@ describe('machine', () => {
   describe('machine.states', () => {
     it('should properly register machine states', () => {
       chai.assert.deepEqual(
-        _.pluck(lightMachine.states, 'id'),
+        pluck(lightMachine.states, 'id'),
         ['green', 'yellow', 'red']);
     });
 
     it('should create instances of State class', () => {
-      chai.assert.ok(_.every(lightMachine.states,
+      chai.assert.ok(every(lightMachine.states,
         (state) => state.constructor.name === 'State'));
     });
   });
