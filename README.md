@@ -5,7 +5,7 @@ Simple, stateless JavaScript finite-state machines.
 
 **Why?** (Article coming soon!) TL;DR: Finite state machines are extremely useful for representing the various states your application can be in, and how each state transitions to another state when an action is performed. Also, declaring your state machine as data (Estado language parses to pure JSON, and is SCXML-compatible) means you can use your state machine, well, anywhere. Any language.
 
-(Example coming soon!)
+**Example?** [See a non-trivial example here](https://github.com/davidkpiano/estado/tree/master/examples/vending) to get an idea of how it works with React and Redux.
 
 ## Getting Started
 1. Install via NPM: `npm install estado --save`

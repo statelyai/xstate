@@ -36,6 +36,13 @@ Now, let's define our state machine. There's going to be three states:
 - **wait_for_select** - the app is waiting for the user to make a selection (`SELECT`).
 - **dispensing** - the app is currently dispensing the selection.
 
+Here's what that state machine would look like:
+```js
+idle -> wait_for_select (COIN)
+wait_for_select -> dispensing (SELECT)
+dispensing -> idle (DISPENSED)
+```
+
 However, it's important to take _all_ possible actions from each state into account. What if the user makes a selection instead 
 of inserting a coin, or vice-versa? So we introduce some nested states:
 - **idle**
@@ -145,9 +152,7 @@ class App extends React.Component {
       'dispensing': {type: 'DISPENSED'}
     }, nextProps.vending, vending);
 
-    if (action) {
-      setTimeout(() => dispatch(action), 2000);
-    }
+    action && setTimeout(() => dispatch(action), 2000);
   }
   
   // ...
