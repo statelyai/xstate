@@ -4,6 +4,7 @@ import difference from 'lodash/array/difference';
 import unique from 'lodash/array/unique';
 import isArray from 'lodash/lang/isArray';
 import isString from 'lodash/lang/isString';
+import find from 'lodash/collection/find';
 
 import { parse } from './parser';
 import Action from './action';
@@ -99,11 +100,11 @@ export default class State {
   }
 
   initialStates() {
-    let initialStates = this.states
+    let _initialStates = this.states
       .filter((state) => state.initial);
 
-    return initialStates.length
-      ? initialStates.map((state) => state.initialStates())
+    return _initialStates.length
+      ? _initialStates.map((state) => state.initialStates())
         .reduce((a,b) => a.concat(b), [])
       : [this];
   }
@@ -135,8 +136,8 @@ export default class State {
       return this;
     }
 
-    let substate = this.states
-      .find((state) => state.id === substates[0]);
+    let substate = find(this.states,
+      (state) => state.id === substates[0]);
 
     return substate
       ? substates.length > 1

@@ -1,6 +1,5 @@
 
 import assert from 'assert';
-import should from 'should';
 import { machine, stateReducer } from '../lib/index';
 
 describe('stateReducer', () => {

@@ -1,6 +1,5 @@
 
 import assert from 'assert';
-import should from 'should';
 import { machine, actionFilter, stateReducer } from '../lib/index';
 import isFunction from 'lodash/lang/isFunction';
 

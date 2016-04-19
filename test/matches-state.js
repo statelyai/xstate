@@ -1,6 +1,5 @@
 
 import assert from 'assert';
-import should from 'should';
 import {matchesState} from '../src/index';
 
 describe('matchesState()', () => {

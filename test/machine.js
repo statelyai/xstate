@@ -1,5 +1,4 @@
 import chai from 'chai';
-import should from 'should';
 import { machine } from '../lib/index';
 import pluck from 'lodash/collection/pluck';
 import every from 'lodash/collection/every';

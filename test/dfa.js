@@ -1,5 +1,4 @@
 import assert from 'assert';
-import should from 'should';
 import machine from '../lib/dfa';
 import _ from 'lodash';
 
