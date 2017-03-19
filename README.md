@@ -14,11 +14,11 @@ Simple, stateless JavaScript finite-state machines.
 ```js
 import { machine } from 'estado';
 
-let lightMachine = machine`
+let lightMachine = machine(`
   green -> yellow (TIMER)
   yellow -> red (TIMER)
   red -> green (TIMER)
-`;
+`);
 
 // Pure, stateless transition functions
 let currentState = lightMachine.transition('green', 'TIMER');
