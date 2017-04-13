@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "start": "babel -w ./src -d ./lib",
-    "test": "mocha --require babel-register",
+    "test": "mocha --require ts-node/register test/**/*.ts",
     "build:lib": "babel src --out-dir lib",
     "build:umd": "webpack src/index.js dist/estado.js --config webpack.config.development.js",
     "build:umd:min": "webpack src/index.js dist/estado.min.js --config webpack.config.production.js",
@@ -25,6 +25,8 @@
   },
   "homepage": "https://github.com/davidkpiano/estado#readme",
   "devDependencies": {
+    "@types/chai": "^3.5.0",
+    "@types/mocha": "^2.2.40",
     "babel-core": "^6.5.2",
     "babel-loader": "^6.2.4",
     "babel-preset-es2015": "^6.5.0",
@@ -34,9 +36,17 @@
     "chai": "^3.4.1",
     "chai-subset": "^1.1.0",
     "mocha": "^2.4.5",
+    "rollup": "^0.41.6",
+    "rollup-plugin-ts": "^0.1.0",
+    "rollup-plugin-typescript": "^0.8.1",
+    "rollup-watch": "^3.2.2",
+    "ts-node": "^3.0.2",
     "webpack": "^1.12.2"
   },
   "dependencies": {
-    "lodash": "^4.5.1"
+    "lodash": "^4.5.1",
+    "rollup-plugin-alias": "^1.3.0",
+    "rollup-plugin-node-resolve": "^3.0.0",
+    "typescript": "^2.2.2"
   }
 }
