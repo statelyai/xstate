@@ -136,6 +136,19 @@ function getNextState(machine, stateId: string | string[], action?: Action): ISt
   return getState(machine, statePath);
 }
 
+export function matchesState(parentStateId: string | string[], childStateId: string | string[]): Boolean {
+  const parentStatePath = toStatePath(parentStateId);
+  const childStatePath = toStatePath(childStateId);
+
+  if (parentStatePath.length > childStatePath.length) return false;
+
+  for (let i in parentStatePath) {
+    if (parentStatePath[i] !== childStatePath[i]) return false;
+  }
+
+  return true;
+}
+
 export default function xstate(machine: IMachineConfig): IMachine {
   let eventsCache;
 
