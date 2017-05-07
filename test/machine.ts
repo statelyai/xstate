@@ -27,6 +27,7 @@ describe('machine', () => {
 
   let lightMachine = machine({
     id: 'light',
+    initial: 'green',
     states: {
       green: {
         on: {
@@ -42,7 +43,7 @@ describe('machine', () => {
       },
       red: {
         on: {
-          TIMER: 'red',
+          TIMER: 'green',
           POWER_OUTAGE: 'red'
         },
         ...pedestrianStates

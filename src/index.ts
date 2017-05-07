@@ -25,12 +25,14 @@ type StatePath = string[];
 
 interface IMachineConfig extends IStateConfig {
   id: string;
+  initial: string;
 }
 
 interface IMachine extends IState {
   id: string;
-  transition: (stateId: string | StatePath, action: Action) => IState;
-  getState: (stateId: string | StatePath) => IState;
+  initial: string;
+  transition: (stateId: string | StatePath | undefined, action: Action) => IState;
+  getState: (stateId: string | StatePath | undefined) => IState;
   getEvents: () => string[];
   events: string[];
 }
@@ -55,14 +57,16 @@ function toStatePath(stateId: string | StatePath): StatePath {
   }
 }
 
-function getState(machine: IMachine | IMachineConfig, stateId: string | StatePath): IState {
-  const statePath = toStatePath(stateId);
+function getState(machine: IState, stateId: string | StatePath): IState {
+  const statePath = stateId
+    ? toStatePath(stateId)
+    : toStatePath(machine.initial);
   const stateString: string = Array.isArray(stateId) ? stateId.join(STATE_DELIMITER) : stateId;
   let currentState: IStateConfig = machine;
 
   for (let subState of statePath) {
     currentState = currentState.states[subState];
-    if (!currentState) throw new Error(`State '${stateId}' does not exist on machine.`);
+    if (!currentState) throw new Error(`State '${stateId}' does not exist on machine ${machine.id}`);
   }
 
   return {
@@ -96,26 +100,60 @@ function getEvents(machine: IStateConfig | IMachineConfig) {
   return Object.keys(eventsMap);
 }
 
+function getNextState(machine, stateId: string | string[], action?: Action): IState {
+  const statePath = toStatePath(stateId);
+  const stack = [];
+  let currentState: IStateConfig = machine;
+  let nextStateId: string;
+
+  for (let stateSubPath of statePath) {
+    currentState = currentState.states[stateSubPath];
+    stack.push(currentState);
+  }
+
+  while (currentState.initial) {
+    statePath.push(currentState.initial);
+    currentState = currentState.states[currentState.initial];
+    stack.push(currentState);
+  }
+
+  if (!action) {
+    return getState(machine, statePath);
+  }
+
+  while (!nextStateId && stack.length) {
+    currentState = stack.pop();
+    statePath.pop();
+    nextStateId = currentState.on[getActionType(action)];
+  }
+
+  if (!nextStateId) {
+    throw new Error('what the fuck');
+  }
+  const nextStatePath = toStatePath(nextStateId);
+  statePath.push(...nextStatePath);
+
+  return getState(machine, statePath);
+}
+
 export default function xstate(machine: IMachineConfig): IMachine {
   let eventsCache;
 
   return {
     ...machine,
     transition: (stateId, action) => {
-      const state = getState(machine, stateId);
+      const state = stateId
+        ? getState(machine, stateId)
+        : getState(machine, machine.initial);
 
       if (state.final || !state.on) return state;
 
-      const nextStateId = state.on[getActionType(action)];
-
-      if (!nextStateId) throw new Error(`State '${state}' has no transition from action '${getActionType(action)}'`);
-
-      return getState(machine, nextStateId);
+      return getNextState(machine, stateId || machine.initial, action);
     },
     getState: (stateId) => getState(machine, stateId),
     getEvents: () => eventsCache || (eventsCache = getEvents(machine)),
     get events() {
       return this.getEvents();
     }
-  }
+  };
 }
