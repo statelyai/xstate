@@ -35,13 +35,13 @@ let initialState = lightMachine.transition();
 ## The Estado language
 Estado allows you to parse an easy-to-learn DSL for declaratively writing finite state machines.
 
-####States
+#### States
 
 A state is just an alphanumeric string (underscores are allowed) without quotes or spaces: `some_valid_state`. Final states are appended with an exclamation point: `someFinalState!`.
 
 By default, the first state declared in a state group is an initial state.
 
-####Transitions
+#### Transitions
 
 A transition (edge) between states is denoted with an arrow: `->`. A state can transition to itself with a reverse arrow: `<-`. In the example below, `state1` transitions to `state2` on the `FOO` event. `state2` transitions to itself on the `BAR` event.
 
@@ -50,11 +50,11 @@ state1 -> state2 (FOO)
 state2 <- (BAR)
 ```
 
-####Actions
+#### Actions
 
 An action is also an alphanumeric string (underscores allowed), just like states. They are contained in parentheses after a transition: `state1 -> state2 (SOME_EVENT)`, or after a self-transition: `state3 <- (AN_EVENT)`. Actions are optional (but encouraged for proper state machine design).
 
-####Nested States
+#### Nested States
 
 States can be hierarchical (nested) by including them inside brackets after a state declaration. They can be deeply nested an infinite amount of levels. This is useful for implementing statecharts.
 
@@ -81,13 +81,13 @@ red {
 
 When you enter the `red` state from `yellow`, you immediately go into `red.walk` (which allows pedestrians to walk). Upon reaching `red.stop` (which disallows pedestrians from walking), actions are handled from the parent `red` state, so the `TIMER` going off would transition it back to the `green` state.
 
-####Formatting / Best Practices
+#### Formatting / Best Practices
 - Indent transitions on a new line for each transition.
 - Always declare all states used in the state machine (be explicit!)
 - Keep actions on the same line as their transition.
 - Indent nested states on a new line for each nested state.
 
-###AST / State Machine Schema
+### AST / State Machine Schema
 [Read here](https://github.com/davidkpiano/estado/wiki/Schema) if you're curious to the AST and State Machine Schema that this language produces.
 
 ## API
