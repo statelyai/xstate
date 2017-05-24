@@ -2,6 +2,7 @@ import rollupNodeResolve from "rollup-plugin-node-resolve";
 import rollupAlias from "rollup-plugin-alias";
 import rollupTS from "rollup-plugin-ts";
 import typescript from "typescript";
+import fileSize from 'rollup-plugin-filesize';
 const pkg = require("./package.json");
 const tsconfig = require("./tsconfig.json");
  
@@ -9,7 +10,8 @@ export default {
   entry: "src/index.ts",
   dest: "dist/xstate.js",
   format: "iife",
-  moduleName: 'xstate',
+  exports: "named",
+  moduleName: "xState",
   context: "window",
   plugins: [
     rollupAlias({
@@ -33,6 +35,7 @@ export default {
       typescript: typescript,
       tsconfig: tsconfig.compilerOptions,
     }),
+    fileSize()
   ],
   targets: [
     {

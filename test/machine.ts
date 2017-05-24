@@ -1,9 +1,5 @@
 import { assert } from 'chai';
-import machine from '../src/index';
-// import pluck from 'lodash/pluck';
-import every from 'lodash/every';
-
-const pluck = () => 'a';
+import { machine } from '../src/index';
 
 describe('machine', () => {
   let pedestrianStates = {

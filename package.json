@@ -1,29 +1,26 @@
 {
-  "name": "estado",
-  "version": "0.7.1",
+  "name": "xstate",
+  "version": "0.0.1",
   "description": "Simple JavaScript Finite State Machines.",
   "main": "lib/index.js",
   "scripts": {
-    "start": "babel -w ./src -d ./lib",
+    "start": "rollup -c",
     "test": "mocha --require ts-node/register test/**/*.ts",
-    "build:lib": "babel src --out-dir lib",
-    "build:umd": "webpack src/index.js dist/estado.js --config webpack.config.development.js",
-    "build:umd:min": "webpack src/index.js dist/estado.min.js --config webpack.config.production.js",
-    "build": "npm run build:lib && npm run build:umd && npm run build:umd:min",
+    "build": "rollup -c",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build"
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/davidkpiano/estado.git"
+    "url": "git+https://github.com/davidkpiano/xstate.git"
   },
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "license": "MIT",
   "bugs": {
-    "url": "https://github.com/davidkpiano/estado/issues"
+    "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "homepage": "https://github.com/davidkpiano/estado#readme",
+  "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
     "@types/chai": "^3.5.0",
     "@types/mocha": "^2.2.40",
@@ -37,16 +34,14 @@
     "chai-subset": "^1.1.0",
     "mocha": "^2.4.5",
     "rollup": "^0.41.6",
+    "rollup-plugin-alias": "^1.3.0",
+    "rollup-plugin-filesize": "^1.3.2",
+    "rollup-plugin-node-resolve": "^3.0.0",
     "rollup-plugin-ts": "^0.1.0",
     "rollup-plugin-typescript": "^0.8.1",
     "rollup-watch": "^3.2.2",
     "ts-node": "^3.0.2",
-    "webpack": "^1.12.2"
+    "typescript": "^2.3.3"
   },
-  "dependencies": {
-    "lodash": "^4.5.1",
-    "rollup-plugin-alias": "^1.3.0",
-    "rollup-plugin-node-resolve": "^3.0.0",
-    "typescript": "^2.2.2"
-  }
+  "dependencies": {}
 }
