@@ -1,0 +1,69 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Document</title>
+</head>
+<body>
+  <button id="button">Load data</button>
+</body>
+<script src="../../dist/xstate.js"></script>
+<script>
+  var machine = xState.machine({
+    id: 'async',
+    initial: 'pending',
+    states: {
+      pending: {
+        on: {
+          CLICK: 'loading'
+        }
+      },
+      loading: {
+        on: {
+          LOADED: 'pending',
+          ERROR: 'error'
+        }
+      },
+      error: {
+        on: {
+          CLICK: 'loading'
+        }
+      }
+    }
+  });
+
+  var labelMap = {
+    pending: 'Load data',
+    loading: 'Loading...',
+    error: 'Uh oh, try again'
+  };
+
+  var disabledMap = {
+    pending: false,
+    loading: true,
+    error: false
+  };
+
+  var actionMap = {
+    loading: () => setTimeout(() => {
+      Math.random() < 0.5 ? dispatch('LOADED') : dispatch('ERROR')
+    }, 1000)
+  };
+
+  var state = machine.initial;
+  function dispatch(action) {
+    state = machine.transition(state, action);
+    update(state);
+  }
+
+  function update(state) {
+    window.button.innerHTML = labelMap[state];
+    window.button.disabled = disabledMap[state];
+
+    var action = actionMap[state];
+    action && action();
+  }
+
+  window.button.onclick = () => dispatch('CLICK');
+</script>
+</html>
