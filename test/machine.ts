@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { machine } from '../src/index';
+import { Machine } from '../src/index';
 
 describe('machine', () => {
   let pedestrianStates = {
@@ -21,7 +21,7 @@ describe('machine', () => {
     }
   };
 
-  let lightMachine = machine({
+  let lightMachine = new Machine({
     id: 'light',
     initial: 'green',
     states: {
@@ -77,12 +77,8 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.getEvents()', () => {
+  describe('machine.events', () => {
     it('should return the set of actions accepted by machine', () => {
-      assert.sameMembers(
-        lightMachine.getEvents(),
-        ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);
-
       assert.sameMembers(
         lightMachine.events,
         ['TIMER', 'POWER_OUTAGE', 'PED_COUNTDOWN']);

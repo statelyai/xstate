@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { machine } from '../src/index';
+import { Machine } from '../src/index';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
@@ -21,7 +21,7 @@ describe('deterministic machine', () => {
     }
   };
 
-  const lightMachine = machine({
+  const lightMachine = new Machine({
     id: 'light',
     initial: 'green',
     states: {
@@ -47,7 +47,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const testMachine = machine({
+  const testMachine = new Machine({
     id: 'test',
     initial: 'a',
     states: {
@@ -64,7 +64,7 @@ describe('deterministic machine', () => {
     }
   });
 
-  const deepMachine = machine({
+  const deepMachine = new Machine({
     id: 'deep',
     initial: 'a',
     states: {

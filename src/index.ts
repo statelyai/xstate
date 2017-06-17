@@ -1,48 +1,6 @@
 const STATE_DELIMITER = '.';
 
-interface IStateConfig {
-  initial?: string;
-  final?: boolean;
-  states?: {
-    [state: string]: IStateConfig;
-  };
-  on?: {
-    [event: string]: string;
-  };
-}
-
-interface IState extends IStateConfig {
-  id: string;
-  toString: () => string;
-}
-
-interface ITransition extends IState {
-  from?: string | string[];
-  action?: Action;
-}
-
-type Action = string | {
-  type: string,
-  [key: string]: any,
-};
-
-type StatePath = string[];
-
-interface IMachineConfig extends IStateConfig {
-  id: string;
-  initial: string;
-}
-
-interface IMachine extends IState {
-  id: string;
-  initial: string;
-  transition: (stateId: string | StatePath | IState | undefined, action: Action) => ITransition;
-  getState: (stateId: string | StatePath | undefined) => IState;
-  getEvents: () => string[];
-  events: string[];
-}
-
-function getActionType(action: Action): string {
+function getActionType(action: xstate.Action): string {
   try {
     return typeof action === 'string'
       ? action
@@ -52,7 +10,7 @@ function getActionType(action: Action): string {
   }
 }
 
-function toStatePath(stateId: string | StatePath): StatePath {
+function toStatePath(stateId: string | xstate.StatePath): xstate.StatePath {
   try {
     if (Array.isArray(stateId)) return stateId;
 
@@ -62,12 +20,12 @@ function toStatePath(stateId: string | StatePath): StatePath {
   }
 }
 
-function getState(machine: IState, stateId: string | StatePath | IState): IState {
+function getState(machine: xstate.StateConfig, stateId: string | xstate.StatePath | xstate.State): xstate.State {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
   const stateString: string = statePath.join(STATE_DELIMITER);
-  let currentState: IStateConfig = machine;
+  let currentState: xstate.StateConfig = machine;
 
   for (let subState of statePath) {
     currentState = currentState.states[subState];
@@ -81,11 +39,11 @@ function getState(machine: IState, stateId: string | StatePath | IState): IState
   };
 }
 
-function getEvents(machine: IStateConfig | IMachineConfig) {
+function getEvents(machine: xstate.StateConfig | xstate.StateConfig) {
   const eventsMap = {};
 
   Object.keys(machine.states).forEach(stateId => {
-    const state: IStateConfig = machine.states[stateId];
+    const state: xstate.StateConfig = machine.states[stateId];
     if (state.states) {
       for (let event of getEvents(state)) {
         if (eventsMap[event]) continue;
@@ -105,10 +63,10 @@ function getEvents(machine: IStateConfig | IMachineConfig) {
   return Object.keys(eventsMap);
 }
 
-function getNextState(machine, stateId: string | string[] | IState, action?: Action): ITransition {
+function getNextState(machine, stateId: string | string[] | xstate.State, action?: xstate.Action): xstate.Transition {
   const statePath = toStatePath(Array.isArray(stateId) ? stateId : stateId.toString());
   const stack = [];
-  let currentState: IStateConfig = machine;
+  let currentState: xstate.StateConfig = machine;
   let nextStateId: string;
 
   // Go into the deepest substate represented by the stateId,
@@ -177,22 +135,35 @@ export function matchesState(parentStateId: string | string[], childStateId: str
   return true;
 }
 
-export function machine(machine: IMachineConfig): IMachine {
-  let eventsCache;
-
-  return {
-    ...machine,
-    transition: (stateId, action): ITransition => {
-      const state = stateId
-        ? getState(machine, stateId)
-        : getState(machine, machine.initial);
-
-      return getNextState(machine, stateId || machine.initial, action);
-    },
-    getState: (stateId) => getState(machine, stateId),
-    getEvents: () => eventsCache || (eventsCache = getEvents(machine)),
-    get events() {
-      return this.getEvents();
-    }
+export class Machine implements xstate.State {
+  id: string;
+  states?: {
+    [state: string]: xstate.StateConfig;
   };
+  on?: {
+    [event: string]: string;
+  };
+  initial?: string;
+  constructor(config: xstate.StateConfig) {
+    this.id = config.id;
+    this.states = config.states;
+    this.on = config.on;
+    this.initial = config.initial;
+  }
+  transition(stateId, action: xstate.Action): xstate.Transition {
+    const state = stateId
+      ? this.getState(stateId)
+      : this.getState(this.initial);
+
+    return getNextState(this, stateId || this.initial, action);
+  }
+  getState(stateId) {
+    return getState(this, stateId);
+  }
+  getNextState(stateId, action: xstate.Action) {
+    return getNextState(this, stateId || this.initial, action);
+  }
+  get events() {
+    return getEvents(this);
+  }
 }
