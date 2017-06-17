@@ -20,7 +20,7 @@ function toStatePath(stateId: string | xstate.StatePath): xstate.StatePath {
   }
 }
 
-function getState(machine: xstate.StateConfig, stateId: string | xstate.StatePath | xstate.State): xstate.State {
+function getState(machine: xstate.StateConfig, stateId: string | xstate.StatePath | State): State {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
@@ -32,11 +32,9 @@ function getState(machine: xstate.StateConfig, stateId: string | xstate.StatePat
     if (!currentState) throw new Error(`State '${stateId}' does not exist on machine ${machine.id}`);
   }
 
-  return {
-    ...currentState,
-    id: stateString,
-    toString: () => stateString,
-  };
+  currentState.id = stateString;
+
+  return new State(currentState);
 }
 
 function getEvents(machine: xstate.StateConfig | xstate.StateConfig) {
@@ -63,8 +61,10 @@ function getEvents(machine: xstate.StateConfig | xstate.StateConfig) {
   return Object.keys(eventsMap);
 }
 
-function getNextState(machine, stateId: string | string[] | xstate.State, action?: xstate.Action): xstate.Transition {
-  const statePath = toStatePath(Array.isArray(stateId) ? stateId : stateId.toString());
+function getNextState(machine, stateId: string | string[] | xstate.State, action?: xstate.Action): State {
+  const statePath = stateId
+    ? toStatePath(Array.isArray(stateId) ? stateId : stateId.toString())
+    : toStatePath(machine.initial);
   const stack = [];
   let currentState: xstate.StateConfig = machine;
   let nextStateId: string;
@@ -135,35 +135,33 @@ export function matchesState(parentStateId: string | string[], childStateId: str
   return true;
 }
 
-export class Machine implements xstate.State {
+export class State {
   id: string;
+  initial?: string;
   states?: {
     [state: string]: xstate.StateConfig;
   };
   on?: {
     [event: string]: string;
   };
-  initial?: string;
   constructor(config: xstate.StateConfig) {
     this.id = config.id;
+    this.initial = config.initial;
     this.states = config.states;
     this.on = config.on;
-    this.initial = config.initial;
   }
-  transition(stateId, action: xstate.Action): xstate.Transition {
-    const state = stateId
-      ? this.getState(stateId)
-      : this.getState(this.initial);
-
-    return getNextState(this, stateId || this.initial, action);
+  transition(stateId, action: xstate.Action): State {
+    return getNextState(this, stateId, action);
   }
   getState(stateId) {
     return getState(this, stateId);
   }
-  getNextState(stateId, action: xstate.Action) {
-    return getNextState(this, stateId || this.initial, action);
-  }
   get events() {
     return getEvents(this);
   }
+  toString(): string {
+    return this.id;
+  }
 }
+
+export class Machine extends State {}

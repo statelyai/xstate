@@ -15,9 +15,7 @@ describe('deterministic machine', () => {
           PED_COUNTDOWN: 'stop'
         }
       },
-      stop: {
-        final: true
-      }
+      stop: {}
     }
   };
 
@@ -77,9 +75,7 @@ describe('deterministic machine', () => {
               a3: {
                 initial: 'a4',
                 states: {
-                  a4: {
-                    final: true
-                  }
+                  a4: {}
                 }
               }
             }

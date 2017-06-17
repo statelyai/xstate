@@ -2,7 +2,6 @@ declare namespace xstate {
   export interface StateConfig {
     id?: string;
     initial?: string;
-    final?: boolean;
     states?: {
       [state: string]: StateConfig;
     };
@@ -17,7 +16,7 @@ declare namespace xstate {
   }
 
   export interface Transition extends State {
-    from?: string | string[];
+    from?: StateId;
     action?: Action;
   }
 
@@ -27,6 +26,8 @@ declare namespace xstate {
   };
 
   export type StatePath = string[];
+
+  export type StateId = string | string[];
 
   export interface Machine extends State {
     id: string;

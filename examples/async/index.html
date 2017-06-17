@@ -9,7 +9,7 @@
 </body>
 <script src="../../dist/xstate.js"></script>
 <script>
-  var machine = xState.machine({
+  var machine = new xstate.Machine({
     id: 'async',
     initial: 'pending',
     states: {
@@ -20,8 +20,13 @@
       },
       loading: {
         on: {
-          LOADED: 'pending',
+          LOADED: 'success',
           ERROR: 'error'
+        }
+      },
+      success: {
+        on: {
+          CLICK: 'loading'
         }
       },
       error: {
@@ -34,6 +39,7 @@
 
   var labelMap = {
     pending: 'Load data',
+    success: 'Yay! Load data again?',
     loading: 'Loading...',
     error: 'Uh oh, try again'
   };
@@ -41,6 +47,7 @@
   var disabledMap = {
     pending: false,
     loading: true,
+    success: false,
     error: false
   };
 

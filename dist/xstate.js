@@ -33,7 +33,8 @@ function getState(machine, stateId) {
         if (!currentState)
             throw new Error(`State '${stateId}' does not exist on machine ${machine.id}`);
     }
-    return Object.assign({}, currentState, { id: stateString, toString: () => stateString });
+    currentState.id = stateString;
+    return new State(currentState);
 }
 function getEvents(machine) {
     const eventsMap = {};
@@ -57,7 +58,9 @@ function getEvents(machine) {
     return Object.keys(eventsMap);
 }
 function getNextState(machine, stateId, action) {
-    const statePath = toStatePath(Array.isArray(stateId) ? stateId : stateId.toString());
+    const statePath = stateId
+        ? toStatePath(Array.isArray(stateId) ? stateId : stateId.toString())
+        : toStatePath(machine.initial);
     const stack = [];
     let currentState = machine;
     let nextStateId;
@@ -116,25 +119,31 @@ function matchesState(parentStateId, childStateId) {
     }
     return true;
 }
-class Machine {
-    constructor(machineConfig) {
-        Object.assign(this, machineConfig);
+class State {
+    constructor(config) {
+        this.id = config.id;
+        this.initial = config.initial;
+        this.states = config.states;
+        this.on = config.on;
+    }
+    transition(stateId, action) {
+        return getNextState(this, stateId, action);
+    }
+    getState(stateId) {
+        return getState(this, stateId);
+    }
+    get events() {
+        return getEvents(this);
+    }
+    toString() {
+        return this.id;
     }
 }
-function machine(machine) {
-    let eventsCache;
-    return Object.assign({}, machine, { transition: (stateId, action) => {
-            const state = stateId
-                ? getState(machine, stateId)
-                : getState(machine, machine.initial);
-            return getNextState(machine, stateId || machine.initial, action);
-        }, getState: (stateId) => getState(machine, stateId), getEvents: () => eventsCache || (eventsCache = getEvents(machine)), get events() {
-            return this.getEvents();
-        } });
+class Machine extends State {
 }
 
 exports.matchesState = matchesState;
+exports.State = State;
 exports.Machine = Machine;
-exports.machine = machine;
 
-}((this.xState = this.xState || {})));
+}((this.xstate = this.xstate || {})));

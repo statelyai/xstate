@@ -11,7 +11,7 @@ export default {
   dest: "dist/xstate.js",
   format: "iife",
   exports: "named",
-  moduleName: "xState",
+  moduleName: "xstate",
   context: "window",
   plugins: [
     rollupAlias({
