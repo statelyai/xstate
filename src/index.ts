@@ -1,58 +1,95 @@
-const STATE_DELIMITER = '.';
+import { assocIn } from "./utils";
+
+const STATE_DELIMITER = ".";
 
 function getActionType(action: xstate.Action): string {
   try {
-    return typeof action === 'string'
-      ? action
-      : action.type;
-  } catch(e) {
-    throw new Error('Actions must be strings or objects with a string action.type.')
+    return typeof action === "string" ? action : action.type;
+  } catch (e) {
+    throw new Error(
+      "Actions must be strings or objects with a string action.type."
+    );
   }
 }
 
 function toStatePath(stateId: string | xstate.StatePath): xstate.StatePath {
   try {
-    if (Array.isArray(stateId)) return stateId;
+    if (Array.isArray(stateId)) {
+      return stateId;
+    }
 
-    return stateId.split(STATE_DELIMITER);
+    return stateId.toString().split(STATE_DELIMITER);
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
 }
 
-function getState(machine: xstate.StateConfig, stateId: string | xstate.StatePath | State): State {
+function getState(
+  machine: State,
+  stateId: string | State,
+  prevState?: string | State
+): State {
   const statePath = stateId
-    ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
+    ? toStatePath(Array.isArray(stateId) ? stateId : stateId + "")
     : toStatePath(machine.initial);
-  const stateString: string = statePath.join(STATE_DELIMITER);
+  let stateString: string;
   let currentState: xstate.StateConfig = machine;
+  let historyMarker =
+    prevState instanceof State ? prevState.history : machine.history;
 
-  for (let subState of statePath) {
-    currentState = currentState.states[subState];
-    if (!currentState) throw new Error(`State '${stateId}' does not exist on machine ${machine.id}`);
+  for (let subStatePath of statePath) {
+    if (subStatePath === "$history") {
+      subStatePath = historyMarker.current;
+    }
+
+    stateString = stateString
+      ? stateString + STATE_DELIMITER + subStatePath
+      : subStatePath;
+    historyMarker = historyMarker.states[subStatePath];
+
+    currentState = currentState.states[subStatePath];
+    if (!currentState) {
+      throw new Error(
+        `State '${stateId}' does not exist on parent ${machine.id}`
+      );
+    }
   }
 
-  currentState.id = stateString;
+  while (currentState.initial) {
+    stateString += STATE_DELIMITER + currentState.initial;
+    currentState = currentState.states[currentState.initial];
+    if (!currentState) {
+      throw new Error(
+        `Initial state '${stateString}' does not exist on parent.`
+      );
+    }
+  }
 
-  return new State(currentState);
+  return new State(currentState, machine.history);
 }
 
-function getEvents(machine: xstate.StateConfig | xstate.StateConfig) {
+function getEvents(machine: xstate.StateConfig) {
   const eventsMap = {};
 
   Object.keys(machine.states).forEach(stateId => {
     const state: xstate.StateConfig = machine.states[stateId];
     if (state.states) {
-      for (let event of getEvents(state)) {
-        if (eventsMap[event]) continue;
+      for (const event of getEvents(state)) {
+        if (eventsMap[event]) {
+          continue;
+        }
 
         eventsMap[event] = true;
       }
     }
-    if (!state.on) return;
+    if (!state.on) {
+      return;
+    }
 
-    for (let event of Object.keys(state.on)) {
-      if (eventsMap[event]) continue;
+    for (const event of Object.keys(state.on)) {
+      if (eventsMap[event]) {
+        continue;
+      }
 
       eventsMap[event] = true;
     }
@@ -61,7 +98,19 @@ function getEvents(machine: xstate.StateConfig | xstate.StateConfig) {
   return Object.keys(eventsMap);
 }
 
-function getNextState(machine, stateId: string | string[] | xstate.State, action?: xstate.Action): State {
+function getNextParallelStates(
+  machine: State,
+  stateIds: Array<string | State>,
+  action?: xstate.Action
+): State[] {
+  return stateIds.map(stateId => getNextState(machine, stateId, action));
+}
+
+function getNextState(
+  machine,
+  stateId: string | State,
+  action?: xstate.Action
+): State {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId.toString())
     : toStatePath(machine.initial);
@@ -71,7 +120,7 @@ function getNextState(machine, stateId: string | string[] | xstate.State, action
 
   // Go into the deepest substate represented by the stateId,
   // while remembering the parent states
-  for (let stateSubPath of statePath) {
+  for (const stateSubPath of statePath) {
     currentState = currentState.states[stateSubPath];
     stack.push(currentState);
   }
@@ -85,7 +134,7 @@ function getNextState(machine, stateId: string | string[] | xstate.State, action
   }
 
   // We are currently at the deepest state. Save it.
-  const deepestState = getState(machine, statePath);
+  const deepestState = getState(machine, statePath.join(STATE_DELIMITER));
 
   // If there is no action, the deepest substate is our current state.
   if (!action) {
@@ -102,9 +151,7 @@ function getNextState(machine, stateId: string | string[] | xstate.State, action
   while (!nextStateId && stack.length) {
     currentState = stack.pop();
     statePath.pop();
-    nextStateId = currentState.on
-      ? currentState.on[actionType]
-      : nextStateId;
+    nextStateId = currentState.on ? currentState.on[actionType] : nextStateId;
   }
 
   // No transition exists for the given action and state.
@@ -119,49 +166,152 @@ function getNextState(machine, stateId: string | string[] | xstate.State, action
   const nextStatePath = toStatePath(nextStateId);
   statePath.push(...nextStatePath);
 
-  return getState(machine, statePath);
+  const nextState = getState(machine, statePath.join(STATE_DELIMITER), stateId);
+
+  return new State(nextState, updateHistory(machine.history, deepestState.id));
 }
 
-export function matchesState(parentStateId: string | string[], childStateId: string | string[]): boolean {
+export function matchesState(
+  parentStateId: string | string[],
+  childStateId: string | string[]
+): boolean {
   const parentStatePath = toStatePath(parentStateId);
   const childStatePath = toStatePath(childStateId);
 
-  if (parentStatePath.length > childStatePath.length) return false;
+  if (parentStatePath.length > childStatePath.length) {
+    return false;
+  }
 
-  for (let i in parentStatePath) {
-    if (parentStatePath[i] !== childStatePath[i]) return false;
+  for (const i in parentStatePath) {
+    if (parentStatePath[i] !== childStatePath[i]) {
+      return false;
+    }
   }
 
   return true;
 }
 
+export function mapState(
+  stateMap: { [stateId: string]: any },
+  stateId: xstate.StateId
+) {
+  let foundStateId;
+
+  Object.keys(stateMap).forEach(mappedStateId => {
+    if (
+      matchesState(mappedStateId, stateId) &&
+      (!foundStateId || stateId.length > foundStateId.length)
+    ) {
+      foundStateId = mappedStateId;
+    }
+  });
+
+  return stateMap[foundStateId];
+}
+
+function createHistory(config: xstate.StateConfig): xstate.History | undefined {
+  if (!config.states) {
+    return undefined;
+  }
+
+  const history = {
+    current: config.initial,
+    states: {}
+  };
+
+  Object.keys(config.states).forEach(stateId => {
+    const state = config.states[stateId];
+
+    if (!state.states) {
+      return;
+    }
+
+    history.states[stateId] = createHistory(state);
+  });
+
+  return history;
+}
+
+function updateHistory(
+  history: xstate.History,
+  stateId: string
+): xstate.History {
+  const statePath = toStatePath(stateId);
+  const newHistory = Object.assign({}, history);
+  let marker = newHistory;
+
+  for (let i = 0; i < statePath.length - 1; i++) {
+    const subStatePath = statePath[i];
+    marker.states = Object.assign({}, marker.states);
+    marker.states[subStatePath] = {
+      current: statePath[i + 1],
+      states: Object.assign({}, marker.states[subStatePath].states)
+    };
+
+    marker = marker.states[subStatePath];
+  }
+
+  return newHistory;
+}
+
 export class State {
-  id: string;
-  initial?: string;
-  states?: {
+  public id: string;
+  public initial?: string;
+  public history: xstate.History;
+  public states?: {
     [state: string]: xstate.StateConfig;
   };
-  on?: {
+  public on?: {
     [event: string]: string;
   };
-  constructor(config: xstate.StateConfig) {
+  constructor(config: xstate.StateConfig, history?: xstate.History) {
     this.id = config.id;
     this.initial = config.initial;
-    this.states = config.states;
+    this.states = {};
+    this.history = history || createHistory(config);
+    if (config.states) {
+      Object.keys(config.states).forEach(stateId => {
+        const stateConfig = config.states[stateId];
+        this.states[stateId] = new State({
+          ...stateConfig,
+          id: config.isMachine
+            ? stateId
+            : config.id + STATE_DELIMITER + stateId,
+          history: this.history
+        });
+      });
+    }
+
     this.on = config.on;
   }
-  transition(stateId, action: xstate.Action): State {
+  public transition(stateId: string | State, action?: xstate.Action): State;
+  public transition(
+    stateIds: string[] | State[],
+    action?: xstate.Action
+  ): State[];
+  public transition(stateId, action) {
+    if (Array.isArray(stateId)) {
+      return stateId.map(parallelStateid =>
+        getNextState(this, parallelStateid, action)
+      );
+    }
+
     return getNextState(this, stateId, action);
   }
-  getState(stateId) {
+  public getState(stateId) {
     return getState(this, stateId);
   }
   get events() {
     return getEvents(this);
   }
-  toString(): string {
+  public toString(): string {
     return this.id;
   }
 }
 
-export class Machine extends State {}
+// tslint:disable:max-classes-per-file
+export class Machine extends State {
+  constructor(config: xstate.StateConfig, history?: xstate.History) {
+    super({ ...config, isMachine: true }, history);
+  }
+}

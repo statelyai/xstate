@@ -16,25 +16,41 @@ function toStatePath(stateId) {
     try {
         if (Array.isArray(stateId))
             return stateId;
-        return stateId.split(STATE_DELIMITER);
+        return stateId.toString().split(STATE_DELIMITER);
     }
     catch (e) {
         throw new Error(`'${stateId}' is not a valid state path.`);
     }
 }
-function getState(machine, stateId) {
+function getState(machine, stateId, initial = false) {
     const statePath = stateId
         ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
         : toStatePath(machine.initial);
-    const stateString = statePath.join(STATE_DELIMITER);
+    let stateString;
     let currentState = machine;
-    for (let subState of statePath) {
-        currentState = currentState.states[subState];
+    let historyMarker = machine.history;
+    for (let subStatePath of statePath) {
+        if (subStatePath === '$history') {
+            subStatePath = historyMarker.current;
+        }
+        stateString = stateString
+            ? stateString + STATE_DELIMITER + subStatePath
+            : subStatePath;
+        historyMarker = historyMarker.states[subStatePath];
+        currentState = currentState.states[subStatePath];
         if (!currentState)
-            throw new Error(`State '${stateId}' does not exist on machine ${machine.id}`);
+            throw new Error(`State '${stateId}' does not exist on parent ${machine.id}`);
+    }
+    if (initial) {
+        while (currentState.initial) {
+            stateString += '.' + currentState.initial;
+            currentState = currentState.states[currentState.initial];
+            if (!currentState)
+                throw new Error(`Initial state '${stateString}' does not exist on parent.`);
+        }
     }
     currentState.id = stateString;
-    return new State(currentState);
+    return new State(currentState, machine.history);
 }
 function getEvents(machine) {
     const eventsMap = {};
@@ -78,7 +94,7 @@ function getNextState(machine, stateId, action) {
         stack.push(currentState);
     }
     // We are currently at the deepest state. Save it.
-    const deepestState = getState(machine, statePath);
+    const deepestState = getState(machine, statePath.join('.'));
     // If there is no action, the deepest substate is our current state.
     if (!action) {
         return deepestState;
@@ -106,7 +122,8 @@ function getNextState(machine, stateId, action) {
     // => ['one', 'two', 'three', 'four']
     const nextStatePath = toStatePath(nextStateId);
     statePath.push(...nextStatePath);
-    return getState(machine, statePath);
+    const nextState = getState(machine, statePath.join('.'), true);
+    return new State(nextState, updateHistory(machine, deepestState.id));
 }
 function matchesState(parentStateId, childStateId) {
     const parentStatePath = toStatePath(parentStateId);
@@ -119,15 +136,57 @@ function matchesState(parentStateId, childStateId) {
     }
     return true;
 }
+function mapState(stateMap, stateId) {
+    let foundStateId = undefined;
+    Object.keys(stateMap).forEach(mappedStateId => {
+        if (matchesState(mappedStateId, stateId) && (!foundStateId || stateId.length > foundStateId.length)) {
+            foundStateId = mappedStateId;
+        }
+    });
+    return stateMap[foundStateId];
+}
+function createHistory(config) {
+    if (!config.states)
+        return undefined;
+    const history = {
+        current: config.initial,
+        states: {},
+    };
+    Object.keys(config.states).forEach(stateId => {
+        const state = config.states[stateId];
+        if (!state.states)
+            return;
+        history.states[stateId] = createHistory(state);
+    });
+    return history;
+}
+function updateHistory(history, stateId) {
+    const statePath = toStatePath(stateId);
+    const newHistory = Object.assign({}, history);
+    let marker = newHistory;
+    for (let i = 0; i < statePath.length - 1; i++) {
+        const subStatePath = statePath[i];
+        marker.states[subStatePath] = {
+            current: statePath[i + 1],
+            states: Object.assign({}, marker.states[subStatePath].states)
+        };
+        marker = marker.states[subStatePath];
+    }
+    return newHistory;
+}
 class State {
-    constructor(config) {
+    transition(stateId, action) {
+        if (Array.isArray(stateId)) {
+            return stateId.map(parallelStateid => getNextState(this, parallelStateid, action));
+        }
+        return getNextState(this, stateId, action);
+    }
+    constructor(config, history) {
         this.id = config.id;
         this.initial = config.initial;
         this.states = config.states;
         this.on = config.on;
-    }
-    transition(stateId, action) {
-        return getNextState(this, stateId, action);
+        this.history = history || createHistory(config);
     }
     getState(stateId) {
         return getState(this, stateId);
@@ -143,6 +202,7 @@ class Machine extends State {
 }
 
 exports.matchesState = matchesState;
+exports.mapState = mapState;
 exports.State = State;
 exports.Machine = Machine;
 

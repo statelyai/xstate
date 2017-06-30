@@ -8,6 +8,7 @@ declare namespace xstate {
     on?: {
       [event: string]: string;
     };
+    isMachine?: boolean;
   }
 
   export interface State extends StateConfig {
@@ -20,21 +21,33 @@ declare namespace xstate {
     action?: Action;
   }
 
-  export type Action = string | {
-    type: string,
-    [key: string]: any,
-  };
+  export type Action =
+    | string
+    | {
+        type: string;
+        [key: string]: any;
+      };
 
   export type StatePath = string[];
 
   export type StateId = string | string[];
 
+  export interface History {
+    current: string;
+    states: {
+      [key: string]: History;
+    };
+  }
+
   export interface Machine extends State {
     id: string;
     initial: string;
-    transition: (stateId: string | StatePath | State | undefined, action: Action) => Transition;
+    transition: (
+      stateId: string | StatePath | State | undefined,
+      action: Action
+    ) => Transition;
     getState: (stateId: string | StatePath | undefined) => State;
-    
+
     events: string[];
   }
 }

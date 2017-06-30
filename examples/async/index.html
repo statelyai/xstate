@@ -6,6 +6,7 @@
 </head>
 <body>
   <button id="button">Load data</button>
+  <div id="text"></div>
 </body>
 <script src="../../dist/xstate.js"></script>
 <script>
@@ -19,6 +20,16 @@
         }
       },
       loading: {
+        initial: 'one',
+        states: {
+          one: {
+            on: { MORE: 'two' }
+          },
+          two: {
+            on: { MORE: 'three' }
+          },
+          three: {}
+        },
         on: {
           LOADED: 'success',
           ERROR: 'error'
@@ -51,21 +62,34 @@
     error: false
   };
 
+  var textMap = {
+    'loading.one': 'uno!',
+    'loading.two': 'dos!',
+    'loading.three': 'tres! almost there!'
+  };
+
   var actionMap = {
-    loading: () => setTimeout(() => {
-      Math.random() < 0.5 ? dispatch('LOADED') : dispatch('ERROR')
-    }, 1000)
+    'loading.one': () => {
+      setTimeout(() => dispatch('MORE'), 1000);
+      setTimeout(() => dispatch('MORE'), 2000);      
+      setTimeout(() => {
+        Math.random() < 0.5 ? dispatch('LOADED') : dispatch('ERROR')
+      }, 3000);
+    }
   };
 
   var state = machine.initial;
   function dispatch(action) {
+    console.log({state, action});
     state = machine.transition(state, action);
     update(state);
   }
 
   function update(state) {
-    window.button.innerHTML = labelMap[state];
-    window.button.disabled = disabledMap[state];
+    window.button.innerHTML = xstate.mapState(labelMap, state);
+    window.button.disabled = xstate.mapState(disabledMap, state);
+
+    window.text.innerHTML = xstate.mapState(textMap, state) || 'waiting...';
 
     var action = actionMap[state];
     action && action();
