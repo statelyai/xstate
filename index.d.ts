@@ -9,6 +9,7 @@ declare namespace xstate {
       [event: string]: string;
     };
     isMachine?: boolean;
+    parallel?: boolean;
   }
 
   export interface State extends StateConfig {
@@ -33,10 +34,8 @@ declare namespace xstate {
   export type StateId = string | string[];
 
   export interface History {
-    current: string;
-    states: {
-      [key: string]: History;
-    };
+    $current: string;
+    [key: string]: History | string; // TODO: remove string
   }
 
   export interface Machine extends State {
@@ -52,6 +51,6 @@ declare namespace xstate {
   }
 }
 
-declare module "xstate" {
+declare module 'xstate' {
   export = xstate;
 }

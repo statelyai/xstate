@@ -1,4 +1,4 @@
-import { assocIn } from './utils';
+import { assocIn, flatMap } from './utils';
 
 const STATE_DELIMITER = '.';
 
@@ -12,10 +12,10 @@ function getActionType(action: xstate.Action): string {
   }
 }
 
-function toStatePath(stateId: string | xstate.StatePath): xstate.StatePath {
+function toStatePath(stateId: string | Node): string[] {
   try {
-    if (Array.isArray(stateId)) {
-      return stateId;
+    if (stateId instanceof Node) {
+      return toStatePath(stateId.id);
     }
 
     return stateId.toString().split(STATE_DELIMITER);
@@ -25,27 +25,26 @@ function toStatePath(stateId: string | xstate.StatePath): xstate.StatePath {
 }
 
 function getState(
-  machine: State,
-  stateId: string | State,
-  prevState?: string | State
-): State {
+  machine: Node,
+  stateId: StateId,
+  history?: xstate.History
+): Node {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
   let stateString: string;
   let currentState: xstate.StateConfig = machine;
-  let historyMarker =
-    prevState instanceof State ? prevState.history : machine.history;
+  let historyMarker = history || machine.history;
 
   for (let subStatePath of statePath) {
     if (subStatePath === '$history') {
-      subStatePath = historyMarker.current;
+      subStatePath = historyMarker.$current;
     }
 
     stateString = stateString
       ? stateString + STATE_DELIMITER + subStatePath
       : subStatePath;
-    historyMarker = historyMarker.states[subStatePath];
+    historyMarker = historyMarker[subStatePath] as xstate.History;
 
     currentState = currentState.states[subStatePath];
     if (!currentState) {
@@ -65,7 +64,7 @@ function getState(
     }
   }
 
-  return new State(currentState, machine.history);
+  return new Node(currentState, machine.history);
 }
 
 function getEvents(machine: xstate.StateConfig) {
@@ -98,22 +97,9 @@ function getEvents(machine: xstate.StateConfig) {
   return Object.keys(eventsMap);
 }
 
-function getNextParallelStates(
-  machine: State,
-  stateIds: Array<string | State>,
-  action?: xstate.Action
-): State[] {
-  return stateIds.map(stateId => getNextState(machine, stateId, action));
-}
+type StateId = string | Node;
 
-function getNextState(
-  machine,
-  stateId: string | State,
-  action?: xstate.Action
-): State {
-  const statePath = stateId
-    ? toStatePath(Array.isArray(stateId) ? stateId : stateId.toString())
-    : toStatePath(machine.initial);
+const foobar = (statePath, machine, history, action) => {
   const stack = [];
   let currentState: xstate.StateConfig = machine;
   let nextStateId: string;
@@ -125,6 +111,14 @@ function getNextState(
     stack.push(currentState);
   }
 
+  if (currentState.parallel) {
+    const result = Object.keys(currentState.states).map(subStatePath =>
+      foobar([...statePath, subStatePath], machine, history, action)
+    );
+
+    return result;
+  }
+
   // If the deepest substate has an initial state (hierarchical),
   // go into that initial state.
   while (currentState.initial) {
@@ -134,7 +128,11 @@ function getNextState(
   }
 
   // We are currently at the deepest state. Save it.
-  const deepestState = getState(machine, statePath.join(STATE_DELIMITER));
+  const deepestState = getState(
+    machine,
+    statePath.join(STATE_DELIMITER),
+    history
+  );
 
   // If there is no action, the deepest substate is our current state.
   if (!action) {
@@ -166,14 +164,42 @@ function getNextState(
   const nextStatePath = toStatePath(nextStateId);
   statePath.push(...nextStatePath);
 
-  const nextState = getState(machine, statePath.join(STATE_DELIMITER), stateId);
+  const nextState = getState(machine, statePath.join(STATE_DELIMITER), history);
 
-  return new State(nextState, updateHistory(machine.history, deepestState.id));
+  return new Node(nextState, updateHistory(history, deepestState.id));
+};
+
+function getNextState(
+  machine,
+  stateId: StateId | StateId[],
+  action?: xstate.Action
+): Node | Node[] {
+  const statePaths = Array.isArray(stateId)
+    ? stateId.map(toStatePath)
+    : stateId
+      ? [toStatePath(stateId)]
+      : machine.parallel
+        ? Object.keys(machine.states).map(key => [key])
+        : [toStatePath(machine.initial)];
+  let history = machine.history;
+
+  if (stateId) {
+    const sampleState = Array.isArray(stateId) ? stateId[0] : stateId;
+    if (sampleState instanceof Node) {
+      history = sampleState.history || history;
+    }
+  }
+
+  const result = flatMap(statePaths, statePath =>
+    foobar(statePath, machine, history, action)
+  );
+
+  return result.length === 1 ? result[0] : result;
 }
 
 export function matchesState(
-  parentStateId: string | string[],
-  childStateId: string | string[]
+  parentStateId: StateId,
+  childStateId: StateId
 ): boolean {
   const parentStatePath = toStatePath(parentStateId);
   const childStatePath = toStatePath(childStateId);
@@ -193,7 +219,7 @@ export function matchesState(
 
 export function mapState(
   stateMap: { [stateId: string]: any },
-  stateId: xstate.StateId
+  stateId: string
 ) {
   let foundStateId;
 
@@ -215,8 +241,7 @@ function createHistory(config: xstate.StateConfig): xstate.History | undefined {
   }
 
   const history = {
-    current: config.initial,
-    states: {}
+    $current: config.initial
   };
 
   Object.keys(config.states).forEach(stateId => {
@@ -226,7 +251,7 @@ function createHistory(config: xstate.StateConfig): xstate.History | undefined {
       return;
     }
 
-    history.states[stateId] = createHistory(state);
+    history[stateId] = createHistory(state);
   });
 
   return history;
@@ -238,25 +263,26 @@ function updateHistory(
 ): xstate.History {
   const statePath = toStatePath(stateId);
   const newHistory = Object.assign({}, history);
-  let marker = newHistory;
+  const first = statePath.slice(0, -1);
+  const last = statePath[statePath.length - 1];
 
-  for (let i = 0; i < statePath.length - 1; i++) {
-    const subStatePath = statePath[i];
-    marker.states = Object.assign({}, marker.states);
-    marker.states[subStatePath] = {
-      current: statePath[i + 1],
-      states: Object.assign({}, marker.states[subStatePath].states)
-    };
-
-    marker = marker.states[subStatePath];
+  if (!first.length) {
+    return assocIn(history, ['$current'], last);
   }
-
-  return newHistory;
+  return assocIn(history, first, { $current: last });
 }
 
-export class State {
+// tslint:disable:max-classes-per-file
+class State {
+  public id: string;
+  public history: xstate.History;
+  public changed: boolean;
+}
+
+class Node {
   public id: string;
   public initial?: string;
+  public parallel?: boolean;
   public history: xstate.History;
   public states?: {
     [state: string]: xstate.StateConfig;
@@ -267,12 +293,13 @@ export class State {
   constructor(config: xstate.StateConfig, history?: xstate.History) {
     this.id = config.id;
     this.initial = config.initial;
+    this.parallel = !!config.parallel;
     this.states = {};
     this.history = history || createHistory(config);
     if (config.states) {
       Object.keys(config.states).forEach(stateId => {
         const stateConfig = config.states[stateId];
-        this.states[stateId] = new State({
+        this.states[stateId] = new Node({
           ...stateConfig,
           id: config.isMachine
             ? stateId
@@ -284,18 +311,11 @@ export class State {
 
     this.on = config.on;
   }
-  public transition(stateId: string | State, action?: xstate.Action): State;
   public transition(
-    stateIds: string[] | State[],
+    stateId: StateId | StateId[],
     action?: xstate.Action
-  ): State[];
+  ): Node | Node[];
   public transition(stateId, action) {
-    if (Array.isArray(stateId)) {
-      return stateId.map(parallelStateid =>
-        getNextState(this, parallelStateid, action)
-      );
-    }
-
     return getNextState(this, stateId, action);
   }
   public getState(stateId) {
@@ -309,8 +329,7 @@ export class State {
   }
 }
 
-// tslint:disable:max-classes-per-file
-export class Machine extends State {
+export class Machine extends Node {
   constructor(config: xstate.StateConfig, history?: xstate.History) {
     super({ ...config, isMachine: true }, history);
   }

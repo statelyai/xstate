@@ -9,10 +9,10 @@ describe('parallel states', () => {
         initial: 'off',
         states: {
           on: {
-            on: { TOGGLE: 'off' }
+            on: { TOGGLE_BOLD: 'off' }
           },
           off: {
-            on: { TOGGLE: 'on' }
+            on: { TOGGLE_BOLD: 'on' }
           }
         }
       },
@@ -20,10 +20,10 @@ describe('parallel states', () => {
         initial: 'off',
         states: {
           on: {
-            on: { TOGGLE: 'off' }
+            on: { TOGGLE_UNDERLINE: 'off' }
           },
           off: {
-            on: { TOGGLE: 'on' }
+            on: { TOGGLE_UNDERLINE: 'on' }
           }
         }
       },
@@ -31,10 +31,10 @@ describe('parallel states', () => {
         initial: 'off',
         states: {
           on: {
-            on: { TOGGLE: 'off' }
+            on: { TOGGLE_ITALICS: 'off' }
           },
           off: {
-            on: { TOGGLE: 'on' }
+            on: { TOGGLE_ITALICS: 'on' }
           }
         }
       },
@@ -52,6 +52,23 @@ describe('parallel states', () => {
           }
         }
       }
+    }
+  });
+
+  it('should have initial parallel states', () => {
+    const initialStates = wordMachine.transition(undefined);
+
+    assert.isArray(initialStates);
+
+    if (Array.isArray(initialStates)) {
+      assert.sameMembers(initialStates.map(({ id }) => id), [
+        'bold.off',
+        'italics.off',
+        'underline.off',
+        'list.none'
+      ]);
+    } else {
+      throw new Error('not an array');
     }
   });
 });
