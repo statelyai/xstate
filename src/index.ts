@@ -1,13 +1,13 @@
-import { assocIn } from "./utils";
+import { assocIn } from './utils';
 
-const STATE_DELIMITER = ".";
+const STATE_DELIMITER = '.';
 
 function getActionType(action: xstate.Action): string {
   try {
-    return typeof action === "string" ? action : action.type;
+    return typeof action === 'string' ? action : action.type;
   } catch (e) {
     throw new Error(
-      "Actions must be strings or objects with a string action.type."
+      'Actions must be strings or objects with a string action.type.'
     );
   }
 }
@@ -30,7 +30,7 @@ function getState(
   prevState?: string | State
 ): State {
   const statePath = stateId
-    ? toStatePath(Array.isArray(stateId) ? stateId : stateId + "")
+    ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
   let stateString: string;
   let currentState: xstate.StateConfig = machine;
@@ -38,7 +38,7 @@ function getState(
     prevState instanceof State ? prevState.history : machine.history;
 
   for (let subStatePath of statePath) {
-    if (subStatePath === "$history") {
+    if (subStatePath === '$history') {
       subStatePath = historyMarker.current;
     }
 
