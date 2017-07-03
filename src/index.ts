@@ -1,8 +1,9 @@
 import { assocIn, flatMap } from './utils';
+import { Action } from './types';
 
 const STATE_DELIMITER = '.';
 
-function getActionType(action: xstate.Action): string {
+function getActionType(action: Action): string {
   try {
     return typeof action === 'string' ? action : action.type;
   } catch (e) {
@@ -12,7 +13,7 @@ function getActionType(action: xstate.Action): string {
   }
 }
 
-function toStatePath(stateId: string | Node): string[] {
+function toStatePath(stateId: string | State): string[] {
   try {
     if (stateId instanceof Node) {
       return toStatePath(stateId.id);
@@ -97,9 +98,14 @@ function getEvents(machine: xstate.StateConfig) {
   return Object.keys(eventsMap);
 }
 
-type StateId = string | Node;
+type StateId = string | State;
 
-const foobar = (statePath, machine, history, action) => {
+const getNextStates = (
+  statePath: string[],
+  machine: Machine,
+  history: xstate.History,
+  action: Action
+): State => {
   const stack = [];
   let currentState: xstate.StateConfig = machine;
   let nextStateId: string;
@@ -112,11 +118,15 @@ const foobar = (statePath, machine, history, action) => {
   }
 
   if (currentState.parallel) {
-    const result = Object.keys(currentState.states).map(subStatePath =>
-      foobar([...statePath, subStatePath], machine, history, action)
+    const result = flatMap(Object.keys(currentState.states), subStatePath =>
+      getNextStates([...statePath, subStatePath], machine, history, action)
     );
 
-    return result;
+    return new State({
+      id: flatMap(result, state => state.id),
+      history,
+      changed: true
+    });
   }
 
   // If the deepest substate has an initial state (hierarchical),
@@ -136,7 +146,7 @@ const foobar = (statePath, machine, history, action) => {
 
   // If there is no action, the deepest substate is our current state.
   if (!action) {
-    return deepestState;
+    return new State({ id: deepestState.id, history, changed: false });
   }
 
   const actionType = getActionType(action);
@@ -154,7 +164,7 @@ const foobar = (statePath, machine, history, action) => {
 
   // No transition exists for the given action and state.
   if (!nextStateId) {
-    return deepestState;
+    return new State({ id: deepestState.id, history, changed: false });
   }
 
   // The resulting next state path is a combination of the determined
@@ -166,18 +176,24 @@ const foobar = (statePath, machine, history, action) => {
 
   const nextState = getState(machine, statePath.join(STATE_DELIMITER), history);
 
-  return new Node(nextState, updateHistory(history, deepestState.id));
+  return new State({
+    id: nextState.id,
+    history: updateHistory(history, deepestState.id),
+    changed: true
+  });
 };
 
 function getNextState(
   machine,
   stateId: StateId | StateId[],
-  action?: xstate.Action
-): Node | Node[] {
+  action?: Action
+): State {
   const statePaths = Array.isArray(stateId)
     ? stateId.map(toStatePath)
     : stateId
-      ? [toStatePath(stateId)]
+      ? stateId instanceof State
+        ? [].concat(stateId.id).map(toStatePath)
+        : [toStatePath(stateId)]
       : machine.parallel
         ? Object.keys(machine.states).map(key => [key])
         : [toStatePath(machine.initial)];
@@ -185,16 +201,20 @@ function getNextState(
 
   if (stateId) {
     const sampleState = Array.isArray(stateId) ? stateId[0] : stateId;
-    if (sampleState instanceof Node) {
+    if (sampleState instanceof State) {
       history = sampleState.history || history;
     }
   }
 
   const result = flatMap(statePaths, statePath =>
-    foobar(statePath, machine, history, action)
+    getNextStates(statePath, machine, history, action)
   );
 
-  return result.length === 1 ? result[0] : result;
+  return new State({
+    id: flatMap(result, state => state.id),
+    history: result[0].history,
+    changed: true
+  });
 }
 
 export function matchesState(
@@ -274,9 +294,14 @@ function updateHistory(
 
 // tslint:disable:max-classes-per-file
 class State {
-  public id: string;
+  public id: string | string[];
   public history: xstate.History;
   public changed: boolean;
+  constructor({ id, history, changed }) {
+    this.id = id;
+    this.history = history;
+    this.changed = changed;
+  }
 }
 
 class Node {
@@ -311,10 +336,7 @@ class Node {
 
     this.on = config.on;
   }
-  public transition(
-    stateId: StateId | StateId[],
-    action?: xstate.Action
-  ): Node | Node[];
+  public transition(stateId: StateId | StateId[], action?: Action): State;
   public transition(stateId, action) {
     return getNextState(this, stateId, action);
   }

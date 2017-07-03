@@ -56,19 +56,13 @@ describe('parallel states', () => {
   });
 
   it('should have initial parallel states', () => {
-    const initialStates = wordMachine.transition(undefined);
+    const initialState = wordMachine.transition(undefined);
 
-    assert.isArray(initialStates);
-
-    if (Array.isArray(initialStates)) {
-      assert.sameMembers(initialStates.map(({ id }) => id), [
-        'bold.off',
-        'italics.off',
-        'underline.off',
-        'list.none'
-      ]);
-    } else {
-      throw new Error('not an array');
-    }
+    assert.sameMembers(initialState.id as string[], [
+      'bold.off',
+      'italics.off',
+      'underline.off',
+      'list.none'
+    ]);
   });
 });
