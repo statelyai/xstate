@@ -31,7 +31,6 @@ describe('history states', () => {
     const onSecondState = historyMachine.transition('on', 'SWITCH');
     const offState = historyMachine.transition(onSecondState, 'POWER');
 
-    console.log('----------');
     assert.equal(
       historyMachine.transition(offState, 'POWER').value,
       'on.second'

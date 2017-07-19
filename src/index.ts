@@ -108,12 +108,12 @@ function getNextStates(
   action: Action,
   history: xstate.History
 ): State {
-  const initialState = getState(machine, statePath, history);
-  let currentState = initialState;
+  const fromState = getState(machine, statePath, history);
+  let currentState = fromState;
 
   if (!action) {
     return new State({
-      value: initialState.getRelativeId(machine),
+      value: fromState.getRelativeId(machine),
       history,
       changed: false
     });
@@ -128,10 +128,10 @@ function getNextStates(
   if (!currentState) {
     // tslint:disable-next-line:no-console
     console.warn(
-      `No transition exists for ${initialState.id} on action ${actionType}.`
+      `No transition exists for ${fromState.id} on action ${actionType}.`
     );
     return new State({
-      value: initialState.getRelativeId(machine),
+      value: fromState.getRelativeId(machine),
       history,
       changed: false
     });
@@ -145,7 +145,7 @@ function getNextStates(
 
   return new State({
     value: nextState.getRelativeId(machine),
-    history: updateHistory(history, currentState.id),
+    history: updateHistory(history, fromState.getRelativeId(machine)),
     changed: true
   });
 }
@@ -153,10 +153,11 @@ function getNextStates(
 function getNextState(
   machine: Node,
   stateValue: StateValue | State,
-  action?: Action
+  action?: Action,
+  history: xstate.History = machine.history
 ): State {
   if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    const value = mapValues(stateValue, (subStateValue, stateId) => {
+    const value = mapValues(stateValue, (_, stateId) => {
       const subState = machine.states[stateId];
 
       return subState.transition(stateValue[stateId], action).value;
@@ -164,18 +165,12 @@ function getNextState(
 
     return new State({
       value,
-      history: machine.history,
+      history,
       changed: true
     });
   }
 
   const statePath = toStatePath(stateValue);
-  let history = machine.history;
-
-  if (stateValue instanceof State) {
-    history = stateValue.history || history;
-  }
-
   return getNextStates(machine, statePath, action, history);
 }
 
@@ -277,7 +272,6 @@ interface INodeConfig {
     [state: string]: INodeConfig;
   };
   parallel?: boolean;
-  isMachine?: boolean;
   id?: string;
   on?: {
     [action: string]: string;
@@ -323,7 +317,8 @@ class Node {
   public transition(state?: StateValue | State, action?: Action): State {
     const stateValue =
       (state instanceof State ? state.value : state) || this.getInitialState();
-    return getNextState(this, stateValue, action);
+    const history = state instanceof State ? state.history : undefined;
+    return getNextState(this, stateValue, action, history);
   }
   public getInitialState() {
     if (this.parallel) {
@@ -336,10 +331,6 @@ class Node {
     return getState(this, stateId);
   }
   public accepts(action?: Action): boolean {
-    console.log(
-      `${this.id} accepts ${getActionType(action)}?`,
-      this.events.indexOf(getActionType(action)) !== -1
-    );
     return this.events.indexOf(getActionType(action)) !== -1;
   }
   get events() {
@@ -362,6 +353,6 @@ class Node {
 
 export class Machine extends Node {
   constructor(config: INodeConfig, history?: xstate.History) {
-    super({ ...config, isMachine: true }, history);
+    super(config, history);
   }
 }
