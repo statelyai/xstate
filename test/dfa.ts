@@ -87,11 +87,11 @@ describe('deterministic machine', () => {
 
   describe('machine.transition()', () => {
     it('should implicitly transition from initial states', () => {
-      assert.equal(lightMachine.transition(undefined, 'TIMER').id, 'yellow');
+      assert.equal(lightMachine.transition(undefined, 'TIMER').value, 'yellow');
     });
 
     it('should properly transition states based on string event', () => {
-      assert.equal(lightMachine.transition('green', 'TIMER').id, 'yellow');
+      assert.equal(lightMachine.transition('green', 'TIMER').value, 'yellow');
     });
 
     it('should properly transition states based on action-like object', () => {
@@ -99,7 +99,7 @@ describe('deterministic machine', () => {
         type: 'TIMER'
       };
 
-      assert.equal(lightMachine.transition('green', action).id, 'yellow');
+      assert.equal(lightMachine.transition('green', action).value, 'yellow');
     });
 
     // it('should return initial state(s) without any arguments for transition()', () => {
@@ -109,15 +109,15 @@ describe('deterministic machine', () => {
     // });
 
     it('should not transition states for illegal transitions', () => {
-      assert.equal(lightMachine.transition('green', 'FAKE').id, 'green');
+      assert.equal(lightMachine.transition('green', 'FAKE').value, 'green');
     });
 
     it('should transition to initial substates without any action', () => {
-      assert.equal(lightMachine.transition('red', undefined).id, 'red.walk');
+      assert.equal(lightMachine.transition('red', undefined).value, 'red.walk');
     });
 
     it('should transition to nested states as target', () => {
-      assert.equal(testMachine.transition('a', 'T').id, 'b.b1');
+      assert.equal(testMachine.transition('a', 'T').value, 'b.b1');
     });
 
     it('should throw an error for transitions from invalid states', () => {
@@ -132,44 +132,50 @@ describe('deterministic machine', () => {
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
       assert.equal(
-        lightMachine.transition('red.walk', 'PED_COUNTDOWN').id,
+        lightMachine.transition('red.walk', 'PED_COUNTDOWN').value,
         'red.wait'
       );
     });
 
     it('should transition from initial nested states', () => {
       assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').id,
+        lightMachine.transition('red', 'PED_COUNTDOWN').value,
         'red.wait'
       );
     });
 
     it('should transition from deep initial nested states', () => {
       assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').id,
+        lightMachine.transition('red', 'PED_COUNTDOWN').value,
         'red.wait'
       );
     });
 
     it('should transition to initial nested states with no action', () => {
-      assert.equal(lightMachine.transition('red', undefined).id, 'red.walk');
+      assert.equal(lightMachine.transition('red', undefined).value, 'red.walk');
 
-      assert.equal(lightMachine.transition('red', undefined).id, 'red.walk');
+      assert.equal(lightMachine.transition('red', undefined).value, 'red.walk');
     });
 
     it('should bubble up actions that nested states cannot handle', () => {
-      assert.equal(lightMachine.transition('red.wait', 'TIMER').id, 'green');
+      assert.equal(lightMachine.transition('red.wait', 'TIMER').value, 'green');
 
-      assert.equal(lightMachine.transition('red', 'TIMER').id, 'green');
+      assert.equal(lightMachine.transition('red', 'TIMER').value, 'green');
     });
 
     it('should return the deepest initial substate for illegal transitions', () => {
-      assert.equal(lightMachine.transition('red.walk', 'FAKE').id, 'red.walk');
-      assert.equal(deepMachine.transition('a1', 'FAKE').id, 'a1.a2.a3.a4');
+      assert.equal(
+        lightMachine.transition('red.walk', 'FAKE').value,
+        'red.walk'
+      );
+      assert.equal(deepMachine.transition('a1', 'FAKE').value, 'a1.a2.a3.a4');
     });
 
     it('should transition to the deepest initial state', () => {
-      assert.equal(lightMachine.transition('yellow', 'TIMER').id, 'red.walk');
+      assert.equal(
+        lightMachine.transition('yellow', 'TIMER').value,
+        'red.walk'
+      );
     });
   });
 });

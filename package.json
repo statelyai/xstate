@@ -43,7 +43,7 @@
     "rollup-watch": "^3.2.2",
     "ts-node": "^3.0.2",
     "tslint": "^5.4.3",
-    "typescript": "^2.3.3"
+    "typescript": "^2.4.1"
   },
   "dependencies": {
     "icepick": "^2.0.0"

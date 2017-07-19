@@ -58,11 +58,11 @@ describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const initialState = wordMachine.transition(undefined);
 
-    assert.sameMembers(initialState.id as string[], [
-      'bold.off',
-      'italics.off',
-      'underline.off',
-      'list.none'
-    ]);
+    assert.deepEqual(initialState.value, {
+      bold: 'off',
+      italics: 'off',
+      underline: 'off',
+      list: 'none'
+    });
   });
 });

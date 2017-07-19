@@ -13,8 +13,11 @@ function getActionType(action: Action): string {
   }
 }
 
-function toStatePath(stateId: string | State): string[] {
+function toStatePath(stateId: string | State | string[]): string[] {
   try {
+    if (Array.isArray(stateId)) {
+      return stateId;
+    }
     if (stateId instanceof Node) {
       return toStatePath(stateId.id);
     }
@@ -27,14 +30,14 @@ function toStatePath(stateId: string | State): string[] {
 
 function getState(
   machine: Node,
-  stateId: StateId,
+  stateId: StateId | string[],
   history?: xstate.History
 ): Node {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
   let stateString: string;
-  let currentState: xstate.StateConfig = machine;
+  let currentState = machine;
   let historyMarker = history || machine.history;
 
   for (let subStatePath of statePath) {
@@ -68,153 +71,112 @@ function getState(
   return new Node(currentState, machine.history);
 }
 
-function getEvents(machine: xstate.StateConfig) {
-  const eventsMap = {};
+function getEvents(machine: Node) {
+  const events = new Set(machine.on ? Object.keys(machine.on) : undefined);
 
   Object.keys(machine.states).forEach(stateId => {
-    const state: xstate.StateConfig = machine.states[stateId];
+    const state = machine.states[stateId];
     if (state.states) {
-      for (const event of getEvents(state)) {
-        if (eventsMap[event]) {
-          continue;
-        }
-
-        eventsMap[event] = true;
+      const stateEvents = getEvents(state);
+      for (const event of stateEvents) {
+        events.add(event);
       }
-    }
-    if (!state.on) {
-      return;
-    }
-
-    for (const event of Object.keys(state.on)) {
-      if (eventsMap[event]) {
-        continue;
-      }
-
-      eventsMap[event] = true;
     }
   });
 
-  return Object.keys(eventsMap);
+  return Array.from(events);
 }
 
 type StateId = string | State;
 
-const getNextStates = (
-  statePath: string[],
+function mapValues<T, P>(
+  collection: { [key: string]: T },
+  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
+): { [key: string]: P } {
+  const result = {};
+
+  Object.keys(collection).forEach(key => {
+    result[key] = iteratee(collection[key], key, collection);
+  });
+
+  return result;
+}
+
+function getNextStates(
   machine: Machine,
-  history: xstate.History,
-  action: Action
-): State => {
-  const stack = [];
-  let currentState: xstate.StateConfig = machine;
-  let nextStateId: string;
+  statePath: string[],
+  action: Action,
+  history: xstate.History
+): State {
+  const initialState = getState(machine, statePath, history);
+  let currentState = initialState;
 
-  // Go into the deepest substate represented by the stateId,
-  // while remembering the parent states
-  for (const stateSubPath of statePath) {
-    currentState = currentState.states[stateSubPath];
-    stack.push(currentState);
-  }
-
-  if (currentState.parallel) {
-    const result = flatMap(Object.keys(currentState.states), subStatePath =>
-      getNextStates([...statePath, subStatePath], machine, history, action)
-    );
-
-    return new State({
-      id: flatMap(result, state => state.id),
-      history,
-      changed: true
-    });
-  }
-
-  // If the deepest substate has an initial state (hierarchical),
-  // go into that initial state.
-  while (currentState.initial) {
-    statePath.push(currentState.initial);
-    currentState = currentState.states[currentState.initial];
-    stack.push(currentState);
-  }
-
-  // We are currently at the deepest state. Save it.
-  const deepestState = getState(
-    machine,
-    statePath.join(STATE_DELIMITER),
-    history
-  );
-
-  // If there is no action, the deepest substate is our current state.
   if (!action) {
-    return new State({ id: deepestState.id, history, changed: false });
+    return new State({
+      value: initialState.getRelativeId(machine),
+      history,
+      changed: false
+    });
   }
 
   const actionType = getActionType(action);
 
-  // At first, the current state is the deepest substate that doesn't have
-  // any substates (no initial state).
-  // For each state, see if there is a valid transition.
-  // - If there is, that is our next state ID.
-  // - If there is not, continue by looking in the parent state.
-  while (!nextStateId && stack.length) {
-    currentState = stack.pop();
-    statePath.pop();
-    nextStateId = currentState.on ? currentState.on[actionType] : nextStateId;
+  while (currentState && !currentState.accepts(actionType)) {
+    currentState = currentState.parent;
   }
 
-  // No transition exists for the given action and state.
-  if (!nextStateId) {
-    return new State({ id: deepestState.id, history, changed: false });
+  if (!currentState) {
+    // tslint:disable-next-line:no-console
+    console.warn(
+      `No transition exists for ${initialState.id} on action ${actionType}.`
+    );
+    return new State({
+      value: initialState.getRelativeId(machine),
+      history,
+      changed: false
+    });
   }
 
-  // The resulting next state path is a combination of the determined
-  // next state path (which is contextual; e.g., 'three.four')
-  // and the current state path (e.g., ['one', 'two'])
-  // => ['one', 'two', 'three', 'four']
-  const nextStatePath = toStatePath(nextStateId);
-  statePath.push(...nextStatePath);
-
-  const nextState = getState(machine, statePath.join(STATE_DELIMITER), history);
-
-  return new State({
-    id: nextState.id,
-    history: updateHistory(history, deepestState.id),
-    changed: true
-  });
-};
-
-function getNextState(
-  machine,
-  stateId: StateId | StateId[],
-  action?: Action
-): State {
-  const statePaths = Array.isArray(stateId)
-    ? stateId.map(toStatePath)
-    : stateId
-      ? stateId instanceof State
-        ? [].concat(stateId.id).map(toStatePath)
-        : [toStatePath(stateId)]
-      : machine.parallel
-        ? Object.keys(machine.states).map(key => [key])
-        : [toStatePath(machine.initial)];
-  let history = machine.history;
-
-  if (stateId) {
-    const sampleState = Array.isArray(stateId) ? stateId[0] : stateId;
-    if (sampleState instanceof State) {
-      history = sampleState.history || history;
-    }
-  }
-
-  const result = flatMap(statePaths, statePath =>
-    getNextStates(statePath, machine, history, action)
+  const nextState = getState(
+    currentState.parent,
+    currentState.on[actionType],
+    history
   );
 
   return new State({
-    id: flatMap(result, state => state.id),
-    history: result[0].history,
+    value: nextState.getRelativeId(machine),
+    history: updateHistory(history, currentState.id),
     changed: true
   });
+}
+
+function getNextState(
+  machine: Node,
+  stateValue: StateValue | State,
+  action?: Action
+): State {
+  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
+    const value = mapValues(stateValue, (subStateValue, stateId) => {
+      const subState = machine.states[stateId];
+
+      return subState.transition(stateValue[stateId], action).value;
+    });
+
+    return new State({
+      value,
+      history: machine.history,
+      changed: true
+    });
+  }
+
+  const statePath = toStatePath(stateValue);
+  let history = machine.history;
+
+  if (stateValue instanceof State) {
+    history = stateValue.history || history;
+  }
+
+  return getNextStates(machine, statePath, action, history);
 }
 
 export function matchesState(
@@ -292,16 +254,35 @@ function updateHistory(
   return assocIn(history, first, { $current: last });
 }
 
+interface IStateValueMap {
+  [key: string]: StateValue;
+}
+type StateValue = string | IStateValueMap;
+
 // tslint:disable:max-classes-per-file
 class State {
-  public id: string | string[];
+  public value: StateValue;
   public history: xstate.History;
   public changed: boolean;
-  constructor({ id, history, changed }) {
-    this.id = id;
+  constructor({ value, history, changed }) {
+    this.value = value;
     this.history = history;
     this.changed = changed;
   }
+}
+
+interface INodeConfig {
+  initial?: string;
+  states?: {
+    [state: string]: INodeConfig;
+  };
+  parallel?: boolean;
+  isMachine?: boolean;
+  id?: string;
+  on?: {
+    [action: string]: string;
+  };
+  parent?: Node;
 }
 
 class Node {
@@ -310,38 +291,56 @@ class Node {
   public parallel?: boolean;
   public history: xstate.History;
   public states?: {
-    [state: string]: xstate.StateConfig;
+    [state: string]: Node;
   };
   public on?: {
     [event: string]: string;
   };
-  constructor(config: xstate.StateConfig, history?: xstate.History) {
+  public parent?: Node;
+  constructor(config: INodeConfig, history?: xstate.History) {
     this.id = config.id;
+    this.parent = config.parent;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
-    this.states = {};
+    this.states = config.states
+      ? mapValues(
+          config.states,
+          (stateConfig, stateId) =>
+            new Node(
+              {
+                ...stateConfig,
+                id: stateId,
+                parent: this
+              },
+              this.history
+            )
+        )
+      : {};
     this.history = history || createHistory(config);
-    if (config.states) {
-      Object.keys(config.states).forEach(stateId => {
-        const stateConfig = config.states[stateId];
-        this.states[stateId] = new Node({
-          ...stateConfig,
-          id: config.isMachine
-            ? stateId
-            : config.id + STATE_DELIMITER + stateId,
-          history: this.history
-        });
-      });
-    }
 
     this.on = config.on;
   }
-  public transition(stateId: StateId | StateId[], action?: Action): State;
-  public transition(stateId, action) {
-    return getNextState(this, stateId, action);
+  public transition(state?: StateValue | State, action?: Action): State {
+    const stateValue =
+      (state instanceof State ? state.value : state) || this.getInitialState();
+    return getNextState(this, stateValue, action);
+  }
+  public getInitialState() {
+    if (this.parallel) {
+      return mapValues(this.states, state => state.getInitialState());
+    }
+
+    return this.initial;
   }
   public getState(stateId) {
     return getState(this, stateId);
+  }
+  public accepts(action?: Action): boolean {
+    console.log(
+      `${this.id} accepts ${getActionType(action)}?`,
+      this.events.indexOf(getActionType(action)) !== -1
+    );
+    return this.events.indexOf(getActionType(action)) !== -1;
   }
   get events() {
     return getEvents(this);
@@ -349,10 +348,20 @@ class Node {
   public toString(): string {
     return this.id;
   }
+  public getRelativeId(toNode: Node): string {
+    let relativeId = this.id;
+    let currentNode = this.parent;
+    while (currentNode && currentNode !== toNode) {
+      relativeId = currentNode.id + STATE_DELIMITER + relativeId;
+      currentNode = currentNode.parent;
+    }
+
+    return relativeId;
+  }
 }
 
 export class Machine extends Node {
-  constructor(config: xstate.StateConfig, history?: xstate.History) {
+  constructor(config: INodeConfig, history?: xstate.History) {
     super({ ...config, isMachine: true }, history);
   }
 }
