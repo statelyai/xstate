@@ -5,7 +5,9 @@ const STATE_DELIMITER = '.';
 
 function getActionType(action: Action): string {
   try {
-    return typeof action === 'string' ? action : action.type;
+    return typeof action === 'string' || typeof action === 'number'
+      ? `${action}`
+      : action.type;
   } catch (e) {
     throw new Error(
       'Actions must be strings or objects with a string action.type.'
@@ -39,6 +41,8 @@ function getState(
   let stateString: string;
   let currentState = machine;
   let historyMarker = history || machine.history;
+
+  console.log(machine.id);
 
   for (let subStatePath of statePath) {
     if (subStatePath === '$history') {
@@ -125,7 +129,7 @@ function getNextStates(
     currentState = currentState.parent;
   }
 
-  if (!currentState) {
+  if (!currentState || !currentState.on || !currentState.on[actionType]) {
     // tslint:disable-next-line:no-console
     console.warn(
       `No transition exists for ${fromState.id} on action ${actionType}.`
@@ -138,7 +142,7 @@ function getNextStates(
   }
 
   const nextState = getState(
-    currentState.parent,
+    currentState.parent || currentState,
     currentState.on[actionType],
     history
   );
@@ -318,6 +322,7 @@ class Node {
     const stateValue =
       (state instanceof State ? state.value : state) || this.getInitialState();
     const history = state instanceof State ? state.history : undefined;
+
     return getNextState(this, stateValue, action, history);
   }
   public getInitialState() {

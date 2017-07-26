@@ -5,7 +5,7 @@
   "main": "lib/index.js",
   "scripts": {
     "start": "rollup -c",
-    "test": "mocha --require ts-node/register test/**/*.ts",
+    "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
     "build": "rollup -c",
     "version": "npm run build",
     "postversion": "git push && git push --tags",

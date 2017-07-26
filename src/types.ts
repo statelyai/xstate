@@ -1,4 +1,5 @@
 export type Action =
+  | number
   | string
   | {
       type: string;
