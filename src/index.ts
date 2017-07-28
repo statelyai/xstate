@@ -240,17 +240,20 @@ function createHistory(config: xstate.StateConfig): xstate.History | undefined {
 
 function updateHistory(
   history: xstate.History,
-  stateId: string
+  stateId: string | string[]
 ): xstate.History {
   const statePath = toStatePath(stateId);
   const newHistory = Object.assign({}, history);
-  const first = statePath.slice(0, -1);
-  const last = statePath[statePath.length - 1];
+  const [first, ...last] = statePath;
+  let result;
 
-  if (!first.length) {
-    return assocIn(history, ['$current'], last);
+  if (!last.length) {
+    result = assocIn(history, ['$current'], first);
+  } else {
+    result = assocIn(history, ['$current'], first);
+    result = assocIn(result, [first], updateHistory(result[first], last));
   }
-  return assocIn(history, first, { $current: last });
+  return result;
 }
 
 interface IStateValueMap {

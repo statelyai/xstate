@@ -104,11 +104,11 @@ describe('Example 6.8', () => {
     });
   });
 
-  // it('should respect the history mechanism', () => {
-  //   const stateC = machine.transition('A.B', 1);
-  //   const stateF = machine.transition(stateC, 6);
-  //   const stateActual = machine.transition(stateF, 5);
+  it('should respect the history mechanism', () => {
+    const stateC = machine.transition('A.B', 5);
+    const stateH = machine.transition(stateC, 6);
+    const stateActual = machine.transition(stateH, 1);
 
-  //   assert.equal(stateActual.value, 'A.C');
-  // });
+    assert.equal(stateActual.value, 'A.C.G');
+  });
 });
