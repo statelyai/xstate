@@ -1,5 +1,6 @@
 import { assert } from 'chai';
-import { Machine } from '../../src/index';
+import { Machine, Node, State } from '../../src/index';
+import { testMultiTransition } from '../utils';
 
 describe('Example 6.8', () => {
   const machine = new Machine({
@@ -58,13 +59,19 @@ describe('Example 6.8', () => {
       3: 'A.B.D',
       5: 'A.C.G',
       6: 'H',
-      FAKE: 'A.B.E'
+      FAKE: 'A.B.E',
+
+      // history
+      '5, 6, 1': 'A.C.G',
+      '3, 6, 1': 'A.B.E' // not A.B.D because not deep history
     },
     'A.C': {
       2: 'A.C.F',
       4: 'A.B.E',
       6: 'H',
-      FAKE: 'A.C.G'
+      FAKE: 'A.C.G',
+      '6, 1': 'A.C.G',
+      '4, 6, 1': 'A.B.E'
     },
     'A.B.D': {
       5: 'A.C.G',
@@ -95,20 +102,18 @@ describe('Example 6.8', () => {
   };
 
   Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionType => {
-      const toState = expected[fromState][actionType];
+    Object.keys(expected[fromState]).forEach(actionTypes => {
+      const toState = expected[fromState][actionTypes];
 
-      it(`should go from ${fromState} to ${toState}`, () => {
-        assert.equal(machine.transition(fromState, actionType).value, toState);
+      it(`should go from ${fromState} to ${toState} on ${actionTypes}`, () => {
+        const resultState = testMultiTransition(
+          machine,
+          fromState,
+          actionTypes
+        );
+
+        assert.equal(resultState.value, toState);
       });
     });
-  });
-
-  it('should respect the history mechanism', () => {
-    const stateC = machine.transition('A.B', 5);
-    const stateH = machine.transition(stateC, 6);
-    const stateActual = machine.transition(stateH, 1);
-
-    assert.equal(stateActual.value, 'A.C.G');
   });
 });

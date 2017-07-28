@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../../src/index';
+import { testMultiTransition } from '../utils';
 
 describe('Example 6.8', () => {
   const machine = new Machine({
@@ -65,11 +66,14 @@ describe('Example 6.8', () => {
   };
 
   Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionType => {
-      const toState = expected[fromState][actionType];
+    Object.keys(expected[fromState]).forEach(actionTypes => {
+      const toState = expected[fromState][actionTypes];
 
       it(`should go from ${fromState} to ${toState}`, () => {
-        assert.equal(machine.transition(fromState, actionType).value, toState);
+        assert.equal(
+          testMultiTransition(machine, fromState, actionTypes).value,
+          toState
+        );
       });
     });
   });

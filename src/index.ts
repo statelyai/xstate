@@ -262,7 +262,7 @@ interface IStateValueMap {
 type StateValue = string | IStateValueMap;
 
 // tslint:disable:max-classes-per-file
-class State {
+export class State {
   public value: StateValue;
   public history: xstate.History;
   public changed: boolean;
@@ -286,7 +286,7 @@ interface INodeConfig {
   parent?: Node;
 }
 
-class Node {
+export class Node {
   public id: string;
   public initial?: string;
   public parallel?: boolean;
