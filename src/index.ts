@@ -33,26 +33,26 @@ function toStatePath(stateId: string | State | string[]): string[] {
 function getState(
   machine: Node,
   stateId: StateId | string[],
-  history?: xstate.History
+  history: xstate.History = machine.history
 ): Node {
   const statePath = stateId
     ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
     : toStatePath(machine.initial);
+  const absolutePath = machine.getRelativePath();
   let stateString: string;
   let currentState = machine;
-  let historyMarker = history || machine.history;
-
-  console.log(machine.id);
 
   for (let subStatePath of statePath) {
     if (subStatePath === '$history') {
-      subStatePath = historyMarker.$current;
+      subStatePath = (absolutePath.reduce((subHistory, subPath) => {
+        return subHistory[subPath];
+      }, history) as xstate.History).$current;
     }
 
     stateString = stateString
       ? stateString + STATE_DELIMITER + subStatePath
       : subStatePath;
-    historyMarker = historyMarker[subStatePath] as xstate.History;
+    absolutePath.push(subStatePath);
 
     currentState = currentState.states[subStatePath];
     if (!currentState) {
@@ -344,15 +344,24 @@ class Node {
   public toString(): string {
     return this.id;
   }
-  public getRelativeId(toNode: Node): string {
-    let relativeId = this.id;
-    let currentNode = this.parent;
+  public getRelativePath(toNode?: Node): string[] {
+    const relativePath = [];
+    let currentNode: Node = this;
+
     while (currentNode && currentNode !== toNode) {
-      relativeId = currentNode.id + STATE_DELIMITER + relativeId;
+      if (toNode || currentNode.parent) {
+        relativePath.unshift(currentNode.id);
+      }
+
       currentNode = currentNode.parent;
     }
 
-    return relativeId;
+    return relativePath;
+  }
+  public getRelativeId(toNode?: Node): string {
+    const path = this.getRelativePath(toNode);
+
+    return path.join(STATE_DELIMITER);
   }
 }
 
