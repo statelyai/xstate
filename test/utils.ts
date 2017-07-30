@@ -8,6 +8,9 @@ export function testMultiTransition(
   const resultState = actionTypes
     .split(/,\s?/)
     .reduce((state: State | string, actionType) => {
+      if (typeof state === 'string' && state[0] === '{') {
+        state = JSON.parse(state);
+      }
       const nextState = machine.transition(state, actionType);
       return nextState;
     }, fromState);

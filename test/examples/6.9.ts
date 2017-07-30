@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine, Node, State } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
-describe('Example 6.8', () => {
+describe('Example 6.9', () => {
   const machine = new Machine({
     initial: 'A',
     states: {
@@ -42,7 +42,8 @@ describe('Example 6.8', () => {
       },
       H: {
         on: {
-          1: 'A.$history'
+          1: 'A.$history',
+          7: 'A.$history*' // 6.10
         }
       }
     }
@@ -64,6 +65,7 @@ describe('Example 6.8', () => {
       // history
       '5, 6, 1': 'A.C.G',
       '3, 6, 1': 'A.B.E' // not A.B.D because not deep history
+      // '3, 6, 7': 'A.B.D'
     },
     'A.C': {
       2: 'A.C.F',

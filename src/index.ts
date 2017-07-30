@@ -30,6 +30,48 @@ function toStatePath(stateId: string | State | string[]): string[] {
   }
 }
 
+function getStateValue(node: Node, parent: Node): StateValue {
+  let stateValue: StateValue;
+
+  if (node.initial) {
+    return getStateValue(node.states[node.getInitialState() as string], parent);
+  }
+
+  if (node.parallel) {
+    stateValue = {
+      [node.id]: mapValues(node.states, subNode =>
+        getStateValue(subNode, subNode)
+      )
+    };
+
+    let currentNode = node;
+
+    while (
+      currentNode.parent &&
+      currentNode.parent !== parent &&
+      currentNode.parent.id
+    ) {
+      currentNode = currentNode.parent;
+      stateValue = { [currentNode.id]: stateValue };
+    }
+  } else {
+    stateValue = node.id;
+
+    let currentNode = node;
+
+    while (
+      currentNode.parent &&
+      currentNode.parent !== parent &&
+      currentNode.parent.id
+    ) {
+      currentNode = currentNode.parent;
+      stateValue = currentNode.id + '.' + stateValue;
+    }
+  }
+
+  return stateValue;
+}
+
 function getState(
   machine: Node,
   stateId: StateId | string[],
@@ -141,14 +183,14 @@ function getNextStates(
     });
   }
 
-  const nextState = getState(
+  const nextNode = getState(
     currentState.parent || currentState,
     currentState.on[actionType],
     history
   );
 
   return new State({
-    value: nextState.getRelativeId(machine),
+    value: getStateValue(nextNode, machine),
     history: updateHistory(history, fromState.getRelativeId(machine)),
     changed: true
   });
@@ -328,7 +370,7 @@ export class Node {
 
     return getNextState(this, stateValue, action, history);
   }
-  public getInitialState() {
+  public getInitialState(): StateValue {
     if (this.parallel) {
       return mapValues(this.states, state => state.getInitialState());
     }
