@@ -7,7 +7,11 @@ describe('Example 6.17', () => {
     initial: 'X',
     states: {
       X: {
-        on: { 1: 'Y', 2: 'Y.A.C' }
+        on: {
+          1: 'Y',
+          2: 'Y.A.C' // 6.18
+          // 3: { Y: { A: 'C', B: 'F' } } // 6.19
+        }
       },
       Y: {
         parallel: true,
@@ -28,7 +32,8 @@ describe('Example 6.17', () => {
   const expected = {
     X: {
       1: { Y: { A: 'D', B: 'G' } },
-      2: { Y: { A: 'C', B: 'G' } }
+      2: { Y: { A: 'C', B: 'G' } } // 6.18
+      // 3: { Y: { A: 'C', B: 'F' } }, //  6.19
     }
   };
 

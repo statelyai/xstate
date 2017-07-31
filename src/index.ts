@@ -30,48 +30,6 @@ function toStatePath(stateId: string | State | string[]): string[] {
   }
 }
 
-function getStateValue(node: Node, parent: Node): StateValue {
-  let stateValue: StateValue;
-
-  if (node.initial) {
-    return getStateValue(node.states[node.getInitialState() as string], parent);
-  }
-
-  if (node.parallel) {
-    stateValue = {
-      [node.id]: mapValues(node.states, subNode =>
-        getStateValue(subNode, subNode)
-      )
-    };
-
-    let currentNode = node;
-
-    while (
-      currentNode.parent &&
-      currentNode.parent !== parent &&
-      currentNode.parent.id
-    ) {
-      currentNode = currentNode.parent;
-      stateValue = { [currentNode.id]: stateValue };
-    }
-  } else {
-    stateValue = node.id;
-
-    let currentNode = node;
-
-    while (
-      currentNode.parent &&
-      currentNode.parent !== parent &&
-      currentNode.parent.id
-    ) {
-      currentNode = currentNode.parent;
-      stateValue = currentNode.id + '.' + stateValue;
-    }
-  }
-
-  return stateValue;
-}
-
 function getState(
   machine: Node,
   stateId: StateId | string[],
@@ -148,12 +106,27 @@ function mapValues<T, P>(
   return result;
 }
 
-function getNextStates(
-  machine: Machine,
-  statePath: string[],
-  action: Action,
-  history: xstate.History
+function getNextState(
+  machine: Node,
+  stateValue: StateValue | State,
+  action?: Action,
+  history: xstate.History = machine.history
 ): State {
+  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
+    const value = mapValues(stateValue, (_, stateId) => {
+      const subState = machine.states[stateId];
+
+      return subState.transition(stateValue[stateId], action).value;
+    });
+
+    return new State({
+      value,
+      history,
+      changed: true
+    });
+  }
+
+  const statePath = toStatePath(stateValue);
   const fromState = getState(machine, statePath, history);
   let currentState = fromState;
 
@@ -183,41 +156,52 @@ function getNextStates(
     });
   }
 
+  const nextStatePath = toStatePath(currentState.on[actionType]);
+
   const nextNode = getState(
     currentState.parent || currentState,
-    currentState.on[actionType],
+    nextStatePath,
     history
   );
+  let nodeMarker = nextNode;
+  let nextValue: StateValue = nextNode.getInitialState()
+    ? { [nextNode.id]: nextNode.getInitialState() }
+    : nextNode.id;
+  let parallel = nextNode.parallel;
+
+  while (nodeMarker.parent && nodeMarker.parent !== machine) {
+    nodeMarker = nodeMarker.parent;
+    if (nodeMarker.parallel) {
+      parallel = true;
+      nextValue = {
+        [nodeMarker.id]: mapValues(nodeMarker.states, (subNode, key) => {
+          return nextValue[key] || subNode.getInitialState();
+        })
+      };
+    } else {
+      nextValue = { [nodeMarker.id]: nextValue };
+    }
+  }
+
+  if (!parallel && typeof nextValue !== 'string') {
+    let m: StateValue = nextValue;
+    const p: string[] = [];
+
+    while (m && typeof m !== 'string') {
+      p.push(Object.keys(m)[0]);
+      m = m[Object.keys(m)[0]];
+    }
+
+    p.push(m as string);
+
+    nextValue = p.join(STATE_DELIMITER);
+  }
 
   return new State({
-    value: getStateValue(nextNode, machine),
+    value: nextValue,
     history: updateHistory(history, fromState.getRelativeId(machine)),
     changed: true
   });
-}
-
-function getNextState(
-  machine: Node,
-  stateValue: StateValue | State,
-  action?: Action,
-  history: xstate.History = machine.history
-): State {
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    const value = mapValues(stateValue, (_, stateId) => {
-      const subState = machine.states[stateId];
-
-      return subState.transition(stateValue[stateId], action).value;
-    });
-
-    return new State({
-      value,
-      history,
-      changed: true
-    });
-  }
-
-  const statePath = toStatePath(stateValue);
-  return getNextStates(machine, statePath, action, history);
 }
 
 export function matchesState(
