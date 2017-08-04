@@ -9,8 +9,9 @@ describe('Example 6.17', () => {
       X: {
         on: {
           1: 'Y',
-          2: 'Y.A.C' // 6.18
+          2: 'Y.A.C', // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
+          4: 'Y.A.$history'
         }
       },
       Y: {
@@ -24,6 +25,9 @@ describe('Example 6.17', () => {
             initial: 'G',
             states: { F: {}, G: {}, H: {} }
           }
+        },
+        on: {
+          back: 'X'
         }
       }
     }
@@ -34,6 +38,16 @@ describe('Example 6.17', () => {
       1: { Y: { A: 'D', B: 'G' } },
       2: { Y: { A: 'C', B: 'G' } } // 6.18
       // 3: { Y: { A: 'C', B: 'F' } }, //  6.19
+      // '2, back, 4': { Y: { A: 'C', B: 'G' } }
+    },
+    '{"Y":{"A":"C","B":"G"}}': {
+      back: 'X'
+    },
+    'Y.A.C': {
+      back: 'X'
+    },
+    'Y.B.G': {
+      back: 'X'
     }
   };
 

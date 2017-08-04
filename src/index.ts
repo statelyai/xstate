@@ -106,6 +106,66 @@ function mapValues<T, P>(
   return result;
 }
 
+function getStatePaths(stateValue: StateValue): string[][] {
+  if (typeof stateValue === 'string') {
+    return [[stateValue]];
+  }
+
+  const subPaths = Object.keys(stateValue)
+    .map(key => {
+      return getStatePaths(stateValue[key]).map(subPath => [key, ...subPath]);
+    })
+    .reduce((a, b) => a.concat(b), []);
+
+  return subPaths;
+}
+
+function fff(
+  parent: Node,
+  stateValue: StateValue,
+  action?: Action
+): StateValue {
+  if (typeof stateValue === 'string') {
+    const state = parent.states[stateValue];
+    return state.next(action) || state.getInitialState() || undefined;
+  }
+
+  if (Object.keys(stateValue).length === 1) {
+    const subStateKey = Object.keys(stateValue)[0];
+    const subState = parent.states[subStateKey];
+    return (
+      // first try deep
+      fff(subState, stateValue[subStateKey], action) ||
+      // then try shallow
+      subState.next(action) ||
+      // finally, stick with initial state value
+      stateValue[subStateKey]
+    );
+  }
+
+  let nextValue = {};
+  let willTransition = false;
+  const untransitionedKeys = {};
+  Object.keys(stateValue).forEach(key => {
+    const subValue = fff(parent.states[key], stateValue[key], action);
+    if (subValue) {
+      nextValue[key] = subValue;
+      willTransition = true;
+    } else {
+      nextValue[key] = undefined;
+      untransitionedKeys[key] = stateValue[key];
+    }
+  });
+
+  if (willTransition) {
+    Object.assign(nextValue, untransitionedKeys);
+  } else {
+    nextValue = undefined;
+  }
+
+  return nextValue;
+}
+
 function getNextState(
   machine: Node,
   stateValue: StateValue | State,
@@ -113,14 +173,10 @@ function getNextState(
   history: xstate.History = machine.history
 ): State {
   if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    const value = mapValues(stateValue, (_, stateId) => {
-      const subState = machine.states[stateId];
-
-      return subState.transition(stateValue[stateId], action).value;
-    });
+    const nextValue = fff(machine, stateValue, action) || stateValue;
 
     return new State({
-      value,
+      value: nextValue,
       history,
       changed: true
     });
@@ -353,6 +409,34 @@ export class Node {
     const history = state instanceof State ? state.history : undefined;
 
     return getNextState(this, stateValue, action, history);
+  }
+  public next(action?: Action): StateValue | undefined {
+    if (!action) {
+      return undefined;
+    }
+
+    const actionType = getActionType(action);
+
+    if (!this.on || !this.on[actionType]) {
+      return undefined;
+    }
+
+    return this.on[actionType];
+  }
+  public willTransition(action: Action, stateValue?: StateValue): boolean {
+    if (this.on && this.on[getActionType(action)]) {
+      return true;
+    }
+
+    if (!stateValue) {
+      return false;
+    }
+
+    return Object.keys(stateValue).some(key => {
+      const subState = this.states[key];
+
+      return subState && subState.willTransition(action, stateValue[key]);
+    });
   }
   public getInitialState(): StateValue {
     if (this.parallel) {
