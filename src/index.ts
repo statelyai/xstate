@@ -229,10 +229,6 @@ function toTrie(stateValue: StateValue | State): StateValue {
   return value;
 }
 
-// function fullStateValue(parent: Node, stateValue: StateValue): StateValue {
-//   const initialStateValue = parent.getInitialState();
-// }
-
 function getNextState(
   machine: Node,
   stateValue: StateValue | State,
@@ -560,24 +556,8 @@ export class Node {
     while (currentState.initial) {
       currentState = currentState.states[currentState.initial];
     }
-    const nextStatePath = currentState.getRelativeId(this.parent);
 
-    return toTrie(nextStatePath);
-  }
-  public willTransition(action: Action, stateValue?: StateValue): boolean {
-    if (this.on && this.on[getActionType(action)]) {
-      return true;
-    }
-
-    if (!stateValue) {
-      return false;
-    }
-
-    return Object.keys(stateValue).some(key => {
-      const subState = this.states[key];
-
-      return subState && subState.willTransition(action, stateValue[key]);
-    });
+    return currentState.getRelativeValue(this.parent);
   }
   public getInitialState(): StateValue | undefined {
     if (this.parallel) {
@@ -611,6 +591,29 @@ export class Node {
     }
 
     return relativePath;
+  }
+  public getRelativeValue(toNode?: Node): StateValue {
+    const initialState = this.getInitialState();
+    let relativeValue = initialState
+      ? {
+          [this.id]: initialState
+        }
+      : this.id;
+    let currentNode: Node = this.parent;
+
+    while (currentNode && currentNode !== toNode) {
+      const currentInitialState = currentNode.getInitialState();
+      relativeValue = {
+        [currentNode.id]:
+          typeof currentInitialState === 'object' &&
+          typeof relativeValue === 'object'
+            ? { ...currentInitialState, ...relativeValue }
+            : relativeValue
+      };
+      currentNode = currentNode.parent;
+    }
+
+    return relativeValue;
   }
   public getRelativeId(toNode?: Node): string {
     const path = this.getRelativePath(toNode);
