@@ -123,31 +123,69 @@ function getStatePaths(stateValue: StateValue): string[][] {
 function fff(
   parent: Node,
   stateValue: StateValue,
-  action?: Action
+  action?: Action,
+  history?: xstate.History
 ): StateValue {
   if (typeof stateValue === 'string') {
     const state = parent.states[stateValue];
-    return state.next(action) || state.getInitialState() || undefined;
+    const initialState = state.getInitialState();
+
+    if (initialState) {
+      stateValue = {
+        [stateValue]: initialState
+      };
+    } else {
+      return state.next(action, history) || undefined;
+    }
+  }
+
+  if (parent.parallel) {
+    const initialState = parent.getInitialState();
+
+    if (typeof initialState !== 'string') {
+      stateValue = {
+        ...initialState,
+        ...stateValue
+      };
+    }
   }
 
   if (Object.keys(stateValue).length === 1) {
     const subStateKey = Object.keys(stateValue)[0];
     const subState = parent.states[subStateKey];
-    return (
-      // first try deep
-      fff(subState, stateValue[subStateKey], action) ||
-      // then try shallow
-      subState.next(action) ||
-      // finally, stick with initial state value
-      stateValue[subStateKey]
+    const subStateValue = stateValue[subStateKey];
+    const subHistory = history[subStateKey];
+
+    const nextValue = fff(
+      subState,
+      subStateValue,
+      action,
+      subHistory as xstate.History
     );
+
+    if (nextValue) {
+      return { [subStateKey]: nextValue };
+    }
+
+    return subState.next(
+      action,
+      history
+    ) /* || {
+        [subStateKey]: stateValue[subStateKey]
+      } */;
   }
 
   let nextValue = {};
   let willTransition = false;
   const untransitionedKeys = {};
   Object.keys(stateValue).forEach(key => {
-    const subValue = fff(parent.states[key], stateValue[key], action);
+    const subValue = fff(
+      parent.states[key],
+      stateValue[key],
+      action,
+      history[key] as xstate.History
+    );
+
     if (subValue) {
       nextValue[key] = subValue;
       willTransition = true;
@@ -166,18 +204,53 @@ function fff(
   return nextValue;
 }
 
+function toTrie(stateValue: StateValue | State): StateValue {
+  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
+    return stateValue;
+  }
+
+  const statePath = toStatePath(stateValue);
+  if (statePath.length === 1) {
+    return statePath[0];
+  }
+
+  const value = {};
+  let marker = value;
+
+  for (let i = 0; i < statePath.length - 1; i++) {
+    if (i === statePath.length - 2) {
+      marker[statePath[i]] = statePath[i + 1];
+    } else {
+      marker[statePath[i]] = {};
+      marker = marker[statePath[i]];
+    }
+  }
+
+  return value;
+}
+
+// function fullStateValue(parent: Node, stateValue: StateValue): StateValue {
+//   const initialStateValue = parent.getInitialState();
+// }
+
 function getNextState(
   machine: Node,
   stateValue: StateValue | State,
   action?: Action,
   history: xstate.History = machine.history
 ): State {
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    const nextValue = fff(machine, stateValue, action) || stateValue;
+  stateValue = toTrie(stateValue);
+  if (
+    (typeof stateValue === 'string' && stateValue.indexOf('.') === -1) ||
+    (typeof stateValue === 'object' && !(stateValue instanceof State))
+  ) {
+    const nextValue =
+      fff(machine, stateValue, action, history) ||
+      fff(machine, stateValue, undefined, history);
 
     return new State({
       value: nextValue,
-      history,
+      history: updateHistory(history, stateValue),
       changed: true
     });
   }
@@ -320,22 +393,40 @@ function createHistory(config: xstate.StateConfig): xstate.History | undefined {
   return history;
 }
 
+interface IHistory {
+  $current: StateValue;
+  [key: string]: IHistory | StateValue; // TODO: remove string
+}
+
 function updateHistory(
   history: xstate.History,
-  stateId: string | string[]
-): xstate.History {
-  const statePath = toStatePath(stateId);
-  const newHistory = Object.assign({}, history);
-  const [first, ...last] = statePath;
-  let result;
-
-  if (!last.length) {
-    result = assocIn(history, ['$current'], first);
-  } else {
-    result = assocIn(history, ['$current'], first);
-    result = assocIn(result, [first], updateHistory(result[first], last));
+  stateValue: StateValue
+): IHistory {
+  if (typeof stateValue === 'string') {
+    return {
+      ...history,
+      $current: stateValue
+    };
   }
-  return result;
+
+  const nextHistory = {
+    ...history,
+    $current: stateValue
+  };
+
+  Object.keys(stateValue).forEach(subStatePath => {
+    const subHistory = history[subStatePath] as string;
+    const subStateValue = stateValue[subStatePath];
+
+    if (typeof subHistory === 'string') {
+      // this will never happen, just making TS happy
+      return;
+    }
+
+    nextHistory[subStatePath] = updateHistory(subHistory, subStateValue);
+  });
+
+  return nextHistory;
 }
 
 interface IStateValueMap {
@@ -352,6 +443,32 @@ export class State {
     this.value = value;
     this.history = history;
     this.changed = changed;
+  }
+  public toString(): string | undefined {
+    if (typeof this.value === 'string') {
+      return this.value;
+    }
+
+    const path = [];
+    let marker: StateValue = this.value;
+
+    while (true) {
+      if (typeof marker === 'string') {
+        path.push(marker);
+        break;
+      }
+
+      const [firstKey, ...otherKeys] = Object.keys(marker);
+
+      if (otherKeys.length) {
+        return undefined;
+      }
+
+      path.push(firstKey);
+      marker = marker[firstKey];
+    }
+
+    return path.join(STATE_DELIMITER);
   }
 }
 
@@ -410,9 +527,12 @@ export class Node {
 
     return getNextState(this, stateValue, action, history);
   }
-  public next(action?: Action): StateValue | undefined {
+  public next(
+    action?: Action,
+    history?: xstate.History
+  ): StateValue | undefined {
     if (!action) {
-      return undefined;
+      return this.id;
     }
 
     const actionType = getActionType(action);
@@ -421,7 +541,28 @@ export class Node {
       return undefined;
     }
 
-    return this.on[actionType];
+    const nextPath = toStatePath(this.on[actionType]);
+    let currentState = this.parent;
+    let currentHistory = history;
+
+    nextPath.forEach(subPath => {
+      if (subPath === '$history') {
+        subPath = currentHistory.$current;
+      }
+      if (typeof subPath === 'object') {
+        subPath = Object.keys(subPath)[0];
+      }
+
+      currentState = currentState.states[subPath];
+      currentHistory = currentHistory[subPath] as xstate.History;
+    });
+
+    while (currentState.initial) {
+      currentState = currentState.states[currentState.initial];
+    }
+    const nextStatePath = currentState.getRelativeId(this.parent);
+
+    return toTrie(nextStatePath);
   }
   public willTransition(action: Action, stateValue?: StateValue): boolean {
     if (this.on && this.on[getActionType(action)]) {
@@ -438,7 +579,7 @@ export class Node {
       return subState && subState.willTransition(action, stateValue[key]);
     });
   }
-  public getInitialState(): StateValue {
+  public getInitialState(): StateValue | undefined {
     if (this.parallel) {
       return mapValues(this.states, state => state.getInitialState());
     }

@@ -32,12 +32,15 @@ describe('history states', () => {
     const offState = historyMachine.transition(onSecondState, 'POWER');
 
     assert.equal(
-      historyMachine.transition(offState, 'POWER').value,
+      historyMachine.transition(offState, 'POWER').toString(),
       'on.second'
     );
   });
 
   it('should go to the initial state when no history present', () => {
-    assert.equal(historyMachine.transition('off', 'POWER').value, 'on.first');
+    assert.equal(
+      historyMachine.transition('off', 'POWER').toString(),
+      'on.first'
+    );
   });
 });

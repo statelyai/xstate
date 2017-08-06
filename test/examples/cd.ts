@@ -92,7 +92,7 @@ describe('Example: CD Player', () => {
 
       it(`should go from ${fromState} to ${toState}`, () => {
         assert.equal(
-          cdMachine.transition(fromState, actionType).value,
+          cdMachine.transition(fromState, actionType).toString(),
           toState
         );
       });

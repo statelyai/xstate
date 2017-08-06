@@ -71,7 +71,7 @@ describe('Example 6.8', () => {
 
       it(`should go from ${fromState} to ${toState}`, () => {
         assert.equal(
-          testMultiTransition(machine, fromState, actionTypes).value,
+          testMultiTransition(machine, fromState, actionTypes).toString(),
           toState
         );
       });
@@ -83,6 +83,6 @@ describe('Example 6.8', () => {
     const stateF = machine.transition(stateC, 6);
     const stateActual = machine.transition(stateF, 5);
 
-    assert.equal(stateActual.value, 'A.C');
+    assert.equal(stateActual.toString(), 'A.C');
   });
 });

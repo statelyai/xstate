@@ -114,7 +114,7 @@ describe('Example 6.9', () => {
           actionTypes
         );
 
-        assert.equal(resultState.value, toState);
+        assert.equal(resultState.toString(), toState);
       });
     });
   });
