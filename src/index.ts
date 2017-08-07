@@ -120,11 +120,11 @@ function getStatePaths(stateValue: StateValue): string[][] {
   return subPaths;
 }
 
-function fff(
+function getNextStateValue(
   parent: Node,
   stateValue: StateValue,
   action?: Action,
-  history?: xstate.History
+  history: xstate.History = parent.history
 ): StateValue {
   if (typeof stateValue === 'string') {
     const state = parent.states[stateValue];
@@ -156,7 +156,7 @@ function fff(
     const subStateValue = stateValue[subStateKey];
     const subHistory = history[subStateKey];
 
-    const nextValue = fff(
+    const nextValue = getNextStateValue(
       subState,
       subStateValue,
       action,
@@ -167,19 +167,14 @@ function fff(
       return { [subStateKey]: nextValue };
     }
 
-    return subState.next(
-      action,
-      history
-    ) /* || {
-        [subStateKey]: stateValue[subStateKey]
-      } */;
+    return subState.next(action, history);
   }
 
   let nextValue = {};
   let willTransition = false;
   const untransitionedKeys = {};
   Object.keys(stateValue).forEach(key => {
-    const subValue = fff(
+    const subValue = getNextStateValue(
       parent.states[key],
       stateValue[key],
       action,
@@ -227,106 +222,6 @@ function toTrie(stateValue: StateValue | State): StateValue {
   }
 
   return value;
-}
-
-function getNextState(
-  machine: Node,
-  stateValue: StateValue | State,
-  action?: Action,
-  history: xstate.History = machine.history
-): State {
-  stateValue = toTrie(stateValue);
-  if (
-    (typeof stateValue === 'string' && stateValue.indexOf('.') === -1) ||
-    (typeof stateValue === 'object' && !(stateValue instanceof State))
-  ) {
-    const nextValue =
-      fff(machine, stateValue, action, history) ||
-      fff(machine, stateValue, undefined, history);
-
-    return new State({
-      value: nextValue,
-      history: updateHistory(history, stateValue),
-      changed: true
-    });
-  }
-
-  const statePath = toStatePath(stateValue);
-  const fromState = getState(machine, statePath, history);
-  let currentState = fromState;
-
-  if (!action) {
-    return new State({
-      value: fromState.getRelativeId(machine),
-      history,
-      changed: false
-    });
-  }
-
-  const actionType = getActionType(action);
-
-  while (currentState && !currentState.accepts(actionType)) {
-    currentState = currentState.parent;
-  }
-
-  if (!currentState || !currentState.on || !currentState.on[actionType]) {
-    // tslint:disable-next-line:no-console
-    console.warn(
-      `No transition exists for ${fromState.id} on action ${actionType}.`
-    );
-    return new State({
-      value: fromState.getRelativeId(machine),
-      history,
-      changed: false
-    });
-  }
-
-  const nextStatePath = toStatePath(currentState.on[actionType]);
-
-  const nextNode = getState(
-    currentState.parent || currentState,
-    nextStatePath,
-    history
-  );
-  let nodeMarker = nextNode;
-  let nextValue: StateValue = nextNode.getInitialState()
-    ? { [nextNode.id]: nextNode.getInitialState() }
-    : nextNode.id;
-  let parallel = nextNode.parallel;
-
-  while (nodeMarker.parent && nodeMarker.parent !== machine) {
-    nodeMarker = nodeMarker.parent;
-    if (nodeMarker.parallel) {
-      parallel = true;
-      nextValue = {
-        [nodeMarker.id]: mapValues(nodeMarker.states, (subNode, key) => {
-          return nextValue[key] || subNode.getInitialState();
-        })
-      };
-    } else {
-      nextValue = { [nodeMarker.id]: nextValue };
-    }
-  }
-
-  if (!parallel && typeof nextValue !== 'string') {
-    let m: StateValue = nextValue;
-    const p: string[] = [];
-
-    while (m && typeof m !== 'string') {
-      p.push(Object.keys(m)[0]);
-      m = m[Object.keys(m)[0]];
-    }
-
-    p.push(m as string);
-
-    nextValue = p.join(STATE_DELIMITER);
-  }
-
-  return new State({
-    value: nextValue,
-    history: updateHistory(history, fromState.getRelativeId(machine)),
-    changed: true
-  });
 }
 
 export function matchesState(
@@ -517,11 +412,21 @@ export class Node {
     this.on = config.on;
   }
   public transition(state?: StateValue | State, action?: Action): State {
-    const stateValue =
+    let stateValue =
       (state instanceof State ? state.value : state) || this.getInitialState();
-    const history = state instanceof State ? state.history : undefined;
+    const history = state instanceof State ? state.history : this.history;
 
-    return getNextState(this, stateValue, action, history);
+    stateValue = toTrie(stateValue);
+
+    const nextValue =
+      getNextStateValue(this, stateValue, action, history) ||
+      getNextStateValue(this, stateValue, undefined, history);
+
+    return new State({
+      value: nextValue,
+      history: updateHistory(history, stateValue),
+      changed: true
+    });
   }
   public next(
     action?: Action,
