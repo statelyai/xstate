@@ -93,3 +93,16 @@ export function toTrie(stateValue: StateValue): StateValue {
 
   return value;
 }
+
+export function mapValues<T, P>(
+  collection: { [key: string]: T },
+  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
+): { [key: string]: P } {
+  const result = {};
+
+  Object.keys(collection).forEach(key => {
+    result[key] = iteratee(collection[key], key, collection);
+  });
+
+  return result;
+}

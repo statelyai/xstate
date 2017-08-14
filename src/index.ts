@@ -1,51 +1,18 @@
-import { assocIn, flatMap, getActionType, toStatePath, toTrie } from './utils';
+import {
+  assocIn,
+  flatMap,
+  getActionType,
+  toStatePath,
+  toTrie,
+  mapValues
+} from './utils';
 import { Action, StateKey, StateValue } from './types';
 import matchesState from './matchesState';
+import mapState from './mapState';
+import State from './State';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
-
-function getEvents(machine: Node) {
-  const events = new Set(machine.on ? Object.keys(machine.on) : undefined);
-
-  Object.keys(machine.states).forEach(stateId => {
-    const state = machine.states[stateId];
-    if (state.states) {
-      for (const event of getEvents(state)) {
-        events.add(event);
-      }
-    }
-  });
-
-  return Array.from(events);
-}
-
-function mapValues<T, P>(
-  collection: { [key: string]: T },
-  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
-): { [key: string]: P } {
-  const result = {};
-
-  Object.keys(collection).forEach(key => {
-    result[key] = iteratee(collection[key], key, collection);
-  });
-
-  return result;
-}
-
-function getStatePaths(stateValue: StateValue): string[][] {
-  if (typeof stateValue === 'string') {
-    return [[stateValue]];
-  }
-
-  const subPaths = Object.keys(stateValue)
-    .map(key => {
-      return getStatePaths(stateValue[key]).map(subPath => [key, ...subPath]);
-    })
-    .reduce((a, b) => a.concat(b), []);
-
-  return subPaths;
-}
 
 function getNextStateValue(
   parent: Node,
@@ -122,25 +89,9 @@ function getNextStateValue(
     : undefined;
 }
 
-export function mapState(
-  stateMap: { [stateId: string]: any },
-  stateId: string
-) {
-  let foundStateId;
-
-  Object.keys(stateMap).forEach(mappedStateId => {
-    if (
-      matchesState(mappedStateId, stateId) &&
-      (!foundStateId || stateId.length > foundStateId.length)
-    ) {
-      foundStateId = mappedStateId;
-    }
-  });
-
-  return stateMap[foundStateId];
-}
-
-function createHistory(config: xstate.StateConfig): xstate.History | undefined {
+export function createHistory(
+  config: xstate.StateConfig
+): xstate.History | undefined {
   if (!config.states) {
     return undefined;
   }
@@ -198,54 +149,14 @@ function updateHistory(
   return nextHistory;
 }
 
-// tslint:disable:max-classes-per-file
-class State {
-  public value: StateValue;
-  public history: xstate.History;
-  public changed: boolean;
-  constructor({ value, history, changed }) {
-    this.value = value;
-    this.history = history;
-    this.changed = changed;
-  }
-  public toString(): string | undefined {
-    if (typeof this.value === 'string') {
-      return this.value;
-    }
-
-    const path = [];
-    let marker: StateValue = this.value;
-
-    while (true) {
-      if (typeof marker === 'string') {
-        path.push(marker);
-        break;
-      }
-
-      const [firstKey, ...otherKeys] = Object.keys(marker);
-
-      if (otherKeys.length) {
-        return undefined;
-      }
-
-      path.push(firstKey);
-      marker = marker[firstKey];
-    }
-
-    return path.join(STATE_DELIMITER);
-  }
-}
+// tslint:disable:max-classes-per-fil
 
 interface INodeConfig {
   initial?: string;
-  states?: {
-    [state: string]: INodeConfig;
-  };
+  states?: Record<string, INodeConfig>;
   parallel?: boolean;
   id?: string;
-  on?: {
-    [action: string]: string;
-  };
+  on?: Record<string, string>;
   parent?: Node;
 }
 
@@ -254,15 +165,13 @@ class Node {
   public initial?: string;
   public parallel?: boolean;
   public history: xstate.History;
-  public states?: {
-    [state: string]: Node;
-  };
-  public on?: {
-    [event: string]: string;
-  };
+  public states?: Record<string, Node>;
+  public on?: Record<string, string>;
   public parent?: Node;
-  // tslint:disable-next-line:variable-name
+
   private _events?: string[];
+  private _relativeValue: Map<Node, StateValue> = new Map();
+  private _initialState: StateValue | undefined;
   constructor(config: INodeConfig, history?: xstate.History) {
     this.id = config.id;
     this.parent = config.parent;
@@ -340,16 +249,43 @@ class Node {
     return currentState.getRelativeValue(this.parent);
   }
   public getInitialState(): StateValue | undefined {
-    if (this.parallel) {
-      return mapValues(this.states, state => state.getInitialState());
+    let initialState = this._initialState;
+
+    if (initialState) {
+      return initialState;
     }
 
-    return this.initial;
+    initialState = this.parallel
+      ? mapValues(this.states, state => state.getInitialState())
+      : this.initial;
+
+    return (this._initialState = initialState);
   }
-  get events() {
-    return this._events || (this._events = getEvents(this));
+  get events(): string[] {
+    if (this._events) {
+      return this._events;
+    }
+
+    const events = new Set(this.on ? Object.keys(this.on) : undefined);
+
+    Object.keys(this.states).forEach(stateId => {
+      const state = this.states[stateId];
+      if (state.states) {
+        for (const event of state.events) {
+          events.add(event);
+        }
+      }
+    });
+
+    return (this._events = Array.from(events));
   }
   public getRelativeValue(toNode?: Node): StateValue {
+    const memoizedRelativeValue = this._relativeValue.get(toNode);
+
+    if (memoizedRelativeValue) {
+      return memoizedRelativeValue;
+    }
+
     const initialState = this.getInitialState();
     let relativeValue = initialState
       ? {
@@ -370,8 +306,10 @@ class Node {
       currentNode = currentNode.parent;
     }
 
+    this._relativeValue.set(toNode, relativeValue);
+
     return relativeValue;
   }
 }
 
-export { Node, Node as Machine, State, matchesState };
+export { Node, Node as Machine, State, matchesState, mapState };
