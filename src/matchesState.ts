@@ -1,22 +1,30 @@
-import { toStatePath } from './index'; // TODO: change to utils
-import { StateKey } from './types';
+import { toStatePath, toTrie } from './utils'; // TODO: change to utils
+import { StateKey, StateValue } from './types';
 
 export default function matchesState(
-  parentStateId: StateKey,
-  childStateId: StateKey
+  parentStateId: StateValue,
+  childStateId: StateValue
 ): boolean {
-  const parentStatePath = toStatePath(parentStateId);
-  const childStatePath = toStatePath(childStateId);
+  const parentStateValue = toTrie(parentStateId);
+  const childStateValue = toTrie(childStateId);
 
-  if (parentStatePath.length > childStatePath.length) {
-    return false;
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
+      return childStateValue === parentStateValue;
+    }
+
+    return childStateValue in parentStateValue;
   }
 
-  for (const i in parentStatePath) {
-    if (parentStatePath[i] !== childStatePath[i]) {
+  if (typeof parentStateValue === 'string') {
+    return parentStateValue in childStateValue;
+  }
+
+  return Object.keys(parentStateValue).every(key => {
+    if (!(key in childStateValue)) {
       return false;
     }
-  }
 
-  return true;
+    return matchesState(parentStateValue[key], childStateValue[key]);
+  });
 }

@@ -1,5 +1,5 @@
 import { State } from './index';
-import { Action } from './types';
+import { Action, StateValue } from './types';
 
 function assoc(coll: {}, key: string, value: any) {
   if (coll[key] === value) {
@@ -67,4 +67,29 @@ export function toStatePath(stateId: string | string[]): string[] {
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
+}
+
+export function toTrie(stateValue: StateValue): StateValue {
+  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
+    return stateValue;
+  }
+
+  const statePath = toStatePath(stateValue as string);
+  if (statePath.length === 1) {
+    return statePath[0];
+  }
+
+  const value = {};
+  let marker = value;
+
+  for (let i = 0; i < statePath.length - 1; i++) {
+    if (i === statePath.length - 2) {
+      marker[statePath[i]] = statePath[i + 1];
+    } else {
+      marker[statePath[i]] = {};
+      marker = marker[statePath[i]];
+    }
+  }
+
+  return value;
 }

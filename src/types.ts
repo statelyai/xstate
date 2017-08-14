@@ -9,3 +9,8 @@ export type Action =
     };
 
 export type StateKey = string | State;
+
+export interface IStateValueMap {
+  [key: string]: StateValue;
+}
+export type StateValue = string | IStateValueMap;

@@ -1,43 +1,9 @@
-import { assocIn, flatMap, getActionType } from './utils';
-import { Action, StateKey } from './types';
+import { assocIn, flatMap, getActionType, toStatePath, toTrie } from './utils';
+import { Action, StateKey, StateValue } from './types';
+import matchesState from './matchesState';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
-
-export function toStatePath(stateId: string | State | string[]): string[] {
-  try {
-    if (Array.isArray(stateId)) {
-      return stateId;
-    }
-    if (stateId instanceof Node) {
-      return toStatePath(stateId.id);
-    }
-
-    return stateId.toString().split(STATE_DELIMITER);
-  } catch (e) {
-    throw new Error(`'${stateId}' is not a valid state path.`);
-  }
-}
-
-export function matchesState(
-  parentStateId: StateKey,
-  childStateId: StateKey
-): boolean {
-  const parentStatePath = toStatePath(parentStateId);
-  const childStatePath = toStatePath(childStateId);
-
-  if (parentStatePath.length > childStatePath.length) {
-    return false;
-  }
-
-  for (const i in parentStatePath) {
-    if (parentStatePath[i] !== childStatePath[i]) {
-      return false;
-    }
-  }
-
-  return true;
-}
 
 function getEvents(machine: Node) {
   const events = new Set(machine.on ? Object.keys(machine.on) : undefined);
@@ -156,31 +122,6 @@ function getNextStateValue(
     : undefined;
 }
 
-function toTrie(stateValue: StateValue | State): StateValue {
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    return stateValue;
-  }
-
-  const statePath = toStatePath(stateValue);
-  if (statePath.length === 1) {
-    return statePath[0];
-  }
-
-  const value = {};
-  let marker = value;
-
-  for (let i = 0; i < statePath.length - 1; i++) {
-    if (i === statePath.length - 2) {
-      marker[statePath[i]] = statePath[i + 1];
-    } else {
-      marker[statePath[i]] = {};
-      marker = marker[statePath[i]];
-    }
-  }
-
-  return value;
-}
-
 export function mapState(
   stateMap: { [stateId: string]: any },
   stateId: string
@@ -256,11 +197,6 @@ function updateHistory(
 
   return nextHistory;
 }
-
-interface IStateValueMap {
-  [key: string]: StateValue;
-}
-type StateValue = string | IStateValueMap;
 
 // tslint:disable:max-classes-per-file
 class State {
@@ -438,4 +374,4 @@ class Node {
   }
 }
 
-export { Node as Machine, State };
+export { Node, Node as Machine, State, matchesState };
