@@ -1,3 +1,6 @@
+import { State } from './index';
+import { Action } from './types';
+
 function assoc(coll: {}, key: string, value: any) {
   if (coll[key] === value) {
     return coll;
@@ -40,4 +43,28 @@ export function flatMap<T, P>(collection: T[], iteratee: (item: T) => P): P[] {
 
     return acc;
   }, []);
+}
+
+export function getActionType(action: Action): string {
+  try {
+    return typeof action === 'string' || typeof action === 'number'
+      ? `${action}`
+      : action.type;
+  } catch (e) {
+    throw new Error(
+      'Actions must be strings or objects with a string action.type.'
+    );
+  }
+}
+
+export function toStatePath(stateId: string | string[]): string[] {
+  try {
+    if (Array.isArray(stateId)) {
+      return stateId;
+    }
+
+    return stateId.toString().split('.');
+  } catch (e) {
+    throw new Error(`'${stateId}' is not a valid state path.`);
+  }
 }

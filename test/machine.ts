@@ -55,24 +55,6 @@ describe('machine', () => {
     });
   });
 
-  describe('machine.getState()', () => {
-    it('should find a substate from a string state ID', () => {
-      assert.equal(lightMachine.getState('yellow').id, 'yellow');
-    });
-
-    it('should find a nested substate from a delimited string state ID', () => {
-      assert.equal(lightMachine.getState('red.walk').id, 'walk');
-    });
-
-    it('should throw for invalid substates', () => {
-      assert.throws(() => lightMachine.getState('fake'));
-
-      assert.throws(() => lightMachine.getState('fake.nested.substate'));
-
-      assert.throws(() => lightMachine.getState('red.partially.fake'));
-    });
-  });
-
   describe('machine.events', () => {
     it('should return the set of actions accepted by machine', () => {
       assert.sameMembers(lightMachine.events, [

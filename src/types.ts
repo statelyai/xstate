@@ -1,3 +1,5 @@
+import { State } from './index';
+
 export type Action =
   | number
   | string
@@ -5,3 +7,5 @@ export type Action =
       type: string;
       [key: string]: any;
     };
+
+export type StateKey = string | State;

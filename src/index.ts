@@ -1,21 +1,10 @@
-import { assocIn, flatMap } from './utils';
-import { Action } from './types';
+import { assocIn, flatMap, getActionType } from './utils';
+import { Action, StateKey } from './types';
 
 const STATE_DELIMITER = '.';
+const HISTORY_KEY = '$history';
 
-function getActionType(action: Action): string {
-  try {
-    return typeof action === 'string' || typeof action === 'number'
-      ? `${action}`
-      : action.type;
-  } catch (e) {
-    throw new Error(
-      'Actions must be strings or objects with a string action.type.'
-    );
-  }
-}
-
-function toStatePath(stateId: string | State | string[]): string[] {
+export function toStatePath(stateId: string | State | string[]): string[] {
   try {
     if (Array.isArray(stateId)) {
       return stateId;
@@ -30,49 +19,24 @@ function toStatePath(stateId: string | State | string[]): string[] {
   }
 }
 
-function getState(
-  machine: Node,
-  stateId: StateId | string[],
-  history: xstate.History = machine.history
-): Node {
-  const statePath = stateId
-    ? toStatePath(Array.isArray(stateId) ? stateId : stateId + '')
-    : toStatePath(machine.initial);
-  const absolutePath = machine.getRelativePath();
-  let stateString: string;
-  let currentState = machine;
+export function matchesState(
+  parentStateId: StateKey,
+  childStateId: StateKey
+): boolean {
+  const parentStatePath = toStatePath(parentStateId);
+  const childStatePath = toStatePath(childStateId);
 
-  for (let subStatePath of statePath) {
-    if (subStatePath === '$history') {
-      subStatePath = (absolutePath.reduce((subHistory, subPath) => {
-        return subHistory[subPath];
-      }, history) as xstate.History).$current;
-    }
+  if (parentStatePath.length > childStatePath.length) {
+    return false;
+  }
 
-    stateString = stateString
-      ? stateString + STATE_DELIMITER + subStatePath
-      : subStatePath;
-    absolutePath.push(subStatePath);
-
-    currentState = currentState.states[subStatePath];
-    if (!currentState) {
-      throw new Error(
-        `State '${stateId}' does not exist on parent ${machine.id}`
-      );
+  for (const i in parentStatePath) {
+    if (parentStatePath[i] !== childStatePath[i]) {
+      return false;
     }
   }
 
-  while (currentState.initial) {
-    stateString += STATE_DELIMITER + currentState.initial;
-    currentState = currentState.states[currentState.initial];
-    if (!currentState) {
-      throw new Error(
-        `Initial state '${stateString}' does not exist on parent.`
-      );
-    }
-  }
-
-  return new Node(currentState, machine.history);
+  return true;
 }
 
 function getEvents(machine: Node) {
@@ -81,8 +45,7 @@ function getEvents(machine: Node) {
   Object.keys(machine.states).forEach(stateId => {
     const state = machine.states[stateId];
     if (state.states) {
-      const stateEvents = getEvents(state);
-      for (const event of stateEvents) {
+      for (const event of getEvents(state)) {
         events.add(event);
       }
     }
@@ -90,8 +53,6 @@ function getEvents(machine: Node) {
 
   return Array.from(events);
 }
-
-type StateId = string | State;
 
 function mapValues<T, P>(
   collection: { [key: string]: T },
@@ -170,7 +131,7 @@ function getNextStateValue(
     return subState.next(action, history);
   }
 
-  let nextValue = {};
+  const nextValue = {};
   let willTransition = false;
   const untransitionedKeys = {};
   Object.keys(stateValue).forEach(key => {
@@ -190,13 +151,9 @@ function getNextStateValue(
     }
   });
 
-  if (willTransition) {
-    Object.assign(nextValue, untransitionedKeys);
-  } else {
-    nextValue = undefined;
-  }
-
-  return nextValue;
+  return willTransition
+    ? Object.assign(nextValue, untransitionedKeys) as StateValue
+    : undefined;
 }
 
 function toTrie(stateValue: StateValue | State): StateValue {
@@ -222,26 +179,6 @@ function toTrie(stateValue: StateValue | State): StateValue {
   }
 
   return value;
-}
-
-export function matchesState(
-  parentStateId: StateId,
-  childStateId: StateId
-): boolean {
-  const parentStatePath = toStatePath(parentStateId);
-  const childStatePath = toStatePath(childStateId);
-
-  if (parentStatePath.length > childStatePath.length) {
-    return false;
-  }
-
-  for (const i in parentStatePath) {
-    if (parentStatePath[i] !== childStatePath[i]) {
-      return false;
-    }
-  }
-
-  return true;
 }
 
 export function mapState(
@@ -326,7 +263,7 @@ interface IStateValueMap {
 type StateValue = string | IStateValueMap;
 
 // tslint:disable:max-classes-per-file
-export class State {
+class State {
   public value: StateValue;
   public history: xstate.History;
   public changed: boolean;
@@ -376,7 +313,7 @@ interface INodeConfig {
   parent?: Node;
 }
 
-export class Node {
+class Node {
   public id: string;
   public initial?: string;
   public parallel?: boolean;
@@ -388,6 +325,8 @@ export class Node {
     [event: string]: string;
   };
   public parent?: Node;
+  // tslint:disable-next-line:variable-name
+  private _events?: string[];
   constructor(config: INodeConfig, history?: xstate.History) {
     this.id = config.id;
     this.parent = config.parent;
@@ -471,31 +410,8 @@ export class Node {
 
     return this.initial;
   }
-  public getState(stateId) {
-    return getState(this, stateId);
-  }
-  public accepts(action?: Action): boolean {
-    return this.events.indexOf(getActionType(action)) !== -1;
-  }
   get events() {
-    return getEvents(this);
-  }
-  public toString(): string {
-    return this.id;
-  }
-  public getRelativePath(toNode?: Node): string[] {
-    const relativePath = [];
-    let currentNode: Node = this;
-
-    while (currentNode && currentNode !== toNode) {
-      if (toNode || currentNode.parent) {
-        relativePath.unshift(currentNode.id);
-      }
-
-      currentNode = currentNode.parent;
-    }
-
-    return relativePath;
+    return this._events || (this._events = getEvents(this));
   }
   public getRelativeValue(toNode?: Node): StateValue {
     const initialState = this.getInitialState();
@@ -520,15 +436,6 @@ export class Node {
 
     return relativeValue;
   }
-  public getRelativeId(toNode?: Node): string {
-    const path = this.getRelativePath(toNode);
-
-    return path.join(STATE_DELIMITER);
-  }
 }
 
-export class Machine extends Node {
-  constructor(config: INodeConfig, history?: xstate.History) {
-    super(config, history);
-  }
-}
+export { Node as Machine, State };

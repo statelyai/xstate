@@ -1,4 +1,4 @@
-import { Machine, Node, State } from '../src/index';
+import { Machine, State } from '../src/index';
 
 export function testMultiTransition(
   machine: Machine,
