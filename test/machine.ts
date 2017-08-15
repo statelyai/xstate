@@ -20,7 +20,7 @@ describe('machine', () => {
   };
 
   const lightMachine = new Machine({
-    id: 'light',
+    key: 'light',
     initial: 'green',
     states: {
       green: {

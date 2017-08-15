@@ -3,7 +3,7 @@ import { Machine } from '../../src/index';
 
 describe('Example: CD Player', () => {
   const cdMachine = new Machine({
-    id: 'cd',
+    key: 'cd',
     initial: 'not_loaded',
     states: {
       not_loaded: {

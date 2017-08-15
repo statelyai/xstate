@@ -3,7 +3,7 @@ import { Machine } from '../src/index';
 
 describe('history states', () => {
   const historyMachine = new Machine({
-    id: 'history',
+    key: 'history',
     initial: 'off',
     states: {
       off: {

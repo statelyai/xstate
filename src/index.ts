@@ -6,19 +6,26 @@ import {
   toTrie,
   mapValues
 } from './utils';
-import { Action, StateKey, StateValue } from './types';
+import {
+  Action,
+  StateKey,
+  StateValue,
+  IStateNodeConfig,
+  IHistory
+} from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import State from './State';
+import { createHistory, updateHistory } from './history';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 
 function getNextStateValue(
-  parent: Node,
+  parent: StateNode,
   stateValue: StateValue,
   action?: Action,
-  history: xstate.History = parent.history
+  history: IHistory = parent.history
 ): StateValue {
   if (typeof stateValue === 'string') {
     const state = parent.states[stateValue];
@@ -54,7 +61,7 @@ function getNextStateValue(
       subState,
       subStateValue,
       action,
-      subHistory as xstate.History
+      subHistory as IHistory
     );
 
     if (nextValue) {
@@ -66,13 +73,13 @@ function getNextStateValue(
 
   const nextValue = {};
   let willTransition = false;
-  const untransitionedKeys = {};
+  const untransitionedKeys: Record<string, StateValue> = {};
   Object.keys(stateValue).forEach(key => {
     const subValue = getNextStateValue(
       parent.states[key],
       stateValue[key],
       action,
-      history[key] as xstate.History
+      history[key] as IHistory
     );
 
     if (subValue) {
@@ -89,91 +96,20 @@ function getNextStateValue(
     : undefined;
 }
 
-export function createHistory(
-  config: xstate.StateConfig
-): xstate.History | undefined {
-  if (!config.states) {
-    return undefined;
-  }
-
-  const history = {
-    $current: config.initial
-  };
-
-  Object.keys(config.states).forEach(stateId => {
-    const state = config.states[stateId];
-
-    if (!state.states) {
-      return;
-    }
-
-    history[stateId] = createHistory(state);
-  });
-
-  return history;
-}
-
-interface IHistory {
-  $current: StateValue;
-  [key: string]: IHistory | StateValue; // TODO: remove string
-}
-
-function updateHistory(
-  history: xstate.History,
-  stateValue: StateValue
-): IHistory {
-  if (typeof stateValue === 'string') {
-    return {
-      ...history,
-      $current: stateValue
-    };
-  }
-
-  const nextHistory = {
-    ...history,
-    $current: stateValue
-  };
-
-  Object.keys(stateValue).forEach(subStatePath => {
-    const subHistory = history[subStatePath] as string;
-    const subStateValue = stateValue[subStatePath];
-
-    if (typeof subHistory === 'string') {
-      // this will never happen, just making TS happy
-      return;
-    }
-
-    nextHistory[subStatePath] = updateHistory(subHistory, subStateValue);
-  });
-
-  return nextHistory;
-}
-
-// tslint:disable:max-classes-per-fil
-
-interface INodeConfig {
-  initial?: string;
-  states?: Record<string, INodeConfig>;
-  parallel?: boolean;
-  id?: string;
-  on?: Record<string, string>;
-  parent?: Node;
-}
-
-class Node {
+class StateNode {
   public id: string;
   public initial?: string;
   public parallel?: boolean;
-  public history: xstate.History;
-  public states?: Record<string, Node>;
+  public history: IHistory;
+  public states?: Record<string, StateNode>;
   public on?: Record<string, string>;
-  public parent?: Node;
+  public parent?: StateNode;
 
   private _events?: string[];
-  private _relativeValue: Map<Node, StateValue> = new Map();
+  private _relativeValue: Map<StateNode, StateValue> = new Map();
   private _initialState: StateValue | undefined;
-  constructor(config: INodeConfig, history?: xstate.History) {
-    this.id = config.id;
+  constructor(config: IStateNodeConfig, history?: IHistory) {
+    this.id = config.key;
     this.parent = config.parent;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
@@ -181,10 +117,10 @@ class Node {
       ? mapValues(
           config.states,
           (stateConfig, stateId) =>
-            new Node(
+            new StateNode(
               {
                 ...stateConfig,
-                id: stateId,
+                key: stateId,
                 parent: this
               },
               this.history
@@ -212,10 +148,7 @@ class Node {
       changed: true
     });
   }
-  public next(
-    action?: Action,
-    history?: xstate.History
-  ): StateValue | undefined {
+  public next(action?: Action, history?: IHistory): StateValue | undefined {
     if (!action) {
       return this.id;
     }
@@ -232,14 +165,14 @@ class Node {
 
     nextPath.forEach(subPath => {
       if (subPath === '$history') {
-        subPath = currentHistory.$current;
+        subPath = currentHistory.$current as string;
       }
       if (typeof subPath === 'object') {
         subPath = Object.keys(subPath)[0];
       }
 
       currentState = currentState.states[subPath];
-      currentHistory = currentHistory[subPath] as xstate.History;
+      currentHistory = currentHistory[subPath] as IHistory;
     });
 
     while (currentState.initial) {
@@ -279,7 +212,7 @@ class Node {
 
     return (this._events = Array.from(events));
   }
-  public getRelativeValue(toNode?: Node): StateValue {
+  public getRelativeValue(toNode?: StateNode): StateValue {
     const memoizedRelativeValue = this._relativeValue.get(toNode);
 
     if (memoizedRelativeValue) {
@@ -292,7 +225,7 @@ class Node {
           [this.id]: initialState
         }
       : this.id;
-    let currentNode: Node = this.parent;
+    let currentNode: StateNode = this.parent;
 
     while (currentNode && currentNode !== toNode) {
       const currentInitialState = currentNode.getInitialState();
@@ -312,4 +245,4 @@ class Node {
   }
 }
 
-export { Node, Node as Machine, State, matchesState, mapState };
+export { StateNode, StateNode as Machine, State, matchesState, mapState };
