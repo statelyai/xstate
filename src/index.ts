@@ -97,6 +97,7 @@ function getNextStateValue(
 }
 
 class StateNode {
+  public key: string;
   public id: string;
   public initial?: string;
   public parallel?: boolean;
@@ -109,25 +110,28 @@ class StateNode {
   private _relativeValue: Map<StateNode, StateValue> = new Map();
   private _initialState: StateValue | undefined;
   constructor(config: IStateNodeConfig, history?: IHistory) {
-    this.id = config.key;
+    this.key = config.key;
     this.parent = config.parent;
+    this.id = this.parent
+      ? this.parent.id + STATE_DELIMITER + this.key
+      : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
+    this.history = history || createHistory(config);
     this.states = config.states
       ? mapValues(
           config.states,
-          (stateConfig, stateId) =>
+          (stateConfig, key) =>
             new StateNode(
               {
                 ...stateConfig,
-                key: stateId,
+                key,
                 parent: this
               },
-              this.history
+              history
             )
         )
       : {};
-    this.history = history || createHistory(config);
 
     this.on = config.on;
   }
@@ -150,7 +154,7 @@ class StateNode {
   }
   public next(action?: Action, history?: IHistory): StateValue | undefined {
     if (!action) {
-      return this.id;
+      return this.key;
     }
 
     const actionType = getActionType(action);
@@ -194,6 +198,17 @@ class StateNode {
 
     return (this._initialState = initialState);
   }
+  public getState(relativeStateId: string): StateNode | undefined {
+    const statePath = toStatePath(relativeStateId);
+
+    try {
+      return statePath.reduce((subState, subPath) => {
+        return subState.states[subPath];
+      }, this);
+    } catch (e) {
+      return undefined;
+    }
+  }
   get events(): string[] {
     if (this._events) {
       return this._events;
@@ -222,15 +237,15 @@ class StateNode {
     const initialState = this.getInitialState();
     let relativeValue = initialState
       ? {
-          [this.id]: initialState
+          [this.key]: initialState
         }
-      : this.id;
+      : this.key;
     let currentNode: StateNode = this.parent;
 
     while (currentNode && currentNode !== toNode) {
       const currentInitialState = currentNode.getInitialState();
       relativeValue = {
-        [currentNode.id]:
+        [currentNode.key]:
           typeof currentInitialState === 'object' &&
           typeof relativeValue === 'object'
             ? { ...currentInitialState, ...relativeValue }

@@ -111,11 +111,12 @@ describe('deterministic machine', () => {
       );
     });
 
-    // it('should return initial state(s) without any arguments for transition()', () => {
-    //   assert.equal(
-    //     lightMachine.transition(undefined, undefined).id,
-    //     'green');
-    // });
+    it('should return initial state(s) without any arguments for transition()', () => {
+      assert.equal(
+        lightMachine.transition(undefined, undefined).value,
+        'green'
+      );
+    });
 
     it('should not transition states for illegal transitions', () => {
       assert.equal(
