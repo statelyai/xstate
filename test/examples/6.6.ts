@@ -2,7 +2,7 @@
 // import { Machine } from '../../src/index';
 
 // describe('[FUTURE API] Example 6.6', () => {
-//   const machine = new Machine({
+//   const machine = Machine({
 //     initial: 'A',
 //     states: {
 //       A: {

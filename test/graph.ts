@@ -20,7 +20,7 @@ describe('graph utilities', () => {
     }
   };
 
-  const lightMachine = new Machine({
+  const lightMachine = Machine({
     key: 'light',
     initial: 'green',
     states: {

@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 describe('history states', () => {
-  const historyMachine = new Machine({
+  const historyMachine = Machine({
     key: 'history',
     initial: 'off',
     states: {

@@ -3,7 +3,7 @@ import { Machine } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
 describe('Example 6.8', () => {
-  const machine = new Machine({
+  const machine = Machine({
     initial: 'A',
     states: {
       A: {

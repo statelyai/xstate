@@ -3,7 +3,7 @@ import { Machine } from '../src/index';
 import { testMultiTransition } from './utils';
 
 describe('parallel states', () => {
-  const wordMachine = new Machine({
+  const wordMachine = Machine({
     parallel: true,
     states: {
       bold: {

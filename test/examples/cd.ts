@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from '../../src/index';
 
 describe('Example: CD Player', () => {
-  const cdMachine = new Machine({
+  const cdMachine = Machine({
     key: 'cd',
     initial: 'not_loaded',
     states: {

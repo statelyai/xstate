@@ -260,4 +260,8 @@ class StateNode {
   }
 }
 
-export { StateNode, StateNode as Machine, State, matchesState, mapState };
+function Machine(config: IStateNodeConfig): StateNode {
+  return new StateNode(config);
+}
+
+export { StateNode, Machine, State, matchesState, mapState };
