@@ -1,18 +1,18 @@
-# Estado
-Simple, stateless JavaScript finite-state machines.
+# XState
+Simple, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
-**What is it?** Estado is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, action) -> state`.
+**What is it?** XState is a tiny, framework-agnostic JS library for representing [finite-state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and hierarchical state machines, or [Harel statecharts](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart). Its main use is as a pure (extended) transition function of the form `(state, action) -> state`.
 
-**Why?** (Article coming soon!) TL;DR: Finite state machines are extremely useful for representing the various states your application can be in, and how each state transitions to another state when an action is performed. Also, declaring your state machine as data (Estado language parses to pure JSON, and is SCXML-compatible) means you can use your state machine, well, anywhere. Any language.
+**Why?** Finite state machines are extremely useful for representing the various states your application can be in, and how each state transitions to another state when an action is performed. Also, declaring your state machine as a declarative JSON object means you can use your state machine anywhere. Any language.
 
 **Example?** [See a non-trivial example here](https://github.com/davidkpiano/estado/tree/master/examples/vending) to get an idea of how it works with React and Redux.
 
 ## Getting Started
-1. Install via NPM: `npm install estado --save`
+1. Install via NPM: `npm install xstate --save`
 2. Import the state machine creator into your project:
 
 ```js
-import { machine } from 'estado';
+import { Machine } from 'xstate';
 
 let lightMachine = machine(`
   green -> yellow (TIMER)
