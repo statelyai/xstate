@@ -8,6 +8,9 @@ Read [the slides](http://slides.com/davidkhourshid/finite-state-machines) (video
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 
+## Visualizing state machines and statecharts
+The JSON-based notation used here to declaratively represent finite state machines and statecharts can be copy-pasted here: https://codepen.io/davidkpiano/pen/ayWKJO/ which will generate interactive state transition diagrams.
+
 ## Getting Started
 1. `npm install xstate --save`
 2. `import { Machine } from 'xstate';`
