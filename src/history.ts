@@ -6,14 +6,16 @@ export function createHistory(config: IStateNodeConfig): IHistory | undefined {
     return undefined;
   }
 
-  const history: Partial<
-    IHistory
-  > = mapValues(config.states, (state, stateId) => {
+  const history: Partial<IHistory> = {};
+
+  Object.keys(config.states).forEach(stateId => {
+    const state = config.states[stateId];
+
     if (!state.states) {
       return;
     }
 
-    return createHistory(state);
+    history[stateId] = createHistory(state);
   });
 
   history.$current = config.initial;
