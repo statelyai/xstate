@@ -1,4 +1,6 @@
 import { StateNode } from './index';
+import { Action } from './types';
+import { mapValues } from './utils';
 
 interface IEdge {
   action: string;
@@ -58,4 +60,99 @@ export function getEdges(
   }, []);
 
   return subNodeEdges.concat(edges);
+}
+
+interface IPathMap {
+  [key: string]: string[];
+}
+
+interface IAdjacencyMap {
+  [key: string]: Record<string, string>;
+}
+
+export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
+  const actionMap: Record<string, string> = node.parent ? {} : undefined;
+  const adjacency: IAdjacencyMap = {};
+
+  const parentId = node.parent ? node.parent.id : undefined;
+
+  if (node.on) {
+    for (const action of Object.keys(node.on)) {
+      const nextState = node.parent.getState(node.on[action]);
+      let nextStateId = nextState.id;
+
+      if (nextState.initial) {
+        nextStateId += '.' + nextState.initial;
+      }
+
+      actionMap[action] = nextStateId;
+    }
+  }
+
+  if (actionMap) {
+    adjacency[node.id] = actionMap;
+  }
+
+  if (node.states) {
+    for (const stateKey of Object.keys(node.states)) {
+      const state = node.states[stateKey];
+      const stateAdjacency = mapValues(getAdjacencyMap(state), value => {
+        return {
+          ...actionMap,
+          ...value
+        };
+      });
+
+      Object.assign(adjacency, stateAdjacency);
+    }
+  }
+
+  return adjacency;
+}
+
+export function getShortestPaths(machine: StateNode): IPathMap {
+  const adjacency = getAdjacencyMap(machine);
+  const initialId = machine.states[machine.initial].id;
+  const pathMap = {
+    [initialId]: []
+  };
+
+  shortestPaths(adjacency, initialId, pathMap);
+
+  return pathMap;
+}
+
+interface IActionMap {
+  [key: string]: string;
+}
+
+export function shortestPaths(
+  adjacency: IAdjacencyMap,
+  stateId: string,
+  pathMap: IPathMap,
+  visited: Set<string> = new Set()
+): IPathMap {
+  visited.add(stateId);
+  const actionMap = adjacency[stateId];
+  for (const action of Object.keys(actionMap)) {
+    const nextStateId = actionMap[action];
+    if (
+      !pathMap[nextStateId] ||
+      pathMap[nextStateId].length > pathMap[stateId].length + 1
+    ) {
+      pathMap[nextStateId] = [...pathMap[stateId], stateId];
+    }
+  }
+
+  for (const action of Object.keys(actionMap)) {
+    const nextStateId = actionMap[action];
+
+    if (visited.has(nextStateId)) {
+      continue;
+    }
+
+    shortestPaths(adjacency, nextStateId, pathMap, visited);
+  }
+
+  return pathMap;
 }
