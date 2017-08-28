@@ -111,7 +111,7 @@ lightMachine
 // => 'red.wait'
 ```
 
-** Object notation for hierarchical states: **
+**Object notation for hierarchical states:**
 
 ```js
 // ...
