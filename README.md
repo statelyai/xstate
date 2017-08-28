@@ -134,4 +134,7 @@ lightMachine
 // => 'green'
 ```
 
-More examples coming soon!
+More code examples coming soon!
+
+## Examples
+- [Simple Finite State Machine with Vue](https://codepen.io/BrockReece/pen/EvdwpJ)
