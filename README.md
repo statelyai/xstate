@@ -46,9 +46,92 @@ const currentState = 'green';
 
 const nextState = lightMachine
   .transition(currentState, 'TIMER')
-  .toString(); // toString() only works for non-parallel machines
+  .value;
 
 // => 'yellow'
+```
+
+## Hierarchical (Nested) State Machines
+
+```js
+import { Machine } from 'xstate';
+
+const pedestrianStates = {
+  initial: 'walk',
+  states: {
+    walk: {
+      on: {
+        PED_TIMER: 'wait'
+      }
+    },
+    wait: {
+      on: {
+        PED_TIMER: 'stop'
+      }
+    },
+    stop: {}
+  }
+};
+
+const lightMachine = Machine({
+  key: 'light',
+  initial: 'green',
+  states: {
+    green: {
+      on: {
+        TIMER: 'yellow'
+      }
+    },
+    yellow: {
+      on: {
+        TIMER: 'red'
+      }
+    },
+    red: {
+      on: {
+        TIMER: 'green'
+      },
+      ...pedestrianStates
+    }
+  }
+});
+
+const currentState = 'yellow';
+
+const nextState = lightMachine
+  .transition(currentState, 'TIMER')
+  .toString(); // toString() only works for non-parallel machines
+
+// => 'red.walk' 
+
+lightMachine
+  .transition('red.walk', 'PED_TIMER')
+  .toString();
+
+// => 'red.wait'
+```
+
+** Object notation for hierarchical states: **
+
+```js
+// ...
+const waitState = lightMachine
+  .transition('red.walk', 'PED_TIMER')
+  .value;
+
+// => { red: 'wait' }
+
+lightMachine
+  .transition(waitState, 'PED_TIMER')
+  .value;
+
+// => { red: 'stop' }
+
+lightMachine
+  .transition('red.stop', 'TIMER')
+  .value;
+
+// => 'green'
 ```
 
 More examples coming soon!
