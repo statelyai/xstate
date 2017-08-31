@@ -111,7 +111,7 @@ lightMachine
 // => 'red.wait'
 ```
 
-** Object notation for hierarchical states: **
+**Object notation for hierarchical states:**
 
 ```js
 // ...
@@ -263,4 +263,7 @@ const previousState = paymentMachine
 // => { method: 'check' }
 ```
 
-More examples coming soon!
+More code examples coming soon!
+
+## Examples
+- [Simple Finite State Machine with Vue](https://codepen.io/BrockReece/pen/EvdwpJ)
