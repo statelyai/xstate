@@ -17,6 +17,8 @@ The JSON-based notation used here to declaratively represent finite state machin
 
 ## Finite State Machines
 
+<img src="http://i.imgur.com/KNUL5X8.png" alt="Light Machine" width="300" />
+
 ```js
 import { Machine } from 'xstate';
 
@@ -52,6 +54,8 @@ const nextState = lightMachine
 ```
 
 ## Hierarchical (Nested) State Machines
+
+<img src="http://imgur.com/OuZ1nn8.png" alt="Hierarchical Light Machine" width="300" />
 
 ```js
 import { Machine } from 'xstate';
@@ -221,6 +225,8 @@ const nextState = wordMachine
 ## History States
 
 To provide full flexibility, history states are more arbitrarily defined than the original statechart specification. To go to a history state, use the special key `$history`.
+
+<img src="http://imgur.com/sjTlr6j.png" width="300" alt="Payment Machine" />
 
 ```js
 const paymentMachine = Machine({
