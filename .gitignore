@@ -28,3 +28,4 @@ node_modules
 
 # Other
 .vscode/
+dist/
