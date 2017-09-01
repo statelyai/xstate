@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "1.0.2",
+  "version": "1.0.0",
   "description": "Simple JavaScript Finite State Machines.",
   "main": "lib/index.js",
   "scripts": {
