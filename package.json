@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "1.0.2",
+  "version": "1.0.3",
   "description": "Simple JavaScript Finite State Machines.",
   "main": "dist/xstate.js",
   "scripts": {
