@@ -2,7 +2,7 @@
   "name": "xstate",
   "version": "1.0.2",
   "description": "Simple JavaScript Finite State Machines.",
-  "main": "lib/index.js",
+  "main": "dist/xstate.js",
   "scripts": {
     "start": "rollup -c",
     "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
