@@ -1,7 +1,7 @@
 {
   "name": "xstate",
   "version": "1.0.3",
-  "description": "Simple JavaScript Finite State Machines.",
+  "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "dist/xstate.js",
   "scripts": {
     "start": "rollup -c",
@@ -24,14 +24,7 @@
   "devDependencies": {
     "@types/chai": "^3.5.0",
     "@types/mocha": "^2.2.40",
-    "babel-core": "^6.5.2",
-    "babel-loader": "^6.2.4",
-    "babel-preset-es2015": "^6.5.0",
-    "babel-preset-stage-0": "^6.5.0",
-    "babel-preset-stage-2": "^6.5.0",
-    "babel-register": "^6.5.2",
     "chai": "^3.4.1",
-    "chai-subset": "^1.1.0",
     "mocha": "^2.4.5",
     "prettier": "^1.5.2",
     "rollup": "^0.41.6",
@@ -45,7 +38,5 @@
     "tslint": "^5.4.3",
     "typescript": "^2.4.1"
   },
-  "dependencies": {
-    "icepick": "^2.0.0"
-  }
+  "dependencies": {}
 }
