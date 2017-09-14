@@ -83,7 +83,7 @@ function getNextStateValue(
     : undefined;
 }
 
-class StateNode {
+export class StateNode {
   public key: string;
   public id: string;
   public initial?: string;
@@ -251,4 +251,4 @@ function Machine(config: IStateNodeConfig): StateNode {
   return new StateNode(config);
 }
 
-export { StateNode, Machine, State, matchesState, mapState };
+export default { StateNode, Machine, State, matchesState, mapState };

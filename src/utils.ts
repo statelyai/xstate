@@ -1,4 +1,4 @@
-import { State } from './index';
+import State from './State';
 import { Action, StateValue } from './types';
 
 function assoc(coll: {}, key: string, value: any) {
