@@ -7,7 +7,7 @@
     "start": "npm run build",
     "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
     "watch": "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
-    "build": "tsc && rollup -c",
+    "build": "tsc && webpack -p ./lib/index.js ./dist/xstate.js --config webpack.config.js",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build"
@@ -28,7 +28,6 @@
     "chai": "^3.4.1",
     "mocha": "^2.4.5",
     "prettier": "^1.5.2",
-    "rollup": "^0.41.6",
     "ts-node": "^3.0.2",
     "tslint": "^5.4.3",
     "typescript": "^2.4.1",
