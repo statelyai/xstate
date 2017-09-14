@@ -2,7 +2,7 @@
 Simple, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
 ## Why?
-Read [the slides](http://slides.com/davidkhourshid/finite-state-machines) (video coming soon!) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
+Read [the slides](http://slides.com/davidkhourshid/finite-state-machines) ([video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
 
 - [Statecharts - A Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) by David Harel
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
