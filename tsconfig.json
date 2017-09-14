@@ -1,6 +1,13 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "target": "es6"
-  }
+    "target": "es6",
+    "declaration": true,
+    "noUnusedLocals": true,
+    "noUnusedParameters": true,
+    "outDir": "./lib"
+  },
+  "include": [
+    "src/**/*"
+  ]
 }

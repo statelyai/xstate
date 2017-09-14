@@ -1,9 +1,9 @@
-import { StateValue } from './types';
+import { StateValue, IHistory } from './types';
 import { STATE_DELIMITER } from './constants';
 
 export default class State {
   public value: StateValue;
-  public history: xstate.History;
+  public history: IHistory;
   public changed: boolean;
   constructor({ value, history, changed }) {
     this.value = value;

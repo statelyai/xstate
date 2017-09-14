@@ -4,9 +4,9 @@
   "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "dist/xstate.js",
   "scripts": {
-    "start": "rollup -c",
+    "start": "npm run build",
     "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
-    "build": "rollup -c",
+    "build": "tsc && rollup -c",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build"

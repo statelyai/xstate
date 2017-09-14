@@ -1,5 +1,4 @@
 import { IStateNodeConfig, IHistory, StateValue } from './types';
-import { mapValues } from './utils';
 
 export function createHistory(config: IStateNodeConfig): IHistory | undefined {
   if (!config.states) {

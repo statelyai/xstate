@@ -1,5 +1,5 @@
-import { toStatePath, toTrie } from './utils'; // TODO: change to utils
-import { StateKey, StateValue } from './types';
+import { toTrie } from './utils'; // TODO: change to utils
+import { StateValue } from './types';
 
 export default function matchesState(
   parentStateId: StateValue,

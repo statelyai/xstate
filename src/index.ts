@@ -1,18 +1,5 @@
-import {
-  assocIn,
-  flatMap,
-  getActionType,
-  toStatePath,
-  toTrie,
-  mapValues
-} from './utils';
-import {
-  Action,
-  StateKey,
-  StateValue,
-  IStateNodeConfig,
-  IHistory
-} from './types';
+import { getActionType, toStatePath, toTrie, mapValues } from './utils';
+import { Action, StateValue, IStateNodeConfig, IHistory } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import State from './State';
@@ -168,7 +155,7 @@ class StateNode {
     let currentHistory = history;
 
     nextPath.forEach(subPath => {
-      if (subPath === '$history') {
+      if (subPath === HISTORY_KEY) {
         subPath = currentHistory.$current as string;
       }
       if (typeof subPath === 'object') {
@@ -204,7 +191,7 @@ class StateNode {
     try {
       return statePath.reduce((subState, subPath) => {
         return subState.states[subPath];
-      }, this);
+      }, this as StateNode);
     } catch (e) {
       return undefined;
     }

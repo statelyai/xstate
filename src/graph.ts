@@ -1,13 +1,12 @@
 import { StateNode } from './index';
-import { Action } from './types';
 import { mapValues } from './utils';
 
-interface IEdge {
+export interface IEdge {
   action: string;
   source: StateNode;
   target: StateNode;
 }
-interface INodesAndEdges {
+export interface INodesAndEdges {
   nodes: StateNode[];
   edges: IEdge[];
 }
@@ -62,19 +61,17 @@ export function getEdges(
   return subNodeEdges.concat(edges);
 }
 
-interface IPathMap {
+export interface IPathMap {
   [key: string]: string[];
 }
 
-interface IAdjacencyMap {
+export interface IAdjacencyMap {
   [key: string]: Record<string, string>;
 }
 
 export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
   const actionMap: Record<string, string> = node.parent ? {} : undefined;
   const adjacency: IAdjacencyMap = {};
-
-  const parentId = node.parent ? node.parent.id : undefined;
 
   if (node.on) {
     for (const action of Object.keys(node.on)) {
@@ -120,10 +117,6 @@ export function getShortestPaths(machine: StateNode): IPathMap {
   shortestPaths(adjacency, initialId, pathMap);
 
   return pathMap;
-}
-
-interface IActionMap {
-  [key: string]: string;
 }
 
 export function shortestPaths(
