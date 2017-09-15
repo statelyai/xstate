@@ -3,7 +3,6 @@ module.exports = {
   output: {
     library: 'xstate',
     libraryTarget: 'umd',
-    libraryExport: 'default'
   },
   // module: {
   //   loaders: [
