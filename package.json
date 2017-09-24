@@ -3,6 +3,7 @@
   "version": "1.2.1",
   "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "dist/xstate.js",
+  "types": "lib/index.d.ts",
   "scripts": {
     "start": "npm run build",
     "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
