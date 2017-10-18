@@ -64,4 +64,10 @@ describe('machine', () => {
       ]);
     });
   });
+
+  describe('machine.initialState', () => {
+    it('should return the initial state', () => {
+      assert.equal(lightMachine.initialState.toString(), 'green');
+    });
+  });
 });

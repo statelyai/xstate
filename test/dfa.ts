@@ -85,6 +85,12 @@ describe('deterministic machine', () => {
     }
   });
 
+  describe('machine.initialState', () => {
+    it('should return the initial state', () => {
+      assert.equal(lightMachine.initialState.toString(), 'green');
+    });
+  });
+
   describe('machine.transition()', () => {
     it('should implicitly transition from initial states', () => {
       assert.equal(

@@ -57,9 +57,9 @@ describe('parallel states', () => {
   });
 
   it('should have initial parallel states', () => {
-    const initialState = wordMachine.transition(undefined);
+    const initialState = wordMachine.initialState;
 
-    assert.deepEqual(initialState.value, {
+    assert.deepEqual(initialState, {
       bold: 'off',
       italics: 'off',
       underline: 'off',

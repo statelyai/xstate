@@ -16,7 +16,7 @@ function getNextStateValue(
 ): StateValue {
   if (typeof stateValue === 'string') {
     const state = parent.states[stateValue];
-    const initialState = state.getInitialState();
+    const initialState = state.initialState;
 
     if (initialState) {
       stateValue = {
@@ -28,7 +28,7 @@ function getNextStateValue(
   }
 
   if (parent.parallel) {
-    const initialState = parent.getInitialState();
+    const initialState = parent.initialState;
 
     if (typeof initialState !== 'string') {
       stateValue = {
@@ -124,7 +124,7 @@ class StateNode {
   }
   public transition(state?: StateValue | State, action?: Action): State {
     let stateValue =
-      (state instanceof State ? state.value : state) || this.getInitialState();
+      (state instanceof State ? state.value : state) || this.initialState;
     const history = state instanceof State ? state.history : this.history;
 
     stateValue = toTrie(stateValue);
@@ -173,17 +173,15 @@ class StateNode {
     return currentState.getRelativeValue(this.parent);
   }
   public getInitialState(): StateValue | undefined {
-    let initialState = this._initialState;
+    console.warn('machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead.');
+    return this.initialState;
+  }
+  public get initialState(): StateValue | undefined {
+    this._initialState = this._initialState || (this.parallel
+      ? mapValues(this.states, state => state.initialState)
+      : this.initial);
 
-    if (initialState) {
-      return initialState;
-    }
-
-    initialState = this.parallel
-      ? mapValues(this.states, state => state.getInitialState())
-      : this.initial;
-
-    return (this._initialState = initialState);
+    return this._initialState;
   }
   public getState(relativeStateId: string): StateNode | undefined {
     const statePath = toStatePath(relativeStateId);
@@ -221,7 +219,7 @@ class StateNode {
       return memoizedRelativeValue;
     }
 
-    const initialState = this.getInitialState();
+    const initialState = this.initialState;
     let relativeValue = initialState
       ? {
           [this.key]: initialState
@@ -230,7 +228,7 @@ class StateNode {
     let currentNode: StateNode = this.parent;
 
     while (currentNode && currentNode !== toNode) {
-      const currentInitialState = currentNode.getInitialState();
+      const currentInitialState = currentNode.initialState;
       relativeValue = {
         [currentNode.key]:
           typeof currentInitialState === 'object' &&
