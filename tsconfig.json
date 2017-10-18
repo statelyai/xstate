@@ -8,7 +8,8 @@
     "outDir": "./lib",
     "moduleResolution": "node",
     "lib": [
-      "es6"
+      "es6",
+      "dom"
     ]
   },
   "include": [
