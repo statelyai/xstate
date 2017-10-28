@@ -3,6 +3,7 @@
   "version": "1.2.1",
   "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "dist/xstate.js",
+  "types": "lib/index.d.ts",
   "scripts": {
     "start": "npm run build",
     "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
@@ -23,15 +24,15 @@
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
-    "@types/chai": "^3.5.0",
-    "@types/mocha": "^2.2.40",
+    "@types/chai": "^4.0.4",
+    "@types/mocha": "^2.2.43",
     "@types/node": "^8.0.33",
-    "chai": "^3.4.1",
-    "mocha": "^2.4.5",
-    "prettier": "^1.5.2",
-    "ts-node": "^3.0.2",
-    "tslint": "^5.4.3",
-    "typescript": "^2.4.1",
+    "chai": "^4.1.2",
+    "mocha": "^3.5.3",
+    "prettier": "^1.7.0",
+    "ts-node": "^3.3.0",
+    "tslint": "^5.7.0",
+    "typescript": "^2.5.2",
     "webpack": "^3.5.6"
   },
   "dependencies": {}
