@@ -1,6 +1,5 @@
-import { assert } from 'chai';
 import { Machine } from '../../src/index';
-import { testMultiTransition } from '../utils';
+import { testAll } from '../utils';
 
 describe('Example 6.16', () => {
   const machine = Machine({
@@ -27,36 +26,20 @@ describe('Example 6.16', () => {
   const expected = {
     '{"A":"D", "B":"F"}': {
       1: { A: 'C', B: 'E' },
-      2: { A: 'D', B: 'F' },
+      2: undefined,
       '1, 5, 3': { A: 'C', B: 'F' }
     },
     '{"A":"C", "B":"E"}': {
-      1: { A: 'C', B: 'E' },
+      1: undefined,
       2: { A: 'D', B: 'E' },
       5: { A: 'C', B: 'G' }
     },
     '{"A":"C", "B":"G"}': {
-      1: { A: 'C', B: 'G' },
+      1: undefined,
       2: { A: 'D', B: 'G' },
       3: { A: 'C', B: 'F' }
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionTypes => {
-      const toState = expected[fromState][actionTypes];
-
-      it(`should go from ${fromState} to ${JSON.stringify(
-        toState
-      )} on ${actionTypes}`, () => {
-        const resultState = testMultiTransition(
-          machine,
-          fromState,
-          actionTypes
-        );
-
-        assert.deepEqual(resultState.value, toState);
-      });
-    });
-  });
+  testAll(machine, expected);
 });

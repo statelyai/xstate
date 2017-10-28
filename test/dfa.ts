@@ -92,7 +92,7 @@ describe('deterministic machine', () => {
   });
 
   describe('machine.transition()', () => {
-    it('should implicitly transition from initial states', () => {
+    xit('should implicitly transition from initial states', () => {
       assert.equal(
         lightMachine.transition(undefined, 'TIMER').toString(),
         'yellow'
@@ -117,7 +117,7 @@ describe('deterministic machine', () => {
       );
     });
 
-    it('should return initial state(s) without any arguments for transition()', () => {
+    xit('should return initial state(s) without any arguments for transition()', () => {
       assert.equal(
         lightMachine.transition(undefined, undefined).value,
         'green'
@@ -125,10 +125,7 @@ describe('deterministic machine', () => {
     });
 
     it('should not transition states for illegal transitions', () => {
-      assert.equal(
-        lightMachine.transition('green', 'FAKE').toString(),
-        'green'
-      );
+      assert.isUndefined(lightMachine.transition('green', 'FAKE'));
     });
 
     it('should transition to initial substates without any action', () => {
@@ -194,14 +191,12 @@ describe('deterministic machine', () => {
       assert.equal(lightMachine.transition('red', 'TIMER').toString(), 'green');
     });
 
-    it('should return the deepest initial substate for illegal transitions', () => {
-      assert.equal(
-        lightMachine.transition('red.walk', 'FAKE').toString(),
-        'red.walk'
+    it('should not transition from illegal actions', () => {
+      assert.isUndefined(
+        lightMachine.transition('red.walk', 'FAKE')
       );
-      assert.equal(
-        deepMachine.transition('a1', 'FAKE').toString(),
-        'a1.a2.a3.a4'
+      assert.isUndefined(
+        deepMachine.transition('a1', 'FAKE')
       );
     });
 

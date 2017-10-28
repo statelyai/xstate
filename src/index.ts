@@ -44,15 +44,15 @@ function getNextStateValue(
     const subStateValue = stateValue[subStateKey];
     const subHistory = history[subStateKey];
 
-    const nextValue = getNextStateValue(
+    const nextStateValue = getNextStateValue(
       subState,
       subStateValue,
       action,
       subHistory as IHistory
     );
 
-    if (nextValue) {
-      return { [subStateKey]: nextValue };
+    if (nextStateValue) {
+      return { [subStateKey]: nextStateValue };
     }
 
     return subState.next(action, history);
@@ -107,34 +107,33 @@ class StateNode {
     this.history = history || createHistory(config);
     this.states = config.states
       ? mapValues(
-          config.states,
-          (stateConfig, key) =>
-            new StateNode(
-              {
-                ...stateConfig,
-                key,
-                parent: this
-              },
-              history
-            )
-        )
+        config.states,
+        (stateConfig, key) =>
+          new StateNode(
+            {
+              ...stateConfig,
+              key,
+              parent: this
+            },
+            history
+          )
+      )
       : {};
 
     this.on = config.on;
   }
-  public transition(state?: StateValue | State, action?: Action): State {
-    let stateValue =
-      (state instanceof State ? state.value : state) || this.initialState;
+  public transition(state: StateValue | State, action: Action): State | undefined {
+    const stateValue =
+      toTrie(state instanceof State ? state.value : state);
     const history = state instanceof State ? state.history : this.history;
+    const nextStateValue = getNextStateValue(this, stateValue, action, history);
 
-    stateValue = toTrie(stateValue);
-
-    const nextValue =
-      getNextStateValue(this, stateValue, action, history) ||
-      getNextStateValue(this, stateValue, undefined, history);
+    if (!nextStateValue) {
+      return undefined;
+    }
 
     return new State({
-      value: nextValue,
+      value: nextStateValue,
       history: updateHistory(history, stateValue),
       changed: true
     });
@@ -222,8 +221,8 @@ class StateNode {
     const initialState = this.initialState;
     let relativeValue = initialState
       ? {
-          [this.key]: initialState
-        }
+        [this.key]: initialState
+      }
       : this.key;
     let currentNode: StateNode = this.parent;
 
@@ -231,10 +230,10 @@ class StateNode {
       const currentInitialState = currentNode.initialState;
       relativeValue = {
         [currentNode.key]:
-          typeof currentInitialState === 'object' &&
+        typeof currentInitialState === 'object' &&
           typeof relativeValue === 'object'
-            ? { ...currentInitialState, ...relativeValue }
-            : relativeValue
+          ? { ...currentInitialState, ...relativeValue }
+          : relativeValue
       };
       currentNode = currentNode.parent;
     }

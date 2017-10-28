@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../../src/index';
-import { testMultiTransition } from '../utils';
+import { testAll } from '../utils';
 
 describe('Example 6.8', () => {
   const machine = Machine({
@@ -42,41 +42,30 @@ describe('Example 6.8', () => {
     'A.B': {
       1: 'A.C',
       6: 'F',
-      FAKE: 'A.B'
+      FAKE: undefined
     },
     'A.C': {
       2: 'A.E',
       6: 'F',
-      FAKE: 'A.C'
+      FAKE: undefined
     },
     'A.D': {
       3: 'A.B',
       6: 'F',
-      FAKE: 'A.D'
+      FAKE: undefined
     },
     'A.E': {
       4: 'A.B',
       5: 'A.D',
       6: 'F',
-      FAKE: 'A.E'
+      FAKE: undefined
     },
     F: {
       5: 'A.B'
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionTypes => {
-      const toState = expected[fromState][actionTypes];
-
-      it(`should go from ${fromState} to ${toState}`, () => {
-        assert.equal(
-          testMultiTransition(machine, fromState, actionTypes).toString(),
-          toState
-        );
-      });
-    });
-  });
+  testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
     const stateC = machine.transition('A.B', 1);

@@ -1,8 +1,8 @@
-import { assert } from 'chai';
 import { Machine } from '../../src/index';
+import { testAll } from '../utils';
 
 describe('Example: CD Player', () => {
-  const cdMachine = Machine({
+  const machine = Machine({
     key: 'cd',
     initial: 'not_loaded',
     states: {
@@ -49,18 +49,18 @@ describe('Example: CD Player', () => {
   });
 
   const expected = {
-    not_loaded: {
+    'not_loaded': {
       INSERT_CD: 'loaded.stopped',
-      FAKE: 'not_loaded'
+      FAKE: undefined
     },
-    loaded: {
+    'loaded': {
       EJECT: 'not_loaded',
-      FAKE: 'loaded.stopped'
+      FAKE: undefined
     },
     'loaded.stopped': {
       PLAY: 'loaded.playing',
       EJECT: 'not_loaded',
-      FAKE: 'loaded.stopped'
+      FAKE: undefined
     },
     'loaded.playing': {
       EXPIRED_MID: 'loaded.playing',
@@ -68,7 +68,7 @@ describe('Example: CD Player', () => {
       STOP: 'loaded.stopped',
       EJECT: 'not_loaded',
       PAUSE: 'loaded.paused.not_blank',
-      FAKE: 'loaded.playing'
+      FAKE: undefined
     },
     'loaded.paused': {
       PAUSE: 'loaded.playing',
@@ -86,16 +86,5 @@ describe('Example: CD Player', () => {
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionType => {
-      const toState = expected[fromState][actionType];
-
-      it(`should go from ${fromState} to ${toState}`, () => {
-        assert.equal(
-          cdMachine.transition(fromState, actionType).toString(),
-          toState
-        );
-      });
-    });
-  });
+  testAll(machine, expected);
 });
