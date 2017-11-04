@@ -51,7 +51,8 @@ describe('deterministic machine', () => {
     states: {
       a: {
         on: {
-          T: 'b.b1'
+          T: 'b.b1',
+          F: 'c'
         }
       },
       b: {
@@ -141,6 +142,10 @@ describe('deterministic machine', () => {
 
     it('should throw an error for transitions from invalid states', () => {
       assert.throws(() => testMachine.transition('fake', 'T'));
+    });
+
+    it('should throw an error for transitions to invalid states', () => {
+      assert.throws((() => testMachine.transition('a', 'F')), "Action 'F' on state 'a' leads to undefined state 'c'.");
     });
 
     it('should throw an error for transitions from invalid substates', () => {
