@@ -8,7 +8,8 @@
     "arrow-parens": false,
     "quotemark": ["single"],
     "ordered-imports": [false],
-    "variable-name": false
+    "variable-name": false,
+    "object-literal-key-quotes": false
   },
   "rulesDirectory": []
 }

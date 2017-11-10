@@ -10,6 +10,9 @@
     "lib": [
       "es6",
       "dom"
+    ],
+    "types": [
+      "mocha"
     ]
   },
   "include": [

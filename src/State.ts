@@ -4,11 +4,9 @@ import { STATE_DELIMITER } from './constants';
 export default class State {
   public value: StateValue;
   public history: IHistory;
-  public changed: boolean;
-  constructor({ value, history, changed }) {
+  constructor({ value, history }) {
     this.value = value;
     this.history = history;
-    this.changed = changed;
   }
   public toString(): string | undefined {
     if (typeof this.value === 'string') {

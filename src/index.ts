@@ -134,10 +134,12 @@ class StateNode {
 
     return new State({
       value: nextStateValue,
-      history: updateHistory(history, stateValue),
-      changed: true
+      history: updateHistory(history, stateValue)
     });
   }
+  // public _transition(state: StateValue | State, action: Action): State | undefined {
+
+  // }
   public next(action?: Action, history?: IHistory): StateValue | undefined {
     if (!action) {
       return this.key;
