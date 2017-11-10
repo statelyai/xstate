@@ -2,12 +2,7 @@ import { StateValue, IHistory } from './types';
 import { STATE_DELIMITER } from './constants';
 
 export default class State {
-  public value: StateValue;
-  public history: IHistory;
-  constructor({ value, history }) {
-    this.value = value;
-    this.history = history;
-  }
+  constructor(public value: StateValue, public history?: IHistory) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {
       return this.value;

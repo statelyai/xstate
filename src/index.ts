@@ -84,7 +84,7 @@ function getNextStateValue(
 }
 
 class StateNode {
-  public key: string;
+  public key?: string;
   public id: string;
   public initial?: string;
   public parallel?: boolean;
@@ -107,24 +107,26 @@ class StateNode {
     this.history = history || createHistory(config);
     this.states = config.states
       ? mapValues(
-        config.states,
-        (stateConfig, key) =>
-          new StateNode(
-            {
-              ...stateConfig,
-              key,
-              parent: this
-            },
-            history
-          )
-      )
+          config.states,
+          (stateConfig, key) =>
+            new StateNode(
+              {
+                ...stateConfig,
+                key,
+                parent: this
+              },
+              history
+            )
+        )
       : {};
 
     this.on = config.on;
   }
-  public transition(state: StateValue | State, action: Action): State | undefined {
-    const stateValue =
-      toTrie(state instanceof State ? state.value : state);
+  public transition(
+    state: StateValue | State,
+    action: Action
+  ): State | undefined {
+    const stateValue = toTrie(state instanceof State ? state.value : state);
     const history = state instanceof State ? state.history : this.history;
     const nextStateValue = getNextStateValue(this, stateValue, action, history);
 
@@ -132,10 +134,7 @@ class StateNode {
       return undefined;
     }
 
-    return new State({
-      value: nextStateValue,
-      history: updateHistory(history, stateValue)
-    });
+    return new State(nextStateValue, updateHistory(history, stateValue));
   }
   // public _transition(state: StateValue | State, action: Action): State | undefined {
 
@@ -174,13 +173,17 @@ class StateNode {
     return currentState.getRelativeValue(this.parent);
   }
   public getInitialState(): StateValue | undefined {
-    console.warn('machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead.');
+    console.warn(
+      'machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead.'
+    );
     return this.initialState;
   }
   public get initialState(): StateValue | undefined {
-    this._initialState = this._initialState || (this.parallel
-      ? mapValues(this.states, state => state.initialState)
-      : this.initial);
+    this._initialState =
+      this._initialState ||
+      (this.parallel
+        ? mapValues(this.states, state => state.initialState)
+        : this.initial);
 
     return this._initialState;
   }
@@ -188,9 +191,12 @@ class StateNode {
     const statePath = toStatePath(relativeStateId);
 
     try {
-      return statePath.reduce((subState, subPath) => {
-        return subState.states[subPath];
-      }, this as StateNode);
+      return statePath.reduce(
+        (subState, subPath) => {
+          return subState.states[subPath];
+        },
+        this as StateNode
+      );
     } catch (e) {
       return undefined;
     }
@@ -223,8 +229,8 @@ class StateNode {
     const initialState = this.initialState;
     let relativeValue = initialState
       ? {
-        [this.key]: initialState
-      }
+          [this.key]: initialState
+        }
       : this.key;
     let currentNode: StateNode = this.parent;
 
@@ -232,10 +238,10 @@ class StateNode {
       const currentInitialState = currentNode.initialState;
       relativeValue = {
         [currentNode.key]:
-        typeof currentInitialState === 'object' &&
+          typeof currentInitialState === 'object' &&
           typeof relativeValue === 'object'
-          ? { ...currentInitialState, ...relativeValue }
-          : relativeValue
+            ? { ...currentInitialState, ...relativeValue }
+            : relativeValue
       };
       currentNode = currentNode.parent;
     }
