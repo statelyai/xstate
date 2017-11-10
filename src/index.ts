@@ -166,6 +166,10 @@ class StateNode {
       currentHistory = currentHistory[subPath] as IHistory;
     });
 
+    if (currentState === undefined) {
+      throw Error(`Action '${action}' on state '${history.$current}' leads to undefined state '${nextPath}'.`)
+    }
+
     while (currentState.initial) {
       currentState = currentState.states[currentState.initial];
     }
