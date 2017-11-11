@@ -130,15 +130,67 @@ class StateNode {
     const history = state instanceof State ? state.history : this.history;
     const nextStateValue = getNextStateValue(this, stateValue, action, history);
 
+    let result;
     if (!nextStateValue) {
-      return undefined;
+      result = undefined;
+    } else {
+      result = new State(nextStateValue, updateHistory(history, stateValue));
     }
 
-    return new State(nextStateValue, updateHistory(history, stateValue));
+    console.log('==== _transition:', this._transition(state, action));
+    console.log('>>>> transition:', nextStateValue);
+    return result;
   }
-  // public _transition(state: StateValue | State, action: Action): State | undefined {
+  public _transition(
+    state: StateValue | State,
+    action: Action,
+    history: IHistory = typeof state === 'string' || !(state instanceof State)
+      ? this.history
+      : state.history
+  ): StateValue | undefined {
+    if (!this.states) {
+      return undefined;
+    }
+    const stateValue = toTrie(state instanceof State ? state.value : state);
 
-  // }
+    if (typeof stateValue === 'string') {
+      if (!this.states[stateValue]) {
+        return undefined;
+      }
+
+      return getNextStateValue(this, stateValue, action, history);
+      // return this.states[stateValue].next(action, history);
+    }
+
+    const nextStateValue = mapValues(
+      stateValue,
+      (subStateValue, subStateKey) => {
+        if (!this.states[subStateKey]) {
+          return undefined;
+        }
+        return this.states[
+          subStateKey
+        ]._transition(subStateValue, action, history[subStateKey] as IHistory);
+      }
+    );
+
+    if (
+      Array.prototype.every.call(Object.keys(nextStateValue), key => {
+        return nextStateValue[key] === undefined;
+      })
+    ) {
+      return getNextStateValue(this, stateValue, action, history);
+    }
+
+    return mapValues(nextStateValue, (value, key) => {
+      if (value) {
+        return value;
+      }
+
+      return stateValue[key];
+    });
+  }
+
   public next(action?: Action, history?: IHistory): StateValue | undefined {
     if (!action) {
       return this.key;
@@ -167,7 +219,9 @@ class StateNode {
     });
 
     if (currentState === undefined) {
-      throw Error(`Action '${action}' on state '${history.$current}' leads to undefined state '${nextPath}'.`)
+      throw Error(
+        `Action '${action}' on state '${history.$current}' leads to undefined state '${nextPath}'.`
+      );
     }
 
     while (currentState.initial) {
