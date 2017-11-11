@@ -8,81 +8,6 @@ import { createHistory, updateHistory } from './history';
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 
-function getNextStateValue(
-  parent: StateNode,
-  stateValue: StateValue,
-  action?: Action,
-  history: IHistory = parent.history
-): StateValue {
-  if (typeof stateValue === 'string') {
-    const state = parent.states[stateValue];
-    const initialState = state.initialState;
-
-    if (initialState) {
-      stateValue = {
-        [stateValue]: initialState
-      };
-    } else {
-      return state.next(action, history) || undefined;
-    }
-  }
-
-  if (parent.parallel) {
-    const initialState = parent.initialState;
-
-    if (typeof initialState !== 'string') {
-      stateValue = {
-        ...initialState,
-        ...stateValue
-      };
-    }
-  }
-
-  if (Object.keys(stateValue).length === 1) {
-    const subStateKey = Object.keys(stateValue)[0];
-    const subState = parent.states[subStateKey];
-    const subStateValue = stateValue[subStateKey];
-    const subHistory = history[subStateKey];
-
-    const nextStateValue = getNextStateValue(
-      subState,
-      subStateValue,
-      action,
-      subHistory as IHistory
-    );
-
-    if (nextStateValue) {
-      return { [subStateKey]: nextStateValue };
-    }
-
-    return subState.next(action, history);
-  }
-
-  const nextValue = {};
-  let willTransition = false;
-  const untransitionedKeys: Record<string, StateValue> = {};
-  Object.keys(stateValue).forEach(key => {
-    const subValue = getNextStateValue(
-      parent.states[key],
-      stateValue[key],
-      action,
-      history[key] as IHistory
-    );
-
-    if (subValue) {
-      nextValue[key] = subValue;
-      willTransition = true;
-    } else {
-      nextValue[key] = undefined;
-      untransitionedKeys[key] = stateValue[key];
-    }
-  });
-
-  return willTransition
-    ? Object.assign(nextValue, untransitionedKeys) as StateValue
-    : undefined;
-}
-
 class StateNode {
   public key?: string;
   public id: string;
@@ -126,20 +51,15 @@ class StateNode {
     state: StateValue | State,
     action: Action
   ): State | undefined {
-    const stateValue = toTrie(state instanceof State ? state.value : state);
+    const nextStateValue = this._transition(state, action);
     const history = state instanceof State ? state.history : this.history;
-    const nextStateValue = getNextStateValue(this, stateValue, action, history);
+    const stateValue = toTrie(state instanceof State ? state.value : state);
 
-    let result;
     if (!nextStateValue) {
-      result = undefined;
-    } else {
-      result = new State(nextStateValue, updateHistory(history, stateValue));
+      return undefined;
     }
 
-    console.log('==== _transition:', this._transition(state, action));
-    console.log('>>>> transition:', nextStateValue);
-    return result;
+    return new State(nextStateValue, updateHistory(history, stateValue));
   }
   public _transition(
     state: StateValue | State,
@@ -151,35 +71,47 @@ class StateNode {
     if (!this.states) {
       return undefined;
     }
-    const stateValue = toTrie(state instanceof State ? state.value : state);
+    let stateValue = toTrie(state instanceof State ? state.value : state);
 
     if (typeof stateValue === 'string') {
       if (!this.states[stateValue]) {
-        return undefined;
+        throw new Error('state doesnt exist');
       }
 
-      return getNextStateValue(this, stateValue, action, history);
-      // return this.states[stateValue].next(action, history);
+      const subState = this.states[stateValue];
+      const initialState = subState.initialState;
+
+      if (initialState) {
+        stateValue = { [stateValue]: initialState };
+      } else {
+        return subState.next(action, history) || undefined;
+      }
     }
 
-    const nextStateValue = mapValues(
-      stateValue,
-      (subStateValue, subStateKey) => {
-        if (!this.states[subStateKey]) {
-          return undefined;
-        }
-        return this.states[
-          subStateKey
-        ]._transition(subStateValue, action, history[subStateKey] as IHistory);
+    let nextStateValue = mapValues(stateValue, (subStateValue, subStateKey) => {
+      if (!this.states[subStateKey]) {
+        return undefined;
       }
-    );
+      return this.states[
+        subStateKey
+      ]._transition(subStateValue, action, history[subStateKey] as IHistory);
+    });
 
     if (
       Array.prototype.every.call(Object.keys(nextStateValue), key => {
         return nextStateValue[key] === undefined;
       })
     ) {
-      return getNextStateValue(this, stateValue, action, history);
+      if (this.parallel) {
+        return undefined;
+      }
+
+      const subStateKey = Object.keys(nextStateValue)[0];
+      return this.states[subStateKey].next(action, history);
+    }
+
+    if (this.parallel) {
+      nextStateValue = { ...(this.initialState as {}), ...nextStateValue };
     }
 
     return mapValues(nextStateValue, (value, key) => {
