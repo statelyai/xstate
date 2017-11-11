@@ -1,9 +1,8 @@
 import { getActionType, toStatePath, toTrie, mapValues } from './utils';
-import { Action, StateValue, IStateNodeConfig, IHistory } from './types';
+import { Action, StateValue, IStateNodeConfig } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import State from './State';
-import { createHistory, updateHistory } from './history';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -13,7 +12,6 @@ class StateNode {
   public id: string;
   public initial?: string;
   public parallel?: boolean;
-  public history: IHistory;
   public states?: Record<string, StateNode>;
   public on?: Record<string, string>;
   public parent?: StateNode;
@@ -21,7 +19,7 @@ class StateNode {
   private _events?: string[];
   private _relativeValue: Map<StateNode, StateValue> = new Map();
   private _initialState: StateValue | undefined;
-  constructor(config: IStateNodeConfig, history?: IHistory) {
+  constructor(config: IStateNodeConfig) {
     this.key = config.key;
     this.parent = config.parent;
     this.id = this.parent
@@ -29,19 +27,15 @@ class StateNode {
       : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
-    this.history = history || createHistory(config);
     this.states = config.states
       ? mapValues(
           config.states,
           (stateConfig, key) =>
-            new StateNode(
-              {
-                ...stateConfig,
-                key,
-                parent: this
-              },
-              history
-            )
+            new StateNode({
+              ...stateConfig,
+              key,
+              parent: this
+            })
         )
       : {};
 
@@ -52,25 +46,21 @@ class StateNode {
     action: Action
   ): State | undefined {
     const nextStateValue = this._transition(state, action);
-    const history = state instanceof State ? state.history : this.history;
-    const stateValue = toTrie(state instanceof State ? state.value : state);
 
     if (!nextStateValue) {
       return undefined;
     }
 
-    return new State(nextStateValue, updateHistory(history, stateValue));
+    return new State(nextStateValue, State.from(state));
   }
   public _transition(
     state: StateValue | State,
-    action: Action,
-    history: IHistory = typeof state === 'string' || !(state instanceof State)
-      ? this.history
-      : state.history
+    action: Action
   ): StateValue | undefined {
     if (!this.states) {
       return undefined;
     }
+    const history = State.from(state).history;
     let stateValue = toTrie(state instanceof State ? state.value : state);
 
     if (typeof stateValue === 'string') {
@@ -84,7 +74,10 @@ class StateNode {
       if (initialState) {
         stateValue = { [stateValue]: initialState };
       } else {
-        return subState.next(action, history) || undefined;
+        return (
+          subState.next(action, history ? history.value : undefined) ||
+          undefined
+        );
       }
     }
 
@@ -92,9 +85,13 @@ class StateNode {
       if (!this.states[subStateKey]) {
         return undefined;
       }
-      return this.states[
-        subStateKey
-      ]._transition(subStateValue, action, history[subStateKey] as IHistory);
+
+      const subHistory = history ? history.value[subStateKey] : undefined;
+      const subState = new State(
+        subStateValue,
+        subHistory ? State.from(subHistory) : undefined
+      );
+      return this.states[subStateKey]._transition(subState, action);
     });
 
     if (
@@ -107,7 +104,10 @@ class StateNode {
       }
 
       const subStateKey = Object.keys(nextStateValue)[0];
-      return this.states[subStateKey].next(action, history);
+      return this.states[subStateKey].next(
+        action,
+        history ? history.value : undefined
+      );
     }
 
     if (this.parallel) {
@@ -123,7 +123,7 @@ class StateNode {
     });
   }
 
-  public next(action?: Action, history?: IHistory): StateValue | undefined {
+  public next(action?: Action, history?: StateValue): StateValue | undefined {
     if (!action) {
       return this.key;
     }
@@ -137,24 +137,37 @@ class StateNode {
     const nextPath = toStatePath(this.on[actionType]);
     let currentState = this.parent;
     let currentHistory = history;
+    let currentPath = this.key;
 
     nextPath.forEach(subPath => {
       if (subPath === HISTORY_KEY) {
-        subPath = currentHistory.$current as string;
+        if (currentHistory) {
+          subPath =
+            typeof currentHistory === 'object'
+              ? Object.keys(currentHistory)[0]
+              : currentHistory;
+        } else {
+          subPath = currentState.initial;
+        }
       }
       if (typeof subPath === 'object') {
         subPath = Object.keys(subPath)[0];
       }
 
       currentState = currentState.states[subPath];
-      currentHistory = currentHistory[subPath] as IHistory;
-    });
 
-    if (currentState === undefined) {
-      throw Error(
-        `Action '${action}' on state '${history.$current}' leads to undefined state '${nextPath}'.`
-      );
-    }
+      if (currentState === undefined) {
+        throw new Error(
+          `Action '${action}' on state '${currentPath}' leads to undefined state '${nextPath}'.`
+        );
+      }
+
+      currentPath = subPath;
+
+      if (currentHistory) {
+        currentHistory = currentHistory[subPath];
+      }
+    });
 
     while (currentState.initial) {
       currentState = currentState.states[currentState.initial];

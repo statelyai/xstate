@@ -1,8 +1,16 @@
-import { StateValue, IHistory } from './types';
+import { StateValue } from './types';
 import { STATE_DELIMITER } from './constants';
+import { toTrie } from './utils';
 
 export default class State {
-  constructor(public value: StateValue, public history?: IHistory) {}
+  public static from(stateValue: State | StateValue): State {
+    if (stateValue instanceof State) {
+      return stateValue;
+    }
+
+    return new State(toTrie(stateValue));
+  }
+  constructor(public value: StateValue, public history?: State) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {
       return this.value;

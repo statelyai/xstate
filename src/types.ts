@@ -24,8 +24,3 @@ export interface IStateNodeConfig {
   on?: Record<string, string>;
   parent?: StateNode;
 }
-
-export interface IHistory {
-  $current: StateValue;
-  [key: string]: IHistory | StateValue; // TODO: remove StateValue
-}
