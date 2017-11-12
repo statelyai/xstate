@@ -5,7 +5,7 @@
     "declaration": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
-    "strictNullChecks": false, // change to true
+    "strictNullChecks": true, // change to true
     "outDir": "./lib",
     "moduleResolution": "node",
     "lib": [

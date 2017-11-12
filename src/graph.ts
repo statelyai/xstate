@@ -12,9 +12,12 @@ export interface INodesAndEdges {
 }
 
 export function getNodes(node: StateNode): StateNode[] {
-  const nodes = Object.keys(node.states).reduce((accNodes, stateKey) => {
-    const subState = node.states[stateKey];
-    const subNodes = getNodes(node.states[stateKey]);
+  const { states } = node;
+  const nodes = Object.keys(
+    states
+  ).reduce((accNodes: StateNode[], stateKey) => {
+    const subState = states[stateKey];
+    const subNodes = getNodes(states[stateKey]);
 
     accNodes.push(subState, ...subNodes);
     return accNodes;
@@ -27,26 +30,30 @@ export function getEdges(
   node: StateNode,
   visited: Record<string, true> = {}
 ): IEdge[] {
+  const { states } = node;
   visited[node.key] = true;
-  const subNodeEdges = Object.keys(node.states).reduce((edges, key) => {
+  const subNodeEdges = Object.keys(states).reduce((_edges: IEdge[], key) => {
     if (visited[key]) {
-      return edges;
+      return _edges;
     }
 
-    const subState = node.states[key];
-    edges.push(...getEdges(subState, visited));
+    const subState = states[key];
+    _edges.push(...getEdges(subState, visited));
     visited[key] = true;
-    return edges;
+    return _edges;
   }, []);
 
   if (!node.on) {
     return subNodeEdges;
   }
 
-  const edges = Object.keys(node.on).reduce((accEdges, action) => {
+  const edges = Object.keys(node.on).reduce((accEdges: IEdge[], action) => {
+    if (!node.on || !node.parent) {
+      return accEdges;
+    }
     const subStateKey = node.on[action];
-    const subNode = node.parent.getState(subStateKey);
-    const edge = { action, source: node, target: subNode };
+    const subNode = node.parent.getState(subStateKey) as StateNode;
+    const edge: IEdge = { action, source: node, target: subNode };
 
     accEdges.push(edge);
 
@@ -70,12 +77,18 @@ export interface IAdjacencyMap {
 }
 
 export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
-  const actionMap: Record<string, string> = node.parent ? {} : undefined;
+  const actionMap: Record<string, string> | undefined = node.parent
+    ? {}
+    : undefined;
   const adjacency: IAdjacencyMap = {};
 
   if (node.on) {
     for (const action of Object.keys(node.on)) {
-      const nextState = node.parent.getState(node.on[action]);
+      if (!node.parent || !actionMap) {
+        continue;
+      }
+
+      const nextState = node.parent.getState(node.on[action]) as StateNode;
       let nextStateId = nextState.id;
 
       if (nextState.initial) {
@@ -107,7 +120,10 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
   return adjacency;
 }
 
-export function getShortestPaths(machine: StateNode): IPathMap {
+export function getShortestPaths(machine: StateNode): IPathMap | undefined {
+  if (!machine.states || !machine.initial) {
+    return undefined;
+  }
   const adjacency = getAdjacencyMap(machine);
   const initialId = machine.states[machine.initial].id;
   const pathMap = {

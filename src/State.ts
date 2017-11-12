@@ -16,7 +16,7 @@ export default class State {
       return this.value;
     }
 
-    const path = [];
+    const path: string[] = [];
     let marker: StateValue = this.value;
 
     while (true) {

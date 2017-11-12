@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, StateNode } from '../src/index';
 
 describe('machine', () => {
   const pedestrianStates = {
@@ -47,11 +47,10 @@ describe('machine', () => {
 
   describe('machine.states', () => {
     it('should properly register machine states', () => {
-      assert.deepEqual(Object.keys(lightMachine.states), [
-        'green',
-        'yellow',
-        'red'
-      ]);
+      assert.deepEqual(
+        Object.keys(lightMachine.states as Record<string, StateNode>),
+        ['green', 'yellow', 'red']
+      );
     });
   });
 
@@ -67,7 +66,7 @@ describe('machine', () => {
 
   describe('machine.initialState', () => {
     it('should return the initial state', () => {
-      assert.equal(lightMachine.initialState.toString(), 'green');
+      assert.equal(lightMachine.initialState, 'green');
     });
   });
 });

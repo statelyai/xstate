@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, State } from '../src/index';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
@@ -88,21 +88,14 @@ describe('deterministic machine', () => {
 
   describe('machine.initialState', () => {
     it('should return the initial state', () => {
-      assert.equal(lightMachine.initialState.toString(), 'green');
+      assert.equal(lightMachine.initialState, 'green');
     });
   });
 
   describe('machine.transition()', () => {
-    xit('should implicitly transition from initial states', () => {
-      assert.equal(
-        lightMachine.transition(undefined, 'TIMER').toString(),
-        'yellow'
-      );
-    });
-
     it('should properly transition states based on string event', () => {
       assert.equal(
-        lightMachine.transition('green', 'TIMER').toString(),
+        (lightMachine.transition('green', 'TIMER') as State).toString(),
         'yellow'
       );
     });
@@ -113,7 +106,7 @@ describe('deterministic machine', () => {
       };
 
       assert.equal(
-        lightMachine.transition('green', action).toString(),
+        (lightMachine.transition('green', action) as State).toString(),
         'yellow'
       );
     });
@@ -122,15 +115,16 @@ describe('deterministic machine', () => {
       assert.isUndefined(lightMachine.transition('green', 'FAKE'));
     });
 
-    it('should transition to initial substates without any action', () => {
-      assert.equal(
-        lightMachine.transition('red', undefined).toString(),
-        'red.walk'
-      );
+    it('should throw an error if not given an action', () => {
+      // @ts-ignore
+      assert.throws(() => (lightMachine.transition as any)('red', undefined));
     });
 
     it('should transition to nested states as target', () => {
-      assert.equal(testMachine.transition('a', 'T').toString(), 'b.b1');
+      assert.equal(
+        (testMachine.transition('a', 'T') as State).toString(),
+        'b.b1'
+      );
     });
 
     it('should throw an error for transitions from invalid states', () => {
@@ -152,44 +146,38 @@ describe('deterministic machine', () => {
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
       assert.equal(
-        lightMachine.transition('red.walk', 'PED_COUNTDOWN').toString(),
+        (lightMachine.transition(
+          'red.walk',
+          'PED_COUNTDOWN'
+        ) as State).toString(),
         'red.wait'
       );
     });
 
     it('should transition from initial nested states', () => {
       assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').toString(),
+        (lightMachine.transition('red', 'PED_COUNTDOWN') as State).toString(),
         'red.wait'
       );
     });
 
     it('should transition from deep initial nested states', () => {
       assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').toString(),
+        (lightMachine.transition('red', 'PED_COUNTDOWN') as State).toString(),
         'red.wait'
-      );
-    });
-
-    it('should transition to initial nested states with no action', () => {
-      assert.equal(
-        lightMachine.transition('red', undefined).toString(),
-        'red.walk'
-      );
-
-      assert.equal(
-        lightMachine.transition('red', undefined).toString(),
-        'red.walk'
       );
     });
 
     it('should bubble up actions that nested states cannot handle', () => {
       assert.equal(
-        lightMachine.transition('red.wait', 'TIMER').toString(),
+        (lightMachine.transition('red.wait', 'TIMER') as State).toString(),
         'green'
       );
 
-      assert.equal(lightMachine.transition('red', 'TIMER').toString(), 'green');
+      assert.equal(
+        (lightMachine.transition('red', 'TIMER') as State).toString(),
+        'green'
+      );
     });
 
     it('should not transition from illegal actions', () => {
@@ -199,7 +187,7 @@ describe('deterministic machine', () => {
 
     it('should transition to the deepest initial state', () => {
       assert.equal(
-        lightMachine.transition('yellow', 'TIMER').toString(),
+        (lightMachine.transition('yellow', 'TIMER') as State).toString(),
         'red.walk'
       );
     });

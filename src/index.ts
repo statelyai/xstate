@@ -8,11 +8,11 @@ const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 
 class StateNode {
-  public key?: string;
+  public key: string;
   public id: string;
   public initial?: string;
   public parallel?: boolean;
-  public states?: Record<string, StateNode>;
+  public states: Record<string, StateNode>;
   public on?: Record<string, string>;
   public parent?: StateNode;
 
@@ -20,7 +20,7 @@ class StateNode {
   private _relativeValue: Map<StateNode, StateValue> = new Map();
   private _initialState: StateValue | undefined;
   constructor(config: IStateNodeConfig) {
-    this.key = config.key;
+    this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.id = this.parent
       ? this.parent.id + STATE_DELIMITER + this.key
@@ -45,7 +45,7 @@ class StateNode {
     state: StateValue | State,
     action: Action
   ): State | undefined {
-    const nextStateValue = this._transition(state, action);
+    const nextStateValue = this.transitionStateValue(state, action);
 
     if (!nextStateValue) {
       return undefined;
@@ -53,13 +53,10 @@ class StateNode {
 
     return new State(nextStateValue, State.from(state));
   }
-  public _transition(
+  public transitionStateValue(
     state: StateValue | State,
     action: Action
   ): StateValue | undefined {
-    if (!this.states) {
-      return undefined;
-    }
     const history = State.from(state).history;
     let stateValue = toTrie(state instanceof State ? state.value : state);
 
@@ -91,7 +88,7 @@ class StateNode {
         subStateValue,
         subHistory ? State.from(subHistory) : undefined
       );
-      return this.states[subStateKey]._transition(subState, action);
+      return this.states[subStateKey].transitionStateValue(subState, action);
     });
 
     if (
@@ -123,11 +120,7 @@ class StateNode {
     });
   }
 
-  public next(action?: Action, history?: StateValue): StateValue | undefined {
-    if (!action) {
-      return this.key;
-    }
-
+  public next(action: Action, history?: StateValue): StateValue | undefined {
     const actionType = getActionType(action);
 
     if (!this.on || !this.on[actionType]) {
@@ -140,16 +133,25 @@ class StateNode {
     let currentPath = this.key;
 
     nextPath.forEach(subPath => {
+      if (!currentState || !currentState.states) {
+        throw new Error(`Unable to read '${subPath}'`);
+      }
+
       if (subPath === HISTORY_KEY) {
         if (currentHistory) {
           subPath =
             typeof currentHistory === 'object'
               ? Object.keys(currentHistory)[0]
               : currentHistory;
-        } else {
+        } else if (currentState.initial) {
           subPath = currentState.initial;
+        } else {
+          throw new Error(
+            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+          );
         }
       }
+
       if (typeof subPath === 'object') {
         subPath = Object.keys(subPath)[0];
       }
@@ -169,7 +171,14 @@ class StateNode {
       }
     });
 
+    if (!currentState) {
+      throw new Error('no state');
+    }
+
     while (currentState.initial) {
+      if (!currentState || !currentState.states) {
+        throw new Error(`Invalid initial state`);
+      }
       currentState = currentState.states[currentState.initial];
     }
 
@@ -184,9 +193,12 @@ class StateNode {
   public get initialState(): StateValue | undefined {
     this._initialState =
       this._initialState ||
-      (this.parallel
-        ? mapValues(this.states, state => state.initialState)
-        : this.initial);
+      ((this.parallel
+        ? mapValues(
+            this.states as Record<string, StateNode>,
+            state => state.initialState
+          )
+        : this.initial) as StateValue);
 
     return this._initialState;
   }
@@ -196,6 +208,11 @@ class StateNode {
     try {
       return statePath.reduce(
         (subState, subPath) => {
+          if (!subState.states) {
+            throw new Error(
+              `Cannot retrieve subPath '${subPath}' from node with no states`
+            );
+          }
           return subState.states[subPath];
         },
         this as StateNode
@@ -208,22 +225,26 @@ class StateNode {
     if (this._events) {
       return this._events;
     }
-
+    const { states } = this;
     const events = new Set(this.on ? Object.keys(this.on) : undefined);
 
-    Object.keys(this.states).forEach(stateId => {
-      const state = this.states[stateId];
-      if (state.states) {
-        for (const event of state.events) {
-          events.add(event);
+    if (states) {
+      Object.keys(states).forEach(stateId => {
+        const state = states[stateId];
+        if (state.states) {
+          for (const event of state.events) {
+            events.add(event);
+          }
         }
-      }
-    });
+      });
+    }
 
     return (this._events = Array.from(events));
   }
   public getRelativeValue(toNode?: StateNode): StateValue {
-    const memoizedRelativeValue = this._relativeValue.get(toNode);
+    const memoizedRelativeValue = toNode
+      ? this._relativeValue.get(toNode)
+      : undefined;
 
     if (memoizedRelativeValue) {
       return memoizedRelativeValue;
@@ -235,7 +256,7 @@ class StateNode {
           [this.key]: initialState
         }
       : this.key;
-    let currentNode: StateNode = this.parent;
+    let currentNode: StateNode = this.parent as StateNode;
 
     while (currentNode && currentNode !== toNode) {
       const currentInitialState = currentNode.initialState;
@@ -246,10 +267,10 @@ class StateNode {
             ? { ...currentInitialState, ...relativeValue }
             : relativeValue
       };
-      currentNode = currentNode.parent;
+      currentNode = currentNode.parent as StateNode;
     }
 
-    this._relativeValue.set(toNode, relativeValue);
+    this._relativeValue.set(toNode as StateNode, relativeValue);
 
     return relativeValue;
   }

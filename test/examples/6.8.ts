@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../../src/index';
+import { Machine, State } from '../../src/index';
 import { testAll } from '../utils';
 
 describe('Example 6.8', () => {
@@ -68,9 +68,9 @@ describe('Example 6.8', () => {
   testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
-    const stateC = machine.transition('A.B', 1);
-    const stateF = machine.transition(stateC, 6);
-    const stateActual = machine.transition(stateF, 5);
+    const stateC = machine.transition('A.B', 1) as State;
+    const stateF = machine.transition(stateC, 6) as State;
+    const stateActual = machine.transition(stateF, 5) as State;
 
     assert.equal(stateActual.toString(), 'A.C');
   });
