@@ -6,7 +6,10 @@
   "types": "lib/index.d.ts",
   "scripts": {
     "start": "npm run build",
-    "test": "mocha --require ts-node/register test/**.ts test/**/*.ts",
+    "prettify":
+      "prettier --config ./.prettierrc --write ./{lib,src,test}/**/*.ts",
+    "test":
+      "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.ts",
     "watch":
       "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
     "build":

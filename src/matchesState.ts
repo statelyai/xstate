@@ -1,5 +1,5 @@
-import { toTrie } from './utils'; // TODO: change to utils
-import { StateValue } from './types';
+import { toTrie } from "./utils"; // TODO: change to utils
+import { StateValue } from "./types";
 
 export default function matchesState(
   parentStateId: StateValue,
@@ -8,15 +8,15 @@ export default function matchesState(
   const parentStateValue = toTrie(parentStateId);
   const childStateValue = toTrie(childStateId);
 
-  if (typeof childStateValue === 'string') {
-    if (typeof parentStateValue === 'string') {
+  if (typeof childStateValue === "string") {
+    if (typeof parentStateValue === "string") {
       return childStateValue === parentStateValue;
     }
 
     return childStateValue in parentStateValue;
   }
 
-  if (typeof parentStateValue === 'string') {
+  if (typeof parentStateValue === "string") {
     return parentStateValue in childStateValue;
   }
 

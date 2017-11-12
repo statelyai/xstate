@@ -1,5 +1,5 @@
-import { StateNode } from './index';
-import State from './State';
+import { StateNode } from "./index";
+import State from "./State";
 
 export type Action =
   | number

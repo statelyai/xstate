@@ -1,34 +1,34 @@
-import { assert } from 'chai';
-import { Machine, State } from '../../src/index';
-import { testAll } from '../utils';
+import { assert } from "chai";
+import { Machine, State } from "../../src/index";
+import { testAll } from "../utils";
 
-describe('Example 6.8', () => {
+describe("Example 6.8", () => {
   const machine = Machine({
-    initial: 'A',
+    initial: "A",
     states: {
       A: {
         on: {
-          6: 'F'
+          6: "F"
         },
-        initial: 'B',
+        initial: "B",
         states: {
           B: {
-            on: { 1: 'C' }
+            on: { 1: "C" }
           },
           C: {
-            on: { 2: 'E' }
+            on: { 2: "E" }
           },
           D: {
-            on: { 3: 'B' }
+            on: { 3: "B" }
           },
           E: {
-            on: { 4: 'B', 5: 'D' }
+            on: { 4: "B", 5: "D" }
           }
         }
       },
       F: {
         on: {
-          5: 'A.$history'
+          5: "A.$history"
         }
       }
     }
@@ -36,42 +36,42 @@ describe('Example 6.8', () => {
 
   const expected = {
     A: {
-      1: 'A.C',
-      6: 'F'
+      1: "A.C",
+      6: "F"
     },
-    'A.B': {
-      1: 'A.C',
-      6: 'F',
+    "A.B": {
+      1: "A.C",
+      6: "F",
       FAKE: undefined
     },
-    'A.C': {
-      2: 'A.E',
-      6: 'F',
+    "A.C": {
+      2: "A.E",
+      6: "F",
       FAKE: undefined
     },
-    'A.D': {
-      3: 'A.B',
-      6: 'F',
+    "A.D": {
+      3: "A.B",
+      6: "F",
       FAKE: undefined
     },
-    'A.E': {
-      4: 'A.B',
-      5: 'A.D',
-      6: 'F',
+    "A.E": {
+      4: "A.B",
+      5: "A.D",
+      6: "F",
       FAKE: undefined
     },
     F: {
-      5: 'A.B'
+      5: "A.B"
     }
   };
 
   testAll(machine, expected);
 
-  it('should respect the history mechanism', () => {
-    const stateC = machine.transition('A.B', 1) as State;
+  it("should respect the history mechanism", () => {
+    const stateC = machine.transition("A.B", 1) as State;
     const stateF = machine.transition(stateC, 6) as State;
     const stateActual = machine.transition(stateF, 5) as State;
 
-    assert.equal(stateActual.toString(), 'A.C');
+    assert.equal(stateActual.toString(), "A.C");
   });
 });
