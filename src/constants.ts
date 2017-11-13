@@ -1,1 +1,1 @@
-export const STATE_DELIMITER = '.';
+export const STATE_DELIMITER = ".";
