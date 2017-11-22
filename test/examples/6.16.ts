@@ -1,23 +1,23 @@
-import { Machine } from '../../src/index';
-import { testAll } from '../utils';
+import { Machine } from "../../src/index";
+import { testAll } from "../utils";
 
-describe('Example 6.16', () => {
+describe("Example 6.16", () => {
   const machine = Machine({
     parallel: true,
     states: {
       A: {
-        initial: 'D',
+        initial: "D",
         states: {
-          C: { on: { 2: 'D' } },
-          D: { on: { 1: 'C' } }
+          C: { on: { 2: "D" } },
+          D: { on: { 1: "C" } }
         }
       },
       B: {
-        initial: 'F',
+        initial: "F",
         states: {
-          E: { on: { 5: 'G' } },
-          F: { on: { 1: 'E' } },
-          G: { on: { 3: 'F' } }
+          E: { on: { 5: "G" } },
+          F: { on: { 1: "E" } },
+          G: { on: { 3: "F" } }
         }
       }
     }
@@ -25,19 +25,19 @@ describe('Example 6.16', () => {
 
   const expected = {
     '{"A":"D", "B":"F"}': {
-      1: { A: 'C', B: 'E' },
+      1: { A: "C", B: "E" },
       2: undefined,
-      '1, 5, 3': { A: 'C', B: 'F' }
+      "1, 5, 3": { A: "C", B: "F" }
     },
     '{"A":"C", "B":"E"}': {
       1: undefined,
-      2: { A: 'D', B: 'E' },
-      5: { A: 'C', B: 'G' }
+      2: { A: "D", B: "E" },
+      5: { A: "C", B: "G" }
     },
     '{"A":"C", "B":"G"}': {
       1: undefined,
-      2: { A: 'D', B: 'G' },
-      3: { A: 'C', B: 'F' }
+      2: { A: "D", B: "G" },
+      3: { A: "C", B: "F" }
     }
   };
 

@@ -1,6 +1,6 @@
-import { StateValue } from './types';
-import { STATE_DELIMITER } from './constants';
-import { toTrie } from './utils';
+import { StateValue } from "./types";
+import { STATE_DELIMITER } from "./constants";
+import { toTrie } from "./utils";
 
 export default class State {
   public static from(stateValue: State | StateValue): State {
@@ -12,7 +12,7 @@ export default class State {
   }
   constructor(public value: StateValue, public history?: State) {}
   public toString(): string | undefined {
-    if (typeof this.value === 'string') {
+    if (typeof this.value === "string") {
       return this.value;
     }
 
@@ -20,7 +20,7 @@ export default class State {
     let marker: StateValue = this.value;
 
     while (true) {
-      if (typeof marker === 'string') {
+      if (typeof marker === "string") {
         path.push(marker);
         break;
       }
