@@ -1,19 +1,15 @@
 {
   "name": "xstate",
-  "version": "1.2.1",
+  "version": "2.0.0",
   "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
     "start": "npm run build",
-    "prettify":
-      "prettier --config ./.prettierrc --write ./{lib,src,test}/**/*.ts",
-    "test":
-      "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.ts",
-    "watch":
-      "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
-    "build":
-      "tsc && webpack -p ./lib/index.js ./dist/xstate.js --config webpack.config.js",
+    "prettify": "prettier --config ./.prettierrc --write ./{lib,src,test}/**/*.ts",
+    "test": "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.ts",
+    "watch": "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
+    "build": "tsc && webpack -p ./lib/index.js ./dist/xstate.js --config webpack.config.js",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build"
