@@ -2,7 +2,7 @@
   "name": "xstate",
   "version": "1.2.1",
   "description": "Simple JavaScript Finite State Machines and Statecharts",
-  "main": "dist/xstate.js",
+  "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
     "start": "npm run build",
