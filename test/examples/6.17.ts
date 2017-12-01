@@ -55,9 +55,9 @@ describe("Example 6.17", () => {
     Object.keys(expected[fromState]).forEach(actionTypes => {
       const toState = expected[fromState][actionTypes];
 
-      it(`should go from ${fromState} to ${JSON.stringify(toState)} on ${
-        actionTypes
-      }`, () => {
+      it(`should go from ${fromState} to ${JSON.stringify(
+        toState
+      )} on ${actionTypes}`, () => {
         const resultState = testMultiTransition(
           machine,
           fromState,

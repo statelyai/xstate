@@ -147,9 +147,7 @@ class StateNode {
           subPath = currentState.initial;
         } else {
           throw new Error(
-            `Cannot read '${HISTORY_KEY}' from state '${
-              currentState.id
-            }': missing 'initial'`
+            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
           );
         }
       }
@@ -162,9 +160,7 @@ class StateNode {
 
       if (currentState === undefined) {
         throw new Error(
-          `Action '${action}' on state '${
-            currentPath
-          }' leads to undefined state '${nextPath}'.`
+          `Action '${action}' on state '${currentPath}' leads to undefined state '${nextPath}'.`
         );
       }
 

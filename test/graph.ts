@@ -4,7 +4,8 @@ import {
   getNodes,
   getEdges,
   getAdjacencyMap,
-  getShortestPaths
+  getShortestPaths,
+  IPathMap
 } from '../src/graph';
 
 describe('graph utilities', () => {
@@ -174,7 +175,7 @@ describe('graph utilities', () => {
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        getShortestPaths(lightMachine)[
+        (getShortestPaths(lightMachine) as IPathMap)[
           `${lightMachine.id}.${lightMachine.initial}`
         ],
         0
