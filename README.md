@@ -8,6 +8,17 @@ Read [the slides](http://slides.com/davidkhourshid/finite-state-machines) ([vide
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 
+## Roadmap for V2
+- Full documentation
+- Non-trivial, real-life examples for React, Vue, Angular, and no frameworks
+- Guard functions for actions
+- `onEnter`, `onTransition`, and `onExit` hooks
+- SCXML/SCION support
+- Automatic test generation
+- Simple event emitter integration
+- More analytics/optimization utilities
+- Tutorials, tutorials, tutorials
+
 ## Visualizing state machines and statecharts
 The JSON-based notation used here to declaratively represent finite state machines and statecharts can be copy-pasted here: https://codepen.io/davidkpiano/pen/ayWKJO/ which will generate interactive state transition diagrams.
 
