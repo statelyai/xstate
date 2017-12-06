@@ -1,5 +1,6 @@
 import { StateNode } from "./index";
 import { mapValues } from "./utils";
+import { Transition } from "./types";
 
 export interface IEdge {
   action: string;
@@ -24,6 +25,16 @@ export function getNodes(node: StateNode): StateNode[] {
   }, []);
 
   return nodes;
+}
+
+function getTransitionStateKeys<TStateKey extends string = string>(
+  transition: Transition<TStateKey>
+): TStateKey[] {
+  if (typeof transition === "string") {
+    return [transition];
+  }
+
+  return Object.keys(transition) as TStateKey[];
 }
 
 export function getEdges(
@@ -51,16 +62,22 @@ export function getEdges(
     if (!node.on || !node.parent) {
       return accEdges;
     }
-    const subStateKey = node.on[action];
-    const subNode = node.parent.getState(subStateKey) as StateNode;
-    const edge: IEdge = { action, source: node, target: subNode };
 
-    accEdges.push(edge);
+    const { parent } = node;
 
-    if (!visited[subStateKey]) {
-      accEdges.push(...getEdges(subNode, visited));
-      visited[subStateKey] = true;
-    }
+    const transition = node.on[action];
+    const subStateKeys = getTransitionStateKeys(transition);
+    subStateKeys.forEach(subStateKey => {
+      const subNode = parent.getState(subStateKey) as StateNode;
+      const edge: IEdge = { action, source: node, target: subNode };
+
+      accEdges.push(edge);
+
+      if (!visited[subStateKey]) {
+        accEdges.push(...getEdges(subNode, visited));
+        visited[subStateKey] = true;
+      }
+    });
 
     return accEdges;
   }, []);
@@ -88,7 +105,15 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
         continue;
       }
 
-      const nextState = node.parent.getState(node.on[action]) as StateNode;
+      const transition = node.on[action];
+      const subStateKeys = getTransitionStateKeys(transition);
+
+      if (!subStateKeys.length) {
+        continue;
+      }
+
+      // for non-conditional adjacency maps, just return first substate
+      const nextState = node.parent.getState(subStateKeys[0]) as StateNode;
       let nextStateId = nextState.id;
 
       if (nextState.initial) {

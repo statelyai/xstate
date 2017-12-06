@@ -30,3 +30,4 @@ node_modules
 .vscode/
 dist/
 lib/
+editor/

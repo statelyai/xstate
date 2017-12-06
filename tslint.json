@@ -9,7 +9,8 @@
     "quotemark": ["single"],
     "ordered-imports": [false],
     "variable-name": false,
-    "object-literal-key-quotes": false
+    "object-literal-key-quotes": false,
+    "interface-name": false
   },
   "rulesDirectory": []
 }
