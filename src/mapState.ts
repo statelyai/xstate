@@ -1,4 +1,4 @@
-import matchesState from "./matchesState";
+import matchesState from './matchesState';
 
 export default function mapState(
   stateMap: { [stateId: string]: any },

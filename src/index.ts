@@ -1,11 +1,11 @@
-import { getActionType, toStatePath, toTrie, mapValues } from "./utils";
-import { Action, StateValue, StateNodeConfig, Transition } from "./types";
-import matchesState from "./matchesState";
-import mapState from "./mapState";
-import State from "./State";
+import { getActionType, toStatePath, toTrie, mapValues } from './utils';
+import { Action, StateValue, StateNodeConfig, Transition } from './types';
+import matchesState from './matchesState';
+import mapState from './mapState';
+import State from './State';
 
-const STATE_DELIMITER = ".";
-const HISTORY_KEY = "$history";
+const STATE_DELIMITER = '.';
+const HISTORY_KEY = '$history';
 
 class StateNode<
   TStateKey extends string = string,
@@ -23,7 +23,7 @@ class StateNode<
   private _relativeValue: Map<StateNode, StateValue> = new Map();
   private _initialState: StateValue | undefined;
   constructor(config: StateNodeConfig<TStateKey, TActionType>) {
-    this.key = config.key || "(machine)";
+    this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.id = this.parent
       ? this.parent.id + STATE_DELIMITER + this.key
@@ -69,9 +69,9 @@ class StateNode<
     const history = State.from(state).history;
     let stateValue = toTrie(state instanceof State ? state.value : state);
 
-    if (typeof stateValue === "string") {
+    if (typeof stateValue === 'string') {
       if (!this.states[stateValue]) {
-        throw new Error("state doesnt exist");
+        throw new Error('state doesnt exist');
       }
 
       const subState = this.states[stateValue] as StateNode;
@@ -146,7 +146,7 @@ class StateNode<
 
     const transition = this.on[actionType] as Transition;
     let nextStateString: string | undefined;
-    if (typeof transition === "string") {
+    if (typeof transition === 'string') {
       nextStateString = transition;
     } else {
       for (const candidate of Object.keys(transition)) {
@@ -175,7 +175,7 @@ class StateNode<
       if (subPath === HISTORY_KEY) {
         if (currentHistory) {
           subPath =
-            typeof currentHistory === "object"
+            typeof currentHistory === 'object'
               ? Object.keys(currentHistory)[0]
               : currentHistory;
         } else if (currentState.initial) {
@@ -187,7 +187,7 @@ class StateNode<
         }
       }
 
-      if (typeof subPath === "object") {
+      if (typeof subPath === 'object') {
         subPath = Object.keys(subPath)[0];
       }
 
@@ -207,7 +207,7 @@ class StateNode<
     });
 
     if (!currentState) {
-      throw new Error("no state");
+      throw new Error('no state');
     }
 
     while (currentState.initial) {
@@ -221,7 +221,7 @@ class StateNode<
   }
   public getInitialState(): StateValue | undefined {
     console.warn(
-      "machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead."
+      'machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead.'
     );
     return this.initialState;
   }
@@ -297,8 +297,8 @@ class StateNode<
       const currentInitialState = currentNode.initialState;
       relativeValue = {
         [currentNode.key]:
-          typeof currentInitialState === "object" &&
-          typeof relativeValue === "object"
+          typeof currentInitialState === 'object' &&
+          typeof relativeValue === 'object'
             ? { ...currentInitialState, ...relativeValue }
             : relativeValue
       };

@@ -1,6 +1,6 @@
-import { StateNode } from "./index";
-import { mapValues } from "./utils";
-import { Transition } from "./types";
+import { StateNode } from './index';
+import { mapValues } from './utils';
+import { Transition } from './types';
 
 export interface IEdge {
   action: string;
@@ -30,7 +30,7 @@ export function getNodes(node: StateNode): StateNode[] {
 function getTransitionStateKeys<TStateKey extends string = string>(
   transition: Transition<TStateKey>
 ): TStateKey[] {
-  if (typeof transition === "string") {
+  if (typeof transition === 'string') {
     return [transition];
   }
 
@@ -117,7 +117,7 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
       let nextStateId = nextState.id;
 
       if (nextState.initial) {
-        nextStateId += "." + nextState.initial;
+        nextStateId += '.' + nextState.initial;
       }
 
       actionMap[action] = nextStateId;

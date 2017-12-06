@@ -1,33 +1,33 @@
-import { assert } from "chai";
-import { Machine } from "../../src/index";
-import { testMultiTransition } from "../utils";
+import { assert } from 'chai';
+import { Machine } from '../../src/index';
+import { testMultiTransition } from '../utils';
 
-describe("Example 6.17", () => {
+describe('Example 6.17', () => {
   const machine = Machine({
-    initial: "X",
+    initial: 'X',
     states: {
       X: {
         on: {
-          1: "Y",
-          2: "Y.A.C", // 6.18
+          1: 'Y',
+          2: 'Y.A.C', // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
-          4: "Y.A.$history"
+          4: 'Y.A.$history'
         }
       },
       Y: {
         parallel: true,
         states: {
           A: {
-            initial: "D",
+            initial: 'D',
             states: { C: {}, D: {}, E: {} }
           },
           B: {
-            initial: "G",
+            initial: 'G',
             states: { F: {}, G: {}, H: {} }
           }
         },
         on: {
-          back: "X"
+          back: 'X'
         }
       }
     }
@@ -35,19 +35,19 @@ describe("Example 6.17", () => {
 
   const expected = {
     X: {
-      1: { Y: { A: "D", B: "G" } },
-      2: { Y: { A: "C", B: "G" } }, // 6.18
+      1: { Y: { A: 'D', B: 'G' } },
+      2: { Y: { A: 'C', B: 'G' } }, // 6.18
       // 3: { Y: { A: 'C', B: 'F' } }, //  6.19
-      "2, back, 4": { Y: { A: "C", B: "G" } }
+      '2, back, 4': { Y: { A: 'C', B: 'G' } }
     },
     '{"Y":{"A":"C","B":"G"}}': {
-      back: "X"
+      back: 'X'
     },
-    "Y.A.C": {
-      back: "X"
+    'Y.A.C': {
+      back: 'X'
     },
-    "Y.B.G": {
-      back: "X"
+    'Y.B.G': {
+      back: 'X'
     }
   };
 

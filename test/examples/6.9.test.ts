@@ -1,38 +1,38 @@
-import { Machine } from "../../src/index";
-import { testAll } from "../utils";
+import { Machine } from '../../src/index';
+import { testAll } from '../utils';
 
-describe("Example 6.9", () => {
+describe('Example 6.9', () => {
   const machine = Machine({
-    initial: "A",
+    initial: 'A',
     states: {
       A: {
         on: {
-          6: "H"
+          6: 'H'
         },
-        initial: "B",
+        initial: 'B',
         states: {
           B: {
-            initial: "E",
+            initial: 'E',
             on: {
-              5: "C"
+              5: 'C'
             },
             states: {
               D: {},
               E: {
-                on: { 3: "D" }
+                on: { 3: 'D' }
               }
             }
           },
           C: {
-            initial: "G",
+            initial: 'G',
             on: {
-              4: "B.E"
+              4: 'B.E'
             },
             states: {
               F: {},
               G: {
                 on: {
-                  2: "F"
+                  2: 'F'
                 }
               }
             }
@@ -41,8 +41,8 @@ describe("Example 6.9", () => {
       },
       H: {
         on: {
-          1: "A.$history",
-          7: "A.$history*" // 6.10
+          1: 'A.$history',
+          7: 'A.$history*' // 6.10
         }
       }
     }
@@ -50,54 +50,54 @@ describe("Example 6.9", () => {
 
   const expected = {
     A: {
-      3: "A.B.D",
-      5: "A.C.G",
-      6: "H",
+      3: 'A.B.D',
+      5: 'A.C.G',
+      6: 'H',
       FAKE: undefined
     },
-    "A.B": {
-      3: "A.B.D",
-      5: "A.C.G",
-      6: "H",
+    'A.B': {
+      3: 'A.B.D',
+      5: 'A.C.G',
+      6: 'H',
       FAKE: undefined,
 
       // history
-      "5, 6, 1": "A.C.G",
-      "3, 6, 1": "A.B.E" // not A.B.D because not deep history
+      '5, 6, 1': 'A.C.G',
+      '3, 6, 1': 'A.B.E' // not A.B.D because not deep history
       // '3, 6, 7': 'A.B.D'
     },
-    "A.C": {
-      2: "A.C.F",
-      4: "A.B.E",
-      6: "H",
+    'A.C': {
+      2: 'A.C.F',
+      4: 'A.B.E',
+      6: 'H',
       FAKE: undefined,
-      "6, 1": "A.C.G",
-      "4, 6, 1": "A.B.E"
+      '6, 1': 'A.C.G',
+      '4, 6, 1': 'A.B.E'
     },
-    "A.B.D": {
-      5: "A.C.G",
-      6: "H",
+    'A.B.D': {
+      5: 'A.C.G',
+      6: 'H',
       FAKE: undefined
     },
-    "A.B.E": {
-      3: "A.B.D",
-      5: "A.C.G",
-      6: "H",
+    'A.B.E': {
+      3: 'A.B.D',
+      5: 'A.C.G',
+      6: 'H',
       FAKE: undefined
     },
-    "A.C.F": {
-      4: "A.B.E",
-      6: "H",
+    'A.C.F': {
+      4: 'A.B.E',
+      6: 'H',
       FAKE: undefined
     },
-    "A.C.G": {
-      2: "A.C.F",
-      4: "A.B.E",
-      6: "H",
+    'A.C.G': {
+      2: 'A.C.F',
+      4: 'A.B.E',
+      6: 'H',
       FAKE: undefined
     },
     H: {
-      1: "A.B.E",
+      1: 'A.B.E',
       FAKE: undefined
     }
   };

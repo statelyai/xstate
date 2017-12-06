@@ -1,14 +1,14 @@
-import State from "./State";
-import { Action, StateValue } from "./types";
+import State from './State';
+import { Action, StateValue } from './types';
 
 export function getActionType(action: Action): string {
   try {
-    return typeof action === "string" || typeof action === "number"
+    return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
       : action.type;
   } catch (e) {
     throw new Error(
-      "Actions must be strings or objects with a string action.type."
+      'Actions must be strings or objects with a string action.type.'
     );
   }
 }
@@ -19,14 +19,14 @@ export function toStatePath(stateId: string | string[]): string[] {
       return stateId;
     }
 
-    return stateId.toString().split(".");
+    return stateId.toString().split('.');
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
 }
 
 export function toTrie(stateValue: StateValue): StateValue {
-  if (typeof stateValue === "object" && !(stateValue instanceof State)) {
+  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
     return stateValue;
   }
 
