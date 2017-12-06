@@ -1,5 +1,5 @@
-import { StateNode, State } from '../src/index';
-import { assert } from 'chai';
+import { StateNode, State } from "../src/index";
+import { assert } from "chai";
 
 export function testMultiTransition(
   machine: StateNode,
@@ -9,7 +9,7 @@ export function testMultiTransition(
   const resultState = actionTypes
     .split(/,\s?/)
     .reduce((state: State | string, actionType) => {
-      if (typeof state === 'string' && state[0] === '{') {
+      if (typeof state === "string" && state[0] === "{") {
         state = JSON.parse(state);
       }
       const nextState = machine.transition(state, actionType);
@@ -35,7 +35,7 @@ export function testAll(machine: StateNode, expected: {}): void {
 
         if (toState === undefined) {
           assert.isUndefined(resultState);
-        } else if (typeof toState === 'string') {
+        } else if (typeof toState === "string") {
           assert.equal(resultState.toString(), toState);
         } else {
           assert.deepEqual(resultState.value, toState);

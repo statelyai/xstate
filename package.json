@@ -7,7 +7,7 @@
   "scripts": {
     "start": "npm run build",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,src,test}/**/*.ts",
-    "test": "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.ts",
+    "test": "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
     "watch": "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
     "build": "tsc && webpack -p ./lib/index.js ./dist/xstate.js --config webpack.config.js",
     "version": "npm run build",
