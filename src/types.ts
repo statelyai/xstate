@@ -9,8 +9,6 @@ export type Action =
       [key: string]: any;
     };
 
-// export type Condition
-
 export type StateKey = string | State;
 
 export interface StateValueMap {
