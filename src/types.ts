@@ -19,9 +19,14 @@ export type StateValue = string | StateValueMap;
 
 export type Condition = (extendedState: any) => boolean;
 
+export interface TransitionConfig {
+  cond: (extendedState: any, action: Action) => boolean;
+  onTransition?: (extendedState: any, action: Action) => void;
+}
+
 export type Transition<TStateKey extends string = string> =
   | TStateKey
-  | Record<TStateKey, Condition>;
+  | Record<TStateKey, TransitionConfig>;
 
 export interface StateNodeConfig<
   TStateKey extends string = string,

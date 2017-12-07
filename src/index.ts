@@ -150,8 +150,8 @@ class StateNode<
       nextStateString = transition;
     } else {
       for (const candidate of Object.keys(transition)) {
-        const cond = transition[candidate];
-        if (cond(extendedState)) {
+        const { cond } = transition[candidate];
+        if (cond(extendedState, action)) {
           nextStateString = candidate;
           break;
         }
@@ -237,7 +237,7 @@ class StateNode<
 
     return this._initialState;
   }
-  public getState(relativeStateId: string): StateNode | undefined {
+  public getState(relativeStateId: string | string[]): StateNode | undefined {
     const statePath = toStatePath(relativeStateId);
 
     try {
