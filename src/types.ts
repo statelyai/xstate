@@ -39,3 +39,6 @@ export interface StateNodeConfig<
   on?: Record<TActionType, Transition<TStateKey>>;
   parent?: StateNode;
 }
+
+export type Effect = <T>(extendedState: T) => T | void;
+export type StateValueEffectsTuple = [StateValue | undefined, Effect[]];

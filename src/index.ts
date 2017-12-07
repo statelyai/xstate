@@ -1,5 +1,11 @@
 import { getActionType, toStatePath, toTrie, mapValues } from './utils';
-import { Action, StateValue, StateNodeConfig, Transition } from './types';
+import {
+  Action,
+  StateValue,
+  StateNodeConfig,
+  Transition,
+  StateValueEffectsTuple
+} from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import State from './State';
@@ -49,23 +55,25 @@ class StateNode<
     action: Action,
     extendedState?: any
   ): State | undefined {
-    const nextStateValue = this.transitionStateValue(
+    const [nextStateValue, effects] = this.transitionStateValue(
       state,
       action,
       extendedState
     );
 
+    console.log({ nextStateValue, effects });
+
     if (!nextStateValue) {
       return undefined;
     }
 
-    return new State(nextStateValue, State.from(state));
+    return new State(nextStateValue, State.from(state), effects);
   }
   public transitionStateValue(
     state: StateValue | State,
     action: Action,
     extendedState?: any
-  ): StateValue | undefined {
+  ): StateValueEffectsTuple {
     const history = State.from(state).history;
     let stateValue = toTrie(state instanceof State ? state.value : state);
 
@@ -80,12 +88,10 @@ class StateNode<
       if (initialState) {
         stateValue = { [stateValue]: initialState };
       } else {
-        return (
-          subState.next(
-            action,
-            history ? history.value : undefined,
-            extendedState
-          ) || undefined
+        return subState.next(
+          action,
+          history ? history.value : undefined,
+          extendedState
         );
       }
     }
@@ -101,7 +107,12 @@ class StateNode<
         subHistory ? State.from(subHistory) : undefined
       );
       const subStateNode = this.states[subStateKey] as StateNode;
-      return subStateNode.transitionStateValue(subState, action, extendedState);
+      const [nextSubStateValue] = subStateNode.transitionStateValue(
+        subState,
+        action,
+        extendedState
+      );
+      return nextSubStateValue;
     });
 
     if (
@@ -110,7 +121,7 @@ class StateNode<
       })
     ) {
       if (this.parallel) {
-        return undefined;
+        return [undefined, []];
       }
 
       const subStateKey = Object.keys(nextStateValue)[0];
@@ -124,24 +135,26 @@ class StateNode<
       nextStateValue = { ...(this.initialState as {}), ...nextStateValue };
     }
 
-    return mapValues(nextStateValue, (value, key) => {
+    const finalStateValue = mapValues(nextStateValue, (value, key) => {
       if (value) {
         return value;
       }
 
       return stateValue[key];
     });
+
+    return [finalStateValue, []];
   }
 
   public next(
     action: Action,
     history?: StateValue,
     extendedState?: any
-  ): StateValue | undefined {
+  ): StateValueEffectsTuple {
     const actionType = getActionType(action);
 
     if (!this.on || !this.on[actionType]) {
-      return undefined;
+      return [undefined, []];
     }
 
     const transition = this.on[actionType] as Transition;
@@ -159,7 +172,7 @@ class StateNode<
     }
 
     if (!nextStateString) {
-      return undefined;
+      return [undefined, []];
     }
 
     const nextStatePath = toStatePath(nextStateString);
@@ -217,7 +230,7 @@ class StateNode<
       currentState = currentState.states[currentState.initial];
     }
 
-    return currentState.getRelativeValue(this.parent);
+    return [currentState.getRelativeValue(this.parent), []];
   }
   public getInitialState(): StateValue | undefined {
     console.warn(
