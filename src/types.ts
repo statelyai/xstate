@@ -37,6 +37,8 @@ export interface StateNodeConfig<
   parallel?: boolean;
   key?: string;
   on?: Record<TActionType, Transition<TStateKey>>;
+  onEntry?: Effect;
+  onExit?: Effect;
   parent?: StateNode;
 }
 
