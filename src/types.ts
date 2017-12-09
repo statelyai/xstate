@@ -42,5 +42,8 @@ export interface StateNodeConfig<
   parent?: StateNode;
 }
 
-export type Effect = <T>(extendedState: T) => T | void;
-export type StateValueEffectsTuple = [StateValue | undefined, Effect[]];
+export type Effect = string | (<T>(extendedState: T) => T | void);
+export interface EntryExitEffectMap {
+  entry: Effect[];
+  exit: Effect[];
+}

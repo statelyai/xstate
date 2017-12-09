@@ -1,4 +1,4 @@
-import { StateValue, Effect } from './types';
+import { StateValue, EntryExitEffectMap } from './types';
 import { STATE_DELIMITER } from './constants';
 import { toTrie } from './utils';
 
@@ -13,7 +13,7 @@ export default class State {
   constructor(
     public value: StateValue,
     public history?: State,
-    public effects?: Effect[]
+    public effects?: EntryExitEffectMap
   ) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {
