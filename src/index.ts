@@ -28,9 +28,12 @@ class StateNode<
   public onExit?: Effect;
   public parent?: StateNode;
 
-  private _events?: string[];
-  private _relativeValue: Map<StateNode, StateValue> = new Map();
-  private _initialState: StateValue | undefined;
+  private __cache = {
+    events: undefined as string[] | undefined,
+    relativeValue: new Map() as Map<StateNode, StateValue>,
+    initialState: undefined as StateValue | undefined
+  };
+
   constructor(config: StateNodeConfig<TStateKey, TActionType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
@@ -266,8 +269,8 @@ class StateNode<
     return currentState.getRelativeValue(this.parent);
   }
   public get initialState(): StateValue | undefined {
-    this._initialState =
-      this._initialState ||
+    this.__cache.initialState =
+      this.__cache.initialState ||
       ((this.parallel
         ? mapValues(
             this.states as Record<string, StateNode>,
@@ -275,7 +278,7 @@ class StateNode<
           )
         : this.initial) as StateValue);
 
-    return this._initialState;
+    return this.__cache.initialState;
   }
   public getStates(stateValue: StateValue): StateNode[] {
     if (typeof stateValue === 'string') {
@@ -310,8 +313,8 @@ class StateNode<
     }
   }
   get events(): string[] {
-    if (this._events) {
-      return this._events;
+    if (this.__cache.events) {
+      return this.__cache.events;
     }
     const { states } = this;
     const events = new Set(this.on ? Object.keys(this.on) : undefined);
@@ -327,11 +330,11 @@ class StateNode<
       });
     }
 
-    return (this._events = Array.from(events));
+    return (this.__cache.events = Array.from(events));
   }
   public getRelativeValue(toNode?: StateNode): StateValue {
     const memoizedRelativeValue = toNode
-      ? this._relativeValue.get(toNode)
+      ? this.__cache.relativeValue.get(toNode)
       : undefined;
 
     if (memoizedRelativeValue) {
@@ -358,7 +361,7 @@ class StateNode<
       currentNode = currentNode.parent as StateNode;
     }
 
-    this._relativeValue.set(toNode as StateNode, relativeValue);
+    this.__cache.relativeValue.set(toNode as StateNode, relativeValue);
 
     return relativeValue;
   }
