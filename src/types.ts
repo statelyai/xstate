@@ -1,11 +1,12 @@
 import { StateNode } from './index';
 import State from './State';
 
+export type ActionType = string | number;
+
 export type Action =
-  | number
-  | string
+  | ActionType
   | {
-      type: string;
+      type: ActionType;
       [key: string]: any;
     };
 

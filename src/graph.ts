@@ -160,7 +160,7 @@ export function getShortestPaths(machine: StateNode): IPathMap | undefined {
   return pathMap;
 }
 
-export function shortestPaths(
+function shortestPaths(
   adjacency: IAdjacencyMap,
   stateId: string,
   pathMap: IPathMap,
