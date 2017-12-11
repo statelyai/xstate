@@ -86,7 +86,7 @@ export function getEdges(
 }
 
 export interface IPathMap {
-  [key: string]: Array<[string, string]>;
+  [key: string]: Array<{ state: string; action: string }>;
 }
 
 export interface ITransitionMap {
@@ -190,7 +190,7 @@ function shortestPaths(
 ): IPathMap {
   visited.add(stateId);
   const actionMap = adjacency[stateId];
-  console.log({ stateId, actionMap });
+
   for (const action of Object.keys(actionMap)) {
     const nextStateValue = actionMap[action].state;
 
@@ -204,7 +204,7 @@ function shortestPaths(
       !pathMap[nextStateId] ||
       pathMap[nextStateId].length > pathMap[stateId].length + 1
     ) {
-      pathMap[nextStateId] = [...pathMap[stateId], [stateId, action]];
+      pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, action }];
     }
   }
 
