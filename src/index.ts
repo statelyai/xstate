@@ -20,6 +20,7 @@ class StateNode<
 > {
   public key: string;
   public id: string;
+  public relativeId: string;
   public initial?: string;
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
@@ -27,6 +28,7 @@ class StateNode<
   public onEntry?: Effect;
   public onExit?: Effect;
   public parent?: StateNode;
+  public machine: StateNode;
 
   private __cache = {
     events: undefined as string[] | undefined,
@@ -37,9 +39,14 @@ class StateNode<
   constructor(config: StateNodeConfig<TStateKey, TActionType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
+    this.machine = this.parent ? this.parent.machine : this;
     this.id = this.parent
       ? this.parent.id + STATE_DELIMITER + this.key
       : this.key;
+    this.relativeId =
+      this.parent && this.parent.parent
+        ? this.parent.relativeId + STATE_DELIMITER + this.key
+        : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = config.states

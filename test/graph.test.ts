@@ -122,35 +122,35 @@ describe('graph utilities', () => {
   describe('getAdjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
       assert.deepEqual(getAdjacencyMap(lightMachine), {
-        'light.green': {
-          TIMER: 'light.yellow',
-          POWER_OUTAGE: 'light.red.flashing'
+        green: {
+          TIMER: { state: 'yellow' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.yellow': {
-          TIMER: 'light.red.walk',
-          POWER_OUTAGE: 'light.red.flashing'
+        yellow: {
+          TIMER: { state: { red: 'walk' } },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        red: {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red.walk': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing',
-          PED_COUNTDOWN: 'light.red.wait'
+        'red.walk': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'wait' } }
         },
-        'light.red.wait': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing',
-          PED_COUNTDOWN: 'light.red.stop'
+        'red.wait': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'stop' } }
         },
-        'light.red.stop': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        'red.stop': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red.flashing': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        'red.flashing': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         }
       });
     });
@@ -159,29 +159,27 @@ describe('graph utilities', () => {
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
-        'light.green': [],
-        'light.yellow': [['light.green', 'TIMER']],
-        'light.red.flashing': [['light.green', 'POWER_OUTAGE']],
-        'light.red.walk': [['light.green', 'TIMER'], ['light.yellow', 'TIMER']],
-        'light.red.wait': [
-          ['light.green', 'TIMER'],
-          ['light.yellow', 'TIMER'],
-          ['light.red.walk', 'PED_COUNTDOWN']
+        green: [],
+        yellow: [['green', 'TIMER']],
+        'red.flashing': [['green', 'POWER_OUTAGE']],
+        'red.walk': [['green', 'TIMER'], ['yellow', 'TIMER']],
+        'red.wait': [
+          ['green', 'TIMER'],
+          ['yellow', 'TIMER'],
+          ['red.walk', 'PED_COUNTDOWN']
         ],
-        'light.red.stop': [
-          ['light.green', 'TIMER'],
-          ['light.yellow', 'TIMER'],
-          ['light.red.walk', 'PED_COUNTDOWN'],
-          ['light.red.wait', 'PED_COUNTDOWN']
+        'red.stop': [
+          ['green', 'TIMER'],
+          ['yellow', 'TIMER'],
+          ['red.walk', 'PED_COUNTDOWN'],
+          ['red.wait', 'PED_COUNTDOWN']
         ]
       });
     });
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[
-          `${lightMachine.id}.${lightMachine.initial}`
-        ],
+        (getShortestPaths(lightMachine) as IPathMap)[`${lightMachine.initial}`],
         0
       );
     });
