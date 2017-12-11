@@ -86,7 +86,7 @@ export function getEdges(
 }
 
 export interface IPathMap {
-  [key: string]: string[];
+  [key: string]: Array<[string, string]>;
 }
 
 export interface IAdjacencyMap {
@@ -174,7 +174,7 @@ function shortestPaths(
       !pathMap[nextStateId] ||
       pathMap[nextStateId].length > pathMap[stateId].length + 1
     ) {
-      pathMap[nextStateId] = [...pathMap[stateId], stateId];
+      pathMap[nextStateId] = [...pathMap[stateId], [stateId, action]];
     }
   }
 

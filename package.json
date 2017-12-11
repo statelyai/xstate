@@ -5,11 +5,12 @@
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
   "scripts": {
-    "start": "npm run build",
+    "start": "npm run build && npm run build:utils",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,src,test}/**/*.ts",
     "test": "npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
     "watch": "webpack ./lib/index.js ./dist/xstate.js --config webpack.config.js -w",
     "build": "tsc && webpack -p ./lib/index.js ./dist/xstate.js --config webpack.config.js",
+    "build:utils": "tsc && webpack -p ./lib/graph.js ./dist/xstate.utils.js --config webpack.utils.config.js",
     "version": "npm run build",
     "postversion": "git push && git push --tags",
     "prepublish": "npm run build"

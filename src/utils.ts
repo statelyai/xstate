@@ -1,7 +1,7 @@
 import State from './State';
-import { Action, StateValue } from './types';
+import { Action, StateValue, ActionType } from './types';
 
-export function getActionType(action: Action): string {
+export function getActionType(action: Action): ActionType {
   try {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`

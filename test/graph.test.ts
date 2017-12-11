@@ -160,15 +160,19 @@ describe('graph utilities', () => {
     it('should return a mapping of shortest paths to all states', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
         'light.green': [],
-        'light.yellow': ['light.green'],
-        'light.red.flashing': ['light.green'],
-        'light.red.walk': ['light.green', 'light.yellow'],
-        'light.red.wait': ['light.green', 'light.yellow', 'light.red.walk'],
+        'light.yellow': [['light.green', 'TIMER']],
+        'light.red.flashing': [['light.green', 'POWER_OUTAGE']],
+        'light.red.walk': [['light.green', 'TIMER'], ['light.yellow', 'TIMER']],
+        'light.red.wait': [
+          ['light.green', 'TIMER'],
+          ['light.yellow', 'TIMER'],
+          ['light.red.walk', 'PED_COUNTDOWN']
+        ],
         'light.red.stop': [
-          'light.green',
-          'light.yellow',
-          'light.red.walk',
-          'light.red.wait'
+          ['light.green', 'TIMER'],
+          ['light.yellow', 'TIMER'],
+          ['light.red.walk', 'PED_COUNTDOWN'],
+          ['light.red.wait', 'PED_COUNTDOWN']
         ]
       });
     });
