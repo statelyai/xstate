@@ -1,5 +1,18 @@
-import { getActionType, toStatePath, toTrie, mapValues } from './utils';
-import { Action, StateValue, StateNodeConfig, Transition } from './types';
+import { getEventType, toStatePath, toTrie, mapValues } from './utils';
+import {
+  Event,
+  StateValue,
+  Transition,
+  Effect,
+  EntryExitEffectMap,
+  Machine,
+  StandardMachine,
+  ParallelMachine,
+  StateOrMachineConfig,
+  MachineConfig,
+  ParallelMachineConfig,
+  EventType
+} from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import State from './State';
@@ -9,25 +22,38 @@ const HISTORY_KEY = '$history';
 
 class StateNode<
   TStateKey extends string = string,
-  TActionType extends string = string
+  TEventType extends string = string
 > {
   public key: string;
   public id: string;
+  public relativeId: string;
   public initial?: string;
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
-  public on?: Record<TActionType, Transition<TStateKey>>;
+  public on?: Record<TEventType, Transition<TStateKey>>;
+  public onEntry?: Effect;
+  public onExit?: Effect;
+  public strict: boolean;
   public parent?: StateNode;
+  public machine: StateNode;
 
-  private _events?: string[];
-  private _relativeValue: Map<StateNode, StateValue> = new Map();
-  private _initialState: StateValue | undefined;
-  constructor(config: StateNodeConfig<TStateKey, TActionType>) {
+  private __cache = {
+    events: undefined as EventType[] | undefined,
+    relativeValue: new Map() as Map<StateNode, StateValue>,
+    initialState: undefined as StateValue | undefined
+  };
+
+  constructor(config: StateOrMachineConfig<TStateKey, TEventType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
+    this.machine = this.parent ? this.parent.machine : this;
     this.id = this.parent
       ? this.parent.id + STATE_DELIMITER + this.key
       : this.key;
+    this.relativeId =
+      this.parent && this.parent.parent
+        ? this.parent.relativeId + STATE_DELIMITER + this.key
+        : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = config.states
@@ -35,7 +61,7 @@ class StateNode<
           config.states,
           (stateConfig, key) =>
             new StateNode({
-              ...stateConfig,
+              ...(stateConfig as StateOrMachineConfig),
               key,
               parent: this
             })
@@ -43,15 +69,50 @@ class StateNode<
       : {} as Record<TStateKey, StateNode<string, string>>;
 
     this.on = config.on;
+    this.onEntry = config.onEntry;
+    this.onExit = config.onExit;
+    this.strict = !!config.strict;
+  }
+  public getStateNodes(state: StateValue | State): StateNode[] {
+    const stateValue = state instanceof State ? state.value : toTrie(state);
+
+    if (typeof stateValue === 'string') {
+      const initialStateValue = (this.states[stateValue] as StateNode).initial;
+
+      return initialStateValue
+        ? this.getStateNodes({ [stateValue]: initialStateValue })
+        : [this.states[stateValue]];
+    }
+
+    const subStateKeys = Object.keys(stateValue);
+    const foo = subStateKeys.map(subStateKey => this.states[subStateKey]);
+
+    return foo.concat(
+      subStateKeys
+        .map(subStateKey =>
+          this.states[subStateKey].getStateNodes(stateValue[subStateKey])
+        )
+        .reduce((a, b) => a.concat(b))
+    );
   }
   public transition(
     state: StateValue | State,
-    action: Action,
+    event: Event,
     extendedState?: any
   ): State | undefined {
+    if (this.strict) {
+      const eventType = getEventType(event);
+      if (this.events.indexOf(eventType) === -1) {
+        throw new Error(
+          `Machine '${this.id}' does not accept event '${eventType}'`
+        );
+      }
+    }
+
+    const stateValue = state instanceof State ? state.value : toTrie(state);
     const nextStateValue = this.transitionStateValue(
       state,
-      action,
+      event,
       extendedState
     );
 
@@ -59,19 +120,28 @@ class StateNode<
       return undefined;
     }
 
-    return new State(nextStateValue, State.from(state));
+    return new State(
+      // next state value
+      nextStateValue,
+      // history
+      State.from(state),
+      // effects
+      this.getEntryExitMap(stateValue, nextStateValue)
+    );
   }
   public transitionStateValue(
     state: StateValue | State,
-    action: Action,
+    event: Event,
     extendedState?: any
   ): StateValue | undefined {
-    const history = State.from(state).history;
-    let stateValue = toTrie(state instanceof State ? state.value : state);
+    const history = state instanceof State ? state.history : undefined;
+    let stateValue = state instanceof State ? state.value : toTrie(state);
 
     if (typeof stateValue === 'string') {
       if (!this.states[stateValue]) {
-        throw new Error('state doesnt exist');
+        throw new Error(
+          `State '${stateValue}' does not exist on machine '${this.id}'`
+        );
       }
 
       const subState = this.states[stateValue] as StateNode;
@@ -80,12 +150,10 @@ class StateNode<
       if (initialState) {
         stateValue = { [stateValue]: initialState };
       } else {
-        return (
-          subState.next(
-            action,
-            history ? history.value : undefined,
-            extendedState
-          ) || undefined
+        return subState.next(
+          event,
+          history ? history.value : undefined,
+          extendedState
         );
       }
     }
@@ -101,7 +169,12 @@ class StateNode<
         subHistory ? State.from(subHistory) : undefined
       );
       const subStateNode = this.states[subStateKey] as StateNode;
-      return subStateNode.transitionStateValue(subState, action, extendedState);
+      const nextSubStateValue = subStateNode.transitionStateValue(
+        subState,
+        event,
+        extendedState
+      );
+      return nextSubStateValue;
     });
 
     if (
@@ -115,7 +188,7 @@ class StateNode<
 
       const subStateKey = Object.keys(nextStateValue)[0];
       return this.states[subStateKey].next(
-        action,
+        event,
         history ? history.value : undefined
       );
     }
@@ -124,34 +197,36 @@ class StateNode<
       nextStateValue = { ...(this.initialState as {}), ...nextStateValue };
     }
 
-    return mapValues(nextStateValue, (value, key) => {
+    const finalStateValue = mapValues(nextStateValue, (value, key) => {
       if (value) {
         return value;
       }
 
       return stateValue[key];
     });
+
+    return finalStateValue;
   }
 
   public next(
-    action: Action,
+    event: Event,
     history?: StateValue,
     extendedState?: any
   ): StateValue | undefined {
-    const actionType = getActionType(action);
+    const eventType = getEventType(event);
 
-    if (!this.on || !this.on[actionType]) {
+    if (!this.on || !this.on[eventType]) {
       return undefined;
     }
 
-    const transition = this.on[actionType] as Transition;
+    const transition = this.on[eventType] as Transition;
     let nextStateString: string | undefined;
     if (typeof transition === 'string') {
       nextStateString = transition;
     } else {
       for (const candidate of Object.keys(transition)) {
-        const cond = transition[candidate];
-        if (cond(extendedState)) {
+        const { cond } = transition[candidate];
+        if (cond(extendedState, event)) {
           nextStateString = candidate;
           break;
         }
@@ -195,7 +270,7 @@ class StateNode<
 
       if (currentState === undefined) {
         throw new Error(
-          `Action '${action}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
+          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
         );
       }
 
@@ -219,15 +294,9 @@ class StateNode<
 
     return currentState.getRelativeValue(this.parent);
   }
-  public getInitialState(): StateValue | undefined {
-    console.warn(
-      'machine.getInitialState() will be deprecated in 2.0. Please use machine.initialState instead.'
-    );
-    return this.initialState;
-  }
   public get initialState(): StateValue | undefined {
-    this._initialState =
-      this._initialState ||
+    this.__cache.initialState =
+      this.__cache.initialState ||
       ((this.parallel
         ? mapValues(
             this.states as Record<string, StateNode>,
@@ -235,9 +304,22 @@ class StateNode<
           )
         : this.initial) as StateValue);
 
-    return this._initialState;
+    return this.__cache.initialState;
   }
-  public getState(relativeStateId: string): StateNode | undefined {
+  public getStates(stateValue: StateValue): StateNode[] {
+    if (typeof stateValue === 'string') {
+      return [this.states[stateValue]];
+    }
+
+    const stateNodes: StateNode[] = [];
+
+    Object.keys(stateValue).forEach(key => {
+      stateNodes.push(...this.states[key].getStates(stateValue[key]));
+    });
+
+    return stateNodes;
+  }
+  public getState(relativeStateId: string | string[]): StateNode | undefined {
     const statePath = toStatePath(relativeStateId);
 
     try {
@@ -253,12 +335,14 @@ class StateNode<
         this as StateNode
       );
     } catch (e) {
-      return undefined;
+      throw new Error(
+        `State '${relativeStateId} does not exist on machine '${this.id}'`
+      );
     }
   }
-  get events(): string[] {
-    if (this._events) {
-      return this._events;
+  get events(): EventType[] {
+    if (this.__cache.events) {
+      return this.__cache.events;
     }
     const { states } = this;
     const events = new Set(this.on ? Object.keys(this.on) : undefined);
@@ -274,11 +358,11 @@ class StateNode<
       });
     }
 
-    return (this._events = Array.from(events));
+    return (this.__cache.events = Array.from(events));
   }
   public getRelativeValue(toNode?: StateNode): StateValue {
     const memoizedRelativeValue = toNode
-      ? this._relativeValue.get(toNode)
+      ? this.__cache.relativeValue.get(toNode)
       : undefined;
 
     if (memoizedRelativeValue) {
@@ -305,14 +389,45 @@ class StateNode<
       currentNode = currentNode.parent as StateNode;
     }
 
-    this._relativeValue.set(toNode as StateNode, relativeValue);
+    this.__cache.relativeValue.set(toNode as StateNode, relativeValue);
 
     return relativeValue;
   }
+  private getEntryExitMap(
+    prevStateValue: StateValue,
+    nextStateValue: StateValue
+  ): EntryExitEffectMap {
+    const entry: Effect[] = [];
+
+    const exitEffectMap: Record<string, Effect> = {};
+
+    // Naively set all exit effects
+    this.getStateNodes(prevStateValue).forEach(stateNode => {
+      if (stateNode.onExit) {
+        exitEffectMap[stateNode.id] = stateNode.onExit;
+      }
+    });
+
+    // Set all entry effects, only if the state is being entered
+    this.getStateNodes(nextStateValue).forEach(stateNode => {
+      if (exitEffectMap[stateNode.id]) {
+        // Remove false exit effects
+        delete exitEffectMap[stateNode.id];
+      } else if (stateNode.onEntry) {
+        entry.push(stateNode.onEntry);
+      }
+    });
+
+    const exit = Object.keys(exitEffectMap).map(id => exitEffectMap[id]);
+
+    return { entry, exit };
+  }
 }
 
-function Machine(config: StateNodeConfig): StateNode {
-  return new StateNode(config);
+function Machine(
+  config: MachineConfig | ParallelMachineConfig
+): StandardMachine | ParallelMachine {
+  return new StateNode(config) as StandardMachine | ParallelMachine;
 }
 
 export { StateNode, Machine, State, matchesState, mapState };

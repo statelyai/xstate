@@ -3,14 +3,14 @@ import { StateNodeConfig } from './types';
 export function toggle(
   onState: string,
   offState: string,
-  actionType: string
+  eventType: string
 ): Record<string, StateNodeConfig> {
   return {
     [onState]: {
-      on: { [actionType]: offState }
+      on: { [eventType]: offState }
     },
     [offState]: {
-      on: { [actionType]: onState }
+      on: { [eventType]: onState }
     }
   };
 }

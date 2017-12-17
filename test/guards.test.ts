@@ -9,8 +9,12 @@ describe('guard conditions', () => {
       green: {
         on: {
           TIMER: {
-            green: ({ elapsed }) => elapsed < 100,
-            yellow: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+            green: {
+              cond: ({ elapsed }) => elapsed < 100
+            },
+            yellow: {
+              cond: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+            }
           }
         }
       },

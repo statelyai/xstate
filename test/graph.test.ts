@@ -74,43 +74,43 @@ describe('graph utilities', () => {
       const edges = getEdges(lightMachine);
       edges.every(edge => {
         return (
-          typeof edge.action === 'string' &&
+          typeof edge.event === 'string' &&
           edge.source instanceof StateNode &&
           edge.target instanceof StateNode
         );
       });
       assert.deepEqual(
         edges.map(edge => ({
-          action: edge.action,
+          event: edge.event,
           source: edge.source.id,
           target: edge.target.id
         })),
         [
-          { action: 'TIMER', source: 'light.green', target: 'light.yellow' },
-          { action: 'TIMER', source: 'light.yellow', target: 'light.red' },
+          { event: 'TIMER', source: 'light.green', target: 'light.yellow' },
+          { event: 'TIMER', source: 'light.yellow', target: 'light.red' },
           {
-            action: 'PED_COUNTDOWN',
+            event: 'PED_COUNTDOWN',
             source: 'light.red.walk',
             target: 'light.red.wait'
           },
           {
-            action: 'PED_COUNTDOWN',
+            event: 'PED_COUNTDOWN',
             source: 'light.red.wait',
             target: 'light.red.stop'
           },
-          { action: 'TIMER', source: 'light.red', target: 'light.green' },
+          { event: 'TIMER', source: 'light.red', target: 'light.green' },
           {
-            action: 'POWER_OUTAGE',
+            event: 'POWER_OUTAGE',
             source: 'light.red',
             target: 'light.red.flashing'
           },
           {
-            action: 'POWER_OUTAGE',
+            event: 'POWER_OUTAGE',
             source: 'light.yellow',
             target: 'light.red.flashing'
           },
           {
-            action: 'POWER_OUTAGE',
+            event: 'POWER_OUTAGE',
             source: 'light.green',
             target: 'light.red.flashing'
           }
@@ -122,35 +122,35 @@ describe('graph utilities', () => {
   describe('getAdjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
       assert.deepEqual(getAdjacencyMap(lightMachine), {
-        'light.green': {
-          TIMER: 'light.yellow',
-          POWER_OUTAGE: 'light.red.flashing'
+        green: {
+          TIMER: { state: 'yellow' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.yellow': {
-          TIMER: 'light.red.walk',
-          POWER_OUTAGE: 'light.red.flashing'
+        yellow: {
+          TIMER: { state: { red: 'walk' } },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        red: {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red.walk': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing',
-          PED_COUNTDOWN: 'light.red.wait'
+        'red.walk': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'wait' } }
         },
-        'light.red.wait': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing',
-          PED_COUNTDOWN: 'light.red.stop'
+        'red.wait': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'stop' } }
         },
-        'light.red.stop': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        'red.stop': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         },
-        'light.red.flashing': {
-          TIMER: 'light.green',
-          POWER_OUTAGE: 'light.red.flashing'
+        'red.flashing': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } }
         }
       });
     });
@@ -159,25 +159,30 @@ describe('graph utilities', () => {
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
-        'light.green': [],
-        'light.yellow': ['light.green'],
-        'light.red.flashing': ['light.green'],
-        'light.red.walk': ['light.green', 'light.yellow'],
-        'light.red.wait': ['light.green', 'light.yellow', 'light.red.walk'],
-        'light.red.stop': [
-          'light.green',
-          'light.yellow',
-          'light.red.walk',
-          'light.red.wait'
+        green: [],
+        yellow: [{ state: 'green', event: 'TIMER' }],
+        'red.flashing': [{ state: 'green', event: 'POWER_OUTAGE' }],
+        'red.walk': [
+          { state: 'green', event: 'TIMER' },
+          { state: 'yellow', event: 'TIMER' }
+        ],
+        'red.wait': [
+          { state: 'green', event: 'TIMER' },
+          { state: 'yellow', event: 'TIMER' },
+          { state: 'red.walk', event: 'PED_COUNTDOWN' }
+        ],
+        'red.stop': [
+          { state: 'green', event: 'TIMER' },
+          { state: 'yellow', event: 'TIMER' },
+          { state: 'red.walk', event: 'PED_COUNTDOWN' },
+          { state: 'red.wait', event: 'PED_COUNTDOWN' }
         ]
       });
     });
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[
-          `${lightMachine.id}.${lightMachine.initial}`
-        ],
+        (getShortestPaths(lightMachine) as IPathMap)[`${lightMachine.initial}`],
         0
       );
     });

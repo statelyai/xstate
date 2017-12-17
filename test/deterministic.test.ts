@@ -100,13 +100,13 @@ describe('deterministic machine', () => {
       );
     });
 
-    it('should properly transition states based on action-like object', () => {
-      const action = {
+    it('should properly transition states based on event-like object', () => {
+      const event = {
         type: 'TIMER'
       };
 
       assert.equal(
-        (lightMachine.transition('green', action) as State).toString(),
+        (lightMachine.transition('green', event) as State).toString(),
         'yellow'
       );
     });
@@ -115,7 +115,7 @@ describe('deterministic machine', () => {
       assert.isUndefined(lightMachine.transition('green', 'FAKE'));
     });
 
-    it('should throw an error if not given an action', () => {
+    it('should throw an error if not given an event', () => {
       // @ts-ignore
       assert.throws(() => (lightMachine.transition as any)('red', undefined));
     });
@@ -134,7 +134,7 @@ describe('deterministic machine', () => {
     it('should throw an error for transitions to invalid states', () => {
       assert.throws(
         () => testMachine.transition('a', 'F'),
-        "Action 'F' on state 'a' leads to undefined state 'c'."
+        "Event 'F' on state 'a' leads to undefined state 'c'."
       );
     });
 
@@ -168,7 +168,7 @@ describe('deterministic machine', () => {
       );
     });
 
-    it('should bubble up actions that nested states cannot handle', () => {
+    it('should bubble up events that nested states cannot handle', () => {
       assert.equal(
         (lightMachine.transition('red.wait', 'TIMER') as State).toString(),
         'green'
@@ -180,7 +180,7 @@ describe('deterministic machine', () => {
       );
     });
 
-    it('should not transition from illegal actions', () => {
+    it('should not transition from illegal events', () => {
       assert.isUndefined(lightMachine.transition('red.walk', 'FAKE'));
       assert.isUndefined(deepMachine.transition('a1', 'FAKE'));
     });

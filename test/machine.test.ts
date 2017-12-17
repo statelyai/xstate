@@ -55,7 +55,7 @@ describe('machine', () => {
   });
 
   describe('machine.events', () => {
-    it('should return the set of actions accepted by machine', () => {
+    it('should return the set of events accepted by machine', () => {
       assert.sameMembers(lightMachine.events, [
         'TIMER',
         'POWER_OUTAGE',
