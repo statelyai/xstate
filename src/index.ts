@@ -2,10 +2,15 @@ import { getEventType, toStatePath, toTrie, mapValues } from './utils';
 import {
   Event,
   StateValue,
-  StateNodeConfig,
   Transition,
   Effect,
-  EntryExitEffectMap
+  EntryExitEffectMap,
+  Machine,
+  StandardMachine,
+  ParallelMachine,
+  StateOrMachineConfig,
+  MachineConfig,
+  ParallelMachineConfig
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -36,7 +41,7 @@ class StateNode<
     initialState: undefined as StateValue | undefined
   };
 
-  constructor(config: StateNodeConfig<TStateKey, TEventType>) {
+  constructor(config: StateOrMachineConfig<TStateKey, TEventType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
@@ -54,7 +59,7 @@ class StateNode<
           config.states,
           (stateConfig, key) =>
             new StateNode({
-              ...stateConfig,
+              ...(stateConfig as StateOrMachineConfig),
               key,
               parent: this
             })
@@ -403,8 +408,10 @@ class StateNode<
   }
 }
 
-function Machine(config: StateNodeConfig): StateNode {
-  return new StateNode(config);
+function Machine(
+  config: MachineConfig | ParallelMachineConfig
+): StandardMachine | ParallelMachine {
+  return new StateNode(config) as StandardMachine | ParallelMachine;
 }
 
 export { StateNode, Machine, State, matchesState, mapState };
