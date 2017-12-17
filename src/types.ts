@@ -41,16 +41,16 @@ export interface StateNodeConfig<
   onEntry?: Effect;
   onExit?: Effect;
   parent?: StateNode;
+  strict?: boolean;
 }
 
 export interface StateLeafNodeConfig<
   TStateKey extends string = string,
   TEventType extends string = string
 > extends StateNodeConfig<TStateKey, TEventType> {
-  initial: never;
-  parallel: never;
-  states: never;
-  parent: StateNode;
+  initial?: undefined;
+  parallel?: undefined;
+  states?: undefined;
 }
 
 export interface BaseMachineConfig<
@@ -61,9 +61,6 @@ export interface BaseMachineConfig<
   initial?: string | undefined;
   parallel?: boolean;
   states: Record<TStateKey, StateOrMachineConfig>;
-  on?: undefined;
-  onEntry?: undefined;
-  onExit?: undefined;
 }
 
 export interface MachineConfig<
@@ -86,9 +83,9 @@ export type StateOrMachineConfig<
   TStateKey extends string = string,
   TEventType extends string = string
 > =
-  | StateLeafNodeConfig<TStateKey, TEventType>
   | MachineConfig<TStateKey, TEventType>
-  | ParallelMachineConfig<TStateKey, TEventType>;
+  | ParallelMachineConfig<TStateKey, TEventType>
+  | StateLeafNodeConfig<TStateKey, TEventType>;
 
 export type Effect = string | (<T>(extendedState: T) => T | void);
 export interface EntryExitEffectMap {
@@ -113,7 +110,14 @@ export interface StateNode<
   machine: Machine;
 }
 
-export interface StateLeafNode<
+export interface ComplexStateNode<
+  TStateKey extends string = string,
+  TEventType extends string = string
+> extends StateNode<TStateKey, TEventType> {
+  initial: string;
+}
+
+export interface LeafStateNode<
   TStateKey extends string = string,
   TEventType extends string = string
 > extends StateNode<TStateKey, TEventType> {

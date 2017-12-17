@@ -10,7 +10,8 @@ import {
   ParallelMachine,
   StateOrMachineConfig,
   MachineConfig,
-  ParallelMachineConfig
+  ParallelMachineConfig,
+  EventType
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -32,11 +33,12 @@ class StateNode<
   public on?: Record<TEventType, Transition<TStateKey>>;
   public onEntry?: Effect;
   public onExit?: Effect;
+  public strict: boolean;
   public parent?: StateNode;
   public machine: StateNode;
 
   private __cache = {
-    events: undefined as string[] | undefined,
+    events: undefined as EventType[] | undefined,
     relativeValue: new Map() as Map<StateNode, StateValue>,
     initialState: undefined as StateValue | undefined
   };
@@ -69,6 +71,7 @@ class StateNode<
     this.on = config.on;
     this.onEntry = config.onEntry;
     this.onExit = config.onExit;
+    this.strict = !!config.strict;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue = state instanceof State ? state.value : toTrie(state);
@@ -97,6 +100,15 @@ class StateNode<
     event: Event,
     extendedState?: any
   ): State | undefined {
+    if (this.strict) {
+      const eventType = getEventType(event);
+      if (this.events.indexOf(eventType) === -1) {
+        throw new Error(
+          `Machine '${this.id}' does not accept event '${eventType}'`
+        );
+      }
+    }
+
     const stateValue = state instanceof State ? state.value : toTrie(state);
     const nextStateValue = this.transitionStateValue(
       state,
@@ -127,7 +139,9 @@ class StateNode<
 
     if (typeof stateValue === 'string') {
       if (!this.states[stateValue]) {
-        throw new Error(`State ${stateValue} does not exist`);
+        throw new Error(
+          `State '${stateValue}' does not exist on machine '${this.id}'`
+        );
       }
 
       const subState = this.states[stateValue] as StateNode;
@@ -321,10 +335,12 @@ class StateNode<
         this as StateNode
       );
     } catch (e) {
-      return undefined;
+      throw new Error(
+        `State '${relativeStateId} does not exist on machine '${this.id}'`
+      );
     }
   }
-  get events(): string[] {
+  get events(): EventType[] {
     if (this.__cache.events) {
       return this.__cache.events;
     }
