@@ -3,7 +3,7 @@ import { mapValues } from './utils';
 import { Transition, StateValue } from './types';
 
 export interface IEdge {
-  action: string;
+  event: string;
   source: StateNode;
   target: StateNode;
 }
@@ -58,18 +58,18 @@ export function getEdges(
     return subNodeEdges;
   }
 
-  const edges = Object.keys(node.on).reduce((accEdges: IEdge[], action) => {
+  const edges = Object.keys(node.on).reduce((accEdges: IEdge[], event) => {
     if (!node.on || !node.parent) {
       return accEdges;
     }
 
     const { parent } = node;
 
-    const transition = node.on[action];
+    const transition = node.on[event];
     const subStateKeys = getTransitionStateKeys(transition);
     subStateKeys.forEach(subStateKey => {
       const subNode = parent.getState(subStateKey) as StateNode;
-      const edge: IEdge = { action, source: node, target: subNode };
+      const edge: IEdge = { event, source: node, target: subNode };
 
       accEdges.push(edge);
 
@@ -86,7 +86,7 @@ export function getEdges(
 }
 
 export interface IPathMap {
-  [key: string]: Array<{ state: string; action: string }>;
+  [key: string]: Array<{ state: string; event: string }>;
 }
 
 export interface ITransitionMap {
@@ -98,26 +98,26 @@ export interface IAdjacencyMap {
 }
 
 export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
-  const actionMap: Record<string, ITransitionMap> | undefined = node.parent
+  const eventMap: Record<string, ITransitionMap> | undefined = node.parent
     ? {}
     : undefined;
   const adjacency: IAdjacencyMap = {};
 
   if (node.on) {
-    for (const action of Object.keys(node.on)) {
-      if (!node.parent || !actionMap) {
+    for (const event of Object.keys(node.on)) {
+      if (!node.parent || !eventMap) {
         continue;
       }
 
-      const nextState = node.machine.transition(node.relativeId, action);
+      const nextState = node.machine.transition(node.relativeId, event);
 
       if (!nextState) {
         continue;
       }
 
-      actionMap[action] = { state: nextState.value };
+      eventMap[event] = { state: nextState.value };
 
-      // const transitionConfig = node.on[action];
+      // const transitionConfig = node.on[event];
       // const subStateKeys = getTransitionStateKeys(transitionConfig);
 
       // if (!subStateKeys.length) {
@@ -132,12 +132,12 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
       //   nextStateId += '.' + nextState.initial;
       // }
 
-      // actionMap[action] = nextStateId;
+      // eventMap[event] = nextStateId;
     }
   }
 
-  if (actionMap) {
-    adjacency[node.relativeId] = actionMap;
+  if (eventMap) {
+    adjacency[node.relativeId] = eventMap;
   }
 
   if (node.states) {
@@ -145,7 +145,7 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
       const state = node.states[stateKey];
       const stateAdjacency = mapValues(getAdjacencyMap(state), value => {
         return {
-          ...actionMap,
+          ...eventMap,
           ...value
         };
       });
@@ -189,10 +189,10 @@ function shortestPaths(
   visited: Set<string> = new Set()
 ): IPathMap {
   visited.add(stateId);
-  const actionMap = adjacency[stateId];
+  const eventMap = adjacency[stateId];
 
-  for (const action of Object.keys(actionMap)) {
-    const nextStateValue = actionMap[action].state;
+  for (const event of Object.keys(eventMap)) {
+    const nextStateValue = eventMap[event].state;
 
     if (!nextStateValue) {
       continue;
@@ -204,12 +204,12 @@ function shortestPaths(
       !pathMap[nextStateId] ||
       pathMap[nextStateId].length > pathMap[stateId].length + 1
     ) {
-      pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, action }];
+      pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, event }];
     }
   }
 
-  for (const action of Object.keys(actionMap)) {
-    const nextStateValue = actionMap[action].state;
+  for (const event of Object.keys(eventMap)) {
+    const nextStateValue = eventMap[event].state;
 
     if (!nextStateValue) {
       continue;

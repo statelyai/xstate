@@ -100,16 +100,16 @@ describe('parallel states', () => {
   };
 
   Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(actionTypes => {
-      const toState = expected[fromState][actionTypes];
+    Object.keys(expected[fromState]).forEach(eventTypes => {
+      const toState = expected[fromState][eventTypes];
 
       it(`should go from ${fromState} to ${JSON.stringify(
         toState
-      )} on ${actionTypes}`, () => {
+      )} on ${eventTypes}`, () => {
         const resultState = testMultiTransition(
           wordMachine,
           fromState,
-          actionTypes
+          eventTypes
         );
 
         assert.deepEqual(resultState.value, toState);

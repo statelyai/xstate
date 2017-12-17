@@ -1,14 +1,14 @@
 import State from './State';
-import { Action, StateValue, ActionType } from './types';
+import { Event, StateValue, EventType } from './types';
 
-export function getActionType(action: Action): ActionType {
+export function getEventType(event: Event): EventType {
   try {
-    return typeof action === 'string' || typeof action === 'number'
-      ? `${action}`
-      : action.type;
+    return typeof event === 'string' || typeof event === 'number'
+      ? `${event}`
+      : event.type;
   } catch (e) {
     throw new Error(
-      'Actions must be strings or objects with a string action.type.'
+      'Events must be strings or objects with a string event.type property.'
     );
   }
 }

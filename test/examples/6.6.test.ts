@@ -66,11 +66,11 @@
 //   };
 
 //   Object.keys(expected).forEach(fromState => {
-//     Object.keys(expected[fromState]).forEach(actionType => {
-//       const toState = expected[fromState][actionType];
+//     Object.keys(expected[fromState]).forEach(eventType => {
+//       const toState = expected[fromState][eventType];
 
 //       it(`should go from ${fromState} to ${toState}`, () => {
-//         assert.equal(machine.transition(fromState, actionType).value, toState);
+//         assert.equal(machine.transition(fromState, eventType).value, toState);
 //       });
 //     });
 //   });

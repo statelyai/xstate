@@ -1,12 +1,12 @@
 import { StateNode } from './index';
 import State from './State';
 
-export type ActionType = string | number;
+export type EventType = string | number;
 
-export type Action =
-  | ActionType
+export type Event =
+  | EventType
   | {
-      type: ActionType;
+      type: EventType;
       [key: string]: any;
     };
 
@@ -21,8 +21,8 @@ export type StateValue = string | StateValueMap;
 export type Condition = (extendedState: any) => boolean;
 
 export interface TransitionConfig {
-  cond: (extendedState: any, action: Action) => boolean;
-  onTransition?: (extendedState: any, action: Action) => void;
+  cond: (extendedState: any, event: Event) => boolean;
+  onTransition?: (extendedState: any, event: Event) => void;
 }
 
 export type Transition<TStateKey extends string = string> =
@@ -31,13 +31,13 @@ export type Transition<TStateKey extends string = string> =
 
 export interface StateNodeConfig<
   TStateKey extends string = string,
-  TActionType extends string = string
+  TEventType extends string = string
 > {
   initial?: string;
   states?: Record<TStateKey, StateNodeConfig>;
   parallel?: boolean;
   key?: string;
-  on?: Record<TActionType, Transition<TStateKey>>;
+  on?: Record<TEventType, Transition<TStateKey>>;
   onEntry?: Effect;
   onExit?: Effect;
   parent?: StateNode;

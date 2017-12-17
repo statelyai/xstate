@@ -1,6 +1,6 @@
-import { getActionType, toStatePath, toTrie, mapValues } from './utils';
+import { getEventType, toStatePath, toTrie, mapValues } from './utils';
 import {
-  Action,
+  Event,
   StateValue,
   StateNodeConfig,
   Transition,
@@ -16,7 +16,7 @@ const HISTORY_KEY = '$history';
 
 class StateNode<
   TStateKey extends string = string,
-  TActionType extends string = string
+  TEventType extends string = string
 > {
   public key: string;
   public id: string;
@@ -24,7 +24,7 @@ class StateNode<
   public initial?: string;
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
-  public on?: Record<TActionType, Transition<TStateKey>>;
+  public on?: Record<TEventType, Transition<TStateKey>>;
   public onEntry?: Effect;
   public onExit?: Effect;
   public parent?: StateNode;
@@ -36,7 +36,7 @@ class StateNode<
     initialState: undefined as StateValue | undefined
   };
 
-  constructor(config: StateNodeConfig<TStateKey, TActionType>) {
+  constructor(config: StateNodeConfig<TStateKey, TEventType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
@@ -89,13 +89,13 @@ class StateNode<
   }
   public transition(
     state: StateValue | State,
-    action: Action,
+    event: Event,
     extendedState?: any
   ): State | undefined {
     const stateValue = state instanceof State ? state.value : toTrie(state);
     const nextStateValue = this.transitionStateValue(
       state,
-      action,
+      event,
       extendedState
     );
 
@@ -114,7 +114,7 @@ class StateNode<
   }
   public transitionStateValue(
     state: StateValue | State,
-    action: Action,
+    event: Event,
     extendedState?: any
   ): StateValue | undefined {
     const history = state instanceof State ? state.history : undefined;
@@ -132,7 +132,7 @@ class StateNode<
         stateValue = { [stateValue]: initialState };
       } else {
         return subState.next(
-          action,
+          event,
           history ? history.value : undefined,
           extendedState
         );
@@ -152,7 +152,7 @@ class StateNode<
       const subStateNode = this.states[subStateKey] as StateNode;
       const nextSubStateValue = subStateNode.transitionStateValue(
         subState,
-        action,
+        event,
         extendedState
       );
       return nextSubStateValue;
@@ -169,7 +169,7 @@ class StateNode<
 
       const subStateKey = Object.keys(nextStateValue)[0];
       return this.states[subStateKey].next(
-        action,
+        event,
         history ? history.value : undefined
       );
     }
@@ -190,24 +190,24 @@ class StateNode<
   }
 
   public next(
-    action: Action,
+    event: Event,
     history?: StateValue,
     extendedState?: any
   ): StateValue | undefined {
-    const actionType = getActionType(action);
+    const eventType = getEventType(event);
 
-    if (!this.on || !this.on[actionType]) {
+    if (!this.on || !this.on[eventType]) {
       return undefined;
     }
 
-    const transition = this.on[actionType] as Transition;
+    const transition = this.on[eventType] as Transition;
     let nextStateString: string | undefined;
     if (typeof transition === 'string') {
       nextStateString = transition;
     } else {
       for (const candidate of Object.keys(transition)) {
         const { cond } = transition[candidate];
-        if (cond(extendedState, action)) {
+        if (cond(extendedState, event)) {
           nextStateString = candidate;
           break;
         }
@@ -251,7 +251,7 @@ class StateNode<
 
       if (currentState === undefined) {
         throw new Error(
-          `Action '${action}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
+          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
         );
       }
 
