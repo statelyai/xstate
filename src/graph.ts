@@ -226,3 +226,46 @@ function shortestPaths(
 
   return pathMap;
 }
+
+export function getSimplePaths(machine: StateNode): void {
+  if (!machine.states || !machine.initial) {
+    return undefined;
+  }
+
+  const adjacency = getAdjacencyMap(machine);
+  const visited = new Set();
+  const paths: string[] = [];
+
+  // console.log({ adjacency });
+
+  function util(fromPathId: string, toPathId: string) {
+    // console.log({ fromPathId, toPathId });
+    visited.add(fromPathId);
+    paths.push(fromPathId);
+
+    if (fromPathId === toPathId) {
+      console.log(paths.join(' > '));
+    } else {
+      for (const event of Object.keys(adjacency[fromPathId])) {
+        const nextStateValue = adjacency[fromPathId][event].state;
+
+        if (!nextStateValue) {
+          continue;
+        }
+
+        const nextStateId = trieToString(nextStateValue);
+
+        if (!visited.has(nextStateId)) {
+          util(nextStateId, toPathId);
+        }
+      }
+    }
+
+    paths.pop();
+    visited.delete(fromPathId);
+  }
+
+  Object.keys(adjacency).forEach(stateId => {
+    util(machine.initial as string, stateId);
+  });
+}

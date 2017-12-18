@@ -10,7 +10,7 @@ import {
   ParallelMachine,
   StateOrMachineConfig,
   MachineConfig,
-  ParallelMachineConfig,
+  // ParallelMachineConfig,
   EventType
 } from './types';
 import matchesState from './matchesState';
@@ -425,7 +425,7 @@ class StateNode<
 }
 
 function Machine(
-  config: MachineConfig | ParallelMachineConfig
+  config: MachineConfig //| ParallelMachineConfig
 ): StandardMachine | ParallelMachine {
   return new StateNode(config) as StandardMachine | ParallelMachine;
 }

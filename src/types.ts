@@ -37,7 +37,7 @@ export interface StateNodeConfig<
   states?: Record<TStateKey, StateOrMachineConfig>;
   parallel?: boolean;
   key?: string;
-  on?: Record<TEventType, Transition<TStateKey>>;
+  on?: Record<TEventType, Transition<TStateKey> | undefined>;
   onEntry?: Effect;
   onExit?: Effect;
   parent?: StateNode;
