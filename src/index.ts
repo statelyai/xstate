@@ -10,7 +10,7 @@ import {
   ParallelMachine,
   StateOrMachineConfig,
   MachineConfig,
-  // ParallelMachineConfig,
+  ParallelMachineConfig,
   EventType
 } from './types';
 import matchesState from './matchesState';
@@ -30,7 +30,7 @@ class StateNode<
   public initial?: string;
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
-  public on?: Record<TEventType, Transition<TStateKey>>;
+  public on?: Record<TEventType, Transition<TStateKey> | undefined>;
   public onEntry?: Effect;
   public onExit?: Effect;
   public strict: boolean;
@@ -425,7 +425,7 @@ class StateNode<
 }
 
 function Machine(
-  config: MachineConfig //| ParallelMachineConfig
+  config: MachineConfig | ParallelMachineConfig
 ): StandardMachine | ParallelMachine {
   return new StateNode(config) as StandardMachine | ParallelMachine;
 }
