@@ -66,6 +66,11 @@ export function getEdges(
     const { parent } = node;
 
     const transition = node.on[event];
+
+    if (!transition) {
+      return accEdges;
+    }
+
     const subStateKeys = getTransitionStateKeys(transition);
     subStateKeys.forEach(subStateKey => {
       const subNode = parent.getState(subStateKey) as StateNode;
