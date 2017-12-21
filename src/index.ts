@@ -11,7 +11,8 @@ import {
   StateOrMachineConfig,
   MachineConfig,
   ParallelMachineConfig,
-  EventType
+  EventType,
+  EventObject
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -129,7 +130,21 @@ class StateNode<
       this.getEntryExitMap(stateValue, nextStateValue)
     );
   }
-  public transitionStateValue(
+  public maybeTransition(
+    state: StateValue | State,
+    event: Event,
+    extendedState?: any
+  ): State {
+    const nextState = this.transition(state, event, extendedState);
+
+    if (!nextState) {
+      const stateValue = state instanceof State ? state.value : toTrie(state);
+      return new State(stateValue, State.from(state), { entry: [], exit: [] });
+    }
+
+    return nextState;
+  }
+  private transitionStateValue(
     state: StateValue | State,
     event: Event,
     extendedState?: any
@@ -226,7 +241,11 @@ class StateNode<
     } else {
       for (const candidate of Object.keys(transition)) {
         const { cond } = transition[candidate];
-        if (cond(extendedState, event)) {
+        const eventObject: EventObject =
+          typeof event === 'string' || typeof event === 'number'
+            ? { type: event }
+            : event;
+        if (!cond || cond(extendedState, eventObject)) {
           nextStateString = candidate;
           break;
         }
