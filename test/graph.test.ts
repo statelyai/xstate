@@ -5,7 +5,8 @@ import {
   getEdges,
   getAdjacencyMap,
   getShortestPaths,
-  IPathMap
+  IPathMap,
+  getSimplePaths
 } from '../src/graph';
 
 describe('graph utilities', () => {
@@ -185,6 +186,13 @@ describe('graph utilities', () => {
         (getShortestPaths(lightMachine) as IPathMap)[`${lightMachine.initial}`],
         0
       );
+    });
+  });
+
+  // TODO: fix action position
+  xdescribe('getSimplePaths()', () => {
+    it('should return a mapping of arrays of simple paths to all states', () => {
+      assert.deepEqual(getSimplePaths(lightMachine), {});
     });
   });
 });

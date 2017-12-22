@@ -90,8 +90,17 @@ export function getEdges(
   return subNodeEdges.concat(edges);
 }
 
+export interface Segment {
+  state: string;
+  event: string;
+}
+
 export interface IPathMap {
-  [key: string]: Array<{ state: string; event: string }>;
+  [key: string]: Segment[];
+}
+
+export interface IPathsMap {
+  [key: string]: Segment[][];
 }
 
 export interface ITransitionMap {
@@ -168,11 +177,52 @@ export function getShortestPaths(machine: StateNode): IPathMap | undefined {
   }
   const adjacency = getAdjacencyMap(machine);
   const initialId = trieToString(machine.initialState as StateValue);
-  const pathMap = {
+  const pathMap: IPathMap = {
     [initialId]: []
   };
+  const visited: Set<string> = new Set();
 
-  shortestPaths(adjacency, initialId, pathMap);
+  function util(stateId: string): IPathMap {
+    visited.add(stateId);
+    const eventMap = adjacency[stateId];
+
+    for (const event of Object.keys(eventMap)) {
+      const nextStateValue = eventMap[event].state;
+
+      if (!nextStateValue) {
+        continue;
+      }
+
+      const nextStateId = trieToString(nextStateValue);
+
+      if (
+        !pathMap[nextStateId] ||
+        pathMap[nextStateId].length > pathMap[stateId].length + 1
+      ) {
+        pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, event }];
+      }
+    }
+
+    for (const event of Object.keys(eventMap)) {
+      const nextStateValue = eventMap[event].state;
+
+      if (!nextStateValue) {
+        continue;
+      }
+
+      const nextStateId = trieToString(nextStateValue);
+
+      if (visited.has(nextStateId)) {
+        continue;
+      }
+
+      util(nextStateId);
+    }
+
+    return pathMap;
+  }
+
+  util(initialId);
 
   return pathMap;
 }
@@ -187,72 +237,26 @@ function trieToString(trie: StateValue): string {
   return [firstKey].concat(trieToString(trie[firstKey])).join('.');
 }
 
-function shortestPaths(
-  adjacency: IAdjacencyMap,
-  stateId: string,
-  pathMap: IPathMap,
-  visited: Set<string> = new Set()
-): IPathMap {
-  visited.add(stateId);
-  const eventMap = adjacency[stateId];
-
-  for (const event of Object.keys(eventMap)) {
-    const nextStateValue = eventMap[event].state;
-
-    if (!nextStateValue) {
-      continue;
-    }
-
-    const nextStateId = trieToString(nextStateValue);
-
-    if (
-      !pathMap[nextStateId] ||
-      pathMap[nextStateId].length > pathMap[stateId].length + 1
-    ) {
-      pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, event }];
-    }
-  }
-
-  for (const event of Object.keys(eventMap)) {
-    const nextStateValue = eventMap[event].state;
-
-    if (!nextStateValue) {
-      continue;
-    }
-
-    const nextStateId = trieToString(nextStateValue);
-
-    if (visited.has(nextStateId)) {
-      continue;
-    }
-
-    shortestPaths(adjacency, nextStateId, pathMap, visited);
-  }
-
-  return pathMap;
-}
-
-export function getSimplePaths(machine: StateNode): void {
+export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
   if (!machine.states || !machine.initial) {
     return undefined;
   }
 
   const adjacency = getAdjacencyMap(machine);
   const visited = new Set();
-  const paths: string[] = [];
+  const path: Segment[] = [];
+  const paths: IPathsMap = {};
 
-  // console.log({ adjacency });
-
-  function util(fromPathId: string, toPathId: string) {
-    // console.log({ fromPathId, toPathId });
+  function util(fromPathId: string, toPathId: string, event: string) {
     visited.add(fromPathId);
-    paths.push(fromPathId);
+    path.push({ state: fromPathId, event });
 
     if (fromPathId === toPathId) {
-      console.log(paths.join(' > '));
+      paths[toPathId] = paths[toPathId] || [];
+      paths[toPathId].push([...path]);
     } else {
-      for (const event of Object.keys(adjacency[fromPathId])) {
-        const nextStateValue = adjacency[fromPathId][event].state;
+      for (const subEvent of Object.keys(adjacency[fromPathId])) {
+        const nextStateValue = adjacency[fromPathId][subEvent].state;
 
         if (!nextStateValue) {
           continue;
@@ -261,16 +265,22 @@ export function getSimplePaths(machine: StateNode): void {
         const nextStateId = trieToString(nextStateValue);
 
         if (!visited.has(nextStateId)) {
-          util(nextStateId, toPathId);
+          util(nextStateId, toPathId, subEvent);
         }
       }
     }
 
-    paths.pop();
+    path.pop();
     visited.delete(fromPathId);
   }
 
   Object.keys(adjacency).forEach(stateId => {
-    util(machine.initial as string, stateId);
+    const events = Object.keys(adjacency[stateId]);
+
+    events.forEach(event => {
+      util(machine.initial as string, stateId, event);
+    });
   });
+
+  return paths;
 }
