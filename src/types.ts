@@ -21,7 +21,7 @@ export type Condition = (extendedState: any) => boolean;
 
 export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
-  onTransition?: (extendedState: any, event: EventObject) => void;
+  actions?: string[];
 }
 
 export type Transition<TStateKey extends string = string> =
@@ -37,8 +37,8 @@ export interface StateNodeConfig<
   parallel?: boolean;
   key?: string;
   on?: Record<TEventType, Transition<TStateKey> | undefined>;
-  onEntry?: Effect;
-  onExit?: Effect;
+  onEntry?: Action;
+  onExit?: Action;
   parent?: StateNode;
   strict?: boolean;
 }
@@ -86,12 +86,12 @@ export type StateOrMachineConfig<
   | ParallelMachineConfig<TStateKey, TEventType>
   | StateLeafNodeConfig<TStateKey, TEventType>;
 
-export type Effect =
+export type Action =
   | string
   | (<T>(extendedState: T, event?: Partial<Event>, ...other: any[]) => T | any);
 export interface EntryExitEffectMap {
-  entry: Effect[];
-  exit: Effect[];
+  entry: Action[];
+  exit: Action[];
 }
 
 export interface StateNode<
@@ -105,8 +105,8 @@ export interface StateNode<
   parallel: boolean;
   states: Record<TStateKey, StateNode>;
   on?: Record<TEventType, Transition<TStateKey>>;
-  onEntry?: Effect;
-  onExit?: Effect;
+  onEntry?: Action;
+  onExit?: Action;
   parent: StateNode | undefined;
   machine: Machine;
 }
