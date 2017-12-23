@@ -14,7 +14,8 @@
     "version": "npm run build",
     "postinstall": "npm run build && npm run build:utils",
     "postversion": "git push && git push --tags",
-    "prepublish": "npm run build"
+    "prepublish": "npm run build",
+    "publish:beta": "npm version patch && npm publish --tag beta"
   },
   "repository": {
     "type": "git",
