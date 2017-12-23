@@ -8,6 +8,8 @@ import {
   IPathMap,
   getSimplePaths
 } from '../src/graph';
+// tslint:disable-next-line:no-var-requires
+// import * as util from 'util';
 
 describe('graph utilities', () => {
   const pedestrianStates = {
@@ -189,10 +191,172 @@ describe('graph utilities', () => {
     });
   });
 
-  // TODO: fix action position
-  xdescribe('getSimplePaths()', () => {
+  describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      assert.deepEqual(getSimplePaths(lightMachine), {});
+      assert.deepEqual(getSimplePaths(lightMachine), {
+        green: [[]],
+        'red.flashing': [
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            },
+            {
+              event: 'POWER_OUTAGE',
+              state: 'red.walk'
+            }
+          ],
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.walk'
+            },
+            {
+              event: 'POWER_OUTAGE',
+              state: 'red.wait'
+            }
+          ],
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.walk'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.wait'
+            },
+            {
+              event: 'POWER_OUTAGE',
+              state: 'red.stop'
+            }
+          ],
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'POWER_OUTAGE',
+              state: 'yellow'
+            }
+          ],
+          [
+            {
+              event: 'POWER_OUTAGE',
+              state: 'green'
+            }
+          ]
+        ],
+        'red.stop': [
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.walk'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.wait'
+            }
+          ]
+        ],
+        'red.wait': [
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            },
+            {
+              event: 'PED_COUNTDOWN',
+              state: 'red.walk'
+            }
+          ]
+        ],
+        'red.walk': [
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            },
+            {
+              event: 'TIMER',
+              state: 'yellow'
+            }
+          ]
+        ],
+        yellow: [
+          [
+            {
+              event: 'TIMER',
+              state: 'green'
+            }
+          ]
+        ]
+      });
+    });
+
+    const equivMachine = Machine({
+      initial: 'a',
+      states: {
+        a: { on: { FOO: 'b', BAR: 'b' } },
+        b: { on: { FOO: 'a', BAR: 'a' } }
+      }
+    });
+
+    it('should return multiple paths for equivalent transitions', () => {
+      assert.deepEqual(getSimplePaths(equivMachine), {
+        a: [[]],
+        b: [
+          [
+            {
+              event: 'FOO',
+              state: 'a'
+            }
+          ],
+          [
+            {
+              event: 'BAR',
+              state: 'a'
+            }
+          ]
+        ]
+      });
+    });
+
+    it('should return a single empty path for the initial state', () => {
+      assert.deepEqual(getSimplePaths(lightMachine)!.green, [[]]);
+      assert.deepEqual(getSimplePaths(equivMachine)!.a, [[]]);
     });
   });
 });

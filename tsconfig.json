@@ -20,6 +20,8 @@
     "src/**/*"
   ],
   "exclude": [
-    "test/**/*"
+    "test/**/*",
+    "examples/**/*",
+    "editor/node_modules/**/*"
   ]
 }

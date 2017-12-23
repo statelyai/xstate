@@ -247,9 +247,8 @@ export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
   const path: Segment[] = [];
   const paths: IPathsMap = {};
 
-  function util(fromPathId: string, toPathId: string, event: string) {
+  function util(fromPathId: string, toPathId: string) {
     visited.add(fromPathId);
-    path.push({ state: fromPathId, event });
 
     if (fromPathId === toPathId) {
       paths[toPathId] = paths[toPathId] || [];
@@ -265,7 +264,8 @@ export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
         const nextStateId = trieToString(nextStateValue);
 
         if (!visited.has(nextStateId)) {
-          util(nextStateId, toPathId, subEvent);
+          path.push({ state: fromPathId, event: subEvent });
+          util(nextStateId, toPathId);
         }
       }
     }
@@ -274,12 +274,10 @@ export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
     visited.delete(fromPathId);
   }
 
-  Object.keys(adjacency).forEach(stateId => {
-    const events = Object.keys(adjacency[stateId]);
+  const initialStateId = machine.initialState as string;
 
-    events.forEach(event => {
-      util(machine.initial as string, stateId, event);
-    });
+  Object.keys(adjacency).forEach(nextStateId => {
+    util(initialStateId, nextStateId);
   });
 
   return paths;

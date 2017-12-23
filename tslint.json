@@ -13,5 +13,6 @@
     "interface-name": false,
     "member-ordering": false
   },
-  "rulesDirectory": []
+  "rulesDirectory": [],
+  "ignorePaths": ["examples/", "editor/"]
 }
