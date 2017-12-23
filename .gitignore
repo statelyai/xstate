@@ -31,3 +31,4 @@ node_modules
 dist/
 lib/
 editor/
+examples/

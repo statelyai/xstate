@@ -3,15 +3,15 @@ import {
   Event,
   StateValue,
   Transition,
-  Effect,
-  EntryExitEffectMap,
+  Action,
   Machine,
   StandardMachine,
   ParallelMachine,
   StateOrMachineConfig,
   MachineConfig,
   ParallelMachineConfig,
-  EventType
+  EventType,
+  EventObject
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -30,9 +30,9 @@ class StateNode<
   public initial?: string;
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
-  public on?: Record<TEventType, Transition<TStateKey>>;
-  public onEntry?: Effect;
-  public onExit?: Effect;
+  public on?: Record<TEventType, Transition<TStateKey> | undefined>;
+  public onEntry?: Action;
+  public onExit?: Action;
   public strict: boolean;
   public parent?: StateNode;
   public machine: StateNode;
@@ -110,15 +110,17 @@ class StateNode<
     }
 
     const stateValue = state instanceof State ? state.value : toTrie(state);
-    const nextStateValue = this.transitionStateValue(
+    const nextStateValueActionsTuple = this.transitionStateValue(
       state,
       event,
       extendedState
     );
 
-    if (!nextStateValue) {
+    if (!nextStateValueActionsTuple) {
       return undefined;
     }
+
+    const [nextStateValue, actions] = nextStateValueActionsTuple;
 
     return new State(
       // next state value
@@ -126,14 +128,28 @@ class StateNode<
       // history
       State.from(state),
       // effects
-      this.getEntryExitMap(stateValue, nextStateValue)
+      this.getActions(stateValue, nextStateValue, actions)
     );
   }
-  public transitionStateValue(
+  public maybeTransition(
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): StateValue | undefined {
+  ): State {
+    const nextState = this.transition(state, event, extendedState);
+
+    if (!nextState) {
+      const stateValue = state instanceof State ? state.value : toTrie(state);
+      return new State(stateValue, State.from(state));
+    }
+
+    return nextState;
+  }
+  private transitionStateValue(
+    state: StateValue | State,
+    event: Event,
+    extendedState?: any
+  ): [StateValue, string[]] | undefined {
     const history = state instanceof State ? state.history : undefined;
     let stateValue = state instanceof State ? state.value : toTrie(state);
 
@@ -169,12 +185,13 @@ class StateNode<
         subHistory ? State.from(subHistory) : undefined
       );
       const subStateNode = this.states[subStateKey] as StateNode;
-      const nextSubStateValue = subStateNode.transitionStateValue(
+      const nextSubStateValueActionsTuple = subStateNode.transitionStateValue(
         subState,
         event,
         extendedState
       );
-      return nextSubStateValue;
+
+      return nextSubStateValueActionsTuple || undefined;
     });
 
     if (
@@ -194,26 +211,40 @@ class StateNode<
     }
 
     if (this.parallel) {
-      nextStateValue = { ...(this.initialState as {}), ...nextStateValue };
+      nextStateValue = {
+        ...(mapValues(this.initialState as {}, subStateValue => [
+          subStateValue,
+          []
+        ]) as Record<string, [StateValue, string[]]>),
+        ...nextStateValue
+      };
     }
 
-    const finalStateValue = mapValues(nextStateValue, (value, key) => {
-      if (value) {
+    const actions: string[] = [];
+    const finalStateValue = mapValues(
+      nextStateValue,
+      (valueActionsTuple, key) => {
+        if (!valueActionsTuple) {
+          return stateValue[key];
+        }
+
+        const [value, subActions] = valueActionsTuple;
+
+        actions.push(...subActions);
         return value;
       }
+    );
 
-      return stateValue[key];
-    });
-
-    return finalStateValue;
+    return [finalStateValue, actions];
   }
 
-  public next(
+  private next(
     event: Event,
     history?: StateValue,
     extendedState?: any
-  ): StateValue | undefined {
+  ): [StateValue, string[]] | undefined {
     const eventType = getEventType(event);
+    let actions: string[] = [];
 
     if (!this.on || !this.on[eventType]) {
       return undefined;
@@ -223,11 +254,19 @@ class StateNode<
     let nextStateString: string | undefined;
     if (typeof transition === 'string') {
       nextStateString = transition;
+      actions = [];
     } else {
       for (const candidate of Object.keys(transition)) {
-        const { cond } = transition[candidate];
-        if (cond(extendedState, event)) {
+        const { cond, actions: transitionActions } = transition[candidate];
+        const eventObject: EventObject =
+          typeof event === 'string' || typeof event === 'number'
+            ? { type: event }
+            : event;
+        if (!cond || cond(extendedState, eventObject)) {
           nextStateString = candidate;
+          if (transitionActions) {
+            actions = transitionActions;
+          }
           break;
         }
       }
@@ -292,7 +331,7 @@ class StateNode<
       currentState = currentState.states[currentState.initial];
     }
 
-    return currentState.getRelativeValue(this.parent);
+    return [currentState.getRelativeValue(this.parent), actions];
   }
   public get initialState(): StateValue | undefined {
     this.__cache.initialState =
@@ -393,34 +432,34 @@ class StateNode<
 
     return relativeValue;
   }
-  private getEntryExitMap(
+  private getActions(
     prevStateValue: StateValue,
-    nextStateValue: StateValue
-  ): EntryExitEffectMap {
-    const entry: Effect[] = [];
-
-    const exitEffectMap: Record<string, Effect> = {};
+    nextStateValue: StateValue,
+    actions: string[]
+  ): Action[] {
+    const entry: Action[] = [];
+    const exitActionMap: Record<string, Action> = {};
 
     // Naively set all exit effects
     this.getStateNodes(prevStateValue).forEach(stateNode => {
       if (stateNode.onExit) {
-        exitEffectMap[stateNode.id] = stateNode.onExit;
+        exitActionMap[stateNode.id] = stateNode.onExit;
       }
     });
 
     // Set all entry effects, only if the state is being entered
     this.getStateNodes(nextStateValue).forEach(stateNode => {
-      if (exitEffectMap[stateNode.id]) {
+      if (exitActionMap[stateNode.id]) {
         // Remove false exit effects
-        delete exitEffectMap[stateNode.id];
+        delete exitActionMap[stateNode.id];
       } else if (stateNode.onEntry) {
         entry.push(stateNode.onEntry);
       }
     });
 
-    const exit = Object.keys(exitEffectMap).map(id => exitEffectMap[id]);
+    const exit = Object.keys(exitActionMap).map(id => exitActionMap[id]);
 
-    return { entry, exit };
+    return [...exit, ...actions, ...entry];
   }
 }
 

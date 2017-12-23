@@ -1,15 +1,14 @@
 import { StateNode } from './index';
 import State from './State';
 
-export type EventType = string | number;
+export declare type EventType = string | number;
 
-export type Event =
-  | EventType
-  | {
-      type: EventType;
-      [key: string]: any;
-    };
+export declare interface EventObject {
+  type: EventType;
+  [key: string]: any;
+}
 
+export declare type Event = EventType | EventObject;
 export type StateKey = string | State;
 
 export interface StateValueMap {
@@ -21,8 +20,8 @@ export type StateValue = string | StateValueMap;
 export type Condition = (extendedState: any) => boolean;
 
 export interface TransitionConfig {
-  cond: (extendedState: any, event: Event) => boolean;
-  onTransition?: (extendedState: any, event: Event) => void;
+  cond?: (extendedState: any, event: EventObject) => boolean;
+  actions?: string[];
 }
 
 export type Transition<TStateKey extends string = string> =
@@ -37,9 +36,9 @@ export interface StateNodeConfig<
   states?: Record<TStateKey, StateOrMachineConfig>;
   parallel?: boolean;
   key?: string;
-  on?: Record<TEventType, Transition<TStateKey>>;
-  onEntry?: Effect;
-  onExit?: Effect;
+  on?: Record<TEventType, Transition<TStateKey> | undefined>;
+  onEntry?: Action;
+  onExit?: Action;
   parent?: StateNode;
   strict?: boolean;
 }
@@ -87,10 +86,12 @@ export type StateOrMachineConfig<
   | ParallelMachineConfig<TStateKey, TEventType>
   | StateLeafNodeConfig<TStateKey, TEventType>;
 
-export type Effect = string | (<T>(extendedState: T) => T | void);
+export type Action =
+  | string
+  | (<T>(extendedState: T, event?: Partial<Event>, ...other: any[]) => T | any);
 export interface EntryExitEffectMap {
-  entry: Effect[];
-  exit: Effect[];
+  entry: Action[];
+  exit: Action[];
 }
 
 export interface StateNode<
@@ -104,8 +105,8 @@ export interface StateNode<
   parallel: boolean;
   states: Record<TStateKey, StateNode>;
   on?: Record<TEventType, Transition<TStateKey>>;
-  onEntry?: Effect;
-  onExit?: Effect;
+  onEntry?: Action;
+  onExit?: Action;
   parent: StateNode | undefined;
   machine: Machine;
 }

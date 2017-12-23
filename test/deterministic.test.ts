@@ -56,6 +56,7 @@ describe('deterministic machine', () => {
         }
       },
       b: {
+        initial: 'b1',
         states: {
           b1: {}
         }

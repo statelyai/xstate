@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine, State } from '../src/index';
 import { StateValue } from '../src/types';
 
-describe('onEntry/onExit effects', () => {
+describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -67,7 +67,11 @@ describe('onEntry/onExit effects', () => {
       a: {
         initial: 'a1',
         states: {
-          a1: { on: { CHANGE: 'a2' }, onEntry: 'enter_a1', onExit: 'exit_a1' },
+          a1: {
+            on: { CHANGE: { a2: { actions: ['do_a2'] } } },
+            onEntry: 'enter_a1',
+            onExit: 'exit_a1'
+          },
           a2: { onEntry: 'enter_a2', onExit: 'exit_a2' }
         },
         onEntry: 'enter_a',
@@ -76,7 +80,11 @@ describe('onEntry/onExit effects', () => {
       b: {
         initial: 'b1',
         states: {
-          b1: { on: { CHANGE: 'b2' }, onEntry: 'enter_b1', onExit: 'exit_b1' },
+          b1: {
+            on: { CHANGE: { b2: { actions: ['do_b2'] } } },
+            onEntry: 'enter_b1',
+            onExit: 'exit_b1'
+          },
           b2: { onEntry: 'enter_b2', onExit: 'exit_b2' }
         },
         onEntry: 'enter_b',
@@ -85,67 +93,49 @@ describe('onEntry/onExit effects', () => {
     }
   });
 
-  describe('State.effects', () => {
-    it('should return the entry and exit effects of a transition', () => {
+  describe('State.actions', () => {
+    it('should return the entry and exit actions of a transition', () => {
       assert.deepEqual(
-        (lightMachine.transition('green', 'TIMER') as State).effects,
-        {
-          entry: ['enter_yellow'],
-          exit: ['exit_green']
-        }
+        (lightMachine.transition('green', 'TIMER') as State).actions,
+        ['exit_green', 'enter_yellow']
       );
     });
 
-    it('should return the entry and exit effects of a deep transition', () => {
+    it('should return the entry and exit actions of a deep transition', () => {
       assert.deepEqual(
-        (lightMachine.transition('yellow', 'TIMER') as State).effects,
-        {
-          entry: ['enter_red', 'enter_walk'],
-          exit: ['exit_yellow']
-        }
+        (lightMachine.transition('yellow', 'TIMER') as State).actions,
+        ['exit_yellow', 'enter_red', 'enter_walk']
       );
     });
 
-    it('should return the entry and exit effects of a nested transition', () => {
+    it('should return the entry and exit actions of a nested transition', () => {
       assert.deepEqual(
-        (lightMachine.transition('red.walk', 'PED_COUNTDOWN') as State).effects,
-        {
-          entry: ['enter_wait'],
-          exit: ['exit_walk']
-        }
+        (lightMachine.transition('red.walk', 'PED_COUNTDOWN') as State).actions,
+        ['exit_walk', 'enter_wait']
       );
     });
 
-    it('should not have effects for unchanged transitions (shallow)', () => {
+    it('should not have actions for unchanged transitions (shallow)', () => {
       assert.deepEqual(
-        (lightMachine.transition('green', 'NOTHING') as State).effects,
-        {
-          entry: [],
-          exit: []
-        }
+        (lightMachine.transition('green', 'NOTHING') as State).actions,
+        []
       );
     });
 
-    it('should not have effects for unchanged transitions (deep)', () => {
+    it('should not have actions for unchanged transitions (deep)', () => {
       assert.deepEqual(
-        (lightMachine.transition('red', 'NOTHING') as State).effects,
-        {
-          entry: [],
-          exit: []
-        }
+        (lightMachine.transition('red', 'NOTHING') as State).actions,
+        []
       );
     });
 
-    it('should return effects for parallel machines', () => {
+    it('should return actions for parallel machines', () => {
       assert.deepEqual(
         (parallelMachine.transition(
           parallelMachine.initialState as StateValue,
           'CHANGE'
-        ) as State).effects,
-        {
-          entry: ['enter_a2', 'enter_b2'],
-          exit: ['exit_a1', 'exit_b1']
-        }
+        ) as State).actions,
+        ['exit_a1', 'exit_b1', 'do_a2', 'do_b2', 'enter_a2', 'enter_b2']
       );
     });
   });

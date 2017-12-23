@@ -66,6 +66,11 @@ export function getEdges(
     const { parent } = node;
 
     const transition = node.on[event];
+
+    if (!transition) {
+      return accEdges;
+    }
+
     const subStateKeys = getTransitionStateKeys(transition);
     subStateKeys.forEach(subStateKey => {
       const subNode = parent.getState(subStateKey) as StateNode;
@@ -85,8 +90,17 @@ export function getEdges(
   return subNodeEdges.concat(edges);
 }
 
+export interface Segment {
+  state: string;
+  event: string;
+}
+
 export interface IPathMap {
-  [key: string]: Array<{ state: string; event: string }>;
+  [key: string]: Segment[];
+}
+
+export interface IPathsMap {
+  [key: string]: Segment[][];
 }
 
 export interface ITransitionMap {
@@ -163,11 +177,52 @@ export function getShortestPaths(machine: StateNode): IPathMap | undefined {
   }
   const adjacency = getAdjacencyMap(machine);
   const initialId = trieToString(machine.initialState as StateValue);
-  const pathMap = {
+  const pathMap: IPathMap = {
     [initialId]: []
   };
+  const visited: Set<string> = new Set();
 
-  shortestPaths(adjacency, initialId, pathMap);
+  function util(stateId: string): IPathMap {
+    visited.add(stateId);
+    const eventMap = adjacency[stateId];
+
+    for (const event of Object.keys(eventMap)) {
+      const nextStateValue = eventMap[event].state;
+
+      if (!nextStateValue) {
+        continue;
+      }
+
+      const nextStateId = trieToString(nextStateValue);
+
+      if (
+        !pathMap[nextStateId] ||
+        pathMap[nextStateId].length > pathMap[stateId].length + 1
+      ) {
+        pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, event }];
+      }
+    }
+
+    for (const event of Object.keys(eventMap)) {
+      const nextStateValue = eventMap[event].state;
+
+      if (!nextStateValue) {
+        continue;
+      }
+
+      const nextStateId = trieToString(nextStateValue);
+
+      if (visited.has(nextStateId)) {
+        continue;
+      }
+
+      util(nextStateId);
+    }
+
+    return pathMap;
+  }
+
+  util(initialId);
 
   return pathMap;
 }
@@ -182,47 +237,48 @@ function trieToString(trie: StateValue): string {
   return [firstKey].concat(trieToString(trie[firstKey])).join('.');
 }
 
-function shortestPaths(
-  adjacency: IAdjacencyMap,
-  stateId: string,
-  pathMap: IPathMap,
-  visited: Set<string> = new Set()
-): IPathMap {
-  visited.add(stateId);
-  const eventMap = adjacency[stateId];
-
-  for (const event of Object.keys(eventMap)) {
-    const nextStateValue = eventMap[event].state;
-
-    if (!nextStateValue) {
-      continue;
-    }
-
-    const nextStateId = trieToString(nextStateValue);
-
-    if (
-      !pathMap[nextStateId] ||
-      pathMap[nextStateId].length > pathMap[stateId].length + 1
-    ) {
-      pathMap[nextStateId] = [...pathMap[stateId], { state: stateId, event }];
-    }
+export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
+  if (!machine.states || !machine.initial) {
+    return undefined;
   }
 
-  for (const event of Object.keys(eventMap)) {
-    const nextStateValue = eventMap[event].state;
+  const adjacency = getAdjacencyMap(machine);
+  const visited = new Set();
+  const path: Segment[] = [];
+  const paths: IPathsMap = {};
 
-    if (!nextStateValue) {
-      continue;
+  function util(fromPathId: string, toPathId: string) {
+    visited.add(fromPathId);
+
+    if (fromPathId === toPathId) {
+      paths[toPathId] = paths[toPathId] || [];
+      paths[toPathId].push([...path]);
+    } else {
+      for (const subEvent of Object.keys(adjacency[fromPathId])) {
+        const nextStateValue = adjacency[fromPathId][subEvent].state;
+
+        if (!nextStateValue) {
+          continue;
+        }
+
+        const nextStateId = trieToString(nextStateValue);
+
+        if (!visited.has(nextStateId)) {
+          path.push({ state: fromPathId, event: subEvent });
+          util(nextStateId, toPathId);
+        }
+      }
     }
 
-    const nextStateId = trieToString(nextStateValue);
-
-    if (visited.has(nextStateId)) {
-      continue;
-    }
-
-    shortestPaths(adjacency, nextStateId, pathMap, visited);
+    path.pop();
+    visited.delete(fromPathId);
   }
 
-  return pathMap;
+  const initialStateId = machine.initialState as string;
+
+  Object.keys(adjacency).forEach(nextStateId => {
+    util(initialStateId, nextStateId);
+  });
+
+  return paths;
 }
