@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, State } from '../src/index';
+import { Machine } from '../src/index';
 
 describe('guard conditions', () => {
   const lightMachine = Machine({
@@ -24,23 +24,29 @@ describe('guard conditions', () => {
 
   it('should transition only if condition is met', () => {
     assert.equal(
-      (lightMachine.transition('green', 'TIMER', {
-        elapsed: 50
-      }) as State).toString(),
+      lightMachine
+        .transition('green', 'TIMER', {
+          elapsed: 50
+        })
+        .toString(),
       'green'
     );
 
     assert.equal(
-      (lightMachine.transition('green', 'TIMER', {
-        elapsed: 120
-      }) as State).toString(),
+      lightMachine
+        .transition('green', 'TIMER', {
+          elapsed: 120
+        })
+        .toString(),
       'yellow'
     );
   });
 
   it('should not transition if no condition is met', () => {
-    assert.isUndefined(lightMachine.transition('green', 'TIMER', {
+    const nextState = lightMachine.transition('green', 'TIMER', {
       elapsed: 9000
-    }) as State);
+    });
+    assert.equal(nextState.value, 'green');
+    assert.isEmpty(nextState.actions);
   });
 });

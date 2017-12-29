@@ -43,7 +43,7 @@ class StateNode<
     initialState: undefined as StateValue | undefined
   };
 
-  constructor(config: StateOrMachineConfig<TStateKey, TEventType>) {
+  constructor(public config: StateOrMachineConfig<TStateKey, TEventType>) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
@@ -56,17 +56,17 @@ class StateNode<
         : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
-    this.states = config.states
-      ? mapValues(
+    this.states = (config.states
+      ? mapValues<StateOrMachineConfig, StateNode>(
           config.states,
           (stateConfig, key) =>
             new StateNode({
-              ...(stateConfig as StateOrMachineConfig),
+              ...stateConfig,
               key,
               parent: this
             })
-        ) as Record<TStateKey, StateNode<string, string>>
-      : {} as Record<TStateKey, StateNode<string, string>>;
+        )
+      : {}) as Record<TStateKey, StateNode<string, string>>;
 
     this.on = config.on;
     this.onEntry = config.onEntry;
@@ -85,9 +85,11 @@ class StateNode<
     }
 
     const subStateKeys = Object.keys(stateValue);
-    const foo = subStateKeys.map(subStateKey => this.states[subStateKey]);
+    const subStateNodes: StateNode[] = subStateKeys.map(
+      subStateKey => this.states[subStateKey]
+    );
 
-    return foo.concat(
+    return subStateNodes.concat(
       subStateKeys
         .map(subStateKey =>
           this.states[subStateKey].getStateNodes(stateValue[subStateKey])
@@ -99,7 +101,7 @@ class StateNode<
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): State | undefined {
+  ): State {
     if (this.strict) {
       const eventType = getEventType(event);
       if (this.events.indexOf(eventType) === -1) {
@@ -117,7 +119,7 @@ class StateNode<
     );
 
     if (!nextStateValueActionsTuple) {
-      return undefined;
+      return State.inert(state);
     }
 
     const [nextStateValue, actions] = nextStateValueActionsTuple;

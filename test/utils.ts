@@ -14,9 +14,9 @@ export function testMultiTransition(
       }
       const nextState = machine.transition(state, eventType);
       return nextState;
-    }, fromState);
+    }, fromState) as State;
 
-  return resultState as State;
+  return resultState;
 }
 
 export function testAll(machine: StateNode, expected: {}): void {
@@ -30,7 +30,9 @@ export function testAll(machine: StateNode, expected: {}): void {
         const resultState = testMultiTransition(machine, fromState, eventTypes);
 
         if (toState === undefined) {
-          assert.isUndefined(resultState);
+          // undefined means that the state didn't transition
+          assert.isEmpty(resultState.actions);
+          assert.isUndefined(resultState.history);
         } else if (typeof toState === 'string') {
           assert.equal(resultState.toString(), toState);
         } else {

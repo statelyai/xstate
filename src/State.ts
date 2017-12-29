@@ -10,6 +10,16 @@ export default class State {
 
     return new State(toTrie(stateValue));
   }
+  public static inert(stateValue: State | StateValue): State {
+    if (stateValue instanceof State) {
+      if (!stateValue.actions.length) {
+        return stateValue;
+      }
+      return new State(stateValue.value, stateValue.history, []);
+    }
+
+    return State.from(stateValue);
+  }
   constructor(
     public value: StateValue,
     public history?: State,

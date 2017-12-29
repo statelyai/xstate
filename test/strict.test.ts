@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 // @ts-ignore
-import { Machine, State } from '../src/index';
+import { Machine } from '../src/index';
 // @ts-ignore
 import { StateValue } from '../src/types';
 
