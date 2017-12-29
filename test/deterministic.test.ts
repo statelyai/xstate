@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
+import { StateValue } from '../src/types';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
@@ -192,7 +193,7 @@ describe('deterministic machine', () => {
 
     it('should return the equivalent state if no transition occurs', () => {
       const initialState = lightMachine.transition(
-        lightMachine.initialState,
+        lightMachine.initialState as StateValue,
         'NOTHING'
       );
       const nextState = lightMachine.transition(initialState, 'NOTHING');
