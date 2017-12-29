@@ -1,6 +1,6 @@
 import { assert } from 'chai';
-import { Machine, State } from '../src/index';
-import { StateValue } from '../src/types';
+import { Machine } from '../src/index';
+import { StateValueMap } from '../src/types';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -95,46 +95,41 @@ describe('onEntry/onExit actions', () => {
 
   describe('State.actions', () => {
     it('should return the entry and exit actions of a transition', () => {
-      assert.deepEqual(
-        (lightMachine.transition('green', 'TIMER') as State).actions,
-        ['exit_green', 'enter_yellow']
-      );
+      assert.deepEqual(lightMachine.transition('green', 'TIMER').actions, [
+        'exit_green',
+        'enter_yellow'
+      ]);
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
-      assert.deepEqual(
-        (lightMachine.transition('yellow', 'TIMER') as State).actions,
-        ['exit_yellow', 'enter_red', 'enter_walk']
-      );
+      assert.deepEqual(lightMachine.transition('yellow', 'TIMER').actions, [
+        'exit_yellow',
+        'enter_red',
+        'enter_walk'
+      ]);
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
       assert.deepEqual(
-        (lightMachine.transition('red.walk', 'PED_COUNTDOWN') as State).actions,
+        lightMachine.transition('red.walk', 'PED_COUNTDOWN').actions,
         ['exit_walk', 'enter_wait']
       );
     });
 
     it('should not have actions for unchanged transitions (shallow)', () => {
-      assert.deepEqual(
-        (lightMachine.transition('green', 'NOTHING') as State).actions,
-        []
-      );
+      assert.deepEqual(lightMachine.transition('green', 'NOTHING').actions, []);
     });
 
     it('should not have actions for unchanged transitions (deep)', () => {
-      assert.deepEqual(
-        (lightMachine.transition('red', 'NOTHING') as State).actions,
-        []
-      );
+      assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, []);
     });
 
     it('should return actions for parallel machines', () => {
       assert.deepEqual(
-        (parallelMachine.transition(
-          parallelMachine.initialState as StateValue,
+        parallelMachine.transition(
+          parallelMachine.initialState as StateValueMap,
           'CHANGE'
-        ) as State).actions,
+        ).actions,
         ['exit_a1', 'exit_b1', 'do_a2', 'do_b2', 'enter_a2', 'enter_b2']
       );
     });

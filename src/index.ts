@@ -99,7 +99,7 @@ class StateNode<
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): State | undefined {
+  ): State {
     if (this.strict) {
       const eventType = getEventType(event);
       if (this.events.indexOf(eventType) === -1) {
@@ -117,7 +117,7 @@ class StateNode<
     );
 
     if (!nextStateValueActionsTuple) {
-      return undefined;
+      return State.inert(state);
     }
 
     const [nextStateValue, actions] = nextStateValueActionsTuple;
