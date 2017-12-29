@@ -189,5 +189,15 @@ describe('deterministic machine', () => {
         'red.walk'
       );
     });
+
+    it('should return the equivalent state if no transition occurs', () => {
+      const initialState = lightMachine.transition(
+        lightMachine.initialState,
+        'NOTHING'
+      );
+      const nextState = lightMachine.transition(initialState, 'NOTHING');
+
+      assert.equal(initialState, nextState);
+    });
   });
 });
