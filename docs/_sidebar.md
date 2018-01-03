@@ -1,3 +1,3 @@
 - Getting started
   - [Readme](README.md)
-  - [test](test.md)
+  - [Quick Start](quickstart.md)
