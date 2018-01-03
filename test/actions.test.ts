@@ -93,6 +93,35 @@ describe('onEntry/onExit actions', () => {
     }
   });
 
+  const deepMachine = Machine({
+    initial: 'a',
+    states: {
+      a: {
+        initial: 'a1',
+        states: {
+          a1: {
+            onEntry: 'enter_a1',
+            onExit: 'exit_a1'
+          }
+        },
+        onEntry: 'enter_a',
+        onExit: 'exit_a',
+        on: { CHANGE: 'b' }
+      },
+      b: {
+        onEntry: 'enter_b',
+        onExit: 'exit_b',
+        initial: 'b1',
+        states: {
+          b1: {
+            onEntry: 'enter_b1',
+            onExit: 'exit_b1'
+          }
+        }
+      }
+    }
+  });
+
   describe('State.actions', () => {
     it('should return the entry and exit actions of a transition', () => {
       assert.deepEqual(lightMachine.transition('green', 'TIMER').actions, [
@@ -130,8 +159,17 @@ describe('onEntry/onExit actions', () => {
           parallelMachine.initialState as StateValueMap,
           'CHANGE'
         ).actions,
-        ['exit_a1', 'exit_b1', 'do_a2', 'do_b2', 'enter_a2', 'enter_b2']
+        ['exit_b1', 'exit_a1', 'do_a2', 'do_b2', 'enter_a2', 'enter_b2']
       );
+    });
+
+    it('should return nested actions in the correct (child to parent) order', () => {
+      assert.deepEqual(deepMachine.transition('a.a1', 'CHANGE').actions, [
+        'exit_a1',
+        'exit_a',
+        'enter_b',
+        'enter_b1'
+      ]);
     });
   });
 });

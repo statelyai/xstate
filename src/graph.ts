@@ -2,6 +2,7 @@ import { StateNode } from './index';
 import { mapValues } from './utils';
 import { Transition, StateValue } from './types';
 
+const EMPTY_MAP = {};
 export interface IEdge {
   event: string;
   source: StateNode;
@@ -171,9 +172,9 @@ export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
   return adjacency;
 }
 
-export function getShortestPaths(machine: StateNode): IPathMap | undefined {
+export function getShortestPaths(machine: StateNode): IPathMap {
   if (!machine.states || !machine.initial) {
-    return undefined;
+    return EMPTY_MAP;
   }
   const adjacency = getAdjacencyMap(machine);
   const initialId = trieToString(machine.initialState as StateValue);
@@ -237,9 +238,9 @@ function trieToString(trie: StateValue): string {
   return [firstKey].concat(trieToString(trie[firstKey])).join('.');
 }
 
-export function getSimplePaths(machine: StateNode): IPathsMap | undefined {
+export function getSimplePaths(machine: StateNode): IPathsMap {
   if (!machine.states || !machine.initial) {
-    return undefined;
+    return EMPTY_MAP;
   }
 
   const adjacency = getAdjacencyMap(machine);
