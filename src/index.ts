@@ -443,21 +443,31 @@ class StateNode<
     const exitActionMap: Record<string, Action> = {};
 
     // Naively set all exit effects
-    this.getStateNodes(prevStateValue).forEach(stateNode => {
-      if (stateNode.onExit) {
-        exitActionMap[stateNode.id] = stateNode.onExit;
+    const prevStateNodes = this.getStateNodes(prevStateValue);
+
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < prevStateNodes.length; i++) {
+      const prevStateNode = prevStateNodes[prevStateNodes.length - 1 - i];
+
+      if (prevStateNode.onExit) {
+        exitActionMap[prevStateNode.id] = prevStateNode.onExit;
       }
-    });
+    }
 
     // Set all entry effects, only if the state is being entered
-    this.getStateNodes(nextStateValue).forEach(stateNode => {
-      if (exitActionMap[stateNode.id]) {
+    const nextStateNodes = this.getStateNodes(nextStateValue);
+
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < nextStateNodes.length; i++) {
+      const nextStateNode = nextStateNodes[i];
+
+      if (exitActionMap[nextStateNode.id]) {
         // Remove false exit effects
-        delete exitActionMap[stateNode.id];
-      } else if (stateNode.onEntry) {
-        entry.push(stateNode.onEntry);
+        delete exitActionMap[nextStateNode.id];
+      } else if (nextStateNode.onEntry) {
+        entry.push(nextStateNode.onEntry);
       }
-    });
+    }
 
     const exit = Object.keys(exitActionMap).map(id => exitActionMap[id]);
 
