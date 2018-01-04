@@ -1,3 +1,5 @@
 - Getting started
   - [Readme](README.md)
   - [Quick Start](quickstart.md)
+- API
+  - [Machine](api/machine.md)
