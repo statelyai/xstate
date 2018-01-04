@@ -475,10 +475,34 @@ class StateNode<
   }
 }
 
-function Machine(
-  config: MachineConfig | ParallelMachineConfig
-): StandardMachine | ParallelMachine {
-  return new StateNode(config) as StandardMachine | ParallelMachine;
+export interface MachineFactory {
+  (config: MachineConfig | ParallelMachineConfig):
+    | StandardMachine
+    | ParallelMachine;
+  standard: (config: MachineConfig) => StandardMachine;
+  parallel: (config: ParallelMachineConfig) => ParallelMachine;
 }
+
+const Machine = (() => {
+  const machineFactory = (
+    config: MachineConfig | ParallelMachineConfig
+  ): StandardMachine | ParallelMachine => {
+    return new StateNode(config) as StandardMachine | ParallelMachine;
+  };
+
+  (machineFactory as any).standard = (
+    config: MachineConfig
+  ): StandardMachine => {
+    return new StateNode(config) as StandardMachine;
+  };
+
+  (machineFactory as any).parallel = (
+    config: ParallelMachineConfig
+  ): ParallelMachine => {
+    return new StateNode(config) as ParallelMachine;
+  };
+
+  return machineFactory as MachineFactory;
+})();
 
 export { StateNode, Machine, State, matchesState, mapState };
