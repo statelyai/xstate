@@ -68,7 +68,7 @@ describe('onEntry/onExit actions', () => {
         initial: 'a1',
         states: {
           a1: {
-            on: { CHANGE: { a2: { actions: ['do_a2'] } } },
+            on: { CHANGE: { a2: { actions: ['do_a2', 'another_do_a2'] } } },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
           },
@@ -105,11 +105,11 @@ describe('onEntry/onExit actions', () => {
           }
         },
         onEntry: 'enter_a',
-        onExit: 'exit_a',
+        onExit: ['exit_a', 'another_exit_a'],
         on: { CHANGE: 'b' }
       },
       b: {
-        onEntry: 'enter_b',
+        onEntry: ['enter_b', 'another_enter_b'],
         onExit: 'exit_b',
         initial: 'b1',
         states: {
@@ -159,7 +159,15 @@ describe('onEntry/onExit actions', () => {
           parallelMachine.initialState as StateValueMap,
           'CHANGE'
         ).actions,
-        ['exit_b1', 'exit_a1', 'do_a2', 'do_b2', 'enter_a2', 'enter_b2']
+        [
+          'exit_b1',
+          'exit_a1',
+          'do_a2',
+          'another_do_a2',
+          'do_b2',
+          'enter_a2',
+          'enter_b2'
+        ]
       );
     });
 
@@ -167,7 +175,9 @@ describe('onEntry/onExit actions', () => {
       assert.deepEqual(deepMachine.transition('a.a1', 'CHANGE').actions, [
         'exit_a1',
         'exit_a',
+        'another_exit_a',
         'enter_b',
+        'another_enter_b',
         'enter_b1'
       ]);
     });

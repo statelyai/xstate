@@ -21,7 +21,7 @@ export type Condition = (extendedState: any) => boolean;
 
 export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
-  actions?: string[];
+  actions?: Action[];
 }
 
 export type Transition<TStateKey extends string = string> =
@@ -37,8 +37,8 @@ export interface StateNodeConfig<
   parallel?: boolean;
   key?: string;
   on?: Record<TEventType, Transition<TStateKey> | undefined>;
-  onEntry?: Action;
-  onExit?: Action;
+  onEntry?: Action | Action[];
+  onExit?: Action | Action[];
   parent?: StateNode;
   strict?: boolean;
 }
