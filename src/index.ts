@@ -31,8 +31,8 @@ class StateNode<
   public parallel?: boolean;
   public states: Record<TStateKey, StateNode>;
   public on?: Record<TEventType, Transition<TStateKey> | undefined>;
-  public onEntry?: Action;
-  public onExit?: Action;
+  public onEntry?: Action[];
+  public onExit?: Action[];
   public strict: boolean;
   public parent?: StateNode;
   public machine: StateNode;
@@ -69,8 +69,12 @@ class StateNode<
       : {}) as Record<TStateKey, StateNode<string, string>>;
 
     this.on = config.on;
-    this.onEntry = config.onEntry;
-    this.onExit = config.onExit;
+    this.onEntry = config.onEntry
+      ? ([] as Action[]).concat(config.onEntry)
+      : undefined;
+    this.onExit = config.onExit
+      ? ([] as Action[]).concat(config.onExit)
+      : undefined;
     this.strict = !!config.strict;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
@@ -151,7 +155,7 @@ class StateNode<
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): [StateValue, string[]] | undefined {
+  ): [StateValue, Action[]] | undefined {
     const history = state instanceof State ? state.history : undefined;
     let stateValue = state instanceof State ? state.value : toTrie(state);
 
@@ -222,7 +226,7 @@ class StateNode<
       };
     }
 
-    const actions: string[] = [];
+    const actions: Action[] = [];
     const finalStateValue = mapValues(
       nextStateValue,
       (valueActionsTuple, key) => {
@@ -244,9 +248,9 @@ class StateNode<
     event: Event,
     history?: StateValue,
     extendedState?: any
-  ): [StateValue, string[]] | undefined {
+  ): [StateValue, Action[]] | undefined {
     const eventType = getEventType(event);
-    let actions: string[] = [];
+    let actions: Action[] = [];
 
     if (!this.on || !this.on[eventType]) {
       return undefined;
@@ -437,10 +441,10 @@ class StateNode<
   private getActions(
     prevStateValue: StateValue,
     nextStateValue: StateValue,
-    actions: string[]
+    actions: Action[]
   ): Action[] {
     const entry: Action[] = [];
-    const exitActionMap: Record<string, Action> = {};
+    const exitActionMap: Record<string, Action[]> = {};
 
     // Naively set all exit effects
     const prevStateNodes = this.getStateNodes(prevStateValue);
@@ -465,20 +469,46 @@ class StateNode<
         // Remove false exit effects
         delete exitActionMap[nextStateNode.id];
       } else if (nextStateNode.onEntry) {
-        entry.push(nextStateNode.onEntry);
+        entry.push(...nextStateNode.onEntry);
       }
     }
 
-    const exit = Object.keys(exitActionMap).map(id => exitActionMap[id]);
+    const exit = Object.keys(exitActionMap)
+      .map(id => exitActionMap[id])
+      .reduce((a, b) => a.concat(b), []);
 
     return [...exit, ...actions, ...entry];
   }
 }
 
-function Machine(
-  config: MachineConfig | ParallelMachineConfig
-): StandardMachine | ParallelMachine {
-  return new StateNode(config) as StandardMachine | ParallelMachine;
+export interface MachineFactory {
+  (config: MachineConfig | ParallelMachineConfig):
+    | StandardMachine
+    | ParallelMachine;
+  standard: (config: MachineConfig) => StandardMachine;
+  parallel: (config: ParallelMachineConfig) => ParallelMachine;
 }
+
+const Machine = (() => {
+  const machineFactory = (
+    config: MachineConfig | ParallelMachineConfig
+  ): StandardMachine | ParallelMachine => {
+    return new StateNode(config) as StandardMachine | ParallelMachine;
+  };
+
+  (machineFactory as any).standard = (
+    config: MachineConfig
+  ): StandardMachine => {
+    return new StateNode(config) as StandardMachine;
+  };
+
+  (machineFactory as any).parallel = (
+    config: ParallelMachineConfig
+  ): ParallelMachine => {
+    return new StateNode(config) as ParallelMachine;
+  };
+
+  return machineFactory as MachineFactory;
+})();
 
 export { StateNode, Machine, State, matchesState, mapState };
