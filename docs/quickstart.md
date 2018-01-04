@@ -146,7 +146,7 @@ const starWarsMachine = Machine({
         SUCCESS: 'fulfilled',
         FAILURE: 'rejected'
       }
-      onEntry: 'alertPending',
+      onEntry: 'fetchPerson',
       onExit: 'alertRequestFinished'
     },
   }
@@ -160,7 +160,7 @@ const nextState = starWarsMachine.transition('idle', 'REQUEST');
 //   actions: [
 //     'alertMayTheForceBeWithYou',
 //     'alertStartingFirstRequest',
-//     'alertPending'
+//     'fetchPerson'
 //   ]
 // }
 ```
@@ -172,3 +172,176 @@ The actions to be executed are an array on the `actions` `State` instance. The a
 4. any `onEntry` actions of parent states
 5. any `onEntry` actions of child states
 
+From here, executing actions (side-effects) in your app is completely up to you. Here's one way of doing it:
+
+```js
+const actionMap = {
+  alertStartingFirstRequest: () => alert('Starting first request!'),
+  alertMayTheForceBeWithYou: () => alert('May the force be with you.'),
+  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.co/api/people/${id}`)
+    .then(res => res.json())
+    .then(res => dispatch({
+      type: 'SUCCESS',
+      payload: res
+    }))
+    .catch(err => dispatch({
+      type: 'FAILURE',
+      error: err
+    })),
+  alertRequestFinished: () => alert('Request finished!'),  
+};
+
+// atomic state - there are many different ways to update this
+let currentState = starWarsMachine.initialState; // 'idle'
+
+function dispatch(event) {
+  const nextState = starWarsMachine
+    .transition(currentState, event);
+
+  nextState.actions.forEach(actionKey => {
+    const action = actionMap[actionKey];
+
+    if (action) {
+      // in this example, `dispatch` is passed into the action
+      // in case the action emits other events
+      action(event, dispatch);
+    }
+  });
+
+  // update the atomic state (yes, there's better ways of doing this)
+  currentState = nextState.value;
+}
+
+// this event can come from anywhere, e.g., the UI
+const requestEvent = {
+  type: 'REQUEST',
+  id: 3
+};
+
+// similar to Redux, this can be the result of a button click, an internal action, etc.
+dispatch(requestEvent);
+```
+
+There's a couple things happening here:
+- An `actionMap` is defined, which maps string action keys to their actual implementation. This means you can _reuse_ the exact same statechart in other applications, frameworks, or environments, where the implementation might be different. 💥
+- Each action function takes in the `event` data, as well as a `dispatch` (or `emit`) function if the action will dispatch more events.
+
+When an `event` is dispatched:
+- First the `nextState` will be determined.
+- Then, the `actions` from that state will be executed in order.
+
+And from that, you have a working app!
+
+## Hierarchical (Nested) States
+
+Suppose we want to retrieve data from the API about:
+- A Star Wars person
+- That person's planet.
+
+We'll have to make two API calls, and we might want to show more detail in the UI for when:
+- The person is finished loading
+- The person's planet is finished loading.
+
+Hierarchical states (or nested states) can provide more granularity without making the state machine needlessly complex. Here's how we can represent our new requirements:
+
+```js
+const starWarsMachine = Machine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { REQUEST: 'pending' }
+    },
+    pending: {
+      initial: 'loadingPerson',
+      states: {
+        loadingPerson: {
+          on: {
+            SUCCESS_PERSON: 'loadingPlanet'
+          },
+          onEntry: 'fetchPerson'
+        },
+        loadingPlanet: {
+          onEntry: 'fetchPlanet'
+        }
+      },
+      on: {
+        SUCCESS_PLANET: 'fulfilled',
+        FAILURE_PERSON: 'rejected',
+        FAILURE_PLANET: 'rejected'
+      }
+    },
+    fulfilled: {
+      on: { REQUEST: 'pending' },
+      onEntry: 'log'
+    },
+    rejected: {
+      on: { REQUEST: 'pending' }
+    }
+  }
+});
+```
+
+Here's what will happen when a request is made now:
+1. From the initial `'idle'` state, a `'REQUEST'` event will trigger a transition to the `'pending'` state
+2. The `'pending'` state itself has two substates: the initial `'loadingPerson'` and `'loadingPlanet'` states. Entering the `'pending'` state is equivalent to entering its initial state, `'pending.loadingPerson'`.
+3. The `onEntry` action of `'pending.loadingPerson'`, which is `'fetchPerson'`, will be executed (remember: `xstate` does not do this, you do!)
+4. If successful, a `'SUCCESS_PERSON'` event will be dispatched, which will trigger a transition to the `'pending.loadingPlanet'` state.
+5. The `onEntry` action of `'pending.loadingPlanet'` (`'fetchPlanet'`) will then be executed.
+6. If successful, a `'SUCCESS_PLANET'` event will be dispatched.
+
+Here, it gets interesting. You'll notice that `'pending.loadingPlanet'` does _not_ have a transition on the `'SUCCESS_PLANET'` event (or any transition, for that matter). In this case, the event will be handled by the **parent state**, which is `'pending'`. From there, `'pending'` will transition to the `'fulfilled'` state according to the config.
+
+Also, the representation of state values for nested states is now object-based:
+
+```js
+starWarsMachine.transition('idle', { type: 'REQUEST', id: 3 });
+
+// State {
+//   value: { pending: 'loadingPerson' },
+//   history: undefined,
+//   actions: ['fetchPerson']
+// }
+```
+
+Here, `{ pending: 'loadingPerson' }` represents that the app is in the `'pending'` state, and that the `'pending'` state is in the `'loadingPerson'` state. It's useful to represent state values in a tree structure this way, since we'll see in the future that you can be in more than one state (parallel states) at the same time, and that states can be deeply nested.
+
+So what does all this look like in code?
+
+```js
+// revise the action map
+const actionMap = {
+  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.co/api/people/${id}`)
+    .then(res => res.json())
+    .then(res => dispatch({
+      type: 'SUCCESS_PERSON',
+      payload: res
+    }))
+    .catch(err => dispatch({
+      type: 'FAILURE_PERSON',
+      error: err
+    })),
+  fetchPlanet: ({ payload }, dispatch) => fetch(payload.homeworld)
+    .then(res => res.json())
+    .then(res => dispatch({
+      type: 'SUCCESS_PLANET',
+      payload: res
+    }))
+    .catch(err => dispatch({
+      type: 'FAILURE_PLANET',
+      error: err
+    })),
+  logResult: ({ payload }) => console.log(payload)
+};
+
+const id = prompt('Star Wars person ID'); // e.g., 3
+
+// ... (same currentState + dispatch code as before)
+
+dispatch({ type: 'REQUEST', id });
+// will eventually log (if successful):
+// {
+//   name: 'Naboo',
+//   climate: 'temperate',
+//   ... etc.
+// }
+```
