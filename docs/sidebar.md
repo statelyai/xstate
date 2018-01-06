@@ -2,4 +2,5 @@
   - [Readme](README.md)
   - [Quick Start](quickstart.md)
 - API
+  - [Machine & State Config](api/config.md)
   - [Machine](api/machine.md)
