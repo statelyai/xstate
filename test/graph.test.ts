@@ -6,7 +6,7 @@ import {
   getShortestPaths,
   IPathMap,
   getSimplePaths,
-  getParallelAdjacencyMap,
+  getAdjacencyMap,
   getShortestPathsAsArray,
   getSimplePathsAsArray
 } from '../src/graph';
@@ -204,7 +204,7 @@ describe('graph utilities', () => {
 
   describe('getAdjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
-      assert.deepEqual(getParallelAdjacencyMap(lightMachine), {
+      assert.deepEqual(getAdjacencyMap(lightMachine), {
         '"green"': {
           TIMER: { state: 'yellow' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
@@ -239,7 +239,7 @@ describe('graph utilities', () => {
     });
 
     it('should return a flattened adjacency map (parallel)', () => {
-      assert.deepEqual(getParallelAdjacencyMap(parallelMachine), {
+      assert.deepEqual(getAdjacencyMap(parallelMachine), {
         '{"a":"a1","b":"b1"}': {
           '1': { state: { a: 'a1', b: 'b1' } },
           '2': { state: { a: 'a2', b: 'b2' } },

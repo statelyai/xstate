@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import { mapValues, toTrie } from './utils';
+import { toTrie } from './utils';
 import { Transition, StateValue, Machine, Event } from './types';
 
 const EMPTY_MAP = {};
@@ -122,10 +122,7 @@ export interface IAdjacencyMap {
   [stateId: string]: Record<string, ITransitionMap>;
 }
 
-export function getParallelAdjacencyMap(node: Machine): IAdjacencyMap {
-  // const eventMap: Record<string, ITransitionMap> | undefined = node.parent
-  //   ? {}
-  //   : undefined;
+export function getAdjacencyMap(node: Machine): IAdjacencyMap {
   const adjacency: IAdjacencyMap = {};
 
   const events = node.events;
@@ -152,71 +149,11 @@ export function getParallelAdjacencyMap(node: Machine): IAdjacencyMap {
   return adjacency;
 }
 
-export function getAdjacencyMap(node: StateNode): IAdjacencyMap {
-  const eventMap: Record<string, ITransitionMap> | undefined = node.parent
-    ? {}
-    : undefined;
-  const adjacency: IAdjacencyMap = {};
-
-  if (node.on) {
-    for (const event of Object.keys(node.on)) {
-      if (!node.parent || !eventMap) {
-        continue;
-      }
-
-      const nextState = node.machine.transition(node.relativeId, event);
-
-      if (!nextState) {
-        continue;
-      }
-
-      eventMap[event] = { state: nextState.value };
-
-      // const transitionConfig = node.on[event];
-      // const subStateKeys = getTransitionStateKeys(transitionConfig);
-
-      // if (!subStateKeys.length) {
-      //   continue;
-      // }
-
-      // // for non-conditional adjacency maps, just return first substate
-      // const nextState = node.parent.getState(subStateKeys[0]) as StateNode;
-      // let nextStateId = nextState.id;
-
-      // if (nextState.initial) {
-      //   nextStateId += '.' + nextState.initial;
-      // }
-
-      // eventMap[event] = nextStateId;
-    }
-  }
-
-  if (eventMap) {
-    adjacency[node.relativeId] = eventMap;
-  }
-
-  if (node.states) {
-    for (const stateKey of Object.keys(node.states)) {
-      const state = node.states[stateKey];
-      const stateAdjacency = mapValues(getAdjacencyMap(state), value => {
-        return {
-          ...eventMap,
-          ...value
-        };
-      });
-
-      Object.assign(adjacency, stateAdjacency);
-    }
-  }
-
-  return adjacency;
-}
-
 export function getShortestPaths(machine: Machine): IPathMap {
   if (!machine.states || !machine.initial) {
     return EMPTY_MAP;
   }
-  const adjacency = getParallelAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine);
   const initialStateId = JSON.stringify(machine.initialState);
   const pathMap: IPathMap = {
     [initialStateId]: []
@@ -285,7 +222,7 @@ export function getSimplePaths(machine: Machine): IPathsMap {
     return EMPTY_MAP;
   }
 
-  const adjacency = getParallelAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine);
   const visited = new Set();
   const path: Segment[] = [];
   const paths: IPathsMap = {};
