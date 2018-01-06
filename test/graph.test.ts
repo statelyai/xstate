@@ -3,10 +3,12 @@ import { Machine, StateNode } from '../src/index';
 import {
   getNodes,
   getEdges,
-  getAdjacencyMap,
   getShortestPaths,
   IPathMap,
-  getSimplePaths
+  getSimplePaths,
+  getParallelAdjacencyMap,
+  getShortestPathsAsArray,
+  getSimplePathsAsArray
 } from '../src/graph';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
@@ -56,6 +58,37 @@ describe('graph utilities', () => {
     }
   });
 
+  const parallelMachine = Machine({
+    parallel: true,
+    key: 'p',
+    states: {
+      a: {
+        initial: 'a1',
+        states: {
+          a1: {
+            on: { 2: 'a2', 3: 'a3' }
+          },
+          a2: {
+            on: { 3: 'a3', 1: 'a1' }
+          },
+          a3: {}
+        }
+      },
+      b: {
+        initial: 'b1',
+        states: {
+          b1: {
+            on: { 2: 'b2', 3: 'b3' }
+          },
+          b2: {
+            on: { 3: 'b3', 1: 'b1' }
+          },
+          b3: {}
+        }
+      }
+    }
+  });
+
   describe('getNodes()', () => {
     it('should return an array of all nodes', () => {
       const nodes = getNodes(lightMachine);
@@ -70,18 +103,35 @@ describe('graph utilities', () => {
         'light.red.flashing'
       ]);
     });
+
+    it('should return an array of all nodes (parallel)', () => {
+      const nodes = getNodes(parallelMachine);
+      assert.ok(nodes.every(node => node instanceof StateNode));
+      assert.sameMembers(nodes.map(node => node.id), [
+        'p.a',
+        'p.a.a1',
+        'p.a.a2',
+        'p.a.a3',
+        'p.b',
+        'p.b.b1',
+        'p.b.b2',
+        'p.b.b3'
+      ]);
+    });
   });
 
   describe('getEdges()', () => {
     it('should return an array of all directed edges', () => {
       const edges = getEdges(lightMachine);
-      edges.every(edge => {
-        return (
-          typeof edge.event === 'string' &&
-          edge.source instanceof StateNode &&
-          edge.target instanceof StateNode
-        );
-      });
+      assert.ok(
+        edges.every(edge => {
+          return (
+            typeof edge.event === 'string' &&
+            edge.source instanceof StateNode &&
+            edge.target instanceof StateNode
+          );
+        })
+      );
       assert.deepEqual(
         edges.map(edge => ({
           event: edge.event,
@@ -120,40 +170,90 @@ describe('graph utilities', () => {
         ]
       );
     });
+
+    it('should return an array of all directed edges (parallel)', () => {
+      const edges = getEdges(parallelMachine);
+      assert.ok(
+        edges.every(edge => {
+          return (
+            typeof edge.event === 'string' &&
+            edge.source instanceof StateNode &&
+            edge.target instanceof StateNode
+          );
+        })
+      );
+      assert.deepEqual(
+        edges.map(edge => ({
+          event: edge.event,
+          source: edge.source.id,
+          target: edge.target.id
+        })),
+        [
+          { event: '2', source: 'p.a.a1', target: 'p.a.a2' },
+          { event: '1', source: 'p.a.a2', target: 'p.a.a1' },
+          { event: '3', source: 'p.a.a2', target: 'p.a.a3' },
+          { event: '3', source: 'p.a.a1', target: 'p.a.a3' },
+          { event: '2', source: 'p.b.b1', target: 'p.b.b2' },
+          { event: '1', source: 'p.b.b2', target: 'p.b.b1' },
+          { event: '3', source: 'p.b.b2', target: 'p.b.b3' },
+          { event: '3', source: 'p.b.b1', target: 'p.b.b3' }
+        ]
+      );
+    });
   });
 
   describe('getAdjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
-      assert.deepEqual(getAdjacencyMap(lightMachine), {
-        green: {
+      assert.deepEqual(getParallelAdjacencyMap(lightMachine), {
+        '"green"': {
           TIMER: { state: 'yellow' },
-          POWER_OUTAGE: { state: { red: 'flashing' } }
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: 'green' }
         },
-        yellow: {
+        '"yellow"': {
           TIMER: { state: { red: 'walk' } },
-          POWER_OUTAGE: { state: { red: 'flashing' } }
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: 'yellow' }
         },
-        red: {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } }
-        },
-        'red.walk': {
+        '{"red":"walk"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
           PED_COUNTDOWN: { state: { red: 'wait' } }
         },
-        'red.wait': {
+        '{"red":"flashing"}': {
+          TIMER: { state: 'green' },
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'flashing' } }
+        },
+        '{"red":"wait"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
           PED_COUNTDOWN: { state: { red: 'stop' } }
         },
-        'red.stop': {
+        '{"red":"stop"}': {
           TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } }
+          POWER_OUTAGE: { state: { red: 'flashing' } },
+          PED_COUNTDOWN: { state: { red: 'stop' } }
+        }
+      });
+    });
+
+    it('should return a flattened adjacency map (parallel)', () => {
+      assert.deepEqual(getParallelAdjacencyMap(parallelMachine), {
+        '{"a":"a1","b":"b1"}': {
+          '1': { state: { a: 'a1', b: 'b1' } },
+          '2': { state: { a: 'a2', b: 'b2' } },
+          '3': { state: { a: 'a3', b: 'b3' } }
         },
-        'red.flashing': {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } }
+        '{"a":"a2","b":"b2"}': {
+          '1': { state: { a: 'a1', b: 'b1' } },
+          '2': { state: { a: 'a2', b: 'b2' } },
+          '3': { state: { a: 'a3', b: 'b3' } }
+        },
+        '{"a":"a3","b":"b3"}': {
+          '1': { state: { a: 'a3', b: 'b3' } },
+          '2': { state: { a: 'a3', b: 'b3' } },
+          '3': { state: { a: 'a3', b: 'b3' } }
         }
       });
     });
@@ -162,165 +262,126 @@ describe('graph utilities', () => {
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
-        green: [],
-        yellow: [{ state: 'green', event: 'TIMER' }],
-        'red.flashing': [{ state: 'green', event: 'POWER_OUTAGE' }],
-        'red.walk': [
+        '"green"': [],
+        '"yellow"': [{ state: 'green', event: 'TIMER' }],
+        '{"red":"flashing"}': [{ state: 'green', event: 'POWER_OUTAGE' }],
+        '{"red":"walk"}': [
           { state: 'green', event: 'TIMER' },
           { state: 'yellow', event: 'TIMER' }
         ],
-        'red.wait': [
+        '{"red":"wait"}': [
           { state: 'green', event: 'TIMER' },
           { state: 'yellow', event: 'TIMER' },
-          { state: 'red.walk', event: 'PED_COUNTDOWN' }
+          { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
         ],
-        'red.stop': [
+        '{"red":"stop"}': [
           { state: 'green', event: 'TIMER' },
           { state: 'yellow', event: 'TIMER' },
-          { state: 'red.walk', event: 'PED_COUNTDOWN' },
-          { state: 'red.wait', event: 'PED_COUNTDOWN' }
+          { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+          { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
         ]
       });
     });
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[`${lightMachine.initial}`],
+        (getShortestPaths(lightMachine) as IPathMap)[
+          JSON.stringify(lightMachine.initialState)
+        ],
         0
       );
+    });
+  });
+
+  describe('getShortestPathsAsArray()', () => {
+    it('should return an array of shortest paths to all states', () => {
+      assert.deepEqual(getShortestPathsAsArray(lightMachine), [
+        { state: 'green', path: [] },
+        {
+          state: 'yellow',
+          path: [{ state: 'green', event: 'TIMER' }]
+        },
+        {
+          state: { red: 'flashing' },
+          path: [{ state: 'green', event: 'POWER_OUTAGE' }]
+        },
+        {
+          state: { red: 'walk' },
+          path: [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' }
+          ]
+        },
+        {
+          state: { red: 'wait' },
+          path: [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+          ]
+        },
+        {
+          state: { red: 'stop' },
+          path: [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+          ]
+        }
+      ]);
     });
   });
 
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
       assert.deepEqual(getSimplePaths(lightMachine), {
-        green: [[]],
-        'red.flashing': [
+        '"green"': [[]],
+        '"yellow"': [[{ state: 'green', event: 'TIMER' }]],
+        '{"red":"walk"}': [
           [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            },
-            {
-              event: 'POWER_OUTAGE',
-              state: 'red.walk'
-            }
-          ],
-          [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.walk'
-            },
-            {
-              event: 'POWER_OUTAGE',
-              state: 'red.wait'
-            }
-          ],
-          [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.walk'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.wait'
-            },
-            {
-              event: 'POWER_OUTAGE',
-              state: 'red.stop'
-            }
-          ],
-          [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'POWER_OUTAGE',
-              state: 'yellow'
-            }
-          ],
-          [
-            {
-              event: 'POWER_OUTAGE',
-              state: 'green'
-            }
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' }
           ]
         ],
-        'red.stop': [
+        '{"red":"flashing"}': [
           [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.walk'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.wait'
-            }
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'POWER_OUTAGE' }
+          ],
+          [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+            { state: { red: 'wait' }, event: 'POWER_OUTAGE' }
+          ],
+          [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' },
+            { state: { red: 'stop' }, event: 'POWER_OUTAGE' }
+          ],
+          [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'POWER_OUTAGE' }
+          ],
+          [{ state: 'green', event: 'POWER_OUTAGE' }]
+        ],
+        '{"red":"wait"}': [
+          [
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
           ]
         ],
-        'red.wait': [
+        '{"red":"stop"}': [
           [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            },
-            {
-              event: 'PED_COUNTDOWN',
-              state: 'red.walk'
-            }
-          ]
-        ],
-        'red.walk': [
-          [
-            {
-              event: 'TIMER',
-              state: 'green'
-            },
-            {
-              event: 'TIMER',
-              state: 'yellow'
-            }
-          ]
-        ],
-        yellow: [
-          [
-            {
-              event: 'TIMER',
-              state: 'green'
-            }
+            { state: 'green', event: 'TIMER' },
+            { state: 'yellow', event: 'TIMER' },
+            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
           ]
         ]
       });
@@ -336,8 +397,8 @@ describe('graph utilities', () => {
 
     it('should return multiple paths for equivalent transitions', () => {
       assert.deepEqual(getSimplePaths(equivMachine), {
-        a: [[]],
-        b: [
+        '"a"': [[]],
+        '"b"': [
           [
             {
               event: 'FOO',
@@ -355,8 +416,78 @@ describe('graph utilities', () => {
     });
 
     it('should return a single empty path for the initial state', () => {
-      assert.deepEqual(getSimplePaths(lightMachine)!.green, [[]]);
-      assert.deepEqual(getSimplePaths(equivMachine)!.a, [[]]);
+      assert.deepEqual(getSimplePaths(lightMachine)['"green"'], [[]]);
+      assert.deepEqual(getSimplePaths(equivMachine)['"a"'], [[]]);
+    });
+  });
+
+  describe('getSimplePathsAsArray()', () => {
+    it('should return an array of shortest paths to all states', () => {
+      assert.deepEqual(getSimplePathsAsArray(lightMachine), [
+        { state: 'green', paths: [[]] },
+        {
+          state: 'yellow',
+          paths: [[{ state: 'green', event: 'TIMER' }]]
+        },
+        {
+          state: { red: 'walk' },
+          paths: [
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' }
+            ]
+          ]
+        },
+        {
+          state: { red: 'flashing' },
+          paths: [
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' },
+              { state: { red: 'walk' }, event: 'POWER_OUTAGE' }
+            ],
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' },
+              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+              { state: { red: 'wait' }, event: 'POWER_OUTAGE' }
+            ],
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' },
+              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+              { state: { red: 'wait' }, event: 'PED_COUNTDOWN' },
+              { state: { red: 'stop' }, event: 'POWER_OUTAGE' }
+            ],
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'POWER_OUTAGE' }
+            ],
+            [{ state: 'green', event: 'POWER_OUTAGE' }]
+          ]
+        },
+        {
+          state: { red: 'wait' },
+          paths: [
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' },
+              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+            ]
+          ]
+        },
+        {
+          state: { red: 'stop' },
+          paths: [
+            [
+              { state: 'green', event: 'TIMER' },
+              { state: 'yellow', event: 'TIMER' },
+              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
+              { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+            ]
+          ]
+        }
+      ]);
     });
   });
 });
