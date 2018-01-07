@@ -101,6 +101,10 @@ class StateNode<
         .reduce((a, b) => a.concat(b))
     );
   }
+  public handles(event: Event): boolean {
+    const eventType = getEventType(event);
+    return this.on && this.on[eventType];
+  }
   public transition(
     state: StateValue | State,
     event: Event,
@@ -134,22 +138,8 @@ class StateNode<
       // history
       State.from(state),
       // effects
-      this.getActions(stateValue, nextStateValue, actions)
+      this.getActions(stateValue, nextStateValue, actions, event)
     );
-  }
-  public maybeTransition(
-    state: StateValue | State,
-    event: Event,
-    extendedState?: any
-  ): State {
-    const nextState = this.transition(state, event, extendedState);
-
-    if (!nextState) {
-      const stateValue = state instanceof State ? state.value : toTrie(state);
-      return new State(stateValue, State.from(state));
-    }
-
-    return nextState;
   }
   private transitionStateValue(
     state: StateValue | State,
@@ -441,10 +431,11 @@ class StateNode<
   private getActions(
     prevStateValue: StateValue,
     nextStateValue: StateValue,
-    actions: Action[]
+    actions: Action[],
+    event: Event
   ): Action[] {
     const entry: Action[] = [];
-    const exitActionMap: Record<string, Action[]> = {};
+    const exitNodeMap: Record<string, StateNode> = {};
 
     // Naively set all exit effects
     const prevStateNodes = this.getStateNodes(prevStateValue);
@@ -454,7 +445,7 @@ class StateNode<
       const prevStateNode = prevStateNodes[prevStateNodes.length - 1 - i];
 
       if (prevStateNode.onExit) {
-        exitActionMap[prevStateNode.id] = prevStateNode.onExit;
+        exitNodeMap[prevStateNode.id] = prevStateNode;
       }
     }
 
@@ -464,17 +455,18 @@ class StateNode<
     // tslint:disable-next-line:prefer-for-of
     for (let i = 0; i < nextStateNodes.length; i++) {
       const nextStateNode = nextStateNodes[i];
+      const exitNode = exitNodeMap[nextStateNode.id];
 
-      if (exitActionMap[nextStateNode.id]) {
+      if (exitNode && exitNode.onExit && !exitNode.handles(event)) {
         // Remove false exit effects
-        delete exitActionMap[nextStateNode.id];
+        delete exitNodeMap[exitNode.id];
       } else if (nextStateNode.onEntry) {
         entry.push(...nextStateNode.onEntry);
       }
     }
 
-    const exit = Object.keys(exitActionMap)
-      .map(id => exitActionMap[id])
+    const exit = Object.keys(exitNodeMap)
+      .map(id => exitNodeMap[id].onExit as Action[])
       .reduce((a, b) => a.concat(b), []);
 
     return [...exit, ...actions, ...entry];

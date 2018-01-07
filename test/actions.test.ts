@@ -145,12 +145,26 @@ describe('onEntry/onExit actions', () => {
       );
     });
 
-    it('should not have actions for unchanged transitions (shallow)', () => {
-      assert.deepEqual(lightMachine.transition('green', 'NOTHING').actions, []);
+    it('should not have actions for unhandled events (shallow)', () => {
+      assert.deepEqual(lightMachine.transition('green', 'FAKE').actions, []);
     });
 
-    it('should not have actions for unchanged transitions (deep)', () => {
-      assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, []);
+    it('should not have actions for unhandled events (deep)', () => {
+      assert.deepEqual(lightMachine.transition('red', 'FAKE').actions, []);
+    });
+
+    it('should exit and enter the state for self-transitions (shallow)', () => {
+      assert.deepEqual(lightMachine.transition('green', 'NOTHING').actions, [
+        'exit_green',
+        'enter_green'
+      ]);
+    });
+
+    it('should exit and enter the state for self-transitions (deep)', () => {
+      assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, [
+        'exit_red',
+        'enter_red'
+      ]);
     });
 
     it('should return actions for parallel machines', () => {
