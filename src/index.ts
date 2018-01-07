@@ -141,20 +141,6 @@ class StateNode<
       this.getActions(stateValue, nextStateValue, actions, event)
     );
   }
-  public maybeTransition(
-    state: StateValue | State,
-    event: Event,
-    extendedState?: any
-  ): State {
-    const nextState = this.transition(state, event, extendedState);
-
-    if (!nextState) {
-      const stateValue = state instanceof State ? state.value : toTrie(state);
-      return new State(stateValue, State.from(state));
-    }
-
-    return nextState;
-  }
   private transitionStateValue(
     state: StateValue | State,
     event: Event,
