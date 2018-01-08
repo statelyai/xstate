@@ -108,15 +108,17 @@ const currentState = 'yellow';
 
 const nextState = lightMachine
   .transition(currentState, 'TIMER')
-  .toString(); // toString() only works for non-parallel machines
-
-// => 'red.walk' 
+  .value;
+// => {
+//   red: 'walk'
+// }
 
 lightMachine
   .transition('red.walk', 'PED_TIMER')
-  .toString();
-
-// => 'red.wait'
+  .value;
+// => {
+//   red: 'wait'
+// }
 ```
 
 **Object notation for hierarchical states:**
@@ -124,7 +126,7 @@ lightMachine
 ```js
 // ...
 const waitState = lightMachine
-  .transition('red.walk', 'PED_TIMER')
+  .transition({ red: 'walk' }, 'PED_TIMER')
   .value;
 
 // => { red: 'wait' }
@@ -136,7 +138,7 @@ lightMachine
 // => { red: 'stop' }
 
 lightMachine
-  .transition('red.stop', 'TIMER')
+  .transition({ red: 'stop' }, 'TIMER')
   .value;
 
 // => 'green'
@@ -255,7 +257,7 @@ const checkState = paymentMachine
 
 // => State {
 //   value: { method: 'check' },
-//   history: { $current: { method: 'cash' }, ... }
+//   history: State { ... }
 // }
 
 const reviewState = paymentMachine
@@ -263,7 +265,7 @@ const reviewState = paymentMachine
 
 // => State {
 //   value: 'review',
-//   history: { $current: { method: 'check' }, ... }
+//   history: State { ... }
 // }
 
 const previousState = paymentMachine

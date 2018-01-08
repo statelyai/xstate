@@ -79,7 +79,7 @@ console.log(parallelMachine.initialState.value);
 
 Returns the next `State` given the current `state` and the received `event`.
 
-If [guard conditions](#todo) are used, the `extendedState` is used to determine the correct transition to the next state.
+If [guard conditions](guides/guards#conditional-transitions-guards) are used, the `extendedState` is used to determine the correct transition to the next state.
 
 **Arguments:**
 - `state`: `StateValue | State`

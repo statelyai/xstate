@@ -2,7 +2,7 @@
 
 Actions in `xstate` represent the side-effects that transitioning from/to a state can produce. These actions are never executed in `xstate`; rather, they are provided to you in the `state.actions` property of the `State` instance, returned from `machine.transition(...)`.
 
-See the [executing actions](#TODO) guide for more information.
+<!-- See the [executing actions](#TODO) guide for more information. -->
 
 An `Action` can be a:
   - `string`, e.g., `'fetchData'`

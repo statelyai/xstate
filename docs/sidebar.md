@@ -1,12 +1,14 @@
 - Getting started
-  - [Readme](README.md)
-  - [Complete Guide](guides/complete.md)
+  - [README](README.md)
   - [Hierarchical Machines](guides/hierarchical.md)
   - [Parallel Machines](guides/parallel.md)
   - [History](guides/history.md)
   - [Guards](guides/guards.md)
+  - [Complete Guide](guides/complete.md)
 - API
   - [Configuration](api/config.md)
   - [Machine](api/machine.md)
   - [State](api/state.md)
   - [Actions](api/actions.md)
+- Examples
+  - [Light Machine](examples/light.md)
