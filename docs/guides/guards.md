@@ -110,3 +110,4 @@ console.log(searchAttempt3.actions);
 - The `cond` function should always be a pure function that only references the `extendedState` and `eventObject` arguments.
 - Functions are not (easily) serializable in JSON. In future versions of `xstate`, alternative syntax for `cond` statements as plain strings or structured objects will be introduced to make it serializable.
   - Most statechart representations represent these conditions as plain strings.
+- ⚠️ **Warning**: do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple events instead.

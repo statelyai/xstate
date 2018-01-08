@@ -1,6 +1,9 @@
 - Getting started
   - [Readme](README.md)
-  - [Quick Start](guides/quickstart.md)
+  - [Complete Guide](guides/complete.md)
+  - [Hierarchical Machines](guides/hierarchical.md)
+  - [Parallel Machines](guides/parallel.md)
+  - [History](guides/history.md)
   - [Guards](guides/guards.md)
 - API
   - [Configuration](api/config.md)

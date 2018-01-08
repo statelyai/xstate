@@ -1,4 +1,6 @@
-# Quick Start
+# Complete Guide
+
+This is a guide that takes you through all the important parts of `xstate` and statecharts by building a sample app.
 
 Let's say we're developing an app that retrieves Star Wars data from [The Star Wars API](https://swapi.co). To accomplish this, we'll be dealing with asynchronous API requests in the form of promises.
 
@@ -345,3 +347,5 @@ dispatch({ type: 'REQUEST', id });
 //   ... etc.
 // }
 ```
+
+To be continued!
