@@ -114,7 +114,7 @@ const lightMachine = Machine({
 });
 ```
 
-For [guarded transitions](guards.md), instead of a `string` state ID, you provide a mapping of possible state IDs to state transition configs containing the `cond` property:
+For [guarded transitions](guides/guards.md), instead of a `string` state ID, you provide a mapping of possible state IDs to state transition configs containing the `cond` property:
 
 ```js
 const lightMachine = Machine({

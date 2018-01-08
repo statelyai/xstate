@@ -14,7 +14,7 @@ Instantiates a new `State` instance. Typically, you will seldom need to create a
 - `actions?`: `Action[]` (default: `[]`)
   - the set of actions to be executed
 
-**Usage:** See the [`lightMachine`](#todo) from the examples.
+**Usage:** See the [`lightMachine`](examples/light.md) from the examples.
 
 ```js
 console.log(lightMachine.initialState); // returns a State instance
