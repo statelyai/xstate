@@ -286,7 +286,7 @@ describe('graph utilities', () => {
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
         (getShortestPaths(lightMachine) as IPathMap)[
-          JSON.stringify(lightMachine.initialState)
+          JSON.stringify(lightMachine.initialState.value)
         ],
         0
       );

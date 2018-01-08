@@ -1,6 +1,5 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
-import { StateValue } from '../src/types';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {
@@ -89,8 +88,12 @@ describe('deterministic machine', () => {
   });
 
   describe('machine.initialState', () => {
-    it('should return the initial state', () => {
-      assert.equal(lightMachine.initialState, 'green');
+    it('should return the initial state value', () => {
+      assert.equal(lightMachine.initialState.value, 'green');
+    });
+
+    it('should not have any history', () => {
+      assert.isUndefined(lightMachine.initialState.history);
     });
   });
 
@@ -193,7 +196,7 @@ describe('deterministic machine', () => {
 
     it('should return the equivalent state if no transition occurs', () => {
       const initialState = lightMachine.transition(
-        lightMachine.initialState as StateValue,
+        lightMachine.initialState,
         'NOTHING'
       );
       const nextState = lightMachine.transition(initialState, 'NOTHING');
