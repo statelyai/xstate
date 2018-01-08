@@ -840,6 +840,14 @@ section.cover.has-mask .mask{
   letter-spacing:.8px;
   letter-spacing:.05rem
 }
+.markdown-section summary {
+  font-size: 1.2rem;
+  cursor: pointer;
+}
+.markdown-section details {
+  margin-bottom: 1rem;
+}
+.markdown-section
 code .token{
   -moz-osx-font-smoothing:initial;
   -webkit-font-smoothing:initial;

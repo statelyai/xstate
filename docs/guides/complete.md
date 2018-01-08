@@ -34,6 +34,8 @@ A simple finite state machine in `xstate` is configured with two properties:
 
 To start, the states will be configured with an `on` property, which is an object mapping **events** to their **next state keys**:
 
+![Star Wars Promise State Machine](https://i.imgur.com/4qXh3Jx.png)
+
 ```js
 const starWarsMachine = Machine({
   // start in the 'idle' state
@@ -245,6 +247,8 @@ We'll have to make two API calls, and we might want to show more detail in the U
 - The person's planet is finished loading.
 
 Hierarchical states (or nested states) can provide more granularity without making the state machine needlessly complex. Here's how we can represent our new requirements:
+
+![Star Wars Statechart](https://i.imgur.com/BHEHhNc.png)
 
 ```js
 const starWarsMachine = Machine({
