@@ -21,7 +21,7 @@ const standardMachine = Machine({
   }
 });
 
-standardMachine.initialState;
+standardMachine.initialState.value;
 // => 'green'
 ```
 
@@ -31,58 +31,150 @@ Whereas a `ParallelMachine` has no initial state (since all of its child states 
 const parallelMachine = Machine({
   parallel: true,
   states: {
-    northSouthLight: {
-      initial: 'green',
+    upload: {
+      initial: 'idle',
       states: {
-        green: { on: { TIMER: 'yellow' } },
-        yellow: { on: { TIMER: 'red' } },
-        red: { on: { TIMER: 'green' } },
+        idle: {
+          on: {
+            INIT_UPLOAD: 'pending'
+          }
+        },
+        pending: {
+          on: {
+            UPLOAD_COMPLETE: 'success'
+          }
+        },
+        success: {}
       }
     },
-    eastWestLight: {
-      initial: 'red',
+    download: {
+      initial: 'idle',
       states: {
-        green: { on: { TIMER: 'yellow' } },
-        yellow: { on: { TIMER: 'red' } },
-        red: { on: { TIMER: 'green' } },
+        idle: {
+          on: {
+            INIT_DOWNLOAD: 'pending'
+          }
+        },
+        pending: {
+          on: {
+            DOWNLOAD_COMPLETE: 'success'
+          }
+        },
+        success: {}
       }
     }
   }
 });
 
-parallelMachine.initialState;
+console.log(parallelMachine.initialState.value);
 // => {
-//   northSouthLight: 'green',
-//   eastWestLight: 'red'
+//   upload: 'idle',
+//   download: 'idle'
 // }
 ```
 
-## `Machine.standard(config)`
+# Machine methods and properties
+
+## `machine.transition(state, event, extendedState?)`
+
+Returns the next `State` given the current `state` and the received `event`.
+
+If [guard conditions](#todo) are used, the `extendedState` is used to determine the correct transition to the next state.
 
 **Arguments:**
-- `config`: `MachineConfig`
+- `state`: `StateValue | State`
+  - e.g., `'green'` or `'red.walk'` or `{ red: 'walk' }`
+  - can also be an instance of a `State` returned from a previous `machine.transition(...)` call.
+- `event`: `Event`
+  - e.g., `'TIMER'` or `{ type: 'TIMER', elapsed: 2000 }`
+- `extendedState?`: `any`
 
-**Returns:** `StandardMachine`
+**Returns:** `State`
 
-**Usage:** Convenience function for TypeScript usage. Use this or `Machine.parallel` for better type checking.
+**Usage:** This is the method you will use most frequently with `xstate`. Its main purpose is to answer the question, "What is the next state, given the current state and event?"
 
 ```js
-const standardMachine = Machine.standard({
-  // ... standard machine config (see above)
-});
+// simple usage, with a string state key and event
+const yellowState = standardMachine.transition('green', 'TIMER');
+console.log(yellowState);
+// => State {
+//   value: 'yellow',
+//   history: State('green', undefined, []),
+//   actions: []
+// }
+console.log(yellowState.value);
+// => 'yellow'
+
+// with an object as an event
+const timerEvent = {
+  type: 'TIMER',
+  elapsed: 2000
+};
+const redState = standardMachine.transition('yellow', timerEvent);
+console.log(redState.value);
+// => 'red'
+
+// with a State instance
+const greenState = standardMachine.transition(redState, 'TIMER');
+console.log(greenState.value);
+// => 'green'
+
+// with an object state value (useful for parallel machines)
+const downloadingState = parallelMachine.transition({
+  upload: 'idle',
+  download: 'idle'
+}, 'INIT_DOWNLOAD');
+console.log(downloadingState.value);
+// => {
+//   upload: 'idle',
+//   download: 'pending'
+// }
 ```
 
-## `Machine.parallel(config)`
+## `machine.initialState`
 
-**Arguments:**
-- `config`: `ParallelMachineConfig`
+(`State`) The initial `State` of the machine.
 
-**Returns:** `ParallelMachine`
-
-**Usage:** Convenience function for TypeScript usage. Use this or `Machine.standard` for better type checking.
+**Usage:**
 
 ```js
-const parallelMachine = Machine.parallel({
-  // ... parallel machine config (see above)
-});
+const standardInitialState = standardMachine.initialState;
+console.log(standardInitialState.value);
+// => 'green'
+
+const parallelInitialstate = parallelMachine.initialState;
+console.log(parallelInitialState.value);
+// => {
+//   upload: 'idle',
+//   download: 'idle'
+// }
+```
+
+## `machine.events`
+
+(`string[]`) All events handled by the machine.
+
+**Usage:**
+
+```js
+console.log(parallelMachine.events);
+// => ['INIT_UPLOAD', 'UPLOAD_COMPLETE', 'INIT_DOWNLOAD', 'DOWNLOAD_COMPLETE']
+```
+
+## `machine.getState(relativeStateId)`
+
+Returns the `StateNode` specified by the string `relativeStateId`, if it exists.
+
+**Arguments:**
+- `relativeStateId`: `string`
+  - e.g., `'green'` or `'download.pending'`
+
+**Returns:** `StateNode`
+
+**Usage:**
+
+```js
+const greenStateNode = standardMachine.getState('green');
+console.log(greenStateNode.id);
+// => 'green'
 ```

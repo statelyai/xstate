@@ -1,6 +1,6 @@
 # Machine and State Configuration
 
-In xstate, statecharts are recursive data structures, where the machine and its states (and deeper states) share the configuration schema.
+In xstate, statecharts are recursive data structures, where the machine and its states (and deeper states) share a common configuration schema.
 
 ## Machine Configuration 
 
