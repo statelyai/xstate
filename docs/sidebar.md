@@ -1,7 +1,9 @@
 - Getting started
   - [Readme](README.md)
-  - [Quick Start](quickstart.md)
+  - [Quick Start](guides/quickstart.md)
+  - [Guards](guides/guards.md)
 - API
-  - [Machine & State Config](api/config.md)
+  - [Configuration](api/config.md)
   - [Machine](api/machine.md)
   - [State](api/state.md)
+  - [Actions](api/actions.md)

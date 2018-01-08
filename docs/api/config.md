@@ -85,3 +85,89 @@ const redStateConfig = {
   }
 }
 ```
+
+## Transition Configuration
+
+On the [state configuration](#state-configuration), transitions are specified in the `on` property, which is a mapping of `string` event types to:
+- `string` state IDs, or
+- state transition mappings.
+
+The `on` property answers the question, "On this event, which state do I go to next?" The simplest representation is a `string` state ID:
+
+```js
+const lightMachine = Machine({
+  initial: 'green',
+  states: {
+    green: {
+      on: {
+        // on the 'TIMER' event, go to the 'yellow' state
+        TIMER: 'yellow'
+      }
+    },
+    yellow: {
+      // ...
+    },
+    red: {
+      // ...
+    }
+  }
+});
+```
+
+For [guarded transitions](guards.md), instead of a `string` state ID, you provide a mapping of possible state IDs to state transition configs containing the `cond` property:
+
+```js
+const lightMachine = Machine({
+  initial: 'green',
+  states: {
+    green: {
+      on: {
+        TIMER: {
+          green: {
+            // transition to 'green' only if < 100 seconds elapsed
+            cond: ({ elapsed }) => elapsed < 100
+          },
+          yellow: {
+            // transition to 'yellow' only if >= 100 seconds elapsed
+            cond: ({ elapsed }) => elapsed >= 100
+          }
+        }
+      }
+    },
+    yellow: {
+      // ...
+    },
+    red: {
+      // ...
+    }
+  }
+});
+```
+
+State transitions can also specify `actions`, which are transition actions to be executed when the transition takes place. The configuration is the same shape as above:
+
+```js
+const lightMachine = Machine({
+  initial: 'green',
+  states: {
+    green: {
+      on: {
+        TIMER: {
+          yellow: {
+            // specify that 'startYellowTimer' action should be executed
+            actions: ['startYellowTimer']
+          }
+        }
+      }
+    },
+    yellow: {
+      // ...
+    },
+    red: {
+      // ...
+    }
+  }
+});
+```
+
+Note: both `cond` and `actions` are optional, and they can both be specified together as well.
