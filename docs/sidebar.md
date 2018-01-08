@@ -4,3 +4,4 @@
 - API
   - [Machine & State Config](api/config.md)
   - [Machine](api/machine.md)
+  - [State](api/state.md)

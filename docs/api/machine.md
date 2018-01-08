@@ -1,6 +1,6 @@
 # Machine
 
-A machine in xstate represents a hierarchical state machine, or statechart. The `Machine(...)` function creates these machines.
+A machine in `xstate` represents a hierarchical state machine, or statechart. The `Machine(...)` function creates these machines.
 
 ## `Machine(config)`
 
@@ -73,7 +73,7 @@ console.log(parallelMachine.initialState.value);
 // }
 ```
 
-# Machine methods and properties
+# Machine properties and methods
 
 ## `machine.transition(state, event, extendedState?)`
 
