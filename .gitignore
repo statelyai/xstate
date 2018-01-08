@@ -32,3 +32,4 @@ dist/
 lib/
 editor/
 examples/
+!docs/examples/

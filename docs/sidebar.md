@@ -1,5 +1,6 @@
 - Guides
   - [README](README.md)
+  - [Installation](guides/installation.md)
   - [Hierarchical Machines](guides/hierarchical.md)
   - [Parallel Machines](guides/parallel.md)
   - [History](guides/history.md)
