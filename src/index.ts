@@ -395,7 +395,7 @@ class StateNode<
 
     return (this.__cache.events = Array.from(events));
   }
-  public getRelativeValue(toNode?: StateNode): StateValue {
+  private getRelativeValue(toNode?: StateNode): StateValue {
     const memoizedRelativeValue = toNode
       ? this.__cache.relativeValue.get(toNode)
       : undefined;

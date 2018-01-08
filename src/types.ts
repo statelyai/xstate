@@ -1,14 +1,19 @@
 import { StateNode } from './index';
 import State from './State';
 
-export declare type EventType = string | number;
+export type EventType = string | number;
+export type ActionType = string | number;
 
-export declare interface EventObject {
+export interface EventObject {
+  type: EventType;
+  [key: string]: any;
+}
+export interface ActionObject {
   type: EventType;
   [key: string]: any;
 }
 
-export declare type Event = EventType | EventObject;
+export type Event = EventType | EventObject;
 export type StateKey = string | State;
 
 export interface StateValueMap {
@@ -86,9 +91,7 @@ export type StateOrMachineConfig<
   | ParallelMachineConfig<TStateKey, TEventType>
   | StateLeafNodeConfig<TStateKey, TEventType>;
 
-export type Action =
-  | string
-  | (<T>(extendedState: T, event?: Partial<Event>, ...other: any[]) => T | any);
+export type Action = string | ActionObject;
 export interface EntryExitEffectMap {
   entry: Action[];
   exit: Action[];
@@ -105,8 +108,8 @@ export interface StateNode<
   parallel: boolean;
   states: Record<TStateKey, StateNode>;
   on?: Record<TEventType, Transition<TStateKey>>;
-  onEntry?: Action;
-  onExit?: Action;
+  onEntry?: Action | Action[];
+  onExit?: Action | Action[];
   parent: StateNode | undefined;
   machine: Machine;
 }
