@@ -1,4 +1,4 @@
-- Getting started
+- Guides
   - [README](README.md)
   - [Installation](guides/installation.md)
   - [Hierarchical Machines](guides/hierarchical.md)
