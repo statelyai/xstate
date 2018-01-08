@@ -157,10 +157,10 @@ class StateNode<
       }
 
       const subState = this.states[stateValue] as StateNode;
-      const initialState = subState.initialState;
+      if (subState.states && subState.initial) {
+        const initialStateValue = subState.initialState.value;
 
-      if (initialState) {
-        stateValue = { [stateValue]: initialState };
+        stateValue = { [stateValue]: initialStateValue };
       } else {
         return subState.next(
           event,
@@ -208,7 +208,7 @@ class StateNode<
 
     if (this.parallel) {
       nextStateValue = {
-        ...(mapValues(this.initialState as {}, subStateValue => [
+        ...(mapValues(this.initialState.value as {}, subStateValue => [
           subStateValue,
           []
         ]) as Record<string, [StateValue, string[]]>),
@@ -329,17 +329,34 @@ class StateNode<
 
     return [currentState.getRelativeValue(this.parent), actions];
   }
-  public get initialState(): StateValue | undefined {
+  private get initialStateValue(): StateValue | undefined {
     this.__cache.initialState =
       this.__cache.initialState ||
       ((this.parallel
         ? mapValues(
             this.states as Record<string, StateNode>,
-            state => state.initialState
+            state => state.initialStateValue
           )
         : this.initial) as StateValue);
 
     return this.__cache.initialState;
+  }
+  public get initialState(): State {
+    const { initialStateValue } = this;
+
+    if (!initialStateValue) {
+      throw new Error(
+        `Cannot retrieve initial state from simple state '${this.id}.'`
+      );
+    }
+
+    const entryActions = this.getStateNodes(initialStateValue).reduce(
+      (actions, stateNode) =>
+        stateNode.onEntry ? actions.concat(stateNode.onEntry) : actions,
+      [] as Action[]
+    );
+
+    return new State(initialStateValue, undefined, entryActions);
   }
   public getStates(stateValue: StateValue): StateNode[] {
     if (typeof stateValue === 'string') {
@@ -395,7 +412,7 @@ class StateNode<
 
     return (this.__cache.events = Array.from(events));
   }
-  public getRelativeValue(toNode?: StateNode): StateValue {
+  private getRelativeValue(toNode?: StateNode): StateValue {
     const memoizedRelativeValue = toNode
       ? this.__cache.relativeValue.get(toNode)
       : undefined;
@@ -404,16 +421,16 @@ class StateNode<
       return memoizedRelativeValue;
     }
 
-    const initialState = this.initialState;
-    let relativeValue = initialState
+    const initialStateValue = this.initialStateValue;
+    let relativeValue = initialStateValue
       ? {
-          [this.key]: initialState
+          [this.key]: initialStateValue
         }
       : this.key;
     let currentNode: StateNode = this.parent as StateNode;
 
     while (currentNode && currentNode !== toNode) {
-      const currentInitialState = currentNode.initialState;
+      const currentInitialState = currentNode.initialStateValue;
       relativeValue = {
         [currentNode.key]:
           typeof currentInitialState === 'object' &&

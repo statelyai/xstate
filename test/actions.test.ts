@@ -1,6 +1,5 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
-import { StateValueMap } from '../src/types';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -123,6 +122,26 @@ describe('onEntry/onExit actions', () => {
   });
 
   describe('State.actions', () => {
+    it('should return the entry actions of an initial state', () => {
+      assert.sameMembers(lightMachine.initialState.actions, ['enter_green']);
+    });
+
+    it('should return the entry actions of an initial state (deep)', () => {
+      assert.sameMembers(deepMachine.initialState.actions, [
+        'enter_a',
+        'enter_a1'
+      ]);
+    });
+
+    it('should return the entry actions of an initial state (parallel)', () => {
+      assert.sameMembers(parallelMachine.initialState.actions, [
+        'enter_a',
+        'enter_b',
+        'enter_a1',
+        'enter_b1'
+      ]);
+    });
+
     it('should return the entry and exit actions of a transition', () => {
       assert.deepEqual(lightMachine.transition('green', 'TIMER').actions, [
         'exit_green',
@@ -169,10 +188,8 @@ describe('onEntry/onExit actions', () => {
 
     it('should return actions for parallel machines', () => {
       assert.deepEqual(
-        parallelMachine.transition(
-          parallelMachine.initialState as StateValueMap,
-          'CHANGE'
-        ).actions,
+        parallelMachine.transition(parallelMachine.initialState, 'CHANGE')
+          .actions,
         [
           'exit_b1',
           'exit_a1',

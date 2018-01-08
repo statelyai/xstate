@@ -144,7 +144,7 @@ export function getAdjacencyMap(node: Machine): IAdjacencyMap {
     }
   }
 
-  findAdjacencies(node.initialState!);
+  findAdjacencies(node.initialState.value);
 
   return adjacency;
 }
@@ -154,7 +154,7 @@ export function getShortestPaths(machine: Machine): IPathMap {
     return EMPTY_MAP;
   }
   const adjacency = getAdjacencyMap(machine);
-  const initialStateId = JSON.stringify(machine.initialState);
+  const initialStateId = JSON.stringify(machine.initialState.value);
   const pathMap: IPathMap = {
     [initialStateId]: []
   };
@@ -204,7 +204,7 @@ export function getShortestPaths(machine: Machine): IPathMap {
     return pathMap;
   }
 
-  util(machine.initialState!);
+  util(machine.initialState.value);
 
   return pathMap;
 }
@@ -254,7 +254,7 @@ export function getSimplePaths(machine: Machine): IPathsMap {
     visited.delete(fromPathId);
   }
 
-  const initialStateId = JSON.stringify(machine.initialState);
+  const initialStateId = JSON.stringify(machine.initialState.value);
 
   Object.keys(adjacency).forEach(nextStateId => {
     util(initialStateId, nextStateId);
