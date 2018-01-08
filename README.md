@@ -1,32 +1,21 @@
-# XState
+# xstate
 
 [![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
 [![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
 
-Simple, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
 ## Why?
-Read [the slides](http://slides.com/davidkhourshid/finite-state-machines) ([video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
+In short, statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
+
+Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
 
 - [Statecharts - A Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) by David Harel
+- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogenson
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 
-## Roadmap for V2
-- Full documentation
-- Non-trivial, real-life examples for React, Vue, Angular, and no frameworks
-- Guard functions for actions
-- `onEnter`, `onTransition`, and `onExit` hooks
-- SCXML/SCION support
-- Automatic test generation
-- Simple event emitter integration
-- More analytics/optimization utilities
-- Tutorials, tutorials, tutorials
-
-## Visualizing state machines and statecharts
-The JSON-based notation used here to declaratively represent finite state machines and statecharts can be copy-pasted here: https://codepen.io/davidkpiano/pen/ayWKJO/ which will generate interactive state transition diagrams.
-
-## Getting Started
+## Installation
 1. `npm install xstate --save`
 2. `import { Machine } from 'xstate';`
 
@@ -119,15 +108,17 @@ const currentState = 'yellow';
 
 const nextState = lightMachine
   .transition(currentState, 'TIMER')
-  .toString(); // toString() only works for non-parallel machines
-
-// => 'red.walk' 
+  .value;
+// => {
+//   red: 'walk'
+// }
 
 lightMachine
   .transition('red.walk', 'PED_TIMER')
-  .toString();
-
-// => 'red.wait'
+  .value;
+// => {
+//   red: 'wait'
+// }
 ```
 
 **Object notation for hierarchical states:**
@@ -135,7 +126,7 @@ lightMachine
 ```js
 // ...
 const waitState = lightMachine
-  .transition('red.walk', 'PED_TIMER')
+  .transition({ red: 'walk' }, 'PED_TIMER')
   .value;
 
 // => { red: 'wait' }
@@ -147,7 +138,7 @@ lightMachine
 // => { red: 'stop' }
 
 lightMachine
-  .transition('red.stop', 'TIMER')
+  .transition({ red: 'stop' }, 'TIMER')
   .value;
 
 // => 'green'
@@ -266,7 +257,7 @@ const checkState = paymentMachine
 
 // => State {
 //   value: { method: 'check' },
-//   history: { $current: { method: 'cash' }, ... }
+//   history: State { ... }
 // }
 
 const reviewState = paymentMachine
@@ -274,7 +265,7 @@ const reviewState = paymentMachine
 
 // => State {
 //   value: 'review',
-//   history: { $current: { method: 'check' }, ... }
+//   history: State { ... }
 // }
 
 const previousState = paymentMachine
@@ -282,106 +273,4 @@ const previousState = paymentMachine
   .value;
 
 // => { method: 'check' }
-```
-
-More code examples coming soon!
-
-## Examples
-- [Simple Finite State Machine with Vue](https://codepen.io/BrockReece/pen/EvdwpJ)
-
-```js
-import React, { Component } from 'react'
-import { Machine } from 'xstate'
-
-const ROOT_URL = `https://api.github.com/users`
-const myMachine = Machine({
-  initial: 'idle',
-  states: {
-    idle: {
-      on: {
-        CLICK: 'loading'
-      }
-    },
-    loading: {
-      on: {
-        RESOLVE: 'data',
-        REJECT: 'error'
-      }
-    },
-    data: {
-      on: {
-        CLICK: 'loading'
-      }
-    },
-    error: {
-      on: {
-        CLICK: 'loading'
-      }
-    }
-  }
-})
-
-class App extends Component {
-  state = {
-    data: {},
-    dataState: 'idle',
-    input: ''
-  }
-
-  searchRepositories = async () => {
-    try {
-      const data = await fetch(`${ROOT_URL}/${this.state.input}`).then(response => response.json())
-      this.setState(({ data }), this.transition('RESOLVE'))
-
-    } catch (error) {
-      this.transition('REJECT')
-    }
-  }
-
-  commands = {
-    loading: this.searchRepositories
-  }
-  transition = action => {
-    const { dataState } = this.state
-
-    const newState = myMachine.transition(dataState, action).value
-    const command = this.commands[newState]
-
-    this.setState(
-      {
-        dataState: newState
-      },
-      command
-    )
-  }
-
-  render() {
-    const { data, dataState } = this.state
-    const buttonText = {
-      idle: 'Fetch Github',
-      loading: 'Loading...',
-      error: 'Github fail. Retry?',
-      data: 'Fetch Again?'
-    }[dataState]
-    return (
-      <div>
-        <input
-          type="text"
-          value={this.state.input}
-          onChange={e => this.setState({ input: e.target.value })}
-        />
-        <button
-          onClick={() => this.transition('CLICK')}
-          disabled={dataState === 'loading'}
-        >
-          {buttonText}
-        </button>
-        {data && <div>{JSON.stringify(data, null, 2)}</div>}
-        {dataState === 'error' && <h1>Error!!!</h1>}
-      </div>
-    )
-  }
-}
-
-export default App
 ```
