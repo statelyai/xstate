@@ -86,6 +86,8 @@ const redStateConfig = {
 }
 ```
 
+Compound states (states with substates) can also have a `state` property, just like machines. You must include either `initial` or `parallel` for these compound states - they have the same configuration as standard/parallel machines.
+
 ## Transition Configuration
 
 On the [state configuration](#state-configuration), transitions are specified in the `on` property, which is a mapping of `string` event types to:

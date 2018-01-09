@@ -142,7 +142,7 @@ const standardInitialState = standardMachine.initialState;
 console.log(standardInitialState.value);
 // => 'green'
 
-const parallelInitialstate = parallelMachine.initialState;
+const parallelInitialState = parallelMachine.initialState;
 console.log(parallelInitialState.value);
 // => {
 //   upload: 'idle',
