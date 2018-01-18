@@ -283,6 +283,30 @@ describe('graph utilities', () => {
       });
     });
 
+    it('should return a mapping of shortest paths to all states (parallel)', () => {
+      assert.deepEqual(getShortestPaths(parallelMachine), {
+        '{"a":"a1","b":"b1"}': [],
+        '{"a":"a2","b":"b2"}': [
+          {
+            event: '2',
+            state: {
+              a: 'a1',
+              b: 'b1'
+            }
+          }
+        ],
+        '{"a":"a3","b":"b3"}': [
+          {
+            event: '3',
+            state: {
+              a: 'a1',
+              b: 'b1'
+            }
+          }
+        ]
+      });
+    });
+
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
         (getShortestPaths(lightMachine) as IPathMap)[
@@ -393,6 +417,50 @@ describe('graph utilities', () => {
         a: { on: { FOO: 'b', BAR: 'b' } },
         b: { on: { FOO: 'a', BAR: 'a' } }
       }
+    });
+
+    it('should return a mapping of simple paths to all states (parallel)', () => {
+      assert.deepEqual(getSimplePaths(parallelMachine), {
+        '{"a":"a1","b":"b1"}': [[]],
+        '{"a":"a2","b":"b2"}': [
+          [
+            {
+              event: '2',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            }
+          ]
+        ],
+        '{"a":"a3","b":"b3"}': [
+          [
+            {
+              event: '2',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            },
+            {
+              event: '3',
+              state: {
+                a: 'a2',
+                b: 'b2'
+              }
+            }
+          ],
+          [
+            {
+              event: '3',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            }
+          ]
+        ]
+      });
     });
 
     it('should return multiple paths for equivalent transitions', () => {

@@ -150,7 +150,7 @@ export function getAdjacencyMap(node: Machine): IAdjacencyMap {
 }
 
 export function getShortestPaths(machine: Machine): IPathMap {
-  if (!machine.states || !machine.initial) {
+  if (!machine.states) {
     return EMPTY_MAP;
   }
   const adjacency = getAdjacencyMap(machine);
@@ -218,7 +218,7 @@ export function getShortestPathsAsArray(machine: Machine): IPathItem[] {
 }
 
 export function getSimplePaths(machine: Machine): IPathsMap {
-  if (!machine.states || !machine.initial) {
+  if (!machine.states) {
     return EMPTY_MAP;
   }
 
