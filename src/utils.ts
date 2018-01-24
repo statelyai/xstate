@@ -25,7 +25,11 @@ export function toStatePath(stateId: string | string[]): string[] {
   }
 }
 
-export function toTrie(stateValue: StateValue): StateValue {
+export function toTrie(stateValue: State | StateValue): StateValue {
+  if (stateValue instanceof State) {
+    return stateValue.value;
+  }
+
   if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
     return stateValue;
   }

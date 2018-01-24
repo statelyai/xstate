@@ -187,9 +187,12 @@ describe('onEntry/onExit actions', () => {
     });
 
     it('should exit and enter the state for self-transitions (deep)', () => {
+      // 'red' state resolves to 'red.walk'
       assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, [
+        'exit_walk',
         'exit_red',
-        'enter_red'
+        'enter_red',
+        'enter_walk'
       ]);
     });
 
