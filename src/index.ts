@@ -11,7 +11,9 @@ import {
   MachineConfig,
   ParallelMachineConfig,
   EventType,
-  EventObject
+  EventObject,
+  ActionMap,
+  MaybeStateValueActionsTuple
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -136,14 +138,14 @@ class StateNode<
       // history
       State.from(state),
       // effects
-      nextActions
+      nextActions.onExit.concat(nextActions.actions).concat(nextActions.onEntry)
     );
   }
   private transitionStateValue(
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): [StateValue | undefined, Action[]] {
+  ): MaybeStateValueActionsTuple {
     const history = state instanceof State ? state.history : undefined;
     let stateValue = toTrie(state);
 
@@ -190,7 +192,7 @@ class StateNode<
       })
     ) {
       if (this.parallel) {
-        return [undefined, []];
+        return [undefined, { onEntry: [], onExit: [], actions: [] }];
       }
 
       const subStateKey = Object.keys(nextStateValue)[0];
@@ -199,10 +201,15 @@ class StateNode<
       const [parentNextValue, parentNextActions] = this.states[
         subStateKey
       ].next(event, history ? history.value : undefined);
+      const nextActions = nextStateValue[subStateKey][1];
 
       return [
         parentNextValue,
-        nextStateValue[subStateKey][1].concat(parentNextActions)
+        {
+          onEntry: [...nextActions.onEntry, ...parentNextActions.onEntry],
+          actions: [...nextActions.actions, ...parentNextActions.actions],
+          onExit: [...nextActions.onExit, ...parentNextActions.onExit]
+        }
       ];
     }
 
@@ -210,17 +217,30 @@ class StateNode<
       nextStateValue = {
         ...(mapValues(this.initialState.value as {}, subStateValue => [
           subStateValue,
-          []
-        ]) as Record<string, [StateValue, string[]]>),
+          { onEntry: [], onExit: [], actions: [] }
+        ]) as Record<string, MaybeStateValueActionsTuple>),
         ...nextStateValue
       };
     }
 
-    const actionsArray: Action[][] = [];
+    const finalActions: ActionMap = {
+      onEntry: [],
+      actions: [],
+      onExit: []
+    };
     const finalStateValue = mapValues(
       nextStateValue,
       ([nextSubStateValue, nextSubActions], key) => {
-        actionsArray.push(nextSubActions);
+        if (nextSubActions.onEntry) {
+          finalActions.onEntry.push(...nextSubActions.onEntry);
+        }
+        if (nextSubActions.actions) {
+          finalActions.actions.push(...nextSubActions.actions);
+        }
+        if (nextSubActions.onExit) {
+          finalActions.onExit.push(...nextSubActions.onExit);
+        }
+
         if (!nextSubStateValue) {
           return stateValue[key];
         }
@@ -229,39 +249,23 @@ class StateNode<
       }
     );
 
-    // zip array
-    function zip<T>(arrays: T[][]): T[] {
-      const maxLength = Math.max(...arrays.map(a => a.length));
-      const result: T[] = [];
-
-      for (let i = 0; i < maxLength; i++) {
-        for (const array of arrays) {
-          if (array[i]) {
-            result.push(array[i]);
-          }
-        }
-      }
-
-      return result;
-    }
-
-    return [finalStateValue, zip(actionsArray)];
+    return [finalStateValue, finalActions];
   }
 
   private next(
     event: Event,
     history?: StateValue,
     extendedState?: any
-  ): [StateValue | undefined, Action[]] {
+  ): MaybeStateValueActionsTuple {
     const eventType = getEventType(event);
-    const actions: Action[] = [];
+    const actionMap: ActionMap = { onEntry: [], onExit: [], actions: [] };
 
     if (this.onExit) {
-      actions.push(...this.onExit);
+      actionMap.onExit = this.onExit;
     }
 
     if (!this.on || !this.on[eventType]) {
-      return [undefined, actions];
+      return [undefined, actionMap];
     }
 
     const transition = this.on[eventType] as Transition;
@@ -279,7 +283,7 @@ class StateNode<
         if (!cond || cond(extendedState, eventObject)) {
           nextStateString = candidate;
           if (transitionActions) {
-            actions.push(...transitionActions);
+            actionMap.actions = actionMap.actions.concat(transitionActions);
           }
           break;
         }
@@ -287,7 +291,7 @@ class StateNode<
     }
 
     if (!nextStateString) {
-      return [undefined, actions];
+      return [undefined, actionMap];
     }
 
     const nextStatePath = toStatePath(nextStateString);
@@ -324,7 +328,7 @@ class StateNode<
       }
 
       if (currentState.onEntry) {
-        actions.push(...currentState.onEntry);
+        actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
 
       currentPath = subPath;
@@ -345,11 +349,11 @@ class StateNode<
       currentState = currentState.states[currentState.initial];
 
       if (currentState.onEntry) {
-        actions.push(...currentState.onEntry);
+        actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
     }
 
-    return [currentState.getRelativeValue(this.parent), actions];
+    return [currentState.getRelativeValue(this.parent), actionMap];
   }
   private get initialStateValue(): StateValue | undefined {
     this.__cache.initialState =

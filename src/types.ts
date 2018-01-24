@@ -150,3 +150,9 @@ export interface ParallelMachine extends Machine {
   initial: undefined;
   parallel: true;
 }
+export interface ActionMap {
+  onEntry: Action[];
+  actions: Action[];
+  onExit: Action[];
+}
+export type MaybeStateValueActionsTuple = [StateValue | undefined, ActionMap];

@@ -201,8 +201,8 @@ describe('onEntry/onExit actions', () => {
         parallelMachine.transition(parallelMachine.initialState, 'CHANGE')
           .actions,
         [
-          'exit_b1',
           'exit_a1',
+          'exit_b1',
           'do_a2',
           'another_do_a2',
           'do_b2',
