@@ -156,13 +156,13 @@ class StateNode<
         );
       }
 
-      const subState = this.states[stateValue] as StateNode;
-      if (subState.states && subState.initial) {
-        const initialStateValue = subState.initialState.value;
+      const subStateNode = this.states[stateValue] as StateNode;
+      if (subStateNode.states && subStateNode.initial) {
+        const initialStateValue = subStateNode.initialState.value;
 
         stateValue = { [stateValue]: initialStateValue };
       } else {
-        return subState.next(
+        return subStateNode.next(
           event,
           history ? history.value : undefined,
           extendedState

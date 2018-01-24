@@ -99,8 +99,15 @@ describe('onEntry/onExit actions', () => {
         initial: 'a1',
         states: {
           a1: {
+            on: {
+              NEXT: 'a2'
+            },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
+          },
+          a2: {
+            onEntry: 'enter_a2',
+            onExit: 'exit_a2'
           }
         },
         onEntry: 'enter_a',
@@ -211,6 +218,51 @@ describe('onEntry/onExit actions', () => {
         'another_enter_b',
         'enter_b1'
       ]);
+    });
+
+    it('should ignore parent state actions for same-parent substates', () => {
+      assert.deepEqual(deepMachine.transition('a.a1', 'NEXT').actions, [
+        'exit_a1',
+        'enter_a2'
+      ]);
+    });
+
+    it('should ignore same-parent state actions (sparse)', () => {
+      const fooBar = {
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              TACK: 'bar'
+            }
+          },
+          bar: {
+            on: {
+              TACK: 'foo'
+            }
+          }
+        }
+      };
+
+      const pingPong = Machine({
+        initial: 'ping',
+        states: {
+          ping: {
+            onEntry: ['entryEvent'],
+            on: {
+              TICK: 'pong'
+            },
+            ...fooBar
+          },
+          pong: {
+            on: {
+              TICK: 'ping'
+            }
+          }
+        }
+      });
+
+      assert.isEmpty(pingPong.transition('ping.foo', 'TACK').actions);
     });
   });
 });
