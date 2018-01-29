@@ -29,67 +29,56 @@ export interface TransitionConfig {
   actions?: Action[];
 }
 
-export type Transition<TStateKey extends string = string> =
-  | TStateKey
-  | Record<TStateKey, TransitionConfig>;
+export interface TargetTransitionConfig extends TransitionConfig {
+  target: string;
+}
 
-export interface StateNodeConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> {
-  initial?: string;
-  states?: Record<TStateKey, StateOrMachineConfig>;
-  parallel?: boolean;
+export type ConditionalTransitionConfig = TargetTransitionConfig[];
+
+export type Transition = string | Record<string, TransitionConfig>;
+
+export interface StateNodeConfig {
   key?: string;
-  on?: Record<TEventType, Transition<TStateKey> | undefined>;
+  initial?: string | undefined;
+  parallel?: boolean | undefined;
+  states?: Record<string, SimpleOrCompoundStateNodeConfig> | undefined;
+  on?: Record<string, Transition | undefined>;
   onEntry?: Action | Action[];
   onExit?: Action | Action[];
   parent?: StateNode;
-  strict?: boolean;
+  strict?: boolean | undefined;
 }
-
-export interface StateLeafNodeConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends StateNodeConfig<TStateKey, TEventType> {
+export interface SimpleStateNodeConfig extends StateNodeConfig {
   initial?: undefined;
-  parallel?: undefined;
+  parallel?: false | undefined;
   states?: undefined;
 }
 
-export interface BaseMachineConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends StateNodeConfig<TStateKey, TEventType> {
-  key?: string;
-  initial?: string | undefined;
+export interface CompoundStateNodeConfig extends StateNodeConfig {
+  initial?: string;
   parallel?: boolean;
-  states: Record<TStateKey, StateOrMachineConfig>;
+  states: Record<string, SimpleOrCompoundStateNodeConfig>;
 }
 
-export interface MachineConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends BaseMachineConfig<TStateKey, TEventType> {
+export type SimpleOrCompoundStateNodeConfig =
+  | CompoundStateNodeConfig
+  | SimpleStateNodeConfig;
+
+export interface MachineConfig extends CompoundStateNodeConfig {
+  key: string;
+  strict?: boolean;
+}
+export interface StandardMachineConfig extends MachineConfig {
+  key: string;
   initial: string;
-  parallel?: undefined;
+  parallel?: false | undefined;
 }
 
-export interface ParallelMachineConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends BaseMachineConfig<TStateKey, TEventType> {
+export interface ParallelMachineConfig extends MachineConfig {
+  key: string;
   initial?: undefined;
   parallel: true;
 }
-
-export type StateOrMachineConfig<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> =
-  | MachineConfig<TStateKey, TEventType>
-  | ParallelMachineConfig<TStateKey, TEventType>
-  | StateLeafNodeConfig<TStateKey, TEventType>;
 
 export type Action = string | ActionObject;
 export interface EntryExitEffectMap {
@@ -97,34 +86,25 @@ export interface EntryExitEffectMap {
   exit: Action[];
 }
 
-export interface StateNode<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> {
+export interface StateNode {
   key: string;
   id: string;
   relativeId: string;
   initial: string | undefined;
   parallel: boolean;
-  states: Record<TStateKey, StateNode>;
-  on?: Record<TEventType, Transition<TStateKey>>;
+  states: Record<string, StateNode>;
+  on?: Record<string, Transition>;
   onEntry?: Action | Action[];
   onExit?: Action | Action[];
   parent: StateNode | undefined;
   machine: Machine;
 }
 
-export interface ComplexStateNode<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends StateNode<TStateKey, TEventType> {
+export interface ComplexStateNode extends StateNode {
   initial: string;
 }
 
-export interface LeafStateNode<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> extends StateNode<TStateKey, TEventType> {
+export interface LeafStateNode extends StateNode {
   initial: never;
   parallel: never;
   states: never;

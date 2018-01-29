@@ -7,13 +7,15 @@ import {
   Machine,
   StandardMachine,
   ParallelMachine,
-  StateOrMachineConfig,
+  SimpleOrCompoundStateNodeConfig,
   MachineConfig,
   ParallelMachineConfig,
   EventType,
   EventObject,
   ActionMap,
-  MaybeStateValueActionsTuple
+  MaybeStateValueActionsTuple,
+  StandardMachineConfig,
+  TransitionConfig
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -22,17 +24,14 @@ import State from './State';
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 
-class StateNode<
-  TStateKey extends string = string,
-  TEventType extends string = string
-> {
+class StateNode {
   public key: string;
   public id: string;
   public relativeId: string;
   public initial?: string;
   public parallel?: boolean;
-  public states: Record<TStateKey, StateNode>;
-  public on?: Record<TEventType, Transition<TStateKey> | undefined>;
+  public states: Record<string, StateNode>;
+  public on?: Record<string, Transition | undefined>;
   public onEntry?: Action[];
   public onExit?: Action[];
   public strict: boolean;
@@ -45,7 +44,12 @@ class StateNode<
     initialState: undefined as StateValue | undefined
   };
 
-  constructor(public config: StateOrMachineConfig<TStateKey, TEventType>) {
+  constructor(
+    public config:
+      | SimpleOrCompoundStateNodeConfig
+      | StandardMachineConfig
+      | ParallelMachineConfig
+  ) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
@@ -59,7 +63,7 @@ class StateNode<
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = (config.states
-      ? mapValues<StateOrMachineConfig, StateNode>(
+      ? mapValues<SimpleOrCompoundStateNodeConfig, StateNode>(
           config.states,
           (stateConfig, key) =>
             new StateNode({
@@ -68,16 +72,16 @@ class StateNode<
               parent: this
             })
         )
-      : {}) as Record<TStateKey, StateNode<string, string>>;
+      : {}) as Record<string, StateNode>;
 
     this.on = config.on;
+    this.strict = !!config.strict;
     this.onEntry = config.onEntry
       ? ([] as Action[]).concat(config.onEntry)
       : undefined;
     this.onExit = config.onExit
       ? ([] as Action[]).concat(config.onExit)
       : undefined;
-    this.strict = !!config.strict;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue = state instanceof State ? state.value : toTrie(state);
@@ -105,7 +109,12 @@ class StateNode<
   }
   public handles(event: Event): boolean {
     const eventType = getEventType(event);
-    return this.on && this.on[eventType];
+
+    if (this.on) {
+      return eventType in this.on;
+    }
+
+    return false;
   }
   public transition(
     state: StateValue | State,
@@ -275,7 +284,10 @@ class StateNode<
       nextStateString = transition;
     } else {
       for (const candidate of Object.keys(transition)) {
-        const { cond, actions: transitionActions } = transition[candidate];
+        // if (Array.isArray(transition[candidate])) {break;}
+        const { cond, actions: transitionActions } = transition[
+          candidate
+        ] as TransitionConfig;
         const eventObject: EventObject =
           typeof event === 'string' || typeof event === 'number'
             ? { type: event }
@@ -430,7 +442,7 @@ class StateNode<
         const state = states[stateId];
         if (state.states) {
           for (const event of state.events) {
-            events.add(event);
+            events.add(`${event}`);
           }
         }
       });
