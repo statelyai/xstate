@@ -1,5 +1,5 @@
-import { StateValue, Action } from './types';
-import { STATE_DELIMITER } from './constants';
+import { StateValue, Action, ActivityMap } from './types';
+import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 import { toTrie } from './utils';
 
 export default class State {
@@ -20,10 +20,12 @@ export default class State {
 
     return State.from(stateValue);
   }
+
   constructor(
     public value: StateValue,
     public history?: State,
-    public actions: Action[] = []
+    public actions: Action[] = [],
+    public activities: ActivityMap = EMPTY_ACTIVITY_MAP
   ) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {

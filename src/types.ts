@@ -37,6 +37,8 @@ export type ConditionalTransitionConfig = TargetTransitionConfig[];
 
 export type Transition = string | Record<string, TransitionConfig>;
 
+export type Activity = string | ActionObject;
+
 export interface StateNodeConfig {
   key?: string;
   initial?: string | undefined;
@@ -45,6 +47,7 @@ export interface StateNodeConfig {
   on?: Record<string, Transition | undefined>;
   onEntry?: Action | Action[];
   onExit?: Action | Action[];
+  activities?: Activity[];
   parent?: StateNode;
   strict?: boolean | undefined;
 }
@@ -65,11 +68,11 @@ export type SimpleOrCompoundStateNodeConfig =
   | SimpleStateNodeConfig;
 
 export interface MachineConfig extends CompoundStateNodeConfig {
-  key: string;
+  key?: string;
   strict?: boolean;
 }
 export interface StandardMachineConfig extends MachineConfig {
-  key: string;
+  key?: string;
   initial: string;
   parallel?: false | undefined;
 }
@@ -135,4 +138,19 @@ export interface ActionMap {
   actions: Action[];
   onExit: Action[];
 }
-export type MaybeStateValueActionsTuple = [StateValue | undefined, ActionMap];
+export interface ActivityMap {
+  start: Activity[];
+  active: Activity[];
+  stop: Activity[];
+}
+export type MaybeStateValueActionsTuple = [
+  StateValue | undefined,
+  ActionMap,
+  ActivityMap | undefined
+];
+
+export interface TransitionData {
+  value: StateValue | undefined;
+  actions: ActionMap;
+  activities?: ActivityMap;
+}
