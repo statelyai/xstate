@@ -65,17 +65,15 @@ export type SimpleOrCompoundStateNodeConfig =
   | SimpleStateNodeConfig;
 
 export interface MachineConfig extends CompoundStateNodeConfig {
-  key: string;
+  key?: string;
   strict?: boolean;
 }
 export interface StandardMachineConfig extends MachineConfig {
-  key: string;
   initial: string;
   parallel?: false | undefined;
 }
 
 export interface ParallelMachineConfig extends MachineConfig {
-  key: string;
   initial?: undefined;
   parallel: true;
 }
