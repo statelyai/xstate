@@ -1,4 +1,4 @@
-import State from './State';
+import { State } from './State';
 import { Event, StateValue, EventType } from './types';
 
 export function getEventType(event: Event): EventType {

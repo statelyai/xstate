@@ -2,7 +2,7 @@ import { StateValue, Action } from './types';
 import { STATE_DELIMITER } from './constants';
 import { toTrie } from './utils';
 
-export default class State {
+export class State {
   public static from(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {
       return stateValue;

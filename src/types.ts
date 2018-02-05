@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import State from './State';
+import { State } from './State';
 
 export type EventType = string | number;
 export type ActionType = string | number;

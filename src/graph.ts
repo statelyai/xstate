@@ -72,7 +72,7 @@ export function getEdges(
 
     const subStateKeys = getTransitionStateKeys(transition);
     subStateKeys.forEach(subStateKey => {
-      const subNode = parent.getState(subStateKey) as StateNode;
+      const subNode = parent!.getState(subStateKey) as StateNode;
       const edge: IEdge = { event, source: node, target: subNode };
 
       accEdges.push(edge);
