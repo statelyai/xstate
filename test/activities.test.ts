@@ -60,4 +60,18 @@ describe('activities', () => {
       }
     );
   });
+
+  it('identifies multiple stop activities for child and parent states', () => {
+    const redWalkState = lightMachine.transition('yellow', 'TIMER');
+    const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
+    const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
+
+    assert.deepEqual(
+      lightMachine.transition(redStopState, 'TIMER').activities,
+      {
+        activateCrosswalkLight: true,
+        blinkCrosswalkLight: false
+      }
+    );
+  });
 });
