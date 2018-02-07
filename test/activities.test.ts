@@ -30,12 +30,10 @@ const lightMachine = Machine({
   }
 });
 
-describe.only('activities', () => {
+describe('activities', () => {
   it('identifies start activities', () => {
     assert.deepEqual(lightMachine.transition('yellow', 'TIMER').activities, {
-      start: ['activateCrosswalkLight'],
-      active: [],
-      stop: []
+      activateCrosswalkLight: true
     });
   });
 
@@ -44,9 +42,8 @@ describe.only('activities', () => {
     assert.deepEqual(
       lightMachine.transition(redWalkState, 'PED_WAIT').activities,
       {
-        start: ['blinkCrosswalkLight'],
-        active: ['activateCrosswalkLight'],
-        stop: []
+        activateCrosswalkLight: true,
+        blinkCrosswalkLight: true
       }
     );
   });
@@ -58,9 +55,8 @@ describe.only('activities', () => {
     assert.deepEqual(
       lightMachine.transition(redWaitState, 'PED_STOP').activities,
       {
-        start: [],
-        active: ['activateCrosswalkLight'],
-        stop: ['blinkCrosswalkLight']
+        activateCrosswalkLight: true,
+        blinkCrosswalkLight: false
       }
     );
   });

@@ -135,7 +135,6 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    // const stateValue = toTrie(state);
     const [
       nextStateValue,
       nextActions,
@@ -149,15 +148,7 @@ class StateNode implements StateNodeConfig {
     const prevActivities =
       state instanceof State ? state.activities : undefined;
 
-    const activities = prevActivities
-      ? {
-          start: nextActivities!.start,
-          active: prevActivities.start,
-          stop: nextActivities!.stop
-        }
-      : nextActivities;
-
-    console.log(activities);
+    const activities = { ...prevActivities, ...nextActivities };
 
     return new State(
       // next state value
@@ -240,18 +231,8 @@ class StateNode implements StateNodeConfig {
       const activities = nextStateValue[subStateKey][2];
 
       const allActivities = {
-        start: [
-          ...(activities ? activities.start : []),
-          ...(parentActivities ? parentActivities.start : [])
-        ],
-        active: [
-          ...(activities ? activities.active : []),
-          ...(parentActivities ? parentActivities.active : [])
-        ],
-        stop: [
-          ...(activities ? activities.stop : []),
-          ...(parentActivities ? parentActivities.stop : [])
-        ]
+        ...activities,
+        ...parentActivities
       };
 
       return [
@@ -280,11 +261,7 @@ class StateNode implements StateNodeConfig {
       actions: [],
       onExit: []
     };
-    const finalActivities: ActivityMap = {
-      start: [],
-      active: [],
-      stop: []
-    };
+    const finalActivities: ActivityMap = {};
     const finalStateValue = mapValues(
       nextStateValue,
       ([nextSubStateValue, nextSubActions, nextSubActivities], key) => {
@@ -298,15 +275,7 @@ class StateNode implements StateNodeConfig {
           finalActions.onExit.push(...nextSubActions.onExit);
         }
         if (nextSubActivities) {
-          if (nextSubActivities.start) {
-            finalActivities.start.push(...nextSubActivities.start);
-          }
-          if (nextSubActivities.active) {
-            finalActivities.active.push(...nextSubActivities.active);
-          }
-          if (nextSubActivities.stop) {
-            finalActivities.stop.push(...nextSubActivities.stop);
-          }
+          Object.assign(finalActivities, nextSubActivities);
         }
 
         if (!nextSubStateValue) {
@@ -327,13 +296,15 @@ class StateNode implements StateNodeConfig {
   ): MaybeStateValueActionsTuple {
     const eventType = getEventType(event);
     const actionMap: ActionMap = { onEntry: [], onExit: [], actions: [] };
-    const activityMap: ActivityMap = { start: [], active: [], stop: [] };
+    const activityMap: ActivityMap = {};
 
     if (this.onExit) {
       actionMap.onExit = this.onExit;
     }
     if (this.activities) {
-      activityMap.stop.push(...this.activities);
+      this.activities.forEach(activity => {
+        activityMap[getEventType(activity)] = false;
+      });
     }
 
     if (!this.on || !this.on[eventType]) {
@@ -406,7 +377,9 @@ class StateNode implements StateNodeConfig {
         actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
       if (currentState.activities) {
-        activityMap.start.push(...currentState.activities);
+        currentState.activities.forEach(activity => {
+          activityMap[getEventType(activity)] = true;
+        });
       }
 
       currentPath = subPath;
@@ -430,7 +403,9 @@ class StateNode implements StateNodeConfig {
         actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
       if (currentState.activities) {
-        activityMap.start.push(...currentState.activities);
+        currentState.activities.forEach(activity => {
+          activityMap[getEventType(activity)] = true;
+        });
       }
     }
 

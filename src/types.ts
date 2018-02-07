@@ -136,10 +136,9 @@ export interface ActionMap {
   actions: Action[];
   onExit: Action[];
 }
+
 export interface ActivityMap {
-  start: Activity[];
-  active: Activity[];
-  stop: Activity[];
+  [activityKey: string]: boolean;
 }
 export type MaybeStateValueActionsTuple = [
   StateValue | undefined,
