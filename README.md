@@ -2,6 +2,7 @@
 
 [![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
 [![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
+[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 

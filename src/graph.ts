@@ -28,14 +28,12 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-function getTransitionStateKeys<TStateKey extends string = string>(
-  transition: Transition<TStateKey>
-): TStateKey[] {
+function getTransitionStateKeys(transition: Transition): string[] {
   if (typeof transition === 'string') {
     return [transition];
   }
 
-  return Object.keys(transition) as TStateKey[];
+  return Object.keys(transition) as string[];
 }
 
 export function getEdges(
@@ -74,7 +72,7 @@ export function getEdges(
 
     const subStateKeys = getTransitionStateKeys(transition);
     subStateKeys.forEach(subStateKey => {
-      const subNode = parent.getState(subStateKey) as StateNode;
+      const subNode = parent!.getState(subStateKey) as StateNode;
       const edge: IEdge = { event, source: node, target: subNode };
 
       accEdges.push(edge);

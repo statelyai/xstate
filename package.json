@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "3.0.3",
+  "version": "3.0.4",
   "description": "Simple JavaScript Finite State Machines and Statecharts",
   "main": "lib/index.js",
   "types": "lib/index.d.ts",
@@ -35,7 +35,7 @@
     "prettier": "^1.7.0",
     "ts-node": "^3.3.0",
     "tslint": "^5.7.0",
-    "typescript": "^2.6.2",
+    "typescript": "^2.7.1",
     "webpack": "^3.5.6"
   },
   "dependencies": {}

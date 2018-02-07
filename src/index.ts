@@ -22,7 +22,7 @@ import {
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
-import State from './State';
+import { State } from './State';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
