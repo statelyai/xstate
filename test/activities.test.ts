@@ -69,11 +69,6 @@ describe('activities', () => {
     const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
     const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
 
-    console.log(
-      redStopState.value,
-      lightMachine.transition(redStopState, 'TIMER').value
-    );
-
     assert.deepEqual(
       lightMachine.transition(redStopState, 'TIMER').activities,
       {
