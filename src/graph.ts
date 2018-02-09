@@ -40,6 +40,12 @@ export function getEdges(
   node: StateNode,
   visited: Record<string, true> = {}
 ): IEdge[] {
+  if (node.parallel) {
+    return Object.keys(node.states)
+      .map(stateKey => getEdges(node.states[stateKey]))
+      .reduce((a, b) => a.concat(b), []);
+  }
+
   const { states } = node;
   visited[node.key] = true;
   const subNodeEdges = Object.keys(states).reduce((_edges: IEdge[], key) => {
