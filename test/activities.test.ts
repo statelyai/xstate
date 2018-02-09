@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
+import { start, stop } from '../src/actions';
 
 const lightMachine = Machine({
   key: 'light',
@@ -35,46 +36,47 @@ const lightMachine = Machine({
 
 describe('activities', () => {
   it('identifies start activities', () => {
-    assert.deepEqual(lightMachine.transition('yellow', 'TIMER').activities, {
+    const nextState = lightMachine.transition('yellow', 'TIMER');
+    assert.deepEqual(nextState.activities, {
       activateCrosswalkLight: true
     });
+    assert.sameDeepMembers(nextState.actions, [
+      start('activateCrosswalkLight')
+    ]);
   });
 
   it('identifies start activities for child states and active activities', () => {
     const redWalkState = lightMachine.transition('yellow', 'TIMER');
-    assert.deepEqual(
-      lightMachine.transition(redWalkState, 'PED_WAIT').activities,
-      {
-        activateCrosswalkLight: true,
-        blinkCrosswalkLight: true
-      }
-    );
+    const nextState = lightMachine.transition(redWalkState, 'PED_WAIT');
+    assert.deepEqual(nextState.activities, {
+      activateCrosswalkLight: true,
+      blinkCrosswalkLight: true
+    });
+    assert.sameDeepMembers(nextState.actions, [start('blinkCrosswalkLight')]);
   });
 
   it('identifies stop activities for child states', () => {
     const redWalkState = lightMachine.transition('yellow', 'TIMER');
     const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
+    const nextState = lightMachine.transition(redWaitState, 'PED_STOP');
 
-    assert.deepEqual(
-      lightMachine.transition(redWaitState, 'PED_STOP').activities,
-      {
-        activateCrosswalkLight: true,
-        blinkCrosswalkLight: false
-      }
-    );
+    assert.deepEqual(nextState.activities, {
+      activateCrosswalkLight: true,
+      blinkCrosswalkLight: false
+    });
+    assert.sameDeepMembers(nextState.actions, [stop('blinkCrosswalkLight')]);
   });
 
   it('identifies multiple stop activities for child and parent states', () => {
     const redWalkState = lightMachine.transition('yellow', 'TIMER');
     const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
     const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
+    const nextState = lightMachine.transition(redStopState, 'TIMER');
 
-    assert.deepEqual(
-      lightMachine.transition(redStopState, 'TIMER').activities,
-      {
-        activateCrosswalkLight: false,
-        blinkCrosswalkLight: false
-      }
-    );
+    assert.deepEqual(nextState.activities, {
+      activateCrosswalkLight: false,
+      blinkCrosswalkLight: false
+    });
+    assert.sameDeepMembers(nextState.actions, [stop('activateCrosswalkLight')]);
   });
 });

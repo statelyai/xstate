@@ -14,6 +14,7 @@ export interface ActionObject {
 }
 
 export type Event = EventType | EventObject;
+export type Action = ActionType | ActionObject;
 export type StateKey = string | State;
 
 export interface StateValueMap {
@@ -81,7 +82,6 @@ export interface ParallelMachineConfig extends MachineConfig {
   parallel: true;
 }
 
-export type Action = string | ActionObject;
 export interface EntryExitEffectMap {
   entry: Action[];
   exit: Action[];

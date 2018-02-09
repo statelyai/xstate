@@ -23,6 +23,7 @@ import {
 import matchesState from './matchesState';
 import mapState from './mapState';
 import { State } from './State';
+import { start, stop } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -304,6 +305,7 @@ class StateNode implements StateNodeConfig {
     if (this.activities) {
       this.activities.forEach(activity => {
         activityMap[getEventType(activity)] = false;
+        actionMap.onExit = actionMap.onExit.concat(stop(activity));
       });
     }
 
@@ -379,6 +381,7 @@ class StateNode implements StateNodeConfig {
       if (currentState.activities) {
         currentState.activities.forEach(activity => {
           activityMap[getEventType(activity)] = true;
+          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
         });
       }
 
@@ -405,6 +408,7 @@ class StateNode implements StateNodeConfig {
       if (currentState.activities) {
         currentState.activities.forEach(activity => {
           activityMap[getEventType(activity)] = true;
+          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
         });
       }
     }
