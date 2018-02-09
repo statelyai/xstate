@@ -15,16 +15,20 @@ import {
   ActionMap,
   MaybeStateValueActionsTuple,
   StandardMachineConfig,
-  TransitionConfig
+  TransitionConfig,
+  ActivityMap,
+  StateNodeConfig,
+  Activity
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
 import { State } from './State';
+import { start, stop } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 
-class StateNode {
+class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
   public relativeId: string;
@@ -34,6 +38,7 @@ class StateNode {
   public on?: Record<string, Transition | undefined>;
   public onEntry?: Action[];
   public onExit?: Action[];
+  public activities?: Activity[];
   public strict: boolean;
   public parent?: StateNode;
   public machine: StateNode;
@@ -82,6 +87,7 @@ class StateNode {
     this.onExit = config.onExit
       ? ([] as Action[]).concat(config.onExit)
       : undefined;
+    this.activities = config.activities;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue = state instanceof State ? state.value : toTrie(state);
@@ -130,16 +136,20 @@ class StateNode {
       }
     }
 
-    // const stateValue = toTrie(state);
-    const [nextStateValue, nextActions] = this.transitionStateValue(
-      state,
-      event,
-      extendedState
-    );
+    const [
+      nextStateValue,
+      nextActions,
+      nextActivities
+    ] = this.transitionStateValue(state, event, extendedState);
 
     if (!nextStateValue) {
       return State.inert(state);
     }
+
+    const prevActivities =
+      state instanceof State ? state.activities : undefined;
+
+    const activities = { ...prevActivities, ...nextActivities };
 
     return new State(
       // next state value
@@ -147,7 +157,10 @@ class StateNode {
       // history
       State.from(state),
       // effects
-      nextActions.onExit.concat(nextActions.actions).concat(nextActions.onEntry)
+      nextActions.onExit
+        .concat(nextActions.actions)
+        .concat(nextActions.onEntry),
+      activities
     );
   }
   private transitionStateValue(
@@ -201,16 +214,27 @@ class StateNode {
       })
     ) {
       if (this.parallel) {
-        return [undefined, { onEntry: [], onExit: [], actions: [] }];
+        return [undefined, { onEntry: [], onExit: [], actions: [] }, undefined];
       }
 
       const subStateKey = Object.keys(nextStateValue)[0];
 
       // try with parent
-      const [parentNextValue, parentNextActions] = this.states[
-        subStateKey
-      ].next(event, history ? history.value : undefined);
+      const [
+        parentNextValue,
+        parentNextActions,
+        parentActivities
+      ] = this.states[subStateKey].next(
+        event,
+        history ? history.value : undefined
+      );
       const nextActions = nextStateValue[subStateKey][1];
+      const activities = nextStateValue[subStateKey][2];
+
+      const allActivities = {
+        ...activities,
+        ...parentActivities
+      };
 
       return [
         parentNextValue,
@@ -218,7 +242,8 @@ class StateNode {
           onEntry: [...nextActions.onEntry, ...parentNextActions.onEntry],
           actions: [...nextActions.actions, ...parentNextActions.actions],
           onExit: [...nextActions.onExit, ...parentNextActions.onExit]
-        }
+        },
+        allActivities
       ];
     }
 
@@ -237,9 +262,10 @@ class StateNode {
       actions: [],
       onExit: []
     };
+    const finalActivities: ActivityMap = {};
     const finalStateValue = mapValues(
       nextStateValue,
-      ([nextSubStateValue, nextSubActions], key) => {
+      ([nextSubStateValue, nextSubActions, nextSubActivities], key) => {
         if (nextSubActions.onEntry) {
           finalActions.onEntry.push(...nextSubActions.onEntry);
         }
@@ -248,6 +274,9 @@ class StateNode {
         }
         if (nextSubActions.onExit) {
           finalActions.onExit.push(...nextSubActions.onExit);
+        }
+        if (nextSubActivities) {
+          Object.assign(finalActivities, nextSubActivities);
         }
 
         if (!nextSubStateValue) {
@@ -258,7 +287,7 @@ class StateNode {
       }
     );
 
-    return [finalStateValue, finalActions];
+    return [finalStateValue, finalActions, finalActivities];
   }
 
   private next(
@@ -268,13 +297,20 @@ class StateNode {
   ): MaybeStateValueActionsTuple {
     const eventType = getEventType(event);
     const actionMap: ActionMap = { onEntry: [], onExit: [], actions: [] };
+    const activityMap: ActivityMap = {};
 
     if (this.onExit) {
       actionMap.onExit = this.onExit;
     }
+    if (this.activities) {
+      this.activities.forEach(activity => {
+        activityMap[getEventType(activity)] = false;
+        actionMap.onExit = actionMap.onExit.concat(stop(activity));
+      });
+    }
 
     if (!this.on || !this.on[eventType]) {
-      return [undefined, actionMap];
+      return [undefined, actionMap, activityMap];
     }
 
     const transition = this.on[eventType] as Transition;
@@ -303,7 +339,7 @@ class StateNode {
     }
 
     if (!nextStateString) {
-      return [undefined, actionMap];
+      return [undefined, actionMap, activityMap];
     }
 
     const nextStatePath = toStatePath(nextStateString);
@@ -342,6 +378,12 @@ class StateNode {
       if (currentState.onEntry) {
         actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
+      if (currentState.activities) {
+        currentState.activities.forEach(activity => {
+          activityMap[getEventType(activity)] = true;
+          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
+        });
+      }
 
       currentPath = subPath;
 
@@ -363,9 +405,15 @@ class StateNode {
       if (currentState.onEntry) {
         actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
       }
+      if (currentState.activities) {
+        currentState.activities.forEach(activity => {
+          activityMap[getEventType(activity)] = true;
+          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
+        });
+      }
     }
 
-    return [currentState.getRelativeValue(this.parent), actionMap];
+    return [currentState.getRelativeValue(this.parent), actionMap, activityMap];
   }
   private get initialStateValue(): StateValue | undefined {
     this.__cache.initialState =
