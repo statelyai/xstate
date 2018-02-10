@@ -324,11 +324,12 @@ class StateNode implements StateNodeConfig {
         const { cond, actions: transitionActions } = transition[
           candidate
         ] as TransitionConfig;
+        const extendedStateObject = extendedState || {};
         const eventObject: EventObject =
           typeof event === 'string' || typeof event === 'number'
             ? { type: event }
             : event;
-        if (!cond || cond(extendedState, eventObject)) {
+        if (!cond || cond(extendedStateObject, eventObject)) {
           nextStateString = candidate;
           if (transitionActions) {
             actionMap.actions = actionMap.actions.concat(transitionActions);
