@@ -55,9 +55,9 @@ describe('Example 6.17', () => {
     Object.keys(expected[fromState]).forEach(eventTypes => {
       const toState = expected[fromState][eventTypes];
 
-      it(`should go from ${fromState} to ${JSON.stringify(
-        toState
-      )} on ${eventTypes}`, () => {
+      it(`should go from ${fromState} to ${JSON.stringify(toState)} on ${
+        eventTypes
+      }`, () => {
         const resultState = testMultiTransition(machine, fromState, eventTypes);
 
         assert.deepEqual(resultState.value, toState);

@@ -362,7 +362,9 @@ class StateNode implements StateNodeConfig {
           subPath = currentState.initial;
         } else {
           throw new Error(
-            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+            `Cannot read '${HISTORY_KEY}' from state '${
+              currentState.id
+            }': missing 'initial'`
           );
         }
       }
@@ -371,7 +373,9 @@ class StateNode implements StateNodeConfig {
 
       if (currentState === undefined) {
         throw new Error(
-          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
+          `Event '${event}' on state '${
+            currentPath
+          }' leads to undefined state '${nextStatePath}'.`
         );
       }
 
