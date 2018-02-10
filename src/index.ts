@@ -324,11 +324,12 @@ class StateNode implements StateNodeConfig {
         const { cond, actions: transitionActions } = transition[
           candidate
         ] as TransitionConfig;
+        const extendedStateObject = extendedState || {};
         const eventObject: EventObject =
           typeof event === 'string' || typeof event === 'number'
             ? { type: event }
             : event;
-        if (!cond || cond(extendedState, eventObject)) {
+        if (!cond || cond(extendedStateObject, eventObject)) {
           nextStateString = candidate;
           if (transitionActions) {
             actionMap.actions = actionMap.actions.concat(transitionActions);
@@ -362,7 +363,9 @@ class StateNode implements StateNodeConfig {
           subPath = currentState.initial;
         } else {
           throw new Error(
-            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+            `Cannot read '${HISTORY_KEY}' from state '${
+              currentState.id
+            }': missing 'initial'`
           );
         }
       }
@@ -371,7 +374,9 @@ class StateNode implements StateNodeConfig {
 
       if (currentState === undefined) {
         throw new Error(
-          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
+          `Event '${event}' on state '${
+            currentPath
+          }' leads to undefined state '${nextStatePath}'.`
         );
       }
 
