@@ -14,6 +14,7 @@ export interface ActionObject {
 }
 
 export type Event = EventType | EventObject;
+export type Action = ActionType | ActionObject;
 export type StateKey = string | State;
 
 export interface StateValueMap {
@@ -37,6 +38,8 @@ export type ConditionalTransitionConfig = TargetTransitionConfig[];
 
 export type Transition = string | Record<string, TransitionConfig>;
 
+export type Activity = string | ActionObject;
+
 export interface StateNodeConfig {
   key?: string;
   initial?: string | undefined;
@@ -45,6 +48,7 @@ export interface StateNodeConfig {
   on?: Record<string, Transition | undefined>;
   onEntry?: Action | Action[];
   onExit?: Action | Action[];
+  activities?: Activity[];
   parent?: StateNode;
   strict?: boolean | undefined;
   data?: object | undefined;
@@ -79,7 +83,6 @@ export interface ParallelMachineConfig extends MachineConfig {
   parallel: true;
 }
 
-export type Action = string | ActionObject;
 export interface EntryExitEffectMap {
   entry: Action[];
   exit: Action[];
@@ -134,4 +137,18 @@ export interface ActionMap {
   actions: Action[];
   onExit: Action[];
 }
-export type MaybeStateValueActionsTuple = [StateValue | undefined, ActionMap];
+
+export interface ActivityMap {
+  [activityKey: string]: boolean;
+}
+export type MaybeStateValueActionsTuple = [
+  StateValue | undefined,
+  ActionMap,
+  ActivityMap | undefined
+];
+
+export interface TransitionData {
+  value: StateValue | undefined;
+  actions: ActionMap;
+  activities?: ActivityMap;
+}

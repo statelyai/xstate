@@ -315,6 +315,26 @@ describe('graph utilities', () => {
         0
       );
     });
+
+    it('should not throw when a condition is present', () => {
+      const condMachine = Machine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              NEXT: {
+                'b': {
+                  cond: payload => payload.foo
+                }
+              }
+            }
+          },
+          b: {}
+        }
+      });
+
+      assert.doesNotThrow(() => getShortestPaths(condMachine))
+    });
   });
 
   describe('getShortestPathsAsArray()', () => {
