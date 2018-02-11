@@ -37,6 +37,7 @@ class StateNode {
   public strict: boolean;
   public parent?: StateNode;
   public machine: StateNode;
+  public data: object | undefined;
 
   private __cache = {
     events: undefined as EventType[] | undefined,
@@ -82,6 +83,7 @@ class StateNode {
     this.onExit = config.onExit
       ? ([] as Action[]).concat(config.onExit)
       : undefined;
+    this.data = config.data;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue = state instanceof State ? state.value : toTrie(state);
@@ -147,7 +149,17 @@ class StateNode {
       // history
       State.from(state),
       // effects
-      nextActions.onExit.concat(nextActions.actions).concat(nextActions.onEntry)
+      nextActions.onExit
+        .concat(nextActions.actions)
+        .concat(nextActions.onEntry),
+      // data
+      this.getStateNodes(nextStateValue).reduce(
+        (data, stateNode) => {
+          data[stateNode.id] = stateNode.data;
+          return data;
+        },
+        {} as Record<string, any>
+      )
     );
   }
   private transitionStateValue(

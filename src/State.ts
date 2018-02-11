@@ -23,7 +23,8 @@ export class State {
   constructor(
     public value: StateValue,
     public history?: State,
-    public actions: Action[] = []
+    public actions: Action[] = [],
+    public data: Record<string, any> = {}
   ) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {

@@ -47,6 +47,7 @@ export interface StateNodeConfig {
   onExit?: Action | Action[];
   parent?: StateNode;
   strict?: boolean | undefined;
+  data?: object | undefined;
 }
 export interface SimpleStateNodeConfig extends StateNodeConfig {
   initial?: undefined;
