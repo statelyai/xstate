@@ -161,6 +161,8 @@ class StateNode implements StateNodeConfig {
       );
     } while (maybeNextState);
 
+    // TODO: handle internally raised events
+
     return nextStateFromInternalTransition;
   }
   private tupleToState(
@@ -216,10 +218,11 @@ class StateNode implements StateNodeConfig {
 
       const subStateNode = this.states[stateValue] as StateNode;
       if (subStateNode.states && subStateNode.initial) {
+        // Get the initial state value
         const initialStateValue = subStateNode.initialState.value;
-
         stateValue = { [stateValue]: initialStateValue };
       } else {
+        // Transition from the substate
         return subStateNode.next(
           event,
           history ? history.value : undefined,
@@ -228,6 +231,7 @@ class StateNode implements StateNodeConfig {
       }
     }
 
+    const potentialNextTuples: MaybeStateValueActionsTuple[] = [];
     let nextStateValue = mapValues(stateValue, (subStateValue, subStateKey) => {
       const subHistory = history ? history.value[subStateKey] : undefined;
       const subState = new State(
@@ -241,6 +245,16 @@ class StateNode implements StateNodeConfig {
         extendedState
       );
 
+      if (!nextTuple[0]) {
+        potentialNextTuples.push(
+          subStateNode.next(
+            event,
+            history ? history.value : undefined,
+            extendedState
+          )
+        );
+      }
+
       return nextTuple;
     });
 
@@ -250,6 +264,10 @@ class StateNode implements StateNodeConfig {
       })
     ) {
       if (this.parallel) {
+        if (potentialNextTuples.length) {
+          return potentialNextTuples[0];
+        }
+
         return [undefined, { onEntry: [], onExit: [], actions: [] }, undefined];
       }
 
@@ -409,6 +427,10 @@ class StateNode implements StateNodeConfig {
             `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
           );
         }
+      } else if (subPath === '') {
+        actionMap.onExit.length = 0;
+        currentState = currentState.states[this.key];
+        return;
       }
 
       currentState = currentState.states[subPath];
