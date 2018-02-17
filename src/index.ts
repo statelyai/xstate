@@ -27,7 +27,7 @@ import { start, stop } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
-
+const NULL_EVENT = '';
 class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
@@ -138,18 +138,43 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    const [
-      nextStateValue,
-      nextActions,
-      nextActivities
-    ] = this.transitionStateValue(state, event, extendedState);
+    const nextTuple = this.transitionStateValue(state, event, extendedState);
+    const nextState = this.tupleToState(nextTuple, state);
 
-    if (!nextStateValue) {
+    if (!nextState) {
       return State.inert(state);
     }
 
+    // Try transitioning from "transient" states from the NULL_EVENT
+    // until a state with non-transient transitions is found
+    let maybeNextState: State | undefined = nextState;
+    let nextStateFromInternalTransition: State;
+    do {
+      nextStateFromInternalTransition = maybeNextState;
+      maybeNextState = this.tupleToState(
+        this.transitionStateValue(
+          nextStateFromInternalTransition,
+          NULL_EVENT,
+          extendedState
+        ),
+        nextStateFromInternalTransition
+      );
+    } while (maybeNextState);
+
+    return nextStateFromInternalTransition;
+  }
+  private tupleToState(
+    tuple: MaybeStateValueActionsTuple,
+    prevState: StateValue | State
+  ): State | undefined {
+    const [nextStateValue, nextActions, nextActivities] = tuple;
+
+    if (!nextStateValue) {
+      return undefined;
+    }
+
     const prevActivities =
-      state instanceof State ? state.activities : undefined;
+      prevState instanceof State ? prevState.activities : undefined;
 
     const activities = { ...prevActivities, ...nextActivities };
 
@@ -157,7 +182,7 @@ class StateNode implements StateNodeConfig {
       // next state value
       nextStateValue,
       // history
-      State.from(state),
+      State.from(prevState),
       // effects
       nextActions.onExit
         .concat(nextActions.actions)
@@ -330,18 +355,25 @@ class StateNode implements StateNodeConfig {
     if (typeof transition === 'string') {
       nextStateString = transition;
     } else {
-      for (const candidate of Object.keys(transition)) {
-        // if (Array.isArray(transition[candidate])) {break;}
-        const { cond, actions: transitionActions } = transition[
-          candidate
-        ] as TransitionConfig;
+      const candidates = Array.isArray(transition)
+        ? transition
+        : Object.keys(transition).map(key => ({
+            ...transition[key],
+            target: key
+          }));
+
+      for (const candidate of candidates) {
+        const {
+          cond,
+          actions: transitionActions
+        } = candidate as TransitionConfig;
         const extendedStateObject = extendedState || {};
         const eventObject: EventObject =
           typeof event === 'string' || typeof event === 'number'
             ? { type: event }
             : event;
         if (!cond || cond(extendedStateObject, eventObject)) {
-          nextStateString = candidate;
+          nextStateString = candidate.target;
           if (transitionActions) {
             actionMap.actions = actionMap.actions.concat(transitionActions);
           }

@@ -14,6 +14,7 @@ export interface ActionObject {
 }
 
 export type Event = EventType | EventObject;
+export type InternalEvent = EventType | EventObject;
 export type Action = ActionType | ActionObject;
 export type StateKey = string | State;
 
@@ -23,7 +24,7 @@ export interface StateValueMap {
 
 export type StateValue = string | StateValueMap;
 
-export type Condition = (extendedState: any) => boolean;
+export type Condition = (extendedState: any, event?: EventObject) => boolean;
 
 export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
@@ -36,7 +37,10 @@ export interface TargetTransitionConfig extends TransitionConfig {
 
 export type ConditionalTransitionConfig = TargetTransitionConfig[];
 
-export type Transition = string | Record<string, TransitionConfig>;
+export type Transition =
+  | string
+  | Record<string, TransitionConfig>
+  | ConditionalTransitionConfig;
 
 export type Activity = string | ActionObject;
 
@@ -81,6 +85,7 @@ export interface StandardMachineConfig extends MachineConfig {
 export interface ParallelMachineConfig extends MachineConfig {
   initial?: undefined;
   parallel: true;
+  states: Record<string, CompoundStateNodeConfig>;
 }
 
 export interface EntryExitEffectMap {

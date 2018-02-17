@@ -1,12 +1,20 @@
 import { StateNode } from './index';
 import { toTrie } from './utils';
-import { Transition, StateValue, Machine, Event } from './types';
+import {
+  Transition,
+  StateValue,
+  Machine,
+  Event,
+  TargetTransitionConfig,
+  Condition
+} from './types';
 
 const EMPTY_MAP = {};
 export interface IEdge {
   event: string;
   source: StateNode;
   target: StateNode;
+  cond?: Condition;
 }
 export interface INodesAndEdges {
   nodes: StateNode[];
@@ -28,12 +36,25 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-function getTransitionStateKeys(transition: Transition): string[] {
+function getTransitionCandidates(
+  transition: Transition
+): TargetTransitionConfig[] {
   if (typeof transition === 'string') {
-    return [transition];
+    return [
+      {
+        target: transition
+      }
+    ];
   }
 
-  return Object.keys(transition) as string[];
+  if (Array.isArray(transition)) {
+    return transition;
+  }
+
+  return Object.keys(transition).map(target => ({
+    target,
+    ...transition[target]
+  }));
 }
 
 export function getEdges(
@@ -76,16 +97,18 @@ export function getEdges(
       return accEdges;
     }
 
-    const subStateKeys = getTransitionStateKeys(transition);
-    subStateKeys.forEach(subStateKey => {
-      const subNode = parent!.getState(subStateKey) as StateNode;
-      const edge: IEdge = { event, source: node, target: subNode };
+    const transitionCandidates = getTransitionCandidates(transition);
+
+    transitionCandidates.forEach(transitionCandidate => {
+      const { target, cond } = transitionCandidate;
+      const subNode = parent!.getState(target) as StateNode;
+      const edge: IEdge = { event, source: node, target: subNode, cond };
 
       accEdges.push(edge);
 
-      if (!visited[subStateKey]) {
+      if (!visited[target]) {
         accEdges.push(...getEdges(subNode, visited));
-        visited[subStateKey] = true;
+        visited[target] = true;
       }
     });
 

@@ -323,7 +323,7 @@ describe('graph utilities', () => {
           a: {
             on: {
               NEXT: {
-                'b': {
+                b: {
                   cond: payload => payload.foo
                 }
               }
@@ -333,7 +333,7 @@ describe('graph utilities', () => {
         }
       });
 
-      assert.doesNotThrow(() => getShortestPaths(condMachine))
+      assert.doesNotThrow(() => getShortestPaths(condMachine));
     });
   });
 
