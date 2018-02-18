@@ -231,14 +231,16 @@ class StateNode implements StateNodeConfig {
       }
     }
 
+    // Potential transition tuples from parent state nodes
     const potentialNextTuples: MaybeStateValueActionsTuple[] = [];
+
     let nextStateValue = mapValues(stateValue, (subStateValue, subStateKey) => {
       const subHistory = history ? history.value[subStateKey] : undefined;
       const subState = new State(
         subStateValue,
         subHistory ? State.from(subHistory) : undefined
       );
-      const subStateNode = this.states[subStateKey] as StateNode;
+      const subStateNode = this.states[subStateKey];
       const nextTuple = subStateNode.transitionStateValue(
         subState,
         event,
@@ -427,8 +429,8 @@ class StateNode implements StateNodeConfig {
             `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
           );
         }
-      } else if (subPath === '') {
-        actionMap.onExit.length = 0;
+      } else if (subPath === NULL_EVENT) {
+        actionMap.onExit = [];
         currentState = currentState.states[this.key];
         return;
       }
@@ -437,7 +439,9 @@ class StateNode implements StateNodeConfig {
 
       if (currentState === undefined) {
         throw new Error(
-          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath}'.`
+          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
+            STATE_DELIMITER
+          )}'.`
         );
       }
 

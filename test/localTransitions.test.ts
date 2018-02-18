@@ -1,7 +1,7 @@
 import { Machine } from '../src/index';
 import { assert } from 'chai';
 
-describe.only('local transitions', () => {
+describe('local transitions', () => {
   const wordMachine = Machine({
     key: 'word',
     parallel: true,
@@ -21,7 +21,9 @@ describe.only('local transitions', () => {
           LEFT_CLICK: '.left',
           RIGHT_CLICK: '.right',
           CENTER_CLICK: '.center',
-          JUSTIFY_CLICK: '.justify'
+          JUSTIFY_CLICK: '.justify',
+          RESET: 'direction', // explicit self-transition
+          RESET_TO_CENTER: 'direction.center'
         }
       }
     }
@@ -33,13 +35,28 @@ describe.only('local transitions', () => {
       'RIGHT_CLICK'
     );
 
-    console.log(nextState);
-
     assert.deepEqual(nextState.value, { direction: 'right' });
     assert.deepEqual(
       nextState.actions,
       [],
       'should not have onEntry or onExit actions'
     );
+  });
+
+  it('parent state should only exit/reenter if there is an explicit self-transition', () => {
+    const resetState = wordMachine.transition('direction.center', 'RESET');
+
+    assert.deepEqual(resetState.value, { direction: 'left' });
+    assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
+  });
+
+  it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
+    const resetState = wordMachine.transition(
+      'direction.right',
+      'RESET_TO_CENTER'
+    );
+
+    assert.deepEqual(resetState.value, { direction: 'center' });
+    assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
   });
 });
