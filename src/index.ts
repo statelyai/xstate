@@ -13,12 +13,12 @@ import {
   EventType,
   EventObject,
   ActionMap,
-  MaybeStateValueActionsTuple,
   StandardMachineConfig,
   TransitionConfig,
   ActivityMap,
   StateNodeConfig,
-  Activity
+  Activity,
+  StateTransition
 } from './types';
 import matchesState from './matchesState';
 import mapState from './mapState';
@@ -138,8 +138,12 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    const nextTuple = this.transitionStateValue(state, event, extendedState);
-    const nextState = this.tupleToState(nextTuple, state);
+    const stateTransition = this.transitionStateValue(
+      state,
+      event,
+      extendedState
+    );
+    const nextState = this.stateTransitionToState(stateTransition, state);
 
     if (!nextState) {
       return State.inert(state);
@@ -151,7 +155,7 @@ class StateNode implements StateNodeConfig {
     let nextStateFromInternalTransition: State;
     do {
       nextStateFromInternalTransition = maybeNextState;
-      maybeNextState = this.tupleToState(
+      maybeNextState = this.stateTransitionToState(
         this.transitionStateValue(
           nextStateFromInternalTransition,
           NULL_EVENT,
@@ -165,11 +169,15 @@ class StateNode implements StateNodeConfig {
 
     return nextStateFromInternalTransition;
   }
-  private tupleToState(
-    tuple: MaybeStateValueActionsTuple,
+  private stateTransitionToState(
+    stateTransition: StateTransition,
     prevState: StateValue | State
   ): State | undefined {
-    const [nextStateValue, nextActions, nextActivities] = tuple;
+    const {
+      stateValue: nextStateValue,
+      actions: nextActions,
+      activities: nextActivities
+    } = stateTransition;
 
     if (!nextStateValue) {
       return undefined;
@@ -186,9 +194,11 @@ class StateNode implements StateNodeConfig {
       // history
       State.from(prevState),
       // effects
-      nextActions.onExit
-        .concat(nextActions.actions)
-        .concat(nextActions.onEntry),
+      nextActions
+        ? nextActions.onExit
+            .concat(nextActions.actions)
+            .concat(nextActions.onEntry)
+        : [],
       // activities
       activities,
       // data
@@ -205,7 +215,7 @@ class StateNode implements StateNodeConfig {
     state: StateValue | State,
     event: Event,
     extendedState?: any
-  ): MaybeStateValueActionsTuple {
+  ): StateTransition {
     const history = state instanceof State ? state.history : undefined;
     let stateValue = toTrie(state);
 
@@ -232,7 +242,7 @@ class StateNode implements StateNodeConfig {
     }
 
     // Potential transition tuples from parent state nodes
-    const potentialNextTuples: MaybeStateValueActionsTuple[] = [];
+    const potentialStateTransitions: StateTransition[] = [];
 
     let nextStateValue = mapValues(stateValue, (subStateValue, subStateKey) => {
       const subHistory = history ? history.value[subStateKey] : undefined;
@@ -241,14 +251,14 @@ class StateNode implements StateNodeConfig {
         subHistory ? State.from(subHistory) : undefined
       );
       const subStateNode = this.states[subStateKey];
-      const nextTuple = subStateNode.transitionStateValue(
+      const subStateTransition = subStateNode.transitionStateValue(
         subState,
         event,
         extendedState
       );
 
-      if (!nextTuple[0]) {
-        potentialNextTuples.push(
+      if (!subStateTransition.stateValue) {
+        potentialStateTransitions.push(
           subStateNode.next(
             event,
             history ? history.value : undefined,
@@ -257,58 +267,72 @@ class StateNode implements StateNodeConfig {
         );
       }
 
-      return nextTuple;
+      return subStateTransition;
     });
 
     if (
       Array.prototype.every.call(Object.keys(nextStateValue), key => {
-        return nextStateValue[key][0] === undefined;
+        return nextStateValue[key].stateValue === undefined;
       })
     ) {
       if (this.parallel) {
-        if (potentialNextTuples.length) {
-          return potentialNextTuples[0];
+        if (potentialStateTransitions.length) {
+          return potentialStateTransitions[0];
         }
 
-        return [undefined, { onEntry: [], onExit: [], actions: [] }, undefined];
+        return {
+          stateValue: undefined,
+          actions: { onEntry: [], onExit: [], actions: [] },
+          activities: undefined
+        };
       }
 
       const subStateKey = Object.keys(nextStateValue)[0];
 
       // try with parent
-      const [
-        parentNextValue,
-        parentNextActions,
-        parentActivities
-      ] = this.states[subStateKey].next(
+      const {
+        stateValue: parentNextValue,
+        actions: parentNextActions,
+        activities: parentActivities
+      } = this.states[subStateKey].next(
         event,
         history ? history.value : undefined
       );
-      const nextActions = nextStateValue[subStateKey][1];
-      const activities = nextStateValue[subStateKey][2];
+      const nextActions = nextStateValue[subStateKey].actions;
+      const activities = nextStateValue[subStateKey].activities;
 
       const allActivities = {
         ...activities,
         ...parentActivities
       };
 
-      return [
-        parentNextValue,
-        {
-          onEntry: [...nextActions.onEntry, ...parentNextActions.onEntry],
-          actions: [...nextActions.actions, ...parentNextActions.actions],
-          onExit: [...nextActions.onExit, ...parentNextActions.onExit]
-        },
-        allActivities
-      ];
+      const allActions = parentNextActions
+        ? nextActions
+          ? {
+              onEntry: [...nextActions.onEntry, ...parentNextActions.onEntry],
+              actions: [...nextActions.actions, ...parentNextActions.actions],
+              onExit: [...nextActions.onExit, ...parentNextActions.onExit]
+            }
+          : parentNextActions
+        : nextActions;
+
+      return {
+        stateValue: parentNextValue,
+        actions: allActions,
+        activities: allActivities
+      };
     }
 
     if (this.parallel) {
       nextStateValue = {
-        ...(mapValues(this.initialState.value as {}, subStateValue => [
-          subStateValue,
-          { onEntry: [], onExit: [], actions: [] }
-        ]) as Record<string, MaybeStateValueActionsTuple>),
+        ...mapValues(
+          this.initialState.value as Record<string, StateValue>,
+          subStateValue => ({
+            stateValue: subStateValue,
+            actions: { onEntry: [], onExit: [], actions: [] },
+            activities: undefined
+          })
+        ),
         ...nextStateValue
       };
     }
@@ -321,15 +345,22 @@ class StateNode implements StateNodeConfig {
     const finalActivities: ActivityMap = {};
     const finalStateValue = mapValues(
       nextStateValue,
-      ([nextSubStateValue, nextSubActions, nextSubActivities], key) => {
-        if (nextSubActions.onEntry) {
-          finalActions.onEntry.push(...nextSubActions.onEntry);
-        }
-        if (nextSubActions.actions) {
-          finalActions.actions.push(...nextSubActions.actions);
-        }
-        if (nextSubActions.onExit) {
-          finalActions.onExit.push(...nextSubActions.onExit);
+      (subStateTransition, key) => {
+        const {
+          stateValue: nextSubStateValue,
+          actions: nextSubActions,
+          activities: nextSubActivities
+        } = subStateTransition;
+        if (nextSubActions) {
+          if (nextSubActions.onEntry) {
+            finalActions.onEntry.push(...nextSubActions.onEntry);
+          }
+          if (nextSubActions.actions) {
+            finalActions.actions.push(...nextSubActions.actions);
+          }
+          if (nextSubActions.onExit) {
+            finalActions.onExit.push(...nextSubActions.onExit);
+          }
         }
         if (nextSubActivities) {
           Object.assign(finalActivities, nextSubActivities);
@@ -343,14 +374,18 @@ class StateNode implements StateNodeConfig {
       }
     );
 
-    return [finalStateValue, finalActions, finalActivities];
+    return {
+      stateValue: finalStateValue,
+      actions: finalActions,
+      activities: finalActivities
+    };
   }
 
   private next(
     event: Event,
     history?: StateValue,
     extendedState?: any
-  ): MaybeStateValueActionsTuple {
+  ): StateTransition {
     const eventType = getEventType(event);
     const actionMap: ActionMap = { onEntry: [], onExit: [], actions: [] };
     const activityMap: ActivityMap = {};
@@ -366,7 +401,11 @@ class StateNode implements StateNodeConfig {
     }
 
     if (!this.on || !this.on[eventType]) {
-      return [undefined, actionMap, activityMap];
+      return {
+        stateValue: undefined,
+        actions: actionMap,
+        activities: activityMap
+      };
     }
 
     const transition = this.on[eventType] as Transition;
@@ -403,7 +442,11 @@ class StateNode implements StateNodeConfig {
     }
 
     if (!nextStateString) {
-      return [undefined, actionMap, activityMap];
+      return {
+        stateValue: undefined,
+        actions: actionMap,
+        activities: activityMap
+      };
     }
 
     const nextStatePath = toStatePath(nextStateString);
@@ -483,7 +526,11 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    return [currentState.getRelativeValue(this.parent), actionMap, activityMap];
+    return {
+      stateValue: currentState.getRelativeValue(this.parent),
+      actions: actionMap,
+      activities: activityMap
+    };
   }
   private get initialStateValue(): StateValue | undefined {
     this.__cache.initialState =

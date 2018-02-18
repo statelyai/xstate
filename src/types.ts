@@ -152,6 +152,12 @@ export type MaybeStateValueActionsTuple = [
   ActivityMap | undefined
 ];
 
+export interface StateTransition {
+  stateValue: StateValue | undefined;
+  actions: ActionMap | undefined;
+  activities: ActivityMap | undefined;
+}
+
 export interface TransitionData {
   value: StateValue | undefined;
   actions: ActionMap;
