@@ -79,6 +79,6 @@ describe('matchesState()', () => {
   });
 
   it('should mix/match string state values and object state values', () => {
-    assert.ok(matchesState('a.b.c', {a: {b: 'c'}}));
+    assert.ok(matchesState('a.b.c', { a: { b: 'c' } }));
   });
 });
