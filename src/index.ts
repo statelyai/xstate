@@ -296,7 +296,8 @@ class StateNode implements StateNodeConfig {
         activities: parentActivities
       } = this.states[subStateKey].next(
         event,
-        history ? history.value : undefined
+        history ? history.value : undefined,
+        extendedState
       );
       const nextActions = nextStateValue[subStateKey].actions;
       const activities = nextStateValue[subStateKey].activities;
@@ -469,7 +470,9 @@ class StateNode implements StateNodeConfig {
           subPath = currentState.initial;
         } else {
           throw new Error(
-            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+            `Cannot read '${HISTORY_KEY}' from state '${
+              currentState.id
+            }': missing 'initial'`
           );
         }
       } else if (subPath === NULL_EVENT) {
@@ -482,9 +485,9 @@ class StateNode implements StateNodeConfig {
 
       if (currentState === undefined) {
         throw new Error(
-          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
-            STATE_DELIMITER
-          )}'.`
+          `Event '${event}' on state '${
+            currentPath
+          }' leads to undefined state '${nextStatePath.join(STATE_DELIMITER)}'.`
         );
       }
 
