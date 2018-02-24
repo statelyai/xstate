@@ -1,51 +1,51 @@
-import { js2xml, Element as XMLElement } from 'xml-js';
+import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
 import { Machine } from './types';
-import * as xstate from './index';
+// import * as xstate from './index';
 import { StateNode } from './index';
-import { getEventType } from './utils';
+import { getEventType, mapValues } from './utils';
 
-const pedestrianStates = {
-  initial: 'walk',
-  states: {
-    walk: {
-      on: {
-        PED_COUNTDOWN: 'wait'
-      }
-    },
-    wait: {
-      on: {
-        PED_COUNTDOWN: 'stop'
-      }
-    },
-    stop: {}
-  }
-};
+// const pedestrianStates = {
+//   initial: 'walk',
+//   states: {
+//     walk: {
+//       on: {
+//         PED_COUNTDOWN: 'wait'
+//       }
+//     },
+//     wait: {
+//       on: {
+//         PED_COUNTDOWN: 'stop'
+//       }
+//     },
+//     stop: {}
+//   }
+// };
 
-const lightMachine = xstate.Machine({
-  key: 'light',
-  initial: 'green',
-  states: {
-    green: {
-      on: {
-        TIMER: 'yellow',
-        POWER_OUTAGE: 'red'
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: 'red',
-        POWER_OUTAGE: 'red'
-      }
-    },
-    red: {
-      on: {
-        TIMER: 'green',
-        POWER_OUTAGE: 'red'
-      },
-      ...pedestrianStates
-    }
-  }
-});
+// const lightMachine = xstate.Machine({
+//   key: 'light',
+//   initial: 'green',
+//   states: {
+//     green: {
+//       on: {
+//         TIMER: 'yellow',
+//         POWER_OUTAGE: 'red'
+//       }
+//     },
+//     yellow: {
+//       on: {
+//         TIMER: 'red',
+//         POWER_OUTAGE: 'red'
+//       }
+//     },
+//     red: {
+//       on: {
+//         TIMER: 'green',
+//         POWER_OUTAGE: 'red'
+//       },
+//       ...pedestrianStates
+//     }
+//   }
+// });
 
 function stateNodeToSCXML(stateNode: StateNode) {
   const { parallel } = stateNode;
@@ -187,7 +187,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
   return scxmlElement;
 }
 
-export function toSCXML(machine: Machine) {
+export function fromMachine(machine: Machine) {
   const scxmlDocument: XMLElement = {
     declaration: { attributes: { version: '1.0', encoding: 'utf-8' } },
     elements: [
@@ -207,4 +207,85 @@ export function toSCXML(machine: Machine) {
   return js2xml(scxmlDocument, { spaces: 2 });
 }
 
-console.log(toSCXML(lightMachine));
+function indexedRecord<T extends {}>(
+  items: T[],
+  identifier: string | ((item: T) => string)
+): Record<string, T> {
+  const record: Record<string, T> = {};
+
+  const identifierFn =
+    typeof identifier === 'string' ? item => item[identifier] : identifier;
+
+  items.forEach(item => {
+    record[identifierFn(item)] = item;
+  });
+
+  return record;
+}
+
+function executableContent(elements: XMLElement[]) {
+  const transition: any = {};
+
+  elements.forEach(element => {
+    switch (element.name) {
+      case 'raise':
+        transition.raise = transition.raise || [];
+        transition.raise.push(element.attributes!.event);
+      default:
+        return;
+    }
+  });
+
+  return transition;
+}
+
+function toConfig(nodeJson: XMLElement) {
+  const initial = nodeJson.attributes!.initial;
+  let states: Record<string, any>;
+  let on: Record<string, any>;
+
+  if (nodeJson.elements) {
+    const stateElements = nodeJson.elements.filter(
+      element => element.name === 'state'
+    );
+
+    const transitionElements = nodeJson.elements.filter(
+      element => element.name === 'transition'
+    );
+
+    states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
+
+    on = mapValues(
+      indexedRecord(
+        transitionElements,
+        (item: any) => item.attributes.event || ''
+      ),
+      (value: XMLElement) => {
+        return {
+          target: value.attributes!.target,
+          ...value.elements ? executableContent(value.elements) : undefined
+        };
+      }
+    );
+
+    return {
+      initial,
+      ...stateElements.length
+        ? { states: mapValues(states, toConfig) }
+        : undefined,
+      ...transitionElements.length ? { on } : undefined
+    };
+  }
+
+  return {};
+}
+
+export function toMachine(xml: string) {
+  const json = xml2js(xml);
+
+  const machineElement = json.elements.filter(
+    element => element.name === 'scxml'
+  )[0];
+
+  return toConfig(machineElement);
+}

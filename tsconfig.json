@@ -13,7 +13,8 @@
       "dom"
     ],
     "types": [
-      "mocha"
+      "mocha",
+      "node"
     ]
   },
   "include": [
