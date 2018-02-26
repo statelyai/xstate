@@ -1,4 +1,10 @@
-import { ActionObject, Action, ActionType } from './types';
+import {
+  ActionObject,
+  Action,
+  ActionType,
+  EventType,
+  EventObject
+} from './types';
 import { getEventType } from './utils';
 
 const PREFIX = 'xstate';
@@ -6,7 +12,8 @@ const PREFIX = 'xstate';
 // xstate-specific action types
 export const actionTypes = {
   start: `${PREFIX}.start`,
-  stop: `${PREFIX}.stop`
+  stop: `${PREFIX}.stop`,
+  raise: `${PREFIX}.raise`
 };
 
 export interface ActivityAction extends ActionObject {
@@ -30,6 +37,11 @@ const createActivityAction = (actionType: string) => (
     data
   };
 };
+
+export const raise = (eventType: EventType): EventObject => ({
+  type: actionTypes.raise,
+  event: eventType
+});
 
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);

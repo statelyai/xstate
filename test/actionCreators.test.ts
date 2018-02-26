@@ -4,7 +4,7 @@ import { assert } from 'chai';
 const { actionTypes } = actions;
 
 describe('action creators', () => {
-  Object.keys(actionTypes).forEach(actionKey => {
+  ['start', 'stop'].forEach(actionKey => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
         const action = actions[actionKey]('test');
