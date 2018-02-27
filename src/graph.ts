@@ -6,19 +6,21 @@ import {
   Machine,
   Event,
   TargetTransitionConfig,
-  Condition
+  Condition,
+  Action
 } from './types';
 
 const EMPTY_MAP = {};
-export interface IEdge {
+export interface Edge {
   event: string;
   source: StateNode;
   target: StateNode;
   cond?: Condition;
+  actions: Action[];
 }
 export interface INodesAndEdges {
   nodes: StateNode[];
-  edges: IEdge[];
+  edges: Edge[];
 }
 
 export function getNodes(node: StateNode): StateNode[] {
@@ -60,7 +62,7 @@ function getTransitionCandidates(
 export function getEdges(
   node: StateNode,
   visited: Record<string, true> = {}
-): IEdge[] {
+): Edge[] {
   if (node.parallel) {
     return Object.keys(node.states)
       .map(stateKey => getEdges(node.states[stateKey]))
@@ -69,7 +71,7 @@ export function getEdges(
 
   const { states } = node;
   visited[node.key] = true;
-  const subNodeEdges = Object.keys(states).reduce((_edges: IEdge[], key) => {
+  const subNodeEdges = Object.keys(states).reduce((_edges: Edge[], key) => {
     if (visited[key]) {
       return _edges;
     }
@@ -84,7 +86,7 @@ export function getEdges(
     return subNodeEdges;
   }
 
-  const edges = Object.keys(node.on).reduce((accEdges: IEdge[], event) => {
+  const edges = Object.keys(node.on).reduce((accEdges: Edge[], event) => {
     if (!node.on || !node.parent) {
       return accEdges;
     }
@@ -100,9 +102,15 @@ export function getEdges(
     const transitionCandidates = getTransitionCandidates(transition);
 
     transitionCandidates.forEach(transitionCandidate => {
-      const { target, cond } = transitionCandidate;
+      const { target, cond, actions } = transitionCandidate;
       const subNode = parent!.getState(target) as StateNode;
-      const edge: IEdge = { event, source: node, target: subNode, cond };
+      const edge: Edge = {
+        event,
+        source: node,
+        target: subNode,
+        cond,
+        actions: actions ? actions : []
+      };
 
       accEdges.push(edge);
 
