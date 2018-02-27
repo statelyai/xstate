@@ -109,9 +109,11 @@ class StateNode implements StateNodeConfig {
 
     return subStateNodes.concat(
       subStateKeys
-        .map(subStateKey =>
-          this.states[subStateKey].getStateNodes(stateValue[subStateKey])
-        )
+        .map(subStateKey => {
+          return this.states[subStateKey].getStateNodes(
+            stateValue[subStateKey]
+          );
+        })
         .reduce((a, b) => a.concat(b))
     );
   }
@@ -533,15 +535,38 @@ class StateNode implements StateNodeConfig {
       activities: activityMap
     };
   }
+  private get resolvedStateValue(): StateValue {
+    const { key } = this;
+
+    if (this.parallel) {
+      return {
+        [key]: mapValues(
+          this.states,
+          stateNode => stateNode.resolvedStateValue[stateNode.key]
+        )
+      };
+    }
+
+    if (!this.initial) {
+      // If leaf node, value is just the state node's key
+      return key;
+    }
+
+    return {
+      [key]: this.states[this.initial].resolvedStateValue
+    };
+  }
   private get initialStateValue(): StateValue | undefined {
-    this.__cache.initialState =
+    const initialStateValue =
       this.__cache.initialState ||
       ((this.parallel
         ? mapValues(
             this.states as Record<string, StateNode>,
             state => state.initialStateValue
           )
-        : this.initial) as StateValue);
+        : this.resolvedStateValue[this.key]) as StateValue);
+
+    this.__cache.initialState = initialStateValue;
 
     return this.__cache.initialState;
   }
@@ -637,6 +662,7 @@ class StateNode implements StateNodeConfig {
       const currentInitialState = currentNode.initialStateValue;
       relativeValue = {
         [currentNode.key]:
+          currentNode.parallel &&
           typeof currentInitialState === 'object' &&
           typeof relativeValue === 'object'
             ? { ...currentInitialState, ...relativeValue }
