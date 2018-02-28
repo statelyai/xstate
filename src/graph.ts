@@ -1,11 +1,11 @@
 import { StateNode } from './index';
 import { toTrie } from './utils';
 import {
-  Transition,
+  // Transition,
   StateValue,
   Machine,
   Event,
-  TargetTransitionConfig,
+  // TargetTransitionConfig,
   Condition,
   Action
 } from './types';
@@ -38,92 +38,58 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-function getTransitionCandidates(
-  transition: Transition
-): TargetTransitionConfig[] {
-  if (typeof transition === 'string') {
+function getEventEdges(node: StateNode, event: string): Edge[] {
+  const transitions = node.on![event]!;
+
+  if (typeof transitions === 'string') {
     return [
       {
-        target: transition
+        source: node,
+        target: node.parent!.getState(transitions)!,
+        event,
+        actions: []
       }
     ];
   }
 
-  if (Array.isArray(transition)) {
-    return transition;
+  if (Array.isArray(transitions)) {
+    return transitions.map(transition => {
+      return {
+        source: node,
+        target: node.parent!.getState(transition.target)!,
+        event,
+        actions: transition.actions || [],
+        cond: transition.cond
+      };
+    });
   }
 
-  return Object.keys(transition).map(target => ({
-    target,
-    ...transition[target]
-  }));
+  return Object.keys(transitions).map(stateKey => {
+    return {
+      source: node,
+      target: node.parent!.getState(stateKey)!,
+      event,
+      actions: transitions[stateKey].actions || [],
+      cond: transitions[stateKey].cond
+    };
+  });
 }
 
-export function getEdges(
-  node: StateNode,
-  visited: Record<string, true> = {}
-): Edge[] {
-  if (node.parallel) {
-    return Object.keys(node.states)
-      .map(stateKey => getEdges(node.states[stateKey]))
-      .reduce((a, b) => a.concat(b), []);
-  }
+export function getEdges(node: StateNode): Edge[] {
+  const edges: Edge[] = [];
 
-  const { states } = node;
-  visited[node.key] = true;
-  const subNodeEdges = Object.keys(states).reduce((_edges: Edge[], key) => {
-    if (visited[key]) {
-      return _edges;
-    }
-
-    const subState = states[key];
-    _edges.push(...getEdges(subState, visited));
-    visited[key] = true;
-    return _edges;
-  }, []);
-
-  if (!node.on) {
-    return subNodeEdges;
-  }
-
-  const edges = Object.keys(node.on).reduce((accEdges: Edge[], event) => {
-    if (!node.on || !node.parent) {
-      return accEdges;
-    }
-
-    const { parent } = node;
-
-    const transition = node.on[event];
-
-    if (!transition) {
-      return accEdges;
-    }
-
-    const transitionCandidates = getTransitionCandidates(transition);
-
-    transitionCandidates.forEach(transitionCandidate => {
-      const { target, cond, actions } = transitionCandidate;
-      const subNode = parent!.getState(target) as StateNode;
-      const edge: Edge = {
-        event,
-        source: node,
-        target: subNode,
-        cond,
-        actions: actions ? actions : []
-      };
-
-      accEdges.push(edge);
-
-      if (!visited[target]) {
-        accEdges.push(...getEdges(subNode, visited));
-        visited[target] = true;
-      }
+  if (node.states) {
+    Object.keys(node.states).forEach(stateKey => {
+      edges.push(...getEdges(node.states[stateKey]));
     });
+  }
+  if (node.on) {
+    Object.keys(node.on).forEach(event => {
+      edges.push(...getEventEdges(node, event));
+    });
+  }
 
-    return accEdges;
-  }, []);
-
-  return subNodeEdges.concat(edges);
+  return edges;
 }
 
 export interface Segment {

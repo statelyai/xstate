@@ -136,7 +136,7 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
@@ -207,7 +207,7 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
