@@ -140,22 +140,30 @@ class StateNode implements StateNodeConfig {
       }
     }
 
+    const currentState = State.from(state);
+
     const stateTransition = this.transitionStateValue(
-      state,
+      currentState,
       event,
       extendedState
     );
-    const nextState = this.stateTransitionToState(stateTransition, state);
+    const nextState = this.stateTransitionToState(
+      stateTransition,
+      currentState
+    );
 
     if (!nextState) {
-      return State.inert(state);
+      return State.inert(currentState);
     }
 
     // Try transitioning from "transient" states from the NULL_EVENT
     // until a state with non-transient transitions is found
     let maybeNextState: State | undefined = nextState;
     let nextStateFromInternalTransition: State;
+    const actions: Action[] = [];
+
     do {
+      actions.push(...maybeNextState.actions);
       nextStateFromInternalTransition = maybeNextState;
       maybeNextState = this.stateTransitionToState(
         this.transitionStateValue(
@@ -167,13 +175,15 @@ class StateNode implements StateNodeConfig {
       );
     } while (maybeNextState);
 
+    nextStateFromInternalTransition.actions = actions;
+
     // TODO: handle internally raised events
 
     return nextStateFromInternalTransition;
   }
   private stateTransitionToState(
     stateTransition: StateTransition,
-    prevState: StateValue | State
+    prevState: State
   ): State | undefined {
     const {
       stateValue: nextStateValue,
@@ -214,12 +224,12 @@ class StateNode implements StateNodeConfig {
     );
   }
   private transitionStateValue(
-    state: StateValue | State,
+    state: State,
     event: Event,
     extendedState?: any
   ): StateTransition {
-    const history = state instanceof State ? state.history : undefined;
-    let stateValue = toTrie(state);
+    const { history } = state;
+    let stateValue = state.value;
 
     if (typeof stateValue === 'string') {
       if (!this.states[stateValue]) {
