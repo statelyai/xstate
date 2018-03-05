@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import { toTrie } from './utils';
+import { toStateValue } from './utils';
 import {
   // Transition,
   StateValue,
@@ -173,7 +173,7 @@ export function getShortestPaths(machine: Machine): IPathMap {
         continue;
       }
 
-      const nextStateId = JSON.stringify(toTrie(nextStateValue));
+      const nextStateId = JSON.stringify(toStateValue(nextStateValue));
 
       if (
         !pathMap[nextStateId] ||

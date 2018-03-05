@@ -1,12 +1,12 @@
-import { toTrie } from './utils'; // TODO: change to utils
+import { toStateValue } from './utils'; // TODO: change to utils
 import { StateValue } from './types';
 
 export default function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue
 ): boolean {
-  const parentStateValue = toTrie(parentStateId);
-  const childStateValue = toTrie(childStateId);
+  const parentStateValue = toStateValue(parentStateId);
+  const childStateValue = toStateValue(childStateId);
 
   if (typeof childStateValue === 'string') {
     if (typeof parentStateValue === 'string') {

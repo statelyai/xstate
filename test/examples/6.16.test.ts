@@ -8,7 +8,13 @@ describe('Example 6.16', () => {
       A: {
         initial: 'D',
         states: {
-          C: { on: { 2: 'D' } },
+          C: {
+            on: {
+              2: {
+                D: { in: 'B.E' }
+              }
+            }
+          },
           D: { on: { 1: 'C' } }
         }
       },
@@ -36,7 +42,7 @@ describe('Example 6.16', () => {
     },
     '{"A":"C", "B":"G"}': {
       1: undefined,
-      2: { A: 'D', B: 'G' },
+      2: undefined,
       3: { A: 'C', B: 'F' }
     }
   };

@@ -1,4 +1,10 @@
-import { getEventType, toStatePath, toTrie, mapValues } from './utils';
+import {
+  getEventType,
+  toStatePath,
+  toStateValue,
+  mapValues,
+  path
+} from './utils';
 import {
   Event,
   StateValue,
@@ -31,6 +37,7 @@ const NULL_EVENT = '';
 class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
+  public path: string[];
   public relativeId: string;
   public initial?: string;
   public parallel?: boolean;
@@ -62,6 +69,7 @@ class StateNode implements StateNodeConfig {
     this.id = this.parent
       ? this.parent.id + STATE_DELIMITER + this.key
       : this.key;
+    this.path = this.parent ? this.parent.path.concat(this.key) : [this.key];
     this.relativeId =
       this.parent && this.parent.parent
         ? this.parent.relativeId + STATE_DELIMITER + this.key
@@ -92,7 +100,8 @@ class StateNode implements StateNodeConfig {
     this.activities = config.activities;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
-    const stateValue = state instanceof State ? state.value : toTrie(state);
+    const stateValue =
+      state instanceof State ? state.value : toStateValue(state);
 
     if (typeof stateValue === 'string') {
       const initialStateValue = (this.states[stateValue] as StateNode).initial;
@@ -145,6 +154,7 @@ class StateNode implements StateNodeConfig {
     const stateTransition = this.transitionStateValue(
       currentState,
       event,
+      currentState,
       extendedState
     );
     const nextState = this.stateTransitionToState(
@@ -169,6 +179,7 @@ class StateNode implements StateNodeConfig {
         this.transitionStateValue(
           nextStateFromInternalTransition,
           NULL_EVENT,
+          maybeNextState,
           extendedState
         ),
         nextStateFromInternalTransition
@@ -226,6 +237,7 @@ class StateNode implements StateNodeConfig {
   private transitionStateValue(
     state: State,
     event: Event,
+    fullState: State,
     extendedState?: any
   ): StateTransition {
     const { history } = state;
@@ -238,7 +250,7 @@ class StateNode implements StateNodeConfig {
         );
       }
 
-      const subStateNode = this.states[stateValue] as StateNode;
+      const subStateNode = this.states[stateValue];
       if (subStateNode.states && subStateNode.initial) {
         // Get the initial state value
         const initialStateValue = subStateNode.initialState.value;
@@ -247,6 +259,7 @@ class StateNode implements StateNodeConfig {
         // Transition from the substate
         return subStateNode.next(
           event,
+          fullState,
           history ? history.value : undefined,
           extendedState
         );
@@ -266,6 +279,7 @@ class StateNode implements StateNodeConfig {
       const subStateTransition = subStateNode.transitionStateValue(
         subState,
         event,
+        fullState,
         extendedState
       );
 
@@ -273,6 +287,7 @@ class StateNode implements StateNodeConfig {
         potentialStateTransitions.push(
           subStateNode.next(
             event,
+            fullState,
             history ? history.value : undefined,
             extendedState
           )
@@ -308,6 +323,7 @@ class StateNode implements StateNodeConfig {
         activities: parentActivities
       } = this.states[subStateKey].next(
         event,
+        fullState,
         history ? history.value : undefined,
         extendedState
       );
@@ -396,6 +412,7 @@ class StateNode implements StateNodeConfig {
 
   private next(
     event: Event,
+    fullState: State,
     history?: StateValue,
     extendedState?: any
   ): StateTransition {
@@ -437,6 +454,7 @@ class StateNode implements StateNodeConfig {
       for (const candidate of candidates) {
         const {
           cond,
+          in: stateIn,
           actions: transitionActions
         } = candidate as TransitionConfig;
         const extendedStateObject = extendedState || {};
@@ -444,7 +462,18 @@ class StateNode implements StateNodeConfig {
           typeof event === 'string' || typeof event === 'number'
             ? { type: event }
             : event;
-        if (!cond || cond(extendedStateObject, eventObject)) {
+
+        const isInState = stateIn
+          ? matchesState(
+              toStateValue(stateIn),
+              path(this.path.slice(1, -2))(fullState.value)
+            )
+          : true;
+
+        if (
+          (!cond || cond(extendedStateObject, eventObject)) &&
+          (!stateIn || isInState)
+        ) {
           nextStateString = candidate.target;
           if (transitionActions) {
             actionMap.actions = actionMap.actions.concat(transitionActions);

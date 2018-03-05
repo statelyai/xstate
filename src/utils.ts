@@ -25,7 +25,7 @@ export function toStatePath(stateId: string | string[]): string[] {
   }
 }
 
-export function toTrie(stateValue: State | StateValue): StateValue {
+export function toStateValue(stateValue: State | StateValue): StateValue {
   if (stateValue instanceof State) {
     return stateValue.value;
   }
@@ -66,3 +66,16 @@ export function mapValues<T, P>(
 
   return result;
 }
+
+export const path = (props: string[]): any => <T extends Record<string, any>>(
+  object: T
+): any => {
+  console.log({ props, object });
+  let result: Record<string, any> = object;
+
+  for (const prop of props) {
+    result = result[prop];
+  }
+
+  return result;
+};

@@ -1,6 +1,6 @@
 import { StateValue, Action, ActivityMap } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
-import { toTrie } from './utils';
+import { toStateValue } from './utils';
 
 export class State {
   public static from(stateValue: State | StateValue): State {
@@ -8,7 +8,7 @@ export class State {
       return stateValue;
     }
 
-    return new State(toTrie(stateValue));
+    return new State(toStateValue(stateValue));
   }
   public static inert(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {

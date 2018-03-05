@@ -29,6 +29,7 @@ export type Condition = (extendedState: any, event?: EventObject) => boolean;
 export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
   actions?: Action[];
+  in?: StateValue;
 }
 
 export interface TargetTransitionConfig extends TransitionConfig {
