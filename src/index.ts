@@ -17,7 +17,6 @@ import {
   MachineConfig,
   ParallelMachineConfig,
   EventType,
-  EventObject,
   ActionMap,
   StandardMachineConfig,
   TransitionConfig,
@@ -29,7 +28,7 @@ import {
 import matchesState from './matchesState';
 import mapState from './mapState';
 import { State } from './State';
-import { start, stop } from './actions';
+import { start, stop, toEventObject } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -38,7 +37,6 @@ class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
   public path: string[];
-  public relativeId: string;
   public initial?: string;
   public parallel?: boolean;
   public states: Record<string, StateNode>;
@@ -67,13 +65,9 @@ class StateNode implements StateNodeConfig {
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.id = this.parent
-      ? this.parent.id + STATE_DELIMITER + this.key
+      ? this.parent.path.concat(this.key).join(STATE_DELIMITER)
       : this.key;
     this.path = this.parent ? this.parent.path.concat(this.key) : [this.key];
-    this.relativeId =
-      this.parent && this.parent.parent
-        ? this.parent.relativeId + STATE_DELIMITER + this.key
-        : this.key;
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = (config.states
@@ -227,7 +221,10 @@ class StateNode implements StateNodeConfig {
       // data
       this.getStateNodes(nextStateValue).reduce(
         (data, stateNode) => {
-          data[stateNode.id] = stateNode.data;
+          if (stateNode.data !== undefined) {
+            data[stateNode.id] = stateNode.data;
+          }
+
           return data;
         },
         {} as Record<string, any>
@@ -251,11 +248,9 @@ class StateNode implements StateNodeConfig {
       }
 
       const subStateNode = this.states[stateValue];
-      if (subStateNode.states && subStateNode.initial) {
-        // Get the initial state value
-        const initialStateValue = subStateNode.initialState.value;
-        stateValue = { [stateValue]: initialStateValue };
-      } else {
+      stateValue = subStateNode.resolvedStateValue;
+
+      if (typeof stateValue === 'string') {
         // Transition from the substate
         return subStateNode.next(
           event,
@@ -458,10 +453,7 @@ class StateNode implements StateNodeConfig {
           actions: transitionActions
         } = candidate as TransitionConfig;
         const extendedStateObject = extendedState || {};
-        const eventObject: EventObject =
-          typeof event === 'string' || typeof event === 'number'
-            ? { type: event }
-            : event;
+        const eventObject = toEventObject(event);
 
         const isInState = stateIn
           ? matchesState(

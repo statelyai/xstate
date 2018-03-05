@@ -97,7 +97,6 @@ export interface EntryExitEffectMap {
 export interface StateNode {
   key: string;
   id: string;
-  relativeId: string;
   initial: string | undefined;
   parallel: boolean;
   states: Record<string, StateNode>;

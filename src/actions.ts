@@ -41,7 +41,7 @@ const createActivityAction = (actionType: string) => (
   };
 };
 
-const toEventObject = (event: Event): EventObject => {
+export const toEventObject = (event: Event): EventObject => {
   if (typeof event === 'string' || typeof event === 'number') {
     return { type: event };
   }

@@ -67,10 +67,13 @@ export function mapValues<T, P>(
   return result;
 }
 
+/**
+ * Retrieves a value at the given path.
+ * @param props The deep path to the prop of the desired value
+ */
 export const path = (props: string[]): any => <T extends Record<string, any>>(
   object: T
 ): any => {
-  console.log({ props, object });
   let result: Record<string, any> = object;
 
   for (const prop of props) {
