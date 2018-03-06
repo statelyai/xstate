@@ -1,4 +1,4 @@
-import { StateNode } from './index';
+import { StateNode } from './StateNode';
 import { State } from './State';
 
 export type EventType = string | number;
@@ -29,6 +29,7 @@ export type Condition = (extendedState: any, event?: EventObject) => boolean;
 export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
   actions?: Action[];
+  in?: StateValue;
 }
 
 export interface TargetTransitionConfig extends TransitionConfig {
@@ -96,7 +97,6 @@ export interface EntryExitEffectMap {
 export interface StateNode {
   key: string;
   id: string;
-  relativeId: string;
   initial: string | undefined;
   parallel: boolean;
   states: Record<string, StateNode>;
@@ -123,7 +123,6 @@ export interface Machine extends StateNode {
   initial: string | undefined;
   parallel: boolean;
   states: Record<string, StateNode>;
-  on: never;
   onEntry: never;
   onExit: never;
 }
@@ -162,4 +161,69 @@ export interface TransitionData {
   value: StateValue | undefined;
   actions: ActionMap;
   activities?: ActivityMap;
+}
+
+export interface ActivityAction extends ActionObject {
+  activity: ActionType;
+  data: {
+    type: ActionType;
+    [key: string]: any;
+  };
+}
+
+export interface SendAction extends ActionObject {
+  event: EventObject;
+  delay?: number;
+  id: string | number;
+}
+export interface SendActionOptions {
+  delay?: number;
+  id?: string | number;
+}
+
+export interface CancelAction extends ActionObject {
+  sendId: string | number;
+}
+
+export interface Edge {
+  event: string;
+  source: StateNode;
+  target: StateNode;
+  cond?: Condition;
+  actions: Action[];
+}
+export interface NodesAndEdges {
+  nodes: StateNode[];
+  edges: Edge[];
+}
+
+export interface Segment {
+  state: StateValue;
+  event: Event;
+}
+
+export interface PathMap {
+  [key: string]: Segment[];
+}
+
+export interface PathItem {
+  state: StateValue;
+  path: Segment[];
+}
+
+export interface PathsItem {
+  state: StateValue;
+  paths: Segment[][];
+}
+
+export interface PathsMap {
+  [key: string]: Segment[][];
+}
+
+export interface TransitionMap {
+  state: StateValue | undefined;
+}
+
+export interface AdjacencyMap {
+  [stateId: string]: Record<string, TransitionMap>;
 }

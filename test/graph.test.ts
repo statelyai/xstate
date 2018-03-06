@@ -4,12 +4,12 @@ import {
   getNodes,
   getEdges,
   getShortestPaths,
-  IPathMap,
   getSimplePaths,
   getAdjacencyMap,
   getShortestPathsAsArray,
   getSimplePathsAsArray
 } from '../src/graph';
+import { PathMap } from '../src/types';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
 
@@ -19,7 +19,11 @@ describe('graph utilities', () => {
     states: {
       walk: {
         on: {
-          PED_COUNTDOWN: 'wait'
+          PED_COUNTDOWN: {
+            wait: {
+              actions: ['startCountdown']
+            }
+          }
         }
       },
       wait: {
@@ -132,40 +136,61 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
-          target: edge.target.id
+          target: edge.target.id,
+          actions: edge.actions
         })),
         [
-          { event: 'TIMER', source: 'light.green', target: 'light.yellow' },
-          { event: 'TIMER', source: 'light.yellow', target: 'light.red' },
+          {
+            event: 'TIMER',
+            source: 'light.green',
+            target: 'light.yellow',
+            actions: []
+          },
+          {
+            event: 'TIMER',
+            source: 'light.yellow',
+            target: 'light.red',
+            actions: []
+          },
           {
             event: 'PED_COUNTDOWN',
             source: 'light.red.walk',
-            target: 'light.red.wait'
+            target: 'light.red.wait',
+            actions: ['startCountdown']
           },
           {
             event: 'PED_COUNTDOWN',
             source: 'light.red.wait',
-            target: 'light.red.stop'
+            target: 'light.red.stop',
+            actions: []
           },
-          { event: 'TIMER', source: 'light.red', target: 'light.green' },
+          {
+            event: 'TIMER',
+            source: 'light.red',
+            target: 'light.green',
+            actions: []
+          },
           {
             event: 'POWER_OUTAGE',
             source: 'light.red',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           },
           {
             event: 'POWER_OUTAGE',
             source: 'light.yellow',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           },
           {
             event: 'POWER_OUTAGE',
             source: 'light.green',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           }
         ]
       );
@@ -182,7 +207,7 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
@@ -309,7 +334,7 @@ describe('graph utilities', () => {
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[
+        (getShortestPaths(lightMachine) as PathMap)[
           JSON.stringify(lightMachine.initialState.value)
         ],
         0

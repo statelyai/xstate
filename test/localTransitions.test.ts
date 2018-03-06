@@ -36,9 +36,9 @@ describe('local transitions', () => {
     );
 
     assert.deepEqual(nextState.value, { direction: 'right' });
-    assert.deepEqual(
+    assert.lengthOf(
       nextState.actions,
-      [],
+      0,
       'should not have onEntry or onExit actions'
     );
   });

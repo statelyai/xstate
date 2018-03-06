@@ -57,4 +57,32 @@ describe('transient states (eventless transitions)', () => {
     });
     assert.equal(nextState.value, 'F');
   });
+
+  it('should carry actions from previous transitions within same step', () => {
+    const machine = Machine({
+      initial: 'A',
+      states: {
+        A: {
+          onExit: 'exit_A',
+          on: {
+            TIMER: {
+              T: { actions: ['timer'] }
+            }
+          }
+        },
+        T: {
+          on: {
+            '': [{ target: 'B' }]
+          }
+        },
+        B: {
+          onEntry: 'enter_B'
+        }
+      }
+    });
+
+    const state = machine.transition('A', 'TIMER');
+
+    assert.deepEqual(state.actions, ['exit_A', 'timer', 'enter_B']);
+  });
 });
