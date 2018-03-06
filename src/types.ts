@@ -174,6 +174,7 @@ export interface ActivityAction extends ActionObject {
 export interface SendAction extends ActionObject {
   event: EventObject;
   delay?: number;
+  id: string | number;
 }
 export interface SendActionOptions {
   delay?: number;
