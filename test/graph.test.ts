@@ -4,12 +4,12 @@ import {
   getNodes,
   getEdges,
   getShortestPaths,
-  IPathMap,
   getSimplePaths,
   getAdjacencyMap,
   getShortestPathsAsArray,
   getSimplePathsAsArray
 } from '../src/graph';
+import { PathMap } from '../src/types';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
 
@@ -334,7 +334,7 @@ describe('graph utilities', () => {
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[
+        (getShortestPaths(lightMachine) as PathMap)[
           JSON.stringify(lightMachine.initialState.value)
         ],
         0

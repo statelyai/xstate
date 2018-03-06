@@ -1,4 +1,4 @@
-import { StateNode } from './index';
+import { StateNode } from './StateNode';
 import { State } from './State';
 
 export type EventType = string | number;
@@ -123,7 +123,6 @@ export interface Machine extends StateNode {
   initial: string | undefined;
   parallel: boolean;
   states: Record<string, StateNode>;
-  on: never;
   onEntry: never;
   onExit: never;
 }

@@ -1,7 +1,7 @@
 import { toStateValue } from './utils'; // TODO: change to utils
 import { StateValue } from './types';
 
-export default function matchesState(
+export function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue
 ): boolean {
