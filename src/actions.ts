@@ -1,10 +1,12 @@
 import {
-  ActionObject,
   Action,
-  ActionType,
   Event,
   EventType,
-  EventObject
+  EventObject,
+  ActivityAction,
+  SendAction,
+  SendActionOptions,
+  CancelAction
 } from './types';
 import { getEventType } from './utils';
 
@@ -18,14 +20,6 @@ export const actionTypes = {
   send: `${PREFIX}.send`,
   cancel: `${PREFIX}.cancel`
 };
-
-export interface ActivityAction extends ActionObject {
-  activity: ActionType;
-  data: {
-    type: ActionType;
-    [key: string]: any;
-  };
-}
 
 const createActivityAction = (actionType: string) => (
   activity: Action
@@ -54,15 +48,6 @@ export const raise = (eventType: EventType): EventObject => ({
   event: eventType
 });
 
-export interface SendAction extends ActionObject {
-  event: EventObject;
-  delay?: number;
-}
-export interface SendActionOptions {
-  delay?: number;
-  id?: string | number;
-}
-
 export const send = (event: Event, options?: SendActionOptions): SendAction => {
   return {
     type: actionTypes.send,
@@ -71,10 +56,6 @@ export const send = (event: Event, options?: SendActionOptions): SendAction => {
     id: options && options.id !== undefined ? options.id : getEventType(event)
   };
 };
-
-export interface CancelAction extends ActionObject {
-  sendId: string | number;
-}
 
 export const cancel = (sendId: string | number): CancelAction => {
   return {

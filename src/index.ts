@@ -708,14 +708,6 @@ class StateNode implements StateNodeConfig {
   }
 }
 
-export interface MachineFactory {
-  (config: MachineConfig | ParallelMachineConfig):
-    | StandardMachine
-    | ParallelMachine;
-  standard: (config: MachineConfig) => StandardMachine;
-  parallel: (config: ParallelMachineConfig) => ParallelMachine;
-}
-
 export function Machine(
   config: MachineConfig | ParallelMachineConfig
 ): StandardMachine | ParallelMachine {
