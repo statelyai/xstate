@@ -122,11 +122,7 @@ class StateNode implements StateNodeConfig {
   public handles(event: Event): boolean {
     const eventType = getEventType(event);
 
-    if (this.on) {
-      return eventType in this.on;
-    }
-
-    return false;
+    return this.events.indexOf(eventType) !== -1;
   }
   public transition(
     state: StateValue | State,
