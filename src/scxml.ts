@@ -3,49 +3,7 @@ import { Machine } from './types';
 // import * as xstate from './index';
 import { StateNode } from './index';
 import { getEventType, mapValues } from './utils';
-
-// const pedestrianStates = {
-//   initial: 'walk',
-//   states: {
-//     walk: {
-//       on: {
-//         PED_COUNTDOWN: 'wait'
-//       }
-//     },
-//     wait: {
-//       on: {
-//         PED_COUNTDOWN: 'stop'
-//       }
-//     },
-//     stop: {}
-//   }
-// };
-
-// const lightMachine = xstate.Machine({
-//   key: 'light',
-//   initial: 'green',
-//   states: {
-//     green: {
-//       on: {
-//         TIMER: 'yellow',
-//         POWER_OUTAGE: 'red'
-//       }
-//     },
-//     yellow: {
-//       on: {
-//         TIMER: 'red',
-//         POWER_OUTAGE: 'red'
-//       }
-//     },
-//     red: {
-//       on: {
-//         TIMER: 'green',
-//         POWER_OUTAGE: 'red'
-//       },
-//       ...pedestrianStates
-//     }
-//   }
-// });
+import * as actions from './actions';
 
 function stateNodeToSCXML(stateNode: StateNode) {
   const { parallel } = stateNode;
@@ -224,13 +182,14 @@ function indexedRecord<T extends {}>(
 }
 
 function executableContent(elements: XMLElement[]) {
-  const transition: any = {};
+  const transition: any = {
+    actions: []
+  };
 
   elements.forEach(element => {
     switch (element.name) {
       case 'raise':
-        transition.raise = transition.raise || [];
-        transition.raise.push(element.attributes!.event);
+        transition.actions.push(actions.raise(element.attributes!.event));
       default:
         return;
     }
@@ -253,6 +212,14 @@ function toConfig(nodeJson: XMLElement) {
       element => element.name === 'transition'
     );
 
+    const onEntryElement = nodeJson.elements.find(
+      element => element.name === 'onentry'
+    );
+
+    const onExitElement = nodeJson.elements.find(
+      element => element.name === 'onexit'
+    );
+
     states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
 
     on = mapValues(
@@ -261,19 +228,45 @@ function toConfig(nodeJson: XMLElement) {
         (item: any) => item.attributes.event || ''
       ),
       (value: XMLElement) => {
-        return {
-          target: value.attributes!.target,
-          ...value.elements ? executableContent(value.elements) : undefined
-        };
+        return [
+          {
+            target: value.attributes!.target,
+            ...value.elements ? executableContent(value.elements) : undefined
+          }
+        ];
       }
     );
 
+    const onEntry = onEntryElement
+      ? onEntryElement.elements!.map(element => {
+          switch (element.name) {
+            case 'raise':
+              return actions.raise(element.attributes!.event);
+            default:
+              return 'not-implemented';
+          }
+        })
+      : undefined;
+
+    const onExit = onExitElement
+      ? onExitElement.elements!.map(element => {
+          switch (element.name) {
+            case 'raise':
+              return actions.raise(element.attributes!.event);
+            default:
+              return 'not-implemented';
+          }
+        })
+      : undefined;
+
     return {
-      initial,
+      ...initial ? { initial } : undefined,
       ...stateElements.length
         ? { states: mapValues(states, toConfig) }
         : undefined,
-      ...transitionElements.length ? { on } : undefined
+      ...transitionElements.length ? { on } : undefined,
+      ...onEntry ? { onEntry } : undefined,
+      ...onExit ? { onExit } : undefined
     };
   }
 
