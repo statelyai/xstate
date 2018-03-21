@@ -590,7 +590,9 @@ class StateNode implements StateNodeConfig {
             this.states as Record<string, StateNode>,
             state => state.initialStateValue
           )
-        : this.resolvedStateValue[this.key]) as StateValue);
+        : typeof this.resolvedStateValue === 'string'
+          ? undefined
+          : this.resolvedStateValue[this.key]) as StateValue);
 
     this.__cache.initialState = initialStateValue;
 
