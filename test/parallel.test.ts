@@ -103,9 +103,9 @@ describe('parallel states', () => {
     Object.keys(expected[fromState]).forEach(eventTypes => {
       const toState = expected[fromState][eventTypes];
 
-      it(`should go from ${fromState} to ${JSON.stringify(toState)} on ${
-        eventTypes
-      }`, () => {
+      it(`should go from ${fromState} to ${JSON.stringify(
+        toState
+      )} on ${eventTypes}`, () => {
         const resultState = testMultiTransition(
           wordMachine,
           fromState,

@@ -82,3 +82,44 @@ export const path = (props: string[]): any => <T extends Record<string, any>>(
 
   return result;
 };
+
+export const toStatePaths = (stateValue: StateValue): string[][] => {
+  if (typeof stateValue === 'string') {
+    return [[stateValue]];
+  }
+
+  const result = Object.keys(stateValue)
+    .map(key => {
+      return toStatePaths(stateValue[key]).map(subPath => {
+        return [key].concat(subPath);
+      });
+    })
+    .reduce((a, b) => a.concat(b), []);
+
+  return result;
+};
+
+export const pathsToStateValue = (paths: string[][]): StateValue => {
+  const result: StateValue = {};
+
+  for (const currentPath of paths) {
+    if (currentPath.length === 1) {
+      return currentPath[0];
+    }
+
+    let marker = result;
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < currentPath.length; i++) {
+      const subPath = currentPath[i];
+
+      if (i === currentPath.length - 2) {
+        marker[subPath] = currentPath[i + 1];
+        break;
+      }
+      marker[subPath] = marker[subPath] || {};
+      marker = marker[subPath] as {};
+    }
+  }
+
+  return result;
+};

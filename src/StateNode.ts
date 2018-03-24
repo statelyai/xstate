@@ -3,7 +3,9 @@ import {
   toStatePath,
   toStateValue,
   mapValues,
-  path
+  path,
+  toStatePaths,
+  pathsToStateValue
 } from './utils';
 import {
   Event,
@@ -55,7 +57,7 @@ class StateNode implements StateNodeConfig {
     initialState: undefined as StateValue | undefined
   };
 
-  private idMap: Record<string, StateNode> = {};
+  public idMap: Record<string, StateNode> = {};
 
   constructor(
     public config:
@@ -108,7 +110,7 @@ class StateNode implements StateNodeConfig {
       state instanceof State ? state.value : toStateValue(state);
 
     if (typeof stateValue === 'string') {
-      const initialStateValue = (this.states[stateValue] as StateNode).initial;
+      const initialStateValue = this.getStateNode(stateValue).initial;
 
       return initialStateValue
         ? this.getStateNodes({ [stateValue]: initialStateValue })
@@ -166,8 +168,6 @@ class StateNode implements StateNodeConfig {
       return State.inert(currentState);
     }
 
-    // Try transitioning from "transient" states from the NULL_EVENT
-    // until a state with non-transient transitions is found
     let maybeNextState: State | undefined = nextState;
 
     const raisedEvents = nextState.actions.filter(
@@ -207,13 +207,13 @@ class StateNode implements StateNodeConfig {
     prevState: State
   ): State | undefined {
     const {
-      stateValue: nextStateValue,
+      statePaths: nextStatePaths,
       actions: nextActions,
       activities: nextActivities,
       events
     } = stateTransition;
 
-    if (!nextStateValue) {
+    if (!nextStatePaths.length) {
       return undefined;
     }
 
@@ -222,6 +222,7 @@ class StateNode implements StateNodeConfig {
 
     const activities = { ...prevActivities, ...nextActivities };
 
+    const nextStateValue = this.resolve(pathsToStateValue(nextStatePaths));
     return new State(
       // next state value
       nextStateValue,
@@ -249,6 +250,38 @@ class StateNode implements StateNodeConfig {
       events
     );
   }
+  private getStateNode(stateKey: string): StateNode {
+    try {
+      return this.states[stateKey];
+    } catch (e) {
+      throw new Error(
+        `State '${stateKey}' does not exist on machine '${this.id}'`
+      );
+    }
+  }
+  private resolve(stateValue: StateValue): StateValue {
+    if (typeof stateValue === 'string') {
+      const subStateNode = this.getStateNode(stateValue);
+      return subStateNode.initial
+        ? { [stateValue]: subStateNode.initialStateValue! }
+        : stateValue;
+    }
+
+    if (this.parallel) {
+      return mapValues(
+        this.initialStateValue as Record<string, StateValue>,
+        (subStateValue, subStateKey) => {
+          return this.getStateNode(subStateKey).resolve(
+            stateValue[subStateKey] || subStateValue
+          );
+        }
+      );
+    }
+
+    return mapValues(stateValue, (subStateValue, subStateKey) => {
+      return this.getStateNode(subStateKey).resolve(subStateValue);
+    });
+  }
   private transitionStateValue(
     state: State,
     event: Event,
@@ -259,13 +292,7 @@ class StateNode implements StateNodeConfig {
     let stateValue = state.value;
 
     if (typeof stateValue === 'string') {
-      if (!this.states[stateValue]) {
-        throw new Error(
-          `State '${stateValue}' does not exist on machine '${this.id}'`
-        );
-      }
-
-      const subStateNode = this.states[stateValue];
+      const subStateNode = this.getStateNode(stateValue);
       stateValue = subStateNode.resolvedStateValue;
 
       if (typeof stateValue === 'string') {
@@ -282,37 +309,40 @@ class StateNode implements StateNodeConfig {
     // Potential transition tuples from parent state nodes
     const potentialStateTransitions: StateTransition[] = [];
 
-    let nextStateValue = mapValues(stateValue, (subStateValue, subStateKey) => {
-      const subHistory = history ? history.value[subStateKey] : undefined;
-      const subState = new State(
-        subStateValue,
-        subHistory ? State.from(subHistory) : undefined
-      );
-      const subStateNode = this.states[subStateKey];
-      const subStateTransition = subStateNode.transitionStateValue(
-        subState,
-        event,
-        fullState,
-        extendedState
-      );
-
-      if (!subStateTransition.stateValue) {
-        potentialStateTransitions.push(
-          subStateNode.next(
-            event,
-            fullState,
-            history ? history.value : undefined,
-            extendedState
-          )
+    let nextStateTransitionMap = mapValues(
+      stateValue,
+      (subStateValue, subStateKey) => {
+        const subStateNode = this.states[subStateKey];
+        const subHistory = history ? history.value[subStateKey] : undefined;
+        const subState = new State(
+          subStateValue,
+          subHistory ? State.from(subHistory) : undefined
         );
-      }
+        const subStateTransition = subStateNode.transitionStateValue(
+          subState,
+          event,
+          fullState,
+          extendedState
+        );
 
-      return subStateTransition;
-    });
+        if (!subStateTransition.statePaths.length) {
+          potentialStateTransitions.push(
+            subStateNode.next(
+              event,
+              fullState,
+              history ? history.value : undefined,
+              extendedState
+            )
+          );
+        }
+
+        return subStateTransition;
+      }
+    );
 
     if (
-      Array.prototype.every.call(Object.keys(nextStateValue), key => {
-        return nextStateValue[key].stateValue === undefined;
+      Array.prototype.every.call(Object.keys(nextStateTransitionMap), key => {
+        return !nextStateTransitionMap[key].statePaths.length;
       })
     ) {
       if (this.parallel) {
@@ -321,18 +351,18 @@ class StateNode implements StateNodeConfig {
         }
 
         return {
-          stateValue: undefined,
+          statePaths: [],
           actions: { onEntry: [], onExit: [], actions: [] },
           activities: undefined,
           events: []
         };
       }
 
-      const subStateKey = Object.keys(nextStateValue)[0];
+      const subStateKey = Object.keys(nextStateTransitionMap)[0];
 
       // try with parent
       const {
-        stateValue: parentNextValue,
+        statePaths: parentStatePaths,
         actions: parentNextActions,
         activities: parentActivities
       } = this.states[subStateKey].next(
@@ -341,8 +371,9 @@ class StateNode implements StateNodeConfig {
         history ? history.value : undefined,
         extendedState
       );
-      const nextActions = nextStateValue[subStateKey].actions;
-      const activities = nextStateValue[subStateKey].activities;
+
+      const nextActions = nextStateTransitionMap[subStateKey].actions;
+      const activities = nextStateTransitionMap[subStateKey].activities;
 
       const allActivities = {
         ...activities,
@@ -360,7 +391,7 @@ class StateNode implements StateNodeConfig {
         : nextActions;
 
       return {
-        stateValue: parentNextValue,
+        statePaths: parentStatePaths,
         actions: allActions,
         activities: allActivities,
         events: []
@@ -368,17 +399,36 @@ class StateNode implements StateNodeConfig {
     }
 
     if (this.parallel) {
-      nextStateValue = {
+      nextStateTransitionMap = {
         ...mapValues(
           this.initialState.value as Record<string, StateValue>,
-          subStateValue => ({
-            stateValue: subStateValue,
-            actions: { onEntry: [], onExit: [], actions: [] },
-            activities: undefined,
-            events: []
-          })
-        ),
-        ...nextStateValue
+          (subStateValue, key) => {
+            const subStateTransition = nextStateTransitionMap[key];
+            const r = {
+              statePaths:
+                subStateTransition && subStateTransition.statePaths.length
+                  ? subStateTransition.statePaths
+                  : toStatePaths(
+                      stateValue[key] || subStateValue
+                    ).map(subPath => [
+                      ...this.getStateNode(key).path.slice(1),
+                      ...subPath
+                    ]),
+              actions:
+                subStateTransition && subStateTransition.actions
+                  ? subStateTransition.actions
+                  : {
+                      onEntry: [],
+                      onExit: [],
+                      actions: []
+                    },
+              activities: undefined,
+              events: []
+            };
+
+            return r;
+          }
+        )
       };
     }
 
@@ -388,39 +438,32 @@ class StateNode implements StateNodeConfig {
       onExit: []
     };
     const finalActivities: ActivityMap = {};
-    const finalStateValue = mapValues(
-      nextStateValue,
-      (subStateTransition, key) => {
-        const {
-          stateValue: nextSubStateValue,
-          actions: nextSubActions,
-          activities: nextSubActivities
-        } = subStateTransition;
-        if (nextSubActions) {
-          if (nextSubActions.onEntry) {
-            finalActions.onEntry.push(...nextSubActions.onEntry);
-          }
-          if (nextSubActions.actions) {
-            finalActions.actions.push(...nextSubActions.actions);
-          }
-          if (nextSubActions.onExit) {
-            finalActions.onExit.push(...nextSubActions.onExit);
-          }
+    mapValues(nextStateTransitionMap, subStateTransition => {
+      const {
+        // statePaths: nextSubStatePaths,
+        actions: nextSubActions,
+        activities: nextSubActivities
+      } = subStateTransition;
+      if (nextSubActions) {
+        if (nextSubActions.onEntry) {
+          finalActions.onEntry.push(...nextSubActions.onEntry);
         }
-        if (nextSubActivities) {
-          Object.assign(finalActivities, nextSubActivities);
+        if (nextSubActions.actions) {
+          finalActions.actions.push(...nextSubActions.actions);
         }
-
-        if (!nextSubStateValue) {
-          return stateValue[key];
+        if (nextSubActions.onExit) {
+          finalActions.onExit.push(...nextSubActions.onExit);
         }
-
-        return nextSubStateValue;
       }
-    );
+      if (nextSubActivities) {
+        Object.assign(finalActivities, nextSubActivities);
+      }
+    });
 
     return {
-      stateValue: finalStateValue,
+      statePaths: Object.keys(nextStateTransitionMap)
+        .map(stateKey => nextStateTransitionMap[stateKey].statePaths)
+        .reduce((a, b) => a.concat(b), [] as string[][]),
       actions: finalActions,
       activities: finalActivities,
       events: []
@@ -449,7 +492,7 @@ class StateNode implements StateNodeConfig {
 
     if (!this.on || !this.on[eventType]) {
       return {
-        stateValue: undefined,
+        statePaths: [],
         actions: actionMap,
         activities: activityMap,
         events: []
@@ -500,7 +543,7 @@ class StateNode implements StateNodeConfig {
 
     if (!nextStateString) {
       return {
-        stateValue: undefined,
+        statePaths: [],
         actions: actionMap,
         activities: activityMap,
         events: []
@@ -568,6 +611,16 @@ class StateNode implements StateNodeConfig {
       throw new Error('no state');
     }
 
+    let paths = [currentState.path.slice(1)];
+
+    if (/* currentState.initial ||  */ currentState.parallel) {
+      const { initialState } = currentState;
+      actionMap.onEntry = actionMap.onEntry.concat(initialState.actions);
+      paths = toStatePaths(initialState.value).map(subPath =>
+        currentState!.path.slice(1).concat(subPath)
+      );
+    }
+
     while (currentState.initial) {
       if (!currentState || !currentState.states) {
         throw new Error(`Invalid initial state`);
@@ -595,7 +648,7 @@ class StateNode implements StateNodeConfig {
     );
 
     return {
-      stateValue: currentState.getRelativeValue(this.parent),
+      statePaths: paths,
       actions: actionMap,
       activities: activityMap,
       events: raisedEvents as EventObject[]
@@ -666,6 +719,8 @@ class StateNode implements StateNodeConfig {
       [] as Action[]
     );
 
+    // TODO: activities
+
     return new State(initialStateValue, undefined, entryActions);
   }
   public getStates(stateValue: StateValue): StateNode[] {
@@ -721,40 +776,6 @@ class StateNode implements StateNodeConfig {
     }
 
     return (this.__cache.events = Array.from(events));
-  }
-  private getRelativeValue(toNode?: StateNode): StateValue {
-    const memoizedRelativeValue = toNode
-      ? this.__cache.relativeValue.get(toNode)
-      : undefined;
-
-    if (memoizedRelativeValue) {
-      return memoizedRelativeValue;
-    }
-
-    const initialStateValue = this.initialStateValue;
-    let relativeValue = initialStateValue
-      ? {
-          [this.key]: initialStateValue
-        }
-      : this.key;
-    let currentNode: StateNode = this.parent as StateNode;
-
-    while (currentNode && currentNode !== toNode) {
-      const currentInitialState = currentNode.initialStateValue;
-      relativeValue = {
-        [currentNode.key]:
-          currentNode.parallel &&
-          typeof currentInitialState === 'object' &&
-          typeof relativeValue === 'object'
-            ? { ...currentInitialState, ...relativeValue }
-            : relativeValue
-      };
-      currentNode = currentNode.parent as StateNode;
-    }
-
-    this.__cache.relativeValue.set(toNode as StateNode, relativeValue);
-
-    return relativeValue;
   }
 }
 
