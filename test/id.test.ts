@@ -2,7 +2,7 @@
 // import { Machine } from '../src/index';
 import { machine as idMachine } from './fixtures/id';
 import { testAll } from './utils';
-import { mapValues } from '../src/utils';
+// import { mapValues } from '../src/utils';
 
 describe('State node IDs', () => {
   const expected = {

@@ -68,12 +68,12 @@ class StateNode implements StateNodeConfig {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
+    this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       config.id ||
-      (this.parent
-        ? this.parent.path.concat(this.key).join(STATE_DELIMITER)
+      (this.machine
+        ? [this.machine.key, ...this.path].join(STATE_DELIMITER)
         : this.key);
-    this.path = this.parent ? this.parent.path.concat(this.key) : [this.key];
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = (config.states
@@ -118,14 +118,14 @@ class StateNode implements StateNodeConfig {
     }
 
     const subStateKeys = Object.keys(stateValue);
-    const subStateNodes: StateNode[] = subStateKeys.map(
-      subStateKey => this.states[subStateKey]
+    const subStateNodes: StateNode[] = subStateKeys.map(subStateKey =>
+      this.getStateNode(subStateKey)
     );
 
     return subStateNodes.concat(
       subStateKeys
         .map(subStateKey => {
-          return this.states[subStateKey].getStateNodes(
+          return this.getStateNode(subStateKey).getStateNodes(
             stateValue[subStateKey]
           );
         })
@@ -312,7 +312,7 @@ class StateNode implements StateNodeConfig {
     let nextStateTransitionMap = mapValues(
       stateValue,
       (subStateValue, subStateKey) => {
-        const subStateNode = this.states[subStateKey];
+        const subStateNode = this.getStateNode(subStateKey);
         const subHistory = history ? history.value[subStateKey] : undefined;
         const subState = new State(
           subStateValue,
@@ -365,7 +365,7 @@ class StateNode implements StateNodeConfig {
         statePaths: parentStatePaths,
         actions: parentNextActions,
         activities: parentActivities
-      } = this.states[subStateKey].next(
+      } = this.getStateNode(subStateKey).next(
         event,
         fullState,
         history ? history.value : undefined,
@@ -404,14 +404,14 @@ class StateNode implements StateNodeConfig {
           this.initialState.value as Record<string, StateValue>,
           (subStateValue, key) => {
             const subStateTransition = nextStateTransitionMap[key];
-            const r = {
+            return {
               statePaths:
                 subStateTransition && subStateTransition.statePaths.length
                   ? subStateTransition.statePaths
                   : toStatePaths(
                       stateValue[key] || subStateValue
                     ).map(subPath => [
-                      ...this.getStateNode(key).path.slice(1),
+                      ...this.getStateNode(key).path,
                       ...subPath
                     ]),
               actions:
@@ -425,8 +425,6 @@ class StateNode implements StateNodeConfig {
               activities: undefined,
               events: []
             };
-
-            return r;
           }
         )
       };
@@ -524,7 +522,7 @@ class StateNode implements StateNodeConfig {
         const isInState = stateIn
           ? matchesState(
               toStateValue(stateIn),
-              path(this.path.slice(1, -2))(fullState.value)
+              path(this.path.slice(0, -2))(fullState.value)
             )
           : true;
 
@@ -576,11 +574,11 @@ class StateNode implements StateNodeConfig {
         }
       } else if (subPath === NULL_EVENT) {
         actionMap.onExit = [];
-        currentState = currentState.states[this.key];
+        currentState = currentState.getStateNode(this.key);
         return;
       }
 
-      currentState = currentState.states[subPath];
+      currentState = currentState.getStateNode(subPath);
 
       if (currentState === undefined) {
         throw new Error(
@@ -611,13 +609,13 @@ class StateNode implements StateNodeConfig {
       throw new Error('no state');
     }
 
-    let paths = [currentState.path.slice(1)];
+    let paths = [currentState.path];
 
-    if (/* currentState.initial ||  */ currentState.parallel) {
+    if (currentState.initial || currentState.parallel) {
       const { initialState } = currentState;
       actionMap.onEntry = actionMap.onEntry.concat(initialState.actions);
       paths = toStatePaths(initialState.value).map(subPath =>
-        currentState!.path.slice(1).concat(subPath)
+        currentState!.path.concat(subPath)
       );
     }
 
@@ -627,9 +625,9 @@ class StateNode implements StateNodeConfig {
       }
       currentState = currentState.states[currentState.initial];
 
-      if (currentState.onEntry) {
-        actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
-      }
+      // if (currentState.onEntry) {
+      //   actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
+      // }
       if (currentState.activities) {
         currentState.activities.forEach(activity => {
           activityMap[getEventType(activity)] = true;
@@ -683,7 +681,7 @@ class StateNode implements StateNodeConfig {
         throw new Error(`Unable to find state node '${stateIdentifier}'`);
       }
 
-      return stateNode.path.slice(1);
+      return stateNode.path;
     }
 
     return toStatePath(stateIdentifier);
@@ -713,15 +711,22 @@ class StateNode implements StateNodeConfig {
       );
     }
 
-    const entryActions = this.getStateNodes(initialStateValue).reduce(
-      (actions, stateNode) =>
-        stateNode.onEntry ? actions.concat(stateNode.onEntry) : actions,
-      [] as Action[]
-    );
+    const activityMap: ActivityMap = {};
+    const actions: Action[] = [];
 
-    // TODO: activities
+    this.getStateNodes(initialStateValue).forEach(stateNode => {
+      if (stateNode.onEntry) {
+        actions.push(...stateNode.onEntry);
+      }
+      if (stateNode.activities) {
+        stateNode.activities.forEach(activity => {
+          activityMap[getEventType(activity)] = true;
+          actions.push(start(activity));
+        });
+      }
+    });
 
-    return new State(initialStateValue, undefined, entryActions);
+    return new State(initialStateValue, undefined, actions, activityMap);
   }
   public getStates(stateValue: StateValue): StateNode[] {
     if (typeof stateValue === 'string') {
