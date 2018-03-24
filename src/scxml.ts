@@ -198,8 +198,8 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function toConfig(nodeJson: XMLElement) {
-  const initial = nodeJson.attributes!.initial;
+function toConfig(nodeJson: XMLElement, id: string) {
+  let initial = nodeJson.attributes!.initial;
   let states: Record<string, any>;
   let on: Record<string, any>;
 
@@ -220,6 +220,16 @@ function toConfig(nodeJson: XMLElement) {
       element => element.name === 'onexit'
     );
 
+    const initialElement = !initial
+      ? nodeJson.elements.find(element => element.name === 'initial')
+      : undefined;
+
+    if (initialElement && initialElement.elements!.length) {
+      initial = initialElement.elements!.find(
+        element => element.name === 'transition'
+      )!.attributes!.target;
+    }
+
     states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
 
     on = mapValues(
@@ -230,7 +240,7 @@ function toConfig(nodeJson: XMLElement) {
       (value: XMLElement) => {
         return [
           {
-            target: value.attributes!.target,
+            target: `#${value.attributes!.target}`,
             ...value.elements ? executableContent(value.elements) : undefined
           }
         ];
@@ -260,6 +270,7 @@ function toConfig(nodeJson: XMLElement) {
       : undefined;
 
     return {
+      id,
       ...initial ? { initial } : undefined,
       ...stateElements.length
         ? { states: mapValues(states, toConfig) }
@@ -270,7 +281,7 @@ function toConfig(nodeJson: XMLElement) {
     };
   }
 
-  return {};
+  return { id };
 }
 
 export function toMachine(xml: string) {
@@ -280,5 +291,5 @@ export function toMachine(xml: string) {
     element => element.name === 'scxml'
   )[0];
 
-  return toConfig(machineElement);
+  return toConfig(machineElement, '(machine)');
 }

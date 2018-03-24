@@ -5,12 +5,19 @@ import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
-import { Machine, State } from '../src';
-import { Event, StateValue, ActionObject } from '../src/types';
-import { actionTypes } from '../src/actions';
+import { Machine /* State */ } from '../src';
+// import { Event, StateValue, ActionObject } from '../src/types';
+// import { actionTypes } from '../src/actions';
 
 const testGroups = {
-  actionSend: ['send1', 'send2', 'send3', 'send4']
+  actionSend: [
+    'send1',
+    'send2',
+    'send3',
+    'send4',
+    'send7',
+    'send8' /* 'send9' */
+  ]
 };
 
 interface SCIONTest {
@@ -22,24 +29,19 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  let nextState: State | StateValue = test.initialConfiguration[0];
-  const eventQueue: Event[] = [test.events[0].event.name];
+  const nextState = machine.transition(
+    test.initialConfiguration[0],
+    test.events[0].event.name
+  );
 
-  do {
-    const event = eventQueue.shift();
-    nextState = machine.transition(nextState, event!);
-    console.log('>>', event, nextState.value);
-    eventQueue.push(
-      ...(nextState.actions as ActionObject[])
-        .filter(action => action.type === actionTypes.raise)
-        .map(action => action.event)
-    );
-  } while (eventQueue.length);
+  const stateIds = machine
+    .getStateNodes(nextState)
+    .map(stateNode => stateNode.id);
 
-  assert.deepEqual(nextState.value, test.events[0].nextConfiguration[0]);
+  assert.include(stateIds, test.events[0].nextConfiguration[0]);
 }
 
-describe.only('scxml', () => {
+describe('scxml', () => {
   Object.keys(testGroups).forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
       const scxmlDefinition = fs.readFileSync(
@@ -61,7 +63,7 @@ describe.only('scxml', () => {
 
       it(`${testGroupName}/${testName}`, () => {
         const machine = toMachine(scxmlDefinition);
-        console.log(util.inspect(machine, false, 6));
+        console.log(util.inspect(machine, false, 8));
         runTestToCompletion(Machine(machine), scxmlTest);
       });
     });

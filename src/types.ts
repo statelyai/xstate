@@ -57,6 +57,7 @@ export interface StateNodeConfig {
   parent?: StateNode;
   strict?: boolean | undefined;
   data?: object | undefined;
+  id?: string | undefined;
 }
 export interface SimpleStateNodeConfig extends StateNodeConfig {
   initial?: undefined;
@@ -155,6 +156,7 @@ export interface StateTransition {
   stateValue: StateValue | undefined;
   actions: ActionMap | undefined;
   activities: ActivityMap | undefined;
+  events: EventObject[];
 }
 
 export interface TransitionData {

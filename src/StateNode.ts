@@ -23,11 +23,12 @@ import {
   ActivityMap,
   StateNodeConfig,
   Activity,
-  StateTransition
+  StateTransition,
+  EventObject
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
-import { start, stop, toEventObject } from './actions';
+import { start, stop, toEventObject, actionTypes } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -54,6 +55,8 @@ class StateNode implements StateNodeConfig {
     initialState: undefined as StateValue | undefined
   };
 
+  private idMap: Record<string, StateNode> = {};
+
   constructor(
     public config:
       | SimpleOrCompoundStateNodeConfig
@@ -63,22 +66,30 @@ class StateNode implements StateNodeConfig {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
-    this.id = this.parent
-      ? this.parent.path.concat(this.key).join(STATE_DELIMITER)
-      : this.key;
+    this.id =
+      config.id ||
+      (this.parent
+        ? this.parent.path.concat(this.key).join(STATE_DELIMITER)
+        : this.key);
     this.path = this.parent ? this.parent.path.concat(this.key) : [this.key];
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = (config.states
-      ? mapValues<SimpleOrCompoundStateNodeConfig, StateNode>(
-          config.states,
-          (stateConfig, key) =>
-            new StateNode({
-              ...stateConfig,
-              key,
-              parent: this
-            })
-        )
+      ? mapValues<
+          SimpleOrCompoundStateNodeConfig,
+          StateNode
+        >(config.states, (stateConfig, key) => {
+          const stateNode = new StateNode({
+            ...stateConfig,
+            key,
+            parent: this
+          });
+          Object.assign(this.idMap, {
+            [stateNode.id]: stateNode,
+            ...stateNode.idMap
+          });
+          return stateNode;
+        })
       : {}) as Record<string, StateNode>;
 
     this.on = config.on;
@@ -158,28 +169,38 @@ class StateNode implements StateNodeConfig {
     // Try transitioning from "transient" states from the NULL_EVENT
     // until a state with non-transient transitions is found
     let maybeNextState: State | undefined = nextState;
-    let nextStateFromInternalTransition: State;
-    const actions: Action[] = [];
 
-    do {
-      actions.push(...maybeNextState.actions);
-      nextStateFromInternalTransition = maybeNextState;
-      maybeNextState = this.stateTransitionToState(
-        this.transitionStateValue(
-          nextStateFromInternalTransition,
-          NULL_EVENT,
-          maybeNextState,
+    const raisedEvents = nextState.actions.filter(
+      a => typeof a === 'object' && a.type === actionTypes.raise
+    );
+
+    if (raisedEvents.length) {
+      const raisedEvent = (raisedEvents[0] as EventObject).event!;
+
+      maybeNextState = this.transition(nextState, raisedEvent, extendedState);
+      maybeNextState.actions.unshift(...nextState.actions);
+      return maybeNextState;
+    }
+
+    if (stateTransition.events.length) {
+      const raised =
+        stateTransition.events[0].type === actionTypes.raise
+          ? stateTransition.events[0].event!
+          : undefined;
+      const nullEvent = stateTransition.events[0].type === actionTypes.null;
+
+      if (raised || nullEvent) {
+        maybeNextState = this.transition(
+          nextState,
+          nullEvent ? '' : raised,
           extendedState
-        ),
-        nextStateFromInternalTransition
-      );
-    } while (maybeNextState);
+        );
+        maybeNextState.actions.unshift(...nextState.actions);
+        return maybeNextState;
+      }
+    }
 
-    nextStateFromInternalTransition.actions = actions;
-
-    // TODO: handle internally raised events
-
-    return nextStateFromInternalTransition;
+    return nextState;
   }
   private stateTransitionToState(
     stateTransition: StateTransition,
@@ -188,7 +209,8 @@ class StateNode implements StateNodeConfig {
     const {
       stateValue: nextStateValue,
       actions: nextActions,
-      activities: nextActivities
+      activities: nextActivities,
+      events
     } = stateTransition;
 
     if (!nextStateValue) {
@@ -223,7 +245,8 @@ class StateNode implements StateNodeConfig {
           return data;
         },
         {} as Record<string, any>
-      )
+      ),
+      events
     );
   }
   private transitionStateValue(
@@ -300,7 +323,8 @@ class StateNode implements StateNodeConfig {
         return {
           stateValue: undefined,
           actions: { onEntry: [], onExit: [], actions: [] },
-          activities: undefined
+          activities: undefined,
+          events: []
         };
       }
 
@@ -338,7 +362,8 @@ class StateNode implements StateNodeConfig {
       return {
         stateValue: parentNextValue,
         actions: allActions,
-        activities: allActivities
+        activities: allActivities,
+        events: []
       };
     }
 
@@ -349,7 +374,8 @@ class StateNode implements StateNodeConfig {
           subStateValue => ({
             stateValue: subStateValue,
             actions: { onEntry: [], onExit: [], actions: [] },
-            activities: undefined
+            activities: undefined,
+            events: []
           })
         ),
         ...nextStateValue
@@ -396,7 +422,8 @@ class StateNode implements StateNodeConfig {
     return {
       stateValue: finalStateValue,
       actions: finalActions,
-      activities: finalActivities
+      activities: finalActivities,
+      events: []
     };
   }
 
@@ -424,7 +451,8 @@ class StateNode implements StateNodeConfig {
       return {
         stateValue: undefined,
         actions: actionMap,
-        activities: activityMap
+        activities: activityMap,
+        events: []
       };
     }
 
@@ -474,12 +502,14 @@ class StateNode implements StateNodeConfig {
       return {
         stateValue: undefined,
         actions: actionMap,
-        activities: activityMap
+        activities: activityMap,
+        events: []
       };
     }
 
-    const nextStatePath = toStatePath(nextStateString);
-    let currentState = this.parent;
+    const nextStatePath = this.getResolvedPath(nextStateString);
+    const isId = nextStateString[0] === '#';
+    let currentState = isId ? this.machine : this.parent;
     let currentHistory = history;
     let currentPath = this.key;
 
@@ -555,10 +585,20 @@ class StateNode implements StateNodeConfig {
       }
     }
 
+    const raisedEvents = (currentState.onEntry
+      ? currentState.onEntry.filter(
+          a => typeof a === 'object' && a.type === actionTypes.raise
+        )
+      : []
+    ).concat(
+      currentState.on && currentState.on[''] ? { type: actionTypes.null } : []
+    );
+
     return {
       stateValue: currentState.getRelativeValue(this.parent),
       actions: actionMap,
-      activities: activityMap
+      activities: activityMap,
+      events: raisedEvents as EventObject[]
     };
   }
   private get resolvedStateValue(): StateValue {
@@ -581,6 +621,19 @@ class StateNode implements StateNodeConfig {
     return {
       [key]: this.states[this.initial].resolvedStateValue
     };
+  }
+  private getResolvedPath(stateIdentifier: string): string[] {
+    if (stateIdentifier[0] === '#') {
+      const stateNode = this.machine.idMap[stateIdentifier.slice(1)];
+
+      if (!stateNode) {
+        throw new Error(`Unable to find state node '${stateIdentifier}'`);
+      }
+
+      return stateNode.path.slice(1);
+    }
+
+    return toStatePath(stateIdentifier);
   }
   private get initialStateValue(): StateValue | undefined {
     const initialStateValue =

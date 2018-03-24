@@ -18,7 +18,8 @@ export const actionTypes = {
   stop: `${PREFIX}.stop`,
   raise: `${PREFIX}.raise`,
   send: `${PREFIX}.send`,
-  cancel: `${PREFIX}.cancel`
+  cancel: `${PREFIX}.cancel`,
+  null: `${PREFIX}.null`
 };
 
 const createActivityAction = (actionType: string) => (
