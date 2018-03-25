@@ -35,6 +35,9 @@ import { start, stop, toEventObject, actionTypes } from './actions';
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
+const STATE_IDENTIFIER = '#';
+const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
+
 class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
@@ -142,6 +145,11 @@ class StateNode implements StateNodeConfig {
     event: Event,
     extendedState?: any
   ): State {
+    const resolvedStateValue =
+      typeof state === 'string' && isStateId(state)
+        ? this.getResolvedPath(state).join(STATE_DELIMITER)
+        : state;
+
     if (this.strict) {
       const eventType = getEventType(event);
       if (this.events.indexOf(eventType) === -1) {
@@ -151,7 +159,7 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    const currentState = State.from(state);
+    const currentState = State.from(resolvedStateValue);
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -251,13 +259,21 @@ class StateNode implements StateNodeConfig {
     );
   }
   private getStateNode(stateKey: string): StateNode {
-    try {
-      return this.states[stateKey];
-    } catch (e) {
+    if (!this.states) {
       throw new Error(
-        `State '${stateKey}' does not exist on machine '${this.id}'`
+        `Unable to retrieve child state '${stateKey}' from '${this
+          .id}'; no child states exist.`
       );
     }
+
+    const result = this.states[stateKey];
+    if (!result) {
+      throw new Error(
+        `Child state '${stateKey}' does not exist on '${this.id}'`
+      );
+    }
+
+    return result;
   }
   private resolve(stateValue: StateValue): StateValue {
     if (typeof stateValue === 'string') {
@@ -293,7 +309,11 @@ class StateNode implements StateNodeConfig {
 
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
-      stateValue = subStateNode.resolvedStateValue;
+      try {
+        stateValue = subStateNode.resolvedStateValue;
+      } catch (e) {
+        throw new Error(`${stateValue}`);
+      }
 
       if (typeof stateValue === 'string') {
         // Transition from the substate
@@ -549,8 +569,7 @@ class StateNode implements StateNodeConfig {
     }
 
     const nextStatePath = this.getResolvedPath(nextStateString);
-    const isId = nextStateString[0] === '#';
-    let currentState = isId ? this.machine : this.parent;
+    let currentState = isStateId(nextStateString) ? this.machine : this.parent;
     let currentHistory = history;
     let currentPath = this.key;
 
@@ -578,9 +597,9 @@ class StateNode implements StateNodeConfig {
         return;
       }
 
-      currentState = currentState.getStateNode(subPath);
-
-      if (currentState === undefined) {
+      try {
+        currentState = currentState.getStateNode(subPath);
+      } catch (e) {
         throw new Error(
           `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
             STATE_DELIMITER

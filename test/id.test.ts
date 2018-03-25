@@ -9,13 +9,25 @@ describe('State node IDs', () => {
     A: {
       NEXT: 'A.bar'
     },
+    '#A': {
+      NEXT: 'A.bar'
+    },
     'A.foo': {
+      NEXT: 'A.bar'
+    },
+    '#A_foo': {
       NEXT: 'A.bar'
     },
     'A.bar': {
       NEXT: 'B.foo'
     },
+    '#A_bar': {
+      NEXT: 'B.foo'
+    },
     'B.foo': {
+      'NEXT,NEXT': 'A.foo'
+    },
+    '#B_foo': {
       'NEXT,NEXT': 'A.foo'
     }
   };

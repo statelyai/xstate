@@ -19,7 +19,10 @@ const testGroups = {
     'send8' /* 'send9' */
   ],
   basic: ['basic1', 'basic2'],
-  'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition']
+  'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
+  'default-initial-state': ['initial1', 'initial2'],
+  documentOrder: ['documentOrder0'],
+  hierarchy: ['hier0', 'hier1', 'hier2']
 };
 
 interface SCIONTest {
@@ -31,7 +34,7 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  let nextState = State.from(test.initialConfiguration[0]);
+  let nextState: string | State = `#${test.initialConfiguration[0]}`;
 
   for (const { event, nextConfiguration } of test.events) {
     nextState = machine.transition(nextState, event.name);
