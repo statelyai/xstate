@@ -5,7 +5,7 @@ import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
-import { Machine /* State */ } from '../src';
+import { Machine, State } from '../src';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
@@ -17,7 +17,9 @@ const testGroups = {
     'send4',
     'send7',
     'send8' /* 'send9' */
-  ]
+  ],
+  basic: ['basic1', 'basic2'],
+  'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition']
 };
 
 interface SCIONTest {
@@ -29,16 +31,21 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  const nextState = machine.transition(
-    test.initialConfiguration[0],
-    test.events[0].event.name
-  );
+  let nextState = State.from(test.initialConfiguration[0]);
 
-  const stateIds = machine
-    .getStateNodes(nextState)
-    .map(stateNode => stateNode.id);
+  for (const { event, nextConfiguration } of test.events) {
+    nextState = machine.transition(nextState, event.name);
 
-  assert.include(stateIds, test.events[0].nextConfiguration[0]);
+    const stateIds = machine
+      .getStateNodes(nextState)
+      .map(stateNode => stateNode.id);
+
+    assert.include(stateIds, nextConfiguration[0]);
+  }
+}
+
+function evalCond(expr: string) {
+  return new Function(`return ${expr}`) as () => boolean;
 }
 
 describe('scxml', () => {
@@ -62,7 +69,7 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       it(`${testGroupName}/${testName}`, () => {
-        const machine = toMachine(scxmlDefinition);
+        const machine = toMachine(scxmlDefinition, { evalCond });
         console.log(util.inspect(machine, false, 8));
         runTestToCompletion(Machine(machine), scxmlTest);
       });

@@ -1,5 +1,5 @@
 import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
-import { Machine } from './types';
+import { Machine, EventObject } from './types';
 // import * as xstate from './index';
 import { StateNode } from './index';
 import { getEventType, mapValues } from './utils';
@@ -175,7 +175,27 @@ function indexedRecord<T extends {}>(
     typeof identifier === 'string' ? item => item[identifier] : identifier;
 
   items.forEach(item => {
-    record[identifierFn(item)] = item;
+    const key = identifierFn(item);
+
+    record[key] = item;
+  });
+
+  return record;
+}
+
+function indexedAggregateRecord<T extends {}>(
+  items: T[],
+  identifier: string | ((item: T) => string)
+): Record<string, T[]> {
+  const record: Record<string, T[]> = {};
+
+  const identifierFn =
+    typeof identifier === 'string' ? item => item[identifier] : identifier;
+
+  items.forEach(item => {
+    const key = identifierFn(item);
+
+    (record[key] = record[key] || ([] as T[])).push(item);
   });
 
   return record;
@@ -198,7 +218,12 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function toConfig(nodeJson: XMLElement, id: string) {
+function toConfig(
+  nodeJson: XMLElement,
+  id: string,
+  options: ScxmlToMachineOptions
+) {
+  const { evalCond } = options;
   let initial = nodeJson.attributes!.initial;
   let states: Record<string, any>;
   let on: Record<string, any>;
@@ -233,17 +258,20 @@ function toConfig(nodeJson: XMLElement, id: string) {
     states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
 
     on = mapValues(
-      indexedRecord(
+      indexedAggregateRecord(
         transitionElements,
         (item: any) => item.attributes.event || ''
       ),
-      (value: XMLElement) => {
-        return [
-          {
-            target: `#${value.attributes!.target}`,
-            ...value.elements ? executableContent(value.elements) : undefined
-          }
-        ];
+      (values: XMLElement[]) => {
+        return values.map(value => ({
+          target: `#${value.attributes!.target}`,
+          ...value.elements ? executableContent(value.elements) : undefined,
+          ...value.attributes!.cond
+            ? {
+                cond: evalCond(value.attributes!.cond as string)
+              }
+            : undefined
+        }));
       }
     );
 
@@ -273,7 +301,11 @@ function toConfig(nodeJson: XMLElement, id: string) {
       id,
       ...initial ? { initial } : undefined,
       ...stateElements.length
-        ? { states: mapValues(states, toConfig) }
+        ? {
+            states: mapValues(states, (state, key) =>
+              toConfig(state, key, options)
+            )
+          }
         : undefined,
       ...transitionElements.length ? { on } : undefined,
       ...onEntry ? { onEntry } : undefined,
@@ -284,12 +316,19 @@ function toConfig(nodeJson: XMLElement, id: string) {
   return { id };
 }
 
-export function toMachine(xml: string) {
+export interface ScxmlToMachineOptions {
+  evalCond: (
+    expr: string
+  ) => // tslint:disable-next-line:ban-types
+  ((extState: any, event: EventObject) => boolean) | Function;
+}
+
+export function toMachine(xml: string, options: ScxmlToMachineOptions) {
   const json = xml2js(xml);
 
   const machineElement = json.elements.filter(
     element => element.name === 'scxml'
   )[0];
 
-  return toConfig(machineElement, '(machine)');
+  return toConfig(machineElement, '(machine)', options);
 }
