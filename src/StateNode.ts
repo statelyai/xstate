@@ -167,10 +167,7 @@ class StateNode implements StateNodeConfig {
       currentState,
       extendedState
     );
-    const nextState = this.stateTransitionToState(
-      stateTransition,
-      currentState
-    );
+    let nextState = this.stateTransitionToState(stateTransition, currentState);
 
     if (!nextState) {
       return State.inert(currentState);
@@ -179,15 +176,15 @@ class StateNode implements StateNodeConfig {
     let maybeNextState: State | undefined = nextState;
 
     const raisedEvents = nextState.actions.filter(
-      a => typeof a === 'object' && a.type === actionTypes.raise
+      action => typeof action === 'object' && action.type === actionTypes.raise
     );
 
     if (raisedEvents.length) {
       const raisedEvent = (raisedEvents[0] as EventObject).event!;
 
-      maybeNextState = this.transition(nextState, raisedEvent, extendedState);
-      maybeNextState.actions.unshift(...nextState.actions);
-      return maybeNextState;
+      nextState = this.transition(nextState, raisedEvent, extendedState);
+      nextState.actions.unshift(...nextState.actions);
+      return nextState;
     }
 
     if (stateTransition.events.length) {
@@ -200,7 +197,7 @@ class StateNode implements StateNodeConfig {
       if (raised || nullEvent) {
         maybeNextState = this.transition(
           nextState,
-          nullEvent ? '' : raised,
+          nullEvent ? NULL_EVENT : raised,
           extendedState
         );
         maybeNextState.actions.unshift(...nextState.actions);
@@ -328,6 +325,7 @@ class StateNode implements StateNodeConfig {
 
     // Potential transition tuples from parent state nodes
     const potentialStateTransitions: StateTransition[] = [];
+    let willTransition = false;
 
     let nextStateTransitionMap = mapValues(
       stateValue,
@@ -354,31 +352,30 @@ class StateNode implements StateNodeConfig {
               extendedState
             )
           );
+        } else {
+          willTransition = true;
         }
 
         return subStateTransition;
       }
     );
 
-    if (
-      Array.prototype.every.call(Object.keys(nextStateTransitionMap), key => {
-        return !nextStateTransitionMap[key].statePaths.length;
-      })
-    ) {
+    if (!willTransition) {
       if (this.parallel) {
         if (potentialStateTransitions.length) {
+          // Select the first potential state transition to take
           return potentialStateTransitions[0];
         }
 
         return {
           statePaths: [],
-          actions: { onEntry: [], onExit: [], actions: [] },
+          actions: undefined,
           activities: undefined,
           events: []
         };
       }
 
-      const subStateKey = Object.keys(nextStateTransitionMap)[0];
+      const [subStateKey] = Object.keys(nextStateTransitionMap);
 
       // try with parent
       const {
@@ -657,11 +654,14 @@ class StateNode implements StateNodeConfig {
 
     const raisedEvents = (currentState.onEntry
       ? currentState.onEntry.filter(
-          a => typeof a === 'object' && a.type === actionTypes.raise
+          action =>
+            typeof action === 'object' && action.type === actionTypes.raise
         )
       : []
     ).concat(
-      currentState.on && currentState.on[''] ? { type: actionTypes.null } : []
+      currentState.on && currentState.on[NULL_EVENT]
+        ? { type: actionTypes.null }
+        : []
     );
 
     return {
