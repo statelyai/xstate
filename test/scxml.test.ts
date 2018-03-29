@@ -22,7 +22,10 @@ const testGroups = {
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   'default-initial-state': ['initial1', 'initial2'],
   documentOrder: ['documentOrder0'],
-  hierarchy: ['hier0', 'hier1', 'hier2']
+  hierarchy: ['hier0', 'hier1', 'hier2'],
+  'hierarchy+documentOrder': ['test0', 'test1'],
+  misc: ['deep-initial']
+  // parallel: ['test0', 'test1', 'test2', 'test3']
 };
 
 interface SCIONTest {
