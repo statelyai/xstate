@@ -15,8 +15,11 @@ describe('deep transitions', () => {
       A: {
         on: {
           A_EVENT: '#deep.DONE',
-          B_EVENT: 'FAIL' // shielded by B's B_EVENT
+          B_EVENT: 'FAIL', // shielded by B's B_EVENT
+          A_S: '#deep.P.Q.R.S',
+          A_P: '#deep.P'
         },
+        onEntry: 'ENTER_A',
         onExit: 'EXIT_A',
         initial: 'B',
         states: {
@@ -24,6 +27,7 @@ describe('deep transitions', () => {
             on: {
               B_EVENT: '#deep.DONE'
             },
+            onEntry: 'ENTER_B',
             onExit: 'EXIT_B',
             initial: 'C',
             states: {
@@ -31,14 +35,56 @@ describe('deep transitions', () => {
                 on: {
                   C_EVENT: '#deep.DONE'
                 },
+                onEntry: 'ENTER_C',
                 onExit: 'EXIT_C',
                 initial: 'D',
                 states: {
                   D: {
                     on: {
-                      D_EVENT: '#deep.DONE'
+                      D_EVENT: '#deep.DONE',
+                      D_S: '#deep.P.Q.R.S',
+                      D_P: '#deep.P'
                     },
+                    onEntry: 'ENTER_D',
                     onExit: 'EXIT_D'
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      P: {
+        on: {
+          P_EVENT: '#deep.DONE',
+          Q_EVENT: 'FAIL' // shielded by Q's Q_EVENT
+        },
+        onEntry: 'ENTER_P',
+        onExit: 'EXIT_P',
+        initial: 'Q',
+        states: {
+          Q: {
+            on: {
+              Q_EVENT: '#deep.DONE'
+            },
+            onEntry: 'ENTER_Q',
+            onExit: 'EXIT_Q',
+            initial: 'R',
+            states: {
+              R: {
+                on: {
+                  R_EVENT: '#deep.DONE'
+                },
+                onEntry: 'ENTER_R',
+                onExit: 'EXIT_R',
+                initial: 'S',
+                states: {
+                  S: {
+                    on: {
+                      S_EVENT: '#deep.DONE'
+                    },
+                    onEntry: 'ENTER_S',
+                    onExit: 'EXIT_S'
                   }
                 }
               }
@@ -84,6 +130,45 @@ describe('deep transitions', () => {
         'MACHINE_EVENT'
       ).actions;
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
+      assert.deepEqual(actual, expected);
+    });
+
+    const DBCAPQRS = [
+      'EXIT_D',
+      'EXIT_C',
+      'EXIT_B',
+      'EXIT_A',
+      'ENTER_P',
+      'ENTER_Q',
+      'ENTER_R',
+      'ENTER_S'
+    ];
+
+    it('should exit deep and enter deep (A_S)', () => {
+      const actual = deepMachine.transition(deepMachine.initialState, 'A_S')
+        .actions;
+      const expected = DBCAPQRS;
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should exit deep and enter deep (D_P)', () => {
+      const actual = deepMachine.transition(deepMachine.initialState, 'D_P')
+        .actions;
+      const expected = DBCAPQRS;
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should exit deep and enter deep (A_P)', () => {
+      const actual = deepMachine.transition(deepMachine.initialState, 'A_P')
+        .actions;
+      const expected = DBCAPQRS;
+      assert.deepEqual(actual, expected);
+    });
+
+    it('should exit deep and enter deep (D_S)', () => {
+      const actual = deepMachine.transition(deepMachine.initialState, 'D_S')
+        .actions;
+      const expected = DBCAPQRS;
       assert.deepEqual(actual, expected);
     });
   });
