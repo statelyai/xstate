@@ -129,3 +129,144 @@ describe('deep history states', () => {
     });
   });
 });
+
+describe('parallel history states', () => {
+  const historyMachine = Machine({
+    key: 'parallelhistory',
+    initial: 'off',
+    states: {
+      off: {
+        on: {
+          SWITCH: 'on', // go to the initial states
+          POWER: 'on.$history',
+          DEEP_POWER: 'on.$history.$history',
+          DEEPEST_POWER: 'on.$history.$history.$history'
+        }
+      },
+      on: {
+        parallel: true,
+        states: {
+          A: {
+            initial: 'B',
+            states: {
+              B: {
+                on: { INNER_A: 'C' }
+              },
+              C: {
+                initial: 'D',
+                states: {
+                  D: {
+                    on: { INNER_A: 'E' }
+                  },
+                  E: {}
+                }
+              }
+            }
+          },
+          K: {
+            initial: 'L',
+            states: {
+              L: {
+                on: { INNER_K: 'M' }
+              },
+              M: {
+                initial: 'N',
+                states: {
+                  N: {
+                    on: { INNER_K: 'O' }
+                  },
+                  O: {}
+                }
+              }
+            }
+          }
+        },
+        on: {
+          POWER: 'off'
+        }
+      }
+    }
+  });
+
+  describe('$history', () => {
+    // on.first -> on.second.A
+    const stateABKL = historyMachine.transition(
+      historyMachine.initialState,
+      'SWITCH'
+    );
+    // INNER_A twice
+    const stateACDKL = historyMachine.transition(stateABKL, 'INNER_A');
+    const stateACEKL = historyMachine.transition(stateACDKL, 'INNER_A');
+
+    // INNER_K twice
+    const stateACEKMN = historyMachine.transition(stateACEKL, 'INNER_K');
+    const stateACEKMO = historyMachine.transition(stateACEKMN, 'INNER_K');
+
+    it('should ignore parallel state history', () => {
+      const stateOff = historyMachine.transition(stateACDKL, 'POWER');
+      assert.deepEqual(historyMachine.transition(stateOff, 'POWER').value, {
+        on: { A: 'B', K: 'L' }
+      });
+    });
+
+    it('should remember first level state history', () => {
+      const stateOff = historyMachine.transition(stateACDKL, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEP_POWER').value,
+        {
+          on: { A: { C: 'D' }, K: 'L' }
+        }
+      );
+    });
+
+    it('should remember second level state history', () => {
+      const stateOff = historyMachine.transition(stateACDKL, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+        {
+          on: { A: { C: 'D' }, K: 'L' }
+        }
+      );
+    });
+
+    it('should remember second level state history, ignoring too many levels of $history', () => {
+      const stateOff = historyMachine.transition(stateACDKL, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+        {
+          on: { A: { C: 'D' }, K: 'L' }
+        }
+      );
+    });
+
+    it('should remember three levels of state history', () => {
+      const stateOff = historyMachine.transition(stateACEKL, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+        {
+          on: { A: { C: 'E' }, K: 'L' }
+        }
+      );
+    });
+
+    xit('should re-enter each regions of parallel state correctly', () => {
+      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEP_POWER').value,
+        {
+          on: { A: { C: 'D' }, K: { M: 'N' } }
+        }
+      );
+    });
+
+    xit('should retain all regions of parallel state', () => {
+      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+        {
+          on: { A: { C: 'E' }, K: { M: 'O' } }
+        }
+      );
+    });
+  });
+});

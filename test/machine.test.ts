@@ -90,7 +90,7 @@ describe('machine', () => {
     });
   });
 
-  it('should listen to events declared at top state', () => {
+  xit('should listen to events declared at top state', () => {
     const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
 
     assert.deepEqual(actualState.value, 'Hidden');
