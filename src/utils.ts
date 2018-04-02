@@ -102,11 +102,11 @@ export const toStatePaths = (stateValue: StateValue): string[][] => {
 export const pathsToStateValue = (paths: string[][]): StateValue => {
   const result: StateValue = {};
 
-  for (const currentPath of paths) {
-    if (currentPath.length === 1) {
-      return currentPath[0];
-    }
+  if (paths && paths.length === 1 && paths[0].length === 1) {
+    return paths[0][0];
+  }
 
+  for (const currentPath of paths) {
     let marker = result;
     // tslint:disable-next-line:prefer-for-of
     for (let i = 0; i < currentPath.length; i++) {

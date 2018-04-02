@@ -38,6 +38,69 @@ const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
+/**
+ * Given a StateNode, walk up the parent chain until we find an
+ * orthogonal region of a parallel state, or the top level machine
+ * itself
+ */
+const regionOf = (node: StateNode): StateNode => {
+  // If we reach the top of the state machine, we're a "region".
+  // If our parent is a parallel state, we're a region.
+  while (node.parent && !node.parent.parallel) {
+    node = node.parent;
+  }
+  return node;
+};
+
+/**
+ * Ensure that the passed in StateNode instance belongs to a region
+ * that previously had not been used, or that matches the existing
+ * StateNode for the orthogonal regions.  This function is used to
+ * verify that a transition that has multiple targets ends doesn't try
+ * to target several states in the same orthogonal region.  The passed
+ * state is added to the regions data structure using the state's
+ * _region_ (see regionOf), and the region's parent.  If there is
+ * already an object in the structure which is not already the state
+ * in question, an Error is thrown, otherwise the state is added to
+ * the structure, and the _region_ is returned.
+ *
+ * @param sourceState the state in which the event was triggered (used
+ * to report error messages)
+ * @param event the event that triggered the transition (used to
+ * report error messages)
+ * @param regions A data structure that retains the current set of
+ * orthogonal regions (their IDs), grouped by their parallel state
+ * (their IDs), with the values being the chosen states
+ * @param state A state to add to the structure if possible.
+ * @returns The region of the state, in order for the caller to repeat the process for the parent.
+ * @throws Error if the region found already exists in the regions
+ */
+
+const ensureTargetStateIsInCorrectRegion = (
+  sourceState: StateNode,
+  event: Event,
+  regions: Record<string, Record<string, StateNode>>,
+  stateToCheck: StateNode
+): StateNode => {
+  const region = regionOf(stateToCheck);
+  const parent = region.parent;
+  const parentId = parent ? parent.id : ''; // '' == machine
+
+  regions[parentId] = regions[parentId] || {};
+  if (
+    regions[parentId][region.id] &&
+    regions[parentId][region.id] != stateToCheck
+  ) {
+    throw new Error(
+      `Event '${event}' on state '${sourceState.id}' leads to an invalid configuration: ` +
+        `Two or more states in the orthogonal region '${region.id}'.`
+    );
+  }
+  // Keep track of which state was chosen in a particular region.
+  regions[parentId][region.id] = stateToCheck;
+  return region;
+};
+
 class StateNode implements StateNodeConfig {
   public key: string;
   public id: string;
@@ -571,6 +634,7 @@ class StateNode implements StateNodeConfig {
 
     const finalPaths: string[][] = [];
     let raisedEvents: Action[] = [];
+    const usedRegions: Record<string, Record<string, StateNode>> = {};
 
     nextStateStrings.forEach(nextStateString => {
       const nextStatePath = this.getResolvedPath(nextStateString);
@@ -637,6 +701,22 @@ class StateNode implements StateNodeConfig {
 
       if (!currentState) {
         throw new Error('no state');
+      }
+
+      let region = ensureTargetStateIsInCorrectRegion(
+        this,
+        event,
+        usedRegions,
+        currentState
+      );
+
+      while (region.parent) {
+        region = ensureTargetStateIsInCorrectRegion(
+          this,
+          event,
+          usedRegions,
+          region.parent
+        );
       }
 
       let paths = [currentState.path];
