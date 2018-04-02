@@ -570,7 +570,7 @@ class StateNode implements StateNodeConfig {
     }
 
     const finalPaths: string[][] = [];
-    let raisedEvents = [];
+    let raisedEvents: Action[] = [];
 
     nextStateStrings.forEach(nextStateString => {
       const nextStatePath = this.getResolvedPath(nextStateString);
@@ -669,8 +669,7 @@ class StateNode implements StateNodeConfig {
           });
         }
       }
-      // const myEvents : EventObject[] =
-      (currentState.onEntry
+      const myActions = (currentState.onEntry
         ? currentState.onEntry.filter(
             action =>
               typeof action === 'object' && action.type === actionTypes.raise
@@ -681,9 +680,7 @@ class StateNode implements StateNodeConfig {
           ? { type: actionTypes.null }
           : []
       );
-      //myEvents.map(event => {
-      // TODO types... raisedEvents.push(event);
-      //});
+      myActions.forEach(action => raisedEvents.push(action));
     });
 
     return {

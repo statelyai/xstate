@@ -9,7 +9,8 @@ describe('multiple', () => {
       simple: {
         on: {
           DEEP_M: 'para.K.M',
-          //DEEP_CMR_O: { para:  {states: { A: 'C', K: 'M', P: 'R' } } },
+          DEEP_CM: [{ target: ['para.A.C', 'para.K.M'] }],
+          DEEP_MR: [{ target: ['para.K.M', 'para.P.R'] }],
           DEEP_CMR: [{ target: ['para.A.C', 'para.K.M', 'para.P.R'] }],
           INITIAL: 'para'
         }
@@ -61,6 +62,11 @@ describe('multiple', () => {
     it('should enter specific states in all regions', () => {
       const stateCMR = machine.transition(stateSimple, 'DEEP_CMR');
       assert.deepEqual(stateCMR.value, { para: { A: 'C', K: 'M', P: 'R' } });
+    });
+
+    it('should enter specific states in some regions', () => {
+      const stateMR = machine.transition(stateSimple, 'DEEP_MR');
+      assert.deepEqual(stateMR.value, { para: { A: 'B', K: 'M', P: 'R' } });
     });
   });
 });
