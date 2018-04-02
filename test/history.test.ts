@@ -140,7 +140,12 @@ describe('parallel history states', () => {
           SWITCH: 'on', // go to the initial states
           POWER: 'on.$history',
           DEEP_POWER: 'on.$history.$history',
-          DEEPEST_POWER: 'on.$history.$history.$history'
+          DEEPEST_POWER: 'on.$history.$history.$history',
+          PARALLEL_HISTORY: [{ target: ['on.A.$history', 'on.K.$history'] }],
+          PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.$history'] }],
+          PARALLEL_DEEP_HISTORY: [
+            { target: ['on.A.$history.$history', 'on.K.$history.$history'] }
+          ]
         }
       },
       on: {
@@ -263,6 +268,36 @@ describe('parallel history states', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+        {
+          on: { A: { C: 'E' }, K: { M: 'O' } }
+        }
+      );
+    });
+
+    it('should re-enter multiple history states', () => {
+      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'PARALLEL_HISTORY').value,
+        {
+          on: { A: { C: 'D' }, K: { M: 'N' } }
+        }
+      );
+    });
+
+    it('should re-enter a parallel with partial history', () => {
+      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'PARALLEL_SOME_HISTORY').value,
+        {
+          on: { A: { C: 'D' }, K: { M: 'N' } }
+        }
+      );
+    });
+
+    it('should re-enter a parallel with full history', () => {
+      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'PARALLEL_DEEP_HISTORY').value,
         {
           on: { A: { C: 'E' }, K: { M: 'O' } }
         }
