@@ -576,7 +576,9 @@ class StateNode implements StateNodeConfig {
       }
 
       if (subPath === HISTORY_KEY) {
-        if (currentHistory) {
+        if (Object.keys(currentState.states).length == 0) {
+          subPath = NULL_EVENT;
+        } else if (currentHistory) {
           subPath =
             typeof currentHistory === 'object'
               ? Object.keys(currentHistory)[0]
@@ -595,7 +597,9 @@ class StateNode implements StateNodeConfig {
       }
 
       try {
-        currentState = currentState.getStateNode(subPath);
+        if (subPath !== NULL_EVENT) {
+          currentState = currentState.getStateNode(subPath);
+        }
       } catch (e) {
         throw new Error(
           `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
