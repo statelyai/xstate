@@ -29,14 +29,16 @@
   "devDependencies": {
     "@types/chai": "^4.0.4",
     "@types/mocha": "^2.2.44",
-    "@types/node": "^8.0.33",
+    "@types/node": "^8.9.4",
     "chai": "^4.1.2",
     "mocha": "^3.5.3",
     "prettier": "^1.7.0",
+    "scxml-test-framework": "^1.0.2",
     "ts-node": "^3.3.0",
     "tslint": "^5.7.0",
     "typescript": "^2.7.1",
-    "webpack": "^3.5.6"
+    "webpack": "^3.5.6",
+    "xml-js": "^1.6.2"
   },
   "dependencies": {}
 }

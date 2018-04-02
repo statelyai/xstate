@@ -7,6 +7,7 @@ const lightMachine = Machine({
   initial: 'green',
   states: {
     green: {
+      activities: ['fadeInGreen'],
       on: {
         TIMER: 'yellow'
       }
@@ -35,6 +36,13 @@ const lightMachine = Machine({
 });
 
 describe('activities', () => {
+  it('identifies initial activities', () => {
+    const { initialState } = lightMachine;
+
+    assert.deepEqual(initialState.activities, {
+      fadeInGreen: true
+    });
+  });
   it('identifies start activities', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER');
     assert.deepEqual(nextState.activities, {
@@ -74,9 +82,13 @@ describe('activities', () => {
     const nextState = lightMachine.transition(redStopState, 'TIMER');
 
     assert.deepEqual(nextState.activities, {
+      fadeInGreen: true,
       activateCrosswalkLight: false,
       blinkCrosswalkLight: false
     });
-    assert.sameDeepMembers(nextState.actions, [stop('activateCrosswalkLight')]);
+    assert.sameDeepMembers(nextState.actions, [
+      start('fadeInGreen'),
+      stop('activateCrosswalkLight')
+    ]);
   });
 });

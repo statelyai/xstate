@@ -1,4 +1,4 @@
-import { StateValue, Action, ActivityMap } from './types';
+import { StateValue, Action, ActivityMap, EventObject } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 import { toStateValue } from './utils';
 
@@ -26,7 +26,11 @@ export class State {
     public history?: State,
     public actions: Action[] = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
-    public data: Record<string, any> = {}
+    public data: Record<string, any> = {},
+    /**
+     * Internal event queue
+     */
+    public events: EventObject[] = []
   ) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {
