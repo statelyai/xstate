@@ -103,28 +103,28 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit substates and superstates when exiting (B_EVENT)', () => {
+    xit('should exit substates and superstates when exiting (B_EVENT)', () => {
       const actual = deepMachine.transition(deepMachine.initialState, 'B_EVENT')
         .actions;
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit substates and superstates when exiting (C_EVENT)', () => {
+    xit('should exit substates and superstates when exiting (C_EVENT)', () => {
       const actual = deepMachine.transition(deepMachine.initialState, 'C_EVENT')
         .actions;
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit superstates when exiting (D_EVENT)', () => {
+    xit('should exit superstates when exiting (D_EVENT)', () => {
       const actual = deepMachine.transition(deepMachine.initialState, 'D_EVENT')
         .actions;
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit substate when machine handles event (MACHINE_EVENT)', () => {
+    xit('should exit substate when machine handles event (MACHINE_EVENT)', () => {
       const actual = deepMachine.transition(
         deepMachine.initialState,
         'MACHINE_EVENT'
@@ -151,7 +151,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit deep and enter deep (D_P)', () => {
+    xit('should exit deep and enter deep (D_P)', () => {
       const actual = deepMachine.transition(deepMachine.initialState, 'D_P')
         .actions;
       const expected = DBCAPQRS;
@@ -165,7 +165,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    it('should exit deep and enter deep (D_S)', () => {
+    xit('should exit deep and enter deep (D_S)', () => {
       const actual = deepMachine.transition(deepMachine.initialState, 'D_S')
         .actions;
       const expected = DBCAPQRS;
