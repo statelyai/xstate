@@ -33,7 +33,7 @@ export interface TransitionConfig {
 }
 
 export interface TargetTransitionConfig extends TransitionConfig {
-  target: string;
+  target: string | string[];
 }
 
 export type ConditionalTransitionConfig = TargetTransitionConfig[];
