@@ -515,11 +515,13 @@ class StateNode implements StateNodeConfig {
     }
 
     const transition = this.on[eventType] as Transition;
-    let nextStateString: string | undefined;
+
+    let nextStateStrings: string[] = [];
 
     if (typeof transition === 'string') {
-      nextStateString = transition;
+      nextStateStrings = [transition];
     } else {
+      // convert object form to array form, by adding .target to each object
       const candidates = Array.isArray(transition)
         ? transition
         : Object.keys(transition).map(key => ({
@@ -547,7 +549,9 @@ class StateNode implements StateNodeConfig {
           (!cond || cond(extendedStateObject, eventObject)) &&
           (!stateIn || isInState)
         ) {
-          nextStateString = candidate.target;
+          nextStateStrings = Array.isArray(candidate.target)
+            ? candidate.target
+            : [candidate.target];
           if (transitionActions) {
             actionMap.actions = actionMap.actions.concat(transitionActions);
           }
@@ -556,7 +560,7 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    if (!nextStateString) {
+    if (nextStateStrings.length == 0) {
       return {
         statePaths: [],
         actions: actionMap,
@@ -565,111 +569,122 @@ class StateNode implements StateNodeConfig {
       };
     }
 
-    const nextStatePath = this.getResolvedPath(nextStateString);
-    let currentState = isStateId(nextStateString) ? this.machine : this.parent;
-    let currentHistory = history;
-    let currentPath = this.key;
+    const finalPaths: string[][] = [];
+    let raisedEvents: Action[] = [];
 
-    nextStatePath.forEach(subPath => {
-      if (!currentState || !currentState.states) {
-        throw new Error(`Unable to read '${subPath}'`);
-      }
+    nextStateStrings.forEach(nextStateString => {
+      const nextStatePath = this.getResolvedPath(nextStateString);
+      let currentState = isStateId(nextStateString)
+        ? this.machine
+        : this.parent;
+      let currentHistory = history;
+      let currentPath = this.key;
 
-      if (subPath === HISTORY_KEY) {
-        if (Object.keys(currentState.states).length == 0) {
-          subPath = NULL_EVENT;
-        } else if (currentHistory) {
-          subPath =
-            typeof currentHistory === 'object'
-              ? Object.keys(currentHistory)[0]
-              : currentHistory;
-        } else if (currentState.initial) {
-          subPath = currentState.initial;
-        } else {
+      nextStatePath.forEach(subPath => {
+        if (!currentState || !currentState.states) {
+          throw new Error(`Unable to read '${subPath}'`);
+        }
+
+        if (subPath === HISTORY_KEY) {
+          if (Object.keys(currentState.states).length == 0) {
+            subPath = NULL_EVENT;
+          } else if (currentHistory) {
+            subPath =
+              typeof currentHistory === 'object'
+                ? Object.keys(currentHistory)[0]
+                : currentHistory;
+          } else if (currentState.initial) {
+            subPath = currentState.initial;
+          } else {
+            throw new Error(
+              `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+            );
+          }
+        } else if (subPath === NULL_EVENT) {
+          actionMap.onExit = [];
+          currentState = currentState.getStateNode(this.key);
+          return;
+        }
+
+        try {
+          if (subPath !== NULL_EVENT) {
+            currentState = currentState.getStateNode(subPath);
+          }
+        } catch (e) {
           throw new Error(
-            `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
+            `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
+              STATE_DELIMITER
+            )}'.`
           );
         }
-      } else if (subPath === NULL_EVENT) {
-        actionMap.onExit = [];
-        currentState = currentState.getStateNode(this.key);
-        return;
+
+        if (currentState.onEntry) {
+          actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
+        }
+        if (currentState.activities) {
+          currentState.activities.forEach(activity => {
+            activityMap[getEventType(activity)] = true;
+            actionMap.onEntry = actionMap.onEntry.concat(start(activity));
+          });
+        }
+
+        currentPath = subPath;
+
+        if (currentHistory) {
+          currentHistory = currentHistory[subPath];
+        }
+      });
+
+      if (!currentState) {
+        throw new Error('no state');
       }
 
-      try {
-        if (subPath !== NULL_EVENT) {
-          currentState = currentState.getStateNode(subPath);
-        }
-      } catch (e) {
-        throw new Error(
-          `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
-            STATE_DELIMITER
-          )}'.`
+      let paths = [currentState.path];
+
+      if (currentState.initial || currentState.parallel) {
+        const { initialState } = currentState;
+        actionMap.onEntry = actionMap.onEntry.concat(initialState.actions);
+        paths = toStatePaths(initialState.value).map(subPath =>
+          currentState!.path.concat(subPath)
         );
       }
 
-      if (currentState.onEntry) {
-        actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
-      }
-      if (currentState.activities) {
-        currentState.activities.forEach(activity => {
-          activityMap[getEventType(activity)] = true;
-          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
-        });
+      for (const path of paths) {
+        finalPaths[finalPaths.length] = path;
       }
 
-      currentPath = subPath;
+      while (currentState.initial) {
+        if (!currentState || !currentState.states) {
+          throw new Error(`Invalid initial state`);
+        }
+        currentState = currentState.states[currentState.initial];
 
-      if (currentHistory) {
-        currentHistory = currentHistory[subPath];
+        // if (currentState.onEntry) {
+        //   actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
+        // }
+        if (currentState.activities) {
+          currentState.activities.forEach(activity => {
+            activityMap[getEventType(activity)] = true;
+            actionMap.onEntry = actionMap.onEntry.concat(start(activity));
+          });
+        }
       }
+      const myActions = (currentState.onEntry
+        ? currentState.onEntry.filter(
+            action =>
+              typeof action === 'object' && action.type === actionTypes.raise
+          )
+        : []
+      ).concat(
+        currentState.on && currentState.on[NULL_EVENT]
+          ? { type: actionTypes.null }
+          : []
+      );
+      myActions.forEach(action => raisedEvents.push(action));
     });
 
-    if (!currentState) {
-      throw new Error('no state');
-    }
-
-    let paths = [currentState.path];
-
-    if (currentState.initial || currentState.parallel) {
-      const { initialState } = currentState;
-      actionMap.onEntry = actionMap.onEntry.concat(initialState.actions);
-      paths = toStatePaths(initialState.value).map(subPath =>
-        currentState!.path.concat(subPath)
-      );
-    }
-
-    while (currentState.initial) {
-      if (!currentState || !currentState.states) {
-        throw new Error(`Invalid initial state`);
-      }
-      currentState = currentState.states[currentState.initial];
-
-      // if (currentState.onEntry) {
-      //   actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
-      // }
-      if (currentState.activities) {
-        currentState.activities.forEach(activity => {
-          activityMap[getEventType(activity)] = true;
-          actionMap.onEntry = actionMap.onEntry.concat(start(activity));
-        });
-      }
-    }
-
-    const raisedEvents = (currentState.onEntry
-      ? currentState.onEntry.filter(
-          action =>
-            typeof action === 'object' && action.type === actionTypes.raise
-        )
-      : []
-    ).concat(
-      currentState.on && currentState.on[NULL_EVENT]
-        ? { type: actionTypes.null }
-        : []
-    );
-
     return {
-      statePaths: paths,
+      statePaths: finalPaths,
       actions: actionMap,
       activities: activityMap,
       events: raisedEvents as EventObject[]
