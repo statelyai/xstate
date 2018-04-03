@@ -5,7 +5,8 @@ import {
   mapValues,
   path,
   toStatePaths,
-  pathsToStateValue
+  pathsToStateValue,
+  pathToStateValue
 } from './utils';
 import {
   Event,
@@ -209,9 +210,9 @@ class StateNode implements StateNodeConfig {
     extendedState?: any
   ): State {
     const resolvedStateValue =
-      typeof state === 'string' && isStateId(state)
-        ? this.getResolvedPath(state).join(STATE_DELIMITER)
-        : state;
+      typeof state === 'string'
+        ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
+        : state instanceof State ? state : this.resolve(state);
 
     if (this.strict) {
       const eventType = getEventType(event);
@@ -365,25 +366,17 @@ class StateNode implements StateNodeConfig {
     extendedState?: any
   ): StateTransition {
     const { history } = state;
-    let stateValue = state.value;
+    const stateValue = state.value;
 
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
-      try {
-        stateValue = subStateNode.resolvedStateValue;
-      } catch (e) {
-        throw new Error(`${stateValue}`);
-      }
 
-      if (typeof stateValue === 'string') {
-        // Transition from the substate
-        return subStateNode.next(
-          event,
-          fullState,
-          history ? history.value : undefined,
-          extendedState
-        );
-      }
+      return subStateNode.next(
+        event,
+        fullState,
+        history ? history.value : undefined,
+        extendedState
+      );
     }
 
     // Potential transition tuples from parent state nodes
@@ -787,7 +780,7 @@ class StateNode implements StateNodeConfig {
     };
   }
   private getResolvedPath(stateIdentifier: string): string[] {
-    if (stateIdentifier[0] === '#') {
+    if (isStateId(stateIdentifier)) {
       const stateNode = this.machine.idMap[stateIdentifier.slice(1)];
 
       if (!stateNode) {

@@ -35,6 +35,11 @@ export function toStateValue(stateValue: State | StateValue): StateValue {
   }
 
   const statePath = toStatePath(stateValue as string);
+
+  return pathToStateValue(statePath);
+}
+
+export function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
   }

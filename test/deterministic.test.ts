@@ -183,7 +183,9 @@ describe('deterministic machine', () => {
       });
       assert.isEmpty(lightMachine.transition('red.walk', 'FAKE').actions);
 
-      assert.equal(deepMachine.transition('a1', 'FAKE').value, 'a1');
+      assert.deepEqual(deepMachine.transition('a1', 'FAKE').value, {
+        a1: { a2: { a3: 'a4' } }
+      });
       assert.isEmpty(deepMachine.transition('a1', 'FAKE').actions);
     });
 
