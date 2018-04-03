@@ -89,7 +89,7 @@ const ensureTargetStateIsInCorrectRegion = (
   regions[parentId] = regions[parentId] || {};
   if (
     regions[parentId][region.id] &&
-    regions[parentId][region.id] != stateToCheck
+    regions[parentId][region.id] !== stateToCheck
   ) {
     throw new Error(
       `Event '${event}' on state '${sourceState.id}' leads to an invalid configuration: ` +
@@ -623,7 +623,7 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    if (nextStateStrings.length == 0) {
+    if (nextStateStrings.length === 0) {
       return {
         statePaths: [],
         actions: actionMap,
@@ -633,7 +633,7 @@ class StateNode implements StateNodeConfig {
     }
 
     const finalPaths: string[][] = [];
-    let raisedEvents: Action[] = [];
+    const raisedEvents: Action[] = [];
     const usedRegions: Record<string, Record<string, StateNode>> = {};
 
     nextStateStrings.forEach(nextStateString => {
@@ -650,7 +650,7 @@ class StateNode implements StateNodeConfig {
         }
 
         if (subPath === HISTORY_KEY) {
-          if (Object.keys(currentState.states).length == 0) {
+          if (!Object.keys(currentState.states).length) {
             subPath = NULL_EVENT;
           } else if (currentHistory) {
             subPath =
@@ -729,9 +729,7 @@ class StateNode implements StateNodeConfig {
         );
       }
 
-      for (const path of paths) {
-        finalPaths[finalPaths.length] = path;
-      }
+      finalPaths.push(...paths);
 
       while (currentState.initial) {
         if (!currentState || !currentState.states) {
@@ -739,9 +737,6 @@ class StateNode implements StateNodeConfig {
         }
         currentState = currentState.states[currentState.initial];
 
-        // if (currentState.onEntry) {
-        //   actionMap.onEntry = actionMap.onEntry.concat(currentState.onEntry);
-        // }
         if (currentState.activities) {
           currentState.activities.forEach(activity => {
             activityMap[getEventType(activity)] = true;
