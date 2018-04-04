@@ -230,13 +230,14 @@ describe('onEntry/onExit actions', () => {
       ]);
     });
 
-    it('should ignore same-parent state actions (sparse)', () => {
+    describe('should ignore same-parent state actions (sparse)', () => {
       const fooBar = {
         initial: 'foo',
         states: {
           foo: {
             on: {
-              TACK: 'bar'
+              TACK: 'bar',
+              ABSOLUTE_TACK: '#machine.ping.bar'
             }
           },
           bar: {
@@ -249,6 +250,7 @@ describe('onEntry/onExit actions', () => {
 
       const pingPong = Machine({
         initial: 'ping',
+        key: 'machine',
         states: {
           ping: {
             onEntry: ['entryEvent'],
@@ -265,7 +267,15 @@ describe('onEntry/onExit actions', () => {
         }
       });
 
-      assert.isEmpty(pingPong.transition('ping.foo', 'TACK').actions);
+      it('with a relative transition', () => {
+        assert.isEmpty(pingPong.transition('ping.foo', 'TACK').actions);
+      });
+
+      xit('with an absolute transition', () => {
+        assert.isEmpty(
+          pingPong.transition('ping.foo', 'ABSOLUTE_TACK').actions
+        );
+      });
     });
   });
 });
