@@ -116,7 +116,7 @@ class StateNode implements StateNodeConfig {
             stateValue[subStateKey]
           );
         })
-        .reduce((a, b) => a.concat(b))
+        .reduce((a, b) => a.concat(b), [])
     );
   }
   public handles(event: Event): boolean {

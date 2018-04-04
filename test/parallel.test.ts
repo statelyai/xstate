@@ -3,6 +3,10 @@ import { Machine } from '../src/index';
 import { testMultiTransition } from './utils';
 
 describe('parallel states', () => {
+  const emptyMachine = Machine({
+    parallel: true,
+    states: {}
+  });
   const wordMachine = Machine({
     parallel: true,
     states: {
@@ -54,6 +58,12 @@ describe('parallel states', () => {
         }
       }
     }
+  });
+
+  it('should have empty parallel states', () => {
+    const { initialState } = emptyMachine;
+
+    assert.deepEqual(initialState.value, {});
   });
 
   it('should have initial parallel states', () => {
