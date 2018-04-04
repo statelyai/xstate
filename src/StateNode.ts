@@ -489,7 +489,9 @@ class StateNode implements StateNodeConfig {
       }
 
       if (subPath === HISTORY_KEY) {
-        if (currentHistory) {
+        if (Object.keys(currentState.states).length == 0) {
+          subPath = NULL_EVENT;
+        } else if (currentHistory) {
           subPath =
             typeof currentHistory === 'object'
               ? Object.keys(currentHistory)[0]
@@ -507,7 +509,9 @@ class StateNode implements StateNodeConfig {
         return;
       }
 
-      currentState = currentState.states[subPath];
+      if (subPath !== NULL_EVENT) {
+        currentState = currentState.states[subPath];
+      }
 
       if (currentState === undefined) {
         throw new Error(
