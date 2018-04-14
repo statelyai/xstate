@@ -17,7 +17,9 @@
 </body>
 <script src="../../dist/xstate.js"></script>
 <script>
-  var isAdmin = true;
+  var externalState = {
+    isAdmin: true
+  };
 
   var machine = new xstate.Machine({
     id: 'guards',
@@ -31,7 +33,7 @@
         },
         on: {
           OPEN: [
-            { target: 'opened', cond: () => isAdmin },
+            { target: 'opened', cond: (extState) => extState.isAdmin },
             { target: 'closed.error' }
           ]
         }
@@ -47,7 +49,7 @@
   var state = machine.initialState;
   function dispatch(action) {
     console.log({state, action});
-    state = machine.transition(state, action);
+    state = machine.transition(state, action, externalState);
     update(state);
   }
 
@@ -59,8 +61,8 @@
   document.getElementById('open').onclick = () => dispatch('OPEN');
   document.getElementById('close').onclick = () => dispatch('CLOSE');
   document.getElementById('isAdmin').onchange = () => {
-    isAdmin = !isAdmin;
-    console.log('isAdmin', isAdmin);
+    externalState.isAdmin = !externalState.isAdmin;
+    console.log('externalState', externalState);
   };
 </script>
 </html>
