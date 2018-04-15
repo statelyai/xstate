@@ -48,7 +48,7 @@ describe('machine', () => {
   const topLevelMachine = Machine({
     initial: 'Hidden',
     on: {
-      CLICKED_CLOSE: 'Hidden'
+      CLICKED_CLOSE: '.Hidden'
     },
     states: {
       Hidden: {
