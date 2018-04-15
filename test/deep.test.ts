@@ -124,14 +124,17 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit substate when machine handles event (MACHINE_EVENT)', () => {
-      const actual = deepMachine.transition(
-        deepMachine.initialState,
-        'MACHINE_EVENT'
-      ).actions;
-      const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
-    });
+    xit(
+      'should exit substate when machine handles event (MACHINE_EVENT)',
+      () => {
+        const actual = deepMachine.transition(
+          deepMachine.initialState,
+          'MACHINE_EVENT'
+        ).actions;
+        const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
+        assert.deepEqual(actual, expected);
+      }
+    );
 
     const DBCAPQRS = [
       'EXIT_D',

@@ -58,6 +58,7 @@ export interface StateNodeConfig {
   strict?: boolean | undefined;
   data?: object | undefined;
   id?: string | undefined;
+  delimiter?: string;
 }
 export interface SimpleStateNodeConfig extends StateNodeConfig {
   initial?: undefined;

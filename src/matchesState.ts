@@ -1,12 +1,14 @@
 import { toStateValue } from './utils'; // TODO: change to utils
 import { StateValue } from './types';
+import { STATE_DELIMITER } from './constants';
 
 export function matchesState(
   parentStateId: StateValue,
-  childStateId: StateValue
+  childStateId: StateValue,
+  delimiter: string = STATE_DELIMITER
 ): boolean {
-  const parentStateValue = toStateValue(parentStateId);
-  const childStateValue = toStateValue(childStateId);
+  const parentStateValue = toStateValue(parentStateId, delimiter);
+  const childStateValue = toStateValue(childStateId, delimiter);
 
   if (typeof childStateValue === 'string') {
     if (typeof parentStateValue === 'string') {

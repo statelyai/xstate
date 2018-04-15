@@ -117,6 +117,7 @@ class StateNode implements StateNodeConfig {
   public parent?: StateNode;
   public machine: StateNode;
   public data: object | undefined;
+  public delimiter: string;
 
   private __cache = {
     events: undefined as EventType[] | undefined,
@@ -124,7 +125,7 @@ class StateNode implements StateNodeConfig {
     initialState: undefined as StateValue | undefined
   };
 
-  public idMap: Record<string, StateNode> = {};
+  private idMap: Record<string, StateNode> = {};
 
   constructor(
     public config:
@@ -136,10 +137,13 @@ class StateNode implements StateNodeConfig {
     this.parent = config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
+    this.delimiter =
+      config.delimiter ||
+      (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
       config.id ||
       (this.machine
-        ? [this.machine.key, ...this.path].join(STATE_DELIMITER)
+        ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
     this.initial = config.initial;
     this.parallel = !!config.parallel;
@@ -174,7 +178,9 @@ class StateNode implements StateNodeConfig {
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue =
-      state instanceof State ? state.value : toStateValue(state);
+      state instanceof State
+        ? state.value
+        : toStateValue(state, this.delimiter);
 
     if (typeof stateValue === 'string') {
       const initialStateValue = this.getStateNode(stateValue).initial;
@@ -190,13 +196,16 @@ class StateNode implements StateNodeConfig {
     );
 
     return subStateNodes.concat(
-      subStateKeys
-        .map(subStateKey => {
-          return this.getStateNode(subStateKey).getStateNodes(
+      subStateKeys.reduce(
+        (allSubStateNodes, subStateKey) => {
+          const subStateNode = this.getStateNode(subStateKey).getStateNodes(
             stateValue[subStateKey]
           );
-        })
-        .reduce((a, b) => a.concat(b), [])
+
+          return allSubStateNodes.concat(subStateNode);
+        },
+        [] as StateNode[]
+      )
     );
   }
   public handles(event: Event): boolean {
@@ -335,6 +344,15 @@ class StateNode implements StateNodeConfig {
     }
 
     return result;
+  }
+  public getStateNodeById(stateId: string): StateNode {
+    const stateNode = this.idMap[stateId];
+
+    if (!stateNode) {
+      throw new Error(`Substate '#${stateId}' does not exist on '${this.id}'`);
+    }
+
+    return stateNode;
   }
   private resolve(stateValue: StateValue): StateValue {
     if (typeof stateValue === 'string') {
@@ -596,7 +614,7 @@ class StateNode implements StateNodeConfig {
 
         const isInState = stateIn
           ? matchesState(
-              toStateValue(stateIn),
+              toStateValue(stateIn, this.delimiter),
               path(this.path.slice(0, -2))(fullState.value)
             )
           : true;
@@ -670,7 +688,7 @@ class StateNode implements StateNodeConfig {
         } catch (e) {
           throw new Error(
             `Event '${event}' on state '${currentPath}' leads to undefined state '${nextStatePath.join(
-              STATE_DELIMITER
+              this.delimiter
             )}'.`
           );
         }
@@ -790,7 +808,7 @@ class StateNode implements StateNodeConfig {
       return stateNode.path;
     }
 
-    return toStatePath(stateIdentifier);
+    return toStatePath(stateIdentifier, this.delimiter);
   }
   private get initialStateValue(): StateValue | undefined {
     const initialStateValue =
@@ -848,7 +866,7 @@ class StateNode implements StateNodeConfig {
     return stateNodes;
   }
   public getState(relativeStateId: string | string[]): StateNode | undefined {
-    const statePath = toStatePath(relativeStateId);
+    const statePath = toStatePath(relativeStateId, this.delimiter);
 
     try {
       return statePath.reduce(

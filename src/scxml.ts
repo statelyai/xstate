@@ -224,13 +224,14 @@ function toConfig(
   options: ScxmlToMachineOptions
 ) {
   const { evalCond } = options;
-  let initial = nodeJson.attributes!.initial;
+  const parallel = nodeJson.name === 'parallel';
+  let initial = parallel ? undefined : nodeJson.attributes!.initial;
   let states: Record<string, any>;
   let on: Record<string, any>;
 
   if (nodeJson.elements) {
     const stateElements = nodeJson.elements.filter(
-      element => element.name === 'state'
+      element => element.name === 'state' || element.name === 'parallel'
     );
 
     const transitionElements = nodeJson.elements.filter(
@@ -299,7 +300,9 @@ function toConfig(
 
     return {
       id,
+      delimiter: options.delimiter,
       ...initial ? { initial } : undefined,
+      ...parallel ? { parallel } : undefined,
       ...stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
@@ -321,6 +324,7 @@ export interface ScxmlToMachineOptions {
     expr: string
   ) => // tslint:disable-next-line:ban-types
   ((extState: any, event: EventObject) => boolean) | Function;
+  delimiter?: string;
 }
 
 export function toMachine(xml: string, options: ScxmlToMachineOptions) {

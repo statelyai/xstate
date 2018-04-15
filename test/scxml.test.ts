@@ -6,6 +6,8 @@ import * as util from 'util';
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
 import { Machine, State } from '../src';
+import { pathsToStateValue } from '../src/utils';
+import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
@@ -24,8 +26,16 @@ const testGroups = {
   documentOrder: ['documentOrder0'],
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
-  misc: ['deep-initial']
-  // parallel: ['test0', 'test1', 'test2', 'test3']
+  misc: ['deep-initial'],
+  parallel: [
+    'test0',
+    'test1'
+
+    // TODO: add support for parallel states with leaf nodes,
+    // e.g.: { foo: { bar: undefined, baz: undefined } }
+    // 'test2',
+    // 'test3'
+  ]
 };
 
 interface SCIONTest {
@@ -37,7 +47,10 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  let nextState: string | State = `#${test.initialConfiguration[0]}`;
+  // let nextState: string | State = `#${test.initialConfiguration[0]}`;
+  let nextState: StateValue | State = pathsToStateValue(
+    test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+  );
 
   for (const { event, nextConfiguration } of test.events) {
     nextState = machine.transition(nextState, event.name);
@@ -75,8 +88,11 @@ describe('scxml', () => {
       ) as SCIONTest;
 
       it(`${testGroupName}/${testName}`, () => {
-        const machine = toMachine(scxmlDefinition, { evalCond });
-        console.log(util.inspect(machine, false, 8));
+        const machine = toMachine(scxmlDefinition, {
+          evalCond,
+          delimiter: '$'
+        });
+        console.log(util.inspect(machine, false, 10));
         runTestToCompletion(Machine(machine), scxmlTest);
       });
     });

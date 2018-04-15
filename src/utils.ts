@@ -13,19 +13,25 @@ export function getEventType(event: Event): EventType {
   }
 }
 
-export function toStatePath(stateId: string | string[]): string[] {
+export function toStatePath(
+  stateId: string | string[],
+  delimiter: string
+): string[] {
   try {
     if (Array.isArray(stateId)) {
       return stateId;
     }
 
-    return stateId.toString().split('.');
+    return stateId.toString().split(delimiter);
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
 }
 
-export function toStateValue(stateValue: State | StateValue): StateValue {
+export function toStateValue(
+  stateValue: State | StateValue,
+  delimiter: string
+): StateValue {
   if (stateValue instanceof State) {
     return stateValue.value;
   }
@@ -34,7 +40,7 @@ export function toStateValue(stateValue: State | StateValue): StateValue {
     return stateValue;
   }
 
-  const statePath = toStatePath(stateValue as string);
+  const statePath = toStatePath(stateValue as string, delimiter);
 
   return pathToStateValue(statePath);
 }
