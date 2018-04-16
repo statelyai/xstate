@@ -29,6 +29,21 @@ describe('local transitions', () => {
     }
   });
 
+  const topLevelMachine = Machine({
+    initial: 'Hidden',
+    on: {
+      CLICKED_CLOSE: '.Hidden'
+    },
+    states: {
+      Hidden: {
+        on: {
+          PUBLISH_FAILURE: 'Failure'
+        }
+      },
+      Failure: {}
+    }
+  });
+
   it('parent state should enter child state without re-entering self', () => {
     const nextState = wordMachine.transition(
       wordMachine.initialState,
@@ -58,5 +73,11 @@ describe('local transitions', () => {
 
     assert.deepEqual(resetState.value, { direction: 'center' });
     assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
+  });
+
+  xit('should listen to events declared at top state', () => {
+    const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
+
+    assert.deepEqual(actualState.value, 'Hidden');
   });
 });

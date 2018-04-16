@@ -45,21 +45,6 @@ describe('machine', () => {
     }
   });
 
-  const topLevelMachine = Machine({
-    initial: 'Hidden',
-    on: {
-      CLICKED_CLOSE: '.Hidden'
-    },
-    states: {
-      Hidden: {
-        on: {
-          PUBLISH_FAILURE: 'Failure'
-        }
-      },
-      Failure: {}
-    }
-  });
-
   describe('machine.states', () => {
     it('should properly register machine states', () => {
       assert.deepEqual(Object.keys(lightMachine.states), [
@@ -88,11 +73,5 @@ describe('machine', () => {
     it('should return the initial state', () => {
       assert.equal(lightMachine.initialState.value, 'green');
     });
-  });
-
-  xit('should listen to events declared at top state', () => {
-    const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
-
-    assert.deepEqual(actualState.value, 'Hidden');
   });
 });
