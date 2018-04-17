@@ -232,7 +232,7 @@ class StateNode implements StateNodeConfig {
       }
     }
 
-    const currentState = State.from(resolvedStateValue);
+    const currentState = State.from(resolvedStateValue, this.delimiter);
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -243,7 +243,7 @@ class StateNode implements StateNodeConfig {
     let nextState = this.stateTransitionToState(stateTransition, currentState);
 
     if (!nextState) {
-      return State.inert(currentState);
+      return State.inert(currentState, this.delimiter);
     }
 
     let maybeNextState: State | undefined = nextState;
@@ -305,7 +305,7 @@ class StateNode implements StateNodeConfig {
       // next state value
       nextStateValue,
       // history
-      State.from(prevState),
+      State.from(prevState, this.delimiter),
       // effects
       nextActions
         ? nextActions.onExit
@@ -408,7 +408,7 @@ class StateNode implements StateNodeConfig {
         const subHistory = history ? history.value[subStateKey] : undefined;
         const subState = new State(
           subStateValue,
-          subHistory ? State.from(subHistory) : undefined
+          subHistory ? State.from(subHistory, this.delimiter) : undefined
         );
         const subStateTransition = subStateNode.transitionStateValue(
           subState,

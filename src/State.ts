@@ -3,14 +3,17 @@ import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 import { toStateValue } from './utils';
 
 export class State {
-  public static from(stateValue: State | StateValue): State {
+  public static from(stateValue: State | StateValue, delimiter: string): State {
     if (stateValue instanceof State) {
       return stateValue;
     }
 
-    return new State(toStateValue(stateValue));
+    return new State(toStateValue(stateValue, delimiter));
   }
-  public static inert(stateValue: State | StateValue): State {
+  public static inert(
+    stateValue: State | StateValue,
+    delimiter: string
+  ): State {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
@@ -18,7 +21,7 @@ export class State {
       return new State(stateValue.value, stateValue.history, []);
     }
 
-    return State.from(stateValue);
+    return State.from(stateValue, delimiter);
   }
 
   constructor(

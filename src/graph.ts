@@ -133,7 +133,9 @@ export function getShortestPaths(machine: Machine): PathMap {
         continue;
       }
 
-      const nextStateId = JSON.stringify(toStateValue(nextStateValue));
+      const nextStateId = JSON.stringify(
+        toStateValue(nextStateValue, machine.delimiter)
+      );
 
       if (
         !pathMap[nextStateId] ||
