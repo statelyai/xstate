@@ -111,7 +111,7 @@ If you want to have a single event transition to different states in certain sit
 For example you can model a door that listens for an `OPEN` event, and opens if you are an admin and error if you are not:
 
 ```js
-var machine = new Machine({
+const machine = new Machine({
   id: 'door',
   initial: 'closed',
   states: {
@@ -136,18 +136,18 @@ var machine = new Machine({
   }
 });
 
-var fullState = { isAdmin: true };
+const fullState = { isAdmin: true };
 
-var state = machine.initialState;
-var state = machine.transition(state, 'OPEN', fullState);
-console.log(state.value); // 'opened'
+const firstState = machine.initialState;
+const secondState = machine.transition(state, 'OPEN', fullState);
+console.log(secondState.value); // 'opened'
 
-var state = machine.transition(state, 'CLOSE', fullState);
-console.log(state.value); // { closed: 'idle' }
+const thirdState = machine.transition(state, 'CLOSE', fullState);
+console.log(thirdState.value); // { closed: 'idle' }
 
 fullState.isAdmin = false;
-var state = machine.transition(state, 'OPEN', fullState);
-console.log(state.value); // { closed: 'error' }
+const fouthState = machine.transition(state, 'OPEN', fullState);
+console.log(fouthState.value); // { closed: 'error' }
 ```
 
 **Notes:**
