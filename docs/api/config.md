@@ -2,7 +2,7 @@
 
 In xstate, statecharts are recursive data structures, where the machine and its states (and deeper states) share a common configuration schema.
 
-## Machine Configuration 
+## Machine Configuration
 
 - `initial`: (string) The relative state key of the initial state.
   - Optional for simple states with no substates (i.e., when `states` is undefined).
@@ -90,7 +90,8 @@ const redStateConfig = {
 
 On the [state configuration](#state-configuration), transitions are specified in the `on` property, which is a mapping of `string` event types to:
 - `string` state IDs, or
-- state transition mappings.
+- a state transition mapping, or
+- an array of state transition mappings
 
 The `on` property answers the question, "On this event, which state do I go to next?" The simplest representation is a `string` state ID:
 
@@ -114,37 +115,9 @@ const lightMachine = Machine({
 });
 ```
 
-For [guarded transitions](guides/guards.md), instead of a `string` state ID, you provide a mapping of possible state IDs to state transition configs containing the `cond` property:
+For [guarded transitions](guides/guards.md) and actions, instead of a `string` state ID, you can use either a single state transition mapping, or an array of mappings.
 
-```js
-const lightMachine = Machine({
-  initial: 'green',
-  states: {
-    green: {
-      on: {
-        TIMER: {
-          green: {
-            // transition to 'green' only if < 100 seconds elapsed
-            cond: ({ elapsed }) => elapsed < 100
-          },
-          yellow: {
-            // transition to 'yellow' only if >= 100 seconds elapsed
-            cond: ({ elapsed }) => elapsed >= 100
-          }
-        }
-      }
-    },
-    yellow: {
-      // ...
-    },
-    red: {
-      // ...
-    }
-  }
-});
-```
-
-State transitions can also specify `actions`, which are transition actions to be executed when the transition takes place. The configuration is the same shape as above:
+The single state transition mapping looks like:
 
 ```js
 const lightMachine = Machine({
@@ -158,6 +131,39 @@ const lightMachine = Machine({
             actions: ['startYellowTimer']
           }
         }
+      }
+    },
+    yellow: {
+      on: {
+        TIMER: {
+          // transition to 'red' only if < 100 seconds elapsed
+          red: { cond: ({ elapsed }) => elapsed < 100 }
+        }
+      }
+    },
+    red: {
+      // ...
+    }
+  }
+});
+```
+
+When you want transition to different states from a single event based on external state you can provide an array of mappings with `cond` functions:
+
+```js
+const lightMachine = Machine({
+  initial: 'green',
+  states: {
+    green: {
+      on: {
+        TIMER: [
+          // transition to 'green' only if < 100 seconds elapsed
+          { target: 'green', cond: ({ elapsed }) => elapsed < 100 },
+          // transition to 'yellow' only if >= 200 seconds elapsed
+          { target: 'yellow', cond: ({ elapsed }) => elapsed >= 200},
+          // otherwise transition to 'red'
+          { target: 'red' }
+        ]
       }
     },
     yellow: {
