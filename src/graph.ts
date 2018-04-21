@@ -30,38 +30,15 @@ export function getNodes(node: StateNode): StateNode[] {
 }
 
 function getEventEdges(node: StateNode, event: string): Edge[] {
-  const transitions = node.on![event]!;
+  const transitions = node.on[event]!;
 
-  if (typeof transitions === 'string') {
-    return [
-      {
-        source: node,
-        target: node.parent!.getState(transitions)!,
-        event,
-        actions: []
-      }
-    ];
-  }
-
-  if (Array.isArray(transitions)) {
-    return transitions.map(transition => {
-      return {
-        source: node,
-        target: node.parent!.getState(transition.target)!,
-        event,
-        actions: transition.actions || [],
-        cond: transition.cond
-      };
-    });
-  }
-
-  return Object.keys(transitions).map(stateKey => {
+  return transitions.map(transition => {
     return {
       source: node,
-      target: node.parent!.getState(stateKey)!,
+      target: node.parent!.getState(transition.target)!,
       event,
-      actions: transitions[stateKey].actions || [],
-      cond: transitions[stateKey].cond
+      actions: transition.actions || [],
+      cond: transition.cond
     };
   });
 }
@@ -74,11 +51,10 @@ export function getEdges(node: StateNode): Edge[] {
       edges.push(...getEdges(node.states[stateKey]));
     });
   }
-  if (node.on) {
-    Object.keys(node.on).forEach(event => {
-      edges.push(...getEventEdges(node, event));
-    });
-  }
+
+  Object.keys(node.on).forEach(event => {
+    edges.push(...getEventEdges(node, event));
+  });
 
   return edges;
 }

@@ -895,7 +895,7 @@ class StateNode implements StateNodeConfig {
       return this.__cache.events;
     }
     const { states } = this;
-    const events = new Set(this.on ? Object.keys(this.on) : undefined);
+    const events = new Set(Object.keys(this.on));
 
     if (states) {
       Object.keys(states).forEach(stateId => {

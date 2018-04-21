@@ -61,84 +61,66 @@ function stateNodeToSCXML(stateNode: StateNode) {
 
         return stateNodeToSCXML(subStateNode);
       }),
-      ...(stateNode.on
-        ? Object.keys(stateNode.on)
-            .map((event): XMLElement[] => {
-              const transition = stateNode.on![event];
+      ...Object.keys(stateNode.on)
+        .map((event): XMLElement[] => {
+          const transition = stateNode.on![event];
 
-              if (!transition) {
-                return [];
-              }
+          if (!transition) {
+            return [];
+          }
 
-              if (Array.isArray(transition)) {
-                return transition.map(targetTransition => {
-                  return {
-                    type: 'element',
-                    name: 'transition',
-                    attributes: {
-                      ...event ? { event } : undefined,
-                      target: stateNode.parent!.getState(
-                        targetTransition.target
-                      )!.id,
-                      ...targetTransition.cond
-                        ? { cond: targetTransition.cond.toString() }
-                        : undefined
-                    },
-                    elements: targetTransition.actions
-                      ? targetTransition.actions.map(action => ({
-                          type: 'element',
-                          name: 'send',
-                          attributes: {
-                            event: getEventType(action)
-                          }
-                        }))
-                      : undefined
-                  };
-                });
-              }
-
-              if (typeof transition === 'string') {
-                return [
-                  {
-                    type: 'element',
-                    name: 'transition',
-                    attributes: {
-                      ...event ? { event } : undefined,
-                      target: stateNode.parent!.getState(stateNode.on![
-                        event
-                      ] as string)!.id
-                    }
-                  }
-                ];
-              }
-
-              return Object.keys(transition).map(target => {
-                const targetTransition = transition[target];
-
-                return {
-                  type: 'element',
-                  name: 'transition',
-                  attributes: {
-                    ...event ? { event } : undefined,
-                    target: stateNode.parent!.getState(target)!.id,
-                    ...targetTransition.cond
-                      ? { cond: targetTransition.cond.toString() }
-                      : undefined
-                  },
-                  elements: targetTransition.actions
-                    ? targetTransition.actions.map(action => ({
-                        type: 'element',
-                        name: 'send',
-                        attributes: {
-                          event: getEventType(action)
-                        }
-                      }))
+          if (Array.isArray(transition)) {
+            return transition.map(targetTransition => {
+              return {
+                type: 'element',
+                name: 'transition',
+                attributes: {
+                  ...event ? { event } : undefined,
+                  target: stateNode.parent!.getState(targetTransition.target)!
+                    .id,
+                  ...targetTransition.cond
+                    ? { cond: targetTransition.cond.toString() }
                     : undefined
-                };
-              });
-            })
-            .reduce((a, b) => a.concat(b))
-        : [])
+                },
+                elements: targetTransition.actions
+                  ? targetTransition.actions.map(action => ({
+                      type: 'element',
+                      name: 'send',
+                      attributes: {
+                        event: getEventType(action)
+                      }
+                    }))
+                  : undefined
+              };
+            });
+          }
+
+          return Object.keys(transition).map(target => {
+            const targetTransition = transition[target];
+
+            return {
+              type: 'element',
+              name: 'transition',
+              attributes: {
+                ...event ? { event } : undefined,
+                target: stateNode.parent!.getState(target)!.id,
+                ...targetTransition.cond
+                  ? { cond: targetTransition.cond.toString() }
+                  : undefined
+              },
+              elements: targetTransition.actions
+                ? targetTransition.actions.map(action => ({
+                    type: 'element',
+                    name: 'send',
+                    attributes: {
+                      event: getEventType(action)
+                    }
+                  }))
+                : undefined
+            };
+          });
+        })
+        .reduce((a, b) => a.concat(b))
     ].filter(Boolean) as XMLElement[]
   };
 
