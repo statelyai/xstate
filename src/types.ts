@@ -50,7 +50,7 @@ export interface StateNodeConfig {
   initial?: string | undefined;
   parallel?: boolean | undefined;
   states?: Record<string, SimpleOrCompoundStateNodeConfig> | undefined;
-  on?: Record<string, Transition | undefined>;
+  on: Record<string, ConditionalTransitionConfig>;
   onEntry?: Action | Action[];
   onExit?: Action | Action[];
   activities?: Activity[];
