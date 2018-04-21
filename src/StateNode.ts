@@ -39,6 +39,11 @@ const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
+const emptyActions: ActionMap = Object.freeze({
+  onEntry: [],
+  onExit: [],
+  actions: []
+});
 
 /**
  * Given a StateNode, walk up the parent chain until we find an
@@ -457,7 +462,7 @@ class StateNode implements StateNodeConfig {
 
         return {
           statePaths: [],
-          actions: undefined,
+          actions: emptyActions,
           activities: undefined,
           events: []
         };

@@ -5,7 +5,6 @@ describe('deep transitions', () => {
   const deepMachine = Machine({
     key: 'deep',
     initial: 'A',
-    parallel: false,
     on: {
       MACHINE_EVENT: '#DONE'
     },

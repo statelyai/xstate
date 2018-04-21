@@ -155,7 +155,7 @@ export type MaybeStateValueActionsTuple = [
 
 export interface StateTransition {
   statePaths: string[][];
-  actions: ActionMap | undefined;
+  actions: ActionMap;
   activities: ActivityMap | undefined;
   events: EventObject[];
 }
