@@ -60,6 +60,13 @@ describe('matchesState()', () => {
     assert.ok(!matchesState('a.a1', 'b.b1'));
   });
 
+  xit(
+    'should return false if parent state is more specific than child state',
+    () => {
+      assert.ok(!matchesState('a.b.c', 'a.b'));
+    }
+  );
+
   it('should return false if two state values are not equivalent', () => {
     assert.ok(!matchesState({ a: 'a1' }, { b: 'b1' }));
   });
