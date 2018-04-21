@@ -75,7 +75,7 @@ describe('local transitions', () => {
     assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
   });
 
-  xit('should listen to events declared at top state', () => {
+  it('should listen to events declared at top state', () => {
     const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
 
     assert.deepEqual(actualState.value, 'Hidden');

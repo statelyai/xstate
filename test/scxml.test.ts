@@ -1,7 +1,7 @@
 import { assert } from 'chai';
 import * as fs from 'fs';
 import * as path from 'path';
-import * as util from 'util';
+// import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
@@ -92,7 +92,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        console.log(util.inspect(machine, false, 10));
+        // console.log(util.inspect(machine, false, 10));
         runTestToCompletion(Machine(machine), scxmlTest);
       });
     });

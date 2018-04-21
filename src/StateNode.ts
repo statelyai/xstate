@@ -177,30 +177,6 @@ class StateNode implements StateNodeConfig {
     this.data = config.data;
     this.activities = config.activities;
   }
-  private formatTransitions(
-    onConfig: Record<string, Transition | undefined>
-  ): Record<string, ConditionalTransitionConfig> {
-    return mapValues(onConfig, value => {
-      if (value === undefined) {
-        return [];
-      }
-
-      if (Array.isArray(value)) {
-        return value;
-      }
-
-      if (typeof value === 'string') {
-        return [{ target: value }];
-      }
-
-      return Object.keys(value).map(target => {
-        return {
-          target,
-          ...value[target]
-        };
-      });
-    });
-  }
   public getStateNodes(state: StateValue | State): StateNode[] {
     const stateValue =
       state instanceof State
@@ -414,12 +390,25 @@ class StateNode implements StateNodeConfig {
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
 
-      return subStateNode.next(
+      const result = subStateNode.next(
         event,
         fullState,
         history ? history.value : undefined,
         extendedState
       );
+
+      // If a machine substate returns no potential transitions,
+      // check on the machine itself.
+      if (!result.statePaths.length && !this.parent) {
+        return this.next(
+          event,
+          fullState,
+          history ? history.value : undefined,
+          extendedState
+        );
+      }
+
+      return result;
     }
 
     // Potential transition tuples from parent state nodes
@@ -668,8 +657,14 @@ class StateNode implements StateNodeConfig {
       let currentPath = this.key;
 
       nextStatePath.forEach(subPath => {
+        if (subPath === '') {
+          actionMap.onExit = [];
+          currentState = this;
+          return;
+        }
+
         if (!currentState || !currentState.states) {
-          throw new Error(`Unable to read '${subPath}'`);
+          throw new Error(`Unable to read '${subPath}' from '${this.id}'`);
         }
 
         if (subPath === HISTORY_KEY) {
@@ -687,10 +682,6 @@ class StateNode implements StateNodeConfig {
               `Cannot read '${HISTORY_KEY}' from state '${currentState.id}': missing 'initial'`
             );
           }
-        } else if (subPath === '') {
-          actionMap.onExit = [];
-          currentState = currentState.getStateNode(this.key);
-          return;
         }
 
         try {
@@ -913,6 +904,30 @@ class StateNode implements StateNodeConfig {
     }
 
     return (this.__cache.events = Array.from(events));
+  }
+  private formatTransitions(
+    onConfig: Record<string, Transition | undefined>
+  ): Record<string, ConditionalTransitionConfig> {
+    return mapValues(onConfig, value => {
+      if (value === undefined) {
+        return [];
+      }
+
+      if (Array.isArray(value)) {
+        return value;
+      }
+
+      if (typeof value === 'string') {
+        return [{ target: value }];
+      }
+
+      return Object.keys(value).map(target => {
+        return {
+          target,
+          ...value[target]
+        };
+      });
+    });
   }
 }
 
