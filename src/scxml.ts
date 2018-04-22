@@ -2,7 +2,7 @@ import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
 import { Machine, EventObject } from './types';
 // import * as xstate from './index';
 import { StateNode } from './index';
-import { getEventType, mapValues } from './utils';
+import { mapValues, getActionType } from './utils';
 import * as actions from './actions';
 
 function stateNodeToSCXML(stateNode: StateNode) {
@@ -38,7 +38,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
             type: 'element',
             name: 'send',
             attributes: {
-              event: getEventType(event)
+              event: getActionType(event)
             }
           };
         })
@@ -51,7 +51,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
             type: 'element',
             name: 'send',
             attributes: {
-              event: getEventType(event)
+              event: getActionType(event)
             }
           };
         })
@@ -87,7 +87,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
                       type: 'element',
                       name: 'send',
                       attributes: {
-                        event: getEventType(action)
+                        event: getActionType(action)
                       }
                     }))
                   : undefined
@@ -113,7 +113,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
                     type: 'element',
                     name: 'send',
                     attributes: {
-                      event: getEventType(action)
+                      event: getActionType(action)
                     }
                   }))
                 : undefined
