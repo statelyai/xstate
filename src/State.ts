@@ -1,4 +1,4 @@
-import { StateValue, Action, ActivityMap, EventObject } from './types';
+import { StateValue, ActivityMap, EventObject, Action } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 import { toStateValue } from './utils';
 

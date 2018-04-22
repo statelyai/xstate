@@ -100,7 +100,8 @@ describe('onEntry/onExit actions', () => {
         states: {
           a1: {
             on: {
-              NEXT: 'a2'
+              NEXT: 'a2',
+              NEXT_FN: 'a3'
             },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
@@ -108,6 +109,25 @@ describe('onEntry/onExit actions', () => {
           a2: {
             onEntry: 'enter_a2',
             onExit: 'exit_a2'
+          },
+          a3: {
+            on: {
+              NEXT: {
+                a2: {
+                  actions: [
+                    function do_a3_to_a2() {
+                      return;
+                    }
+                  ]
+                }
+              }
+            },
+            onEntry: function enter_a3_fn() {
+              return;
+            },
+            onExit: function exit_a3_fn() {
+              return;
+            }
           }
         },
         onEntry: 'enter_a',
@@ -228,6 +248,26 @@ describe('onEntry/onExit actions', () => {
         'exit_a1',
         'enter_a2'
       ]);
+    });
+
+    it('should work with function actions', () => {
+      assert.deepEqual(
+        deepMachine
+          .transition(deepMachine.initialState, 'NEXT_FN')
+          .actions.map(
+            action => (typeof action === 'function' ? action.name : action)
+          ),
+        ['exit_a1', 'enter_a3_fn']
+      );
+
+      assert.deepEqual(
+        deepMachine
+          .transition('a.a3', 'NEXT')
+          .actions.map(
+            action => (typeof action === 'function' ? action.name : action)
+          ),
+        ['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']
+      );
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {

@@ -15,7 +15,8 @@ export interface ActionObject {
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
-export type Action = ActionType | ActionObject;
+export type ActionFunction = ((state: any, event: EventObject) => any | void);
+export type Action = ActionType | ActionObject | ActionFunction;
 export type StateKey = string | State;
 
 export interface StateValueMap {
@@ -172,6 +173,7 @@ export interface ActivityAction extends ActionObject {
     type: ActionType;
     [key: string]: any;
   };
+  command?: ActionFunction;
 }
 
 export interface SendAction extends ActionObject {

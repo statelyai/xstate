@@ -6,7 +6,9 @@ import {
   ActivityAction,
   SendAction,
   SendActionOptions,
-  CancelAction
+  CancelAction,
+  ActionObject,
+  ActionType
 } from './types';
 import { getEventType } from './utils';
 
@@ -23,7 +25,7 @@ export const actionTypes = {
 };
 
 const createActivityAction = (actionType: string) => (
-  activity: Action
+  activity: ActionType | ActionObject
 ): ActivityAction => {
   const data =
     typeof activity === 'string' || typeof activity === 'number'
@@ -42,6 +44,37 @@ export const toEventObject = (event: Event): EventObject => {
   }
 
   return event;
+};
+
+export const toActionObject = (action: Action): ActionObject => {
+  let actionObject: ActionObject;
+
+  if (typeof action === 'string' || typeof action === 'number') {
+    actionObject = { type: action };
+  } else if (typeof action === 'function') {
+    actionObject = { type: action.name };
+  } else {
+    return action;
+  }
+
+  Object.defineProperty(actionObject, 'toString', {
+    value: () => actionObject.type,
+    enumerable: false
+  });
+
+  return actionObject;
+};
+
+export const toActionObjects = (
+  action: Action | Action[] | undefined
+): ActionObject[] => {
+  if (!action) {
+    return [];
+  }
+
+  const actions = Array.isArray(action) ? action : [action];
+
+  return actions.map(toActionObject);
 };
 
 export const raise = (eventType: EventType): EventObject => ({
