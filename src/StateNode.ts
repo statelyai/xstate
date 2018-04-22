@@ -334,7 +334,11 @@ class StateNode implements StateNodeConfig {
       events
     );
   }
-  private getStateNode(stateKey: string): StateNode {
+  public getStateNode(stateKey: string): StateNode {
+    if (isStateId(stateKey)) {
+      return this.machine.getStateNodeById(stateKey);
+    }
+
     if (!this.states) {
       throw new Error(
         `Unable to retrieve child state '${stateKey}' from '${this
@@ -352,10 +356,15 @@ class StateNode implements StateNodeConfig {
     return result;
   }
   public getStateNodeById(stateId: string): StateNode {
-    const stateNode = this.idMap[stateId];
+    const resolvedStateId = isStateId(stateId)
+      ? stateId.slice(STATE_IDENTIFIER.length)
+      : stateId;
+    const stateNode = this.idMap[resolvedStateId];
 
     if (!stateNode) {
-      throw new Error(`Substate '#${stateId}' does not exist on '${this.id}'`);
+      throw new Error(
+        `Substate '#${resolvedStateId}' does not exist on '${this.id}'`
+      );
     }
 
     return stateNode;
@@ -803,7 +812,9 @@ class StateNode implements StateNodeConfig {
   }
   private getResolvedPath(stateIdentifier: string): string[] {
     if (isStateId(stateIdentifier)) {
-      const stateNode = this.machine.idMap[stateIdentifier.slice(1)];
+      const stateNode = this.machine.idMap[
+        stateIdentifier.slice(STATE_IDENTIFIER.length)
+      ];
 
       if (!stateNode) {
         throw new Error(`Unable to find state node '${stateIdentifier}'`);
@@ -870,6 +881,10 @@ class StateNode implements StateNodeConfig {
     return stateNodes;
   }
   public getState(relativeStateId: string | string[]): StateNode | undefined {
+    if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
+      return this.getStateNodeById(relativeStateId);
+    }
+
     const statePath = toStatePath(relativeStateId, this.delimiter);
 
     try {

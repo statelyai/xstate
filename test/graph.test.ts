@@ -49,7 +49,7 @@ describe('graph utilities', () => {
       yellow: {
         on: {
           TIMER: 'red',
-          POWER_OUTAGE: 'red.flashing'
+          POWER_OUTAGE: '#light.red.flashing'
         }
       },
       red: {
