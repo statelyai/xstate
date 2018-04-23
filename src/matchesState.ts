@@ -15,7 +15,8 @@ export function matchesState(
       return childStateValue === parentStateValue;
     }
 
-    return childStateValue in parentStateValue;
+    // Parent more specific than child
+    return false;
   }
 
   if (typeof parentStateValue === 'string') {

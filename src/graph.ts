@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import { toStateValue } from './utils';
+import { toStateValue, getActionType } from './utils';
 import {
   StateValue,
   Machine,
@@ -37,7 +37,7 @@ function getEventEdges(node: StateNode, event: string): Edge[] {
       source: node,
       target: node.parent!.getState(transition.target)!,
       event,
-      actions: transition.actions || [],
+      actions: transition.actions ? transition.actions.map(getActionType) : [],
       cond: transition.cond
     };
   });
