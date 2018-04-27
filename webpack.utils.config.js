@@ -1,5 +1,6 @@
+const webpack = require('webpack');
+
 module.exports = {
-  entry: './lib/graph.js',
   output: {
     library: 'xstateUtils',
     libraryTarget: 'umd',
@@ -10,5 +11,5 @@ module.exports = {
   //     { test: /\.ts$/, loader: 'ts-loader' }
   //   ]
   // },
-  // plugins: []
+  plugins: [new webpack.optimize.ModuleConcatenationPlugin()]
 };
