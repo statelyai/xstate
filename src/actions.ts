@@ -59,7 +59,6 @@ export const toActionObject = (action: Action): ActionObject => {
 
   Object.defineProperty(actionObject, 'toString', {
     value: () => actionObject.type,
-    enumerable: false
   });
 
   return actionObject;
