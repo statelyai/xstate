@@ -30,5 +30,6 @@ node_modules
 .vscode/
 dist/
 lib/
+es/
 editor/
 examples/7guis/
