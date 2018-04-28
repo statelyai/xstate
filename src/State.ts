@@ -1,19 +1,21 @@
-import { StateValue, ActivityMap, EventObject, Action } from './types';
+import {
+  StateValue,
+  ActivityMap,
+  EventObject,
+  Action,
+  StateInterface
+} from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
-import { toStateValue } from './utils';
 
-export class State {
-  public static from(stateValue: State | StateValue, delimiter: string): State {
+export class State implements StateInterface {
+  public static from(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {
       return stateValue;
     }
 
-    return new State(toStateValue(stateValue, delimiter));
+    return new State(stateValue);
   }
-  public static inert(
-    stateValue: State | StateValue,
-    delimiter: string
-  ): State {
+  public static inert(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
@@ -21,7 +23,7 @@ export class State {
       return new State(stateValue.value, stateValue.history, []);
     }
 
-    return State.from(stateValue, delimiter);
+    return State.from(stateValue);
   }
 
   constructor(

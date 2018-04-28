@@ -232,3 +232,12 @@ export interface TransitionMap {
 export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
+
+export interface StateInterface {
+  value: StateValue;
+  history?: State;
+  actions: Action[];
+  activities: ActivityMap;
+  data: Record<string, any>;
+  events: EventObject[];
+}
