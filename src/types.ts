@@ -31,6 +31,7 @@ export interface TransitionConfig {
   cond?: (extendedState: any, event: EventObject) => boolean;
   actions?: Action[];
   in?: StateValue;
+  internal?: boolean;
 }
 
 export interface TargetTransitionConfig extends TransitionConfig {

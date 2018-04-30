@@ -116,8 +116,8 @@ class StateNode implements StateNodeConfig {
   public parallel?: boolean;
   public states: Record<string, StateNode>;
   public on: Record<string, ConditionalTransitionConfig>;
-  public onEntry?: Action[];
-  public onExit?: Action[];
+  public onEntry: Action[];
+  public onExit: Action[];
   public activities?: Activity[];
   public strict: boolean;
   public parent?: StateNode;
@@ -175,10 +175,8 @@ class StateNode implements StateNodeConfig {
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
       ? ([] as Action[]).concat(config.onEntry)
-      : undefined;
-    this.onExit = config.onExit
-      ? ([] as Action[]).concat(config.onExit)
-      : undefined;
+      : [];
+    this.onExit = config.onExit ? ([] as Action[]).concat(config.onExit) : [];
     this.data = config.data;
     this.activities = config.activities;
   }
