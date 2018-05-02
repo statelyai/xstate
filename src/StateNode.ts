@@ -606,7 +606,7 @@ class StateNode implements StateNodeConfig {
       });
     }
 
-    if (!candidates) {
+    if (!candidates || !candidates.length) {
       return {
         statePaths: [],
         actions: actionMap,
