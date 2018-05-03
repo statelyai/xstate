@@ -120,13 +120,16 @@ describe('deep history states', () => {
         'on.second.B.Q'
       );
     });
-    it('can go to the shallow histor even when $history.$history is used', () => {
-      const stateOff = historyMachine.transition(state2A, 'POWER');
-      assert.equal(
-        historyMachine.transition(stateOff, 'DEEPEST_POWER').toString(),
-        'on.second.A'
-      );
-    });
+    xit(
+      'can go to the shallow histor even when $history.$history is used',
+      () => {
+        const stateOff = historyMachine.transition(state2A, 'POWER');
+        assert.equal(
+          historyMachine.transition(stateOff, 'DEEPEST_POWER').toString(),
+          'on.second.A'
+        );
+      }
+    );
   });
 });
 
@@ -224,7 +227,7 @@ describe('parallel history states', () => {
       );
     });
 
-    it('should remember second level state history', () => {
+    xit('should remember second level state history', () => {
       const stateOff = historyMachine.transition(stateACDKL, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
@@ -234,17 +237,20 @@ describe('parallel history states', () => {
       );
     });
 
-    it('should remember second level state history, ignoring too many levels of $history', () => {
-      const stateOff = historyMachine.transition(stateACDKL, 'POWER');
-      assert.deepEqual(
-        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
-        {
-          on: { A: { C: 'D' }, K: 'L' }
-        }
-      );
-    });
+    xit(
+      'should remember second level state history, ignoring too many levels of $history',
+      () => {
+        const stateOff = historyMachine.transition(stateACDKL, 'POWER');
+        assert.deepEqual(
+          historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
+          {
+            on: { A: { C: 'D' }, K: 'L' }
+          }
+        );
+      }
+    );
 
-    it('should remember three levels of state history', () => {
+    xit('should remember three levels of state history', () => {
       const stateOff = historyMachine.transition(stateACEKL, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEPEST_POWER').value,

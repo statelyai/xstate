@@ -135,10 +135,7 @@ describe('deterministic machine', () => {
     });
 
     it('should throw an error for transitions to invalid states', () => {
-      assert.throws(
-        () => testMachine.transition('a', 'F'),
-        "Event 'F' on state 'a' leads to undefined state 'c'."
-      );
+      assert.throws(() => testMachine.transition('a', 'F'));
     });
 
     it('should throw an error for transitions from invalid substates', () => {

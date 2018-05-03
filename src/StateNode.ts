@@ -217,6 +217,71 @@ class StateNode implements StateNodeConfig {
 
     return this.events.indexOf(eventType) !== -1;
   }
+  public _transition(state: State, event: Event, extendedState?: any): void {
+    const stateValue = state.value;
+
+    // leaf node
+    if (typeof stateValue === 'string') {
+      const stateNode = this.getStateNode(stateValue);
+      if (!stateNode) {
+      }
+      console.log(stateNode._next(state, event, extendedState));
+    }
+  }
+  public _next(state: State, event: Event, extendedState?: any): string[][] {
+    const eventType = getEventType(event);
+
+    const candidates = this.on[eventType];
+
+    if (!candidates || !candidates.length) {
+      return [];
+    }
+
+    let nextStateStrings: string[] = [];
+
+    for (const candidate of candidates) {
+      const {
+        cond,
+        in: stateIn
+        // actions: transitionActions
+      } = candidate as TransitionConfig;
+      const extendedStateObject = extendedState || {};
+      const eventObject = toEventObject(event);
+
+      const isInState = stateIn
+        ? matchesState(
+            toStateValue(stateIn, this.delimiter),
+            path(this.path.slice(0, -2))(state.value)
+          )
+        : true;
+
+      if (
+        (!cond || cond(extendedStateObject, eventObject)) &&
+        (!stateIn || isInState)
+      ) {
+        nextStateStrings = Array.isArray(candidate.target)
+          ? candidate.target
+          : [candidate.target];
+        break;
+      }
+    }
+
+    if (nextStateStrings.length === 0) {
+      return [];
+    }
+
+    // console.log(nextStateStrings.map(str => this.getState(str, state.history)));
+    console.log(
+      this.machine.resolve(
+        pathsToStateValue(
+          nextStateStrings
+            .map(str => this.getState(str, state.history).map(s => s.path))
+            .reduce((a, b) => a.concat(b), [])
+        )
+      )
+    );
+    return [];
+  }
   public transition(
     state: StateValue | State,
     event: Event,
@@ -237,6 +302,7 @@ class StateNode implements StateNodeConfig {
     }
 
     const currentState = State.from(resolvedStateValue);
+    this._transition(currentState, event, extendedState);
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -357,7 +423,7 @@ class StateNode implements StateNodeConfig {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
-    const stateNode = this.idMap[resolvedStateId];
+    const stateNode = this.machine.idMap[resolvedStateId];
 
     if (!stateNode) {
       throw new Error(
@@ -878,30 +944,66 @@ class StateNode implements StateNodeConfig {
 
     return stateNodes;
   }
-  public getState(relativeStateId: string | string[]): StateNode | undefined {
+  public getState(
+    relativeStateId: string | string[],
+    history?: State
+  ): StateNode[] {
+    const historyValue = history ? history.value : undefined;
     if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
-      return this.getStateNodeById(relativeStateId);
+      return [this.getStateNodeById(relativeStateId)];
     }
 
     const statePath = toStatePath(relativeStateId, this.delimiter);
 
-    try {
-      return statePath.reduce(
-        (subState, subPath) => {
-          if (!subState.states) {
-            throw new Error(
-              `Cannot retrieve subPath '${subPath}' from node with no states`
-            );
-          }
-          return subState.states[subPath];
-        },
-        this as StateNode
-      );
-    } catch (e) {
+    const rootStateNode = this.parent || this;
+
+    return rootStateNode.getFromRelativePath(statePath, historyValue);
+  }
+  public getFromRelativePath(
+    relativePath: string[],
+    historyValue?: StateValue
+  ): StateNode[] {
+    if (!relativePath.length) {
+      return [this];
+    }
+
+    const [x, ...xs] = relativePath;
+
+    if (!this.states) {
       throw new Error(
-        `State '${relativeStateId} does not exist on machine '${this.id}'`
+        `Cannot retrieve subPath '${x}' from node with no states`
       );
     }
+
+    if (x === '') {
+      return this.getFromRelativePath(xs, historyValue);
+    }
+
+    if (x === HISTORY_KEY) {
+      if (!historyValue) {
+        return [this];
+      }
+      const subHistoryValue = path(this.path)(historyValue);
+
+      if (typeof subHistoryValue === 'string') {
+        return this.states[subHistoryValue].getFromRelativePath(
+          xs,
+          historyValue
+        );
+      }
+
+      return Object.keys(subHistoryValue)
+        .map(key => {
+          return this.states[key].getFromRelativePath(xs, historyValue);
+        })
+        .reduce((a, b) => a.concat(b), []);
+    }
+
+    if (!this.states[x]) {
+      throw new Error(`Child state '${x}' does not exist on '${this.id}'`);
+    }
+
+    return this.states[x].getFromRelativePath(xs, historyValue);
   }
   get events(): EventType[] {
     if (this.__cache.events) {

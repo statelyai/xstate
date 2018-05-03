@@ -33,9 +33,10 @@ function getEventEdges(node: StateNode, event: string): Edge[] {
   const transitions = node.on[event]!;
 
   return transitions.map(transition => {
+    const target = node.getState(transition.target)[0];
     return {
       source: node,
-      target: node.parent!.getState(transition.target)!,
+      target,
       event,
       actions: transition.actions ? transition.actions.map(getActionType) : [],
       cond: transition.cond
