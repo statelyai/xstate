@@ -217,24 +217,73 @@ class StateNode implements StateNodeConfig {
 
     return this.events.indexOf(eventType) !== -1;
   }
-  public _transition(state: State, event: Event, extendedState?: any): void {
-    const stateValue = state.value;
-
+  public _transition(
+    stateValue: StateValue,
+    state: State,
+    event: Event,
+    extendedState?: any
+  ): StateValue | undefined {
     // leaf node
     if (typeof stateValue === 'string') {
       const stateNode = this.getStateNode(stateValue);
-      if (!stateNode) {
+      const next = stateNode._next(state, event, extendedState);
+
+      if (!next) {
+        return this._next(state, event, extendedState);
       }
-      console.log(stateNode._next(state, event, extendedState));
+
+      return next;
     }
+
+    const subStateKeys = Object.keys(stateValue);
+
+    // hierarchical node
+    if (subStateKeys.length === 1) {
+      const stateNode = this.getStateNode(subStateKeys[0]);
+      const next = stateNode._transition(
+        stateValue[subStateKeys[0]],
+        state,
+        event,
+        extendedState
+      );
+
+      if (!next) {
+        return this._next(state, event, extendedState);
+      }
+
+      return next;
+    }
+
+    // orthogonal node
+    const transitions = subStateKeys
+      .map(key => {
+        const stateNode = this.getStateNode(key);
+        return stateNode._transition(
+          stateValue[key],
+          state,
+          event,
+          extendedState
+        );
+      })
+      .filter(s => !!s);
+
+    if (!transitions.length) {
+      return this._next(state, event, extendedState);
+    }
+
+    return transitions[0];
   }
-  public _next(state: State, event: Event, extendedState?: any): string[][] {
+  public _next(
+    state: State,
+    event: Event,
+    extendedState?: any
+  ): StateValue | undefined {
     const eventType = getEventType(event);
 
     const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
-      return [];
+      return undefined;
     }
 
     let nextStateStrings: string[] = [];
@@ -267,20 +316,17 @@ class StateNode implements StateNodeConfig {
     }
 
     if (nextStateStrings.length === 0) {
-      return [];
+      return undefined;
     }
 
     // console.log(nextStateStrings.map(str => this.getState(str, state.history)));
-    console.log(
-      this.machine.resolve(
-        pathsToStateValue(
-          nextStateStrings
-            .map(str => this.getState(str, state.history).map(s => s.path))
-            .reduce((a, b) => a.concat(b), [])
-        )
+    return this.machine.resolve(
+      pathsToStateValue(
+        nextStateStrings
+          .map(str => this.getState(str, state.history).map(s => s.path))
+          .reduce((a, b) => a.concat(b), [])
       )
     );
-    return [];
   }
   public transition(
     state: StateValue | State,
@@ -302,7 +348,10 @@ class StateNode implements StateNodeConfig {
     }
 
     const currentState = State.from(resolvedStateValue);
-    this._transition(currentState, event, extendedState);
+    console.log(
+      '>',
+      this._transition(currentState.value, currentState, event, extendedState)
+    );
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -313,6 +362,7 @@ class StateNode implements StateNodeConfig {
     let nextState = this.stateTransitionToState(stateTransition, currentState);
 
     if (!nextState) {
+      console.log('=', undefined);
       return State.inert(currentState);
     }
 
@@ -327,6 +377,7 @@ class StateNode implements StateNodeConfig {
 
       nextState = this.transition(nextState, raisedEvent, extendedState);
       nextState.actions.unshift(...nextState.actions);
+      console.log('=', nextState.value);
       return nextState;
     }
 
@@ -344,10 +395,12 @@ class StateNode implements StateNodeConfig {
           extendedState
         );
         maybeNextState.actions.unshift(...nextState.actions);
+        console.log('=', maybeNextState.value);
         return maybeNextState;
       }
     }
 
+    console.log('=', nextState.value);
     return nextState;
   }
   private stateTransitionToState(
@@ -682,12 +735,14 @@ class StateNode implements StateNodeConfig {
     }
 
     let nextStateStrings: string[] = [];
+    let isInternal = false;
 
     for (const candidate of candidates) {
       const {
         cond,
         in: stateIn,
-        actions: transitionActions
+        actions: transitionActions,
+        internal
       } = candidate as TransitionConfig;
       const extendedStateObject = extendedState || {};
       const eventObject = toEventObject(event);
@@ -706,6 +761,7 @@ class StateNode implements StateNodeConfig {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
           : [candidate.target];
+        isInternal = !!internal;
         if (transitionActions) {
           actionMap.actions = actionMap.actions.concat(transitionActions);
         }
@@ -734,8 +790,8 @@ class StateNode implements StateNodeConfig {
       let currentHistory = history;
       let currentPath = this.key;
 
-      nextStatePath.forEach(subPath => {
-        if (subPath === '') {
+      nextStatePath.forEach((subPath, i) => {
+        if (subPath === '' || (isInternal && i === 0)) {
           actionMap.onExit = [];
           currentState = this;
           return;
@@ -763,7 +819,7 @@ class StateNode implements StateNodeConfig {
         }
 
         try {
-          if (subPath !== '') {
+          if (subPath !== '' && !(isInternal && i === 0)) {
             currentState = currentState.getStateNode(subPath);
           }
         } catch (e) {
@@ -975,7 +1031,7 @@ class StateNode implements StateNodeConfig {
       );
     }
 
-    if (x === '') {
+    if (x === '' || (!this.parent && this.key === x)) {
       return this.getFromRelativePath(xs, historyValue);
     }
 
@@ -1034,16 +1090,26 @@ class StateNode implements StateNodeConfig {
       }
 
       if (Array.isArray(value)) {
+        // todo - consolidate internal normalizations
         return value;
       }
 
       if (typeof value === 'string') {
-        return [{ target: value }];
+        const internal = typeof value === 'string' && value[0] === '.';
+        return [
+          {
+            target: internal ? this.key + value : value,
+            internal
+          }
+        ];
       }
 
       return Object.keys(value).map(target => {
+        const internal = typeof target === 'string' && target[0] === '.';
+
         return {
-          target,
+          target: internal ? this.key + '.' + target : target,
+          internal,
           ...value[target]
         };
       });
