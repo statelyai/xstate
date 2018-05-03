@@ -255,23 +255,30 @@ class StateNode implements StateNodeConfig {
     }
 
     // orthogonal node
-    const transitions = subStateKeys
-      .map(key => {
-        const stateNode = this.getStateNode(key);
-        return stateNode._transition(
-          stateValue[key],
-          state,
-          event,
-          extendedState
-        );
-      })
-      .filter(s => !!s);
+    const transitions = mapValues(stateValue, (subStateValue, subStateKey) => {
+      return this.getStateNode(subStateKey)._transition(
+        subStateValue,
+        state,
+        event,
+        extendedState
+      );
+    });
 
-    if (!transitions.length) {
+    const willTransition = Object.keys(transitions).some(
+      key => transitions[key] !== undefined
+    );
+
+    if (!willTransition) {
       return this._next(state, event, extendedState);
     }
 
-    return transitions[0];
+    return mapValues(
+      transitions,
+      (transitionStateValue, key) =>
+        transitionStateValue === undefined
+          ? stateValue[key]
+          : transitionStateValue[key]
+    );
   }
   public _next(
     state: State,
