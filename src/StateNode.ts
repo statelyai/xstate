@@ -28,7 +28,8 @@ import {
   Activity,
   StateTransition,
   EventObject,
-  ConditionalTransitionConfig
+  ConditionalTransitionConfig,
+  EntryExitStates
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -222,14 +223,35 @@ class StateNode implements StateNodeConfig {
     state: State,
     event: Event,
     extendedState?: any
-  ): StateValue | undefined {
+  ): [
+    StateValue | undefined,
+    EntryExitStates | undefined,
+    Action[] | undefined
+  ] {
     // leaf node
     if (typeof stateValue === 'string') {
       const stateNode = this.getStateNode(stateValue);
       const next = stateNode._next(state, event, extendedState);
 
-      if (!next) {
-        return this._next(state, event, extendedState);
+      if (!next[0]) {
+        const [nextStateValue, entryExitStates, actions] = this._next(
+          state,
+          event,
+          extendedState
+        );
+        return [
+          nextStateValue,
+          {
+            entry: entryExitStates ? entryExitStates.entry : new Set(),
+            exit: new Set<StateNode>([
+              stateNode,
+              ...(entryExitStates
+                ? Array.from(entryExitStates.exit)
+                : [] as StateNode[])
+            ])
+          },
+          actions
+        ];
       }
 
       return next;
@@ -247,8 +269,25 @@ class StateNode implements StateNodeConfig {
         extendedState
       );
 
-      if (!next) {
-        return this._next(state, event, extendedState);
+      if (!next[0]) {
+        const [nextStateValue, entryExitStates, actions] = this._next(
+          state,
+          event,
+          extendedState
+        );
+        return [
+          nextStateValue,
+          {
+            entry: entryExitStates ? entryExitStates.entry : new Set(),
+            exit: new Set<StateNode>([
+              stateNode,
+              ...(entryExitStates
+                ? Array.from(entryExitStates.exit)
+                : [] as StateNode[])
+            ])
+          },
+          actions
+        ];
       }
 
       return next;
@@ -265,35 +304,77 @@ class StateNode implements StateNodeConfig {
     });
 
     const willTransition = Object.keys(transitions).some(
-      key => transitions[key] !== undefined
+      key => transitions[key][0] !== undefined
     );
 
     if (!willTransition) {
-      return this._next(state, event, extendedState);
+      const [nextStateValue, entryExitStates, actions] = this._next(
+        state,
+        event,
+        extendedState
+      );
+      return [
+        nextStateValue,
+        {
+          entry: entryExitStates ? entryExitStates.entry : new Set(),
+          exit: new Set([
+            ...Object.keys(this.states).map(key => this.states[key]),
+            ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
+          ])
+        },
+        actions
+      ];
     }
 
-    return mapValues(
-      transitions,
-      (transitionStateValue, key) =>
-        transitionStateValue === undefined
-          ? stateValue[key]
-          : transitionStateValue[key]
-    );
+    return [
+      mapValues(
+        transitions,
+        (transitionStateValue, key) =>
+          transitionStateValue[0] === undefined
+            ? stateValue[key]
+            : transitionStateValue[key]
+      ),
+      Object.keys(transitions).reduce(
+        (ees, key) => {
+          const [, xxx] = transitions[key];
+          if (!xxx) {
+            return ees;
+          }
+          const { entry, exit } = xxx;
+
+          return {
+            entry: new Set([...Array.from(ees.entry), ...Array.from(entry)]),
+            exit: new Set([...Array.from(ees.exit), ...Array.from(exit)])
+          };
+        },
+        { entry: new Set(), exit: new Set() } as EntryExitStates
+      ),
+      Object.keys(transitions)
+        .map(key => {
+          return transitions[key][2] || [];
+        })
+        .reduce((a, b) => a.concat(b), [])
+    ];
   }
   public _next(
     state: State,
     event: Event,
     extendedState?: any
-  ): StateValue | undefined {
+  ): [
+    StateValue | undefined,
+    EntryExitStates | undefined,
+    Action[] | undefined
+  ] {
     const eventType = getEventType(event);
 
     const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
-      return undefined;
+      return [undefined, undefined, undefined];
     }
 
     let nextStateStrings: string[] = [];
+    let actions: Action[] | undefined = [];
 
     for (const candidate of candidates) {
       const {
@@ -318,22 +399,95 @@ class StateNode implements StateNodeConfig {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
           : [candidate.target];
+        actions = candidate.actions;
         break;
       }
     }
 
     if (nextStateStrings.length === 0) {
-      return undefined;
+      return [undefined, undefined, undefined];
     }
 
-    // console.log(nextStateStrings.map(str => this.getState(str, state.history)));
-    return this.machine.resolve(
-      pathsToStateValue(
-        nextStateStrings
-          .map(str => this.getState(str, state.history).map(s => s.path))
-          .reduce((a, b) => a.concat(b), [])
-      )
+    const nextStateNodes = nextStateStrings
+      .map(str => this.getState(str, state.history))
+      .reduce((a, b) => a.concat(b), []);
+
+    const entryExitStates = nextStateNodes.reduce(
+      (ees, nextStateNode) => {
+        const { entry, exit } = this._getEntryExitStates(nextStateNode, false);
+
+        return {
+          entry: new Set([...Array.from(ees.entry), ...Array.from(entry)]),
+          exit: new Set([...Array.from(ees.exit), ...Array.from(exit)])
+        };
+      },
+      { entry: new Set(), exit: new Set() } as EntryExitStates
     );
+
+    return [
+      this.machine.resolve(
+        pathsToStateValue(
+          nextStateStrings
+            .map(str => this.getState(str, state.history).map(s => s.path))
+            .reduce((a, b) => a.concat(b), [])
+        )
+      ),
+      entryExitStates,
+      actions
+    ];
+  }
+  public _getEntryExitStates(
+    nextStateNode: StateNode,
+    internal: boolean
+  ): EntryExitStates {
+    const entryExitStates = {
+      entry: [] as StateNode[],
+      exit: [] as StateNode[]
+    };
+
+    const fromPath = this.path;
+    const toPath = nextStateNode.path;
+
+    let parent = this.machine;
+
+    for (let i = 0; i < Math.min(fromPath.length, toPath.length); i++) {
+      const fromPathSegment = fromPath[i];
+      const toPathSegment = toPath[i];
+
+      if (fromPathSegment === toPathSegment) {
+        parent = parent.getStateNode(fromPathSegment);
+      } else {
+        break;
+      }
+    }
+
+    const commonAncestorPath = parent.path;
+
+    let marker: StateNode = parent;
+    for (const segment of fromPath.slice(commonAncestorPath.length)) {
+      marker = marker.getStateNode(segment);
+      entryExitStates.exit.unshift(marker);
+    }
+
+    // Child node
+    if (parent === this) {
+      if (!internal) {
+        entryExitStates.exit.push(this);
+        entryExitStates.entry.push(this);
+      }
+    }
+
+    marker = parent;
+    for (const segment of toPath.slice(commonAncestorPath.length)) {
+      marker = marker.getStateNode(segment);
+      console.log('pushing2', marker.id);
+      entryExitStates.entry.push(marker);
+    }
+
+    return {
+      entry: new Set(entryExitStates.entry),
+      exit: new Set(entryExitStates.exit)
+    };
   }
   public transition(
     state: StateValue | State,
@@ -355,9 +509,30 @@ class StateNode implements StateNodeConfig {
     }
 
     const currentState = State.from(resolvedStateValue);
+
+    const _t = this._transition(
+      currentState.value,
+      currentState,
+      event,
+      extendedState
+    );
+    const _ees = {
+      entry: _t[1]
+        ? Array.from(_t[1]!.entry)
+            .map(n => n.onEntry)
+            .reduce((a, b) => a.concat(b), [])
+        : [],
+      exit: _t[1]
+        ? Array.from(_t[1]!.exit)
+            .map(n => n.onExit)
+            .reduce((a, b) => a.concat(b), [])
+        : []
+    };
+
     console.log(
       '>',
-      this._transition(currentState.value, currentState, event, extendedState)
+      _t[0],
+      (_ees.exit || []).concat(_t[2] || []).concat(_ees.entry || [])
     );
 
     const stateTransition = this.transitionStateValue(
@@ -384,7 +559,7 @@ class StateNode implements StateNodeConfig {
 
       nextState = this.transition(nextState, raisedEvent, extendedState);
       nextState.actions.unshift(...nextState.actions);
-      console.log('=', nextState.value);
+      console.log('=', nextState.value, nextState.actions);
       return nextState;
     }
 
@@ -402,12 +577,12 @@ class StateNode implements StateNodeConfig {
           extendedState
         );
         maybeNextState.actions.unshift(...nextState.actions);
-        console.log('=', maybeNextState.value);
+        console.log('=', maybeNextState.value, maybeNextState.actions);
         return maybeNextState;
       }
     }
 
-    console.log('=', nextState.value);
+    console.log('=', nextState.value, nextState.actions);
     return nextState;
   }
   private stateTransitionToState(
@@ -1009,7 +1184,8 @@ class StateNode implements StateNodeConfig {
   }
   public getState(
     relativeStateId: string | string[],
-    history?: State
+    history?: State,
+    resolve: boolean = true
   ): StateNode[] {
     const historyValue = history ? history.value : undefined;
     if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
@@ -1020,7 +1196,29 @@ class StateNode implements StateNodeConfig {
 
     const rootStateNode = this.parent || this;
 
-    return rootStateNode.getFromRelativePath(statePath, historyValue);
+    const unresolvedStateNodes = rootStateNode.getFromRelativePath(
+      statePath,
+      historyValue
+    );
+
+    if (!resolve) {
+      return unresolvedStateNodes;
+    }
+    return unresolvedStateNodes
+      .map(stateNode => stateNode.initialStateNodes)
+      .reduce((a, b) => a.concat(b), []);
+  }
+  public get initialStateNodes(): StateNode[] {
+    // todo - isLeafNode or something
+    if (!this.parallel && !this.initial) {
+      return [this];
+    }
+
+    const { initialState } = this;
+    const initialStateNodePaths = toStatePaths(initialState.value);
+    return initialStateNodePaths
+      .map(initialPath => this.getFromRelativePath(initialPath))
+      .reduce((a, b) => a.concat(b), []);
   }
   public getFromRelativePath(
     relativePath: string[],

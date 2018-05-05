@@ -146,6 +146,11 @@ export interface ActionMap {
   onExit: Action[];
 }
 
+export interface EntryExitStates {
+  entry: Set<StateNode>;
+  exit: Set<StateNode>;
+}
+
 export interface ActivityMap {
   [activityKey: string]: boolean;
 }
