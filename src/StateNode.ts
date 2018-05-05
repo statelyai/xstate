@@ -29,7 +29,8 @@ import {
   StateTransition,
   EventObject,
   ConditionalTransitionConfig,
-  EntryExitStates
+  EntryExitStates,
+  TargetTransitionConfig
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -280,6 +281,7 @@ class StateNode implements StateNodeConfig {
           {
             entry: entryExitStates ? entryExitStates.entry : new Set(),
             exit: new Set<StateNode>([
+              ...(next[1] ? Array.from(next[1]!.exit) : []),
               stateNode,
               ...(entryExitStates
                 ? Array.from(entryExitStates.exit)
@@ -332,19 +334,25 @@ class StateNode implements StateNodeConfig {
         (transitionStateValue, key) =>
           transitionStateValue[0] === undefined
             ? stateValue[key]
-            : transitionStateValue[key]
+            : transitionStateValue[0]![key]
       ),
       Object.keys(transitions).reduce(
-        (ees, key) => {
-          const [, xxx] = transitions[key];
-          if (!xxx) {
-            return ees;
+        (allEntryExitStates, key) => {
+          const [, entryExitStates] = transitions[key];
+          if (!entryExitStates) {
+            return allEntryExitStates;
           }
-          const { entry, exit } = xxx;
+          const { entry, exit } = entryExitStates;
 
           return {
-            entry: new Set([...Array.from(ees.entry), ...Array.from(entry)]),
-            exit: new Set([...Array.from(ees.exit), ...Array.from(exit)])
+            entry: new Set([
+              ...Array.from(allEntryExitStates.entry),
+              ...Array.from(entry)
+            ]),
+            exit: new Set([
+              ...Array.from(allEntryExitStates.exit),
+              ...Array.from(exit)
+            ])
           };
         },
         { entry: new Set(), exit: new Set() } as EntryExitStates
@@ -375,6 +383,7 @@ class StateNode implements StateNodeConfig {
 
     let nextStateStrings: string[] = [];
     let actions: Action[] | undefined = [];
+    let selectedTransition: TargetTransitionConfig;
 
     for (const candidate of candidates) {
       const {
@@ -400,6 +409,7 @@ class StateNode implements StateNodeConfig {
           ? candidate.target
           : [candidate.target];
         actions = candidate.actions;
+        selectedTransition = candidate;
         break;
       }
     }
@@ -414,7 +424,10 @@ class StateNode implements StateNodeConfig {
 
     const entryExitStates = nextStateNodes.reduce(
       (ees, nextStateNode) => {
-        const { entry, exit } = this._getEntryExitStates(nextStateNode, false);
+        const { entry, exit } = this._getEntryExitStates(
+          nextStateNode,
+          !!selectedTransition.internal
+        );
 
         return {
           entry: new Set([...Array.from(ees.entry), ...Array.from(entry)]),
@@ -480,7 +493,6 @@ class StateNode implements StateNodeConfig {
     marker = parent;
     for (const segment of toPath.slice(commonAncestorPath.length)) {
       marker = marker.getStateNode(segment);
-      console.log('pushing2', marker.id);
       entryExitStates.entry.push(marker);
     }
 
@@ -1189,7 +1201,11 @@ class StateNode implements StateNodeConfig {
   ): StateNode[] {
     const historyValue = history ? history.value : undefined;
     if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
-      return [this.getStateNodeById(relativeStateId)];
+      const unresolvedStateNode = this.getStateNodeById(relativeStateId);
+
+      return resolve
+        ? unresolvedStateNode.initialStateNodes
+        : [unresolvedStateNode];
     }
 
     const statePath = toStatePath(relativeStateId, this.delimiter);
