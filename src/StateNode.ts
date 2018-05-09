@@ -35,6 +35,7 @@ import {
 import { matchesState } from './matchesState';
 import { State } from './State';
 import { start, stop, toEventObject, actionTypes } from './actions';
+import { assert } from 'chai';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -227,7 +228,8 @@ class StateNode implements StateNodeConfig {
   ): [
     StateValue | undefined,
     EntryExitStates | undefined,
-    Action[] | undefined
+    Action[] | undefined,
+    string[][]
   ] {
     // leaf node
     if (typeof stateValue === 'string') {
@@ -235,11 +237,12 @@ class StateNode implements StateNodeConfig {
       const next = stateNode._next(state, event, extendedState);
 
       if (!next[0]) {
-        const [nextStateValue, entryExitStates, actions] = this._next(
+        const [nextStateValue, entryExitStates, actions, paths] = this._next(
           state,
           event,
           extendedState
         );
+
         return [
           nextStateValue,
           {
@@ -251,7 +254,8 @@ class StateNode implements StateNodeConfig {
                 : [] as StateNode[])
             ])
           },
-          actions
+          actions,
+          paths
         ];
       }
 
@@ -271,11 +275,12 @@ class StateNode implements StateNodeConfig {
       );
 
       if (!next[0]) {
-        const [nextStateValue, entryExitStates, actions] = this._next(
+        const [nextStateValue, entryExitStates, actions, paths] = this._next(
           state,
           event,
           extendedState
         );
+
         return [
           nextStateValue,
           {
@@ -288,21 +293,30 @@ class StateNode implements StateNodeConfig {
                 : [] as StateNode[])
             ])
           },
-          actions
+          actions,
+          paths
         ];
       }
 
       return next;
     }
 
+    const noTransitionKeys: string[] = [];
+
     // orthogonal node
     const transitions = mapValues(stateValue, (subStateValue, subStateKey) => {
-      return this.getStateNode(subStateKey)._transition(
+      const next = this.getStateNode(subStateKey)._transition(
         subStateValue,
         state,
         event,
         extendedState
       );
+
+      if (!next[0]) {
+        noTransitionKeys.push(subStateKey);
+      }
+
+      return next;
     });
 
     const willTransition = Object.keys(transitions).some(
@@ -310,11 +324,13 @@ class StateNode implements StateNodeConfig {
     );
 
     if (!willTransition) {
-      const [nextStateValue, entryExitStates, actions] = this._next(
+      console.log('will not trans');
+      const [nextStateValue, entryExitStates, actions, paths] = this._next(
         state,
         event,
         extendedState
       );
+
       return [
         nextStateValue,
         {
@@ -324,24 +340,42 @@ class StateNode implements StateNodeConfig {
             ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
           ])
         },
-        actions
+        actions,
+        paths
       ];
     }
 
+    console.log('will trans', stateValue, { noTransitionKeys });
+
     return [
-      mapValues(
-        transitions,
-        (transitionStateValue, key) =>
-          transitionStateValue[0] === undefined
-            ? stateValue[key]
-            : transitionStateValue[0]![key]
-      ),
+      this.parent
+        ? {
+            [this.key]: mapValues(transitions, (transitionStateValue, key) => {
+              return transitionStateValue[0] === undefined
+                ? path(this.path)(state.value)[key]
+                : this.parent
+                  ? path(this.path)(transitionStateValue[0]!)[key]
+                  : transitionStateValue[0]![key];
+            })
+          }
+        : mapValues(transitions, (transitionStateValue, key) => {
+            console.log(transitionStateValue[0], key);
+            return transitionStateValue[0] === undefined
+              ? stateValue[key]
+              : this.parent
+                ? transitionStateValue[0]![this.key][key]
+                : transitionStateValue[0]![key];
+          }),
       Object.keys(transitions).reduce(
         (allEntryExitStates, key) => {
-          const [, entryExitStates] = transitions[key];
-          if (!entryExitStates) {
+          const [subStateValue, entryExitStates] = transitions[key];
+
+          // If the event was not handled (no subStateValue),
+          // machine should still be in state without reentry/exit.
+          if (!subStateValue || !entryExitStates) {
             return allEntryExitStates;
           }
+
           const { entry, exit } = entryExitStates;
 
           return {
@@ -361,6 +395,11 @@ class StateNode implements StateNodeConfig {
         .map(key => {
           return transitions[key][2] || [];
         })
+        .reduce((a, b) => a.concat(b), []),
+      Object.keys(transitions)
+        .map(key => {
+          return transitions[key][3];
+        })
         .reduce((a, b) => a.concat(b), [])
     ];
   }
@@ -371,14 +410,15 @@ class StateNode implements StateNodeConfig {
   ): [
     StateValue | undefined,
     EntryExitStates | undefined,
-    Action[] | undefined
+    Action[] | undefined,
+    string[][]
   ] {
     const eventType = getEventType(event);
 
     const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
-      return [undefined, undefined, undefined];
+      return [undefined, undefined, undefined, []];
     }
 
     let nextStateStrings: string[] = [];
@@ -393,6 +433,18 @@ class StateNode implements StateNodeConfig {
       } = candidate as TransitionConfig;
       const extendedStateObject = extendedState || {};
       const eventObject = toEventObject(event);
+
+      if (stateIn) {
+        console.log(
+          'checking in state',
+          toStateValue(stateIn, this.delimiter),
+          path(this.path.slice(0, -2))(state.value),
+          matchesState(
+            toStateValue(stateIn, this.delimiter),
+            path(this.path.slice(0, -2))(state.value)
+          )
+        );
+      }
 
       const isInState = stateIn
         ? matchesState(
@@ -415,7 +467,7 @@ class StateNode implements StateNodeConfig {
     }
 
     if (nextStateStrings.length === 0) {
-      return [undefined, undefined, undefined];
+      return [undefined, undefined, undefined, []];
     }
 
     const nextStateNodes = nextStateStrings
@@ -446,7 +498,10 @@ class StateNode implements StateNodeConfig {
         )
       ),
       entryExitStates,
-      actions
+      actions,
+      nextStateStrings
+        .map(str => this.getState(str, state.history).map(s => s.path))
+        .reduce((a, b) => a.concat(b), [])
     ];
   }
   public _getEntryExitStates(
@@ -561,6 +616,14 @@ class StateNode implements StateNodeConfig {
     }
 
     let maybeNextState: State | undefined = nextState;
+
+    // try {
+    assert.deepEqual(nextState.value, _t[0]);
+    // } catch (e) {
+    //   console.log('---------------');
+    //   console.log(_t[3]);
+    //   console.log('---------------');
+    // }
 
     const raisedEvents = nextState.actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.raise
