@@ -228,7 +228,7 @@ class StateNode implements StateNodeConfig {
   ): [
     StateValue | undefined,
     EntryExitStates | undefined,
-    Action[] | undefined,
+    Action[],
     string[][]
   ] {
     // leaf node
@@ -324,7 +324,6 @@ class StateNode implements StateNodeConfig {
     );
 
     if (!willTransition) {
-      console.log('will not trans');
       const [nextStateValue, entryExitStates, actions, paths] = this._next(
         state,
         event,
@@ -345,8 +344,6 @@ class StateNode implements StateNodeConfig {
       ];
     }
 
-    console.log('will trans', stateValue, { noTransitionKeys });
-
     return [
       this.parent
         ? {
@@ -359,7 +356,6 @@ class StateNode implements StateNodeConfig {
             })
           }
         : mapValues(transitions, (transitionStateValue, key) => {
-            console.log(transitionStateValue[0], key);
             return transitionStateValue[0] === undefined
               ? stateValue[key]
               : this.parent
@@ -410,7 +406,7 @@ class StateNode implements StateNodeConfig {
   ): [
     StateValue | undefined,
     EntryExitStates | undefined,
-    Action[] | undefined,
+    Action[],
     string[][]
   ] {
     const eventType = getEventType(event);
@@ -418,7 +414,7 @@ class StateNode implements StateNodeConfig {
     const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
-      return [undefined, undefined, undefined, []];
+      return [undefined, undefined, [], []];
     }
 
     let nextStateStrings: string[] = [];
@@ -460,14 +456,14 @@ class StateNode implements StateNodeConfig {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
           : [candidate.target];
-        actions = candidate.actions;
+        actions = candidate.actions || []; // TODO: fixme;
         selectedTransition = candidate;
         break;
       }
     }
 
     if (nextStateStrings.length === 0) {
-      return [undefined, undefined, undefined, []];
+      return [undefined, undefined, [], []];
     }
 
     const nextStateNodes = nextStateStrings
@@ -596,11 +592,9 @@ class StateNode implements StateNodeConfig {
         : []
     };
 
-    console.log(
-      '>',
-      _t[0],
-      (_ees.exit || []).concat(_t[2] || []).concat(_ees.entry || [])
-    );
+    const actions = (_ees.exit || [])
+      .concat(_t[2] || [])
+      .concat(_ees.entry || []);
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -615,10 +609,13 @@ class StateNode implements StateNodeConfig {
       return State.inert(currentState);
     }
 
+    nextState.value = _t[0]!;
+    nextState.actions = actions;
     let maybeNextState: State | undefined = nextState;
 
     // try {
-    assert.deepEqual(nextState.value, _t[0]);
+    assert.deepEqual(1, 1);
+    // assert.deepEqual(_t[2], nextState.actions);
     // } catch (e) {
     //   console.log('---------------');
     //   console.log(_t[3]);
