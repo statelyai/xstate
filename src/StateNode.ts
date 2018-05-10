@@ -226,19 +226,14 @@ class StateNode implements StateNodeConfig {
     state: State,
     event: Event,
     extendedState?: any
-  ): [
-    StateValue | undefined,
-    EntryExitStates | undefined,
-    Action[],
-    string[][]
-  ] {
+  ): [StateValue | undefined, EntryExitStates | undefined, Action[]] {
     // leaf node
     if (typeof stateValue === 'string') {
       const stateNode = this.getStateNode(stateValue);
       const next = stateNode._next(state, event, extendedState);
 
       if (!next[0]) {
-        const [nextStateValue, entryExitStates, actions, paths] = this._next(
+        const [nextStateValue, entryExitStates, actions] = this._next(
           state,
           event,
           extendedState
@@ -255,8 +250,7 @@ class StateNode implements StateNodeConfig {
                 : [] as StateNode[])
             ])
           },
-          actions,
-          paths
+          actions
         ];
       }
 
@@ -276,7 +270,7 @@ class StateNode implements StateNodeConfig {
       );
 
       if (!next[0]) {
-        const [nextStateValue, entryExitStates, actions, paths] = this._next(
+        const [nextStateValue, entryExitStates, actions] = this._next(
           state,
           event,
           extendedState
@@ -294,8 +288,7 @@ class StateNode implements StateNodeConfig {
                 : [] as StateNode[])
             ])
           },
-          actions,
-          paths
+          actions
         ];
       }
 
@@ -325,7 +318,7 @@ class StateNode implements StateNodeConfig {
     );
 
     if (!willTransition) {
-      const [nextStateValue, entryExitStates, actions, paths] = this._next(
+      const [nextStateValue, entryExitStates, actions] = this._next(
         state,
         event,
         extendedState
@@ -340,8 +333,7 @@ class StateNode implements StateNodeConfig {
             ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
           ])
         },
-        actions,
-        paths
+        actions
       ];
     }
 
@@ -392,11 +384,6 @@ class StateNode implements StateNodeConfig {
         .map(key => {
           return transitions[key][2] || [];
         })
-        .reduce((a, b) => a.concat(b), []),
-      Object.keys(transitions)
-        .map(key => {
-          return transitions[key][3];
-        })
         .reduce((a, b) => a.concat(b), [])
     ];
   }
@@ -410,7 +397,7 @@ class StateNode implements StateNodeConfig {
     const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
-      return [undefined, undefined, [], []];
+      return [undefined, undefined, []];
     }
 
     let nextStateStrings: string[] = [];
@@ -447,7 +434,7 @@ class StateNode implements StateNodeConfig {
     }
 
     if (nextStateStrings.length === 0) {
-      return [undefined, undefined, [], []];
+      return [undefined, undefined, []];
     }
 
     const nextStateNodes = nextStateStrings
@@ -478,10 +465,7 @@ class StateNode implements StateNodeConfig {
         )
       ),
       entryExitStates,
-      actions,
-      nextStateStrings
-        .map(str => this.getState(str, state.history).map(s => s.path))
-        .reduce((a, b) => a.concat(b), [])
+      actions
     ];
   }
   public _getEntryExitStates(

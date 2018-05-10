@@ -170,8 +170,7 @@ export interface StateTransition {
 export type _StateTransition = [
   StateValue | undefined,
   EntryExitStates | undefined,
-  Action[],
-  string[][]
+  Action[]
 ];
 
 export interface TransitionData {
