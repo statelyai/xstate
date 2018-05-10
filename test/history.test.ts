@@ -121,7 +121,7 @@ describe('deep history states', () => {
       );
     });
     xit(
-      'can go to the shallow histor even when $history.$history is used',
+      'can go to the shallow history even when $history.$history is used',
       () => {
         const stateOff = historyMachine.transition(state2A, 'POWER');
         assert.equal(
@@ -260,7 +260,7 @@ describe('parallel history states', () => {
       );
     });
 
-    xit('should re-enter each regions of parallel state correctly', () => {
+    it('should re-enter each regions of parallel state correctly', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEP_POWER').value,
@@ -270,7 +270,7 @@ describe('parallel history states', () => {
       );
     });
 
-    xit('should retain all regions of parallel state', () => {
+    it('should retain all regions of parallel state', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEPEST_POWER').value,

@@ -311,7 +311,7 @@ describe('onEntry/onExit actions', () => {
         assert.isEmpty(pingPong.transition('ping.foo', 'TACK').actions);
       });
 
-      xit('with an absolute transition', () => {
+      it('with an absolute transition', () => {
         assert.isEmpty(
           pingPong.transition('ping.foo', 'ABSOLUTE_TACK').actions
         );

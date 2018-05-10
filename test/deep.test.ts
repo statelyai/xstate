@@ -6,7 +6,7 @@ describe('deep transitions', () => {
     key: 'deep',
     initial: 'A',
     on: {
-      MACHINE_EVENT: '#DONE'
+      MACHINE_EVENT: '#deep.DONE'
     },
     states: {
       DONE: {},
@@ -103,7 +103,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit substates and superstates when exiting (B_EVENT)', () => {
+    it('should exit substates and superstates when exiting (B_EVENT)', () => {
       const actual = deepMachine
         .transition(deepMachine.initialState, 'B_EVENT')
         .actions.map(a => `${a}`);
@@ -111,7 +111,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit substates and superstates when exiting (C_EVENT)', () => {
+    it('should exit substates and superstates when exiting (C_EVENT)', () => {
       const actual = deepMachine
         .transition(deepMachine.initialState, 'C_EVENT')
         .actions.map(a => `${a}`);
@@ -119,7 +119,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit superstates when exiting (D_EVENT)', () => {
+    it('should exit superstates when exiting (D_EVENT)', () => {
       const actual = deepMachine
         .transition(deepMachine.initialState, 'D_EVENT')
         .actions.map(a => `${a}`);
@@ -130,6 +130,7 @@ describe('deep transitions', () => {
     xit(
       'should exit substate when machine handles event (MACHINE_EVENT)',
       () => {
+        console.log(deepMachine.initialState.value);
         const actual = deepMachine
           .transition(deepMachine.initialState, 'MACHINE_EVENT')
           .actions.map(a => `${a}`);
@@ -157,7 +158,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit deep and enter deep (D_P)', () => {
+    it('should exit deep and enter deep (D_P)', () => {
       const actual = deepMachine
         .transition(deepMachine.initialState, 'D_P')
         .actions.map(a => `${a}`);
@@ -173,7 +174,7 @@ describe('deep transitions', () => {
       assert.deepEqual(actual, expected);
     });
 
-    xit('should exit deep and enter deep (D_S)', () => {
+    it('should exit deep and enter deep (D_S)', () => {
       const actual = deepMachine
         .transition(deepMachine.initialState, 'D_S')
         .actions.map(a => `${a}`);

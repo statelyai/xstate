@@ -588,7 +588,7 @@ class StateNode implements StateNodeConfig {
     let nextState = this.stateTransitionToState(stateTransition, currentState);
 
     if (!nextState) {
-      return State.inert(currentState);
+      return State.from(currentState);
     }
 
     nextState.value = _t[0]!;
