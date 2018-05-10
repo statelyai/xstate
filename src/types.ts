@@ -167,11 +167,12 @@ export interface StateTransition {
   events: EventObject[];
 }
 
-export type _StateTransition = [
-  StateValue | undefined,
-  EntryExitStates | undefined,
-  Action[]
-];
+// tslint:disable-next-line:class-name
+export interface _StateTransition {
+  value: StateValue | undefined;
+  entryExitStates: EntryExitStates | undefined;
+  actions: Action[];
+}
 
 export interface TransitionData {
   value: StateValue | undefined;
