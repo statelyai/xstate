@@ -30,12 +30,13 @@ import {
   EventObject,
   ConditionalTransitionConfig,
   EntryExitStates,
-  TargetTransitionConfig
+  TargetTransitionConfig,
+  _StateTransition
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
 import { start, stop, toEventObject, actionTypes } from './actions';
-import { assert } from 'chai';
+// import { assert } from 'chai';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -403,12 +404,7 @@ class StateNode implements StateNodeConfig {
     state: State,
     event: Event,
     extendedState?: any
-  ): [
-    StateValue | undefined,
-    EntryExitStates | undefined,
-    Action[],
-    string[][]
-  ] {
+  ): _StateTransition {
     const eventType = getEventType(event);
 
     const candidates = this.on[eventType];
@@ -418,7 +414,7 @@ class StateNode implements StateNodeConfig {
     }
 
     let nextStateStrings: string[] = [];
-    let actions: Action[] | undefined = [];
+    let actions: Action[] = [];
     let selectedTransition: TargetTransitionConfig;
 
     for (const candidate of candidates) {
@@ -429,18 +425,6 @@ class StateNode implements StateNodeConfig {
       } = candidate as TransitionConfig;
       const extendedStateObject = extendedState || {};
       const eventObject = toEventObject(event);
-
-      if (stateIn) {
-        console.log(
-          'checking in state',
-          toStateValue(stateIn, this.delimiter),
-          path(this.path.slice(0, -2))(state.value),
-          matchesState(
-            toStateValue(stateIn, this.delimiter),
-            path(this.path.slice(0, -2))(state.value)
-          )
-        );
-      }
 
       const isInState = stateIn
         ? matchesState(
@@ -552,6 +536,36 @@ class StateNode implements StateNodeConfig {
       exit: new Set(entryExitStates.exit)
     };
   }
+  public _getActions(_t: _StateTransition): Action[] {
+    const _ees = {
+      entry: _t[1]
+        ? Array.from(_t[1]!.entry)
+            .map(n => [
+              ...n.onEntry,
+              ...(n.activities
+                ? n.activities.map(activity => start(activity))
+                : [])
+            ])
+            .reduce((a, b) => a.concat(b), [])
+        : [],
+      exit: _t[1]
+        ? Array.from(_t[1]!.exit)
+            .map(n => [
+              ...n.onExit,
+              ...(n.activities
+                ? n.activities.map(activity => stop(activity))
+                : [])
+            ])
+            .reduce((a, b) => a.concat(b), [])
+        : []
+    };
+
+    const actions = (_ees.exit || [])
+      .concat(_t[2] || [])
+      .concat(_ees.entry || []);
+
+    return actions;
+  }
   public transition(
     state: StateValue | State,
     event: Event,
@@ -579,22 +593,7 @@ class StateNode implements StateNodeConfig {
       event,
       extendedState
     );
-    const _ees = {
-      entry: _t[1]
-        ? Array.from(_t[1]!.entry)
-            .map(n => n.onEntry)
-            .reduce((a, b) => a.concat(b), [])
-        : [],
-      exit: _t[1]
-        ? Array.from(_t[1]!.exit)
-            .map(n => n.onExit)
-            .reduce((a, b) => a.concat(b), [])
-        : []
-    };
-
-    const actions = (_ees.exit || [])
-      .concat(_t[2] || [])
-      .concat(_ees.entry || []);
+    const actions = this._getActions(_t);
 
     const stateTransition = this.transitionStateValue(
       currentState,
@@ -605,22 +604,12 @@ class StateNode implements StateNodeConfig {
     let nextState = this.stateTransitionToState(stateTransition, currentState);
 
     if (!nextState) {
-      console.log('=', undefined);
       return State.inert(currentState);
     }
 
     nextState.value = _t[0]!;
     nextState.actions = actions;
     let maybeNextState: State | undefined = nextState;
-
-    // try {
-    assert.deepEqual(1, 1);
-    // assert.deepEqual(_t[2], nextState.actions);
-    // } catch (e) {
-    //   console.log('---------------');
-    //   console.log(_t[3]);
-    //   console.log('---------------');
-    // }
 
     const raisedEvents = nextState.actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.raise
@@ -631,7 +620,6 @@ class StateNode implements StateNodeConfig {
 
       nextState = this.transition(nextState, raisedEvent, extendedState);
       nextState.actions.unshift(...nextState.actions);
-      console.log('=', nextState.value, nextState.actions);
       return nextState;
     }
 
@@ -649,12 +637,10 @@ class StateNode implements StateNodeConfig {
           extendedState
         );
         maybeNextState.actions.unshift(...nextState.actions);
-        console.log('=', maybeNextState.value, maybeNextState.actions);
         return maybeNextState;
       }
     }
 
-    console.log('=', nextState.value, nextState.actions);
     return nextState;
   }
   private stateTransitionToState(

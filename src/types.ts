@@ -167,6 +167,13 @@ export interface StateTransition {
   events: EventObject[];
 }
 
+export type _StateTransition = [
+  StateValue | undefined,
+  EntryExitStates | undefined,
+  Action[],
+  string[][]
+];
+
 export interface TransitionData {
   value: StateValue | undefined;
   actions: ActionMap;
