@@ -76,8 +76,9 @@ function stateNodeToSCXML(stateNode: StateNode) {
                 name: 'transition',
                 attributes: {
                   ...event ? { event } : undefined,
-                  target: stateNode.parent!.getState(targetTransition.target)!
-                    .id,
+                  target: stateNode.parent!.getState(
+                    targetTransition.target
+                  )[0]!.id, // TODO: fixme
                   ...targetTransition.cond
                     ? { cond: targetTransition.cond.toString() }
                     : undefined
@@ -103,7 +104,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
               name: 'transition',
               attributes: {
                 ...event ? { event } : undefined,
-                target: stateNode.parent!.getState(target)!.id,
+                target: stateNode.parent!.getState(target)![0].id, // TODO: fixme
                 ...targetTransition.cond
                   ? { cond: targetTransition.cond.toString() }
                   : undefined
