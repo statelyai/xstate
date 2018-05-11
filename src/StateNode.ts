@@ -396,7 +396,7 @@ class StateNode implements StateNodeConfig {
     }
 
     const nextStateNodes = nextStateStrings
-      .map(str => this.getState(str, state.history))
+      .map(str => this.getRelativeStateNodes(str, state.history))
       .reduce((a, b) => a.concat(b), []);
 
     const nextStatePaths = nextStateNodes.map(stateNode => stateNode.path);
@@ -426,7 +426,9 @@ class StateNode implements StateNodeConfig {
       value: this.machine.resolve(
         pathsToStateValue(
           nextStateStrings
-            .map(str => this.getState(str, state.history).map(s => s.path))
+            .map(str =>
+              this.getRelativeStateNodes(str, state.history).map(s => s.path)
+            )
             .reduce((a, b) => a.concat(b), [])
         )
       ),
@@ -649,7 +651,7 @@ class StateNode implements StateNodeConfig {
     const visitedParents = new Map<StateNode, StateNode[]>();
 
     const stateNodes = paths
-      .map(_path => this.getState(_path))
+      .map(_path => this.getRelativeStateNodes(_path))
       .reduce((a, b) => a.concat(b), []);
 
     outer: for (const stateNode of stateNodes) {
@@ -829,7 +831,15 @@ class StateNode implements StateNodeConfig {
 
     return stateNodes;
   }
-  public getState(
+
+  /**
+   * Returns the leaf nodes from a state path relative to this state node.
+   * 
+   * @param relativeStateId The relative state path to retrieve the state nodes
+   * @param history The previous state to retrieve history
+   * @param resolve Whether state nodes should resolve to initial child state nodes
+   */
+  public getRelativeStateNodes(
     relativeStateId: string | string[],
     history?: State,
     resolve: boolean = true

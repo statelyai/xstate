@@ -33,7 +33,11 @@ function getEventEdges(node: StateNode, event: string): Edge[] {
   const transitions = node.on[event]!;
 
   return transitions.map(transition => {
-    const target = node.getState(transition.target, undefined, false)[0];
+    const target = node.getRelativeStateNodes(
+      transition.target,
+      undefined,
+      false
+    )[0];
     return {
       source: node,
       target,
