@@ -31,7 +31,8 @@ import {
   EntryExitStates,
   TargetTransitionConfig,
   _StateTransition,
-  ActionObject
+  ActionObject,
+  StateValueMap
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -162,87 +163,91 @@ class StateNode implements StateNodeConfig {
 
     return this.events.indexOf(eventType) !== -1;
   }
-  public _transition(
-    stateValue: StateValue,
+  public _transitionLeafNode(
+    stateValue: string,
     state: State,
     event: Event,
     extendedState?: any
   ): _StateTransition {
-    // leaf node
-    if (typeof stateValue === 'string') {
-      const stateNode = this.getStateNode(stateValue);
-      const next = stateNode._next(state, event, extendedState);
+    const stateNode = this.getStateNode(stateValue);
+    const next = stateNode._next(state, event, extendedState);
 
-      if (!next.value) {
-        const { value, entryExitStates, actions, paths } = this._next(
-          state,
-          event,
-          extendedState
-        );
-
-        return {
-          value,
-          entryExitStates: {
-            entry: entryExitStates ? entryExitStates.entry : new Set(),
-            exit: new Set<StateNode>([
-              stateNode,
-              ...(entryExitStates
-                ? Array.from(entryExitStates.exit)
-                : [] as StateNode[])
-            ])
-          },
-          actions,
-          paths
-        };
-      }
-
-      return next;
-    }
-
-    const subStateKeys = Object.keys(stateValue);
-
-    // hierarchical node
-    if (subStateKeys.length === 1) {
-      const stateNode = this.getStateNode(subStateKeys[0]);
-      const next = stateNode._transition(
-        stateValue[subStateKeys[0]],
+    if (!next.value) {
+      const { value, entryExitStates, actions, paths } = this._next(
         state,
         event,
         extendedState
       );
 
-      if (!next.value) {
-        const { value, entryExitStates, actions, paths } = this._next(
-          state,
-          event,
-          extendedState
-        );
-
-        return {
-          value,
-          entryExitStates: {
-            entry: entryExitStates ? entryExitStates.entry : new Set(),
-            exit: new Set<StateNode>([
-              ...(next.entryExitStates
-                ? Array.from(next.entryExitStates.exit)
-                : []),
-              stateNode,
-              ...(entryExitStates
-                ? Array.from(entryExitStates.exit)
-                : [] as StateNode[])
-            ])
-          },
-          actions,
-          paths
-        };
-      }
-
-      return next;
+      return {
+        value,
+        entryExitStates: {
+          entry: entryExitStates ? entryExitStates.entry : new Set(),
+          exit: new Set<StateNode>([
+            stateNode,
+            ...(entryExitStates
+              ? Array.from(entryExitStates.exit)
+              : [] as StateNode[])
+          ])
+        },
+        actions,
+        paths
+      };
     }
 
-    const noTransitionKeys: string[] = [];
+    return next;
+  }
+  public _transitionHierarchicalNode(
+    stateValue: StateValueMap,
+    state: State,
+    event: Event,
+    extendedState?: any
+  ): _StateTransition {
+    const subStateKeys = Object.keys(stateValue);
 
-    // orthogonal node
+    const stateNode = this.getStateNode(subStateKeys[0]);
+    const next = stateNode._transition(
+      stateValue[subStateKeys[0]],
+      state,
+      event,
+      extendedState
+    );
+
+    if (!next.value) {
+      const { value, entryExitStates, actions, paths } = this._next(
+        state,
+        event,
+        extendedState
+      );
+
+      return {
+        value,
+        entryExitStates: {
+          entry: entryExitStates ? entryExitStates.entry : new Set(),
+          exit: new Set<StateNode>([
+            ...(next.entryExitStates
+              ? Array.from(next.entryExitStates.exit)
+              : []),
+            stateNode,
+            ...(entryExitStates
+              ? Array.from(entryExitStates.exit)
+              : [] as StateNode[])
+          ])
+        },
+        actions,
+        paths
+      };
+    }
+
+    return next;
+  }
+  public _transitionOrthogonalNode(
+    stateValue: StateValueMap,
+    state: State,
+    event: Event,
+    extendedState?: any
+  ): _StateTransition {
+    const noTransitionKeys: string[] = [];
     const transitions = mapValues(stateValue, (subStateValue, subStateKey) => {
       const next = this.getStateNode(subStateKey)._transition(
         subStateValue,
@@ -251,7 +256,7 @@ class StateNode implements StateNodeConfig {
         extendedState
       );
 
-      if (!next[0]) {
+      if (!next.value) {
         noTransitionKeys.push(subStateKey);
       }
 
@@ -335,6 +340,35 @@ class StateNode implements StateNodeConfig {
       ),
       paths: toStatePaths(nextStateValue)
     };
+  }
+  public _transition(
+    stateValue: StateValue,
+    state: State,
+    event: Event,
+    extendedState?: any
+  ): _StateTransition {
+    // leaf node
+    if (typeof stateValue === 'string') {
+      return this._transitionLeafNode(stateValue, state, event, extendedState);
+    }
+
+    // hierarchical node
+    if (Object.keys(stateValue).length === 1) {
+      return this._transitionHierarchicalNode(
+        stateValue,
+        state,
+        event,
+        extendedState
+      );
+    }
+
+    // orthogonal node
+    return this._transitionOrthogonalNode(
+      stateValue,
+      state,
+      event,
+      extendedState
+    );
   }
   public _next(
     state: State,
