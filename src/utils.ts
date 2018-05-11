@@ -110,13 +110,13 @@ export const toStatePaths = (stateValue: StateValue): string[][] => {
     return [[stateValue]];
   }
 
-  const result = Object.keys(stateValue)
-    .map(key => {
+  const result = flatMap(
+    Object.keys(stateValue).map(key => {
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
       });
     })
-    .reduce((a, b) => a.concat(b), []);
+  );
 
   return result;
 };
@@ -144,4 +144,8 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
   }
 
   return result;
+};
+
+export const flatMap = <T>(array: T[][]): T[] => {
+  return array.reduce((a, b) => a.concat(b), []);
 };

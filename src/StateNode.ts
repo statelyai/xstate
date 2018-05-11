@@ -7,7 +7,8 @@ import {
   toStatePaths,
   pathsToStateValue,
   pathToStateValue,
-  getActionType
+  getActionType,
+  flatMap
 } from './utils';
 import {
   Event,
@@ -327,11 +328,11 @@ class StateNode implements StateNodeConfig {
         },
         { entry: new Set(), exit: new Set() } as EntryExitStates
       ),
-      actions: Object.keys(transitions)
-        .map(key => {
+      actions: flatMap(
+        Object.keys(transitions).map(key => {
           return transitions[key].actions;
         })
-        .reduce((a, b) => a.concat(b), []),
+      ),
       paths: toStatePaths(nextStateValue)
     };
   }
@@ -395,9 +396,11 @@ class StateNode implements StateNodeConfig {
       };
     }
 
-    const nextStateNodes = nextStateStrings
-      .map(str => this.getRelativeStateNodes(str, state.history))
-      .reduce((a, b) => a.concat(b), []);
+    const nextStateNodes = flatMap(
+      nextStateStrings.map(str =>
+        this.getRelativeStateNodes(str, state.history)
+      )
+    );
 
     const nextStatePaths = nextStateNodes.map(stateNode => stateNode.path);
 
@@ -425,11 +428,11 @@ class StateNode implements StateNodeConfig {
     return {
       value: this.machine.resolve(
         pathsToStateValue(
-          nextStateStrings
-            .map(str =>
+          flatMap(
+            nextStateStrings.map(str =>
               this.getRelativeStateNodes(str, state.history).map(s => s.path)
             )
-            .reduce((a, b) => a.concat(b), [])
+          )
         )
       ),
       entryExitStates,
@@ -492,24 +495,24 @@ class StateNode implements StateNodeConfig {
   private _getActions(_t: _StateTransition): Action[] {
     const _ees = {
       entry: _t.entryExitStates
-        ? Array.from(_t.entryExitStates.entry)
-            .map(n => [
+        ? flatMap(
+            Array.from(_t.entryExitStates.entry).map(n => [
               ...n.onEntry,
               ...(n.activities
                 ? n.activities.map(activity => start(activity))
                 : [])
             ])
-            .reduce((a, b) => a.concat(b), [])
+          )
         : [],
       exit: _t.entryExitStates
-        ? Array.from(_t.entryExitStates.exit)
-            .map(n => [
+        ? flatMap(
+            Array.from(_t.entryExitStates.exit).map(n => [
               ...n.onExit,
               ...(n.activities
                 ? n.activities.map(activity => stop(activity))
                 : [])
             ])
-            .reduce((a, b) => a.concat(b), [])
+          )
         : []
     };
 
@@ -650,9 +653,9 @@ class StateNode implements StateNodeConfig {
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<StateNode, StateNode[]>();
 
-    const stateNodes = paths
-      .map(_path => this.getRelativeStateNodes(_path))
-      .reduce((a, b) => a.concat(b), []);
+    const stateNodes = flatMap(
+      paths.map(_path => this.getRelativeStateNodes(_path))
+    );
 
     outer: for (const stateNode of stateNodes) {
       let marker = stateNode;
@@ -865,9 +868,9 @@ class StateNode implements StateNodeConfig {
     if (!resolve) {
       return unresolvedStateNodes;
     }
-    return unresolvedStateNodes
-      .map(stateNode => stateNode.initialStateNodes)
-      .reduce((a, b) => a.concat(b), []);
+    return flatMap(
+      unresolvedStateNodes.map(stateNode => stateNode.initialStateNodes)
+    );
   }
   public get initialStateNodes(): StateNode[] {
     // todo - isLeafNode or something
@@ -877,9 +880,11 @@ class StateNode implements StateNodeConfig {
 
     const { initialState } = this;
     const initialStateNodePaths = toStatePaths(initialState.value);
-    return initialStateNodePaths
-      .map(initialPath => this.getFromRelativePath(initialPath))
-      .reduce((a, b) => a.concat(b), []);
+    return flatMap(
+      initialStateNodePaths.map(initialPath =>
+        this.getFromRelativePath(initialPath)
+      )
+    );
   }
   public getFromRelativePath(
     relativePath: string[],
@@ -914,11 +919,11 @@ class StateNode implements StateNodeConfig {
         );
       }
 
-      return Object.keys(subHistoryValue)
-        .map(key => {
+      return flatMap(
+        Object.keys(subHistoryValue).map(key => {
           return this.states[key].getFromRelativePath(xs, historyValue);
         })
-        .reduce((a, b) => a.concat(b), []);
+      );
     }
 
     if (!this.states[x]) {
