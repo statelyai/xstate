@@ -163,44 +163,38 @@ describe('multiple', () => {
     });
 
     it('should reject two targets in the same region', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_SAME_REGION'),
-        "Event 'BROKEN_SAME_REGION' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine.para.A'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_SAME_REGION')
       );
     });
 
     it('should reject targets inside and outside a region', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS'),
-        "Event 'BROKEN_DIFFERENT_REGIONS' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS')
       );
     });
 
     it('should reject two targets in different regions', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2'),
-        "Event 'BROKEN_DIFFERENT_REGIONS_2' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2')
       );
     });
 
     it('should reject two targets in different regions at different levels', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3'),
-        "Event 'BROKEN_DIFFERENT_REGIONS_3' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
       );
     });
 
     it('should reject two deep targets in different regions at top level', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3'),
-        "Event 'BROKEN_DIFFERENT_REGIONS_3' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
       );
     });
 
     it('should reject two deep targets in different regions at different levels', () => {
-      assert.throws(
-        () => machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4'),
-        "Event 'BROKEN_DIFFERENT_REGIONS_4' on state 'machine.simple' leads to an invalid configuration: Two or more states in the orthogonal region 'machine.para2.K2'"
+      assert.throws(() =>
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4')
       );
     });
   });
