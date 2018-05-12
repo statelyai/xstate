@@ -288,14 +288,57 @@ class StateNode implements StateNodeConfig {
       };
     }
 
+    const allPaths = flatMap(
+      Object.keys(transitions).map(key => transitions[key].paths)
+    );
+
+    // External transition that escapes orthogonal region
+    if (
+      allPaths.length === 1 &&
+      !matchesState(pathToStateValue(this.path), pathToStateValue(allPaths[0]))
+    ) {
+      return {
+        value: this.machine.resolve(pathsToStateValue(allPaths)),
+        entryExitStates: Object.keys(transitions)
+          .map(key => transitions[key].entryExitStates)
+          .reduce(
+            (allEntryExitStates, entryExitStates) => {
+              const { entry, exit } = entryExitStates!;
+
+              return {
+                entry: new Set([
+                  ...Array.from(allEntryExitStates!.entry),
+                  ...Array.from(entry)
+                ]),
+                exit: new Set([
+                  ...Array.from(allEntryExitStates!.exit),
+                  ...Array.from(exit)
+                ])
+              };
+            },
+            { entry: new Set(), exit: new Set() } as EntryExitStates
+          ),
+        actions: flatMap(
+          Object.keys(transitions).map(key => {
+            return transitions[key].actions;
+          })
+        ),
+        paths: allPaths
+      };
+    }
+
     const nextStateValue = this.parent
       ? {
           [this.key]: mapValues(transitions, (transition, key) => {
-            return transition.value === undefined
-              ? path(this.path)(state.value)[key]
-              : this.parent
-                ? path(this.path)(transition.value!)[key]
-                : transition.value![key];
+            if (transition.value === undefined) {
+              return path(this.path)(state.value)[key];
+            }
+            const origValue = path(this.path)(transition.value!);
+
+            if (!origValue) {
+              return undefined;
+            }
+            return origValue[key];
           })
         }
       : mapValues(transitions, (transitionStateValue, key) => {
@@ -871,7 +914,7 @@ class StateNode implements StateNodeConfig {
 
   /**
    * Returns the leaf nodes from a state path relative to this state node.
-   * 
+   *
    * @param relativeStateId The relative state path to retrieve the state nodes
    * @param history The previous state to retrieve history
    * @param resolve Whether state nodes should resolve to initial child state nodes

@@ -65,3 +65,67 @@ describe('Example 6.17', () => {
     });
   });
 });
+
+describe('Jump to ID', () => {
+  const machine = Machine({
+    initial: 'X',
+    states: {
+      X: {
+        id: 'X',
+        on: {
+          1: 'Y',
+          2: 'Y.A.C', // 6.18
+          // 3: { Y: { A: 'C', B: 'F' } } // 6.19
+          4: 'Y.A.$history'
+        }
+      },
+      Y: {
+        parallel: true,
+        states: {
+          A: {
+            initial: 'D',
+            states: {
+              C: {
+                on: {
+                  finish: '#X'
+                }
+              },
+              D: {},
+              E: {}
+            }
+          },
+          B: {
+            initial: 'G',
+            states: { F: {}, G: {}, H: {} }
+          }
+        },
+        on: {
+          kill: '#X'
+        }
+      }
+    }
+  });
+
+  const expected = {
+    'Y.B.G': {
+      kill: 'X'
+    },
+    '{"Y":{"A":"C","B":"H"}}': {
+      finish: 'X'
+    }
+  };
+
+  Object.keys(expected).forEach(fromState => {
+    Object.keys(expected[fromState]).forEach(eventTypes => {
+      const toState = expected[fromState][eventTypes];
+
+      it(`should go from ${fromState} to ${JSON.stringify(
+        toState
+      )} on ${eventTypes}`, () => {
+        const resultState = testMultiTransition(machine, fromState, eventTypes);
+
+        assert.deepEqual(resultState.value, toState);
+      });
+    });
+  });
+});
