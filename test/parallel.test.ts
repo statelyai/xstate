@@ -166,4 +166,10 @@ describe('parallel states', () => {
 
     assert.deepEqual(nextState.value, { wak1: 'wak1sonB', wak2: 'wak2sonA' });
   });
+
+  it('should have all parallel states represented in the state value (2)', () => {
+    const nextState = wakMachine.transition(wakMachine.initialState, 'WAK2');
+
+    assert.deepEqual(nextState.value, { wak1: 'wak1sonA', wak2: 'wak2sonB' });
+  });
 });
