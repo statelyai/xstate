@@ -62,6 +62,27 @@ describe('graph utilities', () => {
     }
   });
 
+  const condMachine = Machine({
+    key: 'cond',
+    initial: 'pending',
+    states: {
+      pending: {
+        on: {
+          EVENT: [
+            { target: 'foo', cond: (_, e) => e.id === 'foo' },
+            { target: 'bar' }
+          ],
+          STATE: [
+            { target: 'foo', cond: s => s.id === 'foo' },
+            { target: 'bar' }
+          ]
+        }
+      },
+      foo: {},
+      bar: {}
+    }
+  });
+
   const parallelMachine = Machine({
     parallel: true,
     key: 'p',
@@ -342,23 +363,25 @@ describe('graph utilities', () => {
     });
 
     it('should not throw when a condition is present', () => {
-      const condMachine = Machine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              NEXT: {
-                b: {
-                  cond: payload => payload.foo
-                }
-              }
-            }
-          },
-          b: {}
-        }
-      });
-
       assert.doesNotThrow(() => getShortestPaths(condMachine));
+    });
+
+    it('should represent conditional paths based on extended state', () => {
+      assert.deepEqual(getShortestPaths(condMachine, { id: 'foo' }), {
+        '"bar"': [
+          {
+            event: 'EVENT',
+            state: 'pending'
+          }
+        ],
+        '"foo"': [
+          {
+            event: 'STATE',
+            state: 'pending'
+          }
+        ],
+        '"pending"': []
+      });
     });
   });
 

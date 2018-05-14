@@ -64,7 +64,10 @@ export function getEdges(node: StateNode): Edge[] {
   return edges;
 }
 
-export function getAdjacencyMap(node: Machine): AdjacencyMap {
+export function getAdjacencyMap(
+  node: Machine,
+  extendedState?: any
+): AdjacencyMap {
   const adjacency: AdjacencyMap = {};
 
   const events = node.events;
@@ -79,7 +82,7 @@ export function getAdjacencyMap(node: Machine): AdjacencyMap {
     adjacency[stateKey] = {};
 
     for (const event of events) {
-      const nextState = node.transition(stateValue, event);
+      const nextState = node.transition(stateValue, event, extendedState);
       adjacency[stateKey][event] = { state: nextState.value };
 
       findAdjacencies(nextState.value);
@@ -91,11 +94,14 @@ export function getAdjacencyMap(node: Machine): AdjacencyMap {
   return adjacency;
 }
 
-export function getShortestPaths(machine: Machine): PathMap {
+export function getShortestPaths(
+  machine: Machine,
+  extendedState?: any
+): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;
   }
-  const adjacency = getAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine, extendedState);
   const initialStateId = JSON.stringify(machine.initialState.value);
   const pathMap: PathMap = {
     [initialStateId]: []
@@ -153,20 +159,26 @@ export function getShortestPaths(machine: Machine): PathMap {
   return pathMap;
 }
 
-export function getShortestPathsAsArray(machine: Machine): PathItem[] {
-  const result = getShortestPaths(machine);
+export function getShortestPathsAsArray(
+  machine: Machine,
+  extendedState?: any
+): PathItem[] {
+  const result = getShortestPaths(machine, extendedState);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
   }));
 }
 
-export function getSimplePaths(machine: Machine): PathsMap {
+export function getSimplePaths(
+  machine: Machine,
+  extendedState?: any
+): PathsMap {
   if (!machine.states) {
     return EMPTY_MAP;
   }
 
-  const adjacency = getAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine, extendedState);
   const visited = new Set();
   const path: Segment[] = [];
   const paths: PathsMap = {};
@@ -207,8 +219,11 @@ export function getSimplePaths(machine: Machine): PathsMap {
   return paths;
 }
 
-export function getSimplePathsAsArray(machine: Machine): PathsItem[] {
-  const result = getSimplePaths(machine);
+export function getSimplePathsAsArray(
+  machine: Machine,
+  extendedState?: any
+): PathsItem[] {
+  const result = getSimplePaths(machine, extendedState);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     paths: result[key]
