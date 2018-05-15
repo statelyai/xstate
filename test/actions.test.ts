@@ -319,3 +319,26 @@ describe('onEntry/onExit actions', () => {
     });
   });
 });
+
+describe('actions on invalid transition', () => {
+  const stopMachine = Machine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          STOP: {
+            stop: {
+              actions: ['action1']
+            }
+          }
+        }
+      },
+      stop: {}
+    }
+  });
+
+  it('should not recall previous actions', () => {
+    let nextState = stopMachine.transition('idle', 'STOP');
+    assert.isEmpty(stopMachine.transition(nextState, 'INVALID').actions);
+  });
+});
