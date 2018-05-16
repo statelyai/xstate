@@ -12,6 +12,7 @@
   - [Machine](api/machine.md)
   - [State](api/state.md)
   - [Actions](api/actions.md)
+  - [Utilities](api/utils.md)
 - Examples
   - [Light Machine](examples/light.md)
   - [React Flickr Gallery](examples/gallery.md)
