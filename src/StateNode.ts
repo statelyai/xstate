@@ -688,7 +688,8 @@ class StateNode implements StateNodeConfig {
       : undefined;
 
     if (!nextState) {
-      return State.from(currentState);
+      // Unchanged state should be returned with no actions
+      return State.inert(currentState);
     }
 
     const raisedEvents = actions.filter(
