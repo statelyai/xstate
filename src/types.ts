@@ -25,10 +25,15 @@ export interface StateValueMap {
 
 export type StateValue = string | StateValueMap;
 
-export type Condition = (extendedState: any, event?: EventObject) => boolean;
+export type ConditionPredicate = (
+  extendedState: any,
+  event: EventObject
+) => boolean;
+
+export type Condition = string | ConditionPredicate;
 
 export interface TransitionConfig {
-  cond?: (extendedState: any, event: EventObject) => boolean;
+  cond?: Condition;
   actions?: Action[];
   in?: StateValue;
   internal?: boolean;
@@ -78,6 +83,9 @@ export type SimpleOrCompoundStateNodeConfig =
   | CompoundStateNodeConfig
   | SimpleStateNodeConfig;
 
+export interface MachineOptions {
+  guards: Record<string, ConditionPredicate>;
+}
 export interface MachineConfig extends CompoundStateNodeConfig {
   key?: string;
   strict?: boolean;

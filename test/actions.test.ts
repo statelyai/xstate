@@ -338,7 +338,7 @@ describe('actions on invalid transition', () => {
   });
 
   it('should not recall previous actions', () => {
-    let nextState = stopMachine.transition('idle', 'STOP');
+    const nextState = stopMachine.transition('idle', 'STOP');
     assert.isEmpty(stopMachine.transition(nextState, 'INVALID').actions);
   });
 });

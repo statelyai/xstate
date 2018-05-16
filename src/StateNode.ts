@@ -32,7 +32,11 @@ import {
   TargetTransitionConfig,
   _StateTransition,
   ActionObject,
-  StateValueMap
+  StateValueMap,
+  MachineOptions,
+  Condition,
+  ConditionPredicate,
+  EventObject
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -48,6 +52,9 @@ const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 //   onExit: [],
 //   actions: []
 // });
+const defaultOptions: MachineOptions = {
+  guards: {}
+};
 
 class StateNode implements StateNodeConfig {
   public key: string;
@@ -78,7 +85,8 @@ class StateNode implements StateNodeConfig {
     public config:
       | SimpleOrCompoundStateNodeConfig
       | StandardMachineConfig
-      | ParallelMachineConfig
+      | ParallelMachineConfig,
+    public options: MachineOptions = defaultOptions
   ) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
@@ -452,7 +460,7 @@ class StateNode implements StateNodeConfig {
         : true;
 
       if (
-        (!cond || cond(extendedStateObject, eventObject)) &&
+        (!cond || this._evaluateCond(cond, extendedStateObject, eventObject)) &&
         (!stateIn || isInState)
       ) {
         nextStateStrings = Array.isArray(candidate.target)
@@ -568,6 +576,28 @@ class StateNode implements StateNodeConfig {
       entry: new Set(entryExitStates.entry),
       exit: new Set(entryExitStates.exit)
     };
+  }
+  private _evaluateCond(
+    condition: Condition,
+    extendedState: any,
+    eventObject: EventObject
+  ): boolean {
+    let condFn: ConditionPredicate;
+
+    if (typeof condition === 'string') {
+      if (!this.machine.options.guards[condition]) {
+        throw new Error(
+          `String condition '${condition}' is not defined on machine '${this
+            .machine.id}'`
+        );
+      }
+
+      condFn = this.machine.options.guards[condition];
+    } else {
+      condFn = condition;
+    }
+
+    return condFn(extendedState, eventObject);
   }
   private _getActions(_t: _StateTransition): Action[] {
     const _ees = {
@@ -1067,9 +1097,10 @@ class StateNode implements StateNodeConfig {
 }
 
 export function Machine(
-  config: MachineConfig | ParallelMachineConfig
+  config: MachineConfig | ParallelMachineConfig,
+  options: MachineOptions
 ): StandardMachine | ParallelMachine {
-  return new StateNode(config) as StandardMachine | ParallelMachine;
+  return new StateNode(config, options) as StandardMachine | ParallelMachine;
 }
 
 export { StateNode };

@@ -1,4 +1,4 @@
-import { Machine } from '../../src/StateNode';
+import { Machine } from '../../src';
 
 export const machine = Machine({
   initial: 'A',

@@ -3,12 +3,14 @@ import {
   StandardMachine,
   ParallelMachine,
   MachineConfig,
-  ParallelMachineConfig
+  ParallelMachineConfig,
+  MachineOptions
 } from './types';
 import { StateNode } from './StateNode';
 
 export function Machine(
-  config: MachineConfig | ParallelMachineConfig
+  config: MachineConfig | ParallelMachineConfig,
+  options?: MachineOptions
 ): StandardMachine | ParallelMachine {
-  return new StateNode(config) as StandardMachine | ParallelMachine;
+  return new StateNode(config, options) as StandardMachine | ParallelMachine;
 }
