@@ -13,6 +13,8 @@ Determines if the `childStateValue` matches (is contained by, or equal to) the `
 Typically, you would pass the `.value` of the state you want to match into the function:
 
 ```js
+import { matchesState } from 'xstate';
+
 const nextState = machine.transition(/* ... */);
 
 // Check if nextState is in 'a.b':
