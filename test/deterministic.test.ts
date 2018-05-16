@@ -135,10 +135,7 @@ describe('deterministic machine', () => {
     });
 
     it('should throw an error for transitions to invalid states', () => {
-      assert.throws(
-        () => testMachine.transition('a', 'F'),
-        "Event 'F' on state 'a' leads to undefined state 'c'."
-      );
+      assert.throws(() => testMachine.transition('a', 'F'));
     });
 
     it('should throw an error for transitions from invalid substates', () => {
@@ -183,7 +180,9 @@ describe('deterministic machine', () => {
       });
       assert.isEmpty(lightMachine.transition('red.walk', 'FAKE').actions);
 
-      assert.equal(deepMachine.transition('a1', 'FAKE').value, 'a1');
+      assert.deepEqual(deepMachine.transition('a1', 'FAKE').value, {
+        a1: { a2: { a3: 'a4' } }
+      });
       assert.isEmpty(deepMachine.transition('a1', 'FAKE').actions);
     });
 

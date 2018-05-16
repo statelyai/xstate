@@ -30,6 +30,7 @@ node_modules
 .vscode/
 dist/
 lib/
+es/
 editor/
 examples/
 !docs/examples/

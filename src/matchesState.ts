@@ -1,19 +1,22 @@
-import { toTrie } from './utils'; // TODO: change to utils
+import { toStateValue } from './utils'; // TODO: change to utils
 import { StateValue } from './types';
+import { STATE_DELIMITER } from './constants';
 
-export default function matchesState(
+export function matchesState(
   parentStateId: StateValue,
-  childStateId: StateValue
+  childStateId: StateValue,
+  delimiter: string = STATE_DELIMITER
 ): boolean {
-  const parentStateValue = toTrie(parentStateId);
-  const childStateValue = toTrie(childStateId);
+  const parentStateValue = toStateValue(parentStateId, delimiter);
+  const childStateValue = toStateValue(childStateId, delimiter);
 
   if (typeof childStateValue === 'string') {
     if (typeof parentStateValue === 'string') {
       return childStateValue === parentStateValue;
     }
 
-    return childStateValue in parentStateValue;
+    // Parent more specific than child
+    return false;
   }
 
   if (typeof parentStateValue === 'string') {

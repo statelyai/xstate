@@ -1,17 +1,18 @@
 import { StateNode } from './index';
-import { toTrie } from './utils';
-import { Transition, StateValue, Machine, Event } from './types';
+import { toStateValue, getActionType } from './utils';
+import {
+  StateValue,
+  Machine,
+  Edge,
+  Segment,
+  PathMap,
+  PathItem,
+  PathsItem,
+  PathsMap,
+  AdjacencyMap
+} from './types';
 
 const EMPTY_MAP = {};
-export interface IEdge {
-  event: string;
-  source: StateNode;
-  target: StateNode;
-}
-export interface INodesAndEdges {
-  nodes: StateNode[];
-  edges: IEdge[];
-}
 
 export function getNodes(node: StateNode): StateNode[] {
   const { states } = node;
@@ -28,102 +29,46 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-function getTransitionStateKeys<TStateKey extends string = string>(
-  transition: Transition<TStateKey>
-): TStateKey[] {
-  if (typeof transition === 'string') {
-    return [transition];
-  }
+function getEventEdges(node: StateNode, event: string): Edge[] {
+  const transitions = node.on[event]!;
 
-  return Object.keys(transition) as TStateKey[];
+  return transitions.map(transition => {
+    const target = node.getRelativeStateNodes(
+      transition.target,
+      undefined,
+      false
+    )[0];
+    return {
+      source: node,
+      target,
+      event,
+      actions: transition.actions ? transition.actions.map(getActionType) : [],
+      cond: transition.cond
+    };
+  });
 }
 
-export function getEdges(
-  node: StateNode,
-  visited: Record<string, true> = {}
-): IEdge[] {
-  const { states } = node;
-  visited[node.key] = true;
-  const subNodeEdges = Object.keys(states).reduce((_edges: IEdge[], key) => {
-    if (visited[key]) {
-      return _edges;
-    }
+export function getEdges(node: StateNode): Edge[] {
+  const edges: Edge[] = [];
 
-    const subState = states[key];
-    _edges.push(...getEdges(subState, visited));
-    visited[key] = true;
-    return _edges;
-  }, []);
-
-  if (!node.on) {
-    return subNodeEdges;
-  }
-
-  const edges = Object.keys(node.on).reduce((accEdges: IEdge[], event) => {
-    if (!node.on || !node.parent) {
-      return accEdges;
-    }
-
-    const { parent } = node;
-
-    const transition = node.on[event];
-
-    if (!transition) {
-      return accEdges;
-    }
-
-    const subStateKeys = getTransitionStateKeys(transition);
-    subStateKeys.forEach(subStateKey => {
-      const subNode = parent.getState(subStateKey) as StateNode;
-      const edge: IEdge = { event, source: node, target: subNode };
-
-      accEdges.push(edge);
-
-      if (!visited[subStateKey]) {
-        accEdges.push(...getEdges(subNode, visited));
-        visited[subStateKey] = true;
-      }
+  if (node.states) {
+    Object.keys(node.states).forEach(stateKey => {
+      edges.push(...getEdges(node.states[stateKey]));
     });
+  }
 
-    return accEdges;
-  }, []);
+  Object.keys(node.on).forEach(event => {
+    edges.push(...getEventEdges(node, event));
+  });
 
-  return subNodeEdges.concat(edges);
+  return edges;
 }
 
-export interface Segment {
-  state: StateValue;
-  event: Event;
-}
-
-export interface IPathMap {
-  [key: string]: Segment[];
-}
-
-export interface IPathItem {
-  state: StateValue;
-  path: Segment[];
-}
-
-export interface IPathsItem {
-  state: StateValue;
-  paths: Segment[][];
-}
-
-export interface IPathsMap {
-  [key: string]: Segment[][];
-}
-
-export interface ITransitionMap {
-  state: StateValue | undefined;
-}
-
-export interface IAdjacencyMap {
-  [stateId: string]: Record<string, ITransitionMap>;
-}
-
-export function getAdjacencyMap(node: Machine): IAdjacencyMap {
-  const adjacency: IAdjacencyMap = {};
+export function getAdjacencyMap(
+  node: Machine,
+  extendedState?: any
+): AdjacencyMap {
+  const adjacency: AdjacencyMap = {};
 
   const events = node.events;
 
@@ -137,7 +82,7 @@ export function getAdjacencyMap(node: Machine): IAdjacencyMap {
     adjacency[stateKey] = {};
 
     for (const event of events) {
-      const nextState = node.transition(stateValue, event);
+      const nextState = node.transition(stateValue, event, extendedState);
       adjacency[stateKey][event] = { state: nextState.value };
 
       findAdjacencies(nextState.value);
@@ -149,18 +94,21 @@ export function getAdjacencyMap(node: Machine): IAdjacencyMap {
   return adjacency;
 }
 
-export function getShortestPaths(machine: Machine): IPathMap {
-  if (!machine.states || !machine.initial) {
+export function getShortestPaths(
+  machine: Machine,
+  extendedState?: any
+): PathMap {
+  if (!machine.states) {
     return EMPTY_MAP;
   }
-  const adjacency = getAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine, extendedState);
   const initialStateId = JSON.stringify(machine.initialState.value);
-  const pathMap: IPathMap = {
+  const pathMap: PathMap = {
     [initialStateId]: []
   };
   const visited: Set<string> = new Set();
 
-  function util(stateValue: StateValue): IPathMap {
+  function util(stateValue: StateValue): PathMap {
     const stateId = JSON.stringify(stateValue);
     visited.add(stateId);
     const eventMap = adjacency[stateId];
@@ -172,7 +120,9 @@ export function getShortestPaths(machine: Machine): IPathMap {
         continue;
       }
 
-      const nextStateId = JSON.stringify(toTrie(nextStateValue));
+      const nextStateId = JSON.stringify(
+        toStateValue(nextStateValue, machine.delimiter)
+      );
 
       if (
         !pathMap[nextStateId] ||
@@ -209,23 +159,29 @@ export function getShortestPaths(machine: Machine): IPathMap {
   return pathMap;
 }
 
-export function getShortestPathsAsArray(machine: Machine): IPathItem[] {
-  const result = getShortestPaths(machine);
+export function getShortestPathsAsArray(
+  machine: Machine,
+  extendedState?: any
+): PathItem[] {
+  const result = getShortestPaths(machine, extendedState);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
   }));
 }
 
-export function getSimplePaths(machine: Machine): IPathsMap {
-  if (!machine.states || !machine.initial) {
+export function getSimplePaths(
+  machine: Machine,
+  extendedState?: any
+): PathsMap {
+  if (!machine.states) {
     return EMPTY_MAP;
   }
 
-  const adjacency = getAdjacencyMap(machine);
+  const adjacency = getAdjacencyMap(machine, extendedState);
   const visited = new Set();
   const path: Segment[] = [];
-  const paths: IPathsMap = {};
+  const paths: PathsMap = {};
 
   function util(fromPathId: string, toPathId: string) {
     visited.add(fromPathId);
@@ -263,8 +219,11 @@ export function getSimplePaths(machine: Machine): IPathsMap {
   return paths;
 }
 
-export function getSimplePathsAsArray(machine: Machine): IPathsItem[] {
-  const result = getSimplePaths(machine);
+export function getSimplePathsAsArray(
+  machine: Machine,
+  extendedState?: any
+): PathsItem[] {
+  const result = getSimplePaths(machine, extendedState);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     paths: result[key]

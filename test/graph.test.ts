@@ -4,12 +4,12 @@ import {
   getNodes,
   getEdges,
   getShortestPaths,
-  IPathMap,
   getSimplePaths,
   getAdjacencyMap,
   getShortestPathsAsArray,
   getSimplePathsAsArray
 } from '../src/graph';
+import { PathMap } from '../src/types';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
 
@@ -19,7 +19,11 @@ describe('graph utilities', () => {
     states: {
       walk: {
         on: {
-          PED_COUNTDOWN: 'wait'
+          PED_COUNTDOWN: {
+            wait: {
+              actions: ['startCountdown']
+            }
+          }
         }
       },
       wait: {
@@ -45,7 +49,7 @@ describe('graph utilities', () => {
       yellow: {
         on: {
           TIMER: 'red',
-          POWER_OUTAGE: 'red.flashing'
+          POWER_OUTAGE: '#light.red.flashing'
         }
       },
       red: {
@@ -55,6 +59,27 @@ describe('graph utilities', () => {
         },
         ...pedestrianStates
       }
+    }
+  });
+
+  const condMachine = Machine({
+    key: 'cond',
+    initial: 'pending',
+    states: {
+      pending: {
+        on: {
+          EVENT: [
+            { target: 'foo', cond: (_, e) => e.id === 'foo' },
+            { target: 'bar' }
+          ],
+          STATE: [
+            { target: 'foo', cond: s => s.id === 'foo' },
+            { target: 'bar' }
+          ]
+        }
+      },
+      foo: {},
+      bar: {}
     }
   });
 
@@ -132,40 +157,61 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
-          target: edge.target.id
+          target: edge.target.id,
+          actions: edge.actions
         })),
         [
-          { event: 'TIMER', source: 'light.green', target: 'light.yellow' },
-          { event: 'TIMER', source: 'light.yellow', target: 'light.red' },
+          {
+            event: 'TIMER',
+            source: 'light.green',
+            target: 'light.yellow',
+            actions: []
+          },
+          {
+            event: 'TIMER',
+            source: 'light.yellow',
+            target: 'light.red',
+            actions: []
+          },
           {
             event: 'PED_COUNTDOWN',
             source: 'light.red.walk',
-            target: 'light.red.wait'
+            target: 'light.red.wait',
+            actions: ['startCountdown']
           },
           {
             event: 'PED_COUNTDOWN',
             source: 'light.red.wait',
-            target: 'light.red.stop'
+            target: 'light.red.stop',
+            actions: []
           },
-          { event: 'TIMER', source: 'light.red', target: 'light.green' },
+          {
+            event: 'TIMER',
+            source: 'light.red',
+            target: 'light.green',
+            actions: []
+          },
           {
             event: 'POWER_OUTAGE',
             source: 'light.red',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           },
           {
             event: 'POWER_OUTAGE',
             source: 'light.yellow',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           },
           {
             event: 'POWER_OUTAGE',
             source: 'light.green',
-            target: 'light.red.flashing'
+            target: 'light.red.flashing',
+            actions: []
           }
         ]
       );
@@ -182,7 +228,7 @@ describe('graph utilities', () => {
           );
         })
       );
-      assert.deepEqual(
+      assert.sameDeepMembers(
         edges.map(edge => ({
           event: edge.event,
           source: edge.source.id,
@@ -283,13 +329,59 @@ describe('graph utilities', () => {
       });
     });
 
+    it('should return a mapping of shortest paths to all states (parallel)', () => {
+      assert.deepEqual(getShortestPaths(parallelMachine), {
+        '{"a":"a1","b":"b1"}': [],
+        '{"a":"a2","b":"b2"}': [
+          {
+            event: '2',
+            state: {
+              a: 'a1',
+              b: 'b1'
+            }
+          }
+        ],
+        '{"a":"a3","b":"b3"}': [
+          {
+            event: '3',
+            state: {
+              a: 'a1',
+              b: 'b1'
+            }
+          }
+        ]
+      });
+    });
+
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        (getShortestPaths(lightMachine) as IPathMap)[
+        (getShortestPaths(lightMachine) as PathMap)[
           JSON.stringify(lightMachine.initialState.value)
         ],
         0
       );
+    });
+
+    it('should not throw when a condition is present', () => {
+      assert.doesNotThrow(() => getShortestPaths(condMachine));
+    });
+
+    it('should represent conditional paths based on extended state', () => {
+      assert.deepEqual(getShortestPaths(condMachine, { id: 'foo' }), {
+        '"bar"': [
+          {
+            event: 'EVENT',
+            state: 'pending'
+          }
+        ],
+        '"foo"': [
+          {
+            event: 'STATE',
+            state: 'pending'
+          }
+        ],
+        '"pending"': []
+      });
     });
   });
 
@@ -393,6 +485,50 @@ describe('graph utilities', () => {
         a: { on: { FOO: 'b', BAR: 'b' } },
         b: { on: { FOO: 'a', BAR: 'a' } }
       }
+    });
+
+    it('should return a mapping of simple paths to all states (parallel)', () => {
+      assert.deepEqual(getSimplePaths(parallelMachine), {
+        '{"a":"a1","b":"b1"}': [[]],
+        '{"a":"a2","b":"b2"}': [
+          [
+            {
+              event: '2',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            }
+          ]
+        ],
+        '{"a":"a3","b":"b3"}': [
+          [
+            {
+              event: '2',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            },
+            {
+              event: '3',
+              state: {
+                a: 'a2',
+                b: 'b2'
+              }
+            }
+          ],
+          [
+            {
+              event: '3',
+              state: {
+                a: 'a1',
+                b: 'b1'
+              }
+            }
+          ]
+        ]
+      });
     });
 
     it('should return multiple paths for equivalent transitions', () => {

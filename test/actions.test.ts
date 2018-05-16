@@ -99,8 +99,35 @@ describe('onEntry/onExit actions', () => {
         initial: 'a1',
         states: {
           a1: {
+            on: {
+              NEXT: 'a2',
+              NEXT_FN: 'a3'
+            },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
+          },
+          a2: {
+            onEntry: 'enter_a2',
+            onExit: 'exit_a2'
+          },
+          a3: {
+            on: {
+              NEXT: {
+                a2: {
+                  actions: [
+                    function do_a3_to_a2() {
+                      return;
+                    }
+                  ]
+                }
+              }
+            },
+            onEntry: function enter_a3_fn() {
+              return;
+            },
+            onExit: function exit_a3_fn() {
+              return;
+            }
           }
         },
         onEntry: 'enter_a',
@@ -180,9 +207,12 @@ describe('onEntry/onExit actions', () => {
     });
 
     it('should exit and enter the state for self-transitions (deep)', () => {
+      // 'red' state resolves to 'red.walk'
       assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, [
+        'exit_walk',
         'exit_red',
-        'enter_red'
+        'enter_red',
+        'enter_walk'
       ]);
     });
 
@@ -191,8 +221,8 @@ describe('onEntry/onExit actions', () => {
         parallelMachine.transition(parallelMachine.initialState, 'CHANGE')
           .actions,
         [
-          'exit_b1',
           'exit_a1',
+          'exit_b1',
           'do_a2',
           'another_do_a2',
           'do_b2',
@@ -212,5 +242,103 @@ describe('onEntry/onExit actions', () => {
         'enter_b1'
       ]);
     });
+
+    it('should ignore parent state actions for same-parent substates', () => {
+      assert.deepEqual(deepMachine.transition('a.a1', 'NEXT').actions, [
+        'exit_a1',
+        'enter_a2'
+      ]);
+    });
+
+    it('should work with function actions', () => {
+      assert.deepEqual(
+        deepMachine
+          .transition(deepMachine.initialState, 'NEXT_FN')
+          .actions.map(
+            action => (typeof action === 'function' ? action.name : action)
+          ),
+        ['exit_a1', 'enter_a3_fn']
+      );
+
+      assert.deepEqual(
+        deepMachine
+          .transition('a.a3', 'NEXT')
+          .actions.map(
+            action => (typeof action === 'function' ? action.name : action)
+          ),
+        ['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']
+      );
+    });
+
+    describe('should ignore same-parent state actions (sparse)', () => {
+      const fooBar = {
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              TACK: 'bar',
+              ABSOLUTE_TACK: '#machine.ping.bar'
+            }
+          },
+          bar: {
+            on: {
+              TACK: 'foo'
+            }
+          }
+        }
+      };
+
+      const pingPong = Machine({
+        initial: 'ping',
+        key: 'machine',
+        states: {
+          ping: {
+            onEntry: ['entryEvent'],
+            on: {
+              TICK: 'pong'
+            },
+            ...fooBar
+          },
+          pong: {
+            on: {
+              TICK: 'ping'
+            }
+          }
+        }
+      });
+
+      it('with a relative transition', () => {
+        assert.isEmpty(pingPong.transition('ping.foo', 'TACK').actions);
+      });
+
+      it('with an absolute transition', () => {
+        assert.isEmpty(
+          pingPong.transition('ping.foo', 'ABSOLUTE_TACK').actions
+        );
+      });
+    });
+  });
+});
+
+describe('actions on invalid transition', () => {
+  const stopMachine = Machine({
+    initial: 'idle',
+    states: {
+      idle: {
+        on: {
+          STOP: {
+            stop: {
+              actions: ['action1']
+            }
+          }
+        }
+      },
+      stop: {}
+    }
+  });
+
+  it('should not recall previous actions', () => {
+    const nextState = stopMachine.transition('idle', 'STOP');
+    assert.isEmpty(stopMachine.transition(nextState, 'INVALID').actions);
   });
 });

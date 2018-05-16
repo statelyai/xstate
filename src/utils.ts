@@ -1,5 +1,5 @@
-import State from './State';
-import { Event, StateValue, EventType } from './types';
+import { State } from './State';
+import { Event, StateValue, EventType, ActionType, Action } from './types';
 
 export function getEventType(event: Event): EventType {
   try {
@@ -12,25 +12,51 @@ export function getEventType(event: Event): EventType {
     );
   }
 }
+export function getActionType(action: Action): ActionType {
+  try {
+    return typeof action === 'string' || typeof action === 'number'
+      ? `${action}`
+      : typeof action === 'function' ? action.name : action.type;
+  } catch (e) {
+    throw new Error(
+      'Events must be strings or objects with a string event.type property.'
+    );
+  }
+}
 
-export function toStatePath(stateId: string | string[]): string[] {
+export function toStatePath(
+  stateId: string | string[],
+  delimiter: string
+): string[] {
   try {
     if (Array.isArray(stateId)) {
       return stateId;
     }
 
-    return stateId.toString().split('.');
+    return stateId.toString().split(delimiter);
   } catch (e) {
     throw new Error(`'${stateId}' is not a valid state path.`);
   }
 }
 
-export function toTrie(stateValue: StateValue): StateValue {
+export function toStateValue(
+  stateValue: State | StateValue,
+  delimiter: string
+): StateValue {
+  if (stateValue instanceof State) {
+    return stateValue.value;
+  }
+
   if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
     return stateValue;
   }
 
-  const statePath = toStatePath(stateValue as string);
+  const statePath = toStatePath(stateValue as string, delimiter);
+
+  return pathToStateValue(statePath);
+}
+
+export function pathToStateValue(statePath: string[]): StateValue {
   if (statePath.length === 1) {
     return statePath[0];
   }
@@ -62,3 +88,64 @@ export function mapValues<T, P>(
 
   return result;
 }
+
+/**
+ * Retrieves a value at the given path.
+ * @param props The deep path to the prop of the desired value
+ */
+export const path = (props: string[]): any => <T extends Record<string, any>>(
+  object: T
+): any => {
+  let result: Record<string, any> = object;
+
+  for (const prop of props) {
+    result = result[prop];
+  }
+
+  return result;
+};
+
+export const toStatePaths = (stateValue: StateValue): string[][] => {
+  if (typeof stateValue === 'string') {
+    return [[stateValue]];
+  }
+
+  const result = flatMap(
+    Object.keys(stateValue).map(key => {
+      return toStatePaths(stateValue[key]).map(subPath => {
+        return [key].concat(subPath);
+      });
+    })
+  );
+
+  return result;
+};
+
+export const pathsToStateValue = (paths: string[][]): StateValue => {
+  const result: StateValue = {};
+
+  if (paths && paths.length === 1 && paths[0].length === 1) {
+    return paths[0][0];
+  }
+
+  for (const currentPath of paths) {
+    let marker = result;
+    // tslint:disable-next-line:prefer-for-of
+    for (let i = 0; i < currentPath.length; i++) {
+      const subPath = currentPath[i];
+
+      if (i === currentPath.length - 2) {
+        marker[subPath] = currentPath[i + 1];
+        break;
+      }
+      marker[subPath] = marker[subPath] || {};
+      marker = marker[subPath] as {};
+    }
+  }
+
+  return result;
+};
+
+export const flatMap = <T>(array: T[][]): T[] => {
+  return array.reduce((a, b) => a.concat(b), []);
+};

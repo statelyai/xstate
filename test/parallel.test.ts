@@ -2,60 +2,104 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 import { testMultiTransition } from './utils';
 
-describe('parallel states', () => {
-  const wordMachine = Machine({
-    parallel: true,
-    states: {
-      bold: {
-        initial: 'off',
-        states: {
-          on: {
-            on: { TOGGLE_BOLD: 'off' }
-          },
-          off: {
-            on: { TOGGLE_BOLD: 'on' }
-          }
+const wakMachine = Machine({
+  id: 'wakMachine',
+  parallel: true,
+  strict: true,
+  states: {
+    wak1: {
+      initial: 'wak1sonA',
+      states: {
+        wak1sonA: {
+          onEntry: 'wak1sonAenter',
+          onExit: 'wak1sonAexit'
+        },
+        wak1sonB: {
+          onEntry: 'wak1sonBenter',
+          onExit: 'wak1sonBexit'
         }
       },
-      underline: {
-        initial: 'off',
-        states: {
-          on: {
-            on: { TOGGLE_UNDERLINE: 'off' }
-          },
-          off: {
-            on: { TOGGLE_UNDERLINE: 'on' }
-          }
+      on: {
+        WAK1: '.wak1sonB'
+      },
+      onEntry: 'wak1enter',
+      onExit: 'wak1exit'
+    },
+    wak2: {
+      initial: 'wak2sonA',
+      states: {
+        wak2sonA: {
+          onEntry: 'wak2sonAenter',
+          onExit: 'wak2sonAexit'
+        },
+        wak2sonB: {
+          onEntry: 'wak2sonBenter',
+          onExit: 'wak2sonBexit'
         }
       },
-      italics: {
-        initial: 'off',
-        states: {
-          on: {
-            on: { TOGGLE_ITALICS: 'off' }
-          },
-          off: {
-            on: { TOGGLE_ITALICS: 'on' }
-          }
-        }
+      on: {
+        WAK2: '.wak2sonB'
       },
-      list: {
-        initial: 'none',
-        states: {
-          none: {
-            on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
-          },
-          bullets: {
-            on: { NONE: 'none', NUMBERS: 'numbers' }
-          },
-          numbers: {
-            on: { BULLETS: 'bullets', NONE: 'none' }
-          }
+      onEntry: 'wak2enter',
+      onExit: 'wak2exit'
+    }
+  }
+});
+
+const wordMachine = Machine({
+  parallel: true,
+  states: {
+    bold: {
+      initial: 'off',
+      states: {
+        on: {
+          on: { TOGGLE_BOLD: 'off' }
+        },
+        off: {
+          on: { TOGGLE_BOLD: 'on' }
+        }
+      }
+    },
+    underline: {
+      initial: 'off',
+      states: {
+        on: {
+          on: { TOGGLE_UNDERLINE: 'off' }
+        },
+        off: {
+          on: { TOGGLE_UNDERLINE: 'on' }
+        }
+      }
+    },
+    italics: {
+      initial: 'off',
+      states: {
+        on: {
+          on: { TOGGLE_ITALICS: 'off' }
+        },
+        off: {
+          on: { TOGGLE_ITALICS: 'on' }
+        }
+      }
+    },
+    list: {
+      initial: 'none',
+      states: {
+        none: {
+          on: { BULLETS: 'bullets', NUMBERS: 'numbers' }
+        },
+        bullets: {
+          on: { NONE: 'none', NUMBERS: 'numbers' }
+        },
+        numbers: {
+          on: { BULLETS: 'bullets', NONE: 'none' }
         }
       }
     }
-  });
+  }
+});
 
+describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
 
@@ -115,5 +159,17 @@ describe('parallel states', () => {
         assert.deepEqual(resultState.value, toState);
       });
     });
+  });
+
+  it('should have all parallel states represented in the state value', () => {
+    const nextState = wakMachine.transition(wakMachine.initialState, 'WAK1');
+
+    assert.deepEqual(nextState.value, { wak1: 'wak1sonB', wak2: 'wak2sonA' });
+  });
+
+  it('should have all parallel states represented in the state value (2)', () => {
+    const nextState = wakMachine.transition(wakMachine.initialState, 'WAK2');
+
+    assert.deepEqual(nextState.value, { wak1: 'wak1sonA', wak2: 'wak2sonB' });
   });
 });

@@ -1,14 +1,19 @@
-import { StateValue, Action } from './types';
-import { STATE_DELIMITER } from './constants';
-import { toTrie } from './utils';
+import {
+  StateValue,
+  ActivityMap,
+  EventObject,
+  Action,
+  StateInterface
+} from './types';
+import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
-export default class State {
+export class State implements StateInterface {
   public static from(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {
       return stateValue;
     }
 
-    return new State(toTrie(stateValue));
+    return new State(stateValue);
   }
   public static inert(stateValue: State | StateValue): State {
     if (stateValue instanceof State) {
@@ -20,10 +25,17 @@ export default class State {
 
     return State.from(stateValue);
   }
+
   constructor(
     public value: StateValue,
     public history?: State,
-    public actions: Action[] = []
+    public actions: Action[] = [],
+    public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
+    public data: Record<string, any> = {},
+    /**
+     * Internal event queue
+     */
+    public events: EventObject[] = []
   ) {}
   public toString(): string | undefined {
     if (typeof this.value === 'string') {

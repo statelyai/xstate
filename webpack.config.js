@@ -1,5 +1,6 @@
+const webpack = require('webpack');
+
 module.exports = {
-  entry: './lib/index.js',
   output: {
     library: 'xstate',
     libraryTarget: 'umd',
@@ -10,5 +11,5 @@ module.exports = {
   //     { test: /\.ts$/, loader: 'ts-loader' }
   //   ]
   // },
-  // plugins: []
+  plugins: [new webpack.optimize.ModuleConcatenationPlugin()]
 };
