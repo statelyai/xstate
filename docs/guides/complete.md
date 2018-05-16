@@ -278,7 +278,7 @@ const starWarsMachine = Machine({
     },
     fulfilled: {
       on: { REQUEST: 'pending' },
-      onEntry: 'log'
+      onEntry: 'logResult'
     },
     rejected: {
       on: { REQUEST: 'pending' }

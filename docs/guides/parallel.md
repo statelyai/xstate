@@ -79,7 +79,7 @@ const lightMachine = Machine({
       on: { TIMER: 'red' },
     },
     
-    // nested parallel machien
+    // nested parallel machine
     red: {
       parallel: true,
       states: {

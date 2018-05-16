@@ -106,6 +106,50 @@ console.log(searchAttempt3.actions);
 // => ['executeSearch']
 ```
 
+If you want to have a single event transition to different states in certain sitations you can supply an array of targets with conditions.
+
+For example you can model a door that listens for an `OPEN` event, and opens if you are an admin and error if you are not:
+
+```js
+const machine = new Machine({
+  id: 'door',
+  initial: 'closed',
+  states: {
+    closed: {
+      initial: 'idle',
+      states: {
+        'idle': {},
+        'error': {}
+      },
+      on: {
+        OPEN: [
+          { target: 'opened', cond: (extState) => extState.isAdmin },
+          { target: 'closed.error' }
+        ]
+      }
+    },
+    opened: {
+      on: {
+        CLOSE: 'closed',
+      }
+    },
+  }
+});
+
+const fullState = { isAdmin: true };
+
+const firstState = machine.initialState;
+const secondState = machine.transition(state, 'OPEN', fullState);
+console.log(secondState.value); // 'opened'
+
+const thirdState = machine.transition(state, 'CLOSE', fullState);
+console.log(thirdState.value); // { closed: 'idle' }
+
+fullState.isAdmin = false;
+const fouthState = machine.transition(state, 'OPEN', fullState);
+console.log(fouthState.value); // { closed: 'error' }
+```
+
 **Notes:**
 - The `cond` function should always be a pure function that only references the `extendedState` and `eventObject` arguments.
 - Functions are not (easily) serializable in JSON. In future versions of `xstate`, alternative syntax for `cond` statements as plain strings or structured objects will be introduced to make it serializable.

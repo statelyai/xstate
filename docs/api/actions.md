@@ -24,7 +24,7 @@ An `Action` can be a:
 
 ## `stateNode.onExit`
 
-(`Action | Action[]`) The action(s) to be executed upon entering the state.
+(`Action | Action[]`) The action(s) to be executed upon exiting the state.
 
 **Usage:** A state's `onExit` actions will be executed in the following scenarios:
 - When the state is a leaf state and is exited to go to a different state
