@@ -18,15 +18,43 @@ const testGroups = {
     'send3',
     'send4',
     'send7',
-    'send8' /* 'send9' */
+    'send8'
+    // 'send9' - edge case, since initial transitions in xstate are not microstepped
   ],
-  basic: ['basic1', 'basic2'],
+  assign: [], // not implemented
+  basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
+  data: [], // 4.0
   'default-initial-state': ['initial1', 'initial2'],
+  delayedSend: [], // 4.0
   documentOrder: ['documentOrder0'],
+  error: [], // not implemented
+  forEach: [], // not implemented
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
+  history: [], // todo
+  'if-else': [], // not implemented,
+  in: [
+    // 'TestInPredicate'
+  ], // todo
+  'internal-transitions': [
+    // 'test0',
+    // 'test1'
+  ], // not implemented yet (assign)
   misc: ['deep-initial'],
+  // 'more-parallel': [
+  //   'test0',
+  //   'test1',
+  //   'test2',
+  //   'test3',
+  //   'test4',
+  //   'test5',
+  //   'test6',
+  //   'test7',
+  //   'test8',
+  //   'test9',
+  //   'test10'
+  // ], // not well-formed tests
   parallel: [
     'test0',
     'test1'
@@ -50,6 +78,11 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   // let nextState: string | State = `#${test.initialConfiguration[0]}`;
   let nextState: StateValue | State = pathsToStateValue(
     test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+  );
+
+  console.log(
+    test.initialConfiguration.map(id => machine.getStateNodeById(id).path),
+    { nextState }
   );
 
   for (const { event, nextConfiguration } of test.events) {
