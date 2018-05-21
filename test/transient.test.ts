@@ -85,4 +85,72 @@ describe('transient states (eventless transitions)', () => {
 
     assert.deepEqual(state.actions, ['exit_A', 'timer', 'enter_B']);
   });
+
+  it('should execute all internal events one after the other', () => {
+    const machine = Machine({
+      parallel: true,
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                E: 'A2'
+              }
+            },
+            A2: {
+              onEntry: {
+                type: 'xstate.raise',
+                event: 'INT1'
+              }
+            }
+          }
+        },
+
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {
+              on: {
+                E: 'B2'
+              }
+            },
+            B2: {
+              onEntry: {
+                type: 'xstate.raise',
+                event: 'INT2'
+              }
+            }
+          }
+        },
+
+        C: {
+          initial: 'C1',
+          states: {
+            C1: {
+              on: {
+                INT1: 'C2',
+                INT2: 'C3'
+              }
+            },
+            C2: {
+              on: {
+                INT2: 'C4'
+              }
+            },
+            C3: {
+              on: {
+                INT1: 'C4'
+              }
+            },
+            C4: {}
+          }
+        }
+      }
+    });
+
+    const state = machine.transition(machine.initialState, 'E');
+
+    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C4' });
+  });
 });
