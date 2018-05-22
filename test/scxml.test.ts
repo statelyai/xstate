@@ -80,11 +80,6 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
     test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
   );
 
-  console.log(
-    test.initialConfiguration.map(id => machine.getStateNodeById(id).path),
-    { nextState }
-  );
-
   for (const { event, nextConfiguration } of test.events) {
     nextState = machine.transition(nextState, event.name);
 
