@@ -181,7 +181,7 @@ class StateNode implements StateNodeConfig {
     const next = stateNode._next(state, event, extendedState);
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, events, paths } = this._next(
         state,
         event,
         extendedState
@@ -199,6 +199,7 @@ class StateNode implements StateNodeConfig {
           ])
         },
         actions,
+        events,
         paths
       };
     }
@@ -222,7 +223,7 @@ class StateNode implements StateNodeConfig {
     );
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, events, paths } = this._next(
         state,
         event,
         extendedState
@@ -243,6 +244,7 @@ class StateNode implements StateNodeConfig {
           ])
         },
         actions,
+        events,
         paths
       };
     }
@@ -276,7 +278,7 @@ class StateNode implements StateNodeConfig {
     );
 
     if (!willTransition) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, events, paths } = this._next(
         state,
         event,
         extendedState
@@ -292,6 +294,7 @@ class StateNode implements StateNodeConfig {
           ])
         },
         actions,
+        events,
         paths
       };
     }
@@ -305,6 +308,12 @@ class StateNode implements StateNodeConfig {
       allPaths.length === 1 &&
       !matchesState(pathToStateValue(this.path), pathToStateValue(allPaths[0]))
     ) {
+      const actions = flatMap(
+        Object.keys(transitions).map(key => {
+          return transitions[key].actions;
+        })
+      );
+
       return {
         value: this.machine.resolve(pathsToStateValue(allPaths)),
         entryExitStates: Object.keys(transitions)
@@ -331,6 +340,8 @@ class StateNode implements StateNodeConfig {
             return transitions[key].actions;
           })
         ),
+        events: [], // TODO: fixme (use actions from above)
+        ...this.getActionsAndEvents(actions),
         paths: allPaths
       };
     }
@@ -389,6 +400,7 @@ class StateNode implements StateNodeConfig {
           return transitions[key].actions;
         })
       ),
+      events: [], // TODO: fixme (use actions from above)
       paths: toStatePaths(nextStateValue)
     };
   }
@@ -435,6 +447,7 @@ class StateNode implements StateNodeConfig {
         value: undefined,
         entryExitStates: undefined,
         actions: [],
+        events: [],
         paths: []
       };
     }
@@ -477,6 +490,7 @@ class StateNode implements StateNodeConfig {
         value: undefined,
         entryExitStates: undefined,
         actions: [],
+        events: [],
         paths: []
       };
     }
@@ -522,6 +536,7 @@ class StateNode implements StateNodeConfig {
       ),
       entryExitStates,
       actions,
+      events: [], // TODO: fixme (use actions from above)
       paths: nextStatePaths
     };
   }
@@ -599,11 +614,11 @@ class StateNode implements StateNodeConfig {
 
     return condFn(extendedState, eventObject);
   }
-  private _getActions(_t: _StateTransition): Action[] {
-    const _ees = {
-      entry: _t.entryExitStates
+  private _getActions(transition: _StateTransition): Action[] {
+    const entryExitStates = {
+      entry: transition.entryExitStates
         ? flatMap(
-            Array.from(_t.entryExitStates.entry).map(n => [
+            Array.from(transition.entryExitStates.entry).map(n => [
               ...n.onEntry,
               ...(n.activities
                 ? n.activities.map(activity => start(activity))
@@ -611,9 +626,9 @@ class StateNode implements StateNodeConfig {
             ])
           )
         : [],
-      exit: _t.entryExitStates
+      exit: transition.entryExitStates
         ? flatMap(
-            Array.from(_t.entryExitStates.exit).map(n => [
+            Array.from(transition.entryExitStates.exit).map(n => [
               ...n.onExit,
               ...(n.activities
                 ? n.activities.map(activity => stop(activity))
@@ -623,20 +638,23 @@ class StateNode implements StateNodeConfig {
         : []
     };
 
-    const actions = (_ees.exit || [])
-      .concat(_t.actions || [])
-      .concat(_ees.entry || []);
+    const actions = (entryExitStates.exit || [])
+      .concat(transition.actions || [])
+      .concat(entryExitStates.entry || []);
 
     return actions;
   }
-  private _getActivities(state: State, _t: _StateTransition): ActivityMap {
-    if (!_t.entryExitStates) {
+  private _getActivities(
+    state: State,
+    transition: _StateTransition
+  ): ActivityMap {
+    if (!transition.entryExitStates) {
       return {};
     }
 
     const activityMap = { ...state.activities };
 
-    Array.from(_t.entryExitStates.entry).forEach(stateNode => {
+    Array.from(transition.entryExitStates.entry).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -646,7 +664,7 @@ class StateNode implements StateNodeConfig {
       });
     });
 
-    Array.from(_t.entryExitStates.exit).forEach(stateNode => {
+    Array.from(transition.entryExitStates.exit).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -698,6 +716,18 @@ class StateNode implements StateNodeConfig {
     const actions = this._getActions(stateTransition);
     const activities = this._getActivities(currentState, stateTransition);
 
+    const raisedEvents = actions.filter(
+      action =>
+        typeof action === 'object' &&
+        (action.type === actionTypes.raise || action.type === actionTypes.null)
+    ) as ActionObject[];
+
+    const nonEventActions = actions.filter(
+      action =>
+        typeof action !== 'object' ||
+        (action.type !== actionTypes.raise && action.type !== actionTypes.null)
+    );
+
     const stateNodes = stateTransition.value
       ? this.getStateNodes(stateTransition.value!)
       : [];
@@ -711,9 +741,10 @@ class StateNode implements StateNodeConfig {
       ? new State(
           stateTransition.value,
           currentState,
-          actions,
+          nonEventActions,
           activities,
-          data
+          data,
+          raisedEvents
         )
       : undefined;
 
@@ -722,6 +753,23 @@ class StateNode implements StateNodeConfig {
       return State.inert(currentState);
     }
 
+    let maybeNextState = nextState;
+    while (raisedEvents.length) {
+      const currentActions = maybeNextState.actions;
+      const raisedEvent = raisedEvents.shift()!;
+      maybeNextState = this.transition(
+        maybeNextState,
+        raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
+        extendedState
+      );
+      maybeNextState.actions.unshift(...currentActions);
+    }
+
+    return maybeNextState;
+  }
+  private getActionsAndEvents(
+    actions: Action[]
+  ): { actions: Action[]; events: EventObject[] } {
     const raisedEvents = actions.filter(
       action =>
         typeof action === 'object' &&
@@ -734,29 +782,10 @@ class StateNode implements StateNodeConfig {
         (action.type !== actionTypes.raise && action.type !== actionTypes.null)
     );
 
-    nextState.value = stateTransition.value!;
-    nextState.actions = nonEventActions;
-    nextState.activities = activities;
-
-    if (raisedEvents.length) {
-      const raised =
-        raisedEvents[0].type === actionTypes.raise
-          ? raisedEvents[0].event!
-          : undefined;
-      const nullEvent = raisedEvents[0].type === actionTypes.null;
-
-      if (raised || nullEvent) {
-        const maybeNextState = this.transition(
-          nextState,
-          nullEvent ? NULL_EVENT : raised,
-          extendedState
-        );
-        maybeNextState.actions.unshift(...nextState.actions);
-        return maybeNextState;
-      }
-    }
-
-    return nextState;
+    return {
+      actions: nonEventActions,
+      events: raisedEvents
+    };
   }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<StateNode, StateNode[]>();
@@ -1074,7 +1103,8 @@ class StateNode implements StateNodeConfig {
       }
 
       if (typeof value === 'string') {
-        const internal = typeof value === 'string' && value[0] === '.';
+        const internal =
+          typeof value === 'string' && value[0] === this.delimiter;
         return [
           {
             target: internal ? this.key + value : value,
@@ -1084,10 +1114,11 @@ class StateNode implements StateNodeConfig {
       }
 
       return Object.keys(value).map(target => {
-        const internal = typeof target === 'string' && target[0] === '.';
+        const internal =
+          typeof target === 'string' && target[0] === this.delimiter;
 
         return {
-          target: internal ? this.key + '.' + target : target,
+          target: internal ? this.key + this.delimiter + target : target,
           internal,
           ...value[target]
         };
