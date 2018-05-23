@@ -153,4 +153,69 @@ describe('transient states (eventless transitions)', () => {
 
     assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C4' });
   });
+
+  it('should execute all eventless transitions in the same microstep', () => {
+    const machine = Machine({
+      parallel: true,
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                E: 'A2' // the external event
+              }
+            },
+            A2: {
+              on: {
+                '': 'A3'
+              }
+            },
+            A3: {
+              on: {
+                '': {
+                  A4: { in: 'B.B3' }
+                }
+              }
+            },
+            A4: {}
+          }
+        },
+
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {
+              on: {
+                E: 'B2'
+              }
+            },
+            B2: {
+              on: {
+                '': {
+                  B3: {
+                    in: 'A.A2'
+                  }
+                }
+              }
+            },
+            B3: {
+              on: {
+                '': {
+                  B4: {
+                    in: 'A.A3'
+                  }
+                }
+              }
+            },
+            B4: {}
+          }
+        }
+      }
+    });
+
+    const state = machine.transition(machine.initialState, 'E');
+
+    assert.deepEqual(state.value, { A: 'A4', B: 'B4' });
+  });
 });
