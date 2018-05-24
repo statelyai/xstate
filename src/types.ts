@@ -27,7 +27,8 @@ export type StateValue = string | StateValueMap;
 
 export type ConditionPredicate = (
   extendedState: any,
-  event: EventObject
+  event: EventObject,
+  microstepState: StateValue
 ) => boolean;
 
 export type Condition = string | ConditionPredicate;
