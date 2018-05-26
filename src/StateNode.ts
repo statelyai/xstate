@@ -25,7 +25,6 @@ import {
   StandardMachineConfig,
   TransitionConfig,
   ActivityMap,
-  StateNodeConfig,
   Activity,
   ConditionalTransitionConfig,
   EntryExitStates,
@@ -36,7 +35,8 @@ import {
   MachineOptions,
   Condition,
   ConditionPredicate,
-  EventObject
+  EventObject,
+  HistoryStateNodeConfig
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -56,13 +56,15 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
-class StateNode implements StateNodeConfig {
+class StateNode implements StateNode {
   public key: string;
   public id: string;
   public path: string[];
   public initial?: string;
   public parallel?: boolean;
   public states: Record<string, StateNode>;
+  public history: false | 'shallow' | 'deep';
+  public target: StateValue | undefined;
   public on: Record<string, ConditionalTransitionConfig>;
   public onEntry: Action[];
   public onExit: Action[];
@@ -120,6 +122,13 @@ class StateNode implements StateNodeConfig {
         })
       : {}) as Record<string, StateNode>;
 
+    // History config
+    this.history =
+      config.history === true ? 'shallow' : config.history || false;
+    if (this.history) {
+      this.target = (config as HistoryStateNodeConfig).target;
+    }
+
     this.on = config.on ? this.formatTransitions(config.on) : {};
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
@@ -135,6 +144,9 @@ class StateNode implements StateNodeConfig {
     this.activities = config.activities;
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
+    if (!state) {
+      return [];
+    }
     const stateValue =
       state instanceof State
         ? state.value
@@ -1043,6 +1055,7 @@ class StateNode implements StateNodeConfig {
       return this.getFromRelativePath(xs, historyValue);
     }
 
+    // TODO: remove (4.0)
     if (x === HISTORY_KEY) {
       if (!historyValue) {
         return [this];
@@ -1061,6 +1074,54 @@ class StateNode implements StateNodeConfig {
           return this.states[key].getFromRelativePath(xs, historyValue);
         })
       );
+    }
+
+    const childStateNode = this.getStateNode(x);
+
+    if (childStateNode.history) {
+      if (!historyValue) {
+        return childStateNode.target
+          ? childStateNode.history === 'deep'
+            ? flatMap(
+                toStatePaths(childStateNode.target).map(relativeChildPath =>
+                  this.getFromRelativePath(relativeChildPath, historyValue)
+                )
+              )
+            : flatMap(
+                toStatePaths(childStateNode.target).map(relativeChildPath =>
+                  this.getFromRelativePath(
+                    relativeChildPath.slice(0, 1),
+                    historyValue
+                  )
+                )
+              )
+          : [this];
+      } else {
+        const subHistoryValue = path(this.path)(historyValue);
+
+        if (typeof subHistoryValue === 'string') {
+          return this.states[subHistoryValue].getFromRelativePath(
+            xs,
+            historyValue
+          );
+        }
+
+        return flatMap(
+          toStatePaths(subHistoryValue).map(subStatePath => {
+            return childStateNode.history === 'deep'
+              ? this.getFromRelativePath(subStatePath)
+              : [this.states[subStatePath[0]]];
+          })
+        );
+
+        // return flatMap(
+        //   Object.keys(subHistoryValue).map(key => {
+        //     return childStateNode.history === 'deep'
+        //       ? this.states[key].getFromRelativePath(xs, historyValue)
+        //       : [this.states[key]];
+        //   })
+        // );
+      }
     }
 
     if (!this.states[x]) {
