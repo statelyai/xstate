@@ -207,10 +207,13 @@ describe('parallel history states', () => {
                 history: 'deep'
               }
             }
+          },
+          shallowHistory: {
+            history: 'shallow'
+          },
+          deepHistory: {
+            history: 'deep'
           }
-          // deepHistory: {
-          //   history: 'deep'
-          // }
         },
         on: {
           POWER: 'off'
@@ -240,7 +243,7 @@ describe('parallel history states', () => {
       });
     });
 
-    xit('should remember first level state history', () => {
+    it('should remember first level state history', () => {
       const stateOff = historyMachine.transition(stateACDKL, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEP_POWER').value,
@@ -250,20 +253,10 @@ describe('parallel history states', () => {
       );
     });
 
-    xit('should re-enter each regions of parallel state correctly', () => {
+    it('should re-enter each regions of parallel state correctly', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
       assert.deepEqual(
         historyMachine.transition(stateOff, 'DEEP_POWER').value,
-        {
-          on: { A: { C: 'D' }, K: { M: 'N' } }
-        }
-      );
-    });
-
-    xit('should retain all regions of parallel state', () => {
-      const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
-      assert.deepEqual(
-        historyMachine.transition(stateOff, 'DEEPEST_POWER').value,
         {
           on: { A: { C: 'E' }, K: { M: 'O' } }
         }

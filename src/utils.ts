@@ -89,6 +89,26 @@ export function mapValues<T, P>(
   return result;
 }
 
+export function mapFilterValues<T, P>(
+  collection: { [key: string]: T },
+  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P,
+  predicate: (item: T) => boolean
+): { [key: string]: P } {
+  const result = {};
+
+  Object.keys(collection).forEach(key => {
+    const item = collection[key];
+
+    if (!predicate(item)) {
+      return;
+    }
+
+    result[key] = iteratee(item, key, collection);
+  });
+
+  return result;
+}
+
 /**
  * Retrieves a value at the given path.
  * @param props The deep path to the prop of the desired value

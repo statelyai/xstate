@@ -8,7 +8,8 @@ import {
   pathsToStateValue,
   pathToStateValue,
   getActionType,
-  flatMap
+  flatMap,
+  mapFilterValues
 } from './utils';
 import {
   Event,
@@ -492,7 +493,13 @@ class StateNode implements StateNode {
         : true;
 
       if (
-        (!cond || this._evaluateCond(cond, extendedStateObject, eventObject, state.value)) &&
+        (!cond ||
+          this._evaluateCond(
+            cond,
+            extendedStateObject,
+            eventObject,
+            state.value
+          )) &&
         (!stateIn || isInState)
       ) {
         nextStateStrings = Array.isArray(candidate.target)
@@ -909,9 +916,10 @@ class StateNode implements StateNode {
 
     if (this.parallel) {
       return {
-        [key]: mapValues(
+        [key]: mapFilterValues(
           this.states,
-          stateNode => stateNode.resolvedStateValue[stateNode.key]
+          stateNode => stateNode.resolvedStateValue[stateNode.key],
+          stateNode => !stateNode.history
         )
       };
     }
@@ -946,9 +954,10 @@ class StateNode implements StateNode {
     }
 
     const initialStateValue = (this.parallel
-      ? mapValues(
+      ? mapFilterValues(
           this.states as Record<string, StateNode>,
-          state => state.initialStateValue || {}
+          state => state.initialStateValue || {},
+          stateNode => !stateNode.history
         )
       : typeof this.resolvedStateValue === 'string'
         ? undefined
