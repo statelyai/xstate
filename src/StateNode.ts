@@ -492,7 +492,7 @@ class StateNode implements StateNode {
         : true;
 
       if (
-        (!cond || this._evaluateCond(cond, extendedStateObject, eventObject)) &&
+        (!cond || this._evaluateCond(cond, extendedStateObject, eventObject, state.value)) &&
         (!stateIn || isInState)
       ) {
         nextStateStrings = Array.isArray(candidate.target)
@@ -614,7 +614,8 @@ class StateNode implements StateNode {
   private _evaluateCond(
     condition: Condition,
     extendedState: any,
-    eventObject: EventObject
+    eventObject: EventObject,
+    interimState: StateValue
   ): boolean {
     let condFn: ConditionPredicate;
 
@@ -631,7 +632,7 @@ class StateNode implements StateNode {
       condFn = condition;
     }
 
-    return condFn(extendedState, eventObject);
+    return condFn(extendedState, eventObject, interimState);
   }
   private _getActions(transition: _StateTransition): Action[] {
     const entryExitStates = {
