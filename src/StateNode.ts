@@ -270,7 +270,14 @@ class StateNode implements StateNode {
     extendedState?: any
   ): _StateTransition {
     const noTransitionKeys: string[] = [];
-    const transitions = mapValues(stateValue, (subStateValue, subStateKey) => {
+    const transitions: Record<string, _StateTransition> = {};
+    Object.keys(stateValue).forEach(subStateKey => {
+      const subStateValue = stateValue[subStateKey];
+
+      if (!subStateValue) {
+        return;
+      }
+
       const next = this.getStateNode(subStateKey)._transition(
         subStateValue,
         state,
@@ -282,7 +289,7 @@ class StateNode implements StateNode {
         noTransitionKeys.push(subStateKey);
       }
 
-      return next;
+      transitions[subStateKey] = next;
     });
 
     const willTransition = Object.keys(transitions).some(
@@ -880,15 +887,19 @@ class StateNode implements StateNode {
       return mapValues(
         this.initialStateValue as Record<string, StateValue>,
         (subStateValue, subStateKey) => {
-          return this.getStateNode(subStateKey).resolve(
-            stateValue[subStateKey] || subStateValue
-          );
+          return subStateValue
+            ? this.getStateNode(subStateKey).resolve(
+                stateValue[subStateKey] || subStateValue
+              )
+            : {};
         }
       );
     }
 
     return mapValues(stateValue, (subStateValue, subStateKey) => {
-      return this.getStateNode(subStateKey).resolve(subStateValue);
+      return subStateValue
+        ? this.getStateNode(subStateKey).resolve(subStateValue)
+        : {};
     });
   }
 
@@ -929,16 +940,18 @@ class StateNode implements StateNode {
     return toStatePath(stateIdentifier, this.delimiter);
   }
   private get initialStateValue(): StateValue | undefined {
-    const initialStateValue =
-      this.__cache.initialState ||
-      ((this.parallel
-        ? mapValues(
-            this.states as Record<string, StateNode>,
-            state => state.initialStateValue
-          )
-        : typeof this.resolvedStateValue === 'string'
-          ? undefined
-          : this.resolvedStateValue[this.key]) as StateValue);
+    if (this.__cache.initialState) {
+      return this.__cache.initialState;
+    }
+
+    const initialStateValue = (this.parallel
+      ? mapValues(
+          this.states as Record<string, StateNode>,
+          state => state.initialStateValue || {}
+        )
+      : typeof this.resolvedStateValue === 'string'
+        ? undefined
+        : this.resolvedStateValue[this.key]) as StateValue;
 
     this.__cache.initialState = initialStateValue;
 

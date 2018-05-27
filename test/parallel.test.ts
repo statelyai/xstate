@@ -99,6 +99,21 @@ const wordMachine = Machine({
   }
 });
 
+const flatParallelMachine = Machine({
+  parallel: true,
+  states: {
+    foo: {},
+    bar: {},
+    baz: {
+      initial: 'one',
+      states: {
+        one: { on: { E: 'two' } },
+        two: {}
+      }
+    }
+  }
+});
+
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
@@ -171,5 +186,25 @@ describe('parallel states', () => {
     const nextState = wakMachine.transition(wakMachine.initialState, 'WAK2');
 
     assert.deepEqual(nextState.value, { wak1: 'wak1sonA', wak2: 'wak2sonB' });
+  });
+
+  it('should work with regions without states', () => {
+    assert.deepEqual(flatParallelMachine.initialState.value, {
+      foo: {},
+      bar: {},
+      baz: 'one'
+    });
+  });
+
+  it('should work with regions without states', () => {
+    const nextState = flatParallelMachine.transition(
+      flatParallelMachine.initialState,
+      'E'
+    );
+    assert.deepEqual(nextState.value, {
+      foo: {},
+      bar: {},
+      baz: 'two'
+    });
   });
 });
