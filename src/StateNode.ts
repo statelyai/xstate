@@ -65,7 +65,6 @@ class StateNode implements StateNode {
   public parallel?: boolean;
   public states: Record<string, StateNode>;
   public history: false | 'shallow' | 'deep';
-  public target: StateValue | undefined;
   public on: Record<string, ConditionalTransitionConfig>;
   public onEntry: Action[];
   public onExit: Action[];
@@ -126,9 +125,6 @@ class StateNode implements StateNode {
     // History config
     this.history =
       config.history === true ? 'shallow' : config.history || false;
-    if (this.history) {
-      this.target = (config as HistoryStateNodeConfig).target;
-    }
 
     this.on = config.on ? this.formatTransitions(config.on) : {};
     this.strict = !!config.strict;
@@ -993,6 +989,25 @@ class StateNode implements StateNode {
 
     return new State(initialStateValue, undefined, actions, activityMap);
   }
+  public get target(): StateValue | undefined {
+    let target;
+    if (this.history) {
+      const historyConfig = this.config as HistoryStateNodeConfig;
+      if (historyConfig.target && typeof historyConfig.target === 'string') {
+        target = isStateId(historyConfig.target)
+          ? pathToStateValue(
+              this.machine
+                .getStateNodeById(historyConfig.target)
+                .path.slice(this.path.length - 1)
+            )
+          : historyConfig.target;
+      } else {
+        target = historyConfig.target;
+      }
+    }
+
+    return target;
+  }
   public getStates(stateValue: StateValue): StateNode[] {
     if (typeof stateValue === 'string') {
       return [this.states[stateValue]];
@@ -1024,7 +1039,9 @@ class StateNode implements StateNode {
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
       return resolve
-        ? unresolvedStateNode.initialStateNodes
+        ? unresolvedStateNode.history
+          ? unresolvedStateNode.resolveHistory(historyValue)
+          : unresolvedStateNode.initialStateNodes
         : [unresolvedStateNode];
     }
 
@@ -1102,49 +1119,7 @@ class StateNode implements StateNode {
     const childStateNode = this.getStateNode(x);
 
     if (childStateNode.history) {
-      if (!historyValue) {
-        return childStateNode.target
-          ? childStateNode.history === 'deep'
-            ? flatMap(
-                toStatePaths(childStateNode.target).map(relativeChildPath =>
-                  this.getFromRelativePath(relativeChildPath, historyValue)
-                )
-              )
-            : flatMap(
-                toStatePaths(childStateNode.target).map(relativeChildPath =>
-                  this.getFromRelativePath(
-                    relativeChildPath.slice(0, 1),
-                    historyValue
-                  )
-                )
-              )
-          : [this];
-      } else {
-        const subHistoryValue = path(this.path)(historyValue);
-
-        if (typeof subHistoryValue === 'string') {
-          return this.states[subHistoryValue].getFromRelativePath(
-            xs,
-            historyValue
-          );
-        }
-
-        return flatMap(
-          toStatePaths(subHistoryValue).map(subStatePath => {
-            return childStateNode.history === 'deep'
-              ? this.getFromRelativePath(subStatePath)
-              : [this.states[subStatePath[0]]];
-          })
-        );
-
-        // return flatMap(
-        //   Object.keys(subHistoryValue).map(key => {
-        //     return childStateNode.history === 'deep'
-        //       ? this.states[key].getFromRelativePath(xs, historyValue)
-        //       : [this.states[key]];
-        //   })
-        // );
-      }
+      return childStateNode.resolveHistory(historyValue);
     }
 
     if (!this.states[x]) {
@@ -1152,6 +1127,37 @@ class StateNode implements StateNode {
     }
 
     return this.states[x].getFromRelativePath(xs, historyValue);
+  }
+  private resolveHistory(historyValue?: StateValue): StateNode[] {
+    if (!this.history) {
+      return [this];
+    }
+
+    const parent = this.parent!;
+
+    if (!historyValue) {
+      return this.target
+        ? flatMap(
+            toStatePaths(this.target).map(relativeChildPath =>
+              parent.getFromRelativePath(relativeChildPath, historyValue)
+            )
+          )
+        : this.parent!.initialStateNodes;
+    } else {
+      const subHistoryValue = path(parent.path)(historyValue);
+
+      if (typeof subHistoryValue === 'string') {
+        return [parent.getStateNode(subHistoryValue)];
+      }
+
+      return flatMap(
+        toStatePaths(subHistoryValue).map(subStatePath => {
+          return this.history === 'deep'
+            ? parent.getFromRelativePath(subStatePath)
+            : [parent.states[subStatePath[0]]];
+        })
+      );
+    }
   }
   get events(): EventType[] {
     if (this.__cache.events) {

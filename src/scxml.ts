@@ -211,10 +211,37 @@ function toConfig(
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   let states: Record<string, any>;
   let on: Record<string, any>;
+  const { elements } = nodeJson;
+
+  switch (nodeJson.name) {
+    case 'history': {
+      if (!elements) {
+        return {
+          id,
+          history: nodeJson.attributes!.type || 'shallow'
+        };
+      }
+
+      const [transitionElement] = elements.filter(
+        element => element.name === 'transition'
+      );
+
+      return {
+        id,
+        history: nodeJson.attributes!.type || 'shallow',
+        target: `#${transitionElement.attributes!.target}`
+      };
+    }
+    default:
+      break;
+  }
 
   if (nodeJson.elements) {
     const stateElements = nodeJson.elements.filter(
-      element => element.name === 'state' || element.name === 'parallel'
+      element =>
+        element.name === 'state' ||
+        element.name === 'parallel' ||
+        element.name === 'history'
     );
 
     const transitionElements = nodeJson.elements.filter(
