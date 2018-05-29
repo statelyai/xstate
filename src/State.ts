@@ -20,7 +20,12 @@ export class State implements StateInterface {
       if (!stateValue.actions.length) {
         return stateValue;
       }
-      return new State(stateValue.value, stateValue.history, []);
+      return new State(
+        stateValue.value,
+        stateValue.history,
+        [],
+        stateValue.activities
+      );
     }
 
     return State.from(stateValue);
