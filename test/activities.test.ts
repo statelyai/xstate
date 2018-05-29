@@ -35,6 +35,31 @@ const lightMachine = Machine({
   }
 });
 
+describe('something activities', () => {
+  const machine = Machine({
+    initial: 'A',
+    states: {
+      A: {
+        on: {
+          E: 'B'
+        }
+      },
+      B: {
+        on: {
+          '': [{ cond: () => false, target: 'A' }]
+        },
+        activities: ['B_ACTIVITY']
+      }
+    }
+  });
+
+  it('should activate even if there are subsequent automatic, but blocked transitions', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'E');
+    assert.deepEqual(state.activities, { B_ACTIVITY: true });
+  });
+});
+
 describe('activities', () => {
   it('identifies initial activities', () => {
     const { initialState } = lightMachine;
