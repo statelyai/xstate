@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, matchesState } from '../src/index';
 import { assert } from 'chai';
 
 describe('transient states (eventless transitions)', () => {
@@ -217,5 +217,54 @@ describe('transient states (eventless transitions)', () => {
     const state = machine.transition(machine.initialState, 'E');
 
     assert.deepEqual(state.value, { A: 'A4', B: 'B4' });
+  });
+
+  it('should check for automatic transitions even after microsteps are done', () => {
+    const machine = Machine({
+      parallel: true,
+      states: {
+        A: {
+          initial: 'A1',
+          states: {
+            A1: {
+              on: {
+                A: 'A2'
+              }
+            },
+            A2: {}
+          }
+        },
+        B: {
+          initial: 'B1',
+          states: {
+            B1: {
+              on: {
+                '': {
+                  B2: { cond: (_xs, _e, cs) => matchesState('A.A2', cs) }
+                }
+              }
+            },
+            B2: {}
+          }
+        },
+        C: {
+          initial: 'C1',
+          states: {
+            C1: {
+              on: {
+                '': {
+                  C2: { in: 'A.A2' }
+                }
+              }
+            },
+            C2: {}
+          }
+        }
+      }
+    });
+
+    let state = machine.initialState; // A1, B1, C1
+    state = machine.transition(state, 'A'); // A2, B2, C2
+    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C2' });
   });
 });
