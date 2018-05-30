@@ -32,15 +32,15 @@ const testGroups = {
   forEach: [], // not implemented
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
-  history: [], // todo
-  'if-else': [], // not implemented,
-  in: [
-    // 'TestInPredicate'
-  ], // todo
-  'internal-transitions': [
-    // 'test0',
-    // 'test1'
-  ], // not implemented yet (assign)
+  history: [
+    'history0',
+    'history1',
+    'history2',
+    'history3'
+    // 'history4'
+    // 'history5'
+    // 'history6'
+  ],
   misc: ['deep-initial'],
   // 'more-parallel': [
   //   'test0',
@@ -80,15 +80,15 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
     test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
   );
 
-  for (const { event, nextConfiguration } of test.events) {
+  test.events.forEach(({ event, nextConfiguration }, i) => {
     nextState = machine.transition(nextState, event.name);
 
     const stateIds = machine
       .getStateNodes(nextState)
       .map(stateNode => stateNode.id);
 
-    assert.include(stateIds, nextConfiguration[0]);
-  }
+    assert.include(stateIds, nextConfiguration[0], `run ${i}`);
+  });
 }
 
 function evalCond(expr: string) {
@@ -120,7 +120,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        // console.log(util.inspect(machine, false, 10));
+        // console.dir(machine, { depth: null });
         runTestToCompletion(Machine(machine), scxmlTest);
       });
     });

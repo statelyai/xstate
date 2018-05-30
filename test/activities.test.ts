@@ -35,6 +35,57 @@ const lightMachine = Machine({
   }
 });
 
+describe('activities with guarded transitions', () => {
+  const machine = Machine({
+    initial: 'A',
+    states: {
+      A: {
+        on: {
+          E: 'B'
+        }
+      },
+      B: {
+        on: {
+          '': [{ cond: () => false, target: 'A' }]
+        },
+        activities: ['B_ACTIVITY']
+      }
+    }
+  });
+
+  it('should activate even if there are subsequent automatic, but blocked transitions', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'E');
+    assert.deepEqual(state.activities, { B_ACTIVITY: true });
+  });
+});
+
+describe('remembering activities', () => {
+  const machine = Machine({
+    initial: 'A',
+    states: {
+      A: {
+        on: {
+          E: 'B'
+        }
+      },
+      B: {
+        on: {
+          E: 'A'
+        },
+        activities: ['B_ACTIVITY']
+      }
+    }
+  });
+
+  it('should remember the activities even after an event', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'E');
+    state = machine.transition(state, 'IGNORE');
+    assert.deepEqual(state.activities, { B_ACTIVITY: true });
+  });
+});
+
 describe('activities', () => {
   it('identifies initial activities', () => {
     const { initialState } = lightMachine;
@@ -90,5 +141,92 @@ describe('activities', () => {
       start('fadeInGreen'),
       stop('activateCrosswalkLight')
     ]);
+  });
+});
+
+describe('transient activities', () => {
+  const machine = Machine({
+    parallel: true,
+    states: {
+      A: {
+        activities: ['A'],
+        initial: 'A1',
+        states: {
+          A1: {
+            activities: ['A1'],
+            on: {
+              A: 'AWAIT'
+            }
+          },
+          AWAIT: {
+            activities: ['AWAIT'],
+            on: {
+              '': 'A2'
+            }
+          },
+          A2: {
+            activities: ['A2'],
+            on: {
+              A: 'A1'
+            }
+          }
+        },
+        on: {
+          A1: '.A1',
+          A2: '.A2'
+        }
+      },
+      B: {
+        initial: 'B1',
+        activities: ['B'],
+        states: {
+          B1: {
+            activities: ['B1'],
+            on: {
+              '': [
+                {
+                  in: 'A.AWAIT',
+                  target: 'B2'
+                }
+              ],
+              B: 'B2'
+            }
+          },
+          B2: {
+            activities: ['B2'],
+            on: {
+              B: 'B1'
+            }
+          }
+        },
+        on: {
+          B1: '.B1',
+          B2: '.B2'
+        }
+      }
+    }
+  });
+
+  it('should have started initial activities', () => {
+    let state = machine.initialState;
+    assert.deepEqual(state.activities.A, true);
+  });
+
+  it('should have started deep initial activities', () => {
+    let state = machine.initialState;
+    assert.deepEqual(state.activities.A1, true);
+  });
+
+  it('should have kept existing activities', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'A');
+    assert.deepEqual(state.activities.A, true);
+  });
+
+  it('should have stopped after automatic transitions', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'A');
+    assert.deepEqual(state.value, { A: 'A2', B: 'B2' });
+    assert.deepEqual(state.activities.B2, true);
   });
 });

@@ -27,7 +27,8 @@ export type StateValue = string | StateValueMap;
 
 export type ConditionPredicate = (
   extendedState: any,
-  event: EventObject
+  event: EventObject,
+  microstepState: StateValue
 ) => boolean;
 
 export type Condition = string | ConditionPredicate;
@@ -56,6 +57,12 @@ export interface StateNodeConfig {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
+  /**
+   * Indicates whether the state node is a history state node, and what
+   * type of history:
+   * shallow, deep, true (shallow), false (none), undefined (none)
+   */
+  history?: 'shallow' | 'deep' | boolean | undefined;
   states?: Record<string, SimpleOrCompoundStateNodeConfig> | undefined;
   on?: Record<string, Transition | undefined>;
   onEntry?: Action | Action[];
@@ -73,10 +80,16 @@ export interface SimpleStateNodeConfig extends StateNodeConfig {
   states?: undefined;
 }
 
+export interface HistoryStateNodeConfig extends SimpleStateNodeConfig {
+  history: 'shallow' | 'deep' | true;
+  target: StateValue | undefined;
+}
+
 export interface CompoundStateNodeConfig extends StateNodeConfig {
   initial?: string;
   parallel?: boolean;
   states: Record<string, SimpleOrCompoundStateNodeConfig>;
+  history?: false | undefined;
 }
 
 export type SimpleOrCompoundStateNodeConfig =
@@ -89,6 +102,7 @@ export interface MachineOptions {
 export interface MachineConfig extends CompoundStateNodeConfig {
   key?: string;
   strict?: boolean;
+  history?: false | undefined;
 }
 export interface StandardMachineConfig extends MachineConfig {
   initial: string;
@@ -111,6 +125,8 @@ export interface StateNode {
   id: string;
   initial: string | undefined;
   parallel: boolean;
+  transient: boolean;
+  history: false | 'shallow' | 'deep';
   states: Record<string, StateNode>;
   on?: Record<string, Transition>;
   onEntry?: Action | Action[];
@@ -121,6 +137,7 @@ export interface StateNode {
 
 export interface ComplexStateNode extends StateNode {
   initial: string;
+  history: false;
 }
 
 export interface LeafStateNode extends StateNode {
@@ -128,6 +145,11 @@ export interface LeafStateNode extends StateNode {
   parallel: never;
   states: never;
   parent: StateNode;
+}
+
+export interface HistoryStateNode extends StateNode {
+  history: 'shallow' | 'deep';
+  target: StateValue | undefined;
 }
 
 export interface Machine extends StateNode {
