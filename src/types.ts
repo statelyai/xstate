@@ -202,7 +202,6 @@ export interface _StateTransition {
   value: StateValue | undefined;
   entryExitStates: EntryExitStates | undefined;
   actions: Action[];
-  events: EventObject[];
   paths: string[][];
 }
 

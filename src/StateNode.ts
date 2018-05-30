@@ -187,7 +187,7 @@ class StateNode implements StateNode {
     const next = stateNode._next(state, event, extendedState);
 
     if (!next.value) {
-      const { value, entryExitStates, actions, events, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this._next(
         state,
         event,
         extendedState
@@ -205,7 +205,6 @@ class StateNode implements StateNode {
           ])
         },
         actions,
-        events,
         paths
       };
     }
@@ -229,7 +228,7 @@ class StateNode implements StateNode {
     );
 
     if (!next.value) {
-      const { value, entryExitStates, actions, events, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this._next(
         state,
         event,
         extendedState
@@ -250,7 +249,6 @@ class StateNode implements StateNode {
           ])
         },
         actions,
-        events,
         paths
       };
     }
@@ -291,7 +289,7 @@ class StateNode implements StateNode {
     );
 
     if (!willTransition) {
-      const { value, entryExitStates, actions, events, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this._next(
         state,
         event,
         extendedState
@@ -307,7 +305,6 @@ class StateNode implements StateNode {
           ])
         },
         actions,
-        events,
         paths
       };
     }
@@ -321,12 +318,6 @@ class StateNode implements StateNode {
       allPaths.length === 1 &&
       !matchesState(pathToStateValue(this.path), pathToStateValue(allPaths[0]))
     ) {
-      const actions = flatMap(
-        Object.keys(transitions).map(key => {
-          return transitions[key].actions;
-        })
-      );
-
       return {
         value: this.machine.resolve(pathsToStateValue(allPaths)),
         entryExitStates: Object.keys(transitions)
@@ -353,8 +344,6 @@ class StateNode implements StateNode {
             return transitions[key].actions;
           })
         ),
-        events: [], // TODO: remove
-        ...this.getActionsAndEvents(actions),
         paths: allPaths
       };
     }
@@ -413,7 +402,6 @@ class StateNode implements StateNode {
           return transitions[key].actions;
         })
       ),
-      events: [], // TODO: remove
       paths: toStatePaths(nextStateValue)
     };
   }
@@ -462,7 +450,6 @@ class StateNode implements StateNode {
         value: undefined,
         entryExitStates: undefined,
         actions,
-        events: [], // TODO: remove
         paths: []
       };
     }
@@ -510,7 +497,6 @@ class StateNode implements StateNode {
         value: undefined,
         entryExitStates: undefined,
         actions,
-        events: [], // TODO: remove
         paths: []
       };
     }
@@ -556,7 +542,6 @@ class StateNode implements StateNode {
       ),
       entryExitStates,
       actions,
-      events: [], // TODO: remove
       paths: nextStatePaths
     };
   }
@@ -791,26 +776,6 @@ class StateNode implements StateNode {
     }
 
     return maybeNextState;
-  }
-  private getActionsAndEvents(
-    actions: Action[]
-  ): { actions: Action[]; events: EventObject[] } {
-    const raisedEvents = actions.filter(
-      action =>
-        typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as ActionObject[];
-
-    const nonEventActions = actions.filter(
-      action =>
-        typeof action !== 'object' ||
-        (action.type !== actionTypes.raise && action.type !== actionTypes.null)
-    );
-
-    return {
-      actions: nonEventActions,
-      events: raisedEvents
-    };
   }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<StateNode, StateNode[]>();
