@@ -63,6 +63,7 @@ class StateNode implements StateNode {
   public path: string[];
   public initial?: string;
   public parallel?: boolean;
+  public transient: boolean;
   public states: Record<string, StateNode>;
   public history: false | 'shallow' | 'deep';
   public on: Record<string, ConditionalTransitionConfig>;
@@ -127,15 +128,11 @@ class StateNode implements StateNode {
       config.history === true ? 'shallow' : config.history || false;
 
     this.on = config.on ? this.formatTransitions(config.on) : {};
+    this.transient = !!this.on[NULL_EVENT];
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
       ? ([] as Action[]).concat(config.onEntry)
       : [];
-
-    if (this.on[NULL_EVENT]) {
-      this.onEntry.push({ type: actionTypes.null });
-    }
-
     this.onExit = config.onExit ? ([] as Action[]).concat(config.onExit) : [];
     this.data = config.data;
     this.activities = config.activities;
@@ -356,7 +353,7 @@ class StateNode implements StateNode {
             return transitions[key].actions;
           })
         ),
-        events: [], // TODO: fixme (use actions from above)
+        events: [], // TODO: remove
         ...this.getActionsAndEvents(actions),
         paths: allPaths
       };
@@ -416,7 +413,7 @@ class StateNode implements StateNode {
           return transitions[key].actions;
         })
       ),
-      events: [], // TODO: fixme (use actions from above)
+      events: [], // TODO: remove
       paths: toStatePaths(nextStateValue)
     };
   }
@@ -455,21 +452,22 @@ class StateNode implements StateNode {
     extendedState?: any
   ): _StateTransition {
     const eventType = getEventType(event);
-
     const candidates = this.on[eventType];
+    const actions: Action[] = this.transient
+      ? [{ type: actionTypes.null }]
+      : [];
 
     if (!candidates || !candidates.length) {
       return {
         value: undefined,
         entryExitStates: undefined,
-        actions: [],
-        events: [],
+        actions,
+        events: [], // TODO: remove
         paths: []
       };
     }
 
     let nextStateStrings: string[] = [];
-    let actions: Action[] = [];
     let selectedTransition: TargetTransitionConfig;
 
     for (const candidate of candidates) {
@@ -501,7 +499,7 @@ class StateNode implements StateNode {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
           : [candidate.target];
-        actions = candidate.actions || []; // TODO: fixme;
+        actions.push(...(candidate.actions ? candidate.actions : [])); // TODO: fixme;
         selectedTransition = candidate;
         break;
       }
@@ -511,8 +509,8 @@ class StateNode implements StateNode {
       return {
         value: undefined,
         entryExitStates: undefined,
-        actions: [],
-        events: [],
+        actions,
+        events: [], // TODO: remove
         paths: []
       };
     }
@@ -558,7 +556,7 @@ class StateNode implements StateNode {
       ),
       entryExitStates,
       actions,
-      events: [], // TODO: fixme (use actions from above)
+      events: [], // TODO: remove
       paths: nextStatePaths
     };
   }
@@ -638,7 +636,7 @@ class StateNode implements StateNode {
     return condFn(extendedState, eventObject, interimState);
   }
   private _getActions(transition: _StateTransition): Action[] {
-    const entryExitStates = {
+    const entryExitActions = {
       entry: transition.entryExitStates
         ? flatMap(
             Array.from(transition.entryExitStates.entry).map(n => [
@@ -661,9 +659,9 @@ class StateNode implements StateNode {
         : []
     };
 
-    const actions = (entryExitStates.exit || [])
+    const actions = (entryExitActions.exit || [])
       .concat(transition.actions || [])
-      .concat(entryExitStates.entry || []);
+      .concat(entryExitActions.entry || []);
 
     return actions;
   }
@@ -750,12 +748,16 @@ class StateNode implements StateNode {
         typeof action !== 'object' ||
         (action.type !== actionTypes.raise && action.type !== actionTypes.null)
     );
-
     const stateNodes = stateTransition.value
-      ? this.getStateNodes(stateTransition.value!)
+      ? this.getStateNodes(stateTransition.value)
       : [];
-    const data = {};
 
+    const isTransient = stateNodes.some(stateNode => stateNode.transient);
+    if (isTransient) {
+      raisedEvents.push({ type: actionTypes.null });
+    }
+
+    const data = {};
     stateNodes.forEach(stateNode => {
       data[stateNode.id] = stateNode.data;
     });

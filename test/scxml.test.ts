@@ -62,9 +62,7 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   );
 
   test.events.forEach(({ event, nextConfiguration }, i) => {
-    console.log('RUN', i);
     nextState = machine.transition(nextState, event.name);
-    console.log('history', nextState.history && nextState.history.value);
 
     const stateIds = machine
       .getStateNodes(nextState)

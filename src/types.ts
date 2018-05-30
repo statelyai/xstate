@@ -125,6 +125,7 @@ export interface StateNode {
   id: string;
   initial: string | undefined;
   parallel: boolean;
+  transient: boolean;
   history: false | 'shallow' | 'deep';
   states: Record<string, StateNode>;
   on?: Record<string, Transition>;
