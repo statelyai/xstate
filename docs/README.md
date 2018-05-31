@@ -2,8 +2,11 @@
 
 [![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
 [![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
+[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+
+📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
 
 ## Why?
 In short, statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
@@ -11,7 +14,7 @@ In short, statecharts are a formalism for modeling stateful, reactive systems. T
 Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
 
 - [Statecharts - A Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) by David Harel
-- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogenson
+- [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 
