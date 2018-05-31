@@ -32,10 +32,11 @@ Now suppose you only want search to be allowed if:
 - the user is allowed to search (`.canSearch` in this example)
 - the search event `query` is not empty.
 
-This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard condition** is a function that takes two arguments:
+This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard condition** is a function that takes 3 arguments:
 
-- `extendedState`, which is specified as the 3rd argument to `machine.transition(...)`
-- `eventObject`, which is the event represented as an object
+- `extendedState`: (any) which is specified as the 3rd argument to `machine.transition(...)`
+- `eventObject`: (EventObject) which is the event, represented as an object
+- `stateValue`: (StateValue) which is the current state value, represented as an object
 
 and returns either `true` or `false`, which signifies whether the transition should be allowed to take place:
 
@@ -152,6 +153,4 @@ console.log(fouthState.value); // { closed: 'error' }
 
 **Notes:**
 - The `cond` function should always be a pure function that only references the `extendedState` and `eventObject` arguments.
-- Functions are not (easily) serializable in JSON. In future versions of `xstate`, alternative syntax for `cond` statements as plain strings or structured objects will be introduced to make it serializable.
-  - Most statechart representations represent these conditions as plain strings.
 - ⚠️ **Warning**: do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple events instead.

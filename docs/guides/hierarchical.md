@@ -1,6 +1,6 @@
 # Hierarchical State Machines
 
-Statecharts, by nature, are hierarchical - this is an important concept, as it allows refinement of states, grouping of similar transitions, isolation, composability, and prevents state explosion (typical of normal finite state machines).
+Statecharts, by nature, are hierarchical - this is an important concept, as it allows refinement of states, grouping of similar transitions, isolation, composability, and prevents state explosion (which frequently occurs in normal finite state machines).
 
 In `xstate`, state and machine configuration share a common schema, which allows machines to be _substates_ and for states to be infinitely nested.
 

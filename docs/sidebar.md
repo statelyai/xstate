@@ -5,6 +5,9 @@
   - [Parallel Machines](guides/parallel.md)
   - [History](guides/history.md)
   - [Guards](guides/guards.md)
+  - [Activities](guides/activities.md)
+  - [State IDs](guides/ids.md)
+  - [Internal Transitions](guides/internal.md)
   - [Complete Guide](guides/complete.md)
   - [FAQs](guides/faqs.md)
 - API

@@ -9,6 +9,9 @@ An `Action` can be a:
   - `ActionObject`, which is an `object` with:
     - an `action.type` property whose `string` value identifies the action
     - any other arbitrary properties relevant to the `action`.
+  - `function`, a named function with two arguments (since 3.3):
+    - `extState` - the extended state
+    - `event` - the `EventObject` associated with the action
 
 # `StateNode` Action Properties
 
@@ -40,6 +43,11 @@ All `onExit` actions will always occur first, before any `onEntry` or transition
 **Usage:** These actions will always occur before `onEntry` actions and after `onExit` actions.
 
 ```js
+// example of a named function action
+function showLoader(extState, event) {
+  // ...
+}
+
 const fetchMachine = Machine({
   initial: 'idle',
   states: {
@@ -48,7 +56,7 @@ const fetchMachine = Machine({
         FETCH: {
           pending: {
             // transition actions
-            actions: ['warmCache']
+            actions: ['warmCache', showLoader]
           }
         }
       },
@@ -73,3 +81,9 @@ console.log(fetchMachine.transition(fetchMachine.initialState, 'FETCH'));
 //   ]
 // }
 ```
+
+**Notes:**
+- Prefer `actions` defined on transitions. Avoid excessive usage of `onEntry` or `onExit` actions.
+- As a rule of thumb, if you are absolutely sure that every possible transition to or from a state will exhibit the same actions, only then should you use `onEntry` or `onExit` actions, respectively.
+- Prefer action objects (e.g., `{ type: 'SOME_EVENT' }`) over string events. In `4.0`, all actions in the `state.actions` array will be normalized as objects.
+- Avoid unnamed function actions, such as `() => { ... }`. This makes visualization less helpful.

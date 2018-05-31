@@ -53,12 +53,15 @@ const parallelMachineConfig = {
 ```
 
 ## State Configuration
-
+- `id`: (string) The unique identifier of the state node (since 3.3).
+  - Optional, defaults to the delimited full path to the state node, e.g., `'foo.bar.baz'`
 - `on`: (object) The mapping of event types to [transitions](#transition-configuration).
   - Optional, especially if state is a final state.
 - `onEntry`: (string | string[]) The name(s) of actions to be executed upon entry to this state.
   - Optional.
 - `onExit`: (string | string[]) The name(s) of actions to be executed upon exit from this state.
+  - Optional.
+- `data`: (any) Any meta data related to the state node (since 3.2).
   - Optional.
 
 ```js
@@ -90,12 +93,8 @@ Compound states (states with substates) can also have a `state` property, just l
 
 ## Transition Configuration
 
-On the [state configuration](#state-configuration), transitions are specified in the `on` property, which is a mapping of `string` event types to:
-- `string` state IDs, or
-- a state transition mapping, or
-- an array of state transition mappings
-
-The `on` property answers the question, "On this event, which state do I go to next?" The simplest representation is a `string` state ID:
+On the [state configuration](#state-configuration), transitions are specified in the `on` property. The values can be
+- an object mapping events to `string` state IDs:
 
 ```js
 const lightMachine = Machine({
@@ -117,9 +116,15 @@ const lightMachine = Machine({
 });
 ```
 
-For [guarded transitions](guides/guards.md) and actions, instead of a `string` state ID, you can use either a single state transition mapping, or an array of mappings.
-
-The single state transition mapping looks like:
+- an object mapping events to transition configs with these props:
+  - `cond`: (string | function) a conditional guard that must evaluate to `true` for the transition to take place (see [guarded transitions](guides/guards.md))
+    - Optional.
+  - `actions`: (Action[]) an array of action strings or objects that are to be executed when the transition takes place (see [actions](api/actions.md))
+    - Optional.
+  <!-- - `in`: (string | object) a string or object representing the state that the current state must match for the transition to take place (see [guarded transitions](guides/guards.md))
+    - Optional. -->
+  - `internal`: (boolean) whether the transition is an internal transition or not (see [internal transitions](guides/internal.md))
+    - Optional, defaults to `false`
 
 ```js
 const lightMachine = Machine({
@@ -150,7 +155,8 @@ const lightMachine = Machine({
 });
 ```
 
-When you want transition to different states from a single event based on external state you can provide an array of mappings with `cond` functions:
+- an array of conditional transitions with the same configuration as above, but with an additional `target` prop:
+  - `target`: (string | string[]) a string or array of strings representing the state(s) that the machine will transition to.
 
 ```js
 const lightMachine = Machine({
@@ -177,5 +183,3 @@ const lightMachine = Machine({
   }
 });
 ```
-
-Note: both `cond` and `actions` are optional, and they can both be specified together as well.
