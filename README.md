@@ -8,8 +8,14 @@ Functional, stateless JavaScript [finite state machines](https://en.wikipedia.or
 
 📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
 
+## Visualizer
+
+**[:new: Preview and simulate your statecharts in the xstate visualizer (beta)!](https://bit.ly/xstate-viz)**
+
+<a href="https://bit.ly/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/fOMJKDZ.png" alt="xstate visualizer" width="300" /></a>
+
 ## Why?
-In short, statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
+Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
 
 Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
 
@@ -17,6 +23,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [The World of Statecharts](https://statecharts.github.io/) by Erik Mogensen
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
+- [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
 
 ## Installation
 1. `npm install xstate --save`
@@ -24,7 +31,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 
 ## Finite State Machines
 
-<img src="http://i.imgur.com/KNUL5X8.png" alt="Light Machine" width="300" />
+<img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 
 ```js
 import { Machine } from 'xstate';
@@ -62,7 +69,7 @@ const nextState = lightMachine
 
 ## Hierarchical (Nested) State Machines
 
-<img src="http://imgur.com/OuZ1nn8.png" alt="Hierarchical Light Machine" width="300" />
+<img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 
 ```js
 import { Machine } from 'xstate';
@@ -149,6 +156,8 @@ lightMachine
 
 ## Parallel States
 
+<img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
+
 ```js
 const wordMachine = Machine({
   parallel: true,
@@ -233,9 +242,7 @@ const nextState = wordMachine
 
 ## History States
 
-To provide full flexibility, history states are more arbitrarily defined than the original statechart specification. To go to a history state, use the special key `$history`.
-
-<img src="http://imgur.com/sjTlr6j.png" width="300" alt="Payment Machine" />
+<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 
 ```js
 const paymentMachine = Machine({
@@ -245,12 +252,13 @@ const paymentMachine = Machine({
       initial: 'cash',
       states: {
         cash: { on: { SWITCH_CHECK: 'check' } },
-        check: { on: { SWITCH_CASH: 'cash' } }
+        check: { on: { SWITCH_CASH: 'cash' } },
+        hist: { history: true }
       },
       on: { NEXT: 'review' }
     },
     review: {
-      on: { PREVIOUS: 'method.$history' }
+      on: { PREVIOUS: 'method.hist' }
     }
   }
 });
