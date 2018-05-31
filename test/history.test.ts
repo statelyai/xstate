@@ -64,6 +64,13 @@ describe('history states', () => {
       'on.first'
     );
   });
+
+  it('should dispose of previous histories', () => {
+    const onSecondState = historyMachine.transition('on', 'SWITCH');
+    const offState = historyMachine.transition(onSecondState, 'H_POWER');
+    const nextState = historyMachine.transition(offState, 'H_POWER');
+    assert.isUndefined(nextState.history!.history);
+  });
 });
 
 describe('deep history states', () => {

@@ -747,6 +747,9 @@ class StateNode implements StateNode {
       data[stateNode.id] = stateNode.data;
     });
 
+    // Dispose of previous histories to prevent memory leaks
+    delete currentState.history;
+
     const nextState = stateTransition.value
       ? new State(
           stateTransition.value,
