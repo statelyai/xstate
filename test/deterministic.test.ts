@@ -203,4 +203,28 @@ describe('deterministic machine', () => {
       assert.equal(initialState, nextState);
     });
   });
+
+  describe('state key names', () => {
+    const machine = Machine({
+      key: 'test',
+      initial: 'test',
+      states: {
+        test: {
+          activities: ['activity'],
+          onEntry: ['onEntry'],
+          on: {
+            NEXT: 'test'
+          },
+          onExit: ['onExit']
+        }
+      }
+    });
+
+    it('should work with substate nodes that have the same key', () => {
+      assert.deepEqual(
+        machine.transition(machine.initialState, 'NEXT').value,
+        'test'
+      );
+    });
+  });
 });

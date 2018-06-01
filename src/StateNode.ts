@@ -1061,10 +1061,6 @@ class StateNode implements StateNode {
       );
     }
 
-    if (x === '' || (!this.parent && this.key === x)) {
-      return this.getFromRelativePath(xs, historyValue);
-    }
-
     // TODO: remove (4.0)
     if (x === HISTORY_KEY) {
       if (!historyValue) {
@@ -1160,6 +1156,12 @@ class StateNode implements StateNode {
       const internalTarget =
         typeof target === 'string' && target[0] === this.delimiter;
       internal = internal || internalTarget;
+
+      // If internal target is defined on machine,
+      // do not include machine key on target
+      if (internalTarget && !this.parent) {
+        return target.slice(1);
+      }
 
       return internalTarget ? this.key + target : target;
     });
