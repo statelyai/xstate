@@ -707,7 +707,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should properly transition to relative substate as in 3.2.1', () => {
+  it('should properly transition to relative substate', () => {
     const nextState = composerMachine.transition(
       composerMachine.initialState,
       'singleClickActivity'

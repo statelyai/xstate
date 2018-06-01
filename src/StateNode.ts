@@ -1149,6 +1149,27 @@ class StateNode implements StateNode {
 
     return (this.__cache.events = Array.from(events));
   }
+  private formatTransition(
+    targets: string[],
+    transitionConfig?: TransitionConfig
+  ): TargetTransitionConfig {
+    let internal = transitionConfig ? transitionConfig.internal : false;
+
+    // Format targets to their full string path
+    const formattedTargets = targets.map(target => {
+      const internalTarget =
+        typeof target === 'string' && target[0] === this.delimiter;
+      internal = internal || internalTarget;
+
+      return internalTarget ? this.key + target : target;
+    });
+
+    return {
+      ...transitionConfig,
+      target: formattedTargets,
+      internal
+    };
+  }
   private formatTransitions(
     onConfig: Record<string, Transition | undefined>
   ): Record<string, ConditionalTransitionConfig> {
@@ -1158,30 +1179,20 @@ class StateNode implements StateNode {
       }
 
       if (Array.isArray(value)) {
-        // todo - consolidate internal normalizations
-        return value;
+        return value.map(targetTransitionConfig =>
+          this.formatTransition(
+            ([] as string[]).concat(targetTransitionConfig.target),
+            targetTransitionConfig
+          )
+        );
       }
 
       if (typeof value === 'string') {
-        const internal =
-          typeof value === 'string' && value[0] === this.delimiter;
-        return [
-          {
-            target: internal ? this.key + value : value,
-            internal
-          }
-        ];
+        return [this.formatTransition([value])];
       }
 
       return Object.keys(value).map(target => {
-        const internal =
-          typeof target === 'string' && target[0] === this.delimiter;
-
-        return {
-          target: internal ? this.key + this.delimiter + target : target,
-          internal,
-          ...value[target]
-        };
+        return this.formatTransition([target], value[target]);
       });
     });
   }

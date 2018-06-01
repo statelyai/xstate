@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import { toStateValue, getActionType } from './utils';
+import { toStateValue, getActionType, flatMap } from './utils';
 import {
   StateValue,
   Machine,
@@ -32,20 +32,27 @@ export function getNodes(node: StateNode): StateNode[] {
 function getEventEdges(node: StateNode, event: string): Edge[] {
   const transitions = node.on[event]!;
 
-  return transitions.map(transition => {
-    const target = node.getRelativeStateNodes(
-      transition.target,
-      undefined,
-      false
-    )[0];
-    return {
-      source: node,
-      target,
-      event,
-      actions: transition.actions ? transition.actions.map(getActionType) : [],
-      cond: transition.cond
-    };
-  });
+  return flatMap(
+    transitions.map(transition => {
+      const targets = ([] as string[]).concat(transition.target);
+      return targets.map(target => {
+        const targetNode = node.getRelativeStateNodes(
+          target,
+          undefined,
+          false
+        )[0];
+        return {
+          source: node,
+          target: targetNode,
+          event,
+          actions: transition.actions
+            ? transition.actions.map(getActionType)
+            : [],
+          cond: transition.cond
+        };
+      });
+    })
+  );
 }
 
 export function getEdges(node: StateNode): Edge[] {
