@@ -2,6 +2,505 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 import { testMultiTransition } from './utils';
 
+const composerMachine = Machine({
+  strict: true,
+  initial: 'ReadOnly',
+  states: {
+    ReadOnly: {
+      id: 'ReadOnly',
+      initial: 'StructureEdit',
+      onEntry: ['selectNone'],
+      on: {
+        setReadWrite: [
+          {
+            target: 'ReadWrite'
+          }
+        ]
+      },
+      states: {
+        StructureEdit: {
+          id: 'StructureEditRO',
+          parallel: true,
+          on: {
+            switchToProjectManagement: [
+              {
+                target: 'ProjectManagement'
+              }
+            ]
+          },
+          states: {
+            SelectionStatus: {
+              initial: 'SelectedNone',
+              on: {
+                singleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                doubleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                longClickActivity: [
+                  {
+                    target: '.SelectedHierarchy',
+                    actions: ['selectHierarchy']
+                  }
+                ],
+                singleClickLink: [
+                  {
+                    target: '.SelectedLink',
+                    actions: ['selectLink']
+                  }
+                ]
+              },
+              states: {
+                SelectedNone: {
+                  onEntry: ['redraw']
+                },
+                SelectedActivity: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedHierarchy: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedLink: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        ProjectManagement: {
+          id: 'ProjectManagementRO',
+          parallel: true,
+          on: {
+            switchToStructureEdit: [
+              {
+                target: 'StructureEdit'
+              }
+            ]
+          },
+          states: {
+            SelectionStatus: {
+              initial: 'SelectedNone',
+              on: {
+                singleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                doubleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                longClickActivity: [
+                  {
+                    target: '.SelectedHierarchy',
+                    actions: ['selectHierarchy']
+                  }
+                ],
+                singleClickLink: [
+                  {
+                    target: '.SelectedLink',
+                    actions: ['selectLink']
+                  }
+                ]
+              },
+              states: {
+                SelectedNone: {
+                  onEntry: ['redraw']
+                },
+                SelectedActivity: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedHierarchy: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedLink: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    ReadWrite: {
+      id: 'ReadWrite',
+      initial: 'StructureEdit',
+      onEntry: ['selectNone'],
+      on: {
+        setReadOnly: [
+          {
+            target: 'ReadOnly'
+          }
+        ]
+      },
+      states: {
+        StructureEdit: {
+          id: 'StructureEditRW',
+          parallel: true,
+          on: {
+            switchToProjectManagement: [
+              {
+                target: 'ProjectManagement'
+              }
+            ]
+          },
+          states: {
+            SelectionStatus: {
+              initial: 'SelectedNone',
+              on: {
+                singleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                doubleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                longClickActivity: [
+                  {
+                    target: '.SelectedHierarchy',
+                    actions: ['selectHierarchy']
+                  }
+                ],
+                singleClickLink: [
+                  {
+                    target: '.SelectedLink',
+                    actions: ['selectLink']
+                  }
+                ]
+              },
+              states: {
+                SelectedNone: {
+                  onEntry: ['redraw']
+                },
+                SelectedActivity: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedHierarchy: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedLink: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        },
+        ProjectManagement: {
+          id: 'ProjectManagementRW',
+          parallel: true,
+          on: {
+            switchToStructureEdit: [
+              {
+                target: 'StructureEdit'
+              }
+            ]
+          },
+          states: {
+            SelectionStatus: {
+              initial: 'SelectedNone',
+              on: {
+                singleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                doubleClickActivity: [
+                  {
+                    target: '.SelectedActivity',
+                    actions: ['selectActivity']
+                  }
+                ],
+                longClickActivity: [
+                  {
+                    target: '.SelectedHierarchy',
+                    actions: ['selectHierarchy']
+                  }
+                ],
+                singleClickLink: [
+                  {
+                    target: '.SelectedLink',
+                    actions: ['selectLink']
+                  }
+                ]
+              },
+              states: {
+                SelectedNone: {
+                  onEntry: ['redraw']
+                },
+                SelectedActivity: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedHierarchy: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                },
+                SelectedLink: {
+                  onEntry: ['redraw'],
+                  on: {
+                    singleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    doubleClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ],
+                    longClickCanvas: [
+                      {
+                        target: 'SelectedNone',
+                        actions: ['selectNone']
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
 const wakMachine = Machine({
   id: 'wakMachine',
   parallel: true,
@@ -205,6 +704,17 @@ describe('parallel states', () => {
       foo: {},
       bar: {},
       baz: 'two'
+    });
+  });
+
+  it('should properly transition to relative substate as in 3.2.1', () => {
+    const nextState = composerMachine.transition(
+      composerMachine.initialState,
+      'singleClickActivity'
+    );
+
+    assert.deepEqual(nextState.value, {
+      ReadOnly: { StructureEdit: { SelectionStatus: 'SelectedActivity' } }
     });
   });
 });
