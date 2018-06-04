@@ -44,5 +44,7 @@
     "webpack": "^3.5.6",
     "xml-js": "^1.6.2"
   },
-  "dependencies": {}
+  "dependencies": {
+    "tslib": "^1.9.2"
+  }
 }
