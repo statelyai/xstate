@@ -16,7 +16,7 @@ Consider the following (contrived) statechart:
 
 ```js
 const historyMachine = Machine({
-  initial: 'off',
+  initial: 'fanOff',
   states: {
     fanOff: {
       on: {
@@ -55,7 +55,7 @@ const historyMachine = Machine({
 });
 ```
 
-In the above machine, the transition from `'off'` on the event `'POWER'` goes to the `'on.hist'` state, which is defined as a shallow history state. This means that the machine should transition to the `'on'` state and to whichever the previous substate of `'on'` was. By default, `'on'` will go to its initial state, `'first'`, if there is no history state.
+In the above machine, the transition from `'fanOff'` on the event `'POWER'` goes to the `'fanOn.hist'` state, which is defined as a shallow history state. This means that the machine should transition to the `'fanOn'` state and to whichever the previous substate of `'fanOn'` was. By default, `'fanOn'` will go to its initial state, `'first'`, if there is no history state.
 
 ```js
 const firstState = historyMachine.transition(historyMachine.initialState, 'POWER');
@@ -73,7 +73,7 @@ console.log(secondState.value);
 
 const thirdState = historyMachine.transition(secondState, 'POWER');
 console.log(thirdState.value);
-// => 'off'
+// => 'fanOff'
 
 console.log(thirdState.history);
 // => State {
