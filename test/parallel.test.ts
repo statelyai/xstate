@@ -131,6 +131,64 @@ const composerMachine = Machine({
                   }
                 }
               }
+            },
+            ClipboardStatus: {
+              initial: 'Empty',
+              states: {
+                Empty: {
+                  onEntry: ['emptyClipboard'],
+                  on: {
+                    cutInClipboardSuccess: [
+                      {
+                        target: 'FilledByCut'
+                      }
+                    ],
+                    copyInClipboardSuccess: [
+                      {
+                        target: 'FilledByCopy'
+                      }
+                    ]
+                  }
+                },
+                FilledByCopy: {
+                  on: {
+                    cutInClipboardSuccess: [
+                      {
+                        target: 'FilledByCut'
+                      }
+                    ],
+                    copyInClipboardSuccess: [
+                      {
+                        target: 'FilledByCopy'
+                      }
+                    ],
+                    pasteFromClipboardSuccess: [
+                      {
+                        target: 'FilledByCopy'
+                      }
+                    ]
+                  }
+                },
+                FilledByCut: {
+                  on: {
+                    cutInClipboardSuccess: [
+                      {
+                        target: 'FilledByCut'
+                      }
+                    ],
+                    copyInClipboardSuccess: [
+                      {
+                        target: 'FilledByCopy'
+                      }
+                    ],
+                    pasteFromClipboardSuccess: [
+                      {
+                        target: 'Empty'
+                      }
+                    ]
+                  }
+                }
+              }
             }
           }
         },
