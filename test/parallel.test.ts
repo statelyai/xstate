@@ -772,7 +772,12 @@ describe('parallel states', () => {
     );
 
     assert.deepEqual(nextState.value, {
-      ReadOnly: { StructureEdit: { SelectionStatus: 'SelectedActivity' } }
+      ReadOnly: {
+        StructureEdit: {
+          ClipboardStatus: 'Empty',
+          SelectionStatus: 'SelectedActivity'
+        }
+      }
     });
   });
 });

@@ -262,7 +262,7 @@ class StateNode implements StateNode {
     extendedState?: any
   ): _StateTransition {
     const noTransitionKeys: string[] = [];
-    const transitions: Record<string, _StateTransition> = {};
+    const transitionMap: Record<string, _StateTransition> = {};
     Object.keys(stateValue).forEach(subStateKey => {
       const subStateValue = stateValue[subStateKey];
 
@@ -281,11 +281,11 @@ class StateNode implements StateNode {
         noTransitionKeys.push(subStateKey);
       }
 
-      transitions[subStateKey] = next;
+      transitionMap[subStateKey] = next;
     });
 
-    const willTransition = Object.keys(transitions).some(
-      key => transitions[key].value !== undefined
+    const willTransition = Object.keys(transitionMap).some(
+      key => transitionMap[key].value !== undefined
     );
 
     if (!willTransition) {
@@ -310,7 +310,7 @@ class StateNode implements StateNode {
     }
 
     const allPaths = flatMap(
-      Object.keys(transitions).map(key => transitions[key].paths)
+      Object.keys(transitionMap).map(key => transitionMap[key].paths)
     );
 
     // External transition that escapes orthogonal region
@@ -320,8 +320,8 @@ class StateNode implements StateNode {
     ) {
       return {
         value: this.machine.resolve(pathsToStateValue(allPaths)),
-        entryExitStates: Object.keys(transitions)
-          .map(key => transitions[key].entryExitStates)
+        entryExitStates: Object.keys(transitionMap)
+          .map(key => transitionMap[key].entryExitStates)
           .reduce(
             (allEntryExitStates, entryExitStates) => {
               const { entry, exit } = entryExitStates!;
@@ -340,41 +340,35 @@ class StateNode implements StateNode {
             { entry: new Set(), exit: new Set() } as EntryExitStates
           ),
         actions: flatMap(
-          Object.keys(transitions).map(key => {
-            return transitions[key].actions;
+          Object.keys(transitionMap).map(key => {
+            return transitionMap[key].actions;
           })
         ),
         paths: allPaths
       };
     }
 
-    const nextStateValue = this.parent
-      ? {
-          [this.key]: mapValues(transitions, (transition, key) => {
-            if (transition.value === undefined) {
-              return path(this.path)(state.value)[key];
-            }
-            const origValue = path(this.path)(transition.value!);
-
-            if (!origValue) {
-              return undefined;
-            }
-            return origValue[key];
-          })
+    const allResolvedPaths = flatMap(
+      Object.keys(transitionMap).map(key => {
+        const transition = transitionMap[key];
+        if (!transition.value) {
+          return toStatePaths(
+            path(this.path)(state.value)[key]
+          ).map(statePath => this.path.concat(key, statePath));
         }
-      : mapValues(transitions, (transitionStateValue, key) => {
-          return transitionStateValue.value === undefined
-            ? stateValue[key]
-            : this.parent
-              ? transitionStateValue.value![this.key][key]
-              : transitionStateValue.value![key];
-        });
+        return transition.paths;
+      })
+    );
+
+    const nextStateValue = this.machine.resolve(
+      pathsToStateValue(allResolvedPaths)
+    );
 
     return {
       value: nextStateValue,
-      entryExitStates: Object.keys(transitions).reduce(
+      entryExitStates: Object.keys(transitionMap).reduce(
         (allEntryExitStates, key) => {
-          const { value: subStateValue, entryExitStates } = transitions[key];
+          const { value: subStateValue, entryExitStates } = transitionMap[key];
 
           // If the event was not handled (no subStateValue),
           // machine should still be in state without reentry/exit.
@@ -398,8 +392,8 @@ class StateNode implements StateNode {
         { entry: new Set(), exit: new Set() } as EntryExitStates
       ),
       actions: flatMap(
-        Object.keys(transitions).map(key => {
-          return transitions[key].actions;
+        Object.keys(transitionMap).map(key => {
+          return transitionMap[key].actions;
         })
       ),
       paths: toStatePaths(nextStateValue)
