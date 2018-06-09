@@ -10,13 +10,6 @@ const composerMachine = Machine({
       id: 'ReadOnly',
       initial: 'StructureEdit',
       onEntry: ['selectNone'],
-      on: {
-        setReadWrite: [
-          {
-            target: 'ReadWrite'
-          }
-        ]
-      },
       states: {
         StructureEdit: {
           id: 'StructureEditRO',
@@ -38,18 +31,6 @@ const composerMachine = Machine({
                     actions: ['selectActivity']
                   }
                 ],
-                doubleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                longClickActivity: [
-                  {
-                    target: '.SelectedHierarchy',
-                    actions: ['selectHierarchy']
-                  }
-                ],
                 singleClickLink: [
                   {
                     target: '.SelectedLink',
@@ -69,41 +50,6 @@ const composerMachine = Machine({
                         target: 'SelectedNone',
                         actions: ['selectNone']
                       }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedHierarchy: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
                     ]
                   }
                 },
@@ -111,18 +57,6 @@ const composerMachine = Machine({
                   onEntry: ['redraw'],
                   on: {
                     singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
                       {
                         target: 'SelectedNone',
                         actions: ['selectNone']
@@ -212,18 +146,6 @@ const composerMachine = Machine({
                     actions: ['selectActivity']
                   }
                 ],
-                doubleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                longClickActivity: [
-                  {
-                    target: '.SelectedHierarchy',
-                    actions: ['selectHierarchy']
-                  }
-                ],
                 singleClickLink: [
                   {
                     target: '.SelectedLink',
@@ -243,41 +165,6 @@ const composerMachine = Machine({
                         target: 'SelectedNone',
                         actions: ['selectNone']
                       }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedHierarchy: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
                     ]
                   }
                 },
@@ -285,264 +172,6 @@ const composerMachine = Machine({
                   onEntry: ['redraw'],
                   on: {
                     singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        }
-      }
-    },
-    ReadWrite: {
-      id: 'ReadWrite',
-      initial: 'StructureEdit',
-      onEntry: ['selectNone'],
-      on: {
-        setReadOnly: [
-          {
-            target: 'ReadOnly'
-          }
-        ]
-      },
-      states: {
-        StructureEdit: {
-          id: 'StructureEditRW',
-          parallel: true,
-          on: {
-            switchToProjectManagement: [
-              {
-                target: 'ProjectManagement'
-              }
-            ]
-          },
-          states: {
-            SelectionStatus: {
-              initial: 'SelectedNone',
-              on: {
-                singleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                doubleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                longClickActivity: [
-                  {
-                    target: '.SelectedHierarchy',
-                    actions: ['selectHierarchy']
-                  }
-                ],
-                singleClickLink: [
-                  {
-                    target: '.SelectedLink',
-                    actions: ['selectLink']
-                  }
-                ]
-              },
-              states: {
-                SelectedNone: {
-                  onEntry: ['redraw']
-                },
-                SelectedActivity: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedHierarchy: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedLink: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                }
-              }
-            }
-          }
-        },
-        ProjectManagement: {
-          id: 'ProjectManagementRW',
-          parallel: true,
-          on: {
-            switchToStructureEdit: [
-              {
-                target: 'StructureEdit'
-              }
-            ]
-          },
-          states: {
-            SelectionStatus: {
-              initial: 'SelectedNone',
-              on: {
-                singleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                doubleClickActivity: [
-                  {
-                    target: '.SelectedActivity',
-                    actions: ['selectActivity']
-                  }
-                ],
-                longClickActivity: [
-                  {
-                    target: '.SelectedHierarchy',
-                    actions: ['selectHierarchy']
-                  }
-                ],
-                singleClickLink: [
-                  {
-                    target: '.SelectedLink',
-                    actions: ['selectLink']
-                  }
-                ]
-              },
-              states: {
-                SelectedNone: {
-                  onEntry: ['redraw']
-                },
-                SelectedActivity: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedHierarchy: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ]
-                  }
-                },
-                SelectedLink: {
-                  onEntry: ['redraw'],
-                  on: {
-                    singleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    doubleClickCanvas: [
-                      {
-                        target: 'SelectedNone',
-                        actions: ['selectNone']
-                      }
-                    ],
-                    longClickCanvas: [
                       {
                         target: 'SelectedNone',
                         actions: ['selectNone']
@@ -774,8 +403,8 @@ describe('parallel states', () => {
     assert.deepEqual(nextState.value, {
       ReadOnly: {
         StructureEdit: {
-          ClipboardStatus: 'Empty',
-          SelectionStatus: 'SelectedActivity'
+          SelectionStatus: 'SelectedActivity',
+          ClipboardStatus: 'Empty'
         }
       }
     });
