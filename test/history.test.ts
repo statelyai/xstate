@@ -324,4 +324,84 @@ describe('transient history', () => {
     assert.equal(nextState.value, 'C');
     assert.isDefined(nextState.history);
   });
-})
+});
+
+describe('internal transition with history', () => {
+  const machine = Machine({
+    key: 'test',
+    initial: 'first',
+    states: {
+      first: {
+        on: {
+          NEXT: 'second'
+        }
+      },
+      second: {
+        initial: 'nested',
+        states: {
+          nested: {},
+          hist: {
+            history: true
+          }
+        },
+        on: {
+          NEXT: [
+            {
+              target: '.hist'
+            }
+          ]
+        }
+      }
+    }
+  });
+
+  it('should transition internally to the most recently visited state', () => {
+    const state2 = machine.transition(machine.initialState, 'NEXT');
+    const state3 = machine.transition(state2, 'NEXT');
+
+    assert.equal(state3.value.toString(), 'second.nested');
+  });
+});
+
+describe('multistage history states', () => {
+  const pcWithTurboButtonMachine = Machine({
+    key: 'pc-with-turbo-button',
+    initial: 'off',
+    states: {
+      off: {
+        on: { POWER: 'starting' }
+      },
+      starting: {
+        on: { STARTED: 'running.H' }
+      },
+      running: {
+        initial: 'normal',
+        states: {
+          normal: {
+            on: { SWITCH_TURBO: 'turbo' }
+          },
+          turbo: {
+            on: { SWITCH_TURBO: 'normal' }
+          },
+          H: {
+            history: true
+          }
+        },
+        on: {
+          POWER: 'off'
+        }
+      }
+    }
+  });
+
+  it('should go to the most recently visited state', () => {
+    const onTurboState = pcWithTurboButtonMachine.transition('running', 'SWITCH_TURBO');
+    const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
+    const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
+
+    assert.equal(
+      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').toString(),
+      'running.turbo'
+    );
+  });
+});
