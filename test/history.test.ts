@@ -301,3 +301,27 @@ describe('parallel history states', () => {
     });
   });
 });
+
+describe('transient history', () => {
+  const transientMachine = Machine({
+    initial: 'A',
+    parallel: false,
+    states: {
+      A: {
+        on: { EVENT: 'B' }
+      },
+      B: {
+        on: {
+          // eventless transition
+          '': 'C'
+        }
+      },
+      C: {},
+    }
+  });
+  it('should have history on transient transitions', () => {
+    const nextState = transientMachine.transition('A', 'EVENT');
+    assert.equal(nextState.value, 'C');
+    assert.isDefined(nextState.history);
+  });
+})
