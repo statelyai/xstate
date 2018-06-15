@@ -29,7 +29,7 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-function getEventEdges(node: StateNode, event: string): Edge[] {
+export function getEventEdges(node: StateNode, event: string): Edge[] {
   const transitions = node.on[event]!;
 
   return flatMap(
@@ -55,10 +55,11 @@ function getEventEdges(node: StateNode, event: string): Edge[] {
   );
 }
 
-export function getEdges(node: StateNode): Edge[] {
+export function getEdges(node: StateNode, options?: { deep: boolean }): Edge[] {
+  const { deep = true } = options || {};
   const edges: Edge[] = [];
 
-  if (node.states) {
+  if (node.states && deep) {
     Object.keys(node.states).forEach(stateKey => {
       edges.push(...getEdges(node.states[stateKey]));
     });

@@ -316,7 +316,7 @@ describe('transient history', () => {
           '': 'C'
         }
       },
-      C: {},
+      C: {}
     }
   });
   it('should have history on transient transitions', () => {
@@ -355,12 +355,17 @@ describe('internal transition with history', () => {
     }
   });
 
-  it('should transition internally to the most recently visited state', () => {
-    const state2 = machine.transition(machine.initialState, 'NEXT');
-    const state3 = machine.transition(state2, 'NEXT');
+  it.only(
+    'should transition internally to the most recently visited state',
+    () => {
+      const state2 = machine.transition(machine.initialState, 'NEXT');
+      console.log(state2.value);
+      console.log('---');
+      const state3 = machine.transition(state2, 'NEXT');
 
-    assert.equal(state3.value.toString(), 'second.nested');
-  });
+      assert.deepEqual(state3.value, { second: 'nested' });
+    }
+  );
 });
 
 describe('multistage history states', () => {
@@ -395,7 +400,10 @@ describe('multistage history states', () => {
   });
 
   it('should go to the most recently visited state', () => {
-    const onTurboState = pcWithTurboButtonMachine.transition('running', 'SWITCH_TURBO');
+    const onTurboState = pcWithTurboButtonMachine.transition(
+      'running',
+      'SWITCH_TURBO'
+    );
     const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
     const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
 

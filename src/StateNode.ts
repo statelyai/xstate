@@ -57,7 +57,7 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
-class StateNode implements StateNode {
+class StateNode {
   public key: string;
   public id: string;
   public path: string[];
@@ -741,9 +741,6 @@ class StateNode implements StateNode {
       data[stateNode.id] = stateNode.data;
     });
 
-    // Dispose of previous histories to prevent memory leaks
-    delete currentState.history;
-
     const nextState = stateTransition.value
       ? new State(
           stateTransition.value,
@@ -759,6 +756,9 @@ class StateNode implements StateNode {
       // Unchanged state should be returned with no actions
       return State.inert(currentState);
     }
+
+    // Dispose of previous histories to prevent memory leaks
+    delete currentState.history;
 
     let maybeNextState = nextState;
     while (raisedEvents.length) {
