@@ -355,17 +355,12 @@ describe('internal transition with history', () => {
     }
   });
 
-  it.only(
-    'should transition internally to the most recently visited state',
-    () => {
-      const state2 = machine.transition(machine.initialState, 'NEXT');
-      console.log(state2.value);
-      console.log('---');
-      const state3 = machine.transition(state2, 'NEXT');
+  it('should transition internally to the most recently visited state', () => {
+    const state2 = machine.transition(machine.initialState, 'NEXT');
+    const state3 = machine.transition(state2, 'NEXT');
 
-      assert.deepEqual(state3.value, { second: 'nested' });
-    }
-  );
+    assert.deepEqual(state3.value, { second: 'nested' });
+  });
 });
 
 describe('multistage history states', () => {
