@@ -113,13 +113,15 @@ export function mapFilterValues<T, P>(
  * Retrieves a value at the given path.
  * @param props The deep path to the prop of the desired value
  */
-export const path = (props: string[]): any => <T extends Record<string, any>>(
+export const path = (props: string[], accessorProp?: string): any => <
+  T extends Record<string, any>
+>(
   object: T
 ): any => {
   let result: Record<string, any> = object;
 
   for (const prop of props) {
-    result = result[prop];
+    result = accessorProp ? result[accessorProp][prop] : result[prop];
   }
 
   return result;

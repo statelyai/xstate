@@ -332,14 +332,19 @@ describe('internal transition with history', () => {
     initial: 'first',
     states: {
       first: {
+        initial: 'foo',
+        states: {
+          foo: {}
+        },
         on: {
-          NEXT: 'second'
+          NEXT: 'second.other'
         }
       },
       second: {
         initial: 'nested',
         states: {
           nested: {},
+          other: {},
           hist: {
             history: true
           }
@@ -356,10 +361,37 @@ describe('internal transition with history', () => {
   });
 
   it('should transition internally to the most recently visited state', () => {
+    // {
+    //   $current: 'first',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'nested',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
     const state2 = machine.transition(machine.initialState, 'NEXT');
+    // {
+    //   $current: 'second',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'other',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
     const state3 = machine.transition(state2, 'NEXT');
+    // {
+    //   $current: 'second',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'other',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
 
-    assert.deepEqual(state3.value, { second: 'nested' });
+    assert.deepEqual(state3.value, { second: 'other' });
   });
 });
 

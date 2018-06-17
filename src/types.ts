@@ -25,6 +25,11 @@ export interface StateValueMap {
 
 export type StateValue = string | StateValueMap;
 
+export interface HistoryValue {
+  states: Record<string, HistoryValue | undefined>;
+  current: StateValue | undefined;
+}
+
 export type ConditionPredicate = (
   extendedState: any,
   event: EventObject,

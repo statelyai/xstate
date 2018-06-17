@@ -3,7 +3,8 @@ import {
   ActivityMap,
   EventObject,
   Action,
-  StateInterface
+  StateInterface,
+  HistoryValue
 } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
@@ -22,6 +23,7 @@ export class State implements StateInterface {
       }
       return new State(
         stateValue.value,
+        stateValue.historyValue,
         stateValue.history,
         [],
         stateValue.activities
@@ -33,6 +35,7 @@ export class State implements StateInterface {
 
   constructor(
     public value: StateValue,
+    public historyValue?: HistoryValue | undefined,
     public history?: State,
     public actions: Action[] = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,

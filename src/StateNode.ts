@@ -37,7 +37,8 @@ import {
   Condition,
   ConditionPredicate,
   EventObject,
-  HistoryStateNodeConfig
+  HistoryStateNodeConfig,
+  HistoryValue
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -177,7 +178,7 @@ class StateNode {
 
     return this.events.indexOf(eventType) !== -1;
   }
-  public _transitionLeafNode(
+  private _transitionLeafNode(
     stateValue: string,
     state: State,
     event: Event,
@@ -211,7 +212,7 @@ class StateNode {
 
     return next;
   }
-  public _transitionHierarchicalNode(
+  private _transitionHierarchicalNode(
     stateValue: StateValueMap,
     state: State,
     event: Event,
@@ -255,7 +256,7 @@ class StateNode {
 
     return next;
   }
-  public _transitionOrthogonalNode(
+  private _transitionOrthogonalNode(
     stateValue: StateValueMap,
     state: State,
     event: Event,
@@ -428,7 +429,7 @@ class StateNode {
       extendedState
     );
   }
-  public _next(
+  private _next(
     state: State,
     event: Event,
     extendedState?: any
@@ -497,7 +498,7 @@ class StateNode {
 
     const nextStateNodes = flatMap(
       nextStateStrings.map(str =>
-        this.getRelativeStateNodes(str, state.history)
+        this.getRelativeStateNodes(str, state.historyValue)
       )
     );
 
@@ -529,7 +530,9 @@ class StateNode {
         pathsToStateValue(
           flatMap(
             nextStateStrings.map(str =>
-              this.getRelativeStateNodes(str, state.history).map(s => s.path)
+              this.getRelativeStateNodes(str, state.historyValue).map(
+                s => s.path
+              )
             )
           )
         )
@@ -539,7 +542,7 @@ class StateNode {
       paths: nextStatePaths
     };
   }
-  public _getEntryExitStates(
+  private _getEntryExitStates(
     nextStateNode: StateNode,
     internal: boolean
   ): EntryExitStates {
@@ -698,6 +701,13 @@ class StateNode {
 
     const currentState = State.from(resolvedStateValue);
 
+    const historyValue =
+      resolvedStateValue instanceof State
+        ? resolvedStateValue.historyValue
+          ? resolvedStateValue.historyValue
+          : this.machine.historyValue(resolvedStateValue.value) as HistoryValue
+        : this.machine.historyValue(resolvedStateValue) as HistoryValue;
+
     const stateTransition = this._transition(
       currentState.value,
       currentState,
@@ -744,6 +754,7 @@ class StateNode {
     const nextState = stateTransition.value
       ? new State(
           stateTransition.value,
+          StateNode.updateHistoryValue(historyValue, stateTransition.value),
           currentState,
           nonEventActions,
           activities,
@@ -951,7 +962,13 @@ class StateNode {
       }
     });
 
-    return new State(initialStateValue, undefined, actions, activityMap);
+    return new State(
+      initialStateValue,
+      undefined,
+      undefined,
+      actions,
+      activityMap
+    );
   }
   public get target(): StateValue | undefined {
     let target;
@@ -995,10 +1012,9 @@ class StateNode {
    */
   public getRelativeStateNodes(
     relativeStateId: string | string[],
-    history?: State,
+    historyValue?: HistoryValue,
     resolve: boolean = true
   ): StateNode[] {
-    const historyValue = history ? history.value : undefined;
     if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
@@ -1039,9 +1055,15 @@ class StateNode {
       )
     );
   }
+  /**
+   * Retrieves state nodes from a relative path to this state node.
+   *
+   * @param relativePath The relative path from this state node
+   * @param historyValue
+   */
   public getFromRelativePath(
     relativePath: string[],
-    historyValue?: StateValue
+    historyValue?: HistoryValue
   ): StateNode[] {
     if (!relativePath.length) {
       return [this];
@@ -1060,7 +1082,9 @@ class StateNode {
       if (!historyValue) {
         return [this];
       }
-      const subHistoryValue = path(this.path)(historyValue);
+
+      const subHistoryValue = path(this.path, 'states')(historyValue)
+        .current as StateValue;
 
       if (typeof subHistoryValue === 'string') {
         return this.states[subHistoryValue].getFromRelativePath(
@@ -1088,7 +1112,73 @@ class StateNode {
 
     return this.states[x].getFromRelativePath(xs, historyValue);
   }
-  private resolveHistory(historyValue?: StateValue): StateNode[] {
+  public static updateHistoryValue(
+    hist: HistoryValue,
+    stateValue: StateValue
+  ): HistoryValue {
+    function update(
+      _hist: HistoryValue,
+      _sv: StateValue
+    ): Record<string, HistoryValue | undefined> {
+      return mapValues(_hist.states, (subHist, key) => {
+        if (!subHist) {
+          return undefined;
+        }
+        const subStateValue =
+          (typeof _sv === 'string' ? undefined : _sv[key]) ||
+          (subHist ? subHist.current : undefined);
+
+        if (!subStateValue) {
+          return undefined;
+        }
+
+        return {
+          current: subStateValue,
+          states: update(subHist, subStateValue)
+        };
+      });
+    }
+    return {
+      current: stateValue,
+      states: update(hist, stateValue)
+    };
+  }
+  public historyValue(
+    relativeStateValue?: StateValue | undefined
+  ): HistoryValue | undefined {
+    if (!Object.keys(this.states).length) {
+      return undefined;
+    }
+
+    return {
+      current: relativeStateValue || this.initialStateValue,
+      states: mapFilterValues(
+        this.states,
+        (stateNode, key) => {
+          if (!relativeStateValue) {
+            return stateNode.historyValue();
+          }
+
+          const subStateValue =
+            typeof relativeStateValue === 'string'
+              ? undefined
+              : relativeStateValue[key];
+
+          return stateNode.historyValue(
+            subStateValue || stateNode.initialStateValue
+          );
+        },
+        stateNode => !stateNode.history
+      )
+    };
+  }
+  /**
+   * Resolves to the historical value(s) of the parent state node,
+   * represented by state nodes.
+   *
+   * @param historyValue
+   */
+  private resolveHistory(historyValue?: HistoryValue): StateNode[] {
     if (!this.history) {
       return [this];
     }
@@ -1099,25 +1189,25 @@ class StateNode {
       return this.target
         ? flatMap(
             toStatePaths(this.target).map(relativeChildPath =>
-              parent.getFromRelativePath(relativeChildPath, historyValue)
+              parent.getFromRelativePath(relativeChildPath)
             )
           )
         : this.parent!.initialStateNodes;
-    } else {
-      const subHistoryValue = path(parent.path)(historyValue);
-
-      if (typeof subHistoryValue === 'string') {
-        return [parent.getStateNode(subHistoryValue)];
-      }
-
-      return flatMap(
-        toStatePaths(subHistoryValue).map(subStatePath => {
-          return this.history === 'deep'
-            ? parent.getFromRelativePath(subStatePath)
-            : [parent.states[subStatePath[0]]];
-        })
-      );
     }
+
+    const subHistoryValue = path(parent.path, 'states')(historyValue).current;
+
+    if (typeof subHistoryValue === 'string') {
+      return [parent.getStateNode(subHistoryValue)];
+    }
+
+    return flatMap(
+      toStatePaths(subHistoryValue).map(subStatePath => {
+        return this.history === 'deep'
+          ? parent.getFromRelativePath(subStatePath)
+          : [parent.states[subStatePath[0]]];
+      })
+    );
   }
   get events(): EventType[] {
     if (this.__cache.events) {
