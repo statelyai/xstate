@@ -9,7 +9,8 @@ import {
   pathToStateValue,
   getActionType,
   flatMap,
-  mapFilterValues
+  mapFilterValues,
+  nestedPath
 } from './utils';
 import {
   Event,
@@ -1083,8 +1084,9 @@ class StateNode {
         return [this];
       }
 
-      const subHistoryValue = path(this.path, 'states')(historyValue)
-        .current as StateValue;
+      const subHistoryValue = nestedPath<HistoryValue>(this.path, 'states')(
+        historyValue
+      ).current;
 
       if (typeof subHistoryValue === 'string') {
         return this.states[subHistoryValue].getFromRelativePath(
@@ -1094,7 +1096,7 @@ class StateNode {
       }
 
       return flatMap(
-        Object.keys(subHistoryValue).map(key => {
+        Object.keys(subHistoryValue!).map(key => {
           return this.states[key].getFromRelativePath(xs, historyValue);
         })
       );
@@ -1195,14 +1197,16 @@ class StateNode {
         : this.parent!.initialStateNodes;
     }
 
-    const subHistoryValue = path(parent.path, 'states')(historyValue).current;
+    const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
+      historyValue
+    ).current;
 
     if (typeof subHistoryValue === 'string') {
       return [parent.getStateNode(subHistoryValue)];
     }
 
     return flatMap(
-      toStatePaths(subHistoryValue).map(subStatePath => {
+      toStatePaths(subHistoryValue!).map(subStatePath => {
         return this.history === 'deep'
           ? parent.getFromRelativePath(subStatePath)
           : [parent.states[subStatePath[0]]];

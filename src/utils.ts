@@ -113,19 +113,36 @@ export function mapFilterValues<T, P>(
  * Retrieves a value at the given path.
  * @param props The deep path to the prop of the desired value
  */
-export const path = (props: string[], accessorProp?: string): any => <
-  T extends Record<string, any>
->(
+export const path = <T extends Record<string, any>>(props: string[]): any => (
   object: T
 ): any => {
-  let result: Record<string, any> = object;
+  let result: T = object;
 
   for (const prop of props) {
-    result = accessorProp ? result[accessorProp][prop] : result[prop];
+    result = result[prop as keyof typeof result];
   }
 
   return result;
 };
+
+/**
+ * Retrieves a value at the given path via the nested accessor prop.
+ * @param props The deep path to the prop of the desired value
+ */
+export function nestedPath<T extends Record<string, any>>(
+  props: string[],
+  accessorProp: keyof T
+): (object: T) => T {
+  return object => {
+    let result: T = object;
+
+    for (const prop of props) {
+      result = result[accessorProp][prop];
+    }
+
+    return result;
+  };
+}
 
 export const toStatePaths = (stateValue: StateValue): string[][] => {
   if (typeof stateValue === 'string') {
