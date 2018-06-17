@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine } from '../src/StateNode';
 
 describe('deterministic machine', () => {
   const pedestrianStates = {

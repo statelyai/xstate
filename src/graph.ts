@@ -16,15 +16,16 @@ const EMPTY_MAP = {};
 
 export function getNodes(node: StateNode): StateNode[] {
   const { states } = node;
-  const nodes = Object.keys(
-    states
-  ).reduce((accNodes: StateNode[], stateKey) => {
-    const subState = states[stateKey];
-    const subNodes = getNodes(states[stateKey]);
+  const nodes = Object.keys(states).reduce(
+    (accNodes: StateNode[], stateKey) => {
+      const subState = states[stateKey];
+      const subNodes = getNodes(states[stateKey]);
 
-    accNodes.push(subState, ...subNodes);
-    return accNodes;
-  }, []);
+      accNodes.push(subState, ...subNodes);
+      return accNodes;
+    },
+    []
+  );
 
   return nodes;
 }

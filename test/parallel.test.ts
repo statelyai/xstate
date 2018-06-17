@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine } from '../src/StateNode';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({

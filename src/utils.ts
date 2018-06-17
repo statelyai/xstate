@@ -16,7 +16,9 @@ export function getActionType(action: Action): ActionType {
   try {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
-      : typeof action === 'function' ? action.name : action.type;
+      : typeof action === 'function'
+        ? action.name
+        : action.type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'

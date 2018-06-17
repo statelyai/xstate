@@ -62,26 +62,54 @@ function stateNodeToSCXML(stateNode: StateNode) {
         return stateNodeToSCXML(subStateNode);
       }),
       ...Object.keys(stateNode.on)
-        .map((event): XMLElement[] => {
-          const transition = stateNode.on![event];
+        .map(
+          (event): XMLElement[] => {
+            const transition = stateNode.on![event];
 
-          if (!transition) {
-            return [];
-          }
+            if (!transition) {
+              return [];
+            }
 
-          if (Array.isArray(transition)) {
-            return transition.map(targetTransition => {
+            if (Array.isArray(transition)) {
+              return transition.map(targetTransition => {
+                return {
+                  type: 'element',
+                  name: 'transition',
+                  attributes: {
+                    ...(event ? { event } : undefined),
+                    target: stateNode.parent!.getRelativeStateNodes(
+                      targetTransition.target
+                    )[0]!.id, // TODO: fixme
+                    ...(targetTransition.cond
+                      ? { cond: targetTransition.cond.toString() }
+                      : undefined)
+                  },
+                  elements: targetTransition.actions
+                    ? targetTransition.actions.map(action => ({
+                        type: 'element',
+                        name: 'send',
+                        attributes: {
+                          event: getActionType(action)
+                        }
+                      }))
+                    : undefined
+                };
+              });
+            }
+
+            return Object.keys(transition).map(target => {
+              const targetTransition = transition[target];
+
               return {
                 type: 'element',
                 name: 'transition',
                 attributes: {
-                  ...event ? { event } : undefined,
-                  target: stateNode.parent!.getRelativeStateNodes(
-                    targetTransition.target
-                  )[0]!.id, // TODO: fixme
-                  ...targetTransition.cond
+                  ...(event ? { event } : undefined),
+                  target: stateNode.parent!.getRelativeStateNodes(target)![0]
+                    .id, // TODO: fixme
+                  ...(targetTransition.cond
                     ? { cond: targetTransition.cond.toString() }
-                    : undefined
+                    : undefined)
                 },
                 elements: targetTransition.actions
                   ? targetTransition.actions.map(action => ({
@@ -95,32 +123,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
               };
             });
           }
-
-          return Object.keys(transition).map(target => {
-            const targetTransition = transition[target];
-
-            return {
-              type: 'element',
-              name: 'transition',
-              attributes: {
-                ...event ? { event } : undefined,
-                target: stateNode.parent!.getRelativeStateNodes(target)![0].id, // TODO: fixme
-                ...targetTransition.cond
-                  ? { cond: targetTransition.cond.toString() }
-                  : undefined
-              },
-              elements: targetTransition.actions
-                ? targetTransition.actions.map(action => ({
-                    type: 'element',
-                    name: 'send',
-                    attributes: {
-                      event: getActionType(action)
-                    }
-                  }))
-                : undefined
-            };
-          });
-        })
+        )
         .reduce((a, b) => a.concat(b))
     ].filter(Boolean) as XMLElement[]
   };
@@ -276,12 +279,12 @@ function toConfig(
       (values: XMLElement[]) => {
         return values.map(value => ({
           target: `#${value.attributes!.target}`,
-          ...value.elements ? executableContent(value.elements) : undefined,
-          ...value.attributes!.cond
+          ...(value.elements ? executableContent(value.elements) : undefined),
+          ...(value.attributes!.cond
             ? {
                 cond: evalCond(value.attributes!.cond as string)
               }
-            : undefined
+            : undefined)
         }));
       }
     );
@@ -311,18 +314,18 @@ function toConfig(
     return {
       id,
       delimiter: options.delimiter,
-      ...initial ? { initial } : undefined,
-      ...parallel ? { parallel } : undefined,
-      ...stateElements.length
+      ...(initial ? { initial } : undefined),
+      ...(parallel ? { parallel } : undefined),
+      ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
               toConfig(state, key, options)
             )
           }
-        : undefined,
-      ...transitionElements.length ? { on } : undefined,
-      ...onEntry ? { onEntry } : undefined,
-      ...onExit ? { onExit } : undefined
+        : undefined),
+      ...(transitionElements.length ? { on } : undefined),
+      ...(onEntry ? { onEntry } : undefined),
+      ...(onExit ? { onExit } : undefined)
     };
   }
 

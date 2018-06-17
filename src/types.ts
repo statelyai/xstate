@@ -117,7 +117,6 @@ export interface StandardMachineConfig extends MachineConfig {
 export interface ParallelMachineConfig extends MachineConfig {
   initial?: undefined;
   parallel: true;
-  states: Record<string, CompoundStateNodeConfig>;
 }
 
 export interface EntryExitEffectMap {
@@ -195,15 +194,8 @@ export type MaybeStateValueActionsTuple = [
   ActivityMap | undefined
 ];
 
-export interface StateTransition {
-  statePaths: string[][];
-  actions: ActionMap;
-  activities: ActivityMap | undefined;
-  events: EventObject[];
-}
-
 // tslint:disable-next-line:class-name
-export interface _StateTransition {
+export interface StateTransition {
   value: StateValue | undefined;
   entryExitStates: EntryExitStates | undefined;
   actions: Action[];
