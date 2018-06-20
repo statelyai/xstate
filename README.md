@@ -14,6 +14,13 @@ Functional, stateless JavaScript [finite state machines](https://en.wikipedia.or
 
 <a href="https://bit.ly/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/fOMJKDZ.png" alt="xstate visualizer" width="300" /></a>
 
+## 3rd-Party Usage
+
+With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as `xstate`-compatible JSON!
+1. Create your sketch (example: https://sketch.systems/anon/sketch/new)
+2. Click **Export to clipboard...**
+3. Select `XState JSON`
+
 ## Why?
 Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
 
