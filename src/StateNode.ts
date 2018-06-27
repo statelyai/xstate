@@ -653,16 +653,6 @@ class StateNode {
 
     const activityMap = { ...state.activities };
 
-    Array.from(transition.entryExitStates.entry).forEach(stateNode => {
-      if (!stateNode.activities) {
-        return; // TODO: fixme
-      }
-
-      stateNode.activities.forEach(activity => {
-        activityMap[getActionType(activity)] = true;
-      });
-    });
-
     Array.from(transition.entryExitStates.exit).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
@@ -670,6 +660,16 @@ class StateNode {
 
       stateNode.activities.forEach(activity => {
         activityMap[getActionType(activity)] = false;
+      });
+    });
+
+    Array.from(transition.entryExitStates.entry).forEach(stateNode => {
+      if (!stateNode.activities) {
+        return; // TODO: fixme
+      }
+
+      stateNode.activities.forEach(activity => {
+        activityMap[getActionType(activity)] = true;
       });
     });
 
