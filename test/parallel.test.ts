@@ -369,6 +369,89 @@ const raisingParallelMachine = Machine({
   }
 });
 
+const nestedParallelState = Machine({
+  parallel: true,
+  states: {
+    OUTER1: {
+      initial: 'STATE_OFF',
+      states: {
+        STATE_OFF: {
+          on: {
+            EVENT_COMPLEX: 'STATE_ON',
+            EVENT_SIMPLE: 'STATE_ON'
+          }
+        },
+        STATE_ON: {
+          parallel: true,
+          states: {
+            STATE_NTJ0: {
+              initial: 'STATE_IDLE_0',
+              states: {
+                STATE_IDLE_0: {
+                  on: {
+                    EVENT_STATE_NTJ0_WORK: 'STATE_WORKING_0'
+                  }
+                },
+                STATE_WORKING_0: {
+                  on: {
+                    EVENT_STATE_NTJ0_IDLE: 'STATE_IDLE_0'
+                  }
+                }
+              }
+            },
+            STATE_NTJ1: {
+              initial: 'STATE_IDLE_1',
+              states: {
+                STATE_IDLE_1: {
+                  on: {
+                    EVENT_STATE_NTJ1_WORK: 'STATE_WORKING_1'
+                  }
+                },
+                STATE_WORKING_1: {
+                  on: {
+                    EVENT_STATE_NTJ1_IDLE: 'STATE_IDLE_1'
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    OUTER2: {
+      initial: 'STATE_OFF',
+      states: {
+        STATE_OFF: {
+          on: {
+            EVENT_COMPLEX: 'STATE_ON_COMPLEX',
+            EVENT_SIMPLE: 'STATE_ON_SIMPLE'
+          }
+        },
+        STATE_ON_SIMPLE: {},
+        STATE_ON_COMPLEX: {
+          parallel: true,
+          states: {
+            STATE_INNER1: {
+              initial: 'STATE_OFF',
+              states: {
+                STATE_OFF: {},
+                STATE_ON: {}
+              }
+            },
+            STATE_INNER2: {
+              initial: 'STATE_OFF',
+              states: {
+                STATE_OFF: {},
+                STATE_ON: {}
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
@@ -479,7 +562,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('it should properly tranisition according to onEntry events on an initial state', () => {
+  it('should properly tranisition according to onEntry events on an initial state', () => {
     assert.deepEqual(raisingParallelMachine.initialState.value, {
       OUTER1: 'C',
       OUTER2: {
@@ -501,6 +584,57 @@ describe('parallel states', () => {
         INNER1: 'ON',
         INNER2: 'OFF'
       }
+    });
+  });
+
+  describe('transitions with nested parallel states', () => {
+    const initialState = nestedParallelState.initialState;
+    const simpleNextState = nestedParallelState.transition(
+      initialState,
+      'EVENT_SIMPLE'
+    );
+    const complexNextState = nestedParallelState.transition(
+      initialState,
+      'EVENT_COMPLEX'
+    );
+
+    it('should properly transition when in a simple nested state', () => {
+      const nextState = nestedParallelState.transition(
+        simpleNextState,
+        'EVENT_STATE_NTJ0_WORK'
+      );
+
+      assert.deepEqual(nextState.value, {
+        OUTER1: {
+          STATE_ON: {
+            STATE_NTJ0: 'STATE_WORKING_0',
+            STATE_NTJ1: 'STATE_IDLE_1'
+          }
+        },
+        OUTER2: 'STATE_ON_SIMPLE'
+      });
+    });
+
+    it('should properly transition when in a complex nested state', () => {
+      const nextState = nestedParallelState.transition(
+        complexNextState,
+        'EVENT_STATE_NTJ0_WORK'
+      );
+
+      assert.deepEqual(nextState.value, {
+        OUTER1: {
+          STATE_ON: {
+            STATE_NTJ0: 'STATE_WORKING_0',
+            STATE_NTJ1: 'STATE_IDLE_1'
+          }
+        },
+        OUTER2: {
+          STATE_ON_COMPLEX: {
+            STATE_INNER1: 'STATE_OFF',
+            STATE_INNER2: 'STATE_OFF'
+          }
+        }
+      });
     });
   });
 });
