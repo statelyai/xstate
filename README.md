@@ -8,6 +8,16 @@ Functional, stateless JavaScript [finite state machines](https://en.wikipedia.or
 
 📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
 
+- [Visualizer](#visualizer)
+- [3rd-Party Usage](#3rd-party-usage)
+- [Why? (info about statecharts)](#why)
+- [Installation](#installation)
+- [Finite State Machines](#finite-state-machines)
+- [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
+- [Parallel State Machines](#parallel-state-machines)
+- [History States](#history-states)
+- [Interpreters](#interpreters)
+
 ## Visualizer
 
 **[:new: Preview and simulate your statecharts in the xstate visualizer (beta)!](https://bit.ly/xstate-viz)**
@@ -161,7 +171,7 @@ lightMachine
 // => 'green'
 ```
 
-## Parallel States
+## Parallel State Machines
 
 <img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 
@@ -292,3 +302,6 @@ const previousState = paymentMachine
 
 // => { method: 'check' }
 ```
+
+## Interpreters
+- [`xstateful` by @avaragado](https://www.npmjs.com/package/@avaragado/xstateful)
