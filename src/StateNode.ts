@@ -856,6 +856,16 @@ class StateNode {
 
     return stateNode;
   }
+  public getStateNodeByPath(statePath: string | string[]): StateNode {
+    const arrayStatePath = toStatePath(statePath, this.delimiter);
+    let currentStateNode: StateNode = this;
+    while (arrayStatePath.length) {
+      const key = arrayStatePath.shift()!;
+      currentStateNode = currentStateNode.getStateNode(key);
+    }
+
+    return currentStateNode;
+  }
   private resolve(stateValue: StateValue): StateValue {
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
