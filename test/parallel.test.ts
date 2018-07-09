@@ -1,4 +1,5 @@
 import { assert } from 'chai';
+import { raise } from '../src/actions';
 import { Machine } from '../src/StateNode';
 import { testMultiTransition } from './utils';
 
@@ -300,6 +301,74 @@ const flatParallelMachine = Machine({
   }
 });
 
+const raisingParallelMachine = Machine({
+  strict: true,
+  parallel: true,
+  states: {
+    OUTER1: {
+      initial: 'C',
+      states: {
+        A: {
+          onEntry: [raise('TURN_OFF')],
+          on: {
+            EVENT_OUTER1_B: 'B',
+            EVENT_OUTER1_C: 'C'
+          }
+        },
+        B: {
+          onEntry: [raise('TURN_ON')],
+          on: {
+            EVENT_OUTER1_A: 'A',
+            EVENT_OUTER1_C: 'C'
+          }
+        },
+        C: {
+          onEntry: [raise('CLEAR')],
+          on: {
+            EVENT_OUTER1_A: 'A',
+            EVENT_OUTER1_B: 'B'
+          }
+        }
+      }
+    },
+    OUTER2: {
+      parallel: true,
+      states: {
+        INNER1: {
+          initial: 'ON',
+          states: {
+            OFF: {
+              on: {
+                TURN_ON: 'ON'
+              }
+            },
+            ON: {
+              on: {
+                CLEAR: 'OFF'
+              }
+            }
+          }
+        },
+        INNER2: {
+          initial: 'OFF',
+          states: {
+            OFF: {
+              on: {
+                TURN_ON: 'ON'
+              }
+            },
+            ON: {
+              on: {
+                TURN_OFF: 'OFF'
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+});
+
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
@@ -406,6 +475,31 @@ describe('parallel states', () => {
           SelectionStatus: 'SelectedActivity',
           ClipboardStatus: 'Empty'
         }
+      }
+    });
+  });
+
+  it('it should properly tranisition according to onEntry events on an initial state', () => {
+    assert.deepEqual(raisingParallelMachine.initialState.value, {
+      OUTER1: 'C',
+      OUTER2: {
+        INNER1: 'OFF',
+        INNER2: 'OFF'
+      }
+    });
+  });
+
+  it('should properly transition when raising events for a parallel state', () => {
+    const nextState = raisingParallelMachine.transition(
+      raisingParallelMachine.initialState,
+      'EVENT_OUTER1_B'
+    );
+
+    assert.deepEqual(nextState.value, {
+      OUTER1: 'B',
+      OUTER2: {
+        INNER1: 'ON',
+        INNER2: 'OFF'
       }
     });
   });

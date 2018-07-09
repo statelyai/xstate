@@ -203,6 +203,21 @@ describe('transient activities', () => {
           B1: '.B1',
           B2: '.B2'
         }
+      },
+      C: {
+        initial: 'C1',
+        states: {
+          C1: {
+            activities: ['C1'],
+            on: {
+              C: 'C1',
+              C_SIMILAR: 'C2'
+            }
+          },
+          C2: {
+            activities: ['C1'],
+          },
+        }
       }
     }
   });
@@ -223,10 +238,22 @@ describe('transient activities', () => {
     assert.deepEqual(state.activities.A, true);
   });
 
+  it('should have kept same activities', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'C_SIMILAR');
+    assert.deepEqual(state.activities.C1, true);
+  });
+
+  it('should have kept same activities after self transition', () => {
+    let state = machine.initialState;
+    state = machine.transition(state, 'C');
+    assert.deepEqual(state.activities.C1, true);
+  });
+
   it('should have stopped after automatic transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'A');
-    assert.deepEqual(state.value, { A: 'A2', B: 'B2' });
+    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C1' });
     assert.deepEqual(state.activities.B2, true);
   });
 });
