@@ -259,6 +259,7 @@ class StateNode {
   ): StateTransition {
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition> = {};
+
     Object.keys(stateValue).forEach(subStateKey => {
       const subStateValue = stateValue[subStateKey];
 
@@ -347,12 +348,11 @@ class StateNode {
     const allResolvedPaths = flatMap(
       Object.keys(transitionMap).map(key => {
         const transition = transitionMap[key];
-        if (!transition.value) {
-          return toStatePaths(path(this.path)(state.value)[key]).map(
-            statePath => this.path.concat(key, statePath)
-          );
-        }
-        return transition.paths;
+        const value = transition.value || state.value;
+
+        return toStatePaths(path(this.path)(value)[key]).map(statePath =>
+          this.path.concat(key, statePath)
+        );
       })
     );
 
@@ -856,6 +856,16 @@ class StateNode {
 
     return stateNode;
   }
+  public getStateNodeByPath(statePath: string | string[]): StateNode {
+    const arrayStatePath = toStatePath(statePath, this.delimiter);
+    let currentStateNode: StateNode = this;
+    while (arrayStatePath.length) {
+      const key = arrayStatePath.shift()!;
+      currentStateNode = currentStateNode.getStateNode(key);
+    }
+
+    return currentStateNode;
+  }
   private resolve(stateValue: StateValue): StateValue {
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
@@ -964,13 +974,34 @@ class StateNode {
       }
     });
 
-    return new State(
+    // TODO: deduplicate - DRY (from this.transition())
+    const raisedEvents = actions.filter(
+      action =>
+        typeof action === 'object' &&
+        (action.type === actionTypes.raise || action.type === actionTypes.null)
+    ) as ActionObject[];
+
+    const initialState = new State(
       initialStateValue,
       undefined,
       undefined,
       actions,
       activityMap
     );
+
+    let maybeNextState = initialState;
+    while (raisedEvents.length) {
+      const currentActions = maybeNextState.actions;
+      const raisedEvent = raisedEvents.shift()!;
+      maybeNextState = this.transition(
+        maybeNextState,
+        raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
+        undefined // TODO: consider initial state given external state
+      );
+      maybeNextState.actions.unshift(...currentActions);
+    }
+
+    return maybeNextState;
   }
   public get target(): StateValue | undefined {
     let target;
