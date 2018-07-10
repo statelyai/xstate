@@ -479,7 +479,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('it should properly tranisition according to onEntry events on an initial state', () => {
+  it('should properly transition according to onEntry events on an initial state', () => {
     assert.deepEqual(raisingParallelMachine.initialState.value, {
       OUTER1: 'C',
       OUTER2: {
@@ -499,7 +499,7 @@ describe('parallel states', () => {
       OUTER1: 'B',
       OUTER2: {
         INNER1: 'ON',
-        INNER2: 'OFF'
+        INNER2: 'ON'
       }
     });
   });
