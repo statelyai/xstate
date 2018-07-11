@@ -596,9 +596,10 @@ class StateNode {
     interimState: StateValue
   ): boolean {
     let condFn: ConditionPredicate;
+    const { guards } = this.machine.options;
 
     if (typeof condition === 'string') {
-      if (!this.machine.options.guards[condition]) {
+      if (!guards || !guards[condition]) {
         throw new Error(
           `String condition '${condition}' is not defined on machine '${
             this.machine.id
@@ -606,7 +607,7 @@ class StateNode {
         );
       }
 
-      condFn = this.machine.options.guards[condition];
+      condFn = guards[condition];
     } else {
       condFn = condition;
     }
@@ -639,9 +640,18 @@ class StateNode {
 
     const actions = (entryExitActions.exit || [])
       .concat(transition.actions || [])
-      .concat(entryExitActions.entry || []);
+      .concat(entryExitActions.entry || [])
+      .map(
+        action =>
+          typeof action === 'string' ? this.resolveAction(action) : action
+      );
 
     return actions;
+  }
+  private resolveAction(actionType: string): Action {
+    const { actions } = this.machine.options;
+
+    return (actions ? actions[actionType] : actionType) || actionType;
   }
   private _getActivities(
     state: State,

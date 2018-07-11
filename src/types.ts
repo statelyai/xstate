@@ -102,7 +102,8 @@ export type SimpleOrCompoundStateNodeConfig =
   | SimpleStateNodeConfig;
 
 export interface MachineOptions {
-  guards: Record<string, ConditionPredicate>;
+  guards?: Record<string, ConditionPredicate>;
+  actions?: Record<string, ActionObject | ActionFunction>;
 }
 export interface MachineConfig extends CompoundStateNodeConfig {
   key?: string;
