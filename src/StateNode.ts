@@ -62,7 +62,6 @@ class StateNode {
   public transient: boolean;
   public states: Record<string, StateNode>;
   public history: false | 'shallow' | 'deep';
-  public on: Record<string, ConditionalTransitionConfig>;
   public onEntry: Action[];
   public onExit: Action[];
   public activities?: Activity[];
@@ -123,8 +122,8 @@ class StateNode {
     this.history =
       config.history === true ? 'shallow' : config.history || false;
 
-    this.on = config.on ? this.formatTransitions(config.on) : {};
-    this.transient = !!this.on[NULL_EVENT];
+    // this.on = config.on ? this.formatTransitions(config.on) : {};
+    this.transient = !!(config.on && config.on[NULL_EVENT]);
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
       ? ([] as Action[]).concat(config.onEntry)
@@ -132,6 +131,10 @@ class StateNode {
     this.onExit = config.onExit ? ([] as Action[]).concat(config.onExit) : [];
     this.data = config.data;
     this.activities = config.activities;
+  }
+  public get on(): Record<string, TargetTransitionConfig[]> {
+    const { config } = this;
+    return config.on ? this.formatTransitions(config.on) : {};
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     if (!state) {
