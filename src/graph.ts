@@ -36,22 +36,29 @@ export function getEventEdges(node: StateNode, event: string): Edge[] {
   return flatMap(
     transitions.map(transition => {
       const targets = ([] as string[]).concat(transition.target);
-      return targets.map(target => {
-        const targetNode = node.getRelativeStateNodes(
-          target,
-          undefined,
-          false
-        )[0];
-        return {
-          source: node,
-          target: targetNode,
-          event,
-          actions: transition.actions
-            ? transition.actions.map(getActionType)
-            : [],
-          cond: transition.cond
-        };
-      });
+      return targets
+        .map(target => {
+          try {
+            const targetNode = node.getRelativeStateNodes(
+              target,
+              undefined,
+              false
+            )[0];
+            return {
+              source: node,
+              target: targetNode,
+              event,
+              actions: transition.actions
+                ? transition.actions.map(getActionType)
+                : [],
+              cond: transition.cond
+            };
+          } catch (e) {
+            console.warn(`Target '${target}' not found on '${node.id}'`);
+            return undefined;
+          }
+        })
+        .filter(maybeEdge => maybeEdge !== undefined) as Edge[];
     })
   );
 }

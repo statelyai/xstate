@@ -342,3 +342,43 @@ describe('actions on invalid transition', () => {
     assert.isEmpty(stopMachine.transition(nextState, 'INVALID').actions);
   });
 });
+
+describe('actions option', () => {
+  // tslint:disable-next-line:no-empty
+  const definedAction = () => {};
+  const simpleMachine = Machine(
+    {
+      initial: 'a',
+      states: {
+        a: {
+          onEntry: ['definedAction', 'undefinedAction']
+        }
+      },
+      on: {
+        E: 'a'
+      }
+    },
+    {
+      actions: {
+        definedAction
+      }
+    }
+  );
+  it('should reference actions defined in actions parameter of machine options', () => {
+    const nextState = simpleMachine.transition(simpleMachine.initialState, 'E');
+
+    assert.includeMembers(nextState.actions, [
+      definedAction,
+      'undefinedAction'
+    ]);
+  });
+
+  xit('should reference actions defined in actions parameter of machine options (initial state)', () => {
+    const { initialState } = simpleMachine;
+
+    assert.includeMembers(initialState.actions, [
+      definedAction,
+      'undefinedAction'
+    ]);
+  });
+});

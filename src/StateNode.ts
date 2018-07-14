@@ -62,7 +62,6 @@ class StateNode {
   public transient: boolean;
   public states: Record<string, StateNode>;
   public history: false | 'shallow' | 'deep';
-  public on: Record<string, ConditionalTransitionConfig>;
   public onEntry: Action[];
   public onExit: Action[];
   public activities?: Activity[];
@@ -123,8 +122,8 @@ class StateNode {
     this.history =
       config.history === true ? 'shallow' : config.history || false;
 
-    this.on = config.on ? this.formatTransitions(config.on) : {};
-    this.transient = !!this.on[NULL_EVENT];
+    // this.on = config.on ? this.formatTransitions(config.on) : {};
+    this.transient = !!(config.on && config.on[NULL_EVENT]);
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
       ? ([] as Action[]).concat(config.onEntry)
@@ -132,6 +131,10 @@ class StateNode {
     this.onExit = config.onExit ? ([] as Action[]).concat(config.onExit) : [];
     this.data = config.data;
     this.activities = config.activities;
+  }
+  public get on(): Record<string, TargetTransitionConfig[]> {
+    const { config } = this;
+    return config.on ? this.formatTransitions(config.on) : {};
   }
   public getStateNodes(state: StateValue | State): StateNode[] {
     if (!state) {
@@ -596,9 +599,10 @@ class StateNode {
     interimState: StateValue
   ): boolean {
     let condFn: ConditionPredicate;
+    const { guards } = this.machine.options;
 
     if (typeof condition === 'string') {
-      if (!this.machine.options.guards[condition]) {
+      if (!guards || !guards[condition]) {
         throw new Error(
           `String condition '${condition}' is not defined on machine '${
             this.machine.id
@@ -606,7 +610,7 @@ class StateNode {
         );
       }
 
-      condFn = this.machine.options.guards[condition];
+      condFn = guards[condition];
     } else {
       condFn = condition;
     }
@@ -639,9 +643,18 @@ class StateNode {
 
     const actions = (entryExitActions.exit || [])
       .concat(transition.actions || [])
-      .concat(entryExitActions.entry || []);
+      .concat(entryExitActions.entry || [])
+      .map(
+        action =>
+          typeof action === 'string' ? this.resolveAction(action) : action
+      );
 
     return actions;
+  }
+  private resolveAction(actionType: string): Action {
+    const { actions } = this.machine.options;
+
+    return (actions ? actions[actionType] : actionType) || actionType;
   }
   private _getActivities(
     state: State,
