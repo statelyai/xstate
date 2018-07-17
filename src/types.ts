@@ -15,7 +15,10 @@ export interface ActionObject {
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
-export type ActionFunction = ((state: any, event: EventObject) => any | void);
+export type ActionFunction = ((
+  externalState: any,
+  event?: EventObject
+) => any | void);
 export type Action = ActionType | ActionObject | ActionFunction;
 export type StateKey = string | State;
 

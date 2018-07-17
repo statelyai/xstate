@@ -99,3 +99,7 @@ export const cancel = (sendId: string | number): CancelAction => {
 
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);
+
+export function isActionObject(action: Action): action is ActionObject {
+  return typeof action === 'object' && 'type' in action;
+}
