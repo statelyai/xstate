@@ -38,9 +38,17 @@ const createActivityAction = (actionType: string) => (
   };
 };
 
-export const toEventObject = (event: Event): EventObject => {
+export const toEventObject = (
+  event: Event,
+  id?: string | number
+): EventObject => {
   if (typeof event === 'string' || typeof event === 'number') {
-    return { type: event };
+    const eventObject: EventObject = { type: event };
+    if (id !== undefined) {
+      eventObject.id = id;
+    }
+
+    return eventObject;
   }
 
   return event;

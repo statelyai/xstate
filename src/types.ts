@@ -6,6 +6,7 @@ export type ActionType = string | number;
 
 export interface EventObject {
   type: EventType;
+  id?: string | number;
   [key: string]: any;
 }
 export interface ActionObject {

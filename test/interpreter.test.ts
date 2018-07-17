@@ -10,7 +10,10 @@ const lightMachine = Machine({
     green: {
       onEntry: [actions.send('TIMER', { delay: 10 })],
       on: {
-        TIMER: 'yellow'
+        TIMER: 'yellow',
+        KEEP_GOING: {
+          green: { actions: [actions.cancel('TIMER')], internal: true }
+        }
       }
     },
     yellow: {
@@ -72,5 +75,21 @@ describe('interpreter', () => {
         done();
       }, 35);
     });
+  });
+
+  it('can cancel a delayed event', done => {
+    let s: State;
+
+    const interpreter = interpret(lightMachine, state => (s = state));
+    interpreter.init();
+
+    setTimeout(() => {
+      interpreter.send('KEEP_GOING');
+    }, 1);
+
+    setTimeout(() => {
+      assert.deepEqual(s.value, 'green');
+      done();
+    }, 15);
   });
 });

@@ -1,4 +1,11 @@
-import { Machine, Event, Action, EventObject, SendAction } from './types';
+import {
+  Machine,
+  Event,
+  Action,
+  EventObject,
+  SendAction,
+  CancelAction
+} from './types';
 import { State } from './State';
 import { toEventObject, actionTypes, toActionObject } from './actions';
 
@@ -8,6 +15,7 @@ export class Interpreter<T extends {} | undefined> {
   public state: State;
   public externalState: T;
   public eventQueue: EventObject[] = [];
+  public delayedEventsMap: Record<string | number, NodeJS.Timer> = {};
   public listeners: Set<StateListener> = new Set();
   constructor(public machine: Machine, listener?: StateListener) {
     if (listener) {
@@ -48,6 +56,10 @@ export class Interpreter<T extends {} | undefined> {
     this.update(nextState, event);
     this.flushEventQueue();
   }
+  private cancel(sendId: string | number): void {
+    clearTimeout(this.delayedEventsMap[sendId]);
+    delete this.delayedEventsMap[sendId];
+  }
   private exec(
     action: Action,
     externalState: T,
@@ -66,10 +78,14 @@ export class Interpreter<T extends {} | undefined> {
         if (!sendAction.delay) {
           this.eventQueue.push(sendAction.event);
         } else {
-          setTimeout(() => {
+          this.delayedEventsMap[sendAction.id] = setTimeout(() => {
             this.send(sendAction.event);
           }, sendAction.delay || 0);
         }
+
+        break;
+      case actionTypes.cancel:
+        this.cancel((actionObject as CancelAction).sendId);
 
         break;
       default:
