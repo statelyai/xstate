@@ -53,7 +53,7 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
-class StateNode {
+class StateNode<T = any> {
   public key: string;
   public id: string;
   public path: string[];
@@ -84,7 +84,8 @@ class StateNode {
       | SimpleOrCompoundStateNodeConfig
       | StandardMachineConfig
       | ParallelMachineConfig,
-    public options: MachineOptions = defaultOptions
+    public options: MachineOptions = defaultOptions,
+    public extendedState?: T | undefined
   ) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
@@ -1009,7 +1010,7 @@ class StateNode {
       maybeNextState = this.transition(
         maybeNextState,
         raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-        undefined // TODO: consider initial state given external state
+        this.extendedState
       );
       maybeNextState.actions.unshift(...currentActions);
     }

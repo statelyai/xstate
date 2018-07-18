@@ -13,7 +13,7 @@ export type StateListener = (state: State) => void;
 
 export class Interpreter<T extends {} | undefined> {
   public state: State;
-  public externalState: T;
+  public extState: T;
   public eventQueue: EventObject[] = [];
   public delayedEventsMap: Record<string | number, NodeJS.Timer> = {};
   public listeners: Set<StateListener> = new Set();
@@ -26,23 +26,18 @@ export class Interpreter<T extends {} | undefined> {
   private update(state: State, event?: Event): void {
     this.state = state;
 
-    const updatedState = this.state.actions.reduce<T>(
-      (externalState, action) => {
-        const stateUpdate = this.exec(
-          action,
-          this.externalState,
-          event ? toEventObject(event) : undefined
-        );
+    const updatedState = this.state.actions.reduce<T>((extState, action) => {
+      const stateUpdate = this.exec(
+        action,
+        this.extState,
+        event ? toEventObject(event) : undefined
+      );
 
-        return stateUpdate
-          ? Object.assign({}, externalState, stateUpdate)
-          : externalState;
-      },
-      this.externalState
-    );
+      return stateUpdate ? Object.assign({}, extState, stateUpdate) : extState;
+    }, this.extState);
 
-    if (this.externalState && updatedState) {
-      Object.assign(this.externalState, updatedState);
+    if (this.extState && updatedState) {
+      Object.assign(this.extState, updatedState);
     }
 
     this.listeners.forEach(listener => listener(state));
@@ -51,7 +46,7 @@ export class Interpreter<T extends {} | undefined> {
     this.update(this.machine.initialState);
   }
   public send(event: Event): void {
-    const nextState = this.machine.transition(this.state, event);
+    const nextState = this.machine.transition(this.state, event, this.extState);
 
     this.update(nextState, event);
     this.flushEventQueue();
@@ -62,11 +57,11 @@ export class Interpreter<T extends {} | undefined> {
   }
   private exec(
     action: Action,
-    externalState: T,
+    extState: T,
     event?: EventObject
   ): Partial<T> | undefined {
     if (typeof action === 'function') {
-      return action(externalState, event);
+      return action(extState, event);
     }
 
     const actionObject = toActionObject(action);

@@ -17,7 +17,7 @@ export interface ActionObject {
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
 export type ActionFunction = ((
-  externalState: any,
+  extendedState: any,
   event?: EventObject
 ) => any | void);
 export type Action = ActionType | ActionObject | ActionFunction;

@@ -57,30 +57,34 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', done => {
-      let s: State;
+      let currentState: State;
+      const listener = state => {
+        currentState = state;
+      };
 
-      const interpreter = interpret(lightMachine, state => (s = state));
+      const interpreter = interpret(lightMachine, listener);
       interpreter.init();
 
       setTimeout(() => {
-        assert.deepEqual(s.value, 'yellow');
+        assert.deepEqual(currentState.value, 'yellow');
       }, 15);
 
       setTimeout(() => {
-        assert.deepEqual(s.value, 'red');
+        assert.deepEqual(currentState.value, 'red');
       }, 25);
 
       setTimeout(() => {
-        assert.deepEqual(s.value, 'green');
+        assert.deepEqual(currentState.value, 'green');
         done();
       }, 35);
     });
   });
 
   it('can cancel a delayed event', done => {
-    let s: State;
+    let currentState: State;
+    const listener = state => (currentState = state);
 
-    const interpreter = interpret(lightMachine, state => (s = state));
+    const interpreter = interpret(lightMachine, listener);
     interpreter.init();
 
     setTimeout(() => {
@@ -88,7 +92,7 @@ describe('interpreter', () => {
     }, 1);
 
     setTimeout(() => {
-      assert.deepEqual(s.value, 'green');
+      assert.deepEqual(currentState.value, 'green');
       done();
     }, 15);
   });
