@@ -3,6 +3,7 @@ import { State } from './State';
 
 export type EventType = string | number;
 export type ActionType = string | number;
+export type MetaObject = Record<string, any>;
 
 export interface EventObject {
   type: EventType;
@@ -242,6 +243,7 @@ export interface Edge {
   target: StateNode;
   cond?: Condition;
   actions: Action[];
+  meta?: MetaObject;
 }
 export interface NodesAndEdges {
   nodes: StateNode[];

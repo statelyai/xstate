@@ -42,7 +42,13 @@ import {
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
-import { start, stop, toEventObject, actionTypes } from './actions';
+import {
+  start,
+  stop,
+  toEventObject,
+  actionTypes,
+  AssignAction
+} from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -704,8 +710,9 @@ class StateNode<TExtState = any> {
         : state instanceof State
           ? state
           : this.resolve(state);
+    const eventObject = toEventObject(event);
 
-    const eventType = getEventType(event);
+    const eventType = eventObject.type;
 
     if (this.strict) {
       if (this.events.indexOf(eventType) === -1) {
@@ -753,8 +760,21 @@ class StateNode<TExtState = any> {
     const nonEventActions = actions.filter(
       action =>
         typeof action !== 'object' ||
-        (action.type !== actionTypes.raise && action.type !== actionTypes.null)
+        (action.type !== actionTypes.raise &&
+          action.type !== actionTypes.null &&
+          action.type !== actionTypes.assign)
     );
+    const assignments = actions.filter(
+      action => typeof action === 'object' && action.type === actionTypes.assign
+    ) as AssignAction[];
+
+    const updatedExtendedState = extendedState
+      ? assignments.reduce((acc, assignment) => {
+          const partialUpdate = assignment.assigner(acc, eventObject);
+          return Object.assign({}, acc, partialUpdate);
+        }, extendedState)
+      : extendedState;
+
     const stateNodes = stateTransition.value
       ? this.getStateNodes(stateTransition.value)
       : [];
@@ -778,7 +798,7 @@ class StateNode<TExtState = any> {
           activities,
           data,
           raisedEvents,
-          extendedState
+          updatedExtendedState
         )
       : undefined;
 
@@ -797,7 +817,7 @@ class StateNode<TExtState = any> {
       maybeNextState = this.transition(
         maybeNextState,
         raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-        extendedState
+        maybeNextState.ext
       );
       maybeNextState.actions.unshift(...currentActions);
     }

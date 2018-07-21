@@ -21,7 +21,8 @@ export const actionTypes = {
   raise: `${PREFIX}.raise`,
   send: `${PREFIX}.send`,
   cancel: `${PREFIX}.cancel`,
-  null: `${PREFIX}.null`
+  null: `${PREFIX}.null`,
+  assign: `${PREFIX}.assign`
 };
 
 const createActivityAction = (actionType: string) => (
@@ -107,6 +108,23 @@ export const cancel = (sendId: string | number): CancelAction => {
 
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);
+
+export type Assigner<TExtState extends {} = {}> = (
+  extState: TExtState,
+  event: EventObject
+) => Partial<TExtState>;
+export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
+  assigner: Assigner<TExtState>;
+}
+
+export const assign = <TExtState extends {} = {}>(
+  assigner: (extState: TExtState, event: EventObject) => Partial<TExtState>
+): AssignAction<TExtState> => {
+  return {
+    type: actionTypes.assign,
+    assigner
+  };
+};
 
 export function isActionObject(action: Action): action is ActionObject {
   return typeof action === 'object' && 'type' in action;
