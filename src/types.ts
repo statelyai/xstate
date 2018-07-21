@@ -279,11 +279,12 @@ export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
 
-export interface StateInterface {
+export interface StateInterface<TExtState = any> {
   value: StateValue;
   history?: State;
   actions: Action[];
   activities: ActivityMap;
   data: Record<string, any>;
   events: EventObject[];
+  ext?: TExtState;
 }

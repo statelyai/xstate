@@ -8,15 +8,15 @@ import {
 } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
-export class State implements StateInterface {
-  public static from(stateValue: State | StateValue): State {
+export class State<TExtState = any> implements StateInterface<TExtState> {
+  public static from<T>(stateValue: State<T> | StateValue): State<T> {
     if (stateValue instanceof State) {
       return stateValue;
     }
 
     return new State(stateValue);
   }
-  public static inert(stateValue: State | StateValue): State {
+  public static inert<T>(stateValue: State<T> | StateValue): State<T> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
@@ -43,9 +43,10 @@ export class State implements StateInterface {
     /**
      * Internal event queue
      */
-    public events: EventObject[] = []
+    public events: EventObject[] = [],
+    public ext?: TExtState
   ) {}
-  public toString(): string | undefined {
+  public toString(): string {
     if (typeof this.value === 'string') {
       return this.value;
     }
@@ -62,7 +63,7 @@ export class State implements StateInterface {
       const [firstKey, ...otherKeys] = Object.keys(marker);
 
       if (otherKeys.length) {
-        return undefined;
+        return '';
       }
 
       path.push(firstKey);

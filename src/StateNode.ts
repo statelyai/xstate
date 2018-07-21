@@ -53,7 +53,7 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
-class StateNode<T = any> {
+class StateNode<TExtState = any> {
   public key: string;
   public id: string;
   public path: string[];
@@ -80,12 +80,16 @@ class StateNode<T = any> {
   private idMap: Record<string, StateNode> = {};
 
   constructor(
-    public config:
+    public config: Readonly<
       | SimpleOrCompoundStateNodeConfig
       | StandardMachineConfig
-      | ParallelMachineConfig,
-    public options: MachineOptions = defaultOptions,
-    public extendedState?: T | undefined
+      | ParallelMachineConfig
+    >,
+    public options: Readonly<MachineOptions> = defaultOptions,
+    /**
+     * The initial extended state
+     */
+    public extendedState?: Readonly<TExtState>
   ) {
     this.key = config.key || '(machine)';
     this.parent = config.parent;
@@ -181,7 +185,7 @@ class StateNode<T = any> {
     stateValue: string,
     state: State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): StateTransition {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode._next(state, event, extendedState);
@@ -215,7 +219,7 @@ class StateNode<T = any> {
     stateValue: StateValueMap,
     state: State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): StateTransition {
     const subStateKeys = Object.keys(stateValue);
 
@@ -259,7 +263,7 @@ class StateNode<T = any> {
     stateValue: StateValueMap,
     state: State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): StateTransition {
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition> = {};
@@ -403,7 +407,7 @@ class StateNode<T = any> {
     stateValue: StateValue,
     state: State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): StateTransition {
     // leaf node
     if (typeof stateValue === 'string') {
@@ -431,7 +435,7 @@ class StateNode<T = any> {
   private _next(
     state: State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): StateTransition {
     const eventType = getEventType(event);
     const candidates = this.on[eventType];
@@ -457,7 +461,7 @@ class StateNode<T = any> {
         in: stateIn
         // actions: transitionActions
       } = candidate as TransitionConfig;
-      const extendedStateObject = extendedState || {};
+      const extendedStateObject = extendedState || ({} as TExtState);
       const eventObject = toEventObject(event);
 
       const isInState = stateIn
@@ -595,7 +599,7 @@ class StateNode<T = any> {
   }
   private _evaluateCond(
     condition: Condition,
-    extendedState: any,
+    extendedState: TExtState,
     eventObject: EventObject,
     interimState: StateValue
   ): boolean {
@@ -692,7 +696,7 @@ class StateNode<T = any> {
   public transition(
     state: StateValue | State,
     event: Event,
-    extendedState?: any
+    extendedState?: TExtState
   ): State {
     const resolvedStateValue =
       typeof state === 'string'
@@ -711,7 +715,7 @@ class StateNode<T = any> {
       }
     }
 
-    const currentState = State.from(resolvedStateValue);
+    const currentState = State.from<TExtState>(resolvedStateValue);
 
     const historyValue =
       resolvedStateValue instanceof State
@@ -766,20 +770,21 @@ class StateNode<T = any> {
     });
 
     const nextState = stateTransition.value
-      ? new State(
+      ? new State<TExtState>(
           stateTransition.value,
           StateNode.updateHistoryValue(historyValue, stateTransition.value),
           currentState,
           nonEventActions,
           activities,
           data,
-          raisedEvents
+          raisedEvents,
+          extendedState
         )
       : undefined;
 
     if (!nextState) {
       // Unchanged state should be returned with no actions
-      return State.inert(currentState);
+      return State.inert<TExtState>(currentState);
     }
 
     // Dispose of previous histories to prevent memory leaks
@@ -995,12 +1000,13 @@ class StateNode<T = any> {
         (action.type === actionTypes.raise || action.type === actionTypes.null)
     ) as ActionObject[];
 
-    const initialState = new State(
+    const initialState = new State<TExtState>(
       initialStateValue,
       undefined,
       undefined,
       actions,
-      activityMap
+      activityMap,
+      this.extendedState
     );
 
     let maybeNextState = initialState;
