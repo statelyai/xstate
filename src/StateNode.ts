@@ -710,6 +710,9 @@ class StateNode<TExtState = any> {
         : state instanceof State
           ? state
           : this.resolve(state);
+    const resolvedExtendedState =
+      extendedState ||
+      ((state instanceof State ? state.ext : undefined) as TExtState);
     const eventObject = toEventObject(event);
 
     const eventType = eventObject.type;
@@ -722,7 +725,10 @@ class StateNode<TExtState = any> {
       }
     }
 
-    const currentState = State.from<TExtState>(resolvedStateValue);
+    const currentState = State.from<TExtState>(
+      resolvedStateValue,
+      resolvedExtendedState
+    );
 
     const historyValue =
       resolvedStateValue instanceof State
@@ -737,7 +743,7 @@ class StateNode<TExtState = any> {
       currentState.value,
       currentState,
       event,
-      extendedState
+      resolvedExtendedState
     );
 
     try {
@@ -768,12 +774,12 @@ class StateNode<TExtState = any> {
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as AssignAction[];
 
-    const updatedExtendedState = extendedState
+    const updatedExtendedState = resolvedExtendedState
       ? assignments.reduce((acc, assignment) => {
           const partialUpdate = assignment.assigner(acc, eventObject);
           return Object.assign({}, acc, partialUpdate);
-        }, extendedState)
-      : extendedState;
+        }, resolvedExtendedState)
+      : resolvedExtendedState;
 
     const stateNodes = stateTransition.value
       ? this.getStateNodes(stateTransition.value)
@@ -1026,6 +1032,8 @@ class StateNode<TExtState = any> {
       undefined,
       actions,
       activityMap,
+      undefined,
+      [],
       this.extendedState
     );
 
@@ -1036,7 +1044,7 @@ class StateNode<TExtState = any> {
       maybeNextState = this.transition(
         maybeNextState,
         raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-        this.extendedState
+        maybeNextState.ext
       );
       maybeNextState.actions.unshift(...currentActions);
     }

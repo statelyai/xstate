@@ -9,12 +9,33 @@ import {
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
 export class State<TExtState = any> implements StateInterface<TExtState> {
-  public static from<T>(stateValue: State<T> | StateValue): State<T> {
+  public static from<T>(
+    stateValue: State<T> | StateValue,
+    extendedState?: T
+  ): State<T> {
     if (stateValue instanceof State) {
+      if (stateValue.ext !== extendedState) {
+        return new State(
+          stateValue.value,
+          stateValue.historyValue,
+          stateValue.history,
+          [],
+          stateValue.activities,
+          extendedState
+        );
+      }
+
       return stateValue;
     }
 
-    return new State(stateValue);
+    return new State(
+      stateValue,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      extendedState
+    );
   }
   public static inert<T>(stateValue: State<T> | StateValue): State<T> {
     if (stateValue instanceof State) {
