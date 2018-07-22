@@ -26,11 +26,16 @@ const counterMachine = Machine<C>({
 
 describe('assign', () => {
   it('applies the assignment to the external state', () => {
-    const nextState = counterMachine.transition('counting', 'INC', {
+    const oneState = counterMachine.transition('counting', 'INC', {
       count: 0
     });
 
-    assert.deepEqual(nextState.value, 'counting');
-    assert.deepEqual(nextState.ext, { count: 1 });
+    assert.deepEqual(oneState.value, 'counting');
+    assert.deepEqual(oneState.ext, { count: 1 });
+
+    const twoState = counterMachine.transition(oneState, 'INC', oneState.ext);
+
+    assert.deepEqual(twoState.value, 'counting');
+    assert.deepEqual(twoState.ext, { count: 2 });
   });
 });
