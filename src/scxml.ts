@@ -1,7 +1,7 @@
 import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
-import { Machine, EventObject } from './types';
+import { EventObject } from './types';
 // import * as xstate from './index';
-import { StateNode } from './index';
+import { StateNode, Machine } from './index';
 import { mapValues, getActionType } from './utils';
 import * as actions from './actions';
 
@@ -131,7 +131,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
   return scxmlElement;
 }
 
-export function fromMachine(machine: Machine) {
+export function fromMachine(machine: StateNode): string {
   const scxmlDocument: XMLElement = {
     declaration: { attributes: { version: '1.0', encoding: 'utf-8' } },
     elements: [
@@ -334,18 +334,22 @@ function toConfig(
 
 export interface ScxmlToMachineOptions {
   evalCond: (
-    expr: string
+    expr: string,
+    extState?: object
   ) => // tslint:disable-next-line:ban-types
   ((extState: any, event: EventObject) => boolean) | Function;
   delimiter?: string;
 }
 
-export function toMachine(xml: string, options: ScxmlToMachineOptions) {
+export function toMachine(
+  xml: string,
+  options: ScxmlToMachineOptions
+): StateNode {
   const json = xml2js(xml);
 
   const machineElement = json.elements.filter(
     element => element.name === 'scxml'
   )[0];
 
-  return toConfig(machineElement, '(machine)', options);
+  return Machine(toConfig(machineElement, '(machine)', options));
 }

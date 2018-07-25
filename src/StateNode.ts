@@ -995,19 +995,14 @@ class StateNode<TExtState = any> {
 
     return this.__cache.initialState;
   }
-  public get initialState(): State {
-    const { initialStateValue } = this;
-
-    if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}.'`
-      );
-    }
-
+  public getState(
+    stateValue: StateValue,
+    extendedState: TExtState | undefined = this.extendedState
+  ): State {
     const activityMap: ActivityMap = {};
     const actions: Action[] = [];
 
-    this.getStateNodes(initialStateValue).forEach(stateNode => {
+    this.getStateNodes(stateValue).forEach(stateNode => {
       if (stateNode.onEntry) {
         actions.push(...stateNode.onEntry);
       }
@@ -1026,15 +1021,26 @@ class StateNode<TExtState = any> {
         (action.type === actionTypes.raise || action.type === actionTypes.null)
     ) as ActionObject[];
 
+    const assignments = actions.filter(
+      action => typeof action === 'object' && action.type === actionTypes.assign
+    ) as AssignAction[];
+
+    const updatedExtendedState = extendedState
+      ? assignments.reduce((acc, assignment) => {
+          const partialUpdate = assignment.assigner(acc, { type: 'init' });
+          return Object.assign({}, acc, partialUpdate);
+        }, extendedState)
+      : extendedState;
+
     const initialState = new State<TExtState>(
-      initialStateValue,
+      stateValue,
       undefined,
       undefined,
       actions,
       activityMap,
       undefined,
       [],
-      this.extendedState
+      updatedExtendedState
     );
 
     let maybeNextState = initialState;
@@ -1050,6 +1056,17 @@ class StateNode<TExtState = any> {
     }
 
     return maybeNextState;
+  }
+  public get initialState(): State {
+    const { initialStateValue } = this;
+
+    if (!initialStateValue) {
+      throw new Error(
+        `Cannot retrieve initial state from simple state '${this.id}.'`
+      );
+    }
+
+    return this.getState(initialStateValue);
   }
   public get target(): StateValue | undefined {
     let target;

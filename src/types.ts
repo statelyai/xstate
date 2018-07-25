@@ -143,6 +143,7 @@ export interface StateNode {
   onExit?: Action | Action[];
   parent: StateNode | undefined;
   machine: Machine;
+  config: StateNodeConfig;
 }
 
 export interface ComplexStateNode extends StateNode {
@@ -167,8 +168,6 @@ export interface Machine extends StateNode {
   initial: string | undefined;
   parallel: boolean;
   states: Record<string, StateNode>;
-  onEntry: never;
-  onExit: never;
 }
 
 export interface StandardMachine extends Machine {

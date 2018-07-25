@@ -34,6 +34,8 @@ export class State<TExtState = any> implements StateInterface<TExtState> {
       undefined,
       [],
       undefined,
+      undefined,
+      [],
       extendedState
     );
   }
