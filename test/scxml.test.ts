@@ -94,7 +94,7 @@ function evalCond(expr: string, extState: object | undefined) {
   ) as () => boolean;
 }
 
-describe.only('scxml', () => {
+describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
 
   testGroupKeys.forEach(testGroupName => {
