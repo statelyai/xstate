@@ -19,7 +19,7 @@ export class Interpreter<T extends {} | undefined> {
   public listeners: Set<StateListener> = new Set();
   constructor(public machine: Machine, listener?: StateListener) {
     if (listener) {
-      this.listeners.add(listener);
+      this.onTransition(listener);
     }
   }
   public static interpret = interpret;
@@ -41,6 +41,14 @@ export class Interpreter<T extends {} | undefined> {
     }
 
     this.listeners.forEach(listener => listener(state));
+  }
+  /**
+   * Adds a listener that is called whenever a state transition happens.
+   * @param listener
+   */
+  public onTransition(listener: StateListener): Interpreter<T> {
+    this.listeners.add(listener);
+    return this;
   }
   public init(): void {
     this.update(this.machine.initialState);
