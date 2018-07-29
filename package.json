@@ -5,6 +5,15 @@
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
+  "keywords": [
+    "statechart",
+    "state machine",
+    "finite state machine",
+    "finite automata",
+    "scxml",
+    "state",
+    "interpreter"
+  ],
   "scripts": {
     "start": "npm run build",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,es,src,test}/**/*.ts",
