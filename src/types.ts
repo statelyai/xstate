@@ -250,7 +250,13 @@ export interface NodesAndEdges {
 }
 
 export interface Segment {
+  /**
+   * From state
+   */
   state: StateValue;
+  /**
+   * Event from state
+   */
   event: Event;
 }
 

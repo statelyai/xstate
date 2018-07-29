@@ -57,26 +57,31 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', done => {
-      let currentState: State;
+      const currentStates: State[] = [];
       const listener = state => {
-        currentState = state;
+        currentStates.push(state);
+
+        if (currentStates.length === 4) {
+          assert.deepEqual(currentStates.map(s => s.value), [
+            'green',
+            'yellow',
+            'red',
+            'green'
+          ]);
+          done();
+        }
       };
 
       const interpreter = interpret(lightMachine, listener);
       interpreter.init();
 
       setTimeout(() => {
-        assert.deepEqual(currentState.value, 'yellow');
-      }, 15);
-
-      setTimeout(() => {
-        assert.deepEqual(currentState.value, 'red');
-      }, 25);
-
-      setTimeout(() => {
-        assert.deepEqual(currentState.value, 'green');
-        done();
-      }, 35);
+        assert.equal(
+          currentStates[0]!.value,
+          'green',
+          'State should still be green before delayed send'
+        );
+      }, 5);
     });
   });
 

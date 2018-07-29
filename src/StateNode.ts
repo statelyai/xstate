@@ -891,6 +891,11 @@ class StateNode<TExtState = any> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
+
+    if (resolvedStateId === this.id) {
+      return this;
+    }
+
     const stateNode = this.machine.idMap[resolvedStateId];
 
     if (!stateNode) {
