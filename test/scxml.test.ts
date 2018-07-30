@@ -22,7 +22,7 @@ const testGroups = {
     'send7',
     'send8' /* 'send9' */
   ],
-  'assign-current-small-step': ['test0'],
+  'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   'default-initial-state': ['initial1', 'initial2'],
@@ -127,7 +127,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        // console.dir(machine.config, { depth: null });
+        console.dir(machine.config, { depth: null });
         runTestToCompletion(machine, scxmlTest);
       });
     });

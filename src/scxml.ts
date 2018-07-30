@@ -320,7 +320,6 @@ function toConfig(
 
     return {
       id,
-      delimiter: options.delimiter,
       ...(initial ? { initial } : undefined),
       ...(parallel ? { parallel } : undefined),
       ...(stateElements.length
@@ -372,7 +371,10 @@ export function toMachine(
   // console.log(dataModelEl, extState);
 
   return Machine(
-    toConfig(machineElement, '(machine)', options, extState),
+    {
+      ...toConfig(machineElement, '(machine)', options, extState),
+      delimiter: options.delimiter
+    },
     undefined,
     extState
   );
