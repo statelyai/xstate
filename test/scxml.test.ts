@@ -83,7 +83,6 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
 }
 
 function evalCond(expr: string, extState: object | undefined) {
-  console.log({ arguments });
   const literalKeyExprs = extState
     ? Object.keys(extState)
         .map(key => `const ${key} = xs['${key}'];`)
