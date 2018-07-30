@@ -1037,7 +1037,7 @@ class StateNode<TExtState = any> {
         }, extendedState)
       : extendedState;
 
-    const initialState = new State<TExtState>(
+    const initialNextState = new State<TExtState>(
       stateValue,
       undefined,
       undefined,
@@ -1048,19 +1048,16 @@ class StateNode<TExtState = any> {
       updatedExtendedState
     );
 
-    let maybeNextState = initialState;
-    while (raisedEvents.length) {
-      const currentActions = maybeNextState.actions;
-      const raisedEvent = raisedEvents.shift()!;
-      maybeNextState = this.transition(
-        maybeNextState,
+    return raisedEvents.reduce((nextState, raisedEvent) => {
+      const currentActions = nextState.actions;
+      nextState = this.transition(
+        nextState,
         raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-        maybeNextState.ext
+        nextState.ext
       );
-      maybeNextState.actions.unshift(...currentActions);
-    }
-
-    return maybeNextState;
+      nextState.actions.unshift(...currentActions);
+      return nextState;
+    }, initialNextState);
   }
   public get initialState(): State {
     const { initialStateValue } = this;
