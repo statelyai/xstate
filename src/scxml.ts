@@ -1,5 +1,5 @@
 import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
-import { EventObject } from './types';
+import { EventObject, ActionObject } from './types';
 // import * as xstate from './index';
 import { StateNode, Machine } from './index';
 import { mapValues, getActionType } from './utils';
@@ -189,25 +189,46 @@ function indexedAggregateRecord<T extends {}>(
 
 function executableContent(elements: XMLElement[]) {
   const transition: any = {
-    actions: []
+    actions: mapActions(elements)
   };
 
-  elements.forEach(element => {
+  return transition;
+}
+
+function mapActions(elements: XMLElement[]): ActionObject[] {
+  return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        transition.actions.push(actions.raise(element.attributes!.event));
+        return actions.raise(element.attributes!.event);
+      case 'assign':
+        return actions.assign(xs => {
+          const literalKeyExprs = xs
+            ? Object.keys(xs)
+                .map(key => `const ${key} = xs['${key}'];`)
+                .join('\n')
+            : '';
+          const fnStr = `
+          const xs = arguments[0];
+          ${literalKeyExprs};
+            return {'${element.attributes!.location}': ${
+            element.attributes!.expr
+          }};
+          `;
+
+          const fn = new Function(fnStr);
+          return fn(xs);
+        });
       default:
-        return;
+        return { type: 'not-implemented' };
     }
   });
-
-  return transition;
 }
 
 function toConfig(
   nodeJson: XMLElement,
   id: string,
-  options: ScxmlToMachineOptions
+  options: ScxmlToMachineOptions,
+  extState?: {}
 ) {
   const { evalCond } = options;
   const parallel = nodeJson.name === 'parallel';
@@ -282,7 +303,7 @@ function toConfig(
           ...(value.elements ? executableContent(value.elements) : undefined),
           ...(value.attributes!.cond
             ? {
-                cond: evalCond(value.attributes!.cond as string)
+                cond: evalCond(value.attributes!.cond as string, extState)
               }
             : undefined)
         }));
@@ -290,25 +311,11 @@ function toConfig(
     );
 
     const onEntry = onEntryElement
-      ? onEntryElement.elements!.map(element => {
-          switch (element.name) {
-            case 'raise':
-              return actions.raise(element.attributes!.event);
-            default:
-              return 'not-implemented';
-          }
-        })
+      ? mapActions(onEntryElement.elements!)
       : undefined;
 
     const onExit = onExitElement
-      ? onExitElement.elements!.map(element => {
-          switch (element.name) {
-            case 'raise':
-              return actions.raise(element.attributes!.event);
-            default:
-              return 'not-implemented';
-          }
-        })
+      ? mapActions(onExitElement.elements!)
       : undefined;
 
     return {
@@ -319,7 +326,7 @@ function toConfig(
       ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
-              toConfig(state, key, options)
+              toConfig(state, key, options, extState)
             )
           }
         : undefined),
@@ -345,11 +352,28 @@ export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
 ): StateNode {
-  const json = xml2js(xml);
+  const json = xml2js(xml) as XMLElement;
 
-  const machineElement = json.elements.filter(
+  const machineElement = json.elements!.filter(
     element => element.name === 'scxml'
   )[0];
 
-  return Machine(toConfig(machineElement, '(machine)', options));
+  const dataModelEl = machineElement.elements!.filter(
+    element => element.name === 'datamodel'
+  )[0];
+
+  const extState = dataModelEl
+    ? dataModelEl.elements!.reduce((acc, element) => {
+        acc[element.attributes!.id] = element.attributes!.expr;
+        return acc;
+      }, {})
+    : undefined;
+
+  // console.log(dataModelEl, extState);
+
+  return Machine(
+    toConfig(machineElement, '(machine)', options, extState),
+    undefined,
+    extState
+  );
 }

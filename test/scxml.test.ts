@@ -22,7 +22,7 @@ const testGroups = {
     'send7',
     'send8' /* 'send9' */
   ],
-  // 'assign-current-small-step': ['test0'],
+  'assign-current-small-step': ['test0'],
   basic: ['basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   'default-initial-state': ['initial1', 'initial2'],
@@ -83,19 +83,23 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
 }
 
 function evalCond(expr: string, extState: object | undefined) {
+  console.log({ arguments });
   const literalKeyExprs = extState
     ? Object.keys(extState)
-        .map(key => `var ${key} = xs['${key}'];`)
+        .map(key => `const ${key} = xs['${key}'];`)
         .join('\n')
     : '';
 
-  return new Function(
+  const fn = new Function(
     `const xs = arguments[0]; ${literalKeyExprs} return ${expr}`
   ) as () => boolean;
+
+  return fn;
 }
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['assign-current-small-step'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
@@ -123,7 +127,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        console.dir(machine.config, { depth: null });
+        // console.dir(machine.config, { depth: null });
         runTestToCompletion(machine, scxmlTest);
       });
     });
