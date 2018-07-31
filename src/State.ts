@@ -39,7 +39,7 @@ export class State<TExtState = any> implements StateInterface<TExtState> {
       extendedState
     );
   }
-  public static inert<T>(stateValue: State<T> | StateValue): State<T> {
+  public static inert<T>(stateValue: State<T> | StateValue, ext?: T): State<T> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
@@ -49,7 +49,10 @@ export class State<TExtState = any> implements StateInterface<TExtState> {
         stateValue.historyValue,
         stateValue.history,
         [],
-        stateValue.activities
+        stateValue.activities,
+        undefined,
+        [],
+        ext
       );
     }
 

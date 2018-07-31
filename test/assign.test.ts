@@ -66,4 +66,13 @@ describe('assign', () => {
     assert.deepEqual(threeState.value, 'counting');
     assert.deepEqual(threeState.ext, { count: 103 });
   });
+
+  it('should maintain state after unhandled event', () => {
+    const { initialState } = counterMachine;
+
+    const nextState = counterMachine.transition(initialState, 'FAKE_EVENT');
+
+    assert.isDefined(nextState.ext);
+    assert.deepEqual(nextState.ext, { count: 0 });
+  });
 });

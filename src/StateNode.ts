@@ -790,10 +790,10 @@ class StateNode<TExtState = any> {
       raisedEvents.push({ type: actionTypes.null });
     }
 
-    const data = {};
-    stateNodes.forEach(stateNode => {
-      data[stateNode.id] = stateNode.data;
-    });
+    const data = stateNodes.reduce((acc, stateNode) => {
+      acc[stateNode.id] = stateNode.data;
+      return acc;
+    }, {});
 
     const nextState = stateTransition.value
       ? new State<TExtState>(
@@ -810,7 +810,7 @@ class StateNode<TExtState = any> {
 
     if (!nextState) {
       // Unchanged state should be returned with no actions
-      return State.inert<TExtState>(currentState);
+      return State.inert<TExtState>(currentState, updatedExtendedState);
     }
 
     // Dispose of previous histories to prevent memory leaks
