@@ -5,6 +5,7 @@ interface C {
   count: number;
   foo: string;
 }
+
 const counterMachine = Machine<C>(
   {
     initial: 'counting',
@@ -16,8 +17,7 @@ const counterMachine = Machine<C>(
               target: 'counting',
               actions: [
                 actions.assign(xs => ({
-                  count: xs.count + 1,
-                  fwef: 3423 // todo: this should throw
+                  count: xs.count + 1
                 }))
               ]
             }
@@ -26,7 +26,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign<C>({
+                actions.assign({
                   count: xs => xs.count - 1
                 })
               ]
@@ -36,7 +36,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign<C>({
+                actions.assign({
                   count: () => 100,
                   foo: () => 'win'
                 })
@@ -47,7 +47,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign<C>({
+                actions.assign({
                   count: 100,
                   foo: 'win'
                 })
@@ -58,7 +58,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign<C>(() => ({
+                actions.assign(() => ({
                   count: 100,
                   foo: 'win'
                 }))

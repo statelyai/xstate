@@ -121,7 +121,7 @@ export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
 }
 
-export const assign = <TExtState extends {} = {}>(
+export const assign = <TExtState>(
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
 ): AssignAction<TExtState> => {
   return {
