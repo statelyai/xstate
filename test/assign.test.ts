@@ -15,8 +15,9 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign<C>(xs => ({
-                  count: xs.count + 1
+                actions.assign(xs => ({
+                  count: xs.count + 1,
+                  fwef: 3423 // todo: this should throw
                 }))
               ]
             }
