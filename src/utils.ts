@@ -42,7 +42,7 @@ export function toStatePath(
 }
 
 export function toStateValue(
-  stateValue: State | StateValue,
+  stateValue: State<any> | StateValue,
   delimiter: string
 ): StateValue {
   if (stateValue instanceof State) {

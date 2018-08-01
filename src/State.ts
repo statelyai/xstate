@@ -8,7 +8,7 @@ import {
 } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
-export class State<TExtState = any> implements StateInterface<TExtState> {
+export class State<TExtState> implements StateInterface<TExtState> {
   public static from<T>(
     stateValue: State<T> | StateValue,
     extendedState?: T
@@ -62,7 +62,7 @@ export class State<TExtState = any> implements StateInterface<TExtState> {
   constructor(
     public value: StateValue,
     public historyValue?: HistoryValue | undefined,
-    public history?: State,
+    public history?: State<TExtState>,
     public actions: Action[] = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},

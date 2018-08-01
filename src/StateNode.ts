@@ -147,7 +147,7 @@ class StateNode<TExtState = any> {
     const { config } = this;
     return config.on ? this.formatTransitions(config.on) : {};
   }
-  public getStateNodes(state: StateValue | State): StateNode[] {
+  public getStateNodes(state: StateValue | State<TExtState>): StateNode[] {
     if (!state) {
       return [];
     }
@@ -189,7 +189,7 @@ class StateNode<TExtState = any> {
   }
   private _transitionLeafNode(
     stateValue: string,
-    state: State,
+    state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
   ): StateTransition {
@@ -223,7 +223,7 @@ class StateNode<TExtState = any> {
   }
   private _transitionHierarchicalNode(
     stateValue: StateValueMap,
-    state: State,
+    state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
   ): StateTransition {
@@ -267,7 +267,7 @@ class StateNode<TExtState = any> {
   }
   private _transitionOrthogonalNode(
     stateValue: StateValueMap,
-    state: State,
+    state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
   ): StateTransition {
@@ -411,7 +411,7 @@ class StateNode<TExtState = any> {
   }
   public _transition(
     stateValue: StateValue,
-    state: State,
+    state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
   ): StateTransition {
@@ -439,7 +439,7 @@ class StateNode<TExtState = any> {
     );
   }
   private _next(
-    state: State,
+    state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
   ): StateTransition {
@@ -668,7 +668,7 @@ class StateNode<TExtState = any> {
     return (actions ? actions[actionType] : actionType) || actionType;
   }
   private _getActivities(
-    state: State,
+    state: State<TExtState>,
     transition: StateTransition
   ): ActivityMap {
     if (!transition.entryExitStates) {
@@ -700,10 +700,10 @@ class StateNode<TExtState = any> {
     return activityMap;
   }
   public transition(
-    state: StateValue | State,
+    state: StateValue | State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): State {
+  ): State<TExtState> {
     const resolvedStateValue =
       typeof state === 'string'
         ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
@@ -1023,7 +1023,7 @@ class StateNode<TExtState = any> {
   public getState(
     stateValue: StateValue,
     extendedState: TExtState | undefined = this.extendedState
-  ): State {
+  ): State<TExtState> {
     const activityMap: ActivityMap = {};
     const actions: Action[] = [];
 
@@ -1099,7 +1099,7 @@ class StateNode<TExtState = any> {
       return nextState;
     }, initialNextState);
   }
-  public get initialState(): State {
+  public get initialState(): State<TExtState> {
     const { initialStateValue } = this;
 
     if (!initialStateValue) {

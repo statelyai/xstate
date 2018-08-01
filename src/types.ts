@@ -22,7 +22,7 @@ export type ActionFunction = ((
   event?: EventObject
 ) => any | void);
 export type Action = ActionType | ActionObject | ActionFunction;
-export type StateKey = string | State;
+export type StateKey = string | State<any>;
 
 export interface StateValueMap {
   [key: string]: StateValue;
@@ -297,9 +297,9 @@ export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
 
-export interface StateInterface<TExtState = any> {
+export interface StateInterface<TExtState> {
   value: StateValue;
-  history?: State;
+  history?: State<TExtState>;
   actions: Action[];
   activities: ActivityMap;
   data: Record<string, any>;
