@@ -10,7 +10,7 @@ import { StateNode } from './StateNode';
 
 export function Machine<TExtState extends {} = {}>(
   config: MachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
-  options?: MachineOptions<TExtState>,
+  options?: MachineOptions,
   extendedState?: TExtState
 ): StandardMachine<TExtState> | ParallelMachine<TExtState> {
   return new StateNode<TExtState>(config, options, extendedState) as

@@ -55,7 +55,7 @@ const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
-const defaultOptions: MachineOptions<any> = {
+const defaultOptions: MachineOptions = {
   guards: {}
 };
 
@@ -91,7 +91,7 @@ class StateNode<TExtState = any> {
       | StandardMachineConfig<TExtState>
       | ParallelMachineConfig<TExtState>
     >,
-    public options: Readonly<MachineOptions<TExtState>> = defaultOptions,
+    public options: Readonly<MachineOptions> = defaultOptions,
     /**
      * The initial extended state
      */
@@ -1436,7 +1436,7 @@ export function Machine<
   TExtState = undefined
 >(
   config: T,
-  options?: MachineOptions<TExtState>
+  options?: MachineOptions
 ): T extends ParallelMachineConfig<TExtState>
   ? ParallelMachine<TExtState>
   : T extends StandardMachineConfig<TExtState>
