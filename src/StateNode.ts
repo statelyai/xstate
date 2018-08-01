@@ -770,13 +770,28 @@ class StateNode<TExtState = any> {
           action.type !== actionTypes.null &&
           action.type !== actionTypes.assign)
     );
-    const assignments = actions.filter(
+    const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
-    ) as AssignAction[];
+    ) as Array<AssignAction<TExtState>>;
 
     const updatedExtendedState = resolvedExtendedState
-      ? assignments.reduce((acc, assignment) => {
-          const partialUpdate = assignment.assigner(acc, eventObject);
+      ? assignActions.reduce((acc, assignAction) => {
+          const { assignment } = assignAction;
+
+          let partialUpdate: Partial<TExtState> = {};
+
+          if (typeof assignment === 'function') {
+            partialUpdate = assignment(acc, { type: 'init' });
+          } else {
+            Object.keys(assignment).forEach(key => {
+              partialUpdate[key] = assignment[key](acc, { type: 'init' });
+            });
+
+            // console.log(partialUpdate);
+          }
+          // const partialUpdate = typeof assignment === 'function'
+          //   ? assignment(acc, { type: 'init' })
+          //   : mapValues(assignment, (assigner, key) => assigner())
           return Object.assign({}, acc, partialUpdate);
         }, resolvedExtendedState)
       : resolvedExtendedState;
@@ -1026,13 +1041,25 @@ class StateNode<TExtState = any> {
         (action.type === actionTypes.raise || action.type === actionTypes.null)
     ) as ActionObject[];
 
-    const assignments = actions.filter(
+    const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
-    ) as AssignAction[];
+    ) as Array<AssignAction<TExtState>>;
 
     const updatedExtendedState = extendedState
-      ? assignments.reduce((acc, assignment) => {
-          const partialUpdate = assignment.assigner(acc, { type: 'init' });
+      ? assignActions.reduce((acc, assignAction) => {
+          const { assignment } = assignAction;
+          let partialUpdate: Partial<TExtState> = {};
+
+          if (typeof assignment === 'function') {
+            partialUpdate = assignment(acc, { type: 'init' });
+          } else {
+            Object.keys(assignment).forEach(key => {
+              partialUpdate[key] = assignment[key](acc, { type: 'init' });
+            });
+          }
+          // const partialUpdate = typeof assignment === 'function'
+          //   ? assignment(acc, { type: 'init' })
+          //   : mapValues(assignment, (assigner, key) => assigner())
           return Object.assign({}, acc, partialUpdate);
         }, extendedState)
       : extendedState;

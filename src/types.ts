@@ -10,9 +10,8 @@ export interface EventObject {
   id?: string | number;
   [key: string]: any;
 }
-export interface ActionObject {
+export interface ActionObject<T extends {} = Record<string, any>> extends T {
   type: EventType;
-  [key: string]: any;
 }
 
 export type Event = EventType | EventObject;
