@@ -9,32 +9,37 @@ import {
 import { State } from './State';
 import { toEventObject, actionTypes, toActionObject } from './actions';
 
-export type StateListener = (state: State) => void;
+export type StateListener = <TExtState>(state: State<TExtState>) => void;
 
-export class Interpreter<T extends {} | undefined> {
-  public state: State;
-  public extState: T;
+export class Interpreter<TExtState> {
+  public state: State<TExtState>;
+  public extState: TExtState;
   public eventQueue: EventObject[] = [];
   public delayedEventsMap: Record<string | number, NodeJS.Timer> = {};
   public listeners: Set<StateListener> = new Set();
-  constructor(public machine: Machine, listener?: StateListener) {
+  constructor(public machine: Machine<TExtState>, listener?: StateListener) {
     if (listener) {
       this.onTransition(listener);
     }
   }
   public static interpret = interpret;
-  private update(state: State, event?: Event): void {
+  private update(state: State<TExtState>, event?: Event): void {
     this.state = state;
 
-    const updatedState = this.state.actions.reduce<T>((extState, action) => {
-      const stateUpdate = this.exec(
-        action,
-        this.extState,
-        event ? toEventObject(event) : undefined
-      );
+    const updatedState = this.state.actions.reduce<TExtState>(
+      (extState, action) => {
+        const stateUpdate = this.exec(
+          action,
+          this.extState,
+          event ? toEventObject(event) : undefined
+        );
 
-      return stateUpdate ? Object.assign({}, extState, stateUpdate) : extState;
-    }, this.extState);
+        return stateUpdate
+          ? Object.assign({}, extState, stateUpdate)
+          : extState;
+      },
+      this.extState
+    );
 
     if (this.extState && updatedState) {
       Object.assign(this.extState, updatedState);
@@ -46,7 +51,7 @@ export class Interpreter<T extends {} | undefined> {
    * Adds a listener that is called whenever a state transition happens.
    * @param listener
    */
-  public onTransition(listener: StateListener): Interpreter<T> {
+  public onTransition(listener: StateListener): Interpreter<TExtState> {
     this.listeners.add(listener);
     return this;
   }
@@ -64,10 +69,10 @@ export class Interpreter<T extends {} | undefined> {
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: Action,
-    extState: T,
+    action: Action<TExtState>,
+    extState: TExtState,
     event?: EventObject
-  ): Partial<T> | undefined {
+  ): Partial<TExtState> | undefined {
     if (typeof action === 'function') {
       return action(extState, event);
     }
@@ -107,6 +112,9 @@ export class Interpreter<T extends {} | undefined> {
   }
 }
 
-export function interpret(machine: Machine, listener: StateListener) {
+export function interpret<TExtState>(
+  machine: Machine<TExtState>,
+  listener: StateListener
+) {
   return new Interpreter(machine, listener);
 }

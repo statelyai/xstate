@@ -119,7 +119,7 @@ export type SimpleOrCompoundStateNodeConfig<TExtState> =
   | CompoundStateNodeConfig<TExtState>
   | SimpleStateNodeConfig<TExtState>;
 
-export interface MachineOptions<TExtState> {
+export interface MachineOptions {
   guards?: Record<string, ConditionPredicate>;
   actions?: Record<string, ActionObject | ActionFunction>;
 }

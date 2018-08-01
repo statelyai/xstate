@@ -30,7 +30,10 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-export function getEventEdges(node: StateNode, event: string): Edge[] {
+export function getEventEdges<TExtState>(
+  node: StateNode,
+  event: string
+): Array<Edge<TExtState>> {
   const transitions = node.on[event]!;
 
   return flatMap(
@@ -58,14 +61,17 @@ export function getEventEdges(node: StateNode, event: string): Edge[] {
             return undefined;
           }
         })
-        .filter(maybeEdge => maybeEdge !== undefined) as Edge[];
+        .filter(maybeEdge => maybeEdge !== undefined) as Array<Edge<TExtState>>;
     })
   );
 }
 
-export function getEdges(node: StateNode, options?: { deep: boolean }): Edge[] {
+export function getEdges<TExtState>(
+  node: StateNode,
+  options?: { deep: boolean }
+): Array<Edge<TExtState>> {
   const { deep = true } = options || {};
-  const edges: Edge[] = [];
+  const edges: Array<Edge<TExtState>> = [];
 
   if (node.states && deep) {
     Object.keys(node.states).forEach(stateKey => {
@@ -80,8 +86,8 @@ export function getEdges(node: StateNode, options?: { deep: boolean }): Edge[] {
   return edges;
 }
 
-export function getAdjacencyMap(
-  node: Machine,
+export function getAdjacencyMap<TExtState>(
+  node: Machine<TExtState>,
   extendedState?: any
 ): AdjacencyMap {
   const adjacency: AdjacencyMap = {};
@@ -110,8 +116,8 @@ export function getAdjacencyMap(
   return adjacency;
 }
 
-export function getShortestPaths(
-  machine: Machine,
+export function getShortestPaths<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathMap {
   if (!machine.states) {
@@ -175,8 +181,8 @@ export function getShortestPaths(
   return pathMap;
 }
 
-export function getShortestPathsAsArray(
-  machine: Machine,
+export function getShortestPathsAsArray<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathItem[] {
   const result = getShortestPaths(machine, extendedState);
@@ -186,8 +192,8 @@ export function getShortestPathsAsArray(
   }));
 }
 
-export function getSimplePaths(
-  machine: Machine,
+export function getSimplePaths<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathsMap {
   if (!machine.states) {
@@ -235,8 +241,8 @@ export function getSimplePaths(
   return paths;
 }
 
-export function getSimplePathsAsArray(
-  machine: Machine,
+export function getSimplePathsAsArray<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathsItem[] {
   const result = getSimplePaths(machine, extendedState);
