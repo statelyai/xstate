@@ -126,7 +126,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        console.dir(machine.config, { depth: null });
+        // console.dir(machine.config, { depth: null });
         runTestToCompletion(machine, scxmlTest);
       });
     });

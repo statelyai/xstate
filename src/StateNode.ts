@@ -55,7 +55,7 @@ const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
-const defaultOptions: MachineOptions = {
+const defaultOptions: MachineOptions<any> = {
   guards: {}
 };
 
@@ -64,16 +64,16 @@ class StateNode<TExtState = any> {
   public id: string;
   public path: string[];
   public initial?: string;
-  public parallel?: boolean;
+  public parallel: boolean;
   public transient: boolean;
-  public states: Record<string, StateNode>;
+  public states: Record<string, StateNode<TExtState>>;
   public history: false | 'shallow' | 'deep';
-  public onEntry: Action[];
-  public onExit: Action[];
+  public onEntry: Array<Action | AssignAction<TExtState>>;
+  public onExit: Array<Action | AssignAction<TExtState>>;
   public activities?: Activity[];
   public strict: boolean;
-  public parent?: StateNode;
-  public machine: StateNode;
+  public parent?: StateNode<TExtState>;
+  public machine: StateNode<TExtState>;
   public data: object | undefined;
   public delimiter: string;
 
@@ -87,11 +87,11 @@ class StateNode<TExtState = any> {
 
   constructor(
     public config: Readonly<
-      | SimpleOrCompoundStateNodeConfig
-      | StandardMachineConfig
-      | ParallelMachineConfig
+      | SimpleOrCompoundStateNodeConfig<TExtState>
+      | StandardMachineConfig<TExtState>
+      | ParallelMachineConfig<TExtState>
     >,
-    public options: Readonly<MachineOptions> = defaultOptions,
+    public options: Readonly<MachineOptions<TExtState>> = defaultOptions,
     /**
      * The initial extended state
      */
@@ -112,7 +112,7 @@ class StateNode<TExtState = any> {
     this.initial = config.initial;
     this.parallel = !!config.parallel;
     this.states = (config.states
-      ? mapValues<SimpleOrCompoundStateNodeConfig, StateNode>(
+      ? mapValues<SimpleOrCompoundStateNodeConfig<TExtState>, StateNode>(
           config.states,
           (stateConfig, key) => {
             const stateNode = new StateNode({
@@ -143,7 +143,7 @@ class StateNode<TExtState = any> {
     this.data = config.data;
     this.activities = config.activities;
   }
-  public get on(): Record<string, TargetTransitionConfig[]> {
+  public get on(): Record<string, Array<TargetTransitionConfig<TExtState>>> {
     const { config } = this;
     return config.on ? this.formatTransitions(config.on) : {};
   }
@@ -459,14 +459,14 @@ class StateNode<TExtState = any> {
     }
 
     let nextStateStrings: string[] = [];
-    let selectedTransition: TargetTransitionConfig;
+    let selectedTransition: TargetTransitionConfig<TExtState>;
 
     for (const candidate of candidates) {
       const {
         cond,
         in: stateIn
         // actions: transitionActions
-      } = candidate as TransitionConfig;
+      } = candidate as TransitionConfig<TExtState>;
       const extendedStateObject = extendedState || ({} as TExtState);
       const eventObject = toEventObject(event);
 
@@ -1113,7 +1113,7 @@ class StateNode<TExtState = any> {
   public get target(): StateValue | undefined {
     let target;
     if (this.history) {
-      const historyConfig = this.config as HistoryStateNodeConfig;
+      const historyConfig = this.config as HistoryStateNodeConfig<TExtState>;
       if (historyConfig.target && typeof historyConfig.target === 'string') {
         target = isStateId(historyConfig.target)
           ? pathToStateValue(
@@ -1374,8 +1374,8 @@ class StateNode<TExtState = any> {
   }
   private formatTransition(
     targets: string[],
-    transitionConfig?: TransitionConfig
-  ): TargetTransitionConfig {
+    transitionConfig?: TransitionConfig<TExtState>
+  ): TargetTransitionConfig<TExtState> {
     let internal = transitionConfig ? transitionConfig.internal : false;
 
     // Format targets to their full string path
@@ -1400,8 +1400,8 @@ class StateNode<TExtState = any> {
     };
   }
   private formatTransitions(
-    onConfig: Record<string, Transition | undefined>
-  ): Record<string, ConditionalTransitionConfig> {
+    onConfig: Record<string, Transition<TExtState> | undefined>
+  ): Record<string, ConditionalTransitionConfig<TExtState>> {
     return mapValues(onConfig, value => {
       if (value === undefined) {
         return [];
@@ -1428,16 +1428,24 @@ class StateNode<TExtState = any> {
 }
 
 export function Machine<
-  T extends StandardMachineConfig | ParallelMachineConfig
+  T extends StandardMachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
+  TExtState = undefined
 >(
   config: T,
-  options?: MachineOptions
-): T extends ParallelMachineConfig
-  ? ParallelMachine
-  : T extends StandardMachineConfig ? StandardMachine : never {
-  return new StateNode(config, options) as T extends ParallelMachineConfig
-    ? ParallelMachine
-    : T extends StandardMachineConfig ? StandardMachine : never;
+  options?: MachineOptions<TExtState>
+): T extends ParallelMachineConfig<TExtState>
+  ? ParallelMachine<TExtState>
+  : T extends StandardMachineConfig<TExtState>
+    ? StandardMachine<TExtState>
+    : never {
+  return new StateNode<TExtState>(
+    config,
+    options
+  ) as T extends ParallelMachineConfig<TExtState>
+    ? ParallelMachine<TExtState>
+    : T extends StandardMachineConfig<TExtState>
+      ? StandardMachine<TExtState>
+      : never;
 }
 
 export { StateNode };
