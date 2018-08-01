@@ -12,7 +12,7 @@ export function getEventType(event: Event): EventType {
     );
   }
 }
-export function getActionType(action: Action): ActionType {
+export function getActionType(action: Action<any>): ActionType {
   try {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
@@ -21,7 +21,7 @@ export function getActionType(action: Action): ActionType {
         : action.type;
   } catch (e) {
     throw new Error(
-      'Events must be strings or objects with a string event.type property.'
+      'Actions must be strings or objects with a string action.type property.'
     );
   }
 }

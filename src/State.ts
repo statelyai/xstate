@@ -63,7 +63,7 @@ export class State<TExtState> implements StateInterface<TExtState> {
     public value: StateValue,
     public historyValue?: HistoryValue | undefined,
     public history?: State<TExtState>,
-    public actions: Action[] = [],
+    public actions: Array<Action<TExtState>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},
     /**

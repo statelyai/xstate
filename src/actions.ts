@@ -55,7 +55,7 @@ export const toEventObject = (
   return event;
 };
 
-export const toActionObject = (action: Action): ActionObject => {
+export const toActionObject = (action: Action<any>): ActionObject => {
   let actionObject: ActionObject;
 
   if (typeof action === 'string' || typeof action === 'number') {
@@ -73,8 +73,8 @@ export const toActionObject = (action: Action): ActionObject => {
   return actionObject;
 };
 
-export const toActionObjects = (
-  action: Action | Action[] | undefined
+export const toActionObjects = <TExtState = any>(
+  action: Array<Action<TExtState> | Action<TExtState>> | undefined
 ): ActionObject[] => {
   if (!action) {
     return [];
@@ -130,6 +130,6 @@ export const assign = <TExtState extends {} = {}>(
   };
 };
 
-export function isActionObject(action: Action): action is ActionObject {
+export function isActionObject(action: Action<any>): action is ActionObject {
   return typeof action === 'object' && 'type' in action;
 }

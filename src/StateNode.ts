@@ -68,8 +68,8 @@ class StateNode<TExtState = any> {
   public transient: boolean;
   public states: Record<string, StateNode<TExtState>>;
   public history: false | 'shallow' | 'deep';
-  public onEntry: Array<Action | AssignAction<TExtState>>;
-  public onExit: Array<Action | AssignAction<TExtState>>;
+  public onEntry: Array<Action<TExtState>>;
+  public onExit: Array<Action<TExtState>>;
   public activities?: Activity[];
   public strict: boolean;
   public parent?: StateNode<TExtState>;
@@ -137,9 +137,11 @@ class StateNode<TExtState = any> {
     this.transient = !!(config.on && config.on[NULL_EVENT]);
     this.strict = !!config.strict;
     this.onEntry = config.onEntry
-      ? ([] as Action[]).concat(config.onEntry)
+      ? ([] as Array<Action<TExtState>>).concat(config.onEntry)
       : [];
-    this.onExit = config.onExit ? ([] as Action[]).concat(config.onExit) : [];
+    this.onExit = config.onExit
+      ? ([] as Array<Action<TExtState>>).concat(config.onExit)
+      : [];
     this.data = config.data;
     this.activities = config.activities;
   }
@@ -192,7 +194,7 @@ class StateNode<TExtState = any> {
     state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): StateTransition {
+  ): StateTransition<TExtState> {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode._next(state, event, extendedState);
 
@@ -226,7 +228,7 @@ class StateNode<TExtState = any> {
     state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): StateTransition {
+  ): StateTransition<TExtState> {
     const subStateKeys = Object.keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
@@ -270,9 +272,9 @@ class StateNode<TExtState = any> {
     state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): StateTransition {
+  ): StateTransition<TExtState> {
     const noTransitionKeys: string[] = [];
-    const transitionMap: Record<string, StateTransition> = {};
+    const transitionMap: Record<string, StateTransition<TExtState>> = {};
 
     Object.keys(stateValue).forEach(subStateKey => {
       const subStateValue = stateValue[subStateKey];
@@ -414,7 +416,7 @@ class StateNode<TExtState = any> {
     state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): StateTransition {
+  ): StateTransition<TExtState> {
     // leaf node
     if (typeof stateValue === 'string') {
       return this._transitionLeafNode(stateValue, state, event, extendedState);
@@ -442,10 +444,10 @@ class StateNode<TExtState = any> {
     state: State<TExtState>,
     event: Event,
     extendedState?: TExtState
-  ): StateTransition {
+  ): StateTransition<TExtState> {
     const eventType = getEventType(event);
     const candidates = this.on[eventType];
-    const actions: Action[] = this.transient
+    const actions: Array<Action<TExtState>> = this.transient
       ? [{ type: actionTypes.null }]
       : [];
 
@@ -628,7 +630,9 @@ class StateNode<TExtState = any> {
 
     return condFn(extendedState, eventObject, interimState);
   }
-  private _getActions(transition: StateTransition): Action[] {
+  private _getActions(
+    transition: StateTransition<TExtState>
+  ): Array<Action<TExtState>> {
     const entryExitActions = {
       entry: transition.entryExitStates
         ? flatMap(
@@ -662,14 +666,14 @@ class StateNode<TExtState = any> {
 
     return actions;
   }
-  private resolveAction(actionType: string): Action {
+  private resolveAction(actionType: string): Action<TExtState> {
     const { actions } = this.machine.options;
 
     return (actions ? actions[actionType] : actionType) || actionType;
   }
   private _getActivities(
     state: State<TExtState>,
-    transition: StateTransition
+    transition: StateTransition<TExtState>
   ): ActivityMap {
     if (!transition.entryExitStates) {
       return {};
@@ -1025,7 +1029,7 @@ class StateNode<TExtState = any> {
     extendedState: TExtState | undefined = this.extendedState
   ): State<TExtState> {
     const activityMap: ActivityMap = {};
-    const actions: Action[] = [];
+    const actions: Array<Action<TExtState>> = [];
 
     this.getStateNodes(stateValue).forEach(stateNode => {
       if (stateNode.onEntry) {
