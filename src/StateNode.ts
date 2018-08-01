@@ -784,7 +784,12 @@ class StateNode<TExtState = any> {
             partialUpdate = assignment(acc, { type: 'init' });
           } else {
             Object.keys(assignment).forEach(key => {
-              partialUpdate[key] = assignment[key](acc, { type: 'init' });
+              const propAssignment = assignment[key];
+
+              partialUpdate[key] =
+                typeof propAssignment === 'function'
+                  ? propAssignment(acc, { type: 'init' })
+                  : propAssignment;
             });
 
             // console.log(partialUpdate);
@@ -1048,14 +1053,22 @@ class StateNode<TExtState = any> {
     const updatedExtendedState = extendedState
       ? assignActions.reduce((acc, assignAction) => {
           const { assignment } = assignAction;
+
           let partialUpdate: Partial<TExtState> = {};
 
           if (typeof assignment === 'function') {
             partialUpdate = assignment(acc, { type: 'init' });
           } else {
             Object.keys(assignment).forEach(key => {
-              partialUpdate[key] = assignment[key](acc, { type: 'init' });
+              const propAssignment = assignment[key];
+
+              partialUpdate[key] =
+                typeof propAssignment === 'function'
+                  ? propAssignment(acc, { type: 'init' })
+                  : propAssignment;
             });
+
+            // console.log(partialUpdate);
           }
           // const partialUpdate = typeof assignment === 'function'
           //   ? assignment(acc, { type: 'init' })

@@ -10,7 +10,7 @@ export interface EventObject {
   id?: string | number;
   [key: string]: any;
 }
-export interface ActionObject<T extends {} = Record<string, any>> extends T {
+export interface ActionObject extends Record<string, any> {
   type: EventType;
 }
 
@@ -129,7 +129,7 @@ export interface EntryExitEffectMap {
   exit: Action[];
 }
 
-export interface StateNode {
+export interface IStateNode {
   key: string;
   id: string;
   initial: string | undefined;

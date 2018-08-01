@@ -114,7 +114,7 @@ export type Assigner<TExtState extends {} = {}> = (
   event: EventObject
 ) => Partial<TExtState>;
 export type PropertyAssigner<T> = Partial<
-  { [K in keyof T]: (extState: T, event: EventObject) => T[K] }
+  { [K in keyof T]: T[K] | ((extState: T, event: EventObject) => T[K]) }
 >;
 
 export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
