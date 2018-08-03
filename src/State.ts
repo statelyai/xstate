@@ -3,28 +3,56 @@ import {
   ActivityMap,
   EventObject,
   Action,
-  StateInterface
+  StateInterface,
+  HistoryValue
 } from './types';
 import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
 
-export class State implements StateInterface {
-  public static from(stateValue: State | StateValue): State {
+export class State<TExtState> implements StateInterface<TExtState> {
+  public static from<T>(
+    stateValue: State<T> | StateValue,
+    extendedState?: T
+  ): State<T> {
     if (stateValue instanceof State) {
+      if (stateValue.ext !== extendedState) {
+        return new State(
+          stateValue.value,
+          stateValue.historyValue,
+          stateValue.history,
+          [],
+          stateValue.activities,
+          extendedState
+        );
+      }
+
       return stateValue;
     }
 
-    return new State(stateValue);
+    return new State(
+      stateValue,
+      undefined,
+      undefined,
+      [],
+      undefined,
+      undefined,
+      [],
+      extendedState
+    );
   }
-  public static inert(stateValue: State | StateValue): State {
+  public static inert<T>(stateValue: State<T> | StateValue, ext?: T): State<T> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
         return stateValue;
       }
       return new State(
         stateValue.value,
+        stateValue.historyValue,
         stateValue.history,
         [],
-        stateValue.activities
+        stateValue.activities,
+        undefined,
+        [],
+        ext
       );
     }
 
@@ -33,16 +61,18 @@ export class State implements StateInterface {
 
   constructor(
     public value: StateValue,
-    public history?: State,
-    public actions: Action[] = [],
+    public historyValue?: HistoryValue | undefined,
+    public history?: State<TExtState>,
+    public actions: Array<Action<TExtState>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},
     /**
      * Internal event queue
      */
-    public events: EventObject[] = []
+    public events: EventObject[] = [],
+    public ext?: TExtState
   ) {}
-  public toString(): string | undefined {
+  public toString(): string {
     if (typeof this.value === 'string') {
       return this.value;
     }
@@ -59,7 +89,7 @@ export class State implements StateInterface {
       const [firstKey, ...otherKeys] = Object.keys(marker);
 
       if (otherKeys.length) {
-        return undefined;
+        return '';
       }
 
       path.push(firstKey);

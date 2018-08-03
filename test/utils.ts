@@ -8,13 +8,13 @@ export function testMultiTransition(
 ) {
   const resultState = eventTypes
     .split(/,\s?/)
-    .reduce((state: State | string, eventType) => {
+    .reduce((state: State<undefined> | string, eventType) => {
       if (typeof state === 'string' && state[0] === '{') {
         state = JSON.parse(state);
       }
       const nextState = machine.transition(state, eventType);
       return nextState;
-    }, fromState) as State;
+    }, fromState) as State<undefined>;
 
   return resultState;
 }

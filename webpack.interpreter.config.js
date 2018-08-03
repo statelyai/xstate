@@ -2,7 +2,7 @@ const webpack = require('webpack');
 
 module.exports = {
   output: {
-    library: 'xstateUtils',
+    library: 'xstateInterpreter',
     libraryTarget: 'umd'
   },
   plugins: [new webpack.optimize.ModuleConcatenationPlugin()]

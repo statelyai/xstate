@@ -1,13 +1,15 @@
 import { assert } from 'chai';
+// import { Element as XMLElement } from 'xml-js';
+
 import * as fs from 'fs';
 import * as path from 'path';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
-import { Machine, State } from '../src';
+import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
-import { StateValue } from '../src/types';
+// import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
@@ -21,8 +23,8 @@ const testGroups = {
     'send8'
     // 'send9' - edge case, since initial transitions in xstate are not microstepped
   ],
-  assign: [], // not implemented
-  basic: ['basic0', 'basic1', 'basic2'],
+  'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
+  basic: ['basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [], // 4.0
   'default-initial-state': ['initial1', 'initial2'],
@@ -66,6 +68,10 @@ const testGroups = {
   ]
 };
 
+const overrides = {
+  'assign-current-small-step': ['test0']
+};
+
 interface SCIONTest {
   initialConfiguration: string[];
   events: Array<{
@@ -76,12 +82,15 @@ interface SCIONTest {
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   // let nextState: string | State = `#${test.initialConfiguration[0]}`;
-  let nextState: StateValue | State = pathsToStateValue(
-    test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+  let nextState: State<any> = machine.getState(
+    pathsToStateValue(
+      test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+    )
   );
 
   test.events.forEach(({ event, nextConfiguration }, i) => {
-    nextState = machine.transition(nextState, event.name);
+    const extState = nextState.ext;
+    nextState = machine.transition(nextState, event.name, extState);
 
     const stateIds = machine
       .getStateNodes(nextState)
@@ -91,18 +100,33 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   });
 }
 
-function evalCond(expr: string) {
-  return new Function(`return ${expr}`) as () => boolean;
+function evalCond(expr: string, extState: object | undefined) {
+  const literalKeyExprs = extState
+    ? Object.keys(extState)
+        .map(key => `const ${key} = xs['${key}'];`)
+        .join('\n')
+    : '';
+
+  const fn = new Function(
+    `const xs = arguments[0]; ${literalKeyExprs} return ${expr}`
+  ) as () => boolean;
+
+  return fn;
 }
 
 describe('scxml', () => {
-  Object.keys(testGroups).forEach(testGroupName => {
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['assign-current-small-step'];
+
+  testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
+      const scxmlSource =
+        overrides[testGroupName] &&
+        overrides[testGroupName].indexOf(testName) !== -1
+          ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
+          : `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.scxml`;
       const scxmlDefinition = fs.readFileSync(
-        path.resolve(
-          __dirname,
-          `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.scxml`
-        ),
+        path.resolve(__dirname, scxmlSource),
         { encoding: 'utf-8' }
       );
       const scxmlTest = JSON.parse(
@@ -120,8 +144,8 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        // console.dir(machine, { depth: null });
-        runTestToCompletion(Machine(machine), scxmlTest);
+        // console.dir(machine.config, { depth: null });
+        runTestToCompletion(machine, scxmlTest);
       });
     });
   });

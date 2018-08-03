@@ -8,9 +8,12 @@ import {
 } from './types';
 import { StateNode } from './StateNode';
 
-export function Machine(
-  config: MachineConfig | ParallelMachineConfig,
-  options?: MachineOptions
-): StandardMachine | ParallelMachine {
-  return new StateNode(config, options) as StandardMachine | ParallelMachine;
+export function Machine<TExtState extends {} = {}>(
+  config: MachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
+  options?: MachineOptions,
+  extendedState?: TExtState
+): StandardMachine<TExtState> | ParallelMachine<TExtState> {
+  return new StateNode<TExtState>(config, options, extendedState) as
+    | StandardMachine<TExtState>
+    | ParallelMachine<TExtState>;
 }

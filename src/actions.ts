@@ -21,7 +21,8 @@ export const actionTypes = {
   raise: `${PREFIX}.raise`,
   send: `${PREFIX}.send`,
   cancel: `${PREFIX}.cancel`,
-  null: `${PREFIX}.null`
+  null: `${PREFIX}.null`,
+  assign: `${PREFIX}.assign`
 };
 
 const createActivityAction = (actionType: string) => (
@@ -38,15 +39,23 @@ const createActivityAction = (actionType: string) => (
   };
 };
 
-export const toEventObject = (event: Event): EventObject => {
+export const toEventObject = (
+  event: Event,
+  id?: string | number
+): EventObject => {
   if (typeof event === 'string' || typeof event === 'number') {
-    return { type: event };
+    const eventObject: EventObject = { type: event };
+    if (id !== undefined) {
+      eventObject.id = id;
+    }
+
+    return eventObject;
   }
 
   return event;
 };
 
-export const toActionObject = (action: Action): ActionObject => {
+export const toActionObject = (action: Action<any>): ActionObject => {
   let actionObject: ActionObject;
 
   if (typeof action === 'string' || typeof action === 'number') {
@@ -64,8 +73,8 @@ export const toActionObject = (action: Action): ActionObject => {
   return actionObject;
 };
 
-export const toActionObjects = (
-  action: Action | Action[] | undefined
+export const toActionObjects = <TExtState = any>(
+  action: Array<Action<TExtState> | Action<TExtState>> | undefined
 ): ActionObject[] => {
   if (!action) {
     return [];
@@ -99,3 +108,28 @@ export const cancel = (sendId: string | number): CancelAction => {
 
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);
+
+export type Assigner<TExtState extends {} = {}> = (
+  extState: TExtState,
+  event: EventObject
+) => Partial<TExtState>;
+export type PropertyAssigner<T> = Partial<
+  { [K in keyof T]: T[K] | ((extState: T, event: EventObject) => T[K]) }
+>;
+
+export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
+  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
+}
+
+export const assign = <TExtState>(
+  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
+): AssignAction<TExtState> => {
+  return {
+    type: actionTypes.assign,
+    assignment
+  };
+};
+
+export function isActionObject(action: Action<any>): action is ActionObject {
+  return typeof action === 'object' && 'type' in action;
+}

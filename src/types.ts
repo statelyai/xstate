@@ -1,29 +1,44 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
+import { AssignAction } from './actions';
 
 export type EventType = string | number;
 export type ActionType = string | number;
+export type MetaObject = Record<string, any>;
 
 export interface EventObject {
   type: EventType;
+  id?: string | number;
   [key: string]: any;
 }
-export interface ActionObject {
+export interface ActionObject extends Record<string, any> {
   type: EventType;
-  [key: string]: any;
 }
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
-export type ActionFunction = ((state: any, event: EventObject) => any | void);
-export type Action = ActionType | ActionObject | ActionFunction;
-export type StateKey = string | State;
+export type ActionFunction = ((
+  extendedState: any,
+  event?: EventObject
+) => any | void);
+export type InternalAction<TExtState> = SendAction | AssignAction<TExtState>;
+export type Action<TExtState> =
+  | ActionType
+  | ActionObject
+  | InternalAction<TExtState>
+  | ActionFunction;
+export type StateKey = string | State<any>;
 
 export interface StateValueMap {
   [key: string]: StateValue;
 }
 
 export type StateValue = string | StateValueMap;
+
+export interface HistoryValue {
+  states: Record<string, HistoryValue | undefined>;
+  current: StateValue | undefined;
+}
 
 export type ConditionPredicate = (
   extendedState: any,
@@ -33,27 +48,30 @@ export type ConditionPredicate = (
 
 export type Condition = string | ConditionPredicate;
 
-export interface TransitionConfig {
+export interface TransitionConfig<TExtState> {
   cond?: Condition;
-  actions?: Action[];
+  actions?: Array<Action<TExtState>>;
   in?: StateValue;
   internal?: boolean;
 }
 
-export interface TargetTransitionConfig extends TransitionConfig {
+export interface TargetTransitionConfig<TExtState>
+  extends TransitionConfig<TExtState> {
   target: string | string[];
 }
 
-export type ConditionalTransitionConfig = TargetTransitionConfig[];
+export type ConditionalTransitionConfig<TExtState> = Array<
+  TargetTransitionConfig<TExtState>
+>;
 
-export type Transition =
+export type Transition<TExtState> =
   | string
-  | Record<string, TransitionConfig>
-  | ConditionalTransitionConfig;
+  | Record<string, TransitionConfig<TExtState>>
+  | ConditionalTransitionConfig<TExtState>;
 
 export type Activity = string | ActionObject;
 
-export interface StateNodeConfig {
+export interface StateNodeConfig<TExtState> {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
@@ -63,10 +81,12 @@ export interface StateNodeConfig {
    * shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
-  states?: Record<string, SimpleOrCompoundStateNodeConfig> | undefined;
-  on?: Record<string, Transition | undefined>;
-  onEntry?: Action | Action[];
-  onExit?: Action | Action[];
+  states?:
+    | Record<string, SimpleOrCompoundStateNodeConfig<TExtState>>
+    | undefined;
+  on?: Record<string, Transition<TExtState> | undefined>;
+  onEntry?: Action<TExtState> | Array<Action<TExtState>>;
+  onExit?: Action<TExtState> | Array<Action<TExtState>>;
   activities?: Activity[];
   parent?: StateNode;
   strict?: boolean | undefined;
@@ -74,66 +94,73 @@ export interface StateNodeConfig {
   id?: string | undefined;
   delimiter?: string;
 }
-export interface SimpleStateNodeConfig extends StateNodeConfig {
+export interface SimpleStateNodeConfig<TExtState>
+  extends StateNodeConfig<TExtState> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
 }
 
-export interface HistoryStateNodeConfig extends SimpleStateNodeConfig {
+export interface HistoryStateNodeConfig<TExtState>
+  extends SimpleStateNodeConfig<TExtState> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
 }
 
-export interface CompoundStateNodeConfig extends StateNodeConfig {
+export interface CompoundStateNodeConfig<TExtState>
+  extends StateNodeConfig<TExtState> {
   initial?: string;
   parallel?: boolean;
-  states: Record<string, SimpleOrCompoundStateNodeConfig>;
+  states: Record<string, SimpleOrCompoundStateNodeConfig<TExtState>>;
   history?: false | undefined;
 }
 
-export type SimpleOrCompoundStateNodeConfig =
-  | CompoundStateNodeConfig
-  | SimpleStateNodeConfig;
+export type SimpleOrCompoundStateNodeConfig<TExtState> =
+  | CompoundStateNodeConfig<TExtState>
+  | SimpleStateNodeConfig<TExtState>;
 
 export interface MachineOptions {
-  guards: Record<string, ConditionPredicate>;
+  guards?: Record<string, ConditionPredicate>;
+  actions?: Record<string, ActionObject | ActionFunction>;
 }
-export interface MachineConfig extends CompoundStateNodeConfig {
+export interface MachineConfig<TExtState>
+  extends CompoundStateNodeConfig<TExtState> {
   key?: string;
   strict?: boolean;
   history?: false | undefined;
 }
-export interface StandardMachineConfig extends MachineConfig {
+export interface StandardMachineConfig<TExtState>
+  extends MachineConfig<TExtState> {
   initial: string;
   parallel?: false | undefined;
 }
 
-export interface ParallelMachineConfig extends MachineConfig {
+export interface ParallelMachineConfig<TExtState>
+  extends MachineConfig<TExtState> {
   initial?: undefined;
   parallel: true;
-  states: Record<string, CompoundStateNodeConfig>;
 }
 
-export interface EntryExitEffectMap {
-  entry: Action[];
-  exit: Action[];
+export interface EntryExitEffectMap<TExtState> {
+  entry: Array<Action<TExtState>>;
+  exit: Array<Action<TExtState>>;
 }
 
-export interface StateNode {
-  key: string;
-  id: string;
-  initial: string | undefined;
-  parallel: boolean;
-  transient: boolean;
-  history: false | 'shallow' | 'deep';
-  states: Record<string, StateNode>;
-  on?: Record<string, Transition>;
-  onEntry?: Action | Action[];
-  onExit?: Action | Action[];
-  parent: StateNode | undefined;
-  machine: Machine;
-}
+// export interface IStateNode<TExtState> {
+//   key: string;
+//   id: string;
+//   initial: string | undefined;
+//   parallel: boolean;
+//   transient: boolean;
+//   history: false | 'shallow' | 'deep';
+//   states: Record<string, IStateNode<TExtState>>;
+//   on?: Record<string, Transition<TExtState>>;
+//   onEntry?: Action | Action[];
+//   onExit?: Action | Action[];
+//   parent: StateNode | undefined;
+//   machine: Machine;
+//   config: StateNodeConfig<TExtState>;
+// }
 
 export interface ComplexStateNode extends StateNode {
   initial: string;
@@ -152,28 +179,26 @@ export interface HistoryStateNode extends StateNode {
   target: StateValue | undefined;
 }
 
-export interface Machine extends StateNode {
+export interface Machine<TExtState> extends StateNode<TExtState> {
   id: string;
   initial: string | undefined;
   parallel: boolean;
-  states: Record<string, StateNode>;
-  onEntry: never;
-  onExit: never;
+  states: Record<string, StateNode<TExtState>>;
 }
 
-export interface StandardMachine extends Machine {
+export interface StandardMachine<TExtState> extends Machine<TExtState> {
   initial: string;
   parallel: false;
 }
 
-export interface ParallelMachine extends Machine {
+export interface ParallelMachine<TExtState> extends Machine<TExtState> {
   initial: undefined;
   parallel: true;
 }
-export interface ActionMap {
-  onEntry: Action[];
-  actions: Action[];
-  onExit: Action[];
+export interface ActionMap<TExtState> {
+  onEntry: Array<Action<TExtState>>;
+  actions: Array<Action<TExtState>>;
+  onExit: Array<Action<TExtState>>;
 }
 
 export interface EntryExitStates {
@@ -184,30 +209,23 @@ export interface EntryExitStates {
 export interface ActivityMap {
   [activityKey: string]: boolean;
 }
-export type MaybeStateValueActionsTuple = [
+export type MaybeStateValueActionsTuple<TExtState> = [
   StateValue | undefined,
-  ActionMap,
+  ActionMap<TExtState>,
   ActivityMap | undefined
 ];
 
-export interface StateTransition {
-  statePaths: string[][];
-  actions: ActionMap;
-  activities: ActivityMap | undefined;
-  events: EventObject[];
-}
-
 // tslint:disable-next-line:class-name
-export interface _StateTransition {
+export interface StateTransition<TExtState> {
   value: StateValue | undefined;
   entryExitStates: EntryExitStates | undefined;
-  actions: Action[];
+  actions: Array<Action<TExtState>>;
   paths: string[][];
 }
 
-export interface TransitionData {
+export interface TransitionData<TExtState> {
   value: StateValue | undefined;
-  actions: ActionMap;
+  actions: ActionMap<TExtState>;
   activities?: ActivityMap;
 }
 
@@ -234,20 +252,27 @@ export interface CancelAction extends ActionObject {
   sendId: string | number;
 }
 
-export interface Edge {
+export interface Edge<TExtState> {
   event: string;
   source: StateNode;
   target: StateNode;
   cond?: Condition;
-  actions: Action[];
+  actions: Array<Action<TExtState>>;
+  meta?: MetaObject;
 }
-export interface NodesAndEdges {
+export interface NodesAndEdges<TExtState> {
   nodes: StateNode[];
-  edges: Edge[];
+  edges: Array<Edge<TExtState>>;
 }
 
 export interface Segment {
+  /**
+   * From state
+   */
   state: StateValue;
+  /**
+   * Event from state
+   */
   event: Event;
 }
 
@@ -277,11 +302,12 @@ export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
 
-export interface StateInterface {
+export interface StateInterface<TExtState> {
   value: StateValue;
-  history?: State;
-  actions: Action[];
+  history?: State<TExtState>;
+  actions: Array<Action<TExtState>>;
   activities: ActivityMap;
   data: Record<string, any>;
   events: EventObject[];
+  ext?: TExtState;
 }

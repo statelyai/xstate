@@ -1,0 +1,12 @@
+{
+  "initialConfiguration" : ["a"],
+  "events" : [
+      {
+          "event" : { "name" : "t" },
+          "nextConfiguration" : ["c"]
+      }
+  ]
+}
+
+
+

@@ -64,6 +64,13 @@ describe('history states', () => {
       'on.first'
     );
   });
+
+  it('should dispose of previous histories', () => {
+    const onSecondState = historyMachine.transition('on', 'SWITCH');
+    const offState = historyMachine.transition(onSecondState, 'H_POWER');
+    const nextState = historyMachine.transition(offState, 'H_POWER');
+    assert.isUndefined(nextState.history!.history);
+  });
 });
 
 describe('deep history states', () => {
@@ -292,5 +299,144 @@ describe('parallel history states', () => {
         }
       );
     });
+  });
+});
+
+describe('transient history', () => {
+  const transientMachine = Machine({
+    initial: 'A',
+    parallel: false,
+    states: {
+      A: {
+        on: { EVENT: 'B' }
+      },
+      B: {
+        on: {
+          // eventless transition
+          '': 'C'
+        }
+      },
+      C: {}
+    }
+  });
+  it('should have history on transient transitions', () => {
+    const nextState = transientMachine.transition('A', 'EVENT');
+    assert.equal(nextState.value, 'C');
+    assert.isDefined(nextState.history);
+  });
+});
+
+describe('internal transition with history', () => {
+  const machine = Machine({
+    key: 'test',
+    initial: 'first',
+    states: {
+      first: {
+        initial: 'foo',
+        states: {
+          foo: {}
+        },
+        on: {
+          NEXT: 'second.other'
+        }
+      },
+      second: {
+        initial: 'nested',
+        states: {
+          nested: {},
+          other: {},
+          hist: {
+            history: true
+          }
+        },
+        on: {
+          NEXT: [
+            {
+              target: '.hist'
+            }
+          ]
+        }
+      }
+    }
+  });
+
+  it('should transition internally to the most recently visited state', () => {
+    // {
+    //   $current: 'first',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'nested',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
+    const state2 = machine.transition(machine.initialState, 'NEXT');
+    // {
+    //   $current: 'second',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'other',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
+    const state3 = machine.transition(state2, 'NEXT');
+    // {
+    //   $current: 'second',
+    //   first: undefined,
+    //   second: {
+    //     $current: 'other',
+    //     nested: undefined,
+    //     other: undefined
+    //   }
+    // }
+
+    assert.deepEqual(state3.value, { second: 'other' });
+  });
+});
+
+describe('multistage history states', () => {
+  const pcWithTurboButtonMachine = Machine({
+    key: 'pc-with-turbo-button',
+    initial: 'off',
+    states: {
+      off: {
+        on: { POWER: 'starting' }
+      },
+      starting: {
+        on: { STARTED: 'running.H' }
+      },
+      running: {
+        initial: 'normal',
+        states: {
+          normal: {
+            on: { SWITCH_TURBO: 'turbo' }
+          },
+          turbo: {
+            on: { SWITCH_TURBO: 'normal' }
+          },
+          H: {
+            history: true
+          }
+        },
+        on: {
+          POWER: 'off'
+        }
+      }
+    }
+  });
+
+  it('should go to the most recently visited state', () => {
+    const onTurboState = pcWithTurboButtonMachine.transition(
+      'running',
+      'SWITCH_TURBO'
+    );
+    const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
+    const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
+
+    assert.equal(
+      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').toString(),
+      'running.turbo'
+    );
   });
 });

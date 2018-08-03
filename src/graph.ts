@@ -1,5 +1,5 @@
 import { StateNode } from './index';
-import { toStateValue, getActionType } from './utils';
+import { toStateValue, getActionType, flatMap } from './utils';
 import {
   StateValue,
   Machine,
@@ -16,42 +16,64 @@ const EMPTY_MAP = {};
 
 export function getNodes(node: StateNode): StateNode[] {
   const { states } = node;
-  const nodes = Object.keys(
-    states
-  ).reduce((accNodes: StateNode[], stateKey) => {
-    const subState = states[stateKey];
-    const subNodes = getNodes(states[stateKey]);
+  const nodes = Object.keys(states).reduce(
+    (accNodes: StateNode[], stateKey) => {
+      const subState = states[stateKey];
+      const subNodes = getNodes(states[stateKey]);
 
-    accNodes.push(subState, ...subNodes);
-    return accNodes;
-  }, []);
+      accNodes.push(subState, ...subNodes);
+      return accNodes;
+    },
+    []
+  );
 
   return nodes;
 }
 
-function getEventEdges(node: StateNode, event: string): Edge[] {
+export function getEventEdges<TExtState>(
+  node: StateNode,
+  event: string
+): Array<Edge<TExtState>> {
   const transitions = node.on[event]!;
 
-  return transitions.map(transition => {
-    const target = node.getRelativeStateNodes(
-      transition.target,
-      undefined,
-      false
-    )[0];
-    return {
-      source: node,
-      target,
-      event,
-      actions: transition.actions ? transition.actions.map(getActionType) : [],
-      cond: transition.cond
-    };
-  });
+  return flatMap(
+    transitions.map(transition => {
+      const targets = ([] as string[]).concat(transition.target);
+      return targets
+        .map(target => {
+          try {
+            const targetNode = node.getRelativeStateNodes(
+              target,
+              undefined,
+              false
+            )[0];
+            return {
+              source: node,
+              target: targetNode,
+              event,
+              actions: transition.actions
+                ? transition.actions.map(getActionType)
+                : [],
+              cond: transition.cond
+            };
+          } catch (e) {
+            console.warn(`Target '${target}' not found on '${node.id}'`);
+            return undefined;
+          }
+        })
+        .filter(maybeEdge => maybeEdge !== undefined) as Array<Edge<TExtState>>;
+    })
+  );
 }
 
-export function getEdges(node: StateNode): Edge[] {
-  const edges: Edge[] = [];
+export function getEdges<TExtState>(
+  node: StateNode,
+  options?: { deep: boolean }
+): Array<Edge<TExtState>> {
+  const { deep = true } = options || {};
+  const edges: Array<Edge<TExtState>> = [];
 
-  if (node.states) {
+  if (node.states && deep) {
     Object.keys(node.states).forEach(stateKey => {
       edges.push(...getEdges(node.states[stateKey]));
     });
@@ -64,8 +86,8 @@ export function getEdges(node: StateNode): Edge[] {
   return edges;
 }
 
-export function getAdjacencyMap(
-  node: Machine,
+export function getAdjacencyMap<TExtState>(
+  node: Machine<TExtState>,
   extendedState?: any
 ): AdjacencyMap {
   const adjacency: AdjacencyMap = {};
@@ -94,8 +116,8 @@ export function getAdjacencyMap(
   return adjacency;
 }
 
-export function getShortestPaths(
-  machine: Machine,
+export function getShortestPaths<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathMap {
   if (!machine.states) {
@@ -159,8 +181,8 @@ export function getShortestPaths(
   return pathMap;
 }
 
-export function getShortestPathsAsArray(
-  machine: Machine,
+export function getShortestPathsAsArray<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathItem[] {
   const result = getShortestPaths(machine, extendedState);
@@ -170,8 +192,8 @@ export function getShortestPathsAsArray(
   }));
 }
 
-export function getSimplePaths(
-  machine: Machine,
+export function getSimplePaths<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathsMap {
   if (!machine.states) {
@@ -219,8 +241,8 @@ export function getSimplePaths(
   return paths;
 }
 
-export function getSimplePathsAsArray(
-  machine: Machine,
+export function getSimplePathsAsArray<TExtState>(
+  machine: Machine<TExtState>,
   extendedState?: any
 ): PathsItem[] {
   const result = getSimplePaths(machine, extendedState);
