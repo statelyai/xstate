@@ -42,7 +42,7 @@ describe('interpreter', () => {
   });
 
   it('immediately notifies the listener with the initial state', () => {
-    let result: State | undefined;
+    let result: State<any> | undefined;
 
     const interpreter = interpret(
       idMachine,
@@ -57,7 +57,7 @@ describe('interpreter', () => {
 
   describe('send with delay', () => {
     it('can send an event after a delay', done => {
-      const currentStates: State[] = [];
+      const currentStates: Array<State<any>> = [];
       const listener = state => {
         currentStates.push(state);
 
@@ -86,7 +86,7 @@ describe('interpreter', () => {
   });
 
   it('can cancel a delayed event', done => {
-    let currentState: State;
+    let currentState: State<any>;
     const listener = state => (currentState = state);
 
     const interpreter = interpret(lightMachine, listener);
