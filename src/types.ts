@@ -53,15 +53,16 @@ export interface TransitionConfig<TExtState> {
   actions?: Array<Action<TExtState>>;
   in?: StateValue;
   internal?: boolean;
+  target?: string | string[];
 }
 
 export interface TargetTransitionConfig<TExtState>
   extends TransitionConfig<TExtState> {
-  target: string | string[];
+  target: string | string[] | undefined;
 }
 
 export type ConditionalTransitionConfig<TExtState> = Array<
-  TargetTransitionConfig<TExtState>
+  TransitionConfig<TExtState>
 >;
 
 export type Transition<TExtState> =

@@ -38,15 +38,31 @@ export function getEventEdges<TExtState>(
 
   return flatMap(
     transitions.map(transition => {
-      const targets = ([] as string[]).concat(transition.target);
+      const targets = transition.target
+        ? ([] as string[]).concat(transition.target)
+        : undefined;
+
+      if (!targets) {
+        return [
+          {
+            source: node,
+            target: node,
+            event,
+            actions: transition.actions
+              ? transition.actions.map(getActionType)
+              : [],
+            cond: transition.cond
+          }
+        ];
+      }
+
       return targets
         .map(target => {
           try {
-            const targetNode = node.getRelativeStateNodes(
-              target,
-              undefined,
-              false
-            )[0];
+            const targetNode = target
+              ? node.getRelativeStateNodes(target, undefined, false)[0]
+              : node;
+
             return {
               source: node,
               target: targetNode,
@@ -57,6 +73,7 @@ export function getEventEdges<TExtState>(
               cond: transition.cond
             };
           } catch (e) {
+            // tslint:disable-next-line:no-console
             console.warn(`Target '${target}' not found on '${node.id}'`);
             return undefined;
           }

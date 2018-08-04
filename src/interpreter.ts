@@ -97,6 +97,7 @@ export class Interpreter<TExtState> {
 
         break;
       default:
+        // tslint:disable-next-line:no-console
         console.warn(
           `No implementation found for action type '${actionObject.type}'`
         );

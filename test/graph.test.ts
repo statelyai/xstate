@@ -43,7 +43,12 @@ describe('graph utilities', () => {
       green: {
         on: {
           TIMER: 'yellow',
-          POWER_OUTAGE: 'red.flashing'
+          POWER_OUTAGE: 'red.flashing',
+          PUSH_BUTTON: [
+            {
+              actions: ['doNothing'] // pushing the walk button never does anything
+            }
+          ]
         }
       },
       yellow: {
@@ -166,6 +171,12 @@ describe('graph utilities', () => {
         })),
         [
           {
+            event: 'PUSH_BUTTON',
+            source: 'light.green',
+            target: 'light.green',
+            actions: ['doNothing'] // lol
+          },
+          {
             event: 'TIMER',
             source: 'light.green',
             target: 'light.yellow',
@@ -254,32 +265,38 @@ describe('graph utilities', () => {
         '"green"': {
           TIMER: { state: 'yellow' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'green' }
+          PED_COUNTDOWN: { state: 'green' },
+          PUSH_BUTTON: { state: 'green' }
         },
         '"yellow"': {
           TIMER: { state: { red: 'walk' } },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'yellow' }
+          PED_COUNTDOWN: { state: 'yellow' },
+          PUSH_BUTTON: { state: 'yellow' }
         },
         '{"red":"walk"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'wait' } }
+          PED_COUNTDOWN: { state: { red: 'wait' } },
+          PUSH_BUTTON: { state: { red: 'walk' } }
         },
         '{"red":"flashing"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'flashing' } }
+          PED_COUNTDOWN: { state: { red: 'flashing' } },
+          PUSH_BUTTON: { state: { red: 'flashing' } }
         },
         '{"red":"wait"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } }
+          PED_COUNTDOWN: { state: { red: 'stop' } },
+          PUSH_BUTTON: { state: { red: 'wait' } }
         },
         '{"red":"stop"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } }
+          PED_COUNTDOWN: { state: { red: 'stop' } },
+          PUSH_BUTTON: { state: { red: 'stop' } }
         }
       });
     });
