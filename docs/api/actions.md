@@ -77,6 +77,7 @@ console.log(fetchMachine.transition(fetchMachine.initialState, 'FETCH'));
 //   actions: [
 //     'preloadViews', // onExit action for 'idle' state
 //     'warmCache', // transition action for 'idle' -> 'pending' on 'FETCH'
+//     [Function: showLoader], // transition action for 'idle' -> 'pending' on 'FETCH'
 //     'fetchData' // onEntry action for 'pending' state
 //   ]
 // }
