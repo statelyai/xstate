@@ -54,6 +54,8 @@ const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
+const TARGETLESS_KEY = '';
+
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const defaultOptions: MachineOptions = {
   guards: {}
@@ -145,7 +147,7 @@ class StateNode<TExtState = any> {
     this.data = config.data;
     this.activities = config.activities;
   }
-  public get on(): Record<string, Array<TargetTransitionConfig<TExtState>>> {
+  public get on(): Record<string, Array<TransitionConfig<TExtState>>> {
     const { config } = this;
     return config.on ? this.formatTransitions(config.on) : {};
   }
@@ -461,7 +463,7 @@ class StateNode<TExtState = any> {
     }
 
     let nextStateStrings: string[] = [];
-    let selectedTransition: TargetTransitionConfig<TExtState>;
+    let selectedTransition: TransitionConfig<TExtState>;
 
     for (const candidate of candidates) {
       const {
@@ -491,14 +493,26 @@ class StateNode<TExtState = any> {
       ) {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
-          : [candidate.target];
+          : candidate.target
+            ? [candidate.target]
+            : [];
         actions.push(...(candidate.actions ? candidate.actions : [])); // TODO: fixme;
         selectedTransition = candidate;
         break;
       }
     }
 
-    if (nextStateStrings.length === 0) {
+    // targetless transition
+    if (selectedTransition! && nextStateStrings.length === 0) {
+      return {
+        value: state.value,
+        entryExitStates: undefined,
+        actions,
+        paths: []
+      };
+    }
+
+    if (!selectedTransition! && nextStateStrings.length === 0) {
       return {
         value: undefined,
         entryExitStates: undefined,
@@ -1377,24 +1391,35 @@ class StateNode<TExtState = any> {
     return (this.__cache.events = Array.from(events));
   }
   private formatTransition(
-    targets: string[],
+    target: string | string[] | undefined,
     transitionConfig?: TransitionConfig<TExtState>
   ): TargetTransitionConfig<TExtState> {
     let internal = transitionConfig ? transitionConfig.internal : false;
 
+    // Check if there is no target (targetless)
+    if (target === undefined || target === TARGETLESS_KEY) {
+      return {
+        ...transitionConfig,
+        target,
+        internal: true
+      };
+    }
+
+    const targets = Array.isArray(target) ? target : [target];
+
     // Format targets to their full string path
-    const formattedTargets = targets.map(target => {
+    const formattedTargets = targets.map(_target => {
       const internalTarget =
-        typeof target === 'string' && target[0] === this.delimiter;
+        typeof _target === 'string' && _target[0] === this.delimiter;
       internal = internal || internalTarget;
 
       // If internal target is defined on machine,
       // do not include machine key on target
       if (internalTarget && !this.parent) {
-        return target.slice(1);
+        return _target.slice(1);
       }
 
-      return internalTarget ? this.key + target : target;
+      return internalTarget ? this.key + _target : _target;
     });
 
     return {
@@ -1414,7 +1439,7 @@ class StateNode<TExtState = any> {
       if (Array.isArray(value)) {
         return value.map(targetTransitionConfig =>
           this.formatTransition(
-            ([] as string[]).concat(targetTransitionConfig.target),
+            targetTransitionConfig.target,
             targetTransitionConfig
           )
         );
@@ -1425,7 +1450,7 @@ class StateNode<TExtState = any> {
       }
 
       return Object.keys(value).map(target => {
-        return this.formatTransition([target], value[target]);
+        return this.formatTransition(target, value[target]);
       });
     });
   }

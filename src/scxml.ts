@@ -72,14 +72,20 @@ function stateNodeToSCXML(stateNode: StateNode) {
 
             if (Array.isArray(transition)) {
               return transition.map(targetTransition => {
+                const { target } = targetTransition;
+
                 return {
                   type: 'element',
                   name: 'transition',
                   attributes: {
                     ...(event ? { event } : undefined),
-                    target: stateNode.parent!.getRelativeStateNodes(
-                      targetTransition.target
-                    )[0]!.id, // TODO: fixme
+                    ...(target
+                      ? {
+                          target: stateNode.parent!.getRelativeStateNodes(
+                            target
+                          )[0]!.id
+                        }
+                      : undefined), // TODO: fixme
                     ...(targetTransition.cond
                       ? { cond: targetTransition.cond.toString() }
                       : undefined)
