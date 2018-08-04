@@ -9,7 +9,8 @@ import {
   PathItem,
   PathsItem,
   PathsMap,
-  AdjacencyMap
+  AdjacencyMap,
+  DefaultExtState
 } from './types';
 
 const EMPTY_MAP = {};
@@ -30,7 +31,7 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-export function getEventEdges<TExtState>(
+export function getEventEdges<TExtState = DefaultExtState>(
   node: StateNode,
   event: string
 ): Array<Edge<TExtState>> {
@@ -83,7 +84,7 @@ export function getEventEdges<TExtState>(
   );
 }
 
-export function getEdges<TExtState>(
+export function getEdges<TExtState = DefaultExtState>(
   node: StateNode,
   options?: { deep: boolean }
 ): Array<Edge<TExtState>> {
@@ -103,7 +104,7 @@ export function getEdges<TExtState>(
   return edges;
 }
 
-export function getAdjacencyMap<TExtState>(
+export function getAdjacencyMap<TExtState = DefaultExtState>(
   node: Machine<TExtState>,
   extendedState?: any
 ): AdjacencyMap {
@@ -133,7 +134,7 @@ export function getAdjacencyMap<TExtState>(
   return adjacency;
 }
 
-export function getShortestPaths<TExtState>(
+export function getShortestPaths<TExtState = DefaultExtState>(
   machine: Machine<TExtState>,
   extendedState?: any
 ): PathMap {
@@ -198,7 +199,7 @@ export function getShortestPaths<TExtState>(
   return pathMap;
 }
 
-export function getShortestPathsAsArray<TExtState>(
+export function getShortestPathsAsArray<TExtState = DefaultExtState>(
   machine: Machine<TExtState>,
   extendedState?: any
 ): PathItem[] {
@@ -209,7 +210,7 @@ export function getShortestPathsAsArray<TExtState>(
   }));
 }
 
-export function getSimplePaths<TExtState>(
+export function getSimplePaths<TExtState = DefaultExtState>(
   machine: Machine<TExtState>,
   extendedState?: any
 ): PathsMap {
@@ -258,7 +259,7 @@ export function getSimplePaths<TExtState>(
   return paths;
 }
 
-export function getSimplePathsAsArray<TExtState>(
+export function getSimplePathsAsArray<TExtState = DefaultExtState>(
   machine: Machine<TExtState>,
   extendedState?: any
 ): PathsItem[] {

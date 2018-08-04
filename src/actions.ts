@@ -8,7 +8,8 @@ import {
   SendActionOptions,
   CancelAction,
   ActionObject,
-  ActionType
+  ActionType,
+  DefaultExtState
 } from './types';
 import { getEventType } from './utils';
 
@@ -121,7 +122,7 @@ export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
 }
 
-export const assign = <TExtState>(
+export const assign = <TExtState = DefaultExtState>(
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
 ): AssignAction<TExtState> => {
   return {

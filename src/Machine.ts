@@ -4,11 +4,12 @@ import {
   ParallelMachine,
   MachineConfig,
   ParallelMachineConfig,
-  MachineOptions
+  MachineOptions,
+  DefaultExtState
 } from './types';
 import { StateNode } from './StateNode';
 
-export function Machine<TExtState extends {} = {}>(
+export function Machine<TExtState = DefaultExtState>(
   config: MachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
   options?: MachineOptions,
   extendedState?: TExtState

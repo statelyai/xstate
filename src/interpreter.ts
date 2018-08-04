@@ -4,12 +4,15 @@ import {
   Action,
   EventObject,
   SendAction,
-  CancelAction
+  CancelAction,
+  DefaultExtState
 } from './types';
 import { State } from './State';
 import { toEventObject, actionTypes, toActionObject } from './actions';
 
-export type StateListener = <TExtState>(state: State<TExtState>) => void;
+export type StateListener = <TExtState = DefaultExtState>(
+  state: State<TExtState>
+) => void;
 
 export class Interpreter<TExtState> {
   public state: State<TExtState>;
@@ -113,7 +116,7 @@ export class Interpreter<TExtState> {
   }
 }
 
-export function interpret<TExtState>(
+export function interpret<TExtState = DefaultExtState>(
   machine: Machine<TExtState>,
   listener: StateListener
 ) {
