@@ -205,7 +205,7 @@ function mapActions(elements: XMLElement[]): ActionObject[] {
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise(element.attributes!.event);
+        return actions.raise(element.attributes!.event!);
       case 'assign':
         return actions.assign(xs => {
           const literalKeyExprs = xs
@@ -369,7 +369,7 @@ export function toMachine(
 
   const extState = dataModelEl
     ? dataModelEl.elements!.reduce((acc, element) => {
-        acc[element.attributes!.id] = element.attributes!.expr;
+        acc[element.attributes!.id!] = element.attributes!.expr;
         return acc;
       }, {})
     : undefined;

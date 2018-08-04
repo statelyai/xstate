@@ -41,19 +41,19 @@
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
-    "@types/chai": "^4.0.4",
+    "@types/chai": "^4.1.4",
     "@types/mocha": "^2.2.44",
-    "@types/node": "^8.9.4",
+    "@types/node": "^8.10.23",
     "chai": "^4.1.2",
     "mocha": "^3.5.3",
-    "prettier": "^1.13.5",
+    "prettier": "^1.14.0",
     "scion-core-test-framework": "^1.0.0",
     "scxml-test-framework": "^1.0.2",
     "ts-node": "^3.3.0",
-    "tslint": "^5.7.0",
-    "typescript": "^2.9.2",
-    "webpack": "^3.5.6",
-    "xml-js": "^1.6.2"
+    "tslint": "^5.11.0",
+    "typescript": "^3.0.1",
+    "webpack": "^3.12.0",
+    "xml-js": "^1.6.7"
   },
   "dependencies": {}
 }
