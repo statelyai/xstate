@@ -16,11 +16,12 @@ export interface ActionObject extends Record<string, any> {
 }
 
 export type DefaultExtState = Record<string, any> | undefined;
+export type DefaultData = Record<string, any>;
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
-export type ActionFunction = ((
-  extendedState: any,
+export type ActionFunction<TExtState = DefaultExtState> = ((
+  extendedState: TExtState,
   event?: EventObject
 ) => any | void);
 export type InternalAction<TExtState = DefaultExtState> =
@@ -76,7 +77,7 @@ export type Transition<TExtState = DefaultExtState> =
 
 export type Activity = string | ActionObject;
 
-export interface StateNodeConfig<TExtState = DefaultExtState> {
+export interface StateNodeConfig<TExtState = DefaultExtState, TData = any> {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
@@ -93,9 +94,9 @@ export interface StateNodeConfig<TExtState = DefaultExtState> {
   onEntry?: Action<TExtState> | Array<Action<TExtState>>;
   onExit?: Action<TExtState> | Array<Action<TExtState>>;
   activities?: Activity[];
-  parent?: StateNode;
+  parent?: StateNode<TExtState>;
   strict?: boolean | undefined;
-  data?: object | undefined;
+  data?: TData;
   id?: string | undefined;
   delimiter?: string;
 }
@@ -167,19 +168,19 @@ export interface EntryExitEffectMap<TExtState = DefaultExtState> {
 //   config: StateNodeConfig<TExtState = DefaultExtState>;
 // }
 
-export interface ComplexStateNode extends StateNode {
+export interface ComplexStateNode<TExtState> extends StateNode<TExtState> {
   initial: string;
   history: false;
 }
 
-export interface LeafStateNode extends StateNode {
+export interface LeafStateNode<TExtState> extends StateNode<TExtState> {
   initial: never;
   parallel: never;
   states: never;
-  parent: StateNode;
+  parent: StateNode<TExtState>;
 }
 
-export interface HistoryStateNode extends StateNode {
+export interface HistoryStateNode<TExtState> extends StateNode<TExtState> {
   history: 'shallow' | 'deep';
   target: StateValue | undefined;
 }
@@ -306,16 +307,29 @@ export interface TransitionMap {
   state: StateValue | undefined;
 }
 
+export interface ValueTransitionMap {
+  state: StateValue | undefined;
+  ext: any;
+}
+
 export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
 
-export interface StateInterface<TExtState = DefaultExtState> {
+export interface ValueAdjacencyMap {
+  [stateId: string]: Record<string, ValueTransitionMap>;
+}
+
+export interface StateInterface<
+  TExtState = DefaultExtState,
+  TData = DefaultData
+> {
   value: StateValue;
   history?: State<TExtState>;
   actions: Array<Action<TExtState>>;
   activities: ActivityMap;
-  data: Record<string, any>;
+  data: TData;
   events: EventObject[];
-  ext?: TExtState;
+  ext: TExtState;
+  toStrings: () => string[];
 }

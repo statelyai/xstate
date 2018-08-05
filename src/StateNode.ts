@@ -38,7 +38,9 @@ import {
   ConditionPredicate,
   EventObject,
   HistoryStateNodeConfig,
-  HistoryValue
+  HistoryValue,
+  DefaultData,
+  DefaultExtState
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -61,7 +63,7 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
-class StateNode<TExtState = any> {
+class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   public key: string;
   public id: string;
   public path: string[];
@@ -76,19 +78,19 @@ class StateNode<TExtState = any> {
   public strict: boolean;
   public parent?: StateNode<TExtState>;
   public machine: StateNode<TExtState>;
-  public data: object | undefined;
+  public data: TData;
   public delimiter: string;
 
   private __cache = {
     events: undefined as EventType[] | undefined,
-    relativeValue: new Map() as Map<StateNode, StateValue>,
+    relativeValue: new Map() as Map<StateNode<TExtState>, StateValue>,
     initialState: undefined as StateValue | undefined
   };
 
-  private idMap: Record<string, StateNode> = {};
+  private idMap: Record<string, StateNode<TExtState>> = {};
 
   constructor(
-    public config: Readonly<
+    private _config: Readonly<
       | SimpleOrCompoundStateNodeConfig<TExtState>
       | StandardMachineConfig<TExtState>
       | ParallelMachineConfig<TExtState>
@@ -99,53 +101,64 @@ class StateNode<TExtState = any> {
      */
     public extendedState?: Readonly<TExtState>
   ) {
-    this.key = config.key || '(machine)';
-    this.parent = config.parent;
+    this.key = _config.key || '(machine)';
+    this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.delimiter =
-      config.delimiter ||
+      _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      config.id ||
+      _config.id ||
       (this.machine
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
-    this.initial = config.initial;
-    this.parallel = !!config.parallel;
-    this.states = (config.states
-      ? mapValues<SimpleOrCompoundStateNodeConfig<TExtState>, StateNode>(
-          config.states,
-          (stateConfig, key) => {
-            const stateNode = new StateNode({
-              ...stateConfig,
-              key,
-              parent: this
-            });
-            Object.assign(this.idMap, {
-              [stateNode.id]: stateNode,
-              ...stateNode.idMap
-            });
-            return stateNode;
-          }
-        )
-      : {}) as Record<string, StateNode>;
+    this.initial = _config.initial;
+    this.parallel = !!_config.parallel;
+    this.states = (_config.states
+      ? mapValues<
+          SimpleOrCompoundStateNodeConfig<TExtState>,
+          StateNode<TExtState>
+        >(_config.states, (stateConfig, key) => {
+          const stateNode = new StateNode({
+            ...stateConfig,
+            key,
+            parent: this
+          });
+          Object.assign(this.idMap, {
+            [stateNode.id]: stateNode,
+            ...stateNode.idMap
+          });
+          return stateNode;
+        })
+      : {}) as Record<string, StateNode<TExtState>>;
 
     // History config
     this.history =
-      config.history === true ? 'shallow' : config.history || false;
+      _config.history === true ? 'shallow' : _config.history || false;
 
     // this.on = config.on ? this.formatTransitions(config.on) : {};
-    this.transient = !!(config.on && config.on[NULL_EVENT]);
-    this.strict = !!config.strict;
-    this.onEntry = config.onEntry
-      ? ([] as Array<Action<TExtState>>).concat(config.onEntry)
+    this.transient = !!(_config.on && _config.on[NULL_EVENT]);
+    this.strict = !!_config.strict;
+    this.onEntry = _config.onEntry
+      ? ([] as Array<Action<TExtState>>).concat(_config.onEntry as Action<
+          TExtState
+        >)
       : [];
-    this.onExit = config.onExit
-      ? ([] as Array<Action<TExtState>>).concat(config.onExit)
+    this.onExit = _config.onExit
+      ? ([] as Array<Action<TExtState>>).concat(_config.onExit)
       : [];
-    this.data = config.data;
-    this.activities = config.activities;
+    this.data = _config.data;
+    this.activities = _config.activities;
+  }
+  public get config(): Readonly<
+    | SimpleOrCompoundStateNodeConfig<TExtState>
+    | StandardMachineConfig<TExtState>
+    | ParallelMachineConfig<TExtState>
+  > {
+    const { parent, ...config } = this._config;
+
+    return config;
   }
   public get on(): Record<string, Array<TransitionConfig<TExtState>>> {
     const { config } = this;
@@ -832,13 +845,13 @@ class StateNode<TExtState = any> {
     const nextState = stateTransition.value
       ? new State<TExtState>(
           stateTransition.value,
+          updatedExtendedState,
           StateNode.updateHistoryValue(historyValue, stateTransition.value),
           currentState,
           nonEventActions,
           activities,
           data,
-          raisedEvents,
-          updatedExtendedState
+          raisedEvents
         )
       : undefined;
 
@@ -899,7 +912,7 @@ class StateNode<TExtState = any> {
       }
     }
   }
-  public getStateNode(stateKey: string): StateNode {
+  public getStateNode(stateKey: string): StateNode<TExtState> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
     }
@@ -921,7 +934,7 @@ class StateNode<TExtState = any> {
 
     return result;
   }
-  public getStateNodeById(stateId: string): StateNode {
+  public getStateNodeById(stateId: string): StateNode<TExtState> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
@@ -940,9 +953,11 @@ class StateNode<TExtState = any> {
 
     return stateNode;
   }
-  public getStateNodeByPath(statePath: string | string[]): StateNode {
+  public getStateNodeByPath(
+    statePath: string | string[]
+  ): StateNode<TExtState> {
     const arrayStatePath = toStatePath(statePath, this.delimiter);
-    let currentStateNode: StateNode = this;
+    let currentStateNode: StateNode<TExtState> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
       currentStateNode = currentStateNode.getStateNode(key);
@@ -1036,7 +1051,7 @@ class StateNode<TExtState = any> {
   }
   public getState(
     stateValue: StateValue,
-    extendedState: TExtState | undefined = this.extendedState
+    extendedState: TExtState = this.machine.extendedState!
   ): State<TExtState> {
     const activityMap: ActivityMap = {};
     const actions: Array<Action<TExtState>> = [];
@@ -1089,13 +1104,13 @@ class StateNode<TExtState = any> {
 
     const initialNextState = new State<TExtState>(
       stateValue,
+      updatedExtendedState,
       undefined,
       undefined,
       actions,
       activityMap,
       undefined,
-      [],
-      updatedExtendedState
+      []
     );
 
     return raisedEvents.reduce((nextState, raisedEvent) => {
@@ -1450,7 +1465,7 @@ class StateNode<TExtState = any> {
 
 export function Machine<
   T extends StandardMachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
-  TExtState = undefined
+  TExtState = DefaultExtState
 >(
   config: T,
   options?: MachineOptions
