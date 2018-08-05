@@ -164,7 +164,9 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     const { config } = this;
     return config.on ? this.formatTransitions(config.on) : {};
   }
-  public getStateNodes(state: StateValue | State<TExtState>): StateNode[] {
+  public getStateNodes(
+    state: StateValue | State<TExtState>
+  ): Array<StateNode<TExtState>> {
     if (!state) {
       return [];
     }
@@ -182,8 +184,8 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     }
 
     const subStateKeys = Object.keys(stateValue);
-    const subStateNodes: StateNode[] = subStateKeys.map(subStateKey =>
-      this.getStateNode(subStateKey)
+    const subStateNodes: Array<StateNode<TExtState>> = subStateKeys.map(
+      subStateKey => this.getStateNode(subStateKey)
     );
 
     return subStateNodes.concat(
@@ -195,7 +197,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
           return allSubStateNodes.concat(subStateNode);
         },
-        [] as StateNode[]
+        [] as Array<StateNode<TExtState>>
       )
     );
   }
@@ -224,11 +226,11 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         value,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
-          exit: new Set<StateNode>([
+          exit: new Set<StateNode<TExtState>>([
             stateNode,
             ...(entryExitStates
               ? Array.from(entryExitStates.exit)
-              : ([] as StateNode[]))
+              : ([] as Array<StateNode<TExtState>>))
           ])
         },
         actions,
@@ -265,14 +267,14 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         value,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
-          exit: new Set<StateNode>([
+          exit: new Set<StateNode<TExtState>>([
             ...(next.entryExitStates
               ? Array.from(next.entryExitStates.exit)
               : []),
             stateNode,
             ...(entryExitStates
               ? Array.from(entryExitStates.exit)
-              : ([] as StateNode[]))
+              : ([] as Array<StateNode<TExtState>>))
           ])
         },
         actions,
@@ -365,7 +367,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
                 ])
               };
             },
-            { entry: new Set(), exit: new Set() } as EntryExitStates
+            { entry: new Set(), exit: new Set() } as EntryExitStates<TExtState>
           ),
         actions: flatMap(
           Object.keys(transitionMap).map(key => {
@@ -416,7 +418,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
             ])
           };
         },
-        { entry: new Set(), exit: new Set() } as EntryExitStates
+        { entry: new Set(), exit: new Set() } as EntryExitStates<TExtState>
       ),
       actions: flatMap(
         Object.keys(transitionMap).map(key => {
@@ -560,7 +562,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
           ])
         };
       },
-      { entry: new Set(), exit: new Set() } as EntryExitStates
+      { entry: new Set(), exit: new Set() } as EntryExitStates<TExtState>
     );
 
     return {
@@ -581,12 +583,12 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     };
   }
   private _getEntryExitStates(
-    nextStateNode: StateNode,
+    nextStateNode: StateNode<TExtState>,
     internal: boolean
-  ): EntryExitStates {
+  ): EntryExitStates<TExtState> {
     const entryExitStates = {
-      entry: [] as StateNode[],
-      exit: [] as StateNode[]
+      entry: [] as Array<StateNode<TExtState>>,
+      exit: [] as Array<StateNode<TExtState>>
     };
 
     const fromPath = this.path;
@@ -607,7 +609,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     const commonAncestorPath = parent.path;
 
-    let marker: StateNode = parent;
+    let marker: StateNode<TExtState> = parent;
     for (const segment of fromPath.slice(commonAncestorPath.length)) {
       marker = marker.getStateNode(segment);
       entryExitStates.exit.unshift(marker);
@@ -878,7 +880,10 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     return maybeNextState;
   }
   private ensureValidPaths(paths: string[][]): void {
-    const visitedParents = new Map<StateNode, StateNode[]>();
+    const visitedParents = new Map<
+      StateNode<TExtState>,
+      Array<StateNode<TExtState>>
+    >();
 
     const stateNodes = flatMap(
       paths.map(_path => this.getRelativeStateNodes(_path))
@@ -1037,7 +1042,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     const initialStateValue = (this.parallel
       ? mapFilterValues(
-          this.states as Record<string, StateNode>,
+          this.states as Record<string, StateNode<TExtState>>,
           state => state.initialStateValue || {},
           stateNode => !stateNode.history
         )
@@ -1154,12 +1159,12 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     return target;
   }
-  public getStates(stateValue: StateValue): StateNode[] {
+  public getStates(stateValue: StateValue): Array<StateNode<TExtState>> {
     if (typeof stateValue === 'string') {
       return [this.states[stateValue]];
     }
 
-    const stateNodes: StateNode[] = [];
+    const stateNodes: Array<StateNode<TExtState>> = [];
 
     Object.keys(stateValue).forEach(key => {
       stateNodes.push(...this.states[key].getStates(stateValue[key]));
@@ -1179,7 +1184,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     relativeStateId: string | string[],
     historyValue?: HistoryValue,
     resolve: boolean = true
-  ): StateNode[] {
+  ): Array<StateNode<TExtState>> {
     if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
@@ -1206,7 +1211,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       unresolvedStateNodes.map(stateNode => stateNode.initialStateNodes)
     );
   }
-  public get initialStateNodes(): StateNode[] {
+  public get initialStateNodes(): Array<StateNode<TExtState>> {
     // todo - isLeafNode or something
     if (!this.parallel && !this.initial) {
       return [this];
@@ -1229,7 +1234,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   public getFromRelativePath(
     relativePath: string[],
     historyValue?: HistoryValue
-  ): StateNode[] {
+  ): Array<StateNode<TExtState>> {
     if (!relativePath.length) {
       return [this];
     }
@@ -1344,7 +1349,9 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
    *
    * @param historyValue
    */
-  private resolveHistory(historyValue?: HistoryValue): StateNode[] {
+  private resolveHistory(
+    historyValue?: HistoryValue
+  ): Array<StateNode<TExtState>> {
     if (!this.history) {
       return [this];
     }

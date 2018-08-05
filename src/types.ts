@@ -31,7 +31,7 @@ export type Action<TExtState = DefaultExtState> =
   | ActionType
   | ActionObject
   | InternalAction<TExtState>
-  | ActionFunction;
+  | ActionFunction<TExtState>;
 export type StateKey = string | State<any>;
 
 export interface StateValueMap {
@@ -210,9 +210,9 @@ export interface ActionMap<TExtState = DefaultExtState> {
   onExit: Array<Action<TExtState>>;
 }
 
-export interface EntryExitStates {
-  entry: Set<StateNode>;
-  exit: Set<StateNode>;
+export interface EntryExitStates<TExtState> {
+  entry: Set<StateNode<TExtState>>;
+  exit: Set<StateNode<TExtState>>;
 }
 
 export interface ActivityMap {
@@ -227,7 +227,7 @@ export type MaybeStateValueActionsTuple<TExtState = DefaultExtState> = [
 // tslint:disable-next-line:class-name
 export interface StateTransition<TExtState = DefaultExtState> {
   value: StateValue | undefined;
-  entryExitStates: EntryExitStates | undefined;
+  entryExitStates: EntryExitStates<TExtState> | undefined;
   actions: Array<Action<TExtState>>;
   paths: string[][];
 }
