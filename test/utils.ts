@@ -1,20 +1,20 @@
 import { StateNode, State } from '../src/index';
 import { assert } from 'chai';
 
-export function testMultiTransition(
-  machine: StateNode,
+export function testMultiTransition<TExt>(
+  machine: StateNode<TExt>,
   fromState: string,
   eventTypes: string
 ) {
   const resultState = eventTypes
     .split(/,\s?/)
-    .reduce((state: State<undefined> | string, eventType) => {
+    .reduce((state: State<TExt> | string, eventType) => {
       if (typeof state === 'string' && state[0] === '{') {
         state = JSON.parse(state);
       }
       const nextState = machine.transition(state, eventType);
       return nextState;
-    }, fromState) as State<undefined>;
+    }, fromState) as State<TExt>;
 
   return resultState;
 }
