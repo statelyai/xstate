@@ -6,6 +6,36 @@
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
+## Super quick start
+
+```bash
+npm i xstate -S
+```
+
+```js
+import { Machine } from 'xstate';
+
+const toggleMachine = Machine({
+  initial: 'inactive',
+  states: {
+    inactive: { on: { TOGGLE: 'active' } },
+    active: { on: { TOGGLE: 'inactive' } }
+  }
+});
+
+// Interpret the machine however you want.
+// Here's a simple (side-effectful) example:
+let currentState = toggleMachine.initialState;
+
+function send(event) {
+  currentState = toggleMachine.transition(currentState, event);
+  console.log(currentState.value);
+}
+
+send('TOGGLE'); // 'active'
+send('TOGGLE'); // 'inactive'
+```
+
 📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
 
 - [Visualizer](#visualizer)
