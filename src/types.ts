@@ -99,6 +99,22 @@ export interface StateNodeConfig<TExtState = DefaultExtState, TData = any> {
   data?: TData;
   id?: string | undefined;
   delimiter?: string;
+  order?: number;
+}
+
+export interface StateNodeDefinition<TExtState = DefaultExtState, TData = any> {
+  key: string;
+  initial: string | undefined;
+  parallel: boolean | undefined;
+  history: false | 'shallow' | 'deep' | undefined;
+  states: Record<string, StateNodeDefinition<TExtState>> | undefined;
+  on: Record<string, TransitionConfig[]> | undefined;
+  onEntry: Array<Action<TExtState>> | undefined;
+  onExit: Array<Action<TExtState>> | undefined;
+  activities: Activity[] | undefined;
+  data: TData;
+  id: string;
+  order: number;
 }
 export interface SimpleStateNodeConfig<TExtState>
   extends StateNodeConfig<TExtState> {

@@ -80,12 +80,17 @@ export function pathToStateValue(statePath: string[]): StateValue {
 
 export function mapValues<T, P>(
   collection: { [key: string]: T },
-  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
+  iteratee: (
+    item: T,
+    key: string,
+    collection: { [key: string]: T },
+    i: number
+  ) => P
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
-    result[key] = iteratee(collection[key], key, collection);
+  Object.keys(collection).forEach((key, i) => {
+    result[key] = iteratee(collection[key], key, collection, i);
   });
 
   return result;

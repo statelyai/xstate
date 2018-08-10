@@ -1,8 +1,7 @@
-import { StateNode } from './index';
+import { StateNode, State } from './index';
 import { toStateValue, getActionType, flatMap } from './utils';
 import {
   StateValue,
-  Machine,
   Edge,
   Segment,
   PathMap,
@@ -10,7 +9,9 @@ import {
   PathsItem,
   PathsMap,
   AdjacencyMap,
-  DefaultExtState
+  DefaultExtState,
+  ValueAdjacencyMap,
+  Event
 } from './types';
 
 const EMPTY_MAP = {};
@@ -86,14 +87,18 @@ export function getEventEdges<TExtState = DefaultExtState>(
 
 export function getEdges<TExtState = DefaultExtState>(
   node: StateNode,
-  options?: { deep: boolean }
+  options?: { depth: null | number }
 ): Array<Edge<TExtState>> {
-  const { deep = true } = options || {};
+  const { depth = null } = options || {};
   const edges: Array<Edge<TExtState>> = [];
 
-  if (node.states && deep) {
+  if (node.states && depth === null) {
     Object.keys(node.states).forEach(stateKey => {
       edges.push(...getEdges(node.states[stateKey]));
+    });
+  } else if (depth && depth > 0) {
+    Object.keys(node.states).forEach(stateKey => {
+      edges.push(...getEdges(node.states[stateKey], { depth: depth - 1 }));
     });
   }
 
@@ -105,7 +110,7 @@ export function getEdges<TExtState = DefaultExtState>(
 }
 
 export function getAdjacencyMap<TExtState = DefaultExtState>(
-  node: Machine<TExtState>,
+  node: StateNode<TExtState>,
   extendedState?: any
 ): AdjacencyMap {
   const adjacency: AdjacencyMap = {};
@@ -134,8 +139,53 @@ export function getAdjacencyMap<TExtState = DefaultExtState>(
   return adjacency;
 }
 
+function eventToString(event: Event): string {
+  if (typeof event === 'string' || typeof event === 'number') {
+    return `${event}`;
+  }
+
+  const { type, ...rest } = event;
+
+  return `${type} | ${JSON.stringify(rest)}`;
+}
+
+export function getValueAdjacencyMap<TExtState = DefaultExtState>(
+  node: StateNode<TExtState>,
+  eventMap: Record<string, Event[]>
+): ValueAdjacencyMap {
+  const adjacency: ValueAdjacencyMap = {};
+
+  const events = flatMap(node.events.map(event => eventMap[event] || [event]));
+
+  function findAdjacencies(state: State<TExtState>) {
+    const { value, ext } = state;
+    const stateKey = JSON.stringify(value) + ' | ' + JSON.stringify(ext);
+
+    if (adjacency[stateKey]) {
+      return;
+    }
+
+    adjacency[stateKey] = {};
+
+    for (const event of events) {
+      const nextState = node.transition(state, event);
+
+      adjacency[stateKey][eventToString(event)] = {
+        state: nextState.value,
+        ext: nextState.ext
+      };
+
+      findAdjacencies(nextState);
+    }
+  }
+
+  findAdjacencies(node.initialState);
+
+  return adjacency;
+}
+
 export function getShortestPaths<TExtState = DefaultExtState>(
-  machine: Machine<TExtState>,
+  machine: StateNode<TExtState>,
   extendedState?: any
 ): PathMap {
   if (!machine.states) {
@@ -200,7 +250,7 @@ export function getShortestPaths<TExtState = DefaultExtState>(
 }
 
 export function getShortestPathsAsArray<TExtState = DefaultExtState>(
-  machine: Machine<TExtState>,
+  machine: StateNode<TExtState>,
   extendedState?: any
 ): PathItem[] {
   const result = getShortestPaths(machine, extendedState);
@@ -211,7 +261,7 @@ export function getShortestPathsAsArray<TExtState = DefaultExtState>(
 }
 
 export function getSimplePaths<TExtState = DefaultExtState>(
-  machine: Machine<TExtState>,
+  machine: StateNode<TExtState>,
   extendedState?: any
 ): PathsMap {
   if (!machine.states) {
@@ -260,7 +310,7 @@ export function getSimplePaths<TExtState = DefaultExtState>(
 }
 
 export function getSimplePathsAsArray<TExtState = DefaultExtState>(
-  machine: Machine<TExtState>,
+  machine: StateNode<TExtState>,
   extendedState?: any
 ): PathsItem[] {
   const result = getSimplePaths(machine, extendedState);

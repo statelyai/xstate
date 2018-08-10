@@ -29,24 +29,13 @@ export class Interpreter<TExtState> {
   private update(state: State<TExtState>, event?: Event): void {
     this.state = state;
 
-    const updatedState = this.state.actions.reduce<TExtState>(
-      (extState, action) => {
-        const stateUpdate = this.exec(
-          action,
-          this.extState,
-          event ? toEventObject(event) : undefined
-        );
-
-        return stateUpdate
-          ? Object.assign({}, extState, stateUpdate)
-          : extState;
-      },
-      this.extState
-    );
-
-    if (this.extState && updatedState) {
-      Object.assign(this.extState, updatedState);
-    }
+    this.state.actions.forEach(action => {
+      this.exec(
+        action,
+        this.state.ext,
+        event ? toEventObject(event) : undefined
+      );
+    }, this.state.ext);
 
     this.listeners.forEach(listener => listener(state));
   }

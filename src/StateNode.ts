@@ -40,7 +40,8 @@ import {
   HistoryStateNodeConfig,
   HistoryValue,
   DefaultData,
-  DefaultExtState
+  DefaultExtState,
+  StateNodeDefinition
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -63,6 +64,12 @@ const defaultOptions: MachineOptions = {
   guards: {}
 };
 
+type StateNodeConfig<TExtState> = Readonly<
+  | SimpleOrCompoundStateNodeConfig<TExtState>
+  | StandardMachineConfig<TExtState>
+  | ParallelMachineConfig<TExtState>
+>;
+
 class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   public key: string;
   public id: string;
@@ -80,6 +87,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   public machine: StateNode<TExtState>;
   public data: TData;
   public delimiter: string;
+  public order: number;
 
   private __cache = {
     events: undefined as EventType[] | undefined,
@@ -90,11 +98,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   private idMap: Record<string, StateNode<TExtState>> = {};
 
   constructor(
-    private _config: Readonly<
-      | SimpleOrCompoundStateNodeConfig<TExtState>
-      | StandardMachineConfig<TExtState>
-      | ParallelMachineConfig<TExtState>
-    >,
+    private _config: StateNodeConfig<TExtState>,
     public options: Readonly<MachineOptions> = defaultOptions,
     /**
      * The initial extended state
@@ -115,14 +119,17 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         : this.key);
     this.initial = _config.initial;
     this.parallel = !!_config.parallel;
+    this.order = _config.order || -1;
+
     this.states = (_config.states
       ? mapValues<
           SimpleOrCompoundStateNodeConfig<TExtState>,
           StateNode<TExtState>
-        >(_config.states, (stateConfig, key) => {
+        >(_config.states, (stateConfig, key, _, i) => {
           const stateNode = new StateNode({
             ...stateConfig,
             key,
+            order: i,
             parent: this
           });
           Object.assign(this.idMap, {
@@ -150,6 +157,22 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       : [];
     this.data = _config.data;
     this.activities = _config.activities;
+  }
+  public get definition(): StateNodeDefinition<TExtState, TData> {
+    return {
+      key: this.key,
+      initial: this.initial,
+      parallel: this.parallel,
+      history: this.history,
+      states: mapValues(this.states, state => state.definition),
+      on: this.on,
+      onEntry: this.onEntry,
+      onExit: this.onExit,
+      activities: this.activities,
+      data: this.data,
+      order: this.order || -1,
+      id: this.id
+    };
   }
   public get config(): Readonly<
     | SimpleOrCompoundStateNodeConfig<TExtState>
