@@ -284,6 +284,7 @@ export interface Edge<TExtState = DefaultExtState> {
   cond?: Condition;
   actions: Array<Action<TExtState>>;
   meta?: MetaObject;
+  transition: TransitionConfig<TExtState>;
 }
 export interface NodesAndEdges<TExtState = DefaultExtState> {
   nodes: StateNode[];

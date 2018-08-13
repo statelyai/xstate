@@ -53,13 +53,14 @@ export function getEventEdges<TExtState = DefaultExtState>(
             actions: transition.actions
               ? transition.actions.map(getActionType)
               : [],
-            cond: transition.cond
+            cond: transition.cond,
+            transition
           }
         ];
       }
 
       return targets
-        .map(target => {
+        .map<Edge<TExtState> | undefined>(target => {
           try {
             const targetNode = target
               ? node.getRelativeStateNodes(target, undefined, false)[0]
@@ -72,7 +73,8 @@ export function getEventEdges<TExtState = DefaultExtState>(
               actions: transition.actions
                 ? transition.actions.map(getActionType)
                 : [],
-              cond: transition.cond
+              cond: transition.cond,
+              transition
             };
           } catch (e) {
             // tslint:disable-next-line:no-console

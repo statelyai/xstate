@@ -1407,7 +1407,15 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       })
     );
   }
-  get events(): EventType[] {
+  public get stateIds(): string[] {
+    const childStateIds = flatMap(
+      Object.keys(this.states).map(stateKey => {
+        return this.states[stateKey].stateIds;
+      })
+    );
+    return [this.id].concat(childStateIds);
+  }
+  public get events(): EventType[] {
     if (this.__cache.events) {
       return this.__cache.events;
     }
