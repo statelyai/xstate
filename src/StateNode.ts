@@ -27,9 +27,7 @@ import {
   TransitionConfig,
   ActivityMap,
   Activity,
-  ConditionalTransitionConfig,
   EntryExitStates,
-  TargetTransitionConfig,
   StateTransition,
   ActionObject,
   StateValueMap,
@@ -41,7 +39,8 @@ import {
   HistoryValue,
   DefaultData,
   DefaultExtState,
-  StateNodeDefinition
+  StateNodeDefinition,
+  TransitionDefinition
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -183,7 +182,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     return config;
   }
-  public get on(): Record<string, Array<TransitionConfig<TExtState>>> {
+  public get on(): Record<string, Array<TransitionDefinition<TExtState>>> {
     const { config } = this;
     return config.on ? this.formatTransitions(config.on) : {};
   }
@@ -1437,8 +1436,9 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   }
   private formatTransition(
     target: string | string[] | undefined,
-    transitionConfig?: TransitionConfig<TExtState>
-  ): TargetTransitionConfig<TExtState> {
+    transitionConfig: TransitionConfig<TExtState> | undefined,
+    event: string
+  ): TransitionDefinition<TExtState> {
     let internal = transitionConfig ? transitionConfig.internal : false;
 
     // Check if there is no target (targetless)
@@ -1446,7 +1446,8 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       return {
         ...transitionConfig,
         target,
-        internal: true
+        internal: true,
+        event
       };
     }
 
@@ -1470,13 +1471,14 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     return {
       ...transitionConfig,
       target: formattedTargets,
-      internal
+      internal,
+      event
     };
   }
   private formatTransitions(
     onConfig: Record<string, Transition<TExtState> | undefined>
-  ): Record<string, ConditionalTransitionConfig<TExtState>> {
-    return mapValues(onConfig, value => {
+  ): Record<string, Array<TransitionDefinition<TExtState>>> {
+    return mapValues(onConfig, (value, event) => {
       if (value === undefined) {
         return [];
       }
@@ -1485,17 +1487,18 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         return value.map(targetTransitionConfig =>
           this.formatTransition(
             targetTransitionConfig.target,
-            targetTransitionConfig
+            targetTransitionConfig,
+            event
           )
         );
       }
 
       if (typeof value === 'string') {
-        return [this.formatTransition([value])];
+        return [this.formatTransition([value], undefined, event)];
       }
 
       return Object.keys(value).map(target => {
-        return this.formatTransition(target, value[target]);
+        return this.formatTransition(target, value[target], event);
       });
     });
   }

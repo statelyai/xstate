@@ -108,7 +108,7 @@ export interface StateNodeDefinition<TExtState = DefaultExtState, TData = any> {
   parallel: boolean | undefined;
   history: false | 'shallow' | 'deep' | undefined;
   states: Record<string, StateNodeDefinition<TExtState>> | undefined;
-  on: Record<string, TransitionConfig[]> | undefined;
+  on: Record<string, TransitionDefinition[]> | undefined;
   onEntry: Array<Action<TExtState>> | undefined;
   onExit: Array<Action<TExtState>> | undefined;
   activities: Activity[] | undefined;
@@ -277,6 +277,11 @@ export interface CancelAction extends ActionObject {
   sendId: string | number;
 }
 
+export interface TransitionDefinition<TExtState = DefaultExtState>
+  extends TransitionConfig<TExtState> {
+  event: string;
+}
+
 export interface Edge<TExtState = DefaultExtState> {
   event: string;
   source: StateNode;
@@ -284,7 +289,7 @@ export interface Edge<TExtState = DefaultExtState> {
   cond?: Condition;
   actions: Array<Action<TExtState>>;
   meta?: MetaObject;
-  transition: TransitionConfig<TExtState>;
+  transition: TransitionDefinition<TExtState>;
 }
 export interface NodesAndEdges<TExtState = DefaultExtState> {
   nodes: StateNode[];
