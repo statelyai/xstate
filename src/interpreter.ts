@@ -8,7 +8,8 @@ import {
   DefaultExtState
 } from './types';
 import { State } from './State';
-import { toEventObject, actionTypes, toActionObject } from './actions';
+import * as actionTypes from './actionTypes';
+import { toEventObject, toActionObject } from './actions';
 
 export type StateListener = <TExtState = DefaultExtState>(
   state: State<TExtState>

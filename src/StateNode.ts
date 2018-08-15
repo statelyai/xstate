@@ -44,11 +44,11 @@ import {
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
+import * as actionTypes from './actionTypes';
 import {
   start,
   stop,
   toEventObject,
-  actionTypes,
   AssignAction
 } from './actions';
 
