@@ -6,7 +6,8 @@ import {
   StateInterface,
   HistoryValue
 } from './types';
-import { STATE_DELIMITER, EMPTY_ACTIVITY_MAP } from './constants';
+import { EMPTY_ACTIVITY_MAP } from './constants';
+import { matchesState } from '.';
 
 export class State<TExtState> implements StateInterface<TExtState> {
   public static from<T>(
@@ -85,30 +86,8 @@ export class State<TExtState> implements StateInterface<TExtState> {
       ...keys.map(key => this.toStrings(value[key]).map(s => key + '.' + s))
     );
   }
-  public toString(): string {
-    if (typeof this.value === 'string') {
-      return this.value;
-    }
 
-    const path: string[] = [];
-    let marker: StateValue = this.value;
-
-    while (true) {
-      if (typeof marker === 'string') {
-        path.push(marker);
-        break;
-      }
-
-      const [firstKey, ...otherKeys] = Object.keys(marker);
-
-      if (otherKeys.length) {
-        return '';
-      }
-
-      path.push(firstKey);
-      marker = marker[firstKey];
-    }
-
-    return path.join(STATE_DELIMITER);
+  public matches(parentStateValue: StateValue): boolean {
+    return matchesState(parentStateValue, this.value);
   }
 }

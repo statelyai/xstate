@@ -1,7 +1,8 @@
 import { interpret, Interpreter } from '../src/interpreter';
 import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
-import { State, Machine, actions } from '../src';
+import { Machine, actions } from '../src';
+import { State } from '../src/State';
 
 const lightMachine = Machine({
   id: 'light',

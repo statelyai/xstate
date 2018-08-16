@@ -35,34 +35,30 @@ describe('history states', () => {
     const onSecondState = historyMachine.transition('on', 'SWITCH');
     const offState = historyMachine.transition(onSecondState, 'POWER');
 
-    assert.equal(
-      historyMachine.transition(offState, 'POWER').toString(),
-      'on.second'
-    );
+    assert.deepEqual(historyMachine.transition(offState, 'POWER').value, {
+      on: 'second'
+    });
   });
 
   it('should go to the most recently visited state (explicit)', () => {
     const onSecondState = historyMachine.transition('on', 'SWITCH');
     const offState = historyMachine.transition(onSecondState, 'H_POWER');
 
-    assert.equal(
-      historyMachine.transition(offState, 'H_POWER').toString(),
-      'on.second'
-    );
+    assert.deepEqual(historyMachine.transition(offState, 'H_POWER').value, {
+      on: 'second'
+    });
   });
 
   it('should go to the initial state when no history present', () => {
-    assert.equal(
-      historyMachine.transition('off', 'POWER').toString(),
-      'on.first'
-    );
+    assert.deepEqual(historyMachine.transition('off', 'POWER').value, {
+      on: 'first'
+    });
   });
 
   it('should go to the initial state when no history present (explicit)', () => {
-    assert.equal(
-      historyMachine.transition('off', 'H_POWER').toString(),
-      'on.first'
-    );
+    assert.deepEqual(historyMachine.transition('off', 'H_POWER').value, {
+      on: 'first'
+    });
   });
 
   it('should dispose of previous histories', () => {
@@ -129,27 +125,26 @@ describe('deep history states', () => {
     it('should go to the shallow history', () => {
       // on.second.B.P -> off
       const stateOff = historyMachine.transition(state2BP, 'POWER');
-      assert.equal(
-        historyMachine.transition(stateOff, 'POWER').toString(),
-        'on.second.A'
-      );
+      assert.deepEqual(historyMachine.transition(stateOff, 'POWER').value, {
+        on: { second: 'A' }
+      });
     });
 
     it('should go to the deep history (explicit)', () => {
       // on.second.B.P -> off
       const stateOff = historyMachine.transition(state2BP, 'POWER');
-      assert.equal(
-        historyMachine.transition(stateOff, 'DEEP_POWER').toString(),
-        'on.second.B.P'
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEP_POWER').value,
+        { on: { second: { B: 'P' } } }
       );
     });
 
     it('should go to the deepest history', () => {
       // on.second.B.Q -> off
       const stateOff = historyMachine.transition(state2BQ, 'POWER');
-      assert.equal(
-        historyMachine.transition(stateOff, 'DEEP_POWER').toString(),
-        'on.second.B.Q'
+      assert.deepEqual(
+        historyMachine.transition(stateOff, 'DEEP_POWER').value,
+        { on: { second: { B: 'Q' } } }
       );
     });
   });
@@ -434,9 +429,9 @@ describe('multistage history states', () => {
     const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
     const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
 
-    assert.equal(
-      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').toString(),
-      'running.turbo'
+    assert.deepEqual(
+      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').value,
+      { running: 'turbo' }
     );
   });
 });

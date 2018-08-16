@@ -1,5 +1,6 @@
 import { StateNode, State } from '../src/index';
 import { assert } from 'chai';
+import { matchesState } from '../lib';
 
 export function testMultiTransition<TExt>(
   machine: StateNode<TExt>,
@@ -34,7 +35,7 @@ export function testAll(machine: StateNode, expected: {}): void {
           assert.isEmpty(resultState.actions);
           assert.isUndefined(resultState.history);
         } else if (typeof toState === 'string') {
-          assert.equal(resultState.toString(), toState);
+          assert.ok(matchesState(resultState.value, toState));
         } else {
           assert.deepEqual(resultState.value, toState);
         }

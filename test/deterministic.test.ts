@@ -89,7 +89,7 @@ describe('deterministic machine', () => {
 
   describe('machine.initialState', () => {
     it('should return the initial state value', () => {
-      assert.equal(lightMachine.initialState.value, 'green');
+      assert.deepEqual(lightMachine.initialState.value, 'green');
     });
 
     it('should not have any history', () => {
@@ -99,8 +99,8 @@ describe('deterministic machine', () => {
 
   describe('machine.transition()', () => {
     it('should properly transition states based on string event', () => {
-      assert.equal(
-        lightMachine.transition('green', 'TIMER').toString(),
+      assert.deepEqual(
+        lightMachine.transition('green', 'TIMER').value,
         'yellow'
       );
     });
@@ -110,10 +110,7 @@ describe('deterministic machine', () => {
         type: 'TIMER'
       };
 
-      assert.equal(
-        lightMachine.transition('green', event).toString(),
-        'yellow'
-      );
+      assert.deepEqual(lightMachine.transition('green', event).value, 'yellow');
     });
 
     it('should not transition states for illegal transitions', () => {
@@ -127,7 +124,7 @@ describe('deterministic machine', () => {
     });
 
     it('should transition to nested states as target', () => {
-      assert.equal(testMachine.transition('a', 'T').toString(), 'b.b1');
+      assert.deepEqual(testMachine.transition('a', 'T').value, { b: 'b1' });
     });
 
     it('should throw an error for transitions from invalid states', () => {
@@ -145,33 +142,28 @@ describe('deterministic machine', () => {
 
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
-      assert.equal(
-        lightMachine.transition('red.walk', 'PED_COUNTDOWN').toString(),
-        'red.wait'
+      assert.deepEqual(
+        lightMachine.transition('red.walk', 'PED_COUNTDOWN').value,
+        { red: 'wait' }
       );
     });
 
     it('should transition from initial nested states', () => {
-      assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').toString(),
-        'red.wait'
-      );
+      assert.deepEqual(lightMachine.transition('red', 'PED_COUNTDOWN').value, {
+        red: 'wait'
+      });
     });
 
     it('should transition from deep initial nested states', () => {
-      assert.equal(
-        lightMachine.transition('red', 'PED_COUNTDOWN').toString(),
-        'red.wait'
-      );
+      assert.deepEqual(lightMachine.transition('red', 'PED_COUNTDOWN').value, {
+        red: 'wait'
+      });
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      assert.equal(
-        lightMachine.transition('red.wait', 'TIMER').toString(),
-        'green'
-      );
+      assert.equal(lightMachine.transition('red.wait', 'TIMER').value, 'green');
 
-      assert.equal(lightMachine.transition('red', 'TIMER').toString(), 'green');
+      assert.equal(lightMachine.transition('red', 'TIMER').value, 'green');
     });
 
     it('should not transition from illegal events', () => {
@@ -187,10 +179,9 @@ describe('deterministic machine', () => {
     });
 
     it('should transition to the deepest initial state', () => {
-      assert.equal(
-        lightMachine.transition('yellow', 'TIMER').toString(),
-        'red.walk'
-      );
+      assert.deepEqual(lightMachine.transition('yellow', 'TIMER').value, {
+        red: 'walk'
+      });
     });
 
     it('should return the equivalent state if no transition occurs', () => {
