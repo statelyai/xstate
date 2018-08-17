@@ -526,7 +526,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
             eventObject,
             state.value
           )) &&
-        (!stateIn || isInState)
+        isInState
       ) {
         nextStateStrings = Array.isArray(candidate.target)
           ? candidate.target
@@ -1442,6 +1442,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     let internal = transitionConfig ? transitionConfig.internal : false;
 
     // Check if there is no target (targetless)
+    // An undefined transition signals that the state node should not transition from that event.
     if (target === undefined || target === TARGETLESS_KEY) {
       return {
         ...transitionConfig,
