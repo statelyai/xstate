@@ -226,7 +226,7 @@ const requestEvent = {
 dispatch(requestEvent);
 ```
 
-There's a couple things happening here:
+There's a couple of things happening here:
 - An `actionMap` is defined, which maps string action keys to their actual implementation. This means you can _reuse_ the exact same statechart in other applications, frameworks, or environments, where the implementation might be different. 💥
 - Each action function takes in the `event` data, as well as a `dispatch` (or `emit`) function if the action will dispatch more events.
 
