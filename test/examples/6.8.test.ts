@@ -72,6 +72,6 @@ describe('Example 6.8', () => {
     const stateF = machine.transition(stateC, 6);
     const stateActual = machine.transition(stateF, 5);
 
-    assert.equal(stateActual.toString(), 'A.C');
+    assert.deepEqual(stateActual.value, { A: 'C' });
   });
 });
