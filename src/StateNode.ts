@@ -8,7 +8,7 @@ import {
   pathsToStateValue,
   pathToStateValue,
   getActionType,
-  flatMap,
+  flatten,
   mapFilterValues,
   nestedPath
 } from './utils';
@@ -44,11 +44,11 @@ import {
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
+import * as actionTypes from './actionTypes';
 import {
   start,
   stop,
   toEventObject,
-  actionTypes,
   AssignAction
 } from './actions';
 
@@ -361,7 +361,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       };
     }
 
-    const allPaths = flatMap(
+    const allPaths = flatten(
       Object.keys(transitionMap).map(key => transitionMap[key].paths)
     );
 
@@ -391,7 +391,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
             },
             { entry: new Set(), exit: new Set() } as EntryExitStates<TExtState>
           ),
-        actions: flatMap(
+        actions: flatten(
           Object.keys(transitionMap).map(key => {
             return transitionMap[key].actions;
           })
@@ -400,7 +400,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       };
     }
 
-    const allResolvedPaths = flatMap(
+    const allResolvedPaths = flatten(
       Object.keys(transitionMap).map(key => {
         const transition = transitionMap[key];
         const value = transition.value || state.value;
@@ -442,7 +442,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         },
         { entry: new Set(), exit: new Set() } as EntryExitStates<TExtState>
       ),
-      actions: flatMap(
+      actions: flatten(
         Object.keys(transitionMap).map(key => {
           return transitionMap[key].actions;
         })
@@ -558,7 +558,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       };
     }
 
-    const nextStateNodes = flatMap(
+    const nextStateNodes = flatten(
       nextStateStrings.map(str =>
         this.getRelativeStateNodes(str, state.historyValue)
       )
@@ -590,7 +590,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     return {
       value: this.machine.resolve(
         pathsToStateValue(
-          flatMap(
+          flatten(
             nextStateStrings.map(str =>
               this.getRelativeStateNodes(str, state.historyValue).map(
                 s => s.path
@@ -686,7 +686,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   ): Array<Action<TExtState>> {
     const entryExitActions = {
       entry: transition.entryExitStates
-        ? flatMap(
+        ? flatten(
             Array.from(transition.entryExitStates.entry).map(n => [
               ...n.onEntry,
               ...(n.activities
@@ -696,7 +696,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
           )
         : [],
       exit: transition.entryExitStates
-        ? flatMap(
+        ? flatten(
             Array.from(transition.entryExitStates.exit).map(n => [
               ...n.onExit,
               ...(n.activities
@@ -907,7 +907,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       Array<StateNode<TExtState>>
     >();
 
-    const stateNodes = flatMap(
+    const stateNodes = flatten(
       paths.map(_path => this.getRelativeStateNodes(_path))
     );
 
@@ -1229,7 +1229,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     if (!resolve) {
       return unresolvedStateNodes;
     }
-    return flatMap(
+    return flatten(
       unresolvedStateNodes.map(stateNode => stateNode.initialStateNodes)
     );
   }
@@ -1241,7 +1241,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     const { initialState } = this;
     const initialStateNodePaths = toStatePaths(initialState.value);
-    return flatMap(
+    return flatten(
       initialStateNodePaths.map(initialPath =>
         this.getFromRelativePath(initialPath)
       )
@@ -1286,7 +1286,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         );
       }
 
-      return flatMap(
+      return flatten(
         Object.keys(subHistoryValue!).map(key => {
           return this.states[key].getFromRelativePath(xs, historyValue);
         })
@@ -1382,7 +1382,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
     if (!historyValue) {
       return this.target
-        ? flatMap(
+        ? flatten(
             toStatePaths(this.target).map(relativeChildPath =>
               parent.getFromRelativePath(relativeChildPath)
             )
@@ -1398,7 +1398,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       return [parent.getStateNode(subHistoryValue)];
     }
 
-    return flatMap(
+    return flatten(
       toStatePaths(subHistoryValue!).map(subStatePath => {
         return this.history === 'deep'
           ? parent.getFromRelativePath(subStatePath)
@@ -1407,7 +1407,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     );
   }
   public get stateIds(): string[] {
-    const childStateIds = flatMap(
+    const childStateIds = flatten(
       Object.keys(this.states).map(stateKey => {
         return this.states[stateKey].stateIds;
       })

@@ -11,20 +11,10 @@ import {
   ActionType,
   DefaultExtState
 } from './types';
+import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
 
-const PREFIX = 'xstate';
-
-// xstate-specific action types
-export const actionTypes = {
-  start: `${PREFIX}.start`,
-  stop: `${PREFIX}.stop`,
-  raise: `${PREFIX}.raise`,
-  send: `${PREFIX}.send`,
-  cancel: `${PREFIX}.cancel`,
-  null: `${PREFIX}.null`,
-  assign: `${PREFIX}.assign`
-};
+export { actionTypes };
 
 const createActivityAction = (actionType: string) => (
   activity: ActionType | ActionObject

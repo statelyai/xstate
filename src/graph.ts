@@ -1,5 +1,5 @@
 import { StateNode, State } from './index';
-import { toStateValue, getActionType, flatMap } from './utils';
+import { toStateValue, getActionType, flatten } from './utils';
 import {
   StateValue,
   Edge,
@@ -38,7 +38,7 @@ export function getEventEdges<TExtState = DefaultExtState>(
 ): Array<Edge<TExtState>> {
   const transitions = node.on[event]!;
 
-  return flatMap(
+  return flatten(
     transitions.map(transition => {
       const targets = transition.target
         ? ([] as string[]).concat(transition.target)
@@ -157,7 +157,7 @@ export function getValueAdjacencyMap<TExtState = DefaultExtState>(
 ): ValueAdjacencyMap {
   const adjacency: ValueAdjacencyMap = {};
 
-  const events = flatMap(node.events.map(event => eventMap[event] || [event]));
+  const events = flatten(node.events.map(event => eventMap[event] || [event]));
 
   function findAdjacencies(state: State<TExtState>) {
     const { value, ext } = state;
