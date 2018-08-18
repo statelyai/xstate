@@ -9,5 +9,3 @@ export const cancel = `${PREFIX}.cancel`;
 export const _null = `${PREFIX}.null`;
 export { _null as null };
 export const assign = `${PREFIX}.assign`;
-
-

@@ -45,12 +45,7 @@ import {
 import { matchesState } from './matchesState';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import {
-  start,
-  stop,
-  toEventObject,
-  AssignAction
-} from './actions';
+import { start, stop, toEventObject, AssignAction } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
