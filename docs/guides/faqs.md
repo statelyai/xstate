@@ -5,7 +5,7 @@ Feel free to ask questions either on Stack Overflow or in the [GitHub issues](ht
 <details>
   <summary>What is a finite-state machine?</summary>
   <br />
-  A finite state machine (FSM) is a mathematical description of the relationships between a finite number of states, and a finite number events that can cause transitions between states. See [the Wikipedia entry](https://en.wikipedia.org/wiki/Finite-state_machine) for more information.
+  A finite state machine (FSM) is a mathematical description of the relationships between a finite number of states, and a finite number of events that can cause transitions between states. See [the Wikipedia entry](https://en.wikipedia.org/wiki/Finite-state_machine) for more information.
 </details>
 
 <details>
