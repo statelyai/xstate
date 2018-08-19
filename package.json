@@ -40,6 +40,7 @@
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
     "@types/chai": "^4.1.4",
+    "@types/core-js": "^2.5.0",
     "@types/mocha": "^2.2.44",
     "@types/node": "^8.10.23",
     "babel-cli": "^6.26.0",

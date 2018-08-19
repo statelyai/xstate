@@ -1,7 +1,7 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "target": "es5",
+    "target": "es6",
     "declaration": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
@@ -14,7 +14,8 @@
     ],
     "types": [
       "mocha",
-      "node"
+      "node",
+      "core-js"
     ]
   },
   "include": [

@@ -19,10 +19,10 @@ export type DefaultData = Record<string, any>;
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
-export type ActionFunction<TExtState = DefaultExtState> = ((
-  extendedState: TExtState,
-  event?: EventObject
-) => any | void);
+export interface ActionFunction<TExtState = DefaultExtState> {
+  (extendedState: TExtState, event?: EventObject): any | void;
+  name?: string;
+}
 export type InternalAction<TExtState = DefaultExtState> =
   | SendAction
   | AssignAction<TExtState>;

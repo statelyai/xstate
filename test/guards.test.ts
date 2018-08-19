@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine, matchesState } from '../src/index';
 
 describe('guard conditions', () => {
-  const lightMachine = Machine(
+  const lightMachine = Machine<{ elapsed: number }>(
     {
       key: 'light',
       initial: 'green',
