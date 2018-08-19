@@ -21,7 +21,7 @@ export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
 export interface ActionFunction<TExtState = DefaultExtState> {
   (extendedState: TExtState, event?: EventObject): any | void;
-  name?: string;
+  name: string;
 }
 export type InternalAction<TExtState = DefaultExtState> =
   | SendAction

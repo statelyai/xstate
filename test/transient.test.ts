@@ -2,7 +2,7 @@ import { Machine, matchesState } from '../src/index';
 import { assert } from 'chai';
 
 describe('transient states (eventless transitions)', () => {
-  const updateMachine = Machine({
+  const updateMachine = Machine<{ data: boolean; status?: string }>({
     initial: 'G',
     parallel: false,
     states: {
