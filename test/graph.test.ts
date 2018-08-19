@@ -67,7 +67,7 @@ describe('graph utilities', () => {
     }
   });
 
-  const condMachine = Machine({
+  const condMachine = Machine<{ id: string }>({
     key: 'cond',
     initial: 'pending',
     states: {
