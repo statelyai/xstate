@@ -9,7 +9,9 @@ import {
   CancelAction,
   ActionObject,
   ActionType,
-  DefaultExtState
+  Assigner,
+  PropertyAssigner,
+  AssignAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -100,19 +102,7 @@ export const cancel = (sendId: string | number): CancelAction => {
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);
 
-export type Assigner<TExtState extends {} = {}> = (
-  extState: TExtState,
-  event: EventObject
-) => Partial<TExtState>;
-export type PropertyAssigner<T> = Partial<
-  { [K in keyof T]: T[K] | ((extState: T, event: EventObject) => T[K]) }
->;
-
-export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
-  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
-}
-
-export const assign = <TExtState = DefaultExtState>(
+export const assign = <TExtState>(
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
 ): AssignAction<TExtState> => {
   return {

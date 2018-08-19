@@ -8,6 +8,7 @@ import {
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState } from '.';
+import { stateValuesEqual } from './utils';
 
 export class State<TExtState> implements StateInterface<TExtState> {
   public static from<T>(
@@ -89,5 +90,20 @@ export class State<TExtState> implements StateInterface<TExtState> {
 
   public matches(parentStateValue: StateValue): boolean {
     return matchesState(parentStateValue, this.value);
+  }
+
+  public get changed(): boolean {
+    if (!this.history) {
+      return false;
+    }
+
+    return (
+      !!this.actions.length ||
+      (typeof this.history.value !== this.value
+        ? true
+        : typeof this.value === 'string'
+          ? this.value !== this.history.value
+          : stateValuesEqual(this.value, this.history.value))
+    );
   }
 }

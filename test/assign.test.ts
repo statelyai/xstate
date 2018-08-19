@@ -54,6 +54,17 @@ const counterMachine = Machine<C>(
               ]
             }
           ],
+          WIN_MIX: [
+            {
+              target: 'counting',
+              actions: [
+                actions.assign({
+                  count: () => 100,
+                  foo: 'win'
+                })
+              ]
+            }
+          ],
           WIN: [
             {
               target: 'counting',
@@ -117,6 +128,15 @@ describe('assign', () => {
     const nextState = counterMachine.transition(
       counterMachine.initialState,
       'WIN_STATIC'
+    );
+
+    assert.deepEqual(nextState.ext, { count: 100, foo: 'win' });
+  });
+
+  it('applies the assignment to multiple properties (static + prop assignment)', () => {
+    const nextState = counterMachine.transition(
+      counterMachine.initialState,
+      'WIN_MIX'
     );
 
     assert.deepEqual(nextState.ext, { count: 100, foo: 'win' });

@@ -40,12 +40,13 @@ import {
   DefaultData,
   DefaultExtState,
   StateNodeDefinition,
-  TransitionDefinition
+  TransitionDefinition,
+  AssignAction
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { start, stop, toEventObject, AssignAction } from './actions';
+import { start, stop, toEventObject } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -54,9 +55,9 @@ const STATE_IDENTIFIER = '#';
 const TARGETLESS_KEY = '';
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
-const defaultOptions: MachineOptions = {
+const createDefaultOptions = <TExtState>(): MachineOptions<TExtState> => ({
   guards: {}
-};
+});
 
 type StateNodeConfig<TExtState> = Readonly<
   | SimpleOrCompoundStateNodeConfig<TExtState>
@@ -93,7 +94,9 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
 
   constructor(
     private _config: StateNodeConfig<TExtState>,
-    public options: Readonly<MachineOptions> = defaultOptions,
+    public options: Readonly<MachineOptions<TExtState>> = createDefaultOptions<
+      TExtState
+    >(),
     /**
      * The initial extended state
      */
@@ -652,12 +655,12 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     };
   }
   private _evaluateCond(
-    condition: Condition,
+    condition: Condition<TExtState>,
     extendedState: TExtState,
     eventObject: EventObject,
     interimState: StateValue
   ): boolean {
-    let condFn: ConditionPredicate;
+    let condFn: ConditionPredicate<TExtState>;
     const { guards } = this.machine.options;
 
     if (typeof condition === 'string') {
@@ -1441,7 +1444,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     if (target === undefined || target === TARGETLESS_KEY) {
       return {
         ...transitionConfig,
-        target,
+        target: undefined,
         internal: true,
         event
       };
@@ -1505,7 +1508,7 @@ export function Machine<
   TExtState = DefaultExtState
 >(
   config: T,
-  options?: MachineOptions
+  options?: MachineOptions<TExtState>
 ): T extends ParallelMachineConfig<TExtState>
   ? ParallelMachine<TExtState>
   : T extends StandardMachineConfig<TExtState>

@@ -35,6 +35,9 @@ const topLevelMachine = Machine({
     TARGETLESS_ARRAY: [{ actions: ['doSomethingParent'] }],
     TARGETLESS_OBJECT: {
       '': { actions: ['doSomethingParent'] }
+    },
+    PARENT_EVENT: {
+      '': { actions: ['handleParentEvent'] }
     }
   },
   states: {
@@ -114,5 +117,11 @@ describe('internal transitions', () => {
     );
 
     assert.deepEqual(sameState.actions, ['doSomethingParent']);
+  });
+
+  it('should maintain the child state when targetless transition is handled by parent', () => {
+    const hiddenState = topLevelMachine.transition('Hidden', 'PARENT_EVENT');
+
+    assert.deepEqual(hiddenState.value, 'Hidden');
   });
 });

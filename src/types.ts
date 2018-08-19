@@ -1,6 +1,5 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { AssignAction } from './actions';
 
 export type EventType = string | number;
 export type ActionType = string | number;
@@ -45,16 +44,16 @@ export interface HistoryValue {
   current: StateValue | undefined;
 }
 
-export type ConditionPredicate = (
-  extendedState: any,
+export type ConditionPredicate<TExtState> = (
+  extendedState: TExtState,
   event: EventObject,
   microstepState: StateValue
 ) => boolean;
 
-export type Condition = string | ConditionPredicate;
+export type Condition<TExtState> = string | ConditionPredicate<TExtState>;
 
 export interface TransitionConfig<TExtState = DefaultExtState> {
-  cond?: Condition;
+  cond?: Condition<TExtState>;
   actions?: Array<Action<TExtState>>;
   in?: StateValue;
   internal?: boolean;
@@ -141,8 +140,8 @@ export type SimpleOrCompoundStateNodeConfig<TExtState = DefaultExtState> =
   | CompoundStateNodeConfig<TExtState>
   | SimpleStateNodeConfig<TExtState>;
 
-export interface MachineOptions {
-  guards?: Record<string, ConditionPredicate>;
+export interface MachineOptions<TExtState> {
+  guards?: Record<string, ConditionPredicate<TExtState>>;
   actions?: Record<string, ActionObject | ActionFunction>;
 }
 export interface MachineConfig<TExtState = DefaultExtState>
@@ -277,6 +276,23 @@ export interface CancelAction extends ActionObject {
   sendId: string | number;
 }
 
+export type Assigner<TExtState> = (
+  extState: TExtState,
+  event: EventObject
+) => Partial<TExtState>;
+
+export type PropertyAssigner<TExtState> = Partial<
+  {
+    [K in keyof TExtState]:
+      | ((extState: TExtState, event: EventObject) => TExtState[K])
+      | TExtState[K]
+  }
+>;
+
+export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
+  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
+}
+
 export interface TransitionDefinition<TExtState = DefaultExtState>
   extends TransitionConfig<TExtState> {
   event: string;
@@ -286,7 +302,7 @@ export interface Edge<TExtState = DefaultExtState> {
   event: string;
   source: StateNode;
   target: StateNode;
-  cond?: Condition;
+  cond?: Condition<TExtState>;
   actions: Array<Action<TExtState>>;
   meta?: MetaObject;
   transition: TransitionDefinition<TExtState>;

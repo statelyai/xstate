@@ -195,3 +195,17 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
 export const flatten = <T>(array: T[][]): T[] => {
   return ([] as T[]).concat(...array);
 };
+
+export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every(key => stateValuesEqual(a[key], b[key]))
+  );
+}
