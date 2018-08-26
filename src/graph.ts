@@ -33,7 +33,7 @@ export function getNodes(node: StateNode): StateNode[] {
 }
 
 export function getEventEdges<TExtState = DefaultExtState>(
-  node: StateNode,
+  node: StateNode<TExtState>,
   event: string
 ): Array<Edge<TExtState>> {
   const transitions = node.on[event]!;
@@ -88,7 +88,7 @@ export function getEventEdges<TExtState = DefaultExtState>(
 }
 
 export function getEdges<TExtState = DefaultExtState>(
-  node: StateNode,
+  node: StateNode<TExtState>,
   options?: { depth: null | number }
 ): Array<Edge<TExtState>> {
   const { depth = null } = options || {};
@@ -96,16 +96,18 @@ export function getEdges<TExtState = DefaultExtState>(
 
   if (node.states && depth === null) {
     Object.keys(node.states).forEach(stateKey => {
-      edges.push(...getEdges(node.states[stateKey]));
+      edges.push(...getEdges<TExtState>(node.states[stateKey]));
     });
   } else if (depth && depth > 0) {
     Object.keys(node.states).forEach(stateKey => {
-      edges.push(...getEdges(node.states[stateKey], { depth: depth - 1 }));
+      edges.push(
+        ...getEdges<TExtState>(node.states[stateKey], { depth: depth - 1 })
+      );
     });
   }
 
   Object.keys(node.on).forEach(event => {
-    edges.push(...getEventEdges(node, event));
+    edges.push(...getEventEdges<TExtState>(node, event));
   });
 
   return edges;

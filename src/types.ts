@@ -300,8 +300,8 @@ export interface TransitionDefinition<TExtState = DefaultExtState>
 
 export interface Edge<TExtState = DefaultExtState> {
   event: string;
-  source: StateNode;
-  target: StateNode;
+  source: StateNode<TExtState>;
+  target: StateNode<TExtState>;
   cond?: Condition<TExtState>;
   actions: Array<Action<TExtState>>;
   meta?: MetaObject;

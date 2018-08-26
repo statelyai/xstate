@@ -126,7 +126,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
           const stateNode = new StateNode({
             ...stateConfig,
             key,
-            order: i,
+            order: stateConfig.order === undefined ? stateConfig.order : i,
             parent: this
           });
           Object.assign(this.idMap, {

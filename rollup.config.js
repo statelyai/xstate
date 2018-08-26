@@ -1,5 +1,5 @@
 import typescript from 'rollup-plugin-typescript2';
-import { terser } from 'rollup-plugin-terser'
+import { terser } from 'rollup-plugin-terser';
 
 const createConfig = ({ input, output }) => ({
   input,
@@ -9,13 +9,13 @@ const createConfig = ({ input, output }) => ({
       clean: true,
       tsconfigOverride: {
         compilerOptions: {
-          declaration: false,
-        },
-      },
+          declaration: false
+        }
+      }
     }),
-    terser(),
-  ],
-})
+    terser()
+  ]
+});
 
 export default [
   createConfig({
@@ -24,22 +24,22 @@ export default [
       file: 'dist/xstate.js',
       format: 'umd',
       name: 'xstate'
-    },
+    }
   }),
   createConfig({
     input: 'src/graph.ts',
     output: {
       file: 'dist/xstate.utils.js',
       format: 'umd',
-      name: 'xstateUtils',
-    },
+      name: 'xstateUtils'
+    }
   }),
   createConfig({
     input: 'src/interpreter.ts',
     output: {
       file: 'dist/xstate.interpreter.js',
       format: 'umd',
-      name: 'xstateInterpreter',
-    },
-  }),
+      name: 'xstateInterpreter'
+    }
+  })
 ];
