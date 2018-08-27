@@ -63,7 +63,7 @@ describe('internal transitions', () => {
 
     assert.deepEqual(nextState.value, { direction: 'right' });
     assert.lengthOf(
-      nextState.actions,
+      nextState.actions.map(a => a.type),
       0,
       'should not have onEntry or onExit actions'
     );
@@ -73,7 +73,10 @@ describe('internal transitions', () => {
     const resetState = wordMachine.transition('direction.center', 'RESET');
 
     assert.deepEqual(resetState.value, { direction: 'left' });
-    assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
+    assert.deepEqual(resetState.actions.map(a => a.type), [
+      'EXIT_DIRECTION',
+      'ENTER_DIRECTION'
+    ]);
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition (to child)', () => {
@@ -83,7 +86,10 @@ describe('internal transitions', () => {
     );
 
     assert.deepEqual(resetState.value, { direction: 'center' });
-    assert.deepEqual(resetState.actions, ['EXIT_DIRECTION', 'ENTER_DIRECTION']);
+    assert.deepEqual(resetState.actions.map(a => a.type), [
+      'EXIT_DIRECTION',
+      'ENTER_DIRECTION'
+    ]);
   });
 
   it('should listen to events declared at top state', () => {
@@ -95,19 +101,19 @@ describe('internal transitions', () => {
   it('should work with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_ARRAY');
 
-    assert.deepEqual(sameState.actions, ['doSomething']);
+    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomething']);
   });
 
   it('should work with targetless transitions (in object)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_OBJECT');
 
-    assert.deepEqual(sameState.actions, ['doSomething']);
+    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomething']);
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Failure', 'TARGETLESS_ARRAY');
 
-    assert.deepEqual(sameState.actions, ['doSomethingParent']);
+    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomethingParent']);
   });
 
   it('should work with targetless transitions (in object)', () => {
@@ -116,7 +122,7 @@ describe('internal transitions', () => {
       'TARGETLESS_OBJECT'
     );
 
-    assert.deepEqual(sameState.actions, ['doSomethingParent']);
+    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomethingParent']);
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {

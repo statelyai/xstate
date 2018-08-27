@@ -4,13 +4,16 @@ import {
   EventObject,
   Action,
   StateInterface,
-  HistoryValue
+  HistoryValue,
+  ActionObject
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState } from '.';
 import { stateValuesEqual } from './utils';
+import { toActionObjects } from './actions';
 
 export class State<TExtState> implements StateInterface<TExtState> {
+  public actions: Array<ActionObject<TExtState>>;
   public static from<T>(
     stateValue: State<T> | StateValue,
     extendedState: T
@@ -68,14 +71,16 @@ export class State<TExtState> implements StateInterface<TExtState> {
     public ext: TExtState,
     public historyValue?: HistoryValue | undefined,
     public history?: State<TExtState>,
-    public actions: Array<Action<TExtState>> = [],
+    actions: Array<Action<TExtState>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},
     /**
      * Internal event queue
      */
     public events: EventObject[] = []
-  ) {}
+  ) {
+    this.actions = toActionObjects<TExtState>(actions);
+  }
 
   public toStrings(value: StateValue = this.value): string[] {
     if (typeof value === 'string') {

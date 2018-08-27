@@ -17,9 +17,6 @@ import {
   StateValue,
   Transition,
   Action,
-  Machine,
-  StandardMachine,
-  ParallelMachine,
   SimpleOrCompoundStateNodeConfig,
   ParallelMachineConfig,
   EventType,
@@ -76,7 +73,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   public history: false | 'shallow' | 'deep';
   public onEntry: Array<Action<TExtState>>;
   public onExit: Array<Action<TExtState>>;
-  public activities?: Activity[];
+  public activities?: Array<Activity<TExtState>>;
   public strict: boolean;
   public parent?: StateNode<TExtState>;
   public machine: StateNode<TExtState>;
@@ -814,7 +811,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       action =>
         typeof action === 'object' &&
         (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as ActionObject[];
+    ) as Array<ActionObject<TExtState>>;
 
     const nonEventActions = actions.filter(
       action =>
@@ -1098,7 +1095,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       action =>
         typeof action === 'object' &&
         (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as ActionObject[];
+    ) as Array<ActionObject<TExtState>>;
 
     const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
@@ -1501,27 +1498,6 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       });
     });
   }
-}
-
-export function Machine<
-  T extends StandardMachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
-  TExtState = DefaultExtState
->(
-  config: T,
-  options?: MachineOptions<TExtState>
-): T extends ParallelMachineConfig<TExtState>
-  ? ParallelMachine<TExtState>
-  : T extends StandardMachineConfig<TExtState>
-    ? StandardMachine<TExtState>
-    : never {
-  return new StateNode<TExtState>(
-    config,
-    options
-  ) as T extends ParallelMachineConfig<TExtState>
-    ? ParallelMachine<TExtState>
-    : T extends StandardMachineConfig<TExtState>
-      ? StandardMachine<TExtState>
-      : never;
 }
 
 export { StateNode };

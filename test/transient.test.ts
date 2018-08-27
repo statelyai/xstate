@@ -83,7 +83,11 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('A', 'TIMER');
 
-    assert.deepEqual(state.actions, ['exit_A', 'timer', 'enter_B']);
+    assert.deepEqual(state.actions.map(a => a.type), [
+      'exit_A',
+      'timer',
+      'enter_B'
+    ]);
   });
 
   it('should execute all internal events one after the other', () => {

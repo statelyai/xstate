@@ -18,9 +18,9 @@ import { getEventType } from './utils';
 
 export { actionTypes };
 
-const createActivityAction = (actionType: string) => (
-  activity: ActionType | ActionObject
-): ActivityAction => {
+const createActivityAction = <TExtState>(actionType: string) => (
+  activity: ActionType | ActionObject<TExtState>
+): ActivityAction<TExtState> => {
   const data =
     typeof activity === 'string' || typeof activity === 'number'
       ? { type: activity }
@@ -48,15 +48,17 @@ export const toEventObject = (
   return event;
 };
 
-export const toActionObject = (action: Action<any>): ActionObject => {
-  let actionObject: ActionObject;
+export const toActionObject = <TExtState>(
+  action: Action<TExtState>
+): ActionObject<TExtState> => {
+  let actionObject: ActionObject<TExtState>;
 
   if (typeof action === 'string' || typeof action === 'number') {
     actionObject = { type: action };
   } else if (typeof action === 'function') {
     actionObject = { type: action.name };
   } else {
-    return action;
+    return action as SendAction;
   }
 
   Object.defineProperty(actionObject, 'toString', {
@@ -66,9 +68,9 @@ export const toActionObject = (action: Action<any>): ActionObject => {
   return actionObject;
 };
 
-export const toActionObjects = <TExtState = any>(
+export const toActionObjects = <TExtState>(
   action: Array<Action<TExtState> | Action<TExtState>> | undefined
-): ActionObject[] => {
+): Array<ActionObject<TExtState>> => {
   if (!action) {
     return [];
   }
@@ -111,6 +113,8 @@ export const assign = <TExtState>(
   };
 };
 
-export function isActionObject(action: Action<any>): action is ActionObject {
+export function isActionObject<TExtState>(
+  action: Action<TExtState>
+): action is ActionObject<TExtState> {
   return typeof action === 'object' && 'type' in action;
 }
