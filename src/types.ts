@@ -12,7 +12,7 @@ export interface EventObject {
 }
 export interface ActionObject<TExtState> extends Record<string, any> {
   type: EventType;
-  fn?: ActionFunction<TExtState>;
+  exec?: ActionFunction<TExtState>;
 }
 
 export type DefaultExtState = Record<string, any> | undefined;
@@ -101,17 +101,17 @@ export interface StateNodeConfig<TExtState = DefaultExtState, TData = any> {
 }
 
 export interface StateNodeDefinition<TExtState = DefaultExtState, TData = any> {
+  id: string;
   key: string;
   initial: string | undefined;
   parallel: boolean | undefined;
   history: false | 'shallow' | 'deep' | undefined;
-  states: Record<string, StateNodeDefinition<TExtState>> | undefined;
-  on: Record<string, TransitionDefinition[]> | undefined;
-  onEntry: Array<Action<TExtState>> | undefined;
-  onExit: Array<Action<TExtState>> | undefined;
-  activities: Array<Activity<TExtState>> | undefined;
+  states: Record<string, StateNodeDefinition<TExtState>>;
+  on: Record<string, Array<TransitionDefinition<TExtState>>>;
+  onEntry: Array<Action<TExtState>>;
+  onExit: Array<Action<TExtState>>;
+  activities: Array<Activity<TExtState>>;
   data: TData;
-  id: string;
   order: number;
 }
 export interface SimpleStateNodeConfig<TExtState>
@@ -199,7 +199,8 @@ export interface HistoryStateNode<TExtState> extends StateNode<TExtState> {
   target: StateValue | undefined;
 }
 
-export interface Machine<TExtState> extends StateNode<TExtState> {
+export interface Machine<TExtState = DefaultExtState>
+  extends StateNode<TExtState> {
   id: string;
   initial: string | undefined;
   parallel: boolean;
@@ -285,12 +286,11 @@ export type PropertyAssigner<TExtState> = Partial<
   }
 >;
 
-export interface AssignAction<TExtState extends {} = {}>
-  extends ActionObject<TExtState> {
+export interface AssignAction<TExtState> extends ActionObject<TExtState> {
   assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
 }
 
-export interface TransitionDefinition<TExtState = DefaultExtState>
+export interface TransitionDefinition<TExtState>
   extends TransitionConfig<TExtState> {
   event: string;
 }

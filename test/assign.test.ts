@@ -16,7 +16,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign(xs => ({
+                actions.assign<C>(xs => ({
                   count: xs.count + 1
                 }))
               ]
@@ -26,7 +26,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign({
+                actions.assign<C>({
                   count: xs => xs.count - 1
                 })
               ]
@@ -36,7 +36,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign({
+                actions.assign<C>({
                   count: () => 100,
                   foo: () => 'win'
                 })
@@ -47,7 +47,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign({
+                actions.assign<C>({
                   count: 100,
                   foo: 'win'
                 })
@@ -58,7 +58,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign({
+                actions.assign<C>({
                   count: () => 100,
                   foo: 'win'
                 })
@@ -69,7 +69,7 @@ const counterMachine = Machine<C>(
             {
               target: 'counting',
               actions: [
-                actions.assign(() => ({
+                actions.assign<C>(() => ({
                   count: 100,
                   foo: 'win'
                 }))

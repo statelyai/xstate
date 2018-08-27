@@ -51,9 +51,12 @@ const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const TARGETLESS_KEY = '';
 
+const EMPTY_OBJECT = {};
+const EMPTY_ARRAY = [];
+
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const createDefaultOptions = <TExtState>(): MachineOptions<TExtState> => ({
-  guards: {}
+  guards: EMPTY_OBJECT
 });
 
 type StateNodeConfig<TExtState> = Readonly<
@@ -132,7 +135,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
           });
           return stateNode;
         })
-      : {}) as Record<string, StateNode<TExtState>>;
+      : EMPTY_OBJECT) as Record<string, StateNode<TExtState>>;
 
     // History config
     this.history =
@@ -162,7 +165,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
-      activities: this.activities,
+      activities: this.activities || EMPTY_ARRAY,
       data: this.data,
       order: this.order || -1,
       id: this.id
@@ -179,7 +182,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
   }
   public get on(): Record<string, Array<TransitionDefinition<TExtState>>> {
     const { config } = this;
-    return config.on ? this.formatTransitions(config.on) : {};
+    return config.on ? this.formatTransitions(config.on) : EMPTY_OBJECT;
   }
   public getStateNodes(
     state: StateValue | State<TExtState>
@@ -503,7 +506,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
         in: stateIn
         // actions: transitionActions
       } = candidate as TransitionConfig<TExtState>;
-      const extendedStateObject = extendedState || ({} as TExtState);
+      const extendedStateObject = extendedState || (EMPTY_OBJECT as TExtState);
       const eventObject = toEventObject(event);
 
       const isInState = stateIn
@@ -722,7 +725,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     transition: StateTransition<TExtState>
   ): ActivityMap {
     if (!transition.entryExitStates) {
-      return {};
+      return EMPTY_OBJECT;
     }
 
     const activityMap = { ...state.activities };
@@ -1003,7 +1006,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
             ? this.getStateNode(subStateKey).resolve(
                 stateValue[subStateKey] || subStateValue
               )
-            : {};
+            : EMPTY_OBJECT;
         }
       );
     }
@@ -1011,7 +1014,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     return mapValues(stateValue, (subStateValue, subStateKey) => {
       return subStateValue
         ? this.getStateNode(subStateKey).resolve(subStateValue)
-        : {};
+        : EMPTY_OBJECT;
     });
   }
 
@@ -1060,7 +1063,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
     const initialStateValue = (this.parallel
       ? mapFilterValues(
           this.states as Record<string, StateNode<TExtState>>,
-          state => state.initialStateValue || {},
+          state => state.initialStateValue || EMPTY_OBJECT,
           stateNode => !stateNode.history
         )
       : typeof this.resolvedStateValue === 'string'
