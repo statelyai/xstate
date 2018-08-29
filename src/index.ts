@@ -6,3 +6,5 @@ import { Machine } from './Machine';
 import * as actions from './actions';
 
 export { Machine, StateNode, State, matchesState, mapState, actions };
+
+export * from './types';

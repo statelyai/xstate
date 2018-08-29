@@ -65,11 +65,19 @@ const testGroups = {
     // e.g.: { foo: { bar: undefined, baz: undefined } }
     // 'test2',
     // 'test3'
+  ],
+  'targetless-transition': [
+    'test0',
+    'test1'
+    // 'test2', // TODO: parallel states with leaf node support
+    // 'test3', // TODO: parallel states with leaf node support
   ]
+  // 'parallel+interrupt': ['test0']
 };
 
 const overrides = {
-  'assign-current-small-step': ['test0']
+  'assign-current-small-step': ['test0'],
+  'targetless-transition': ['test0']
 };
 
 interface SCIONTest {
@@ -89,8 +97,8 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   );
 
   test.events.forEach(({ event, nextConfiguration }, i) => {
-    const extState = nextState.ext;
-    nextState = machine.transition(nextState, event.name, extState);
+    const { context } = nextState;
+    nextState = machine.transition(nextState, event.name, context);
 
     const stateIds = machine
       .getStateNodes(nextState)
@@ -100,9 +108,9 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   });
 }
 
-function evalCond(expr: string, extState: object | undefined) {
-  const literalKeyExprs = extState
-    ? Object.keys(extState)
+function evalCond(expr: string, context: object | undefined) {
+  const literalKeyExprs = context
+    ? Object.keys(context)
         .map(key => `const ${key} = xs['${key}'];`)
         .join('\n')
     : '';
@@ -116,7 +124,7 @@ function evalCond(expr: string, extState: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['assign-current-small-step'];
+  // const testGroupKeys = ['parallel+interrupt'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {

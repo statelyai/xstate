@@ -5,6 +5,13 @@ import { StateNode, Machine } from './index';
 import { mapValues, getActionType } from './utils';
 import * as actions from './actions';
 
+function getAttribute(
+  element: XMLElement,
+  attribute: string
+): string | number | undefined {
+  return element.attributes ? element.attributes[attribute] : undefined;
+}
+
 function stateNodeToSCXML(stateNode: StateNode) {
   const { parallel } = stateNode;
 
@@ -258,10 +265,13 @@ function toConfig(
         element => element.name === 'transition'
       );
 
+      const target = getAttribute(transitionElement, 'target');
+      const history = getAttribute(nodeJson, 'type') || 'shallow';
+
       return {
         id,
-        history: nodeJson.attributes!.type || 'shallow',
-        target: `#${transitionElement.attributes!.target}`
+        history,
+        target: target ? `#${target}` : undefined
       };
     }
     default:
@@ -303,18 +313,22 @@ function toConfig(
     on = mapValues(
       indexedAggregateRecord(
         transitionElements,
-        (item: any) => item.attributes.event || ''
+        item => (item.attributes ? item.attributes.event || '' : '') as string
       ),
       (values: XMLElement[]) => {
-        return values.map(value => ({
-          target: `#${value.attributes!.target}`,
-          ...(value.elements ? executableContent(value.elements) : undefined),
-          ...(value.attributes!.cond
-            ? {
-                cond: evalCond(value.attributes!.cond as string, extState)
-              }
-            : undefined)
-        }));
+        return values.map(value => {
+          const target = getAttribute(value, 'target');
+
+          return {
+            target: target ? `#${target}` : undefined,
+            ...(value.elements ? executableContent(value.elements) : undefined),
+            ...(value.attributes && value.attributes.cond
+              ? {
+                  cond: evalCond(value.attributes.cond as string, extState)
+                }
+              : undefined)
+          };
+        });
       }
     );
 

@@ -100,7 +100,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
     /**
      * The initial extended state
      */
-    public extendedState?: Readonly<TContext>
+    public context?: Readonly<TContext>
   ) {
     this.key = _config.key || '(machine)';
     this.parent = _config.parent;
@@ -803,7 +803,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       this.ensureValidPaths(stateTransition.paths);
     } catch (e) {
       throw new Error(
-        `Event '${eventType}' leads to an invalid configuration: ` + e.message
+        `Event '${eventType}' leads to an invalid configuration: ${e.message}`
       );
     }
 
@@ -1074,7 +1074,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
   }
   public getState(
     stateValue: StateValue,
-    extendedState: TContext = this.machine.extendedState!
+    extendedState: TContext = this.machine.context!
   ): State<TContext> {
     const activityMap: ActivityMap = {};
     const actions: Array<Action<TContext>> = [];

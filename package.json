@@ -17,7 +17,7 @@
   "scripts": {
     "start": "npm run build",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,es,src,test}/**/*.ts",
-    "test": "npm run build && npm run prettify && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
+    "test": "npm run build:cjs && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
     "build": "npm run build:cjs && npm run build:es && npm run build:umd",
     "build:cjs": "tsc",
     "build:es": "tsc --outDir es -m ES2015",
