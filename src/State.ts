@@ -10,13 +10,13 @@ import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState } from '.';
 import { stateValuesEqual } from './utils';
 
-export class State<TExtState> implements StateInterface<TExtState> {
+export class State<TContext> implements StateInterface<TContext> {
   public static from<T>(
     stateValue: State<T> | StateValue,
     extendedState: T
   ): State<T> {
     if (stateValue instanceof State) {
-      if (stateValue.ext !== extendedState) {
+      if (stateValue.context !== extendedState) {
         return new State<T>(
           stateValue.value,
           extendedState,
@@ -65,10 +65,10 @@ export class State<TExtState> implements StateInterface<TExtState> {
 
   constructor(
     public value: StateValue,
-    public ext: TExtState,
+    public context: TContext,
     public historyValue?: HistoryValue | undefined,
-    public history?: State<TExtState>,
-    public actions: Array<ActionObject<TExtState>> = [],
+    public history?: State<TContext>,
+    public actions: Array<ActionObject<TContext>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},
     /**

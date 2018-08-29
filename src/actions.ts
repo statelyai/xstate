@@ -20,9 +20,9 @@ import { getEventType } from './utils';
 
 export { actionTypes };
 
-const createActivityAction = <TExtState>(actionType: string) => (
-  activity: ActionType | ActionObject<TExtState>
-): ActivityAction<TExtState> => {
+const createActivityAction = <TContext>(actionType: string) => (
+  activity: ActionType | ActionObject<TContext>
+): ActivityAction<TContext> => {
   const data = toActionObject(activity);
   const { exec } = data;
   return {
@@ -49,10 +49,10 @@ export const toEventObject = (
   return event;
 };
 
-function getActionFunction<TExtState>(
+function getActionFunction<TContext>(
   actionType: ActionType,
-  actionFunctionMap?: ActionFunctionMap<TExtState>
-): ActionFunction<TExtState> | undefined {
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): ActionFunction<TContext> | undefined {
   if (!actionFunctionMap) {
     return undefined;
   }
@@ -69,11 +69,11 @@ function getActionFunction<TExtState>(
   return actionReference.exec;
 }
 
-export const toActionObject = <TExtState>(
-  action: Action<TExtState>,
-  actionFunctionMap?: ActionFunctionMap<TExtState>
-): ActionObject<TExtState> => {
-  let actionObject: ActionObject<TExtState>;
+export const toActionObject = <TContext>(
+  action: Action<TContext>,
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): ActionObject<TContext> => {
+  let actionObject: ActionObject<TContext>;
 
   if (typeof action === 'string' || typeof action === 'number') {
     actionObject = {
@@ -102,10 +102,10 @@ export const toActionObject = <TExtState>(
   return actionObject;
 };
 
-export const toActionObjects = <TExtState>(
-  action: Array<Action<TExtState> | Action<TExtState>> | undefined,
-  actionFunctionMap?: ActionFunctionMap<TExtState>
-): Array<ActionObject<TExtState>> => {
+export const toActionObjects = <TContext>(
+  action: Array<Action<TContext> | Action<TContext>> | undefined,
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): Array<ActionObject<TContext>> => {
   if (!action) {
     return [];
   }
@@ -139,17 +139,17 @@ export const cancel = (sendId: string | number): CancelAction => {
 export const start = createActivityAction(actionTypes.start);
 export const stop = createActivityAction(actionTypes.stop);
 
-export const assign = <TExtState>(
-  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
-): AssignAction<TExtState> => {
+export const assign = <TContext>(
+  assignment: Assigner<TContext> | PropertyAssigner<TContext>
+): AssignAction<TContext> => {
   return {
     type: actionTypes.assign,
     assignment
   };
 };
 
-export function isActionObject<TExtState>(
-  action: Action<TExtState>
-): action is ActionObject<TExtState> {
+export function isActionObject<TContext>(
+  action: Action<TContext>
+): action is ActionObject<TContext> {
   return typeof action === 'object' && 'type' in action;
 }

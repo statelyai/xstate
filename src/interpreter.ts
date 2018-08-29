@@ -1,42 +1,39 @@
 import {
   Machine,
   Event,
-  Action,
   EventObject,
   SendAction,
   CancelAction,
-  DefaultExtState
+  DefaulTContext,
+  ActionObject
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, toActionObject } from './actions';
+import { toEventObject } from './actions';
 
-export type StateListener = <TExtState = DefaultExtState>(
-  state: State<TExtState>
+export type StateListener = <TContext = DefaulTContext>(
+  state: State<TContext>
 ) => void;
 
-export class Interpreter<TExtState> {
-  public state: State<TExtState>;
-  public extState: TExtState;
+export class Interpreter<TContext> {
+  public state: State<TContext>;
+  public extState: TContext;
   public eventQueue: EventObject[] = [];
   public delayedEventsMap: Record<string | number, NodeJS.Timer> = {};
   public listeners: Set<StateListener> = new Set();
-  constructor(public machine: Machine<TExtState>, listener?: StateListener) {
+  constructor(public machine: Machine<TContext>, listener?: StateListener) {
     if (listener) {
       this.onTransition(listener);
     }
   }
   public static interpret = interpret;
-  private update(state: State<TExtState>, event?: Event): void {
+  private update(state: State<TContext>, event?: Event): void {
     this.state = state;
+    const { context } = this.state;
 
     this.state.actions.forEach(action => {
-      this.exec(
-        action,
-        this.state.ext,
-        event ? toEventObject(event) : undefined
-      );
-    }, this.state.ext);
+      this.exec(action, context, event ? toEventObject(event) : undefined);
+    }, context);
 
     this.listeners.forEach(listener => listener(state));
   }
@@ -44,7 +41,7 @@ export class Interpreter<TExtState> {
    * Adds a listener that is called whenever a state transition happens.
    * @param listener
    */
-  public onTransition(listener: StateListener): Interpreter<TExtState> {
+  public onTransition(listener: StateListener): Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
@@ -62,19 +59,17 @@ export class Interpreter<TExtState> {
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: Action<TExtState>,
-    extState: TExtState,
+    action: ActionObject<TContext>,
+    extState: TContext,
     event?: EventObject
-  ): Partial<TExtState> | undefined {
-    if (typeof action === 'function') {
-      return action(extState, event);
+  ): Partial<TContext> | undefined {
+    if (action.exec) {
+      return action.exec(extState, event);
     }
 
-    const actionObject = toActionObject(action, {});
-
-    switch (actionObject.type) {
+    switch (action.type) {
       case actionTypes.send:
-        const sendAction = actionObject as SendAction;
+        const sendAction = action as SendAction;
 
         if (!sendAction.delay) {
           this.eventQueue.push(sendAction.event);
@@ -86,13 +81,13 @@ export class Interpreter<TExtState> {
 
         break;
       case actionTypes.cancel:
-        this.cancel((actionObject as CancelAction).sendId);
+        this.cancel((action as CancelAction).sendId);
 
         break;
       default:
         // tslint:disable-next-line:no-console
         console.warn(
-          `No implementation found for action type '${actionObject.type}'`
+          `No implementation found for action type '${action.type}'`
         );
         break;
     }
@@ -106,8 +101,8 @@ export class Interpreter<TExtState> {
   }
 }
 
-export function interpret<TExtState = DefaultExtState>(
-  machine: Machine<TExtState>,
+export function interpret<TContext = DefaulTContext>(
+  machine: Machine<TContext>,
   listener: StateListener
 ) {
   return new Interpreter(machine, listener);

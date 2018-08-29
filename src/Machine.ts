@@ -5,16 +5,16 @@ import {
   MachineConfig,
   ParallelMachineConfig,
   MachineOptions,
-  DefaultExtState
+  DefaulTContext
 } from './types';
 import { StateNode } from './StateNode';
 
-export function Machine<TExtState = DefaultExtState>(
-  config: MachineConfig<TExtState> | ParallelMachineConfig<TExtState>,
-  options?: MachineOptions<TExtState>,
-  extendedState?: TExtState
-): StandardMachine<TExtState> | ParallelMachine<TExtState> {
-  return new StateNode<TExtState>(config, options, extendedState) as
-    | StandardMachine<TExtState>
-    | ParallelMachine<TExtState>;
+export function Machine<TContext = DefaulTContext>(
+  config: MachineConfig<TContext> | ParallelMachineConfig<TContext>,
+  options?: MachineOptions<TContext>,
+  extendedState?: TContext
+): StandardMachine<TContext> | ParallelMachine<TContext> {
+  return new StateNode<TContext>(config, options, extendedState) as
+    | StandardMachine<TContext>
+    | ParallelMachine<TContext>;
 }

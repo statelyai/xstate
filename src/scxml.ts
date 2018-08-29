@@ -201,9 +201,9 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function mapActions<TExtState>(
+function mapActions<TContext>(
   elements: XMLElement[]
-): Array<ActionObject<TExtState>> {
+): Array<ActionObject<TContext>> {
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
