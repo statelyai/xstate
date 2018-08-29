@@ -70,7 +70,7 @@ export class Interpreter<TExtState> {
       return action(extState, event);
     }
 
-    const actionObject = toActionObject(action);
+    const actionObject = toActionObject(action, {});
 
     switch (actionObject.type) {
       case actionTypes.send:

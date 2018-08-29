@@ -137,6 +137,7 @@ describe('activities', () => {
       activateCrosswalkLight: false,
       blinkCrosswalkLight: false
     });
+
     assert.sameDeepMembers(nextState.actions, [
       start('fadeInGreen'),
       stop('activateCrosswalkLight')
@@ -215,20 +216,20 @@ describe('transient activities', () => {
             }
           },
           C2: {
-            activities: ['C1'],
-          },
+            activities: ['C1']
+          }
         }
       }
     }
   });
 
   it('should have started initial activities', () => {
-    let state = machine.initialState;
+    const state = machine.initialState;
     assert.deepEqual(state.activities.A, true);
   });
 
   it('should have started deep initial activities', () => {
-    let state = machine.initialState;
+    const state = machine.initialState;
     assert.deepEqual(state.activities.A1, true);
   });
 

@@ -10,7 +10,8 @@ describe('action creators', () => {
         const action = actions[actionKey]('test');
         assert.equal(action.type, actionTypes[actionKey]);
         assert.deepEqual(action.data, {
-          type: 'test'
+          type: 'test',
+          exec: undefined
         });
       });
 

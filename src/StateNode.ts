@@ -43,7 +43,7 @@ import {
 import { matchesState } from './matchesState';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { start, stop, toEventObject } from './actions';
+import { start, stop, toEventObject, toActionObjects } from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -870,7 +870,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
           updatedExtendedState,
           StateNode.updateHistoryValue(historyValue, stateTransition.value),
           currentState,
-          nonEventActions,
+          toActionObjects(nonEventActions, this.options.actions),
           activities,
           data,
           raisedEvents
@@ -1132,7 +1132,7 @@ class StateNode<TExtState = DefaultExtState, TData = DefaultData> {
       updatedExtendedState,
       undefined,
       undefined,
-      actions,
+      toActionObjects(actions, this.options.actions),
       activityMap,
       undefined,
       []

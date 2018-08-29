@@ -376,9 +376,14 @@ describe('actions option', () => {
       'definedAction',
       'undefinedAction'
     ]);
+
+    assert.deepEqual(nextState.actions, [
+      { type: 'definedAction', exec: definedAction },
+      { type: 'undefinedAction', exec: undefined }
+    ]);
   });
 
-  xit('should reference actions defined in actions parameter of machine options (initial state)', () => {
+  it('should reference actions defined in actions parameter of machine options (initial state)', () => {
     const { initialState } = simpleMachine;
 
     assert.includeMembers(initialState.actions.map(a => a.type), [

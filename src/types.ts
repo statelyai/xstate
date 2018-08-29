@@ -11,7 +11,7 @@ export interface EventObject {
   [key: string]: any;
 }
 export interface ActionObject<TExtState> extends Record<string, any> {
-  type: EventType;
+  type: ActionType;
   exec?: ActionFunction<TExtState>;
 }
 
@@ -139,9 +139,13 @@ export type SimpleOrCompoundStateNodeConfig<TExtState> =
   | CompoundStateNodeConfig<TExtState>
   | SimpleStateNodeConfig<TExtState>;
 
+export type ActionFunctionMap<TExtState> = Record<
+  string,
+  ActionObject<TExtState> | ActionFunction<TExtState>
+>;
 export interface MachineOptions<TExtState> {
   guards?: Record<string, ConditionPredicate<TExtState>>;
-  actions?: Record<string, ActionObject<TExtState> | ActionFunction<TExtState>>;
+  actions?: ActionFunctionMap<TExtState>;
 }
 export interface MachineConfig<TExtState>
   extends CompoundStateNodeConfig<TExtState> {

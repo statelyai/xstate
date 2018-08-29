@@ -11,7 +11,9 @@ import {
   ActionType,
   Assigner,
   PropertyAssigner,
-  AssignAction
+  AssignAction,
+  ActionFunction,
+  ActionFunctionMap
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -21,14 +23,13 @@ export { actionTypes };
 const createActivityAction = <TExtState>(actionType: string) => (
   activity: ActionType | ActionObject<TExtState>
 ): ActivityAction<TExtState> => {
-  const data =
-    typeof activity === 'string' || typeof activity === 'number'
-      ? { type: activity }
-      : activity;
+  const data = toActionObject(activity);
+  const { exec } = data;
   return {
     type: actionType,
     activity: getEventType(activity),
-    data
+    data,
+    exec
   };
 };
 
@@ -48,17 +49,50 @@ export const toEventObject = (
   return event;
 };
 
+function getActionFunction<TExtState>(
+  actionType: ActionType,
+  actionFunctionMap?: ActionFunctionMap<TExtState>
+): ActionFunction<TExtState> | undefined {
+  if (!actionFunctionMap) {
+    return undefined;
+  }
+  const actionReference = actionFunctionMap[actionType];
+
+  if (!actionReference) {
+    return undefined;
+  }
+
+  if (typeof actionReference === 'function') {
+    return actionReference;
+  }
+
+  return actionReference.exec;
+}
+
 export const toActionObject = <TExtState>(
-  action: Action<TExtState>
+  action: Action<TExtState>,
+  actionFunctionMap?: ActionFunctionMap<TExtState>
 ): ActionObject<TExtState> => {
   let actionObject: ActionObject<TExtState>;
 
   if (typeof action === 'string' || typeof action === 'number') {
-    actionObject = { type: action };
+    actionObject = {
+      type: action,
+      exec: getActionFunction(action, actionFunctionMap)
+    };
   } else if (typeof action === 'function') {
-    actionObject = { type: action.name };
+    actionObject = {
+      type: action.name,
+      exec: action
+    };
   } else {
-    return action as SendAction;
+    const exec = getActionFunction(action.type, actionFunctionMap);
+    return exec
+      ? {
+          ...action,
+          exec
+        }
+      : action;
   }
 
   Object.defineProperty(actionObject, 'toString', {
@@ -69,7 +103,8 @@ export const toActionObject = <TExtState>(
 };
 
 export const toActionObjects = <TExtState>(
-  action: Array<Action<TExtState> | Action<TExtState>> | undefined
+  action: Array<Action<TExtState> | Action<TExtState>> | undefined,
+  actionFunctionMap?: ActionFunctionMap<TExtState>
 ): Array<ActionObject<TExtState>> => {
   if (!action) {
     return [];
@@ -77,7 +112,7 @@ export const toActionObjects = <TExtState>(
 
   const actions = Array.isArray(action) ? action : [action];
 
-  return actions.map(toActionObject);
+  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
 
 export const raise = (eventType: EventType): EventObject => ({
