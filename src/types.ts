@@ -15,7 +15,7 @@ export interface ActionObject<TContext> extends Record<string, any> {
   exec?: ActionFunction<TContext>;
 }
 
-export type DefaulTContext = Record<string, any> | undefined;
+export type DefaultContext = Record<string, any> | undefined;
 export type DefaultData = Record<string, any>;
 
 export type Event = EventType | EventObject;
@@ -51,7 +51,7 @@ export type ConditionPredicate<TContext> = (
 
 export type Condition<TContext> = string | ConditionPredicate<TContext>;
 
-export interface TransitionConfig<TContext = DefaulTContext> {
+export interface TransitionConfig<TContext = DefaultContext> {
   cond?: Condition<TContext>;
   actions?: Array<Action<TContext>>;
   in?: StateValue;
@@ -59,23 +59,46 @@ export interface TransitionConfig<TContext = DefaulTContext> {
   target?: string | string[];
 }
 
-export interface TargetTransitionConfig<TContext = DefaulTContext>
+export interface TargetTransitionConfig<TContext = DefaultContext>
   extends TransitionConfig<TContext> {
   target: string | string[] | undefined;
 }
 
-export type ConditionalTransitionConfig<TContext = DefaulTContext> = Array<
+export type ConditionalTransitionConfig<TContext = DefaultContext> = Array<
   TransitionConfig<TContext>
 >;
 
-export type Transition<TContext = DefaulTContext> =
+export type Transition<TContext = DefaultContext> =
   | string
   | Record<string, TransitionConfig<TContext>>
   | ConditionalTransitionConfig<TContext>;
 
-export type Activity<TContext> = string | ActionObject<TContext>;
+export interface ActivityConfig<TContext> {
+  start?: Action<TContext>;
+  stop?: Action<TContext>;
+}
 
-export interface StateNodeConfig<TContext = DefaulTContext, TData = any> {
+export type Activity = string;
+
+export interface ActivityDefinition<TContext> {
+  type: string;
+  start?: ActionObject<TContext>;
+  stop?: ActionObject<TContext>;
+}
+
+export interface DelayedTransitionConfig<TContext>
+  extends TransitionConfig<TContext> {
+  delay: number;
+}
+
+export type DelayedTransitions<TContext> =
+  | Record<
+      number | string,
+      string | TransitionConfig<TContext> | Array<TransitionConfig<TContext>>
+    >
+  | Array<DelayedTransitionConfig<TContext>>;
+
+export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
@@ -91,7 +114,8 @@ export interface StateNodeConfig<TContext = DefaulTContext, TData = any> {
   on?: Record<string, Transition<TContext> | undefined>;
   onEntry?: Action<TContext> | Array<Action<TContext>>;
   onExit?: Action<TContext> | Array<Action<TContext>>;
-  activities?: Array<Activity<TContext>>;
+  after?: DelayedTransitions<TContext>;
+  activities?: Activity[];
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
   data?: TData;
@@ -100,7 +124,7 @@ export interface StateNodeConfig<TContext = DefaulTContext, TData = any> {
   order?: number;
 }
 
-export interface StateNodeDefinition<TContext = DefaulTContext, TData = any> {
+export interface StateNodeDefinition<TContext = DefaultContext, TData = any> {
   id: string;
   key: string;
   initial: string | undefined;
@@ -110,7 +134,8 @@ export interface StateNodeDefinition<TContext = DefaulTContext, TData = any> {
   on: Record<string, Array<TransitionDefinition<TContext>>>;
   onEntry: Array<Action<TContext>>;
   onExit: Array<Action<TContext>>;
-  activities: Array<Activity<TContext>>;
+  after: Array<DelayedTransitionDefinition<TContext>>;
+  activities: Array<ActivityDefinition<TContext>>;
   data: TData;
   order: number;
 }
@@ -147,20 +172,18 @@ export interface MachineOptions<TContext> {
   guards?: Record<string, ConditionPredicate<TContext>>;
   actions?: ActionFunctionMap<TContext>;
 }
-export interface MachineConfig<TContext>
-  extends CompoundStateNodeConfig<TContext> {
-  key?: string;
-  strict?: boolean;
-  history?: false | undefined;
-}
+export type MachineConfig<TContext> =
+  | StandardMachineConfig<TContext>
+  | ParallelMachineConfig<TContext>;
+
 export interface StandardMachineConfig<TContext>
-  extends MachineConfig<TContext> {
+  extends CompoundStateNodeConfig<TContext> {
   initial: string;
   parallel?: false | undefined;
 }
 
 export interface ParallelMachineConfig<TContext>
-  extends MachineConfig<TContext> {
+  extends CompoundStateNodeConfig<TContext> {
   initial?: undefined;
   parallel: true;
 }
@@ -203,7 +226,7 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
-export interface Machine<TContext = DefaulTContext>
+export interface Machine<TContext = DefaultContext>
   extends StateNode<TContext> {
   id: string;
   initial: string | undefined;
@@ -254,13 +277,20 @@ export interface TransitionData<TContext> {
   activities?: ActivityMap;
 }
 
-export interface ActivityAction<TContext> extends ActionObject<TContext> {
+export enum ActionTypes {
+  Start = 'xstate.start',
+  Stop = 'xstate.stop',
+  Raise = 'xstate.raise',
+  Send = 'xstate.send',
+  Cancel = 'xstate.cancel',
+  Null = 'xstate.null',
+  Assign = 'xstate.assign'
+}
+
+export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
+  type: ActionTypes.Start | ActionTypes.Stop;
   activity: ActionType;
-  data: {
-    type: ActionType;
-    [key: string]: any;
-  };
-  command?: ActionFunction<TContext>;
+  action: ActionObject<TContext>;
 }
 
 export interface SendAction extends ActionObject<any> {
@@ -297,6 +327,12 @@ export interface AssignAction<TContext> extends ActionObject<TContext> {
 export interface TransitionDefinition<TContext>
   extends TransitionConfig<TContext> {
   event: string;
+  delay?: number;
+}
+
+export interface DelayedTransitionDefinition<TContext>
+  extends TransitionDefinition<TContext> {
+  delay: number;
 }
 
 export interface Edge<TContext> {
@@ -360,7 +396,7 @@ export interface ValueAdjacencyMap {
 }
 
 export interface StateInterface<
-  TContext = DefaulTContext,
+  TContext = DefaultContext,
   TData = DefaultData
 > {
   value: StateValue;

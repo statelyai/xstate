@@ -9,7 +9,7 @@ import {
   PathsItem,
   PathsMap,
   AdjacencyMap,
-  DefaulTContext,
+  DefaultContext,
   ValueAdjacencyMap,
   Event
 } from './types';
@@ -32,7 +32,7 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-export function getEventEdges<TContext = DefaulTContext>(
+export function getEventEdges<TContext = DefaultContext>(
   node: StateNode<TContext>,
   event: string
 ): Array<Edge<TContext>> {
@@ -87,7 +87,7 @@ export function getEventEdges<TContext = DefaulTContext>(
   );
 }
 
-export function getEdges<TContext = DefaulTContext>(
+export function getEdges<TContext = DefaultContext>(
   node: StateNode<TContext>,
   options?: { depth: null | number }
 ): Array<Edge<TContext>> {
@@ -113,7 +113,7 @@ export function getEdges<TContext = DefaulTContext>(
   return edges;
 }
 
-export function getAdjacencyMap<TContext = DefaulTContext>(
+export function getAdjacencyMap<TContext = DefaultContext>(
   node: StateNode<TContext>,
   extendedState?: any
 ): AdjacencyMap {
@@ -153,7 +153,7 @@ function eventToString(event: Event): string {
   return `${type} | ${JSON.stringify(rest)}`;
 }
 
-export function getValueAdjacencyMap<TContext = DefaulTContext>(
+export function getValueAdjacencyMap<TContext = DefaultContext>(
   node: StateNode<TContext>,
   eventMap: Record<string, Event[]>
 ): ValueAdjacencyMap {
@@ -188,7 +188,7 @@ export function getValueAdjacencyMap<TContext = DefaulTContext>(
   return adjacency;
 }
 
-export function getShortestPaths<TContext = DefaulTContext>(
+export function getShortestPaths<TContext = DefaultContext>(
   machine: StateNode<TContext>,
   extendedState?: any
 ): PathMap {
@@ -253,7 +253,7 @@ export function getShortestPaths<TContext = DefaulTContext>(
   return pathMap;
 }
 
-export function getShortestPathsAsArray<TContext = DefaulTContext>(
+export function getShortestPathsAsArray<TContext = DefaultContext>(
   machine: StateNode<TContext>,
   extendedState?: any
 ): PathItem[] {
@@ -264,7 +264,7 @@ export function getShortestPathsAsArray<TContext = DefaulTContext>(
   }));
 }
 
-export function getSimplePaths<TContext = DefaulTContext>(
+export function getSimplePaths<TContext = DefaultContext>(
   machine: StateNode<TContext>,
   extendedState?: any
 ): PathsMap {
@@ -313,7 +313,7 @@ export function getSimplePaths<TContext = DefaulTContext>(
   return paths;
 }
 
-export function getSimplePathsAsArray<TContext = DefaulTContext>(
+export function getSimplePathsAsArray<TContext = DefaultContext>(
   machine: StateNode<TContext>,
   extendedState?: any
 ): PathsItem[] {

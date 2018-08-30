@@ -9,7 +9,7 @@ describe('action creators', () => {
       it('should accept a string action', () => {
         const action = actions[actionKey]('test');
         assert.equal(action.type, actionTypes[actionKey]);
-        assert.deepEqual(action.data, {
+        assert.deepEqual(action.action, {
           type: 'test',
           exec: undefined
         });
@@ -18,7 +18,7 @@ describe('action creators', () => {
       it('should accept an action object', () => {
         const action = actions[actionKey]({ type: 'test', foo: 'bar' });
         assert.equal(action.type, actionTypes[actionKey]);
-        assert.deepEqual(action.data, {
+        assert.deepEqual(action.action, {
           type: 'test',
           foo: 'bar'
         });

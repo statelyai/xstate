@@ -7,7 +7,6 @@ import {
   toStatePaths,
   pathsToStateValue,
   pathToStateValue,
-  getActionType,
   flatten,
   mapFilterValues,
   nestedPath
@@ -15,7 +14,6 @@ import {
 import {
   Event,
   StateValue,
-  Transition,
   Action,
   SimpleOrCompoundStateNodeConfig,
   ParallelMachineConfig,
@@ -23,7 +21,6 @@ import {
   StandardMachineConfig,
   TransitionConfig,
   ActivityMap,
-  Activity,
   EntryExitStates,
   StateTransition,
   ActionObject,
@@ -35,15 +32,25 @@ import {
   HistoryStateNodeConfig,
   HistoryValue,
   DefaultData,
-  DefaulTContext,
+  DefaultContext,
   StateNodeDefinition,
   TransitionDefinition,
-  AssignAction
+  AssignAction,
+  DelayedTransitionDefinition,
+  ActivityDefinition
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { start, stop, toEventObject, toActionObjects } from './actions';
+import {
+  start,
+  stop,
+  toEventObject,
+  toActionObjects,
+  send,
+  cancel,
+  toActivityDefinition
+} from './actions';
 
 const STATE_DELIMITER = '.';
 const HISTORY_KEY = '$history';
@@ -65,7 +72,7 @@ type StateNodeConfig<TContext> = Readonly<
   | ParallelMachineConfig<TContext>
 >;
 
-class StateNode<TContext = DefaulTContext, TData = DefaultData> {
+class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public key: string;
   public id: string;
   public path: string[];
@@ -76,7 +83,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
   public history: false | 'shallow' | 'deep';
   public onEntry: Array<Action<TContext>>;
   public onExit: Array<Action<TContext>>;
-  public activities?: Array<Activity<TContext>>;
+  public activities: Array<ActivityDefinition<TContext>>;
   public strict: boolean;
   public parent?: StateNode<TContext>;
   public machine: StateNode<TContext>;
@@ -153,7 +160,9 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       ? ([] as Array<Action<TContext>>).concat(_config.onExit)
       : [];
     this.data = _config.data;
-    this.activities = _config.activities;
+    this.activities = (_config.activities || EMPTY_ARRAY).map(activity =>
+      toActivityDefinition(activity)
+    );
   }
   public get definition(): StateNodeDefinition<TContext, TData> {
     return {
@@ -165,6 +174,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
+      after: this.after,
       activities: this.activities || EMPTY_ARRAY,
       data: this.data,
       order: this.order || -1,
@@ -181,8 +191,73 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
     return config;
   }
   public get on(): Record<string, Array<TransitionDefinition<TContext>>> {
-    const { config } = this;
-    return config.on ? this.formatTransitions(config.on) : EMPTY_OBJECT;
+    return this.formatTransitions();
+  }
+  public get after(): Array<DelayedTransitionDefinition<TContext>> {
+    const {
+      config: { after }
+    } = this;
+
+    if (!after) {
+      return EMPTY_ARRAY;
+    }
+
+    if (Array.isArray(after)) {
+      return after.map(delayedTransition => ({
+        event: `after(${delayedTransition.delay})`,
+        ...delayedTransition
+      }));
+    }
+
+    const allDelayedTransitions = flatten(
+      Object.keys(after).map(delayKey => {
+        const delayedTransition = (after as Record<
+          number | string,
+          TransitionConfig<TContext> | Array<TransitionConfig<TContext>>
+        >)[delayKey];
+        const delay = +delayKey;
+        const event = `after(${delay})`;
+
+        if (typeof delayedTransition === 'string') {
+          return [{ target: delayedTransition, delay, event }];
+        }
+
+        const delayedTransitions = Array.isArray(delayedTransition)
+          ? delayedTransition
+          : [delayedTransition];
+
+        return delayedTransitions.map(transition => ({
+          event,
+          delay,
+          ...transition
+        }));
+      })
+    );
+
+    allDelayedTransitions.sort((a, b) => a.delay - b.delay);
+
+    return allDelayedTransitions;
+  }
+  public getDelayedActivity(
+    state: State<TContext>,
+    event: EventObject
+  ): ActivityDefinition<TContext> | undefined {
+    const delayedTransition = this.after.find(candidate => {
+      return (
+        !candidate.cond ||
+        this._evaluateCond(candidate.cond, state.context, event, state.value)
+      );
+    });
+
+    if (!delayedTransition) {
+      return undefined;
+    }
+
+    return {
+      type: delayedTransition.event,
+      start: send(delayedTransition.event, { delay: delayedTransition.delay }),
+      stop: cancel(delayedTransition.event)
+    };
   }
   public getStateNodes(
     state: StateValue | State<TContext>
@@ -736,7 +811,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       }
 
       stateNode.activities.forEach(activity => {
-        activityMap[getActionType(activity)] = false;
+        activityMap[activity.type] = false;
       });
     });
 
@@ -746,7 +821,7 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       }
 
       stateNode.activities.forEach(activity => {
-        activityMap[getActionType(activity)] = true;
+        activityMap[activity.type] = true;
       });
     });
 
@@ -1472,10 +1547,14 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
       event
     };
   }
-  private formatTransitions(
-    onConfig: Record<string, Transition<TContext> | undefined>
-  ): Record<string, Array<TransitionDefinition<TContext>>> {
-    return mapValues(onConfig, (value, event) => {
+  private formatTransitions(): Record<
+    string,
+    Array<TransitionDefinition<TContext>>
+  > {
+    const onConfig = this.config.on || EMPTY_OBJECT;
+    const delayedTransitions = this.after;
+
+    const formattedTransitions = mapValues(onConfig, (value, event) => {
       if (value === undefined) {
         return [];
       }
@@ -1498,6 +1577,14 @@ class StateNode<TContext = DefaulTContext, TData = DefaultData> {
         return this.formatTransition(target, value[target], event);
       });
     });
+
+    delayedTransitions.forEach(delayedTransition => {
+      formattedTransitions[delayedTransition.event] =
+        formattedTransitions[delayedTransition.event] || [];
+      formattedTransitions[delayedTransition.event].push(delayedTransition);
+    });
+
+    return formattedTransitions;
   }
 }
 

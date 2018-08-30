@@ -1,11 +1,11 @@
-const PREFIX = 'xstate';
+import { ActionTypes } from './types';
 
 // xstate-specific action types
-export const start = `${PREFIX}.start`;
-export const stop = `${PREFIX}.stop`;
-export const raise = `${PREFIX}.raise`;
-export const send = `${PREFIX}.send`;
-export const cancel = `${PREFIX}.cancel`;
-export const _null = `${PREFIX}.null`;
+export const start = ActionTypes.Start;
+export const stop = ActionTypes.Stop;
+export const raise = ActionTypes.Raise;
+export const send = ActionTypes.Send;
+export const cancel = ActionTypes.Cancel;
+export const _null = ActionTypes.Null;
 export { _null as null };
-export const assign = `${PREFIX}.assign`;
+export const assign = ActionTypes.Assign;

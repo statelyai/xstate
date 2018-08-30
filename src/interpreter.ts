@@ -4,14 +4,14 @@ import {
   EventObject,
   SendAction,
   CancelAction,
-  DefaulTContext,
+  DefaultContext,
   ActionObject
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject } from './actions';
 
-export type StateListener = <TContext = DefaulTContext>(
+export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
 
@@ -101,7 +101,7 @@ export class Interpreter<TContext> {
   }
 }
 
-export function interpret<TContext = DefaulTContext>(
+export function interpret<TContext = DefaultContext>(
   machine: Machine<TContext>,
   listener: StateListener
 ) {

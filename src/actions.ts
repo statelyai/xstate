@@ -3,7 +3,6 @@ import {
   Event,
   EventType,
   EventObject,
-  ActivityAction,
   SendAction,
   SendActionOptions,
   CancelAction,
@@ -13,25 +12,15 @@ import {
   PropertyAssigner,
   AssignAction,
   ActionFunction,
-  ActionFunctionMap
+  ActionFunctionMap,
+  ActivityActionObject,
+  ActionTypes,
+  ActivityDefinition
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
 
 export { actionTypes };
-
-const createActivityAction = <TContext>(actionType: string) => (
-  activity: ActionType | ActionObject<TContext>
-): ActivityAction<TContext> => {
-  const data = toActionObject(activity);
-  const { exec } = data;
-  return {
-    type: actionType,
-    activity: getEventType(activity),
-    data,
-    exec
-  };
-};
 
 export const toEventObject = (
   event: Event,
@@ -96,11 +85,18 @@ export const toActionObject = <TContext>(
   }
 
   Object.defineProperty(actionObject, 'toString', {
-    value: () => actionObject.type
+    value: () => actionObject.type,
+    enumerable: false
   });
 
   return actionObject;
 };
+
+export function toActivityDefinition<TContext>(
+  action: Action<TContext> | ActivityDefinition<TContext>
+): ActivityDefinition<TContext> {
+  return toActionObject(action) as ActivityDefinition<TContext>;
+}
 
 export const toActionObjects = <TContext>(
   action: Array<Action<TContext> | Action<TContext>> | undefined,
@@ -136,8 +132,29 @@ export const cancel = (sendId: string | number): CancelAction => {
   };
 };
 
-export const start = createActivityAction(actionTypes.start);
-export const stop = createActivityAction(actionTypes.stop);
+export function start<TContext>(
+  activity: Action<TContext> | ActivityDefinition<TContext>
+): ActivityActionObject<TContext> {
+  const activityObject = toActivityDefinition(activity);
+
+  return {
+    type: ActionTypes.Start,
+    activity: activityObject.type,
+    action: activityObject
+  };
+}
+
+export function stop<TContext>(
+  activity: Action<TContext> | ActivityDefinition<TContext>
+): ActivityActionObject<TContext> {
+  const activityObject = toActivityDefinition(activity);
+
+  return {
+    type: ActionTypes.Stop,
+    activity: activityObject.type,
+    action: activityObject
+  };
+}
 
 export const assign = <TContext>(
   assignment: Assigner<TContext> | PropertyAssigner<TContext>
