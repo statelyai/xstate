@@ -233,6 +233,18 @@ function mapActions<TContext>(
           const fn = new Function(fnStr);
           return fn(xs);
         });
+      case 'send':
+        const delay = element.attributes!.delay!;
+        const numberDelay = delay
+          ? typeof delay === 'number'
+            ? delay
+            : /(\d+)ms/.test(delay)
+              ? +/(\d+)ms/.exec(delay)![1]
+              : 0
+          : 0;
+        return actions.send(element.attributes!.event!, {
+          delay: numberDelay
+        });
       default:
         return { type: 'not-implemented' };
     }

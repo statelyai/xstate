@@ -121,14 +121,15 @@ export class Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
-  public init(): void {
-    this.update(this.machine.initialState);
+  public init(initialState: State<TContext> = this.machine.initialState): void {
+    this.update(initialState);
   }
-  public send(event: Event): void {
+  public send(event: Event): State<TContext> {
     const nextState = this.machine.transition(this.state, event, this.extState);
 
     this.update(nextState, event);
     this.flushEventQueue();
+    return nextState;
   }
   private defer(sendAction: SendAction): number {
     return this.clock.setTimeout(

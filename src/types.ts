@@ -234,8 +234,6 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
 export interface Machine<TContext = DefaultContext>
   extends StateNode<TContext> {
   id: string;
-  initial: string | undefined;
-  parallel: boolean;
   states: Record<string, StateNode<TContext>>;
 }
 
