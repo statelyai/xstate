@@ -24,9 +24,8 @@ const lightMachine = Machine({
       }
     },
     red: {
-      onEntry: [actions.send('TIMER', { delay: 10 })],
-      on: {
-        TIMER: 'green'
+      after: {
+        10: 'green'
       }
     }
   }
