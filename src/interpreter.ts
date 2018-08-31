@@ -15,16 +15,92 @@ export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
 
+export interface Clock {
+  setTimeout(fn: (...args: any[]) => void, timeout: number): number;
+  clearTimeout(id: number): void;
+}
+
+export interface SimulatedClock extends Clock {
+  start(speed: number): void;
+  increment(ms: number): void;
+  set(ms: number): void;
+}
+
+interface InterpreterOptions {
+  clock: Clock;
+}
+
+interface SimulatedTimeout {
+  start: number;
+  timeout: number;
+  fn: (...args: any[]) => void;
+}
+
+export class SimulatedClock implements SimulatedClock {
+  private timeouts: Map<number, SimulatedTimeout> = new Map();
+  private _now: number = 0;
+  private _id: number = 0;
+  public now() {
+    return this._now;
+  }
+  private getId() {
+    return this._id++;
+  }
+  public setTimeout(fn: (...args: any[]) => void, timeout: number) {
+    const id = this.getId();
+    this.timeouts.set(id, {
+      start: this.now(),
+      timeout,
+      fn
+    });
+    return id;
+  }
+  public clearTimeout(id: number) {
+    this.timeouts.delete(id);
+  }
+  public set(time: number) {
+    if (this._now > time) {
+      throw new Error('Unable to travel back in time');
+    }
+
+    this._now = time;
+    this.flushTimeouts();
+  }
+  private flushTimeouts() {
+    this.timeouts.forEach((timeout, id) => {
+      if (this.now() - timeout.start >= timeout.timeout) {
+        timeout.fn.call(null);
+        this.timeouts.delete(id);
+      }
+    });
+  }
+  public increment(ms: number): void {
+    this._now += ms;
+    this.flushTimeouts();
+  }
+}
+
+// tslint:disable-next-line:max-classes-per-file
 export class Interpreter<TContext> {
+  public static defaultOptions: InterpreterOptions = {
+    clock: { setTimeout, clearTimeout }
+  };
   public state: State<TContext>;
   public extState: TContext;
   public eventQueue: EventObject[] = [];
-  public delayedEventsMap: Record<string | number, NodeJS.Timer> = {};
+  public delayedEventsMap: Record<string | number, number> = {};
   public listeners: Set<StateListener> = new Set();
-  constructor(public machine: Machine<TContext>, listener?: StateListener) {
+  public clock: Clock;
+  constructor(
+    public machine: Machine<TContext>,
+    listener?: StateListener,
+    options: InterpreterOptions = Interpreter.defaultOptions
+  ) {
     if (listener) {
       this.onTransition(listener);
     }
+
+    this.clock = options.clock;
   }
   public static interpret = interpret;
   private update(state: State<TContext>, event?: Event): void {
@@ -54,8 +130,14 @@ export class Interpreter<TContext> {
     this.update(nextState, event);
     this.flushEventQueue();
   }
+  private defer(sendAction: SendAction): number {
+    return this.clock.setTimeout(
+      () => this.send(sendAction.event),
+      sendAction.delay || 0
+    );
+  }
   private cancel(sendId: string | number): void {
-    clearTimeout(this.delayedEventsMap[sendId]);
+    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
   private exec(
@@ -74,9 +156,7 @@ export class Interpreter<TContext> {
         if (!sendAction.delay) {
           this.eventQueue.push(sendAction.event);
         } else {
-          this.delayedEventsMap[sendAction.id] = setTimeout(() => {
-            this.send(sendAction.event);
-          }, sendAction.delay || 0);
+          this.delayedEventsMap[sendAction.id] = this.defer(sendAction);
         }
 
         break;
@@ -103,7 +183,8 @@ export class Interpreter<TContext> {
 
 export function interpret<TContext = DefaultContext>(
   machine: Machine<TContext>,
-  listener: StateListener
+  listener: StateListener,
+  options?: InterpreterOptions
 ) {
-  return new Interpreter(machine, listener);
+  return new Interpreter(machine, listener, options);
 }

@@ -1,4 +1,4 @@
-import { interpret, Interpreter } from '../src/interpreter';
+import { interpret, Interpreter, SimulatedClock } from '../src/interpreter';
 import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
@@ -56,7 +56,7 @@ describe('interpreter', () => {
   });
 
   describe('send with delay', () => {
-    it('can send an event after a delay', done => {
+    it('can send an event after a delay', () => {
       const currentStates: Array<State<any>> = [];
       const listener = state => {
         currentStates.push(state);
@@ -68,37 +68,71 @@ describe('interpreter', () => {
             'red',
             'green'
           ]);
-          done();
         }
       };
 
-      const interpreter = interpret(lightMachine, listener);
+      const interpreter = interpret(lightMachine, listener, {
+        clock: new SimulatedClock()
+      });
+      const clock = interpreter.clock as SimulatedClock;
       interpreter.init();
 
-      setTimeout(() => {
-        assert.equal(
-          currentStates[0]!.value,
-          'green',
-          'State should still be green before delayed send'
-        );
-      }, 5);
+      clock.increment(5);
+      assert.equal(
+        currentStates[0]!.value,
+        'green',
+        'State should still be green before delayed send'
+      );
+
+      clock.increment(5);
+      assert.deepEqual(currentStates.map(s => s.value), ['green', 'yellow']);
+
+      clock.increment(5);
+      assert.deepEqual(currentStates.map(s => s.value), ['green', 'yellow']);
+
+      clock.increment(5);
+      assert.deepEqual(currentStates.map(s => s.value), [
+        'green',
+        'yellow',
+        'red'
+      ]);
+
+      clock.increment(5);
+      assert.deepEqual(currentStates.map(s => s.value), [
+        'green',
+        'yellow',
+        'red'
+      ]);
+
+      clock.increment(5);
+      assert.deepEqual(currentStates.map(s => s.value), [
+        'green',
+        'yellow',
+        'red',
+        'green'
+      ]);
     });
   });
 
-  it('can cancel a delayed event', done => {
+  it('can cancel a delayed event', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);
 
-    const interpreter = interpret(lightMachine, listener);
+    const interpreter = interpret(lightMachine, listener, {
+      clock: new SimulatedClock()
+    });
+    const clock = interpreter.clock as SimulatedClock;
     interpreter.init();
 
-    setTimeout(() => {
-      interpreter.send('KEEP_GOING');
-    }, 1);
+    clock.increment(5);
+    interpreter.send('KEEP_GOING');
 
-    setTimeout(() => {
-      assert.deepEqual(currentState.value, 'green');
-      done();
-    }, 15);
+    assert.deepEqual(currentState!.value, 'green');
+    clock.increment(10);
+    assert.deepEqual(
+      currentState!.value,
+      'green',
+      'should still be green due to canceled event'
+    );
   });
 });
