@@ -170,3 +170,8 @@ export function isActionObject<TContext>(
 ): action is ActionObject<TContext> {
   return typeof action === 'object' && 'type' in action;
 }
+
+export function after(delay: number, id?: string) {
+  const idSuffix = id ? `#${id}` : '';
+  return `${ActionTypes.After}(${delay})${idSuffix}`;
+}

@@ -9,3 +9,4 @@ export const cancel = ActionTypes.Cancel;
 export const _null = ActionTypes.Null;
 export { _null as null };
 export const assign = ActionTypes.Assign;
+export const after = ActionTypes.After;

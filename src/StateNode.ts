@@ -37,7 +37,8 @@ import {
   TransitionDefinition,
   AssignAction,
   DelayedTransitionDefinition,
-  ActivityDefinition
+  ActivityDefinition,
+  Delay
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -47,9 +48,10 @@ import {
   stop,
   toEventObject,
   toActionObjects,
+  toActivityDefinition,
   send,
   cancel,
-  toActivityDefinition
+  after
 } from './actions';
 
 const STATE_DELIMITER = '.';
@@ -109,7 +111,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
      */
     public context?: Readonly<TContext>
   ) {
-    this.key = _config.key || '(machine)';
+    this.key = _config.key || _config.id || '(machine)';
     this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
@@ -195,28 +197,28 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   }
   public get after(): Array<DelayedTransitionDefinition<TContext>> {
     const {
-      config: { after }
+      config: { after: afterConfig }
     } = this;
 
-    if (!after) {
+    if (!afterConfig) {
       return EMPTY_ARRAY;
     }
 
-    if (Array.isArray(after)) {
-      return after.map(delayedTransition => ({
-        event: `after(${delayedTransition.delay})`,
+    if (Array.isArray(afterConfig)) {
+      return afterConfig.map(delayedTransition => ({
+        event: after(delayedTransition.delay, this.id),
         ...delayedTransition
       }));
     }
 
     const allDelayedTransitions = flatten(
-      Object.keys(after).map(delayKey => {
-        const delayedTransition = (after as Record<
+      Object.keys(afterConfig).map(delayKey => {
+        const delayedTransition = (afterConfig as Record<
           number | string,
           TransitionConfig<TContext> | Array<TransitionConfig<TContext>>
         >)[delayKey];
         const delay = +delayKey;
-        const event = `after(${delay})`;
+        const event = after(delay, this.id);
 
         if (typeof delayedTransition === 'string') {
           return [{ target: delayedTransition, delay, event }];
@@ -237,27 +239,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     allDelayedTransitions.sort((a, b) => a.delay - b.delay);
 
     return allDelayedTransitions;
-  }
-  public getDelayedActivity(
-    state: State<TContext>,
-    event: EventObject
-  ): ActivityDefinition<TContext> | undefined {
-    const delayedTransition = this.after.find(candidate => {
-      return (
-        !candidate.cond ||
-        this._evaluateCond(candidate.cond, state.context, event, state.value)
-      );
-    });
-
-    if (!delayedTransition) {
-      return undefined;
-    }
-
-    return {
-      type: delayedTransition.event,
-      start: send(delayedTransition.event, { delay: delayedTransition.delay }),
-      stop: cancel(delayedTransition.event)
-    };
   }
   public getStateNodes(
     state: StateValue | State<TContext>
@@ -754,6 +735,16 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     return condFn(extendedState, eventObject, interimState);
   }
+  public get delays(): Delay[] {
+    const delays = Array.from(
+      new Set(this.after.map(delayedTransition => delayedTransition.delay))
+    );
+
+    return delays.map(delay => ({
+      id: this.id,
+      delay
+    }));
+  }
   private _getActions(
     transition: StateTransition<TContext>
   ): Array<Action<TContext>> {
@@ -762,9 +753,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         ? flatten(
             Array.from(transition.entryExitStates.entry).map(n => [
               ...n.onEntry,
-              ...(n.activities
-                ? n.activities.map(activity => start(activity))
-                : [])
+              ...n.activities.map(activity => start(activity)),
+              ...n.delays.map(({ delay, id }) =>
+                send(after(delay, id), { delay })
+              )
             ])
           )
         : [],
@@ -772,17 +764,16 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         ? flatten(
             Array.from(transition.entryExitStates.exit).map(n => [
               ...n.onExit,
-              ...(n.activities
-                ? n.activities.map(activity => stop(activity))
-                : [])
+              ...n.activities.map(activity => stop(activity)),
+              ...n.delays.map(({ delay, id }) => cancel(after(delay, id)))
             ])
           )
         : []
     };
 
-    const actions = (entryExitActions.exit || [])
-      .concat(transition.actions || [])
-      .concat(entryExitActions.entry || [])
+    const actions = entryExitActions.exit
+      .concat(transition.actions)
+      .concat(entryExitActions.entry)
       .map(
         action =>
           typeof action === 'string' ? this.resolveAction(action) : action
@@ -796,16 +787,16 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     return (actions ? actions[actionType] : actionType) || actionType;
   }
   private _getActivities(
-    state: State<TContext>,
-    transition: StateTransition<TContext>
+    entryExitStates?: EntryExitStates<TContext>,
+    activities?: ActivityMap
   ): ActivityMap {
-    if (!transition.entryExitStates) {
+    if (!entryExitStates) {
       return EMPTY_OBJECT;
     }
 
-    const activityMap = { ...state.activities };
+    const activityMap = { ...activities };
 
-    Array.from(transition.entryExitStates.exit).forEach(stateNode => {
+    Array.from(entryExitStates.exit).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -815,7 +806,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       });
     });
 
-    Array.from(transition.entryExitStates.entry).forEach(stateNode => {
+    Array.from(entryExitStates.entry).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -883,7 +874,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     }
 
     const actions = this._getActions(stateTransition);
-    const activities = this._getActivities(currentState, stateTransition);
+    const activities = this._getActivities(
+      stateTransition.entryExitStates,
+      currentState.activities
+    );
 
     const raisedEvents = actions.filter(
       action =>
@@ -1149,7 +1143,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   }
   public getState(
     stateValue: StateValue,
-    extendedState: TContext = this.machine.context!
+    context: TContext = this.machine.context!
   ): State<TContext> {
     const activityMap: ActivityMap = {};
     const actions: Array<Action<TContext>> = [];
@@ -1177,7 +1171,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext>>;
 
-    const updatedExtendedState = extendedState
+    const updatedExtendedState = context
       ? assignActions.reduce((acc, assignAction) => {
           const { assignment } = assignAction;
 
@@ -1197,8 +1191,8 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
           }
 
           return Object.assign({}, acc, partialUpdate);
-        }, extendedState)
-      : extendedState;
+        }, context)
+      : context;
 
     const initialNextState = new State<TContext>(
       stateValue,

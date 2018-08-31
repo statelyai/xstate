@@ -86,6 +86,11 @@ export interface ActivityDefinition<TContext> {
   stop?: ActionObject<TContext>;
 }
 
+export interface Delay {
+  id: string;
+  delay: number;
+}
+
 export interface DelayedTransitionConfig<TContext>
   extends TransitionConfig<TContext> {
   delay: number;
@@ -284,7 +289,8 @@ export enum ActionTypes {
   Send = 'xstate.send',
   Cancel = 'xstate.cancel',
   Null = 'xstate.null',
-  Assign = 'xstate.assign'
+  Assign = 'xstate.assign',
+  After = 'xstate.after'
 }
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
