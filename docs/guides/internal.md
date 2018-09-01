@@ -5,6 +5,7 @@ An internal transition is one that does not exit the parent state. For example, 
 ```js
 const wordMachine = Machine({
   key: 'word',
+  initial: 'direction',
   states: {
     direction: {
       initial: 'left',
