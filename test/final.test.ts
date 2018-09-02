@@ -1,5 +1,6 @@
 import { Machine } from '../src/index';
 
+// @ts-ignore
 const finalMachine = Machine({
   id: 'final',
   initial: 'green',
@@ -45,8 +46,8 @@ const finalMachine = Machine({
 
 xdescribe('final states', () => {
   it('should emit the done.state.final.red event when all nested states are finalized', () => {
-    const redState = finalMachine.transition('yellow', 'TIMER');
-    const waitState = finalMachine.transition(redState, 'PED_WAIT');
-    const stopState = finalMachine.transition(waitState, 'PED_STOP');
+    // const redState = finalMachine.transition('yellow', 'TIMER');
+    // const waitState = finalMachine.transition(redState, 'PED_WAIT');
+    // const stopState = finalMachine.transition(waitState, 'PED_STOP');
   });
 });

@@ -52,9 +52,7 @@ import {
   toActivityDefinition,
   send,
   cancel,
-  after,
-  raise,
-  done
+  after
 } from './actions';
 
 const STATE_DELIMITER = '.';
