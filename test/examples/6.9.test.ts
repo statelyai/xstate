@@ -36,13 +36,15 @@ describe('Example 6.9', () => {
                 }
               }
             }
-          }
+          },
+          hist: { history: true },
+          deepHist: { history: 'deep' }
         }
       },
       H: {
         on: {
-          1: 'A.$history',
-          7: 'A.$history*' // 6.10
+          1: 'A.hist',
+          7: 'A.deepHist' // 6.10
         }
       }
     }

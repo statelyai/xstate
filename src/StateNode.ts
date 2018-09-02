@@ -56,7 +56,6 @@ import {
 } from './actions';
 
 const STATE_DELIMITER = '.';
-const HISTORY_KEY = '$history';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const TARGETLESS_KEY = '';
@@ -1326,8 +1325,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     );
   }
   public get initialStateNodes(): Array<StateNode<TContext>> {
-    // todo - isLeafNode or something
-    if (!this.parallel && !this.initial) {
+    if (this.type === 'atomic') {
       return [this];
     }
 
@@ -1358,30 +1356,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (!this.states) {
       throw new Error(
         `Cannot retrieve subPath '${x}' from node with no states`
-      );
-    }
-
-    // TODO: remove (4.0)
-    if (x === HISTORY_KEY) {
-      if (!historyValue) {
-        return [this];
-      }
-
-      const subHistoryValue = nestedPath<HistoryValue>(this.path, 'states')(
-        historyValue
-      ).current;
-
-      if (typeof subHistoryValue === 'string') {
-        return this.states[subHistoryValue].getFromRelativePath(
-          xs,
-          historyValue
-        );
-      }
-
-      return flatten(
-        Object.keys(subHistoryValue!).map(key => {
-          return this.states[key].getFromRelativePath(xs, historyValue);
-        })
       );
     }
 

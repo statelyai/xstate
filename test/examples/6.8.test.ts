@@ -23,12 +23,13 @@ describe('Example 6.8', () => {
           },
           E: {
             on: { 4: 'B', 5: 'D' }
-          }
+          },
+          hist: { history: true }
         }
       },
       F: {
         on: {
-          5: 'A.$history'
+          5: 'A.hist'
         }
       }
     }

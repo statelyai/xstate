@@ -7,7 +7,7 @@ describe('history states', () => {
     initial: 'off',
     states: {
       off: {
-        on: { POWER: 'on.$history', H_POWER: 'on.H' }
+        on: { POWER: 'on.hist', H_POWER: 'on.H' }
       },
       on: {
         initial: 'first',
@@ -21,6 +21,9 @@ describe('history states', () => {
           third: {},
           H: {
             history: true
+          },
+          hist: {
+            history: 'shallow'
           }
         },
         on: {
@@ -76,7 +79,7 @@ describe('deep history states', () => {
     states: {
       off: {
         on: {
-          POWER: 'on.$history',
+          POWER: 'on.history',
           DEEP_POWER: 'on.deepHistory'
         }
       },
@@ -103,6 +106,7 @@ describe('deep history states', () => {
               }
             }
           },
+          history: { history: 'shallow' },
           deepHistory: {
             history: 'deep'
           }
@@ -114,7 +118,7 @@ describe('deep history states', () => {
     }
   });
 
-  describe('$history', () => {
+  describe('history', () => {
     // on.first -> on.second.A
     const state2A = historyMachine.transition({ on: 'first' }, 'SWITCH');
     // on.second.A -> on.second.B.P
@@ -158,10 +162,10 @@ describe('parallel history states', () => {
       off: {
         on: {
           SWITCH: 'on', // go to the initial states
-          POWER: 'on.$history',
+          POWER: 'on.hist',
           DEEP_POWER: 'on.deepHistory',
-          PARALLEL_HISTORY: [{ target: ['on.A.$history', 'on.K.$history'] }],
-          PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.$history'] }],
+          PARALLEL_HISTORY: [{ target: ['on.A.hist', 'on.K.hist'] }],
+          PARALLEL_SOME_HISTORY: [{ target: ['on.A.C', 'on.K.hist'] }],
           PARALLEL_DEEP_HISTORY: [
             { target: ['on.A.deepHistory', 'on.K.deepHistory'] }
           ]
@@ -185,6 +189,7 @@ describe('parallel history states', () => {
                   E: {}
                 }
               },
+              hist: { history: true },
               deepHistory: {
                 history: 'deep'
               }
@@ -205,10 +210,14 @@ describe('parallel history states', () => {
                   O: {}
                 }
               },
+              hist: { history: true },
               deepHistory: {
                 history: 'deep'
               }
             }
+          },
+          hist: {
+            history: true
           },
           shallowHistory: {
             history: 'shallow'
@@ -224,7 +233,7 @@ describe('parallel history states', () => {
     }
   });
 
-  describe('$history', () => {
+  describe('history', () => {
     // on.first -> on.second.A
     const stateABKL = historyMachine.transition(
       historyMachine.initialState,
