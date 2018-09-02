@@ -278,6 +278,7 @@ export type MaybeStateValueActionsTuple<TContext> = [
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext> {
   value: StateValue | undefined;
+  source: State<TContext> | undefined;
   entryExitStates: EntryExitStates<TContext> | undefined;
   actions: Array<Action<TContext>>;
   paths: string[][];

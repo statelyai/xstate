@@ -1,5 +1,33 @@
 import { Machine, matchesState } from '../src/index';
 import { assert } from 'chai';
+import { assign } from '../src/actions';
+
+const greetingMachine = Machine(
+  {
+    key: 'greeting',
+    initial: 'pending',
+    states: {
+      pending: {
+        on: {
+          '': [
+            { target: 'morning', cond: ctx => ctx.hour < 12 },
+            { target: 'afternoon', cond: ctx => ctx.hour < 18 },
+            { target: 'evening' }
+          ]
+        }
+      },
+      morning: {},
+      afternoon: {},
+      evening: {}
+    },
+    on: {
+      CHANGE: [{ actions: [assign({ hour: 20 })] }],
+      RECHECK: '#greeting'
+    }
+  },
+  {},
+  { hour: 10 }
+);
 
 describe('transient states (eventless transitions)', () => {
   const updateMachine = Machine<{ data: boolean; status?: string }>({
@@ -270,5 +298,23 @@ describe('transient states (eventless transitions)', () => {
     let state = machine.initialState; // A1, B1, C1
     state = machine.transition(state, 'A'); // A2, B2, C2
     assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C2' });
+  });
+
+  it('should determine the resolved initial state from the transient state', () => {
+    assert.deepEqual(greetingMachine.initialState.value, 'morning');
+  });
+
+  it('should determine the resolved state from a root transient state', () => {
+    const morningState = greetingMachine.initialState;
+    const stillMorningState = greetingMachine.transition(
+      morningState,
+      'CHANGE'
+    );
+    assert.deepEqual(stillMorningState.value, 'morning');
+    const eveningState = greetingMachine.transition(
+      stillMorningState,
+      'RECHECK'
+    );
+    assert.deepEqual(eveningState.value, 'evening');
   });
 });

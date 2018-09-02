@@ -311,6 +311,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       return {
         value,
+        source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
           exit: new Set<StateNode<TContext>>([
@@ -352,6 +353,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       return {
         value,
+        source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
           exit: new Set<StateNode<TContext>>([
@@ -414,6 +416,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       return {
         value,
+        source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
           exit: new Set([
@@ -437,6 +440,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     ) {
       return {
         value: this.machine.resolve(pathsToStateValue(allPaths)),
+        source: state,
         entryExitStates: Object.keys(transitionMap)
           .map(key => transitionMap[key].entryExitStates)
           .reduce(
@@ -482,6 +486,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     return {
       value: nextStateValue,
+      source: state,
       entryExitStates: Object.keys(transitionMap).reduce(
         (allEntryExitStates, key) => {
           const { value: subStateValue, entryExitStates } = transitionMap[key];
@@ -558,6 +563,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (!candidates || !candidates.length) {
       return {
         value: undefined,
+        source: state,
         entryExitStates: undefined,
         actions,
         paths: []
@@ -608,6 +614,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (selectedTransition! && nextStateStrings.length === 0) {
       return {
         value: state.value,
+        source: state,
         entryExitStates: undefined,
         actions,
         paths: []
@@ -617,6 +624,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (!selectedTransition! && nextStateStrings.length === 0) {
       return {
         value: undefined,
+        source: state,
         entryExitStates: undefined,
         actions,
         paths: []
@@ -664,6 +672,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
           )
         )
       ),
+      source: state,
       entryExitStates,
       actions,
       paths: nextStatePaths
@@ -867,22 +876,26 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       resolvedExtendedState
     );
 
-    return this.resolveTransition(stateTransition, eventObject, currentState);
+    return this.resolveTransition(stateTransition, currentState, eventObject);
   }
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
-    event: EventObject,
-    currentState: State<TContext>
+    currentState: State<TContext>,
+    event?: EventObject
   ): State<TContext> {
     const historyValue = currentState.historyValue
       ? currentState.historyValue
-      : (this.machine.historyValue(currentState.value) as HistoryValue);
+      : stateTransition.source
+        ? (this.machine.historyValue(currentState.value) as HistoryValue)
+        : undefined;
 
     try {
       this.ensureValidPaths(stateTransition.paths);
     } catch (e) {
       throw new Error(
-        `Event '${event.type}' leads to an invalid configuration: ${e.message}`
+        `Event '${
+          event ? event.type : 'none'
+        }' leads to an invalid configuration: ${e.message}`
       );
     }
 
@@ -916,7 +929,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
           let partialUpdate: Partial<TContext> = {};
 
           if (typeof assignment === 'function') {
-            partialUpdate = assignment(acc, event);
+            partialUpdate = assignment(acc, event || { type: 'xstate.init' });
           } else {
             Object.keys(assignment).forEach(key => {
               const propAssignment = assignment[key];
@@ -950,8 +963,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       ? new State<TContext>(
           stateTransition.value,
           updatedExtendedState,
-          StateNode.updateHistoryValue(historyValue, stateTransition.value),
-          currentState,
+          historyValue
+            ? StateNode.updateHistoryValue(historyValue, stateTransition.value)
+            : undefined,
+          stateTransition.source ? currentState : undefined,
           toActionObjects(nonEventActions, this.options.actions),
           activities,
           data,
@@ -1253,7 +1268,20 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       );
     }
 
-    return this.getState(initialStateValue);
+    const state = this.getState(initialStateValue);
+    return this.resolveTransition(
+      {
+        value: state.value,
+        source: undefined,
+        entryExitStates: {
+          entry: new Set(this.getStateNodes(state.value)),
+          exit: new Set()
+        },
+        actions: [],
+        paths: []
+      },
+      state
+    );
   }
   public get target(): StateValue | undefined {
     let target;
@@ -1331,8 +1359,8 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       return [this];
     }
 
-    const { initialState } = this;
-    const initialStateNodePaths = toStatePaths(initialState.value);
+    const { initialStateValue } = this;
+    const initialStateNodePaths = toStatePaths(initialStateValue!);
     return flatten(
       initialStateNodePaths.map(initialPath =>
         this.getFromRelativePath(initialPath)
