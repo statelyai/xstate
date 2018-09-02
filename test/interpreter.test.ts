@@ -135,4 +135,14 @@ describe('interpreter', () => {
       'should still be green due to canceled event'
     );
   });
+
+  it('should throw an error if an event is sent to an uninitialized interpreter', () => {
+    const interpreter = interpret(lightMachine, noop);
+
+    assert.throws(() => interpreter.send('SOME_EVENT'));
+
+    interpreter.init();
+
+    assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
+  });
 });

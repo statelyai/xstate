@@ -91,6 +91,7 @@ export class Interpreter<TContext> {
   public delayedEventsMap: Record<string | number, number> = {};
   public listeners: Set<StateListener> = new Set();
   public clock: Clock;
+  public initialized = false;
   constructor(
     public machine: Machine<TContext>,
     listener?: StateListener,
@@ -121,11 +122,27 @@ export class Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
-  public init(initialState: State<TContext> = this.machine.initialState): void {
+  public init(
+    initialState: State<TContext> = this.machine.initialState
+  ): Interpreter<TContext> {
     this.update(initialState);
+    this.initialized = true;
+    return this;
   }
   public send(event: Event): State<TContext> {
-    const nextState = this.machine.transition(this.state, event, this.extState);
+    const eventObject = toEventObject(event);
+    if (!this.initialized) {
+      throw new Error(
+        `Unable to send event "${
+          eventObject.type
+        }" to an uninitialized interpreter.`
+      );
+    }
+    const nextState = this.machine.transition(
+      this.state,
+      eventObject,
+      this.extState
+    );
 
     this.update(nextState, event);
     this.flushEventQueue();

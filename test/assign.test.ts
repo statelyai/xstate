@@ -4,6 +4,7 @@ import { Machine, actions } from '../src/index';
 interface CounterContext {
   count: number;
   foo: string;
+  maybe?: string;
 }
 
 const counterMachine = Machine<CounterContext>(
@@ -73,6 +74,15 @@ const counterMachine = Machine<CounterContext>(
                   count: 100,
                   foo: 'win'
                 }))
+              ]
+            }
+          ],
+          SET_MAYBE: [
+            {
+              actions: [
+                actions.assign<CounterContext>({
+                  maybe: 'defined'
+                })
               ]
             }
           ]
@@ -206,5 +216,18 @@ describe('assign', () => {
 
     assert.isDefined(nextState.context);
     assert.deepEqual(nextState.context, { count: 0, foo: 'bar' });
+  });
+
+  it('sets undefined properties', () => {
+    const { initialState } = counterMachine;
+
+    const nextState = counterMachine.transition(initialState, 'SET_MAYBE');
+
+    assert.isDefined(nextState.context.maybe);
+    assert.deepEqual(nextState.context, {
+      count: 0,
+      foo: 'bar',
+      maybe: 'defined'
+    });
   });
 });

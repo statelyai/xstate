@@ -1539,7 +1539,11 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       return {
         ...transitionConfig,
         target: undefined,
-        internal: true,
+        internal: transitionConfig
+          ? transitionConfig.internal === undefined
+            ? true
+            : transitionConfig.internal
+          : true,
         event
       };
     }
