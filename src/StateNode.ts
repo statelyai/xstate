@@ -860,15 +860,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       resolvedExtendedState
     );
 
-    const historyValue =
-      resolvedStateValue instanceof State
-        ? resolvedStateValue.historyValue
-          ? resolvedStateValue.historyValue
-          : (this.machine.historyValue(
-              resolvedStateValue.value
-            ) as HistoryValue)
-        : (this.machine.historyValue(resolvedStateValue) as HistoryValue);
-
     const stateTransition = this._transition(
       currentState.value,
       currentState,
@@ -876,11 +867,22 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       resolvedExtendedState
     );
 
+    return this.resolveTransition(stateTransition, eventObject, currentState);
+  }
+  private resolveTransition(
+    stateTransition: StateTransition<TContext>,
+    event: EventObject,
+    currentState: State<TContext>
+  ): State<TContext> {
+    const historyValue = currentState.historyValue
+      ? currentState.historyValue
+      : (this.machine.historyValue(currentState.value) as HistoryValue);
+
     try {
       this.ensureValidPaths(stateTransition.paths);
     } catch (e) {
       throw new Error(
-        `Event '${eventType}' leads to an invalid configuration: ${e.message}`
+        `Event '${event.type}' leads to an invalid configuration: ${e.message}`
       );
     }
 
@@ -907,28 +909,28 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext>>;
 
-    const updatedExtendedState = resolvedExtendedState
+    const updatedExtendedState = currentState.context
       ? assignActions.reduce((acc, assignAction) => {
           const { assignment } = assignAction;
 
           let partialUpdate: Partial<TContext> = {};
 
           if (typeof assignment === 'function') {
-            partialUpdate = assignment(acc, eventObject);
+            partialUpdate = assignment(acc, event);
           } else {
             Object.keys(assignment).forEach(key => {
               const propAssignment = assignment[key];
 
               partialUpdate[key] =
                 typeof propAssignment === 'function'
-                  ? propAssignment(acc, eventObject)
+                  ? propAssignment(acc, event)
                   : propAssignment;
             });
           }
 
           return Object.assign({}, acc, partialUpdate);
-        }, resolvedExtendedState)
-      : resolvedExtendedState;
+        }, currentState.context)
+      : currentState.context;
 
     const stateNodes = stateTransition.value
       ? this.getStateNodes(stateTransition.value)
