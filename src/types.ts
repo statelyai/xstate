@@ -78,7 +78,7 @@ export interface ActivityConfig<TContext> {
   stop?: Action<TContext>;
 }
 
-export type Activity = string;
+export type Activity<TContext> = string | ActivityDefinition<TContext>;
 
 export interface ActivityDefinition<TContext> {
   type: string;
@@ -121,14 +121,12 @@ export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
    * shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
-  states?:
-    | Record<string, SimpleOrCompoundStateNodeConfig<TContext>>
-    | undefined;
+  states?: Record<string, StateNodeConfig<TContext>> | undefined;
   on?: Record<string, Transition<TContext> | undefined>;
   onEntry?: Action<TContext> | Array<Action<TContext>>;
   onExit?: Action<TContext> | Array<Action<TContext>>;
   after?: DelayedTransitions<TContext>;
-  activities?: Activity[];
+  activities?: Array<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
   data?: TData;
@@ -137,7 +135,8 @@ export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   order?: number;
 }
 
-export interface StateNodeDefinition<TContext = DefaultContext, TData = any> {
+export interface StateNodeDefinition<TContext = DefaultContext, TData = any>
+  extends StateNodeConfig<TContext> {
   id: string;
   key: string;
   type: StateTypes;
@@ -170,13 +169,12 @@ export interface CompoundStateNodeConfig<TContext>
   extends StateNodeConfig<TContext> {
   initial?: string;
   parallel?: boolean;
-  states: Record<string, SimpleOrCompoundStateNodeConfig<TContext>>;
-  history?: false | undefined;
+  states: Record<string, StateNodeConfig<TContext>>;
 }
 
 export type SimpleOrCompoundStateNodeConfig<TContext> =
-  | CompoundStateNodeConfig<TContext>
-  | SimpleStateNodeConfig<TContext>;
+  | SimpleStateNodeConfig<TContext>
+  | CompoundStateNodeConfig<TContext>;
 
 export type ActionFunctionMap<TContext> = Record<
   string,
@@ -186,19 +184,14 @@ export interface MachineOptions<TContext> {
   guards?: Record<string, ConditionPredicate<TContext>>;
   actions?: ActionFunctionMap<TContext>;
 }
-export type MachineConfig<TContext> =
-  | StandardMachineConfig<TContext>
-  | ParallelMachineConfig<TContext>;
+export type MachineConfig<TContext> = CompoundStateNodeConfig<TContext>;
 
 export interface StandardMachineConfig<TContext>
-  extends CompoundStateNodeConfig<TContext> {
-  initial: string;
-  parallel?: false | undefined;
-}
+  extends CompoundStateNodeConfig<TContext> {}
 
 export interface ParallelMachineConfig<TContext>
   extends CompoundStateNodeConfig<TContext> {
-  initial?: undefined;
+  initial?: string | undefined;
   parallel: true;
 }
 

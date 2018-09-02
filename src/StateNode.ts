@@ -15,10 +15,7 @@ import {
   Event,
   StateValue,
   Action,
-  SimpleOrCompoundStateNodeConfig,
-  ParallelMachineConfig,
   EventType,
-  StandardMachineConfig,
   TransitionConfig,
   ActivityMap,
   EntryExitStates,
@@ -39,7 +36,8 @@ import {
   DelayedTransitionDefinition,
   ActivityDefinition,
   Delay,
-  StateTypes
+  StateTypes,
+  StateNodeConfig
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -67,12 +65,6 @@ const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext> => ({
   guards: EMPTY_OBJECT
 });
-
-type StateNodeConfig<TContext> = Readonly<
-  | SimpleOrCompoundStateNodeConfig<TContext>
-  | StandardMachineConfig<TContext>
-  | ParallelMachineConfig<TContext>
->;
 
 class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public key: string;
@@ -138,22 +130,22 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     this.order = _config.order || -1;
 
     this.states = (_config.states
-      ? mapValues<
-          SimpleOrCompoundStateNodeConfig<TContext>,
-          StateNode<TContext>
-        >(_config.states, (stateConfig, key, _, i) => {
-          const stateNode = new StateNode({
-            ...stateConfig,
-            key,
-            order: stateConfig.order === undefined ? stateConfig.order : i,
-            parent: this
-          });
-          Object.assign(this.idMap, {
-            [stateNode.id]: stateNode,
-            ...stateNode.idMap
-          });
-          return stateNode;
-        })
+      ? mapValues<StateNodeConfig<TContext>, StateNode<TContext>>(
+          _config.states,
+          (stateConfig, key, _, i) => {
+            const stateNode = new StateNode({
+              ...stateConfig,
+              key,
+              order: stateConfig.order === undefined ? stateConfig.order : i,
+              parent: this
+            });
+            Object.assign(this.idMap, {
+              [stateNode.id]: stateNode,
+              ...stateNode.idMap
+            });
+            return stateNode;
+          }
+        )
       : EMPTY_OBJECT) as Record<string, StateNode<TContext>>;
 
     // History config
@@ -194,11 +186,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       order: this.order || -1
     };
   }
-  public get config(): Readonly<
-    | SimpleOrCompoundStateNodeConfig<TContext>
-    | StandardMachineConfig<TContext>
-    | ParallelMachineConfig<TContext>
-  > {
+  public get config(): StateNodeConfig<TContext> {
     const { parent, ...config } = this._config;
 
     return config;

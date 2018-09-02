@@ -129,7 +129,7 @@ export class Interpreter<TContext> {
     this.initialized = true;
     return this;
   }
-  public send(event: Event): State<TContext> {
+  public send = (event: Event): State<TContext> => {
     const eventObject = toEventObject(event);
     if (!this.initialized) {
       throw new Error(
@@ -147,7 +147,8 @@ export class Interpreter<TContext> {
     this.update(nextState, event);
     this.flushEventQueue();
     return nextState;
-  }
+    // tslint:disable-next-line:semicolon
+  };
   private defer(sendAction: SendAction): number {
     return this.clock.setTimeout(
       () => this.send(sendAction.event),
