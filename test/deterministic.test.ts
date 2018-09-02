@@ -7,12 +7,14 @@ describe('deterministic machine', () => {
     states: {
       walk: {
         on: {
-          PED_COUNTDOWN: 'wait'
+          PED_COUNTDOWN: 'wait',
+          TIMER: undefined // forbidden event
         }
       },
       wait: {
         on: {
-          PED_COUNTDOWN: 'stop'
+          PED_COUNTDOWN: 'stop',
+          TIMER: undefined // forbidden event
         }
       },
       stop: {}
@@ -161,9 +163,7 @@ describe('deterministic machine', () => {
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      assert.equal(lightMachine.transition('red.wait', 'TIMER').value, 'green');
-
-      assert.equal(lightMachine.transition('red', 'TIMER').value, 'green');
+      assert.equal(lightMachine.transition('red.stop', 'TIMER').value, 'green');
     });
 
     it('should not transition from illegal events', () => {
@@ -215,6 +215,18 @@ describe('deterministic machine', () => {
       assert.deepEqual(
         machine.transition(machine.initialState, 'NEXT').value,
         'test'
+      );
+    });
+  });
+
+  describe('forbidden events', () => {
+    it('undefined transitions should forbid events', () => {
+      const walkState = lightMachine.transition('red.walk', 'TIMER');
+
+      assert.deepEqual(
+        walkState.value,
+        { red: 'walk' },
+        'Machine should not transition to "green" when in "red.walk"'
       );
     });
   });

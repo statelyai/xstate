@@ -1555,7 +1555,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     const formattedTransitions = mapValues(onConfig, (value, event) => {
       if (value === undefined) {
-        return [];
+        return [{ target: undefined, event }];
       }
 
       if (Array.isArray(value)) {
