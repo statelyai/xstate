@@ -38,7 +38,8 @@ import {
   AssignAction,
   DelayedTransitionDefinition,
   ActivityDefinition,
-  Delay
+  Delay,
+  StateTypes
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -51,7 +52,9 @@ import {
   toActivityDefinition,
   send,
   cancel,
-  after
+  after,
+  raise,
+  done
 } from './actions';
 
 const STATE_DELIMITER = '.';
@@ -77,6 +80,7 @@ type StateNodeConfig<TContext> = Readonly<
 class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public key: string;
   public id: string;
+  public type: StateTypes;
   public path: string[];
   public initial?: string;
   public parallel: boolean;
@@ -112,6 +116,15 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     public context?: Readonly<TContext>
   ) {
     this.key = _config.key || _config.id || '(machine)';
+    this.type =
+      _config.type ||
+      (_config.parallel
+        ? 'parallel'
+        : _config.states && Object.keys(_config.states).length
+          ? 'compound'
+          : _config.history
+            ? 'history'
+            : 'atomic');
     this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
@@ -168,7 +181,9 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   }
   public get definition(): StateNodeDefinition<TContext, TData> {
     return {
+      id: this.id,
       key: this.key,
+      type: this.type,
       initial: this.initial,
       parallel: this.parallel,
       history: this.history,
@@ -179,8 +194,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       after: this.after,
       activities: this.activities || EMPTY_ARRAY,
       data: this.data,
-      order: this.order || -1,
-      id: this.id
+      order: this.order || -1
     };
   }
   public get config(): Readonly<
@@ -967,6 +981,21 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     }
 
     return maybeNextState;
+  }
+  public isDone(relativeStateValue?: StateValue): boolean {
+    if (!relativeStateValue) {
+      return this.type === 'final';
+    }
+
+    if (typeof relativeStateValue === 'string') {
+      return this.getStateNode(relativeStateValue).isDone();
+    }
+
+    return Object.keys(relativeStateValue).every(key => {
+      const subStateNode = this.getStateNode(key);
+
+      return subStateNode.isDone(relativeStateValue[key]);
+    });
   }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<

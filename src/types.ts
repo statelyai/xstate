@@ -103,10 +103,18 @@ export type DelayedTransitions<TContext> =
     >
   | Array<DelayedTransitionConfig<TContext>>;
 
+export type StateTypes =
+  | 'atomic'
+  | 'compound'
+  | 'parallel'
+  | 'final'
+  | 'history';
+
 export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
+  type?: StateTypes;
   /**
    * Indicates whether the state node is a history state node, and what
    * type of history:
@@ -132,6 +140,7 @@ export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
 export interface StateNodeDefinition<TContext = DefaultContext, TData = any> {
   id: string;
   key: string;
+  type: StateTypes;
   initial: string | undefined;
   parallel: boolean | undefined;
   history: false | 'shallow' | 'deep' | undefined;
@@ -288,7 +297,8 @@ export enum ActionTypes {
   Cancel = 'xstate.cancel',
   Null = 'xstate.null',
   Assign = 'xstate.assign',
-  After = 'xstate.after'
+  After = 'xstate.after',
+  DoneState = 'done.state'
 }
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {

@@ -175,3 +175,7 @@ export function after(delay: number, id?: string) {
   const idSuffix = id ? `#${id}` : '';
   return `${ActionTypes.After}(${delay})${idSuffix}`;
 }
+
+export function done(id: string) {
+  return `${ActionTypes.DoneState}.${id}`;
+}
