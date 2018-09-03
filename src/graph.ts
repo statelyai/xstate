@@ -315,7 +315,7 @@ export function getSimplePaths<TContext = DefaultContext>(
 
 export function getSimplePathsAsArray<TContext = DefaultContext>(
   machine: StateNode<TContext>,
-  extendedState?: any
+  extendedState: TContext | undefined = machine.context
 ): PathsItem[] {
   const result = getSimplePaths(machine, extendedState);
   return Object.keys(result).map(key => ({

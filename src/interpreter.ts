@@ -116,10 +116,18 @@ export class Interpreter<TContext> {
   }
   /**
    * Adds a listener that is called whenever a state transition happens.
-   * @param listener
+   * @param listener The listener to add
    */
   public onTransition(listener: StateListener): Interpreter<TContext> {
     this.listeners.add(listener);
+    return this;
+  }
+  /**
+   * Removes a listener.
+   * @param listener The listener to remove
+   */
+  public off(listener: StateListener): Interpreter<TContext> {
+    this.listeners.delete(listener);
     return this;
   }
   public init(
