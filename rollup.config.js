@@ -29,9 +29,9 @@ export default [
   createConfig({
     input: 'src/graph.ts',
     output: {
-      file: 'dist/xstate.utils.js',
+      file: 'dist/xstate.graph.js',
       format: 'umd',
-      name: 'xstateUtils'
+      name: 'xstateGraph'
     }
   }),
   createConfig({
