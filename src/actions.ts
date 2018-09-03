@@ -93,9 +93,20 @@ export const toActionObject = <TContext>(
 };
 
 export function toActivityDefinition<TContext>(
-  action: Action<TContext> | ActivityDefinition<TContext>
+  action: string | ActionObject<TContext> | ActivityDefinition<TContext>
 ): ActivityDefinition<TContext> {
-  return toActionObject(action) as ActivityDefinition<TContext>;
+  const actionObject = toActionObject(action);
+
+  return {
+    ...actionObject,
+    type: actionObject.type,
+    start: actionObject.start
+      ? toActionObject(actionObject.start)
+      : actionObject.exec
+        ? toActionObject(actionObject.exec)
+        : undefined,
+    stop: actionObject.stop ? toActionObject(actionObject.stop) : undefined
+  };
 }
 
 export const toActionObjects = <TContext>(
@@ -133,26 +144,26 @@ export const cancel = (sendId: string | number): CancelAction => {
 };
 
 export function start<TContext>(
-  activity: Action<TContext> | ActivityDefinition<TContext>
+  activity: string | ActionObject<TContext> | ActivityDefinition<TContext>
 ): ActivityActionObject<TContext> {
-  const activityObject = toActivityDefinition(activity);
+  const activityDef = toActivityDefinition(activity);
 
   return {
     type: ActionTypes.Start,
-    activity: activityObject.type,
-    action: activityObject
+    activity: activityDef,
+    exec: activityDef.start ? activityDef.start.exec : undefined
   };
 }
 
 export function stop<TContext>(
-  activity: Action<TContext> | ActivityDefinition<TContext>
+  activity: string | ActionObject<TContext> | ActivityDefinition<TContext>
 ): ActivityActionObject<TContext> {
-  const activityObject = toActivityDefinition(activity);
+  const activityDef = toActivityDefinition(activity);
 
   return {
     type: ActionTypes.Stop,
-    activity: activityObject.type,
-    action: activityObject
+    activity: activityDef,
+    exec: activityDef.stop ? activityDef.stop.exec : undefined
   };
 }
 

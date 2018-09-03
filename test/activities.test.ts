@@ -36,27 +36,41 @@ const lightMachine = Machine({
 });
 
 describe('activities with guarded transitions', () => {
-  const machine = Machine({
-    initial: 'A',
-    states: {
-      A: {
-        on: {
-          E: 'B'
-        }
-      },
-      B: {
-        on: {
-          '': [{ cond: () => false, target: 'A' }]
+  const B_ACTIVITY = {
+    start: () => 'start B_ACTIVITY',
+    stop: () => 'stop B_ACTIVITY'
+  };
+  const machine = Machine(
+    {
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            E: 'B'
+          }
         },
-        activities: ['B_ACTIVITY']
+        B: {
+          on: {
+            '': [{ cond: () => false, target: 'A' }]
+          },
+          activities: ['B_ACTIVITY']
+        }
       }
-    }
-  });
+    },
+    { activities: { B_ACTIVITY } }
+  );
 
   it('should activate even if there are subsequent automatic, but blocked transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'E');
     assert.deepEqual(state.activities, { B_ACTIVITY: true });
+    assert.deepEqual(state.actions, [
+      start({ type: 'B_ACTIVITY', ...B_ACTIVITY })
+    ]);
+    assert.isFunction(
+      state.actions[0].exec,
+      'Activity start function should be defined'
+    );
   });
 });
 

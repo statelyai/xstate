@@ -37,7 +37,8 @@ import {
   ActivityDefinition,
   Delay,
   StateTypes,
-  StateNodeConfig
+  StateNodeConfig,
+  Activity
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -165,7 +166,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       : [];
     this.data = _config.data;
     this.activities = (_config.activities || EMPTY_ARRAY).map(activity =>
-      toActivityDefinition(activity)
+      this.resolveActivity(activity)
     );
   }
   public get definition(): StateNodeDefinition<TContext, TData> {
@@ -759,10 +760,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     const entryExitActions = {
       entry: transition.entryExitStates
         ? flatten(
-            Array.from(transition.entryExitStates.entry).map(n => [
-              ...n.onEntry,
-              ...n.activities.map(activity => start(activity)),
-              ...n.delays.map(({ delay, id }) =>
+            Array.from(transition.entryExitStates.entry).map(stateNode => [
+              ...stateNode.onEntry,
+              ...stateNode.activities.map(activity => start(activity)),
+              ...stateNode.delays.map(({ delay, id }) =>
                 send(after(delay, id), { delay })
               )
             ])
@@ -770,10 +771,12 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         : [],
       exit: transition.entryExitStates
         ? flatten(
-            Array.from(transition.entryExitStates.exit).map(n => [
-              ...n.onExit,
-              ...n.activities.map(activity => stop(activity)),
-              ...n.delays.map(({ delay, id }) => cancel(after(delay, id)))
+            Array.from(transition.entryExitStates.exit).map(stateNode => [
+              ...stateNode.onExit,
+              ...stateNode.activities.map(activity => stop(activity)),
+              ...stateNode.delays.map(({ delay, id }) =>
+                cancel(after(delay, id))
+              )
             ])
           )
         : []
@@ -793,6 +796,19 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     const { actions } = this.machine.options;
 
     return (actions ? actions[actionType] : actionType) || actionType;
+  }
+  private resolveActivity(
+    activity: Activity<TContext>
+  ): ActivityDefinition<TContext> {
+    const { activities } = this.machine.options;
+
+    if (typeof activity === 'string') {
+      return toActivityDefinition(
+        activities ? { type: activity, ...activities[activity] } : activity
+      );
+    }
+
+    return activity;
   }
   private _getActivities(
     entryExitStates?: EntryExitStates<TContext>,

@@ -80,8 +80,8 @@ export interface ActivityConfig<TContext> {
 
 export type Activity<TContext> = string | ActivityDefinition<TContext>;
 
-export interface ActivityDefinition<TContext> {
-  type: string;
+export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
+  type: ActionType;
   start?: ActionObject<TContext>;
   stop?: ActionObject<TContext>;
 }
@@ -98,7 +98,7 @@ export interface DelayedTransitionConfig<TContext>
 
 export type DelayedTransitions<TContext> =
   | Record<
-      number | string,
+      string,
       string | TransitionConfig<TContext> | Array<TransitionConfig<TContext>>
     >
   | Array<DelayedTransitionConfig<TContext>>;
@@ -142,7 +142,7 @@ export interface StateNodeDefinition<TContext = DefaultContext, TData = any>
   type: StateTypes;
   initial: string | undefined;
   parallel: boolean | undefined;
-  history: false | 'shallow' | 'deep' | undefined;
+  history: boolean | 'shallow' | 'deep' | undefined;
   states: Record<string, StateNodeDefinition<TContext>>;
   on: Record<string, Array<TransitionDefinition<TContext>>>;
   onEntry: Array<Action<TContext>>;
@@ -183,6 +183,7 @@ export type ActionFunctionMap<TContext> = Record<
 export interface MachineOptions<TContext> {
   guards?: Record<string, ConditionPredicate<TContext>>;
   actions?: ActionFunctionMap<TContext>;
+  activities?: Record<string, ActivityConfig<TContext>>;
 }
 export type MachineConfig<TContext> = CompoundStateNodeConfig<TContext>;
 
@@ -297,8 +298,8 @@ export enum ActionTypes {
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActionType;
-  action: ActionObject<TContext>;
+  activity: ActivityDefinition<TContext>;
+  exec: ActionFunction<TContext> | undefined;
 }
 
 export interface SendAction extends ActionObject<any> {

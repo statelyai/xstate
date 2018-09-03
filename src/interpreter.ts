@@ -88,7 +88,7 @@ export class Interpreter<TContext> {
   public state: State<TContext>;
   public extState: TContext;
   public eventQueue: EventObject[] = [];
-  public delayedEventsMap: Record<string | number, number> = {};
+  public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
   public clock: Clock;
   public initialized = false;
@@ -202,7 +202,7 @@ export class Interpreter<TContext> {
 
 export function interpret<TContext = DefaultContext>(
   machine: Machine<TContext>,
-  listener: StateListener,
+  listener?: StateListener,
   options?: InterpreterOptions
 ) {
   return new Interpreter(machine, listener, options);
