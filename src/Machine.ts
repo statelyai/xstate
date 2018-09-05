@@ -9,9 +9,9 @@ import { StateNode } from './StateNode';
 export function Machine<TContext = DefaultContext>(
   config: MachineConfig<TContext>,
   options?: MachineOptions<TContext>,
-  extendedState?: TContext
+  initialContext?: TContext
 ): Machine<TContext> {
-  return new StateNode<TContext>(config, options, extendedState) as Machine<
+  return new StateNode<TContext>(config, options, initialContext) as Machine<
     TContext
   >;
 }

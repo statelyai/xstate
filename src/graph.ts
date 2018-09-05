@@ -115,7 +115,7 @@ export function getEdges<TContext = DefaultContext>(
 
 export function getAdjacencyMap<TContext = DefaultContext>(
   node: StateNode<TContext>,
-  extendedState?: any
+  context?: TContext
 ): AdjacencyMap {
   const adjacency: AdjacencyMap = {};
 
@@ -131,7 +131,7 @@ export function getAdjacencyMap<TContext = DefaultContext>(
     adjacency[stateKey] = {};
 
     for (const event of events) {
-      const nextState = node.transition(stateValue, event, extendedState);
+      const nextState = node.transition(stateValue, event, context);
       adjacency[stateKey][event] = { state: nextState.value };
 
       findAdjacencies(nextState.value);
@@ -190,12 +190,12 @@ export function getValueAdjacencyMap<TContext = DefaultContext>(
 
 export function getShortestPaths<TContext = DefaultContext>(
   machine: StateNode<TContext>,
-  extendedState?: any
+  context?: TContext
 ): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;
   }
-  const adjacency = getAdjacencyMap(machine, extendedState);
+  const adjacency = getAdjacencyMap(machine, context);
   const initialStateId = JSON.stringify(machine.initialState.value);
   const pathMap: PathMap = {
     [initialStateId]: []
@@ -255,9 +255,9 @@ export function getShortestPaths<TContext = DefaultContext>(
 
 export function getShortestPathsAsArray<TContext = DefaultContext>(
   machine: StateNode<TContext>,
-  extendedState?: any
+  context?: TContext
 ): PathItem[] {
-  const result = getShortestPaths(machine, extendedState);
+  const result = getShortestPaths(machine, context);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
@@ -266,13 +266,13 @@ export function getShortestPathsAsArray<TContext = DefaultContext>(
 
 export function getSimplePaths<TContext = DefaultContext>(
   machine: StateNode<TContext>,
-  extendedState?: any
+  context?: TContext
 ): PathsMap {
   if (!machine.states) {
     return EMPTY_MAP;
   }
 
-  const adjacency = getAdjacencyMap(machine, extendedState);
+  const adjacency = getAdjacencyMap(machine, context);
   const visited = new Set();
   const path: Segment[] = [];
   const paths: PathsMap = {};
@@ -315,9 +315,9 @@ export function getSimplePaths<TContext = DefaultContext>(
 
 export function getSimplePathsAsArray<TContext = DefaultContext>(
   machine: StateNode<TContext>,
-  extendedState: TContext | undefined = machine.context
+  context?: TContext
 ): PathsItem[] {
-  const result = getSimplePaths(machine, extendedState);
+  const result = getSimplePaths(machine, context);
   return Object.keys(result).map(key => ({
     state: JSON.parse(key),
     paths: result[key]

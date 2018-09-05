@@ -13,13 +13,13 @@ import { stateValuesEqual } from './utils';
 export class State<TContext> implements StateInterface<TContext> {
   public static from<T>(
     stateValue: State<T> | StateValue,
-    extendedState: T
+    context: T
   ): State<T> {
     if (stateValue instanceof State) {
-      if (stateValue.context !== extendedState) {
+      if (stateValue.context !== context) {
         return new State<T>(
           stateValue.value,
-          extendedState,
+          context,
           stateValue.historyValue,
           stateValue.history,
           [],
@@ -34,7 +34,7 @@ export class State<TContext> implements StateInterface<TContext> {
 
     return new State(
       stateValue,
-      extendedState,
+      context,
       undefined,
       undefined,
       [],

@@ -21,7 +21,7 @@ export type DefaultData = Record<string, any>;
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
 export interface ActionFunction<TContext> {
-  (extendedState: TContext, event?: EventObject): any | void;
+  (context: TContext, event?: EventObject): any | void;
   name: string;
 }
 export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
@@ -49,7 +49,7 @@ export interface HistoryValue {
 }
 
 export type ConditionPredicate<TContext> = (
-  extendedState: TContext,
+  context: TContext,
   event: EventObject,
   microstepState: StateValue
 ) => boolean;

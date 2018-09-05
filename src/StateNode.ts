@@ -288,16 +288,16 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     stateValue: string,
     state: State<TContext>,
     eventObject: EventObject,
-    extendedState?: TContext
+    context?: TContext
   ): StateTransition<TContext> {
     const stateNode = this.getStateNode(stateValue);
-    const next = stateNode._next(state, eventObject, extendedState);
+    const next = stateNode.next(state, eventObject, context);
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this.next(
         state,
         eventObject,
-        extendedState
+        context
       );
 
       return {
@@ -319,11 +319,11 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     return next;
   }
-  private _transitionHierarchicalNode(
+  private transitionNestedNode(
     stateValue: StateValueMap,
     state: State<TContext>,
     eventObject: EventObject,
-    extendedState?: TContext
+    context?: TContext
   ): StateTransition<TContext> {
     const subStateKeys = Object.keys(stateValue);
 
@@ -332,14 +332,14 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       stateValue[subStateKeys[0]],
       state,
       eventObject,
-      extendedState
+      context
     );
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this.next(
         state,
         eventObject,
-        extendedState
+        context
       );
 
       return {
@@ -368,7 +368,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     stateValue: StateValueMap,
     state: State<TContext>,
     eventObject: EventObject,
-    extendedState?: TContext
+    context?: TContext
   ): StateTransition<TContext> {
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext>> = {};
@@ -386,7 +386,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         subStateValue,
         state,
         eventObject,
-        extendedState
+        context
       );
 
       if (!next.value) {
@@ -401,10 +401,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     );
 
     if (!willTransition) {
-      const { value, entryExitStates, actions, paths } = this._next(
+      const { value, entryExitStates, actions, paths } = this.next(
         state,
         eventObject,
-        extendedState
+        context
       );
 
       return {
@@ -517,30 +517,25 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     stateValue: StateValue,
     state: State<TContext>,
     event: EventObject,
-    extendedState?: TContext
+    context?: TContext
   ): StateTransition<TContext> {
     // leaf node
     if (typeof stateValue === 'string') {
-      return this._transitionLeafNode(stateValue, state, event, extendedState);
+      return this._transitionLeafNode(stateValue, state, event, context);
     }
 
     // hierarchical node
     if (Object.keys(stateValue).length === 1) {
-      return this._transitionHierarchicalNode(
-        stateValue,
-        state,
-        event,
-        extendedState
-      );
+      return this.transitionNestedNode(stateValue, state, event, context);
     }
 
     // orthogonal node
-    return this.transitionParallelNode(stateValue, state, event, extendedState);
+    return this.transitionParallelNode(stateValue, state, event, context);
   }
-  private _next(
+  private next(
     state: State<TContext>,
     eventObject: EventObject,
-    extendedState?: TContext
+    context?: TContext
   ): StateTransition<TContext> {
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
@@ -567,7 +562,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         in: stateIn
         // actions: transitionActions
       } = candidate as TransitionConfig<TContext>;
-      const extendedStateObject = extendedState || (EMPTY_OBJECT as TContext);
+      const resolvedContext = context || (EMPTY_OBJECT as TContext);
 
       const isInState = stateIn
         ? matchesState(
@@ -578,12 +573,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       if (
         (!cond ||
-          this.evaluateCond(
-            cond,
-            extendedStateObject,
-            eventObject,
-            state.value
-          )) &&
+          this.evaluateCond(cond, resolvedContext, eventObject, state.value)) &&
         isInState
       ) {
         nextStateStrings = Array.isArray(candidate.target)
@@ -739,7 +729,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   }
   private evaluateCond(
     condition: Condition<TContext>,
-    extendedState: TContext,
+    context: TContext,
     eventObject: EventObject,
     interimState: StateValue
   ): boolean {
@@ -760,7 +750,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       condFn = condition;
     }
 
-    return condFn(extendedState, eventObject, interimState);
+    return condFn(context, eventObject, interimState);
   }
   public get delays(): Delay[] {
     const delays = Array.from(
@@ -907,7 +897,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         : state instanceof State
           ? state
           : this.resolve(state);
-    const resolvedExtendedState =
+    const resolvedContext =
       context ||
       ((state instanceof State ? state.context : undefined) as TContext);
     const eventObject = toEventObject(event);
@@ -923,14 +913,14 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     const currentState = State.from<TContext>(
       resolvedStateValue,
-      resolvedExtendedState
+      resolvedContext
     );
 
     const stateTransition = this._transition(
       currentState.value,
       currentState,
       eventObject,
-      resolvedExtendedState
+      resolvedContext
     );
 
     return this.resolveTransition(stateTransition, currentState, eventObject);
@@ -979,7 +969,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext>>;
 
-    const updatedExtendedState = currentState.context
+    const updatedContext = currentState.context
       ? assignActions.reduce((acc, assignAction) => {
           const { assignment } = assignAction;
 
@@ -1021,7 +1011,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     const nextState = stateTransition.value
       ? new State<TContext>(
           stateTransition.value,
-          updatedExtendedState,
+          updatedContext,
           historyValue
             ? StateNode.updateHistoryValue(historyValue, stateTransition.value)
             : undefined,
@@ -1035,7 +1025,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     if (!nextState) {
       // Unchanged state should be returned with no actions
-      return State.inert<TContext>(currentState, updatedExtendedState);
+      return State.inert<TContext>(currentState, updatedContext);
     }
 
     // Dispose of previous histories to prevent memory leaks
@@ -1258,7 +1248,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext>>;
 
-    const updatedExtendedState = context
+    const updatedContext = context
       ? assignActions.reduce((acc, assignAction) => {
           const { assignment } = assignAction;
 
@@ -1283,7 +1273,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     const initialNextState = new State<TContext>(
       stateValue,
-      updatedExtendedState,
+      updatedContext,
       undefined,
       undefined,
       toActionObjects(actions, this.options.actions),
