@@ -287,16 +287,16 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   private _transitionLeafNode(
     stateValue: string,
     state: State<TContext>,
-    event: Event,
+    eventObject: EventObject,
     extendedState?: TContext
   ): StateTransition<TContext> {
     const stateNode = this.getStateNode(stateValue);
-    const next = stateNode._next(state, event, extendedState);
+    const next = stateNode._next(state, eventObject, extendedState);
 
     if (!next.value) {
       const { value, entryExitStates, actions, paths } = this._next(
         state,
-        event,
+        eventObject,
         extendedState
       );
 
@@ -322,7 +322,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   private _transitionHierarchicalNode(
     stateValue: StateValueMap,
     state: State<TContext>,
-    event: Event,
+    eventObject: EventObject,
     extendedState?: TContext
   ): StateTransition<TContext> {
     const subStateKeys = Object.keys(stateValue);
@@ -331,14 +331,14 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     const next = stateNode._transition(
       stateValue[subStateKeys[0]],
       state,
-      event,
+      eventObject,
       extendedState
     );
 
     if (!next.value) {
       const { value, entryExitStates, actions, paths } = this._next(
         state,
-        event,
+        eventObject,
         extendedState
       );
 
@@ -367,7 +367,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext>,
-    event: Event,
+    eventObject: EventObject,
     extendedState?: TContext
   ): StateTransition<TContext> {
     const noTransitionKeys: string[] = [];
@@ -385,7 +385,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       const next = subStateNode._transition(
         subStateValue,
         state,
-        event,
+        eventObject,
         extendedState
       );
 
@@ -403,7 +403,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (!willTransition) {
       const { value, entryExitStates, actions, paths } = this._next(
         state,
-        event,
+        eventObject,
         extendedState
       );
 
@@ -516,7 +516,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public _transition(
     stateValue: StateValue,
     state: State<TContext>,
-    event: Event,
+    event: EventObject,
     extendedState?: TContext
   ): StateTransition<TContext> {
     // leaf node
@@ -539,10 +539,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   }
   private _next(
     state: State<TContext>,
-    event: Event,
+    eventObject: EventObject,
     extendedState?: TContext
   ): StateTransition<TContext> {
-    const eventType = getEventType(event);
+    const eventType = eventObject.type;
     const candidates = this.on[eventType];
     const actions: Array<Action<TContext>> = this.transient
       ? [{ type: actionTypes.null }]
@@ -568,7 +568,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         // actions: transitionActions
       } = candidate as TransitionConfig<TContext>;
       const extendedStateObject = extendedState || (EMPTY_OBJECT as TContext);
-      const eventObject = toEventObject(event); // TODO: coerce early
 
       const isInState = stateIn
         ? matchesState(
@@ -900,7 +899,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public transition(
     state: StateValue | State<TContext>,
     event: Event,
-    extendedState?: TContext
+    context?: TContext
   ): State<TContext> {
     const resolvedStateValue =
       typeof state === 'string'
@@ -909,10 +908,9 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
           ? state
           : this.resolve(state);
     const resolvedExtendedState =
-      extendedState ||
+      context ||
       ((state instanceof State ? state.context : undefined) as TContext);
     const eventObject = toEventObject(event);
-
     const eventType = eventObject.type;
 
     if (this.strict) {
@@ -931,7 +929,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     const stateTransition = this._transition(
       currentState.value,
       currentState,
-      event,
+      eventObject,
       resolvedExtendedState
     );
 
