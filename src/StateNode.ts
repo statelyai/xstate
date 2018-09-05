@@ -38,7 +38,8 @@ import {
   Delay,
   StateTypes,
   StateNodeConfig,
-  Activity
+  Activity,
+  StateNodeValueTree
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -51,7 +52,10 @@ import {
   toActivityDefinition,
   send,
   cancel,
-  after
+  after,
+  done,
+  raise
+  // done
 } from './actions';
 
 const STATE_DELIMITER = '.';
@@ -362,7 +366,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     return next;
   }
-  private _transitionOrthogonalNode(
+  private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext>,
     event: Event,
@@ -378,7 +382,9 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         return;
       }
 
-      const next = this.getStateNode(subStateKey)._transition(
+      const subStateNode = this.getStateNode(subStateKey);
+
+      const next = subStateNode._transition(
         subStateValue,
         state,
         event,
@@ -531,12 +537,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     }
 
     // orthogonal node
-    return this._transitionOrthogonalNode(
-      stateValue,
-      state,
-      event,
-      extendedState
-    );
+    return this.transitionParallelNode(stateValue, state, event, extendedState);
   }
   private _next(
     state: State<TContext>,
@@ -569,7 +570,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         // actions: transitionActions
       } = candidate as TransitionConfig<TContext>;
       const extendedStateObject = extendedState || (EMPTY_OBJECT as TContext);
-      const eventObject = toEventObject(event);
+      const eventObject = toEventObject(event); // TODO: coerce early
 
       const isInState = stateIn
         ? matchesState(
@@ -580,7 +581,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       if (
         (!cond ||
-          this._evaluateCond(
+          this.evaluateCond(
             cond,
             extendedStateObject,
             eventObject,
@@ -630,7 +631,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     const entryExitStates = nextStateNodes.reduce(
       (allEntryExitStates, nextStateNode) => {
-        const { entry, exit } = this._getEntryExitStates(
+        const { entry, exit } = this.getEntryExitStates(
           nextStateNode,
           !!selectedTransition.internal
         );
@@ -667,7 +668,27 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       paths: nextStatePaths
     };
   }
-  private _getEntryExitStates(
+  private getStateNodeValueTree(stateValue: StateValue): StateNodeValueTree {
+    if (typeof stateValue === 'string') {
+      return {
+        stateNode: this,
+        value: {
+          [stateValue]: {
+            stateNode: this.getStateNode(stateValue),
+            value: undefined
+          }
+        }
+      };
+    }
+
+    return {
+      stateNode: this,
+      value: mapValues(stateValue, (subValue, key) => {
+        return this.getStateNode(key).getStateNodeValueTree(subValue);
+      })
+    };
+  }
+  private getEntryExitStates(
     nextStateNode: StateNode<TContext>,
     internal: boolean
   ): EntryExitStates<TContext> {
@@ -719,7 +740,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       exit: new Set(entryExitStates.exit)
     };
   }
-  private _evaluateCond(
+  private evaluateCond(
     condition: Condition<TContext>,
     extendedState: TContext,
     eventObject: EventObject,
@@ -754,20 +775,56 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       delay
     }));
   }
-  private _getActions(
+  private getActions(
     transition: StateTransition<TContext>
   ): Array<Action<TContext>> {
+    // console.log(raise);
+    const doneEvents: Set<string> = new Set();
     const entryExitActions = {
       entry: transition.entryExitStates
         ? flatten(
-            Array.from(transition.entryExitStates.entry).map(stateNode => [
-              ...stateNode.onEntry,
-              ...stateNode.activities.map(activity => start(activity)),
-              ...stateNode.delays.map(({ delay, id }) =>
-                send(after(delay, id), { delay })
-              )
-            ])
-          )
+            Array.from(transition.entryExitStates.entry).map(stateNode => {
+              if (stateNode.type === 'final') {
+                const stateTree = this.getStateNodeValueTree(transition.value!);
+                doneEvents.add(done(stateNode.id));
+                const grandparent = stateNode.parent
+                  ? stateNode.parent.parent
+                  : undefined;
+
+                if (grandparent) {
+                  const grandparentPath = grandparent.path;
+                  const grandparentTree = nestedPath(grandparentPath, 'value')(
+                    stateTree
+                  ) as StateNodeValueTree;
+
+                  const isDone = Object.keys(grandparentTree.value!).every(
+                    key => {
+                      return Object.keys(
+                        grandparentTree.value![key].value!
+                      ).every(subKey => {
+                        return (
+                          grandparentTree.value![key].value![subKey].stateNode
+                            .type === 'final'
+                        );
+                      });
+                    }
+                  );
+
+                  if (isDone) {
+                    doneEvents.add(done(grandparentTree.stateNode.id));
+                  }
+                }
+              }
+
+              return [
+                ...stateNode.onEntry,
+                ...stateNode.activities.map(activity => start(activity)),
+                ...stateNode.delays.map(({ delay, id }) =>
+                  send(after(delay, id), { delay })
+                )
+              ];
+            })
+          ).concat(Array.from(doneEvents).map(raise))
         : [],
       exit: transition.entryExitStates
         ? flatten(
@@ -903,7 +960,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       );
     }
 
-    const actions = this._getActions(stateTransition);
+    const actions = this.getActions(stateTransition);
     const activities = this._getActivities(
       stateTransition.entryExitStates,
       currentState.activities
@@ -999,21 +1056,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     }
 
     return maybeNextState;
-  }
-  public isDone(relativeStateValue?: StateValue): boolean {
-    if (!relativeStateValue) {
-      return this.type === 'final';
-    }
-
-    if (typeof relativeStateValue === 'string') {
-      return this.getStateNode(relativeStateValue).isDone();
-    }
-
-    return Object.keys(relativeStateValue).every(key => {
-      const subStateNode = this.getStateNode(key);
-
-      return subStateNode.isDone(relativeStateValue[key]);
-    });
   }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<
@@ -1359,7 +1401,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     );
   }
   public get initialStateNodes(): Array<StateNode<TContext>> {
-    if (this.type === 'atomic') {
+    if (this.type === 'atomic' || this.type === 'final') {
       return [this];
     }
 
