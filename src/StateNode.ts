@@ -1011,8 +1011,10 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       raisedEvents.push({ type: actionTypes.null });
     }
 
-    const data = stateNodes.reduce((acc, stateNode) => {
-      acc[stateNode.id] = stateNode.data;
+    const data = [this, ...stateNodes].reduce((acc, stateNode) => {
+      if (stateNode.data !== undefined) {
+        acc[stateNode.id] = stateNode.data;
+      }
       return acc;
     }, {});
 
