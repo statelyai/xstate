@@ -112,7 +112,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     this.key = _config.key || _config.id || '(machine)';
     this.type =
       _config.type ||
-      (_config.parallel
+      (_config.parallel // TODO: deprecate
         ? 'parallel'
         : _config.states && Object.keys(_config.states).length
           ? 'compound'
@@ -131,7 +131,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
     this.initial = _config.initial;
-    this.parallel = !!_config.parallel;
     this.order = _config.order || -1;
 
     this.states = (_config.states
@@ -179,7 +178,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       key: this.key,
       type: this.type,
       initial: this.initial,
-      parallel: this.parallel,
       history: this.history,
       states: mapValues(this.states, state => state.definition),
       on: this.on,
@@ -1072,7 +1070,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
       while (marker.parent) {
         if (visitedParents.has(marker.parent)) {
-          if (marker.parent.parallel) {
+          if (marker.parent.type === 'parallel') {
             continue outer;
           }
 
@@ -1154,7 +1152,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         : stateValue;
     }
 
-    if (this.parallel) {
+    if (this.type === 'parallel') {
       return mapValues(
         this.initialStateValue as Record<string, StateValue>,
         (subStateValue, subStateKey) => {
@@ -1177,7 +1175,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   private get resolvedStateValue(): StateValue {
     const { key } = this;
 
-    if (this.parallel) {
+    if (this.type === 'parallel') {
       return {
         [key]: mapFilterValues(
           this.states,
@@ -1216,7 +1214,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       return this.__cache.initialState;
     }
 
-    const initialStateValue = (this.parallel
+    const initialStateValue = (this.type === 'parallel'
       ? mapFilterValues(
           this.states as Record<string, StateNode<TContext>>,
           state => state.initialStateValue || EMPTY_OBJECT,

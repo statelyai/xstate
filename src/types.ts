@@ -146,7 +146,6 @@ export interface StateNodeDefinition<TContext = DefaultContext, TData = any>
   key: string;
   type: StateTypes;
   initial: string | undefined;
-  parallel: boolean | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
   states: Record<string, StateNodeDefinition<TContext>>;
   on: Record<string, Array<TransitionDefinition<TContext>>>;
@@ -198,7 +197,8 @@ export interface StandardMachineConfig<TContext>
 export interface ParallelMachineConfig<TContext>
   extends CompoundStateNodeConfig<TContext> {
   initial?: string | undefined;
-  parallel: true;
+  parallel?: true;
+  type?: 'parallel';
 }
 
 export interface EntryExitEffectMap<TContext> {
