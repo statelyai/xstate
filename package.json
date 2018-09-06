@@ -26,7 +26,7 @@
     "version": "npm run build",
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
-    "publish:beta": "npm version patch && npm publish --tag beta"
+    "publish:next": "npm version prelease && npm publish --tag next"
   },
   "repository": {
     "type": "git",
