@@ -58,6 +58,31 @@ const machine = Machine({
   }
 });
 
+const lightMachine = Machine({
+  id: 'light',
+  initial: 'green',
+  states: {
+    green: { on: { TIMER: 'yellow' } },
+    yellow: { on: { TIMER: 'red' } },
+    red: {
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {},
+        stop: {}
+      },
+      on: {
+        TIMER: [
+          {
+            target: 'green',
+            in: { red: 'stop' }
+          }
+        ]
+      }
+    }
+  }
+});
+
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
     assert.deepEqual(
@@ -151,6 +176,24 @@ describe('transition "in" check', () => {
           }
         }
       }
+    );
+  });
+
+  it('should work to forbid events', () => {
+    const walkState = lightMachine.transition('red.walk', 'TIMER');
+
+    assert.deepEqual(walkState.value, { red: 'walk' });
+
+    const waitState = lightMachine.transition('red.wait', 'TIMER');
+
+    assert.deepEqual(waitState.value, { red: 'wait' });
+
+    const stopState = lightMachine.transition('red.stop', 'TIMER');
+
+    assert.deepEqual(
+      stopState.value,
+      'green',
+      'Transition allowed due to "in" clause'
     );
   });
 });

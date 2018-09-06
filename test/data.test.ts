@@ -74,11 +74,14 @@ describe('state data', () => {
   });
 
   it('states should aggregate data', () => {
-    assert.deepEqual(lightMachine.transition('green', 'TIMER').data, {
+    const yellowState = lightMachine.transition('green', 'TIMER');
+    assert.deepEqual(yellowState.data, {
       'light.yellow': {
         yellowData: 'yellow data'
       }
     });
+    assert.notProperty(yellowState.data, 'light.green');
+    assert.notProperty(yellowState.data, 'light');
   });
 
   it('states should aggregate data (deep)', () => {

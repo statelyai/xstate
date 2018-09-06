@@ -14,7 +14,8 @@
     ],
     "types": [
       "mocha",
-      "node"
+      "node",
+      "core-js"
     ]
   },
   "include": [

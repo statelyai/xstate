@@ -23,12 +23,13 @@ describe('Example 6.8', () => {
           },
           E: {
             on: { 4: 'B', 5: 'D' }
-          }
+          },
+          hist: { history: true }
         }
       },
       F: {
         on: {
-          5: 'A.$history'
+          5: 'A.hist'
         }
       }
     }
@@ -72,6 +73,6 @@ describe('Example 6.8', () => {
     const stateF = machine.transition(stateC, 6);
     const stateActual = machine.transition(stateF, 5);
 
-    assert.equal(stateActual.toString(), 'A.C');
+    assert.deepEqual(stateActual.value, { A: 'C' });
   });
 });

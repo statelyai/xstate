@@ -80,12 +80,17 @@ export function pathToStateValue(statePath: string[]): StateValue {
 
 export function mapValues<T, P>(
   collection: { [key: string]: T },
-  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
+  iteratee: (
+    item: T,
+    key: string,
+    collection: { [key: string]: T },
+    i: number
+  ) => P
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
-    result[key] = iteratee(collection[key], key, collection);
+  Object.keys(collection).forEach((key, i) => {
+    result[key] = iteratee(collection[key], key, collection, i);
   });
 
   return result;
@@ -151,7 +156,7 @@ export const toStatePaths = (stateValue: StateValue): string[][] => {
     return [[stateValue]];
   }
 
-  const result = flatMap(
+  const result = flatten(
     Object.keys(stateValue).map(key => {
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
@@ -187,6 +192,20 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
   return result;
 };
 
-export const flatMap = <T>(array: T[][]): T[] => {
-  return array.reduce((a, b) => a.concat(b), []);
+export const flatten = <T>(array: T[][]): T[] => {
+  return ([] as T[]).concat(...array);
 };
+
+export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every(key => stateValuesEqual(a[key], b[key]))
+  );
+}

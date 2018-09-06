@@ -3,41 +3,24 @@ import {
   Event,
   EventType,
   EventObject,
-  ActivityAction,
   SendAction,
   SendActionOptions,
   CancelAction,
   ActionObject,
-  ActionType
+  ActionType,
+  Assigner,
+  PropertyAssigner,
+  AssignAction,
+  ActionFunction,
+  ActionFunctionMap,
+  ActivityActionObject,
+  ActionTypes,
+  ActivityDefinition
 } from './types';
+import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
 
-const PREFIX = 'xstate';
-
-// xstate-specific action types
-export const actionTypes = {
-  start: `${PREFIX}.start`,
-  stop: `${PREFIX}.stop`,
-  raise: `${PREFIX}.raise`,
-  send: `${PREFIX}.send`,
-  cancel: `${PREFIX}.cancel`,
-  null: `${PREFIX}.null`,
-  assign: `${PREFIX}.assign`
-};
-
-const createActivityAction = (actionType: string) => (
-  activity: ActionType | ActionObject
-): ActivityAction => {
-  const data =
-    typeof activity === 'string' || typeof activity === 'number'
-      ? { type: activity }
-      : activity;
-  return {
-    type: actionType,
-    activity: getEventType(activity),
-    data
-  };
-};
+export { actionTypes };
 
 export const toEventObject = (
   event: Event,
@@ -55,34 +38,88 @@ export const toEventObject = (
   return event;
 };
 
-export const toActionObject = (action: Action<any>): ActionObject => {
-  let actionObject: ActionObject;
+function getActionFunction<TContext>(
+  actionType: ActionType,
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): ActionFunction<TContext> | undefined {
+  if (!actionFunctionMap) {
+    return undefined;
+  }
+  const actionReference = actionFunctionMap[actionType];
+
+  if (!actionReference) {
+    return undefined;
+  }
+
+  if (typeof actionReference === 'function') {
+    return actionReference;
+  }
+
+  return actionReference.exec;
+}
+
+export const toActionObject = <TContext>(
+  action: Action<TContext>,
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): ActionObject<TContext> => {
+  let actionObject: ActionObject<TContext>;
 
   if (typeof action === 'string' || typeof action === 'number') {
-    actionObject = { type: action };
+    actionObject = {
+      type: action,
+      exec: getActionFunction(action, actionFunctionMap)
+    };
   } else if (typeof action === 'function') {
-    actionObject = { type: action.name };
+    actionObject = {
+      type: action.name,
+      exec: action
+    };
   } else {
-    return action;
+    const exec = getActionFunction(action.type, actionFunctionMap);
+    return exec
+      ? {
+          ...action,
+          exec
+        }
+      : action;
   }
 
   Object.defineProperty(actionObject, 'toString', {
-    value: () => actionObject.type
+    value: () => actionObject.type,
+    enumerable: false
   });
 
   return actionObject;
 };
 
-export const toActionObjects = <TExtState = any>(
-  action: Array<Action<TExtState> | Action<TExtState>> | undefined
-): ActionObject[] => {
+export function toActivityDefinition<TContext>(
+  action: string | ActionObject<TContext> | ActivityDefinition<TContext>
+): ActivityDefinition<TContext> {
+  const actionObject = toActionObject(action);
+
+  return {
+    ...actionObject,
+    type: actionObject.type,
+    start: actionObject.start
+      ? toActionObject(actionObject.start)
+      : actionObject.exec
+        ? toActionObject(actionObject.exec)
+        : undefined,
+    stop: actionObject.stop ? toActionObject(actionObject.stop) : undefined
+  };
+}
+
+export const toActionObjects = <TContext>(
+  action: Array<Action<TContext> | Action<TContext>> | undefined,
+  actionFunctionMap?: ActionFunctionMap<TContext>
+): Array<ActionObject<TContext>> => {
   if (!action) {
     return [];
   }
 
   const actions = Array.isArray(action) ? action : [action];
 
-  return actions.map(toActionObject);
+  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
 
 export const raise = (eventType: EventType): EventObject => ({
@@ -106,30 +143,50 @@ export const cancel = (sendId: string | number): CancelAction => {
   };
 };
 
-export const start = createActivityAction(actionTypes.start);
-export const stop = createActivityAction(actionTypes.stop);
+export function start<TContext>(
+  activity: string | ActionObject<TContext> | ActivityDefinition<TContext>
+): ActivityActionObject<TContext> {
+  const activityDef = toActivityDefinition(activity);
 
-export type Assigner<TExtState extends {} = {}> = (
-  extState: TExtState,
-  event: EventObject
-) => Partial<TExtState>;
-export type PropertyAssigner<T> = Partial<
-  { [K in keyof T]: T[K] | ((extState: T, event: EventObject) => T[K]) }
->;
-
-export interface AssignAction<TExtState extends {} = {}> extends ActionObject {
-  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>;
+  return {
+    type: ActionTypes.Start,
+    activity: activityDef,
+    exec: activityDef.start ? activityDef.start.exec : undefined
+  };
 }
 
-export const assign = <TExtState>(
-  assignment: Assigner<TExtState> | PropertyAssigner<TExtState>
-): AssignAction<TExtState> => {
+export function stop<TContext>(
+  activity: string | ActionObject<TContext> | ActivityDefinition<TContext>
+): ActivityActionObject<TContext> {
+  const activityDef = toActivityDefinition(activity);
+
+  return {
+    type: ActionTypes.Stop,
+    activity: activityDef,
+    exec: activityDef.stop ? activityDef.stop.exec : undefined
+  };
+}
+
+export const assign = <TContext>(
+  assignment: Assigner<TContext> | PropertyAssigner<TContext>
+): AssignAction<TContext> => {
   return {
     type: actionTypes.assign,
     assignment
   };
 };
 
-export function isActionObject(action: Action<any>): action is ActionObject {
+export function isActionObject<TContext>(
+  action: Action<TContext>
+): action is ActionObject<TContext> {
   return typeof action === 'object' && 'type' in action;
+}
+
+export function after(delay: number, id?: string) {
+  const idSuffix = id ? `#${id}` : '';
+  return `${ActionTypes.After}(${delay})${idSuffix}`;
+}
+
+export function done(id: string) {
+  return `${ActionTypes.DoneState}.${id}`;
 }

@@ -1,5 +1,6 @@
 import { assert } from 'chai';
-import { Machine, State } from '../src/index';
+import { Machine } from '../src/index';
+import { State } from '../src/State';
 
 describe('machine', () => {
   const pedestrianStates = {

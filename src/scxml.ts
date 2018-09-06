@@ -5,6 +5,13 @@ import { StateNode, Machine } from './index';
 import { mapValues, getActionType } from './utils';
 import * as actions from './actions';
 
+function getAttribute(
+  element: XMLElement,
+  attribute: string
+): string | number | undefined {
+  return element.attributes ? element.attributes[attribute] : undefined;
+}
+
 function stateNodeToSCXML(stateNode: StateNode) {
   const { parallel } = stateNode;
 
@@ -201,11 +208,13 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function mapActions(elements: XMLElement[]): ActionObject[] {
+function mapActions<TContext>(
+  elements: XMLElement[]
+): Array<ActionObject<TContext>> {
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise(element.attributes!.event);
+        return actions.raise(element.attributes!.event!);
       case 'assign':
         return actions.assign(xs => {
           const literalKeyExprs = xs
@@ -223,6 +232,18 @@ function mapActions(elements: XMLElement[]): ActionObject[] {
 
           const fn = new Function(fnStr);
           return fn(xs);
+        });
+      case 'send':
+        const delay = element.attributes!.delay!;
+        const numberDelay = delay
+          ? typeof delay === 'number'
+            ? delay
+            : /(\d+)ms/.test(delay)
+              ? +/(\d+)ms/.exec(delay)![1]
+              : 0
+          : 0;
+        return actions.send(element.attributes!.event!, {
+          delay: numberDelay
         });
       default:
         return { type: 'not-implemented' };
@@ -256,10 +277,13 @@ function toConfig(
         element => element.name === 'transition'
       );
 
+      const target = getAttribute(transitionElement, 'target');
+      const history = getAttribute(nodeJson, 'type') || 'shallow';
+
       return {
         id,
-        history: nodeJson.attributes!.type || 'shallow',
-        target: `#${transitionElement.attributes!.target}`
+        history,
+        target: target ? `#${target}` : undefined
       };
     }
     default:
@@ -301,18 +325,22 @@ function toConfig(
     on = mapValues(
       indexedAggregateRecord(
         transitionElements,
-        (item: any) => item.attributes.event || ''
+        item => (item.attributes ? item.attributes.event || '' : '') as string
       ),
       (values: XMLElement[]) => {
-        return values.map(value => ({
-          target: `#${value.attributes!.target}`,
-          ...(value.elements ? executableContent(value.elements) : undefined),
-          ...(value.attributes!.cond
-            ? {
-                cond: evalCond(value.attributes!.cond as string, extState)
-              }
-            : undefined)
-        }));
+        return values.map(value => {
+          const target = getAttribute(value, 'target');
+
+          return {
+            target: target ? `#${target}` : undefined,
+            ...(value.elements ? executableContent(value.elements) : undefined),
+            ...(value.attributes && value.attributes.cond
+              ? {
+                  cond: evalCond(value.attributes.cond as string, extState)
+                }
+              : undefined)
+          };
+        });
       }
     );
 
@@ -369,7 +397,7 @@ export function toMachine(
 
   const extState = dataModelEl
     ? dataModelEl.elements!.reduce((acc, element) => {
-        acc[element.attributes!.id] = element.attributes!.expr;
+        acc[element.attributes!.id!] = element.attributes!.expr;
         return acc;
       }, {})
     : undefined;

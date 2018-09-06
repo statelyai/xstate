@@ -107,9 +107,9 @@ console.log(searchAttempt3.actions);
 // => ['executeSearch']
 ```
 
-If you want to have a single event transition to different states in certain sitations you can supply an array of targets with conditions.
+If you want to have a single event transition to different states in certain situations you can supply an array of targets with conditions.
 
-For example you can model a door that listens for an `OPEN` event, and opens if you are an admin and error if you are not:
+For example you can model a door that listens for an `OPEN` event, and opens if you are an admin and errors if you are not:
 
 ```js
 const doorMachine = new Machine({

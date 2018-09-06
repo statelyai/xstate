@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine, matchesState } from '../src/index';
 
 describe('guard conditions', () => {
-  const lightMachine = Machine(
+  const lightMachine = Machine<{ elapsed: number }>(
     {
       key: 'light',
       initial: 'green',
@@ -45,36 +45,31 @@ describe('guard conditions', () => {
 
   it('should transition only if condition is met', () => {
     assert.equal(
-      lightMachine
-        .transition('green', 'TIMER', {
-          elapsed: 50
-        })
-        .toString(),
+      lightMachine.transition('green', 'TIMER', {
+        elapsed: 50
+      }).value,
       'green'
     );
 
-    assert.equal(
-      lightMachine
-        .transition('green', 'TIMER', {
-          elapsed: 120
-        })
-        .toString(),
+    assert.deepEqual(
+      lightMachine.transition('green', 'TIMER', {
+        elapsed: 120
+      }).value,
       'yellow'
     );
   });
 
   it('should transition if condition based on event is met', () => {
-    assert.equal(
-      lightMachine
-        .transition('green', { type: 'EMERGENCY', isEmergency: true })
-        .toString(),
+    assert.deepEqual(
+      lightMachine.transition('green', { type: 'EMERGENCY', isEmergency: true })
+        .value,
       'red'
     );
   });
 
   it('should not transition if condition based on event is not met', () => {
-    assert.equal(
-      lightMachine.transition('green', { type: 'EMERGENCY' }).toString(),
+    assert.deepEqual(
+      lightMachine.transition('green', { type: 'EMERGENCY' }).value,
       'green'
     );
   });
@@ -83,7 +78,7 @@ describe('guard conditions', () => {
     const nextState = lightMachine.transition('green', 'TIMER', {
       elapsed: 9000
     });
-    assert.equal(nextState.value, 'green');
+    assert.deepEqual(nextState.value, 'green');
     assert.isEmpty(nextState.actions);
   });
 

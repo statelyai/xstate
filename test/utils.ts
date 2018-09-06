@@ -1,20 +1,21 @@
 import { StateNode, State } from '../src/index';
 import { assert } from 'chai';
+import { matchesState } from '../lib';
 
-export function testMultiTransition(
-  machine: StateNode,
+export function testMultiTransition<TExt>(
+  machine: StateNode<TExt>,
   fromState: string,
   eventTypes: string
 ) {
   const resultState = eventTypes
     .split(/,\s?/)
-    .reduce((state: State<undefined> | string, eventType) => {
+    .reduce((state: State<TExt> | string, eventType) => {
       if (typeof state === 'string' && state[0] === '{') {
         state = JSON.parse(state);
       }
       const nextState = machine.transition(state, eventType);
       return nextState;
-    }, fromState) as State<undefined>;
+    }, fromState) as State<TExt>;
 
   return resultState;
 }
@@ -34,7 +35,7 @@ export function testAll(machine: StateNode, expected: {}): void {
           assert.isEmpty(resultState.actions);
           assert.isUndefined(resultState.history);
         } else if (typeof toState === 'string') {
-          assert.equal(resultState.toString(), toState);
+          assert.ok(matchesState(resultState.value, toState));
         } else {
           assert.deepEqual(resultState.value, toState);
         }

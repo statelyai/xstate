@@ -67,7 +67,7 @@ describe('graph utilities', () => {
     }
   });
 
-  const condMachine = Machine({
+  const condMachine = Machine<{ id: string }>({
     key: 'cond',
     initial: 'pending',
     states: {
@@ -383,7 +383,7 @@ describe('graph utilities', () => {
       assert.doesNotThrow(() => getShortestPaths(condMachine));
     });
 
-    it('should represent conditional paths based on extended state', () => {
+    it('should represent conditional paths based on context', () => {
       assert.deepEqual(getShortestPaths(condMachine, { id: 'foo' }), {
         '"bar"': [
           {

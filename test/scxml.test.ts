@@ -7,6 +7,7 @@ import * as path from 'path';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
+import { interpret, SimulatedClock } from '../src/interpreter';
 import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
 // import { StateValue } from '../src/types';
@@ -28,7 +29,7 @@ const testGroups = {
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [], // 4.0
   'default-initial-state': ['initial1', 'initial2'],
-  delayedSend: [], // 4.0
+  delayedSend: ['send1', 'send2', 'send3'], // 4.0
   documentOrder: ['documentOrder0'],
   error: [], // not implemented
   forEach: [], // not implemented
@@ -65,32 +66,46 @@ const testGroups = {
     // e.g.: { foo: { bar: undefined, baz: undefined } }
     // 'test2',
     // 'test3'
+  ],
+  'targetless-transition': [
+    'test0',
+    'test1'
+    // 'test2', // TODO: parallel states with leaf node support
+    // 'test3', // TODO: parallel states with leaf node support
   ]
+  // 'parallel+interrupt': ['test0']
 };
 
 const overrides = {
-  'assign-current-small-step': ['test0']
+  'assign-current-small-step': ['test0'],
+  'targetless-transition': ['test0']
 };
 
 interface SCIONTest {
   initialConfiguration: string[];
   events: Array<{
+    after?: number;
     event: { name: string };
     nextConfiguration: string[];
   }>;
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  // let nextState: string | State = `#${test.initialConfiguration[0]}`;
   let nextState: State<any> = machine.getState(
     pathsToStateValue(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )
   );
+  const interpreter = interpret(machine, state => (nextState = state), {
+    clock: new SimulatedClock()
+  });
+  interpreter.init(nextState);
 
-  test.events.forEach(({ event, nextConfiguration }, i) => {
-    const extState = nextState.ext;
-    nextState = machine.transition(nextState, event.name, extState);
+  test.events.forEach(({ event, nextConfiguration, after }, i) => {
+    if (after) {
+      (interpreter.clock as SimulatedClock).increment(after);
+    }
+    interpreter.send(event.name);
 
     const stateIds = machine
       .getStateNodes(nextState)
@@ -100,9 +115,9 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   });
 }
 
-function evalCond(expr: string, extState: object | undefined) {
-  const literalKeyExprs = extState
-    ? Object.keys(extState)
+function evalCond(expr: string, context: object | undefined) {
+  const literalKeyExprs = context
+    ? Object.keys(context)
         .map(key => `const ${key} = xs['${key}'];`)
         .join('\n')
     : '';
@@ -116,7 +131,7 @@ function evalCond(expr: string, extState: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['assign-current-small-step'];
+  // const testGroupKeys = ['actionSend'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {

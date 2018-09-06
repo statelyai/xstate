@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { raise } from '../src/actions';
-import { Machine } from '../src/StateNode';
+import { Machine } from '../src/Machine';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
@@ -234,6 +234,7 @@ const wakMachine = Machine({
 });
 
 const wordMachine = Machine({
+  id: 'word',
   parallel: true,
   states: {
     bold: {
@@ -283,6 +284,9 @@ const wordMachine = Machine({
         }
       }
     }
+  },
+  on: {
+    RESET: '#word' // TODO: this should be 'word' or [{ internal: false }]
   }
 });
 
@@ -492,6 +496,12 @@ describe('parallel states', () => {
         italics: 'on',
         underline: 'on',
         list: 'bullets'
+      },
+      RESET: {
+        bold: 'off',
+        italics: 'off',
+        underline: 'off',
+        list: 'none'
       }
     }
   };
