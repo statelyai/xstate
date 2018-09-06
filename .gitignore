@@ -34,4 +34,5 @@ lib/
 es/
 editor/
 examples/
+_examples/
 !docs/examples/
