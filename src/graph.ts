@@ -153,17 +153,40 @@ function eventToString(event: Event): string {
   return `${type} | ${JSON.stringify(rest)}`;
 }
 
+export function deserializeStateString(
+  valueContextString: string
+): { value: StateValue; context: any } {
+  const [valueString, contextString] = valueContextString.split(' | ');
+
+  return {
+    value: JSON.parse(valueString),
+    context: JSON.parse(contextString)
+  };
+}
+
+function serializeState<TContext>(state: State<TContext>): string {
+  const { value, context } = state;
+  return JSON.stringify(value) + ' | ' + JSON.stringify(context);
+}
+
+export interface GetValueAdjacencyMapOptions<TContext> {
+  events: Record<string, Event[]>;
+  filter?: (state: State<TContext>) => boolean;
+}
+
 export function getValueAdjacencyMap<TContext = DefaultContext>(
   node: StateNode<TContext>,
-  eventMap: Record<string, Event[]>
+  options: GetValueAdjacencyMapOptions<TContext>
 ): ValueAdjacencyMap {
+  const { events, filter } = options;
   const adjacency: ValueAdjacencyMap = {};
 
-  const events = flatten(node.events.map(event => eventMap[event] || [event]));
+  const potentialEvents = flatten(
+    node.events.map(event => events[event] || [event])
+  );
 
   function findAdjacencies(state: State<TContext>) {
-    const { value, context } = state;
-    const stateKey = JSON.stringify(value) + ' | ' + JSON.stringify(context);
+    const stateKey = serializeState(state);
 
     if (adjacency[stateKey]) {
       return;
@@ -171,21 +194,85 @@ export function getValueAdjacencyMap<TContext = DefaultContext>(
 
     adjacency[stateKey] = {};
 
-    for (const event of events) {
+    for (const event of potentialEvents) {
       const nextState = node.transition(state, event);
 
-      adjacency[stateKey][eventToString(event)] = {
-        state: nextState.value,
-        ext: nextState.context
-      };
+      if (!filter || filter(nextState)) {
+        adjacency[stateKey][eventToString(event)] = {
+          value: nextState.value,
+          context: nextState.context
+        };
 
-      findAdjacencies(nextState);
+        findAdjacencies(nextState);
+      }
     }
   }
 
   findAdjacencies(node.initialState);
 
   return adjacency;
+}
+
+export function getShortestValuePaths<TContext = DefaultContext>(
+  machine: StateNode<TContext>,
+  options: GetValueAdjacencyMapOptions<TContext>
+): PathMap {
+  if (!machine.states) {
+    return EMPTY_MAP;
+  }
+  const adjacency = getValueAdjacencyMap(machine, options);
+  const pathMap: PathMap = {};
+  const visited: Set<string> = new Set();
+
+  function util(state: State<TContext>): PathMap {
+    const stateKey = serializeState(state);
+    visited.add(stateKey);
+    const eventMap = adjacency[stateKey];
+
+    for (const event of Object.keys(eventMap)) {
+      const { value, context } = eventMap[event];
+
+      if (!value) {
+        continue;
+      }
+
+      const nextState = State.from(value, context);
+      const nextStateId = serializeState(nextState);
+
+      if (
+        !pathMap[nextStateId] ||
+        pathMap[nextStateId].length > pathMap[stateKey].length + 1
+      ) {
+        pathMap[nextStateId] = [
+          ...(pathMap[stateKey] || []),
+          { state: value, event }
+        ];
+      }
+    }
+
+    for (const event of Object.keys(eventMap)) {
+      const { value, context } = eventMap[event];
+
+      if (!value) {
+        continue;
+      }
+
+      const nextState = State.from(value, context);
+      const nextStateId = serializeState(State.from(value, context));
+
+      if (visited.has(nextStateId)) {
+        continue;
+      }
+
+      util(nextState);
+    }
+
+    return pathMap;
+  }
+
+  util(machine.initialState);
+
+  return pathMap;
 }
 
 export function getShortestPaths<TContext = DefaultContext>(

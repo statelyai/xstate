@@ -363,11 +363,13 @@ export interface NodesAndEdges<TContext> {
   edges: Array<Edge<TContext>>;
 }
 
-export interface Segment {
+export interface Segment<TContext = DefaultContext> {
   /**
    * From state
    */
   state: StateValue;
+  /** */
+  context?: TContext;
   /**
    * Event from state
    */
@@ -397,8 +399,8 @@ export interface TransitionMap {
 }
 
 export interface ValueTransitionMap {
-  state: StateValue | undefined;
-  ext: any;
+  value: StateValue | undefined;
+  context: any;
 }
 
 export interface AdjacencyMap {
