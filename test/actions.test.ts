@@ -67,7 +67,9 @@ describe('onEntry/onExit actions', () => {
         initial: 'a1',
         states: {
           a1: {
-            on: { CHANGE: { a2: { actions: ['do_a2', 'another_do_a2'] } } },
+            on: {
+              CHANGE: { target: 'a2', actions: ['do_a2', 'another_do_a2'] }
+            },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
           },
@@ -80,7 +82,7 @@ describe('onEntry/onExit actions', () => {
         initial: 'b1',
         states: {
           b1: {
-            on: { CHANGE: { b2: { actions: ['do_b2'] } } },
+            on: { CHANGE: { target: 'b2', actions: ['do_b2'] } },
             onEntry: 'enter_b1',
             onExit: 'exit_b1'
           },
@@ -113,13 +115,12 @@ describe('onEntry/onExit actions', () => {
           a3: {
             on: {
               NEXT: {
-                a2: {
-                  actions: [
-                    function do_a3_to_a2() {
-                      return;
-                    }
-                  ]
-                }
+                target: 'a2',
+                actions: [
+                  function do_a3_to_a2() {
+                    return;
+                  }
+                ]
               }
             },
             onEntry: function enter_a3_fn() {
@@ -332,9 +333,8 @@ describe('actions on invalid transition', () => {
       idle: {
         on: {
           STOP: {
-            stop: {
-              actions: ['action1']
-            }
+            target: 'stop',
+            actions: ['action1']
           }
         }
       },

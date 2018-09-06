@@ -75,7 +75,7 @@ export type ConditionalTransitionConfig<TContext = DefaultContext> = Array<
 
 export type Transition<TContext = DefaultContext> =
   | string
-  | Record<string, TransitionConfig<TContext>>
+  | TransitionConfig<TContext>
   | ConditionalTransitionConfig<TContext>;
 
 export interface ActivityConfig<TContext> {

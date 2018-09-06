@@ -94,7 +94,8 @@ describe('transient states (eventless transitions)', () => {
           onExit: 'exit_A',
           on: {
             TIMER: {
-              T: { actions: ['timer'] }
+              target: 'T',
+              actions: ['timer']
             }
           }
         },
@@ -206,7 +207,8 @@ describe('transient states (eventless transitions)', () => {
             A3: {
               on: {
                 '': {
-                  A4: { in: 'B.B3' }
+                  target: 'A4',
+                  in: 'B.B3'
                 }
               }
             },
@@ -225,18 +227,16 @@ describe('transient states (eventless transitions)', () => {
             B2: {
               on: {
                 '': {
-                  B3: {
-                    in: 'A.A2'
-                  }
+                  target: 'B3',
+                  in: 'A.A2'
                 }
               }
             },
             B3: {
               on: {
                 '': {
-                  B4: {
-                    in: 'A.A3'
-                  }
+                  target: 'B4',
+                  in: 'A.A3'
                 }
               }
             },
@@ -272,7 +272,8 @@ describe('transient states (eventless transitions)', () => {
             B1: {
               on: {
                 '': {
-                  B2: { cond: (_xs, _e, cs) => matchesState('A.A2', cs) }
+                  target: 'B2',
+                  cond: (_xs, _e, cs) => matchesState('A.A2', cs)
                 }
               }
             },
@@ -285,7 +286,8 @@ describe('transient states (eventless transitions)', () => {
             C1: {
               on: {
                 '': {
-                  C2: { in: 'A.A2' }
+                  target: 'C2',
+                  in: 'A.A2'
                 }
               }
             },

@@ -9,29 +9,33 @@ describe('guard conditions', () => {
       states: {
         green: {
           on: {
-            TIMER: {
-              green: {
+            TIMER: [
+              {
+                target: 'green',
                 cond: ({ elapsed }) => elapsed < 100
               },
-              yellow: {
+              {
+                target: 'yellow',
                 cond: ({ elapsed }) => elapsed >= 100 && elapsed < 200
               }
-            },
+            ],
             EMERGENCY: {
-              red: { cond: (_, event) => event.isEmergency }
+              target: 'red',
+              cond: (_, event) => event.isEmergency
             }
           }
         },
         yellow: {
           on: {
             TIMER: {
-              red: { cond: 'minTimeElapsed' }
+              target: 'red',
+              cond: 'minTimeElapsed'
             }
           }
         },
         red: {
           on: {
-            BAD_COND: { red: { cond: 'doesNotExist' } }
+            BAD_COND: { target: 'red', cond: 'doesNotExist' }
           }
         }
       }

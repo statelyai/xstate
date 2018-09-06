@@ -1636,9 +1636,27 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         return [this.formatTransition([value], undefined, event)];
       }
 
-      return Object.keys(value).map(target => {
-        return this.formatTransition(target, value[target], event);
-      });
+      if (process.env.NODE_ENV !== 'production') {
+        Object.keys(value).forEach(key => {
+          if (
+            ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) === -1
+          ) {
+            throw new Error(
+              `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
+                this.id
+              }'.`
+            );
+          }
+        });
+      }
+
+      return [
+        this.formatTransition(
+          (value as TransitionConfig<TContext>).target,
+          value,
+          event
+        )
+      ];
     });
 
     delayedTransitions.forEach(delayedTransition => {

@@ -133,18 +133,18 @@ const lightMachine = Machine({
     green: {
       on: {
         TIMER: {
-          yellow: {
-            // specify that 'startYellowTimer' action should be executed
-            actions: ['startYellowTimer']
-          }
+          target: 'yellow', // since 4.0
+          // specify that 'startYellowTimer' action should be executed
+          actions: ['startYellowTimer']
         }
       }
     },
     yellow: {
       on: {
         TIMER: {
+          target: 'red', // since 4.0
           // transition to 'red' only if < 100 seconds elapsed
-          red: { cond: ({ elapsed }) => elapsed < 100 }
+          cond: ({ elapsed }) => elapsed < 100
         }
       }
     },

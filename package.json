@@ -51,6 +51,7 @@
     "prettier": "^1.14.0",
     "puppeteer": "^1.7.0",
     "rollup": "^0.64.1",
+    "rollup-plugin-replace": "^2.0.0",
     "rollup-plugin-terser": "^1.0.1",
     "rollup-plugin-typescript2": "^0.16.1",
     "scion-core-test-framework": "^1.0.0",

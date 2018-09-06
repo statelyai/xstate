@@ -11,7 +11,8 @@ describe('Example 6.16', () => {
           C: {
             on: {
               2: {
-                D: { in: 'B.E' }
+                target: 'D',
+                in: 'B.E'
               }
             }
           },

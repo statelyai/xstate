@@ -47,13 +47,12 @@ const searchMachine = Machine({
     idle: {
       on: {
         SEARCH: {
-          searching: {
-            // only transition to 'searching' if cond is true
-            cond: (extState, eventObj) => {
-              return extState.canSearch
-                && eventObj.query
-                && eventObj.query.length > 0;
-            }
+          target: 'searching', // since 4.0
+          // only transition to 'searching' if cond is true
+          cond: (extState, eventObj) => {
+            return extState.canSearch
+              && eventObj.query
+              && eventObj.query.length > 0;
           }
         }
       }
