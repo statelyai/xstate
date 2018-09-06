@@ -1,5 +1,4 @@
 # Interpretation
-(since 4.0)
 
 While a "stateless" state machine/statechart is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
@@ -54,7 +53,7 @@ send('SOME_EVENT');
 
 This will work, and demonstrates how flexible interpretation can be - you can create your own interpreter. However, it is a lot of boilerplate.
 
-Thankfully, `xstate@4` ships with an optional interpreter:
+Thankfully, `xstate@4` ships with an optional interpreter (since 4.0):
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';
