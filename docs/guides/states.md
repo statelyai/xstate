@@ -133,3 +133,5 @@ const machine = Machine({
   }
 });
 ```
+
+Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'history'`, or `'final'` is helpful with regard to analysis and type-checking in TypeScript. However, it is only required for parallel, history, and final states.
