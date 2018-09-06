@@ -1,6 +1,7 @@
 - Guides
   - [README](README.md)
   - [Installation](guides/installation.md)
+  - [Interpretation](guides/interpretation.md)
   - [States](guides/states.md)
   - [Hierarchical Machines](guides/hierarchical.md)
   - [Parallel Machines](guides/parallel.md)
@@ -9,7 +10,6 @@
   - [Activities](guides/activities.md)
   - [State IDs](guides/ids.md)
   - [Internal Transitions](guides/internal.md)
-  - [Complete Guide](guides/complete.md)
   - [FAQs](guides/faqs.md)
 - API
   - [Configuration](api/config.md)
