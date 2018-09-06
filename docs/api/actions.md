@@ -53,11 +53,11 @@ const fetchMachine = Machine({
   states: {
     idle: {
       on: {
+
         FETCH: {
-          pending: {
-            // transition actions
-            actions: ['warmCache', showLoader]
-          }
+          target: 'pending', // since 4.0
+          // transition actions
+          actions: ['warmCache', showLoader]
         }
       },
       // onExit actions

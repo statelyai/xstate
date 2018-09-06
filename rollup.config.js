@@ -1,10 +1,14 @@
 import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
+import rollupReplace from 'rollup-plugin-replace';
 
 const createConfig = ({ input, output }) => ({
   input,
   output,
   plugins: [
+    rollupReplace({
+      'process.env.NODE_ENV': JSON.stringify('production')
+    }),
     typescript({
       clean: true,
       tsconfigOverride: {

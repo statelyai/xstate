@@ -10,10 +10,12 @@ const machine = Machine({
         a1: {
           on: {
             EVENT1: {
-              a2: { in: 'b.b2' }
+              target: 'a2',
+              in: 'b.b2'
             },
             EVENT2: {
-              a2: { in: { b: 'b2' } }
+              target: 'a2',
+              in: { b: 'b2' }
             }
           }
         },
@@ -26,7 +28,8 @@ const machine = Machine({
         b1: {
           on: {
             EVENT: {
-              b2: { in: 'a.a2' }
+              target: 'b2',
+              in: 'a.a2'
             }
           }
         },
@@ -38,7 +41,7 @@ const machine = Machine({
               states: {
                 foo1: {
                   on: {
-                    EVENT_DEEP: { foo2: { in: 'bar.bar1' } }
+                    EVENT_DEEP: { target: 'foo2', in: 'bar.bar1' }
                   }
                 },
                 foo2: {}

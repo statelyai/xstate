@@ -134,13 +134,10 @@ const starWarsMachine = Machine({
     idle: {
       on: {
         REQUEST: {
-          // note how 'pending' is an object with a single key,
-          // instead of a string
-          pending: {
-            // the `actions` prop specifies which actions should be
-            // executed on this idle --> pending transition
-            actions: ['alertStartingFirstRequest']
-          }
+          target: 'pending', // since 4.0
+          // the `actions` prop specifies which actions should be
+          // executed on this idle --> pending transition
+          actions: ['alertStartingFirstRequest']
         }
       },
       onExit: 'alertMayTheForceBeWithYou'

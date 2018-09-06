@@ -33,21 +33,15 @@ const topLevelMachine = Machine({
   on: {
     CLICKED_CLOSE: '.Hidden',
     TARGETLESS_ARRAY: [{ actions: ['doSomethingParent'] }],
-    TARGETLESS_OBJECT: {
-      '': { actions: ['doSomethingParent'] }
-    },
-    PARENT_EVENT: {
-      '': { actions: ['handleParentEvent'] }
-    }
+    TARGETLESS_OBJECT: { actions: ['doSomethingParent'] },
+    PARENT_EVENT: { actions: ['handleParentEvent'] }
   },
   states: {
     Hidden: {
       on: {
         PUBLISH_FAILURE: 'Failure',
         TARGETLESS_ARRAY: [{ actions: ['doSomething'] }],
-        TARGETLESS_OBJECT: {
-          '': { actions: ['doSomething'] }
-        }
+        TARGETLESS_OBJECT: { actions: ['doSomething'] }
       }
     },
     Failure: {}

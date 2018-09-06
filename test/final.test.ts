@@ -14,7 +14,7 @@ const finalMachine = Machine({
     },
     yellow: { on: { TIMER: 'red' } },
     red: {
-      parallel: true,
+      type: 'parallel',
       states: {
         crosswalk1: {
           initial: 'walk',

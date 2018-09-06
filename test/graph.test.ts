@@ -20,9 +20,8 @@ describe('graph utilities', () => {
       walk: {
         on: {
           PED_COUNTDOWN: {
-            wait: {
-              actions: ['startCountdown']
-            }
+            target: 'wait',
+            actions: ['startCountdown']
           }
         }
       },
