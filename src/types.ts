@@ -300,7 +300,8 @@ export enum ActionTypes {
   Null = 'xstate.null',
   Assign = 'xstate.assign',
   After = 'xstate.after',
-  DoneState = 'done.state'
+  DoneState = 'done.state',
+  Log = 'xstate.log'
 }
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {

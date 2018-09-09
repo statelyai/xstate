@@ -136,6 +136,17 @@ export const send = (event: Event, options?: SendActionOptions): SendAction => {
   };
 };
 
+export function log<TContext>(
+  expr: (ctx: TContext, event: EventObject) => void,
+  label?: string
+) {
+  return {
+    type: actionTypes.log,
+    label,
+    expr
+  };
+}
+
 export const cancel = (sendId: string | number): CancelAction => {
   return {
     type: actionTypes.cancel,

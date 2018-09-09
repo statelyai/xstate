@@ -30,6 +30,7 @@ export interface SimulatedClock extends Clock {
 
 interface InterpreterOptions {
   clock: Clock;
+  logger: (...args: any[]) => void;
 }
 
 interface SimulatedTimeout {
@@ -85,7 +86,8 @@ export class SimulatedClock implements SimulatedClock {
 // tslint:disable-next-line:max-classes-per-file
 export class Interpreter<TContext> {
   public static defaultOptions: InterpreterOptions = {
-    clock: { setTimeout, clearTimeout }
+    clock: { setTimeout, clearTimeout },
+    logger: global.console.log.bind(console)
   };
   public state: State<TContext>;
   public extState: TContext;
@@ -94,17 +96,24 @@ export class Interpreter<TContext> {
   public listeners: Set<StateListener> = new Set();
   public stopListeners: Set<Listener> = new Set();
   public clock: Clock;
+  public logger: (...args: any[]) => void;
   public initialized = false;
   constructor(
     public machine: Machine<TContext>,
     listener?: StateListener,
-    options: InterpreterOptions = Interpreter.defaultOptions
+    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     if (listener) {
       this.onTransition(listener);
     }
 
-    this.clock = options.clock;
+    const resolvedOptions: InterpreterOptions = {
+      ...Interpreter.defaultOptions,
+      ...options
+    };
+
+    this.clock = resolvedOptions.clock;
+    this.logger = resolvedOptions.logger;
   }
   public static interpret = interpret;
   private update(state: State<TContext>, event?: Event): void {
@@ -186,11 +195,11 @@ export class Interpreter<TContext> {
   }
   private exec(
     action: ActionObject<TContext>,
-    extState: TContext,
+    context: TContext,
     event?: EventObject
   ): Partial<TContext> | undefined {
     if (action.exec) {
-      return action.exec(extState, event);
+      return action.exec(context, event);
     }
 
     switch (action.type) {
@@ -207,6 +216,15 @@ export class Interpreter<TContext> {
       case actionTypes.cancel:
         this.cancel((action as CancelAction).sendId);
 
+        break;
+      case actionTypes.log:
+        const expr = action.expr ? action.expr(context, event) : undefined;
+
+        if (action.label) {
+          this.logger(action.label, expr);
+        } else {
+          this.logger(expr);
+        }
         break;
       default:
         // tslint:disable-next-line:no-console
@@ -228,7 +246,7 @@ export class Interpreter<TContext> {
 export function interpret<TContext = DefaultContext>(
   machine: Machine<TContext>,
   listener?: StateListener,
-  options?: InterpreterOptions
+  options?: Partial<InterpreterOptions>
 ) {
   return new Interpreter(machine, listener, options);
 }
