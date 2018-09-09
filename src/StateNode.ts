@@ -572,7 +572,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
         isInState
       ) {
         nextStateStrings = toArray(candidate.target);
-        actions.push(...toArray(candidate.actions)); // TODO: fixme;
+        actions.push(...toArray(candidate.actions));
         selectedTransition = candidate;
         break;
       }
@@ -730,9 +730,9 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     if (typeof condition === 'string') {
       if (!guards || !guards[condition]) {
         throw new Error(
-          `String condition '${condition}' is not defined on machine '${
+          `Condition '${condition}' is not implemented on machine '${
             this.machine.id
-          }'`
+          }'.`
         );
       }
 
@@ -756,7 +756,6 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   private getActions(
     transition: StateTransition<TContext>
   ): Array<Action<TContext>> {
-    // console.log(raise);
     const doneEvents: Set<string> = new Set();
     const entryExitActions = {
       entry: transition.entryExitStates
@@ -845,7 +844,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     return activity;
   }
-  private _getActivities(
+  private getActivities(
     entryExitStates?: EntryExitStates<TContext>,
     activities?: ActivityMap
   ): ActivityMap {
@@ -938,7 +937,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
     }
 
     const actions = this.getActions(stateTransition);
-    const activities = this._getActivities(
+    const activities = this.getActivities(
       stateTransition.entryExitStates,
       currentState.activities
     );
@@ -1289,7 +1288,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
 
     if (!initialStateValue) {
       throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}.'`
+        `Cannot retrieve initial state from simple state '${this.id}'.`
       );
     }
 
