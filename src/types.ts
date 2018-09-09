@@ -58,7 +58,7 @@ export type Condition<TContext> = string | ConditionPredicate<TContext>;
 
 export interface TransitionConfig<TContext = DefaultContext> {
   cond?: Condition<TContext>;
-  actions?: Array<Action<TContext>>;
+  actions?: SingleOrArray<Action<TContext>>;
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
@@ -115,6 +115,8 @@ export type StateTypes =
   | 'final'
   | 'history';
 
+export type SingleOrArray<T> = T[] | T;
+
 export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   key?: string;
   initial?: string | undefined;
@@ -128,10 +130,10 @@ export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   history?: 'shallow' | 'deep' | boolean | undefined;
   states?: Record<string, StateNodeConfig<TContext>> | undefined;
   on?: Record<string, Transition<TContext> | undefined>;
-  onEntry?: Action<TContext> | Array<Action<TContext>>;
-  onExit?: Action<TContext> | Array<Action<TContext>>;
+  onEntry?: SingleOrArray<Action<TContext>>;
+  onExit?: SingleOrArray<Action<TContext>>;
   after?: DelayedTransitions<TContext>;
-  activities?: Array<Activity<TContext>>;
+  activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
   data?: TData;
@@ -340,6 +342,7 @@ export interface AssignAction<TContext> extends ActionObject<TContext> {
 
 export interface TransitionDefinition<TContext>
   extends TransitionConfig<TContext> {
+  actions: Array<Action<TContext>>;
   event: string;
   delay?: number;
 }

@@ -20,8 +20,8 @@ describe('onEntry/onExit actions', () => {
         onExit: 'exit_wait'
       },
       stop: {
-        onEntry: 'enter_stop',
-        onExit: 'exit_stop'
+        onEntry: ['enter_stop'],
+        onExit: ['exit_stop']
       }
     }
   };
@@ -82,7 +82,7 @@ describe('onEntry/onExit actions', () => {
         initial: 'b1',
         states: {
           b1: {
-            on: { CHANGE: { target: 'b2', actions: ['do_b2'] } },
+            on: { CHANGE: { target: 'b2', actions: 'do_b2' } },
             onEntry: 'enter_b1',
             onExit: 'exit_b1'
           },

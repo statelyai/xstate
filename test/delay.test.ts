@@ -25,13 +25,28 @@ const lightMachine = Machine({
 describe('delayed transitions', () => {
   it('should resolve transitions', () => {
     assert.deepEqual(lightMachine.states.green.after, [
-      { target: 'yellow', delay: 1000, event: after(1000, 'light.green') }
+      {
+        target: 'yellow',
+        delay: 1000,
+        event: after(1000, 'light.green'),
+        actions: []
+      }
     ]);
     assert.deepEqual(lightMachine.states.yellow.after, [
-      { target: 'red', delay: 1000, event: after(1000, 'light.yellow') }
+      {
+        target: 'red',
+        delay: 1000,
+        event: after(1000, 'light.yellow'),
+        actions: []
+      }
     ]);
     assert.deepEqual(lightMachine.states.red.after, [
-      { target: 'green', delay: 1000, event: after(1000, 'light.red') }
+      {
+        target: 'green',
+        delay: 1000,
+        event: after(1000, 'light.red'),
+        actions: []
+      }
     ]);
   });
 

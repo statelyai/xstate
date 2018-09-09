@@ -36,7 +36,7 @@ export function getEventEdges<TContext = DefaultContext>(
   node: StateNode<TContext>,
   event: string
 ): Array<Edge<TContext>> {
-  const transitions = node.on[event]!;
+  const transitions = node.definition.on[event];
 
   return flatten(
     transitions.map(transition => {
