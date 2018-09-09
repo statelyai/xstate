@@ -147,4 +147,17 @@ describe('interpreter', () => {
 
     assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
   });
+
+  it('should be able to stop', () => {
+    let state = lightMachine.initialState;
+    const interpreter = interpret(lightMachine).onTransition(s => (state = s));
+
+    interpreter.init();
+    interpreter.send('TIMER'); // yellow
+    assert.deepEqual(state.value, 'yellow');
+
+    interpreter.stop();
+    interpreter.send('TIMER'); // red if interpreter is not stopped
+    assert.deepEqual(state.value, 'yellow');
+  });
 });

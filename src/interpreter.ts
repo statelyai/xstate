@@ -15,6 +15,8 @@ export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
 
+export type Listener = () => void;
+
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): number;
   clearTimeout(id: number): void;
@@ -90,6 +92,7 @@ export class Interpreter<TContext> {
   public eventQueue: EventObject[] = [];
   public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
+  public stopListeners: Set<Listener> = new Set();
   public clock: Clock;
   public initialized = false;
   constructor(
@@ -122,6 +125,10 @@ export class Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
+  public onStop(listener: Listener): Interpreter<TContext> {
+    this.stopListeners.add(listener);
+    return this;
+  }
   /**
    * Removes a listener.
    * @param listener The listener to remove
@@ -130,11 +137,21 @@ export class Interpreter<TContext> {
     this.listeners.delete(listener);
     return this;
   }
-  public init(
+  public init = this.start;
+  public start(
     initialState: State<TContext> = this.machine.initialState
   ): Interpreter<TContext> {
     this.update(initialState);
     this.initialized = true;
+    return this;
+  }
+  public stop(): Interpreter<TContext> {
+    this.listeners.forEach(listener => this.off(listener));
+    this.stopListeners.forEach(listener => {
+      // call listener, then remove
+      listener();
+      this.stopListeners.delete(listener);
+    });
     return this;
   }
   public send = (event: Event): State<TContext> => {
