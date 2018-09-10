@@ -29,7 +29,6 @@ import {
   EventObject,
   HistoryStateNodeConfig,
   HistoryValue,
-  DefaultData,
   DefaultContext,
   StateNodeDefinition,
   TransitionDefinition,
@@ -72,7 +71,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext> => ({
   guards: EMPTY_OBJECT
 });
 
-class StateNode<TContext = DefaultContext, TData = DefaultData> {
+class StateNode<TContext = DefaultContext> {
   public key: string;
   public id: string;
   public type: StateTypes;
@@ -88,7 +87,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
   public strict: boolean;
   public parent?: StateNode<TContext>;
   public machine: StateNode<TContext>;
-  public data: TData;
+  public data: any;
   public delimiter: string;
   public order: number;
 
@@ -167,7 +166,7 @@ class StateNode<TContext = DefaultContext, TData = DefaultData> {
       this.resolveActivity(activity)
     );
   }
-  public get definition(): StateNodeDefinition<TContext, TData> {
+  public get definition(): StateNodeDefinition<TContext> {
     return {
       id: this.id,
       key: this.key,

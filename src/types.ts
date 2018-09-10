@@ -16,7 +16,6 @@ export interface ActionObject<TContext> extends Record<string, any> {
 }
 
 export type DefaultContext = Record<string, any> | undefined;
-export type DefaultData = Record<string, any>;
 
 export type Event = EventType | EventObject;
 export type InternalEvent = EventType | EventObject;
@@ -117,7 +116,7 @@ export type StateTypes =
 
 export type SingleOrArray<T> = T[] | T;
 
-export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
+export interface StateNodeConfig<TContext = DefaultContext> {
   key?: string;
   initial?: string | undefined;
   parallel?: boolean | undefined;
@@ -136,13 +135,13 @@ export interface StateNodeConfig<TContext = DefaultContext, TData = any> {
   activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
-  data?: TData;
+  data?: any;
   id?: string | undefined;
   delimiter?: string;
   order?: number;
 }
 
-export interface StateNodeDefinition<TContext = DefaultContext, TData = any>
+export interface StateNodeDefinition<TContext = DefaultContext>
   extends StateNodeConfig<TContext> {
   id: string;
   key: string;
@@ -155,7 +154,7 @@ export interface StateNodeDefinition<TContext = DefaultContext, TData = any>
   onExit: Array<Action<TContext>>;
   after: Array<DelayedTransitionDefinition<TContext>>;
   activities: Array<ActivityDefinition<TContext>>;
-  data: TData;
+  data: any;
   order: number;
 }
 export interface SimpleStateNodeConfig<TContext>
@@ -415,15 +414,12 @@ export interface ValueAdjacencyMap {
   [stateId: string]: Record<string, ValueTransitionMap>;
 }
 
-export interface StateInterface<
-  TContext = DefaultContext,
-  TData = DefaultData
-> {
+export interface StateInterface<TContext = DefaultContext> {
   value: StateValue;
   history?: State<TContext>;
   actions: Array<Action<TContext>>;
   activities: ActivityMap;
-  data: TData;
+  data: any;
   events: EventObject[];
   context: TContext;
   toStrings: () => string[];
