@@ -31,7 +31,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
                 type: 'element',
                 name: 'transition',
                 attributes: {
-                  target: stateNode.states[stateNode.initial].id
+                  target: stateNode.states[stateNode.initial as string].id
                 }
               }
             ]

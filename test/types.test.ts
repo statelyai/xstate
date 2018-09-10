@@ -1,8 +1,11 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
-import { State } from '../src/State';
 
-describe('machine', () => {
+function noop(_x) {
+  return;
+}
+
+describe('StateSchema', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -54,33 +57,9 @@ describe('machine', () => {
     }
   });
 
-  describe('machine.states', () => {
-    it('should properly register machine states', () => {
-      assert.deepEqual(Object.keys(lightMachine.states), [
-        'green',
-        'yellow',
-        'red'
-      ]);
-    });
-  });
+  noop(lightMachine);
 
-  describe('machine.events', () => {
-    it('should return the set of events accepted by machine', () => {
-      assert.sameMembers(lightMachine.events, [
-        'TIMER',
-        'POWER_OUTAGE',
-        'PED_COUNTDOWN'
-      ]);
-    });
-  });
-
-  describe('machine.initialState', () => {
-    it('should return a State instance', () => {
-      assert.instanceOf(lightMachine.initialState, State);
-    });
-
-    it('should return the initial state', () => {
-      assert.equal(lightMachine.initialState.value, 'green');
-    });
+  it('should work with a StateSchema defined', () => {
+    assert.ok(true, 'Tests will not compile if types are wrong');
   });
 });

@@ -2,16 +2,22 @@ import {
   Machine,
   MachineOptions,
   DefaultContext,
-  MachineConfig
+  MachineConfig,
+  StateSchema
 } from './types';
 import { StateNode } from './StateNode';
 
-export function Machine<TContext = DefaultContext>(
-  config: MachineConfig<TContext>,
+export function Machine<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any
+>(
+  config: MachineConfig<TContext, TStateSchema>,
   options?: MachineOptions<TContext>,
   initialContext?: TContext
 ): Machine<TContext> {
-  return new StateNode<TContext>(config, options, initialContext) as Machine<
-    TContext
-  >;
+  return new StateNode<TContext, TStateSchema>(
+    config,
+    options,
+    initialContext
+  ) as Machine<TContext>;
 }

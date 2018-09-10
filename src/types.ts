@@ -116,9 +116,12 @@ export type StateTypes =
 
 export type SingleOrArray<T> = T[] | T;
 
-export interface StateNodeConfig<TContext = DefaultContext> {
+export interface StateNodeConfig<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any
+> {
   key?: string;
-  initial?: string | undefined;
+  initial?: keyof TStateSchema['states'] | undefined;
   parallel?: boolean | undefined;
   type?: StateTypes;
   /**
@@ -127,7 +130,9 @@ export interface StateNodeConfig<TContext = DefaultContext> {
    * shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
-  states?: Record<string, StateNodeConfig<TContext>> | undefined;
+  states?:
+    | { [K in keyof TStateSchema['states']]: StateNodeConfig<TContext> }
+    | undefined;
   on?: Record<string, Transition<TContext> | undefined>;
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
@@ -170,16 +175,20 @@ export interface HistoryStateNodeConfig<TContext>
   target: StateValue | undefined;
 }
 
-export interface CompoundStateNodeConfig<TContext>
-  extends StateNodeConfig<TContext> {
-  initial?: string;
+export interface CompoundStateNodeConfig<
+  TContext,
+  TStateSchema extends StateSchema = any
+> extends StateNodeConfig<TContext, TStateSchema> {
   parallel?: boolean;
-  states: Record<string, StateNodeConfig<TContext>>;
+  states: StateNodeConfig<TContext, TStateSchema>['states'];
 }
 
-export type SimpleOrCompoundStateNodeConfig<TContext> =
+export type SimpleOrCompoundStateNodeConfig<
+  TContext,
+  TStateSchema extends StateSchema = any
+> =
   | SimpleStateNodeConfig<TContext>
-  | CompoundStateNodeConfig<TContext>;
+  | CompoundStateNodeConfig<TContext, TStateSchema>;
 
 export type ActionFunctionMap<TContext> = Record<
   string,
@@ -190,7 +199,10 @@ export interface MachineOptions<TContext> {
   actions?: ActionFunctionMap<TContext>;
   activities?: Record<string, ActivityConfig<TContext>>;
 }
-export type MachineConfig<TContext> = CompoundStateNodeConfig<TContext>;
+export type MachineConfig<
+  TContext,
+  TStateSchema extends StateSchema = any
+> = CompoundStateNodeConfig<TContext, TStateSchema>;
 
 export interface StandardMachineConfig<TContext>
   extends CompoundStateNodeConfig<TContext> {}
@@ -423,4 +435,10 @@ export interface StateInterface<TContext = DefaultContext> {
   events: EventObject[];
   context: TContext;
   toStrings: () => string[];
+}
+
+export interface StateSchema {
+  states: {
+    [key: string]: StateSchema;
+  };
 }

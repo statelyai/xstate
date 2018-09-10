@@ -39,7 +39,8 @@ import {
   StateTypes,
   StateNodeConfig,
   Activity,
-  StateNodeValueTree
+  StateNodeValueTree,
+  StateSchema
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -71,15 +72,18 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext> => ({
   guards: EMPTY_OBJECT
 });
 
-class StateNode<TContext = DefaultContext> {
+class StateNode<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any
+> {
   public key: string;
   public id: string;
   public type: StateTypes;
   public path: string[];
-  public initial?: string;
+  public initial?: keyof TStateSchema['states'];
   public parallel: boolean;
   public transient: boolean;
-  public states: Record<string, StateNode<TContext>>;
+  public states: { [K in keyof TStateSchema['states']]: StateNode<TContext> };
   public history: false | 'shallow' | 'deep';
   public onEntry: Array<Action<TContext>>;
   public onExit: Array<Action<TContext>>;
@@ -100,7 +104,7 @@ class StateNode<TContext = DefaultContext> {
   private idMap: Record<string, StateNode<TContext>> = {};
 
   constructor(
-    private _config: StateNodeConfig<TContext>,
+    private _config: StateNodeConfig<TContext, TStateSchema>,
     public options: Readonly<MachineOptions<TContext>> = createDefaultOptions<
       TContext
     >(),
@@ -150,7 +154,9 @@ class StateNode<TContext = DefaultContext> {
             return stateNode;
           }
         )
-      : EMPTY_OBJECT) as Record<string, StateNode<TContext>>;
+      : EMPTY_OBJECT) as {
+      [K in keyof TStateSchema['states']]: StateNode<TContext>
+    };
 
     // History config
     this.history =
@@ -171,7 +177,7 @@ class StateNode<TContext = DefaultContext> {
       id: this.id,
       key: this.key,
       type: this.type,
-      initial: this.initial,
+      initial: this.initial as string, // TODO: fixme (no as string)
       history: this.history,
       states: mapValues(this.states, state => state.definition),
       on: this.on,
@@ -251,7 +257,7 @@ class StateNode<TContext = DefaultContext> {
       const initialStateValue = this.getStateNode(stateValue).initial;
 
       return initialStateValue
-        ? this.getStateNodes({ [stateValue]: initialStateValue })
+        ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
         : [this.states[stateValue]];
     }
 
