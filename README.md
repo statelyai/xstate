@@ -3,6 +3,7 @@
 [![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
 [![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
@@ -332,6 +333,12 @@ const previousState = paymentMachine
 
 // => { method: 'check' }
 ```
+
+## Sponsors
+
+Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
+
+<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
 
 ## Interpreters
 - [`xstateful` by @avaragado](https://www.npmjs.com/package/@avaragado/xstateful)
