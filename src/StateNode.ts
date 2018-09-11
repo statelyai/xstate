@@ -83,7 +83,14 @@ class StateNode<
   public initial?: keyof TStateSchema['states'];
   public parallel: boolean;
   public transient: boolean;
-  public states: { [K in keyof TStateSchema['states']]: StateNode<TContext> };
+  public states: TStateSchema['states'] extends { states: StateSchema }
+    ? {
+        [K in keyof TStateSchema['states']]: StateNode<
+          TContext,
+          TStateSchema['states'][K]
+        >
+      }
+    : Record<string, StateNode<TContext>>;
   public history: false | 'shallow' | 'deep';
   public onEntry: Array<Action<TContext>>;
   public onExit: Array<Action<TContext>>;
@@ -91,7 +98,7 @@ class StateNode<
   public strict: boolean;
   public parent?: StateNode<TContext>;
   public machine: StateNode<TContext>;
-  public data: any;
+  public data?: TStateSchema extends { data: infer D } ? D : any;
   public delimiter: string;
   public order: number;
 
@@ -154,9 +161,14 @@ class StateNode<
             return stateNode;
           }
         )
-      : EMPTY_OBJECT) as {
-      [K in keyof TStateSchema['states']]: StateNode<TContext>
-    };
+      : EMPTY_OBJECT) as TStateSchema['states'] extends { states: StateSchema }
+      ? {
+          [K in keyof TStateSchema['states']]: StateNode<
+            TContext,
+            TStateSchema['states'][K]
+          >
+        }
+      : Record<string, StateNode<TContext>>;
 
     // History config
     this.history =
@@ -179,7 +191,10 @@ class StateNode<
       type: this.type,
       initial: this.initial as string, // TODO: fixme (no as string)
       history: this.history,
-      states: mapValues(this.states, state => state.definition),
+      states: mapValues<StateNode<TContext>, StateNodeDefinition<TContext>>(
+        this.states,
+        state => state.definition
+      ),
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
@@ -1162,7 +1177,7 @@ class StateNode<
 
     if (this.type === 'parallel') {
       return {
-        [key]: mapFilterValues(
+        [key]: mapFilterValues<StateNode<TContext>, StateValue>(
           this.states,
           stateNode => stateNode.resolvedStateValue[stateNode.key],
           stateNode => !stateNode.history
@@ -1176,6 +1191,7 @@ class StateNode<
     }
 
     return {
+      // @ts-ignore TODO: fixme
       [key]: this.states[this.initial].resolvedStateValue
     };
   }
@@ -1470,7 +1486,7 @@ class StateNode<
 
     return {
       current: relativeStateValue || this.initialStateValue,
-      states: mapFilterValues(
+      states: mapFilterValues<StateNode<TContext>, HistoryValue | undefined>(
         this.states,
         (stateNode, key) => {
           if (!relativeStateValue) {
@@ -1534,7 +1550,7 @@ class StateNode<
   public get stateIds(): string[] {
     const childStateIds = flatten(
       Object.keys(this.states).map(stateKey => {
-        return this.states[stateKey].stateIds;
+        return (this.states[stateKey] as StateNode<TContext>).stateIds;
       })
     );
     return [this.id].concat(childStateIds);

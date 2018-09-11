@@ -6,36 +6,32 @@ function noop(_x) {
 }
 
 describe('StateSchema', () => {
-  const pedestrianStates = {
-    initial: 'walk',
-    states: {
-      walk: {
-        on: {
-          PED_COUNTDOWN: 'wait'
-        }
-      },
-      wait: {
-        on: {
-          PED_COUNTDOWN: 'stop'
-        }
-      },
-      stop: {}
-    }
-  };
-
   interface LightStateSchema {
+    data: {
+      timer: number;
+    };
     states: {
-      green: any;
-      yellow: any;
-      red: any;
+      green: {
+        data: { name: string };
+      };
+      yellow: {};
+      red: {
+        states: {
+          walk: any;
+          wait: any;
+          stop: any;
+        };
+      };
     };
   }
 
   const lightMachine = Machine<undefined, LightStateSchema>({
     key: 'light',
     initial: 'green',
+    data: { timer: 0 },
     states: {
       green: {
+        data: { name: 'greenLight' },
         on: {
           TIMER: 'yellow',
           POWER_OUTAGE: 'red'
@@ -52,7 +48,20 @@ describe('StateSchema', () => {
           TIMER: 'green',
           POWER_OUTAGE: 'red'
         },
-        ...pedestrianStates
+        initial: 'walk',
+        states: {
+          walk: {
+            on: {
+              PED_COUNTDOWN: 'wait'
+            }
+          },
+          wait: {
+            on: {
+              PED_COUNTDOWN: 'stop'
+            }
+          },
+          stop: {}
+        }
       }
     }
   });

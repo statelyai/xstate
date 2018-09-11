@@ -131,7 +131,12 @@ export interface StateNodeConfig<
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
   states?:
-    | { [K in keyof TStateSchema['states']]: StateNodeConfig<TContext> }
+    | {
+        [K in keyof TStateSchema['states']]: StateNodeConfig<
+          TContext,
+          TStateSchema['states'][K]
+        >
+      }
     | undefined;
   on?: Record<string, Transition<TContext> | undefined>;
   onEntry?: SingleOrArray<Action<TContext>>;
@@ -140,7 +145,7 @@ export interface StateNodeConfig<
   activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
-  data?: any;
+  data?: TStateSchema extends { data: infer D } ? D : any;
   id?: string | undefined;
   delimiter?: string;
   order?: number;
@@ -438,7 +443,8 @@ export interface StateInterface<TContext = DefaultContext> {
 }
 
 export interface StateSchema {
-  states: {
+  data?: any;
+  states?: {
     [key: string]: StateSchema;
   };
 }
