@@ -8,7 +8,7 @@ function noop(_x) {
 describe('StateSchema', () => {
   interface LightStateSchema {
     data: {
-      timer: number;
+      interval: number;
     };
     states: {
       green: {
@@ -28,7 +28,7 @@ describe('StateSchema', () => {
   const lightMachine = Machine<undefined, LightStateSchema>({
     key: 'light',
     initial: 'green',
-    data: { timer: 0 },
+    data: { interval: 1000 },
     states: {
       green: {
         data: { name: 'greenLight' },

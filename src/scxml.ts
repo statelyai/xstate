@@ -242,7 +242,7 @@ function mapActions<TContext>(
               ? +/(\d+)ms/.exec(delay)![1]
               : 0
           : 0;
-        return actions.send(element.attributes!.event!, {
+        return actions.send(element.attributes!.event! as string, {
           delay: numberDelay
         });
       default:
@@ -377,7 +377,7 @@ export interface ScxmlToMachineOptions {
     expr: string,
     extState?: object
   ) => // tslint:disable-next-line:ban-types
-  ((extState: any, event: EventObject) => boolean) | Function;
+  ((extState: any, event: EventObject<any>) => boolean) | Function;
   delimiter?: string;
 }
 

@@ -7,10 +7,11 @@ import {
   ActionObject
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState } from '.';
+import { matchesState, Events } from '.';
 import { stateValuesEqual } from './utils';
 
-export class State<TContext> implements StateInterface<TContext> {
+export class State<TContext, TEvents extends Events = any> // TODO: fixme
+  implements StateInterface<TContext> {
   public static from<T>(
     stateValue: State<T> | StateValue,
     context: T
@@ -74,7 +75,7 @@ export class State<TContext> implements StateInterface<TContext> {
     /**
      * Internal event queue
      */
-    public events: EventObject[] = []
+    public events: Array<EventObject<TEvents>> = []
   ) {}
 
   public toStrings(value: StateValue = this.value): string[] {
