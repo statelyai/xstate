@@ -7,18 +7,18 @@ import {
   ActionObject
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, Events } from '.';
+import { matchesState } from '.';
 import { stateValuesEqual } from './utils';
 
-export class State<TContext, TEvents extends Events = any> // TODO: fixme
+export class State<TContext, TEvents extends EventObject = EventObject>
   implements StateInterface<TContext> {
-  public static from<T>(
-    stateValue: State<T> | StateValue,
-    context: T
-  ): State<T> {
+  public static from<TC, TE extends EventObject = EventObject>(
+    stateValue: State<TC, TE> | StateValue,
+    context: TC
+  ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<T>(
+        return new State<TC, TE>(
           stateValue.value,
           context,
           stateValue.historyValue,
@@ -33,7 +33,7 @@ export class State<TContext, TEvents extends Events = any> // TODO: fixme
       return stateValue;
     }
 
-    return new State(
+    return new State<TC, TE>(
       stateValue,
       context,
       undefined,
@@ -44,10 +44,13 @@ export class State<TContext, TEvents extends Events = any> // TODO: fixme
       []
     );
   }
-  public static inert<T>(stateValue: State<T> | StateValue, ext: T): State<T> {
+  public static inert<TC, TE extends EventObject = EventObject>(
+    stateValue: State<TC> | StateValue,
+    ext: TC
+  ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
-        return stateValue;
+        return stateValue as State<TC, TE>;
       }
       return new State(
         stateValue.value,
@@ -61,7 +64,7 @@ export class State<TContext, TEvents extends Events = any> // TODO: fixme
       );
     }
 
-    return State.from(stateValue, ext);
+    return State.from<TC, TE>(stateValue, ext);
   }
 
   constructor(
@@ -75,7 +78,7 @@ export class State<TContext, TEvents extends Events = any> // TODO: fixme
     /**
      * Internal event queue
      */
-    public events: Array<EventObject<TEvents>> = []
+    public events: TEvents[] = []
   ) {}
 
   public toStrings(value: StateValue = this.value): string[] {

@@ -4,20 +4,20 @@ import {
   DefaultContext,
   MachineConfig,
   StateSchema,
-  Events
+  EventObject
 } from './types';
 import { StateNode } from './StateNode';
 
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends Events = any
+  TEvents extends EventObject = EventObject
 >(
-  config: MachineConfig<TContext, TStateSchema>,
+  config: MachineConfig<TContext, TStateSchema, TEvents>,
   options?: MachineOptions<TContext, TEvents>,
   initialContext?: TContext
 ): Machine<TContext> {
-  return new StateNode<TContext, TStateSchema>(
+  return new StateNode<TContext, TStateSchema, TEvents>(
     config,
     options,
     initialContext

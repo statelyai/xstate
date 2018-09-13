@@ -1,9 +1,9 @@
 import { State } from './State';
-import { Event, StateValue, ActionType, Action, Events } from './types';
+import { Event, StateValue, ActionType, Action, EventObject } from './types';
 
-export function getEventType<TEvents extends Events = any>(
+export function getEventType<TEvents extends EventObject = EventObject>(
   event: Event<TEvents>
-): keyof TEvents {
+): TEvents['type'] {
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`

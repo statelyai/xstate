@@ -5,8 +5,7 @@ import {
   SendAction,
   CancelAction,
   DefaultContext,
-  ActionObject,
-  Events
+  ActionObject
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -85,7 +84,7 @@ export class SimulatedClock implements SimulatedClock {
 }
 
 // tslint:disable-next-line:max-classes-per-file
-export class Interpreter<TContext, TEvents extends Events = any> {
+export class Interpreter<TContext, TEvents extends EventObject = EventObject> {
   // TODO: fixme
   public static defaultOptions: InterpreterOptions = {
     clock: { setTimeout, clearTimeout },
@@ -93,7 +92,7 @@ export class Interpreter<TContext, TEvents extends Events = any> {
   };
   public state: State<TContext>;
   public extState: TContext;
-  public eventQueue: Array<EventObject<TEvents>> = [];
+  public eventQueue: TEvents[] = [];
   public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
   public stopListeners: Set<Listener> = new Set();
@@ -101,7 +100,7 @@ export class Interpreter<TContext, TEvents extends Events = any> {
   public logger: (...args: any[]) => void;
   public initialized = false;
   constructor(
-    public machine: Machine<TContext>,
+    public machine: Machine<TContext, TEvents>,
     listener?: StateListener,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
@@ -118,7 +117,10 @@ export class Interpreter<TContext, TEvents extends Events = any> {
     this.logger = resolvedOptions.logger;
   }
   public static interpret = interpret;
-  private update(state: State<TContext>, event?: Event<TEvents>): void {
+  private update(
+    state: State<TContext, TEvents>,
+    event?: Event<TEvents>
+  ): void {
     this.state = state;
     const { context } = this.state;
 
@@ -150,7 +152,10 @@ export class Interpreter<TContext, TEvents extends Events = any> {
   }
   public init = this.start;
   public start(
-    initialState: State<TContext> = this.machine.initialState
+    initialState: State<TContext, TEvents> = this.machine.initialState as State<
+      TContext,
+      TEvents
+    >
   ): Interpreter<TContext> {
     this.update(initialState);
     this.initialized = true;
@@ -178,7 +183,7 @@ export class Interpreter<TContext, TEvents extends Events = any> {
       this.state,
       eventObject,
       this.extState
-    );
+    ) as State<TContext, TEvents>; // TODO: fixme
 
     this.update(nextState, event);
     this.flushEventQueue();
@@ -198,7 +203,7 @@ export class Interpreter<TContext, TEvents extends Events = any> {
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: EventObject<TEvents>
+    event?: TEvents
   ): Partial<TContext> | undefined {
     if (action.exec) {
       return action.exec(context, event);

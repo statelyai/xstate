@@ -14,28 +14,27 @@ import {
   ActionFunctionMap,
   ActivityActionObject,
   ActionTypes,
-  ActivityDefinition,
-  Events
+  ActivityDefinition
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
 
 export { actionTypes };
 
-export function toEventObject<
-  TEvents extends Events = any,
-  TName extends keyof Events = string
->(event: Event<TEvents, TName>, id?: TName): EventObject<TEvents, TName> {
+export function toEventObject<TEvents extends EventObject>(
+  event: Event<TEvents>
+  // id?: TEvents['type']
+): TEvents {
   if (typeof event === 'string' || typeof event === 'number') {
-    const eventObject: EventObject<TEvents, TName> = { type: event };
-    if (id !== undefined) {
-      eventObject.id = id;
-    }
+    const eventObject = { type: event };
+    // if (id !== undefined) {
+    //   eventObject.id = id;
+    // }
 
-    return eventObject;
+    return eventObject as TEvents;
   }
 
-  return event as EventObject<TEvents, TName>;
+  return event as TEvents;
 }
 
 function getActionFunction<TContext>(
@@ -122,32 +121,27 @@ export const toActionObjects = <TContext>(
   return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
 
-interface RaiseEvent<
-  TContext,
-  TEvents extends Events,
-  TName extends keyof TEvents
-> extends ActionObject<TContext> {
-  event: TName;
+interface RaiseEvent<TContext, TEvents extends EventObject>
+  extends ActionObject<TContext> {
+  event: TEvents['type'];
 }
 
-export function raise<
-  TContext,
-  TEvents extends Events,
-  TName extends keyof TEvents
->(eventType: TName): RaiseEvent<TContext, TEvents, TName> {
+export function raise<TContext, TEvents extends EventObject>(
+  eventType: TEvents['type']
+): RaiseEvent<TContext, TEvents> {
   return {
     type: actionTypes.raise,
     event: eventType
   };
 }
 
-export function send<TContext, TEvents extends Events>(
+export function send<TContext, TEvents extends EventObject>(
   event: Event<TEvents>,
   options?: SendActionOptions
 ): SendAction<TContext, TEvents> {
   return {
     type: actionTypes.send,
-    event: toEventObject(event),
+    event: toEventObject<TEvents>(event),
     delay: options ? options.delay : undefined,
     id:
       options && options.id !== undefined
@@ -156,8 +150,8 @@ export function send<TContext, TEvents extends Events>(
   };
 }
 
-export function log<TContext, TEvents extends Events>(
-  expr: (ctx: TContext, event: EventObject<TEvents>) => void,
+export function log<TContext, TEvents extends EventObject>(
+  expr: (ctx: TContext, event: TEvents) => void,
   label?: string
 ) {
   return {
@@ -198,7 +192,7 @@ export function stop<TContext>(
   };
 }
 
-export const assign = <TContext, TEvents extends Events>(
+export const assign = <TContext, TEvents extends EventObject = EventObject>(
   assignment: Assigner<TContext, TEvents> | PropertyAssigner<TContext, TEvents>
 ): AssignAction<TContext, TEvents> => {
   return {

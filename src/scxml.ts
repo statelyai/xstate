@@ -214,7 +214,7 @@ function mapActions<TContext>(
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise(element.attributes!.event!);
+        return actions.raise(element.attributes!.event! as string);
       case 'assign':
         return actions.assign(xs => {
           const literalKeyExprs = xs
@@ -377,7 +377,7 @@ export interface ScxmlToMachineOptions {
     expr: string,
     extState?: object
   ) => // tslint:disable-next-line:ban-types
-  ((extState: any, event: EventObject<any>) => boolean) | Function;
+  ((extState: any, event: EventObject) => boolean) | Function;
   delimiter?: string;
 }
 

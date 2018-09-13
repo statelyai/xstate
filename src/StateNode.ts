@@ -16,7 +16,6 @@ import {
   Event,
   StateValue,
   Action,
-  EventType,
   TransitionConfig,
   ActivityMap,
   EntryExitStates,
@@ -40,8 +39,7 @@ import {
   StateNodeConfig,
   Activity,
   StateNodeValueTree,
-  StateSchema,
-  Events
+  StateSchema
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -76,7 +74,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends Events = any
+  TEvents extends EventObject = EventObject
 > {
   public key: string;
   public id: string;
@@ -89,7 +87,8 @@ class StateNode<
     ? {
         [K in keyof TStateSchema['states']]: StateNode<
           TContext,
-          TStateSchema['states'][K]
+          TStateSchema['states'][K],
+          TEvents
         >
       }
     : Record<string, StateNode<TContext>>;
@@ -105,7 +104,7 @@ class StateNode<
   public order: number;
 
   private __cache = {
-    events: undefined as EventType[] | undefined,
+    events: undefined as Array<TEvents['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialState: undefined as StateValue | undefined
   };
@@ -167,7 +166,8 @@ class StateNode<
       ? {
           [K in keyof TStateSchema['states']]: StateNode<
             TContext,
-            TStateSchema['states'][K]
+            TStateSchema['states'][K],
+            TEvents
           >
         }
       : Record<string, StateNode<TContext>>;
@@ -260,7 +260,7 @@ class StateNode<
     return allDelayedTransitions;
   }
   public getStateNodes(
-    state: StateValue | State<TContext>
+    state: StateValue | State<TContext, TEvents>
   ): Array<StateNode<TContext>> {
     if (!state) {
       return [];
@@ -303,8 +303,8 @@ class StateNode<
   }
   private transitionLeafNode(
     stateValue: string,
-    state: State<TContext>,
-    eventObject: EventObject<TEvents>,
+    state: State<TContext, TEvents>,
+    eventObject: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
     const stateNode = this.getStateNode(stateValue);
@@ -338,8 +338,8 @@ class StateNode<
   }
   private transitionNestedNode(
     stateValue: StateValueMap,
-    state: State<TContext>,
-    eventObject: EventObject<TEvents>,
+    state: State<TContext, TEvents>,
+    eventObject: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
     const subStateKeys = Object.keys(stateValue);
@@ -383,8 +383,8 @@ class StateNode<
   }
   private transitionParallelNode(
     stateValue: StateValueMap,
-    state: State<TContext>,
-    eventObject: EventObject<TEvents>,
+    state: State<TContext, TEvents>,
+    eventObject: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
     const noTransitionKeys: string[] = [];
@@ -532,8 +532,8 @@ class StateNode<
   }
   public _transition(
     stateValue: StateValue,
-    state: State<TContext>,
-    event: EventObject<TEvents>,
+    state: State<TContext, TEvents>,
+    event: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
     // leaf node
@@ -550,8 +550,8 @@ class StateNode<
     return this.transitionParallelNode(stateValue, state, event, context);
   }
   private next(
-    state: State<TContext>,
-    eventObject: EventObject<TEvents>,
+    state: State<TContext, TEvents>,
+    eventObject: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
     const eventType = eventObject.type;
@@ -743,7 +743,7 @@ class StateNode<
   private evaluateCond(
     condition: Condition<TContext, TEvents>,
     context: TContext,
-    eventObject: EventObject<TEvents>,
+    eventObject: TEvents,
     interimState: StateValue
   ): boolean {
     let condFn: ConditionPredicate<TContext, TEvents>;
@@ -899,10 +899,10 @@ class StateNode<
     return activityMap;
   }
   public transition(
-    state: StateValue | State<TContext>,
+    state: StateValue | State<TContext, TEvents>,
     event: Event<TEvents>,
     context?: TContext
-  ): State<TContext> {
+  ): State<TContext, TEvents> {
     const resolvedStateValue =
       typeof state === 'string'
         ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
@@ -923,7 +923,7 @@ class StateNode<
       }
     }
 
-    const currentState = State.from<TContext>(
+    const currentState = State.from<TContext, TEvents>(
       resolvedStateValue,
       resolvedContext
     );
@@ -939,9 +939,9 @@ class StateNode<
   }
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
-    currentState: State<TContext>,
-    event?: EventObject<TEvents>
-  ): State<TContext> {
+    currentState: State<TContext, TEvents>,
+    event?: TEvents
+  ): State<TContext, TEvents> {
     const historyValue = currentState.historyValue
       ? currentState.historyValue
       : stateTransition.source
@@ -968,7 +968,7 @@ class StateNode<
       action =>
         typeof action === 'object' &&
         (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as Array<ActionObject<TContext>>;
+    ) as TEvents[];
 
     const nonEventActions = actions.filter(
       action =>
@@ -988,7 +988,10 @@ class StateNode<
           let partialUpdate: Partial<TContext> = {};
 
           if (typeof assignment === 'function') {
-            partialUpdate = assignment(acc, event || { type: 'xstate.init' });
+            partialUpdate = assignment(
+              acc,
+              event || ({ type: 'xstate.init' } as TEvents)
+            );
           } else {
             Object.keys(assignment).forEach(key => {
               const propAssignment = assignment[key];
@@ -1010,7 +1013,7 @@ class StateNode<
 
     const isTransient = stateNodes.some(stateNode => stateNode.transient);
     if (isTransient) {
-      raisedEvents.push({ type: actionTypes.null });
+      raisedEvents.push({ type: actionTypes.null } as TEvents); // TODO: fixme
     }
 
     const data = [this, ...stateNodes].reduce((acc, stateNode) => {
@@ -1021,7 +1024,7 @@ class StateNode<
     }, {});
 
     const nextState = stateTransition.value
-      ? new State<TContext>(
+      ? new State<TContext, TEvents>(
           stateTransition.value,
           updatedContext,
           historyValue
@@ -1037,7 +1040,7 @@ class StateNode<
 
     if (!nextState) {
       // Unchanged state should be returned with no actions
-      return State.inert<TContext>(currentState, updatedContext);
+      return State.inert<TContext, TEvents>(currentState, updatedContext);
     }
 
     // Dispose of previous histories to prevent memory leaks
@@ -1234,7 +1237,7 @@ class StateNode<
   public getState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
-  ): State<TContext> {
+  ): State<TContext, TEvents> {
     const activityMap: ActivityMap = {};
     const actions: Array<Action<TContext>> = [];
 
@@ -1268,14 +1271,14 @@ class StateNode<
           let partialUpdate: Partial<TContext> = {};
 
           if (typeof assignment === 'function') {
-            partialUpdate = assignment(acc, { type: 'init' });
+            partialUpdate = assignment(acc, { type: 'init' } as TEvents); // TODO: fix init
           } else {
             Object.keys(assignment).forEach(key => {
               const propAssignment = assignment[key];
 
               partialUpdate[key] =
                 typeof propAssignment === 'function'
-                  ? propAssignment(acc, { type: 'init' })
+                  ? propAssignment(acc, { type: 'init' }) // TODO: fix init
                   : propAssignment;
             });
           }
@@ -1284,7 +1287,7 @@ class StateNode<
         }, context)
       : context;
 
-    const initialNextState = new State<TContext>(
+    const initialNextState = new State<TContext, TEvents>(
       stateValue,
       updatedContext,
       undefined,
@@ -1306,7 +1309,7 @@ class StateNode<
       return nextState;
     }, initialNextState);
   }
-  public get initialState(): State<TContext> {
+  public get initialState(): State<TContext, TEvents> {
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
@@ -1557,7 +1560,7 @@ class StateNode<
     );
     return [this.id].concat(childStateIds);
   }
-  public get events(): Array<keyof TEvents> {
+  public get events(): Array<TEvents['type']> {
     if (this.__cache.events) {
       return this.__cache.events;
     }
