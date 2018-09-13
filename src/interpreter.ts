@@ -237,8 +237,9 @@ export class Interpreter<TContext> {
     return undefined;
   }
   private flushEventQueue() {
-    if (this.eventQueue.length) {
-      this.send(this.eventQueue.shift());
+    const flushedEvent = this.eventQueue.shift();
+    if (flushedEvent) {
+      this.send(flushedEvent);
     }
   }
 }
