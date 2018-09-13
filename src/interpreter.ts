@@ -238,7 +238,7 @@ export class Interpreter<TContext> {
   }
   private flushEventQueue() {
     if (this.eventQueue.length) {
-      this.send(this.eventQueue.unshift());
+      this.send(this.eventQueue.shift());
     }
   }
 }
