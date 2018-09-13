@@ -5,7 +5,8 @@ import {
   SendAction,
   CancelAction,
   DefaultContext,
-  ActionObject
+  ActionObject,
+  Events
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -84,14 +85,15 @@ export class SimulatedClock implements SimulatedClock {
 }
 
 // tslint:disable-next-line:max-classes-per-file
-export class Interpreter<TContext> {
+export class Interpreter<TContext, TEvents extends Events = any> {
+  // TODO: fixme
   public static defaultOptions: InterpreterOptions = {
     clock: { setTimeout, clearTimeout },
     logger: global.console.log.bind(console)
   };
   public state: State<TContext>;
   public extState: TContext;
-  public eventQueue: EventObject[] = [];
+  public eventQueue: Array<EventObject<TEvents>> = [];
   public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
   public stopListeners: Set<Listener> = new Set();
@@ -116,7 +118,7 @@ export class Interpreter<TContext> {
     this.logger = resolvedOptions.logger;
   }
   public static interpret = interpret;
-  private update(state: State<TContext>, event?: Event): void {
+  private update(state: State<TContext>, event?: Event<TEvents>): void {
     this.state = state;
     const { context } = this.state;
 
@@ -163,7 +165,7 @@ export class Interpreter<TContext> {
     });
     return this;
   }
-  public send = (event: Event): State<TContext> => {
+  public send = (event: Event<TEvents>): State<TContext, TEvents> => {
     const eventObject = toEventObject(event);
     if (!this.initialized) {
       throw new Error(
@@ -183,7 +185,7 @@ export class Interpreter<TContext> {
     return nextState;
     // tslint:disable-next-line:semicolon
   };
-  private defer(sendAction: SendAction): number {
+  private defer(sendAction: SendAction<TContext, TEvents>): number {
     return this.clock.setTimeout(
       () => this.send(sendAction.event),
       sendAction.delay || 0
@@ -196,7 +198,7 @@ export class Interpreter<TContext> {
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: EventObject
+    event?: EventObject<TEvents>
   ): Partial<TContext> | undefined {
     if (action.exec) {
       return action.exec(context, event);
@@ -204,7 +206,7 @@ export class Interpreter<TContext> {
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendAction;
+        const sendAction = action as SendAction<TContext, TEvents>;
 
         if (!sendAction.delay) {
           this.eventQueue.push(sendAction.event);
