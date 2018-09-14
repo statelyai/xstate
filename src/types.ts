@@ -343,11 +343,13 @@ export interface RaisedEvent<TEvents extends EventObject> {
   type: ActionTypes.Raise;
   event: TEvents;
 }
-export type AnyEvent<TEvents extends EventObject> =
-  | TEvents
+export type BuiltInEvent<TEvents extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvents>
   | { type: ActionTypes.Init };
+export type AnyEvent<TEvents extends EventObject> =
+  | TEvents
+  | BuiltInEvent<TEvents>;
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
   type: ActionTypes.Start | ActionTypes.Stop;
