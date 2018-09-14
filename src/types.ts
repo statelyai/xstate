@@ -122,9 +122,9 @@ export type StateTypes =
 export type SingleOrArray<T> = T[] | T;
 
 export interface StateNodeConfig<
-  TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
 > {
   key?: string;
   initial?: keyof TStateSchema['states'] | undefined;
@@ -140,12 +140,13 @@ export interface StateNodeConfig<
     | {
         [K in keyof TStateSchema['states']]: StateNodeConfig<
           TContext,
-          TStateSchema['states'][K]
+          TStateSchema['states'][K],
+          TEvents
         >
       }
     | undefined;
   // on?: Record<string, Transition<TContext> | undefined>;
-  on?: { [K in TEvents['type']]: Transition<TContext, TEvents> | undefined };
+  on?: { [K in TEvents['type']]?: Transition<TContext, TEvents> | undefined };
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
   after?: DelayedTransitions<TContext>;
@@ -161,7 +162,8 @@ export interface StateNodeConfig<
 export interface StateNodeDefinition<
   TContext = DefaultContext,
   TEvents extends EventObject = EventObject
-> extends StateNodeConfig<TContext> {
+> extends StateNodeConfig<TContext, any, TEvents> {
+  // TODO: fix
   id: string;
   key: string;
   type: StateTypes;
@@ -176,15 +178,15 @@ export interface StateNodeDefinition<
   data: any;
   order: number;
 }
-export interface SimpleStateNodeConfig<TContext>
-  extends StateNodeConfig<TContext> {
+export interface SimpleStateNodeConfig<TContext, TEvents extends EventObject>  // TODO: fix
+  extends StateNodeConfig<TContext, any, TEvents> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
 }
 
-export interface HistoryStateNodeConfig<TContext>
-  extends SimpleStateNodeConfig<TContext> {
+export interface HistoryStateNodeConfig<TContext, TEvents extends EventObject>
+  extends SimpleStateNodeConfig<TContext, TEvents> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
 }
@@ -195,14 +197,15 @@ export interface CompoundStateNodeConfig<
   TEvents extends EventObject = EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvents> {
   parallel?: boolean;
-  states: StateNodeConfig<TContext, TStateSchema>['states'];
+  states: StateNodeConfig<TContext, TStateSchema, TEvents>['states'];
 }
 
 export type SimpleOrCompoundStateNodeConfig<
   TContext,
-  TStateSchema extends StateSchema = any
+  TStateSchema extends StateSchema = any,
+  TEvents extends EventObject = EventObject
 > =
-  | SimpleStateNodeConfig<TContext>
+  | SimpleStateNodeConfig<TContext, TEvents>
   | CompoundStateNodeConfig<TContext, TStateSchema>;
 
 export type ActionFunctionMap<TContext> = Record<

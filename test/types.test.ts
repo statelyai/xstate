@@ -25,7 +25,12 @@ describe('StateSchema', () => {
     };
   }
 
-  const lightMachine = Machine<undefined, LightStateSchema>({
+  type LightEvents =
+    | { type: 'TIMER' }
+    | { type: 'POWER_OUTAGE' }
+    | { type: 'PED_COUNTDOWN' };
+
+  const lightMachine = Machine<undefined, LightStateSchema, LightEvents>({
     key: 'light',
     initial: 'green',
     data: { interval: 1000 },

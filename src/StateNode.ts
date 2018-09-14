@@ -112,7 +112,7 @@ class StateNode<
   private idMap: Record<string, StateNode<TContext>> = {};
 
   constructor(
-    private _config: StateNodeConfig<TContext, TStateSchema>,
+    private _config: StateNodeConfig<TContext, TStateSchema, TEvents>,
     public options: Readonly<
       MachineOptions<TContext, TEvents>
     > = createDefaultOptions<TContext>(),
@@ -146,9 +146,9 @@ class StateNode<
     this.order = _config.order || -1;
 
     this.states = (_config.states
-      ? mapValues<StateNodeConfig<TContext>, StateNode<TContext>>(
+      ? mapValues(
           _config.states,
-          (stateConfig, key, _, i) => {
+          (stateConfig: StateNodeConfig<TContext, any, TEvents>, key, _, i) => {
             const stateNode = new StateNode({
               ...stateConfig,
               key,
@@ -206,7 +206,7 @@ class StateNode<
       order: this.order || -1
     };
   }
-  public get config(): StateNodeConfig<TContext> {
+  public get config(): StateNodeConfig<TContext, TStateSchema, TEvents> {
     const { parent, ...config } = this._config;
 
     return config;
@@ -1336,7 +1336,10 @@ class StateNode<
   public get target(): StateValue | undefined {
     let target;
     if (this.history) {
-      const historyConfig = this.config as HistoryStateNodeConfig<TContext>;
+      const historyConfig = this.config as HistoryStateNodeConfig<
+        TContext,
+        TEvents
+      >;
       if (historyConfig.target && typeof historyConfig.target === 'string') {
         target = isStateId(historyConfig.target)
           ? pathToStateValue(
