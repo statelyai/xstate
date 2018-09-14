@@ -6,7 +6,7 @@ export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
 export interface EventObject extends Record<string, any> {
-  type: string;
+  type: string | number;
   id?: string | number;
 }
 
@@ -198,12 +198,11 @@ export interface StateNodeDefinition<
   TContext,
   TStateSchema extends StateSchema,
   TEvents extends EventObject
-> extends StateNodeConfig<TContext, any, TEvents> {
-  // TODO: fix
+> extends StateNodeConfig<TContext, TStateSchema, TEvents> {
   id: string;
   key: string;
   type: StateTypes;
-  initial: string | undefined;
+  initial: StateNodeConfig<TContext, TStateSchema, TEvents>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvents>;
   on: {
@@ -216,8 +215,8 @@ export interface StateNodeDefinition<
   data: any;
   order: number;
 }
-export interface SimpleStateNodeConfig<TContext, TEvents extends EventObject>  // TODO: fix
-  extends StateNodeConfig<TContext, any, TEvents> {
+export interface SimpleStateNodeConfig<TContext, TEvents extends EventObject>
+  extends StateNodeConfig<TContext, never, TEvents> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -231,8 +230,8 @@ export interface HistoryStateNodeConfig<TContext, TEvents extends EventObject>
 
 export interface CompoundStateNodeConfig<
   TContext,
-  TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvents> {
   parallel?: boolean;
   states: StateNodeConfig<TContext, TStateSchema, TEvents>['states'];
@@ -240,11 +239,11 @@ export interface CompoundStateNodeConfig<
 
 export type SimpleOrCompoundStateNodeConfig<
   TContext,
-  TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
 > =
   | SimpleStateNodeConfig<TContext, TEvents>
-  | CompoundStateNodeConfig<TContext, TStateSchema>;
+  | CompoundStateNodeConfig<TContext, TStateSchema, TEvents>;
 
 export type ActionFunctionMap<TContext> = Record<
   string,
@@ -258,17 +257,22 @@ export interface MachineOptions<TContext, TEvents extends EventObject> {
 }
 export type MachineConfig<
   TContext,
-  TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
 > = CompoundStateNodeConfig<TContext, TStateSchema, TEvents>;
 
-export interface StandardMachineConfig<TContext>
-  extends CompoundStateNodeConfig<TContext> {}
+export interface StandardMachineConfig<
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
+> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvents> {}
 
-export interface ParallelMachineConfig<TContext>
-  extends CompoundStateNodeConfig<TContext> {
-  initial?: string | undefined;
-  parallel?: true;
+export interface ParallelMachineConfig<
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
+> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvents> {
+  initial?: undefined;
   type?: 'parallel';
 }
 
@@ -277,57 +281,20 @@ export interface EntryExitEffectMap<TContext> {
   exit: Array<Action<TContext>>;
 }
 
-// export interface IStateNode<TContext = DefaulTContext> {
-//   key: string;
-//   id: string;
-//   initial: string | undefined;
-//   parallel: boolean;
-//   transient: boolean;
-//   history: false | 'shallow' | 'deep';
-//   states: Record<string, IStateNode<TContext = DefaulTContext>>;
-//   on?: Record<string, Transition<TContext = DefaulTContext>>;
-//   onEntry?: Action | Action[];
-//   onExit?: Action | Action[];
-//   parent: StateNode | undefined;
-//   machine: Machine;
-//   config: StateNodeConfig<TContext = DefaulTContext>;
-// }
-
-export interface ComplexStateNode<TContext> extends StateNode<TContext> {
-  initial: string;
-  history: false;
-}
-
-export interface LeafStateNode<TContext> extends StateNode<TContext> {
-  initial: never;
-  parallel: never;
-  states: never;
-  parent: StateNode<TContext>;
-}
-
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: StateValue | undefined;
 }
 
 export interface Machine<
-  TContext = DefaultContext,
-  TStateSchema = any,
-  TEvents extends EventObject = EventObject
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvents extends EventObject
 > extends StateNode<TContext, TStateSchema, TEvents> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvents>['states'];
 }
 
-export interface StandardMachine<TContext> extends Machine<TContext> {
-  initial: string;
-  parallel: false;
-}
-
-export interface ParallelMachine<TContext> extends Machine<TContext> {
-  initial: undefined;
-  parallel: true;
-}
 export interface ActionMap<TContext> {
   onEntry: Array<Action<TContext>>;
   actions: Array<Action<TContext>>;
@@ -368,8 +335,19 @@ export enum ActionTypes {
   Assign = 'xstate.assign',
   After = 'xstate.after',
   DoneState = 'done.state',
-  Log = 'xstate.log'
+  Log = 'xstate.log',
+  Init = 'xstate.init'
 }
+
+export interface RaisedEvent<TEvents extends EventObject> {
+  type: ActionTypes.Raise;
+  event: TEvents;
+}
+export type AnyEvent<TEvents extends EventObject> =
+  | TEvents
+  | { type: ActionTypes.Null }
+  | RaisedEvent<TEvents>
+  | { type: ActionTypes.Init };
 
 export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
   type: ActionTypes.Start | ActionTypes.Stop;

@@ -4,7 +4,8 @@ import {
   DefaultContext,
   MachineConfig,
   StateSchema,
-  EventObject
+  EventObject,
+  AnyEvent
 } from './types';
 import { StateNode } from './StateNode';
 
@@ -16,10 +17,10 @@ export function Machine<
   config: MachineConfig<TContext, TStateSchema, TEvents>,
   options?: MachineOptions<TContext, TEvents>,
   initialContext?: TContext
-): Machine<TContext> {
-  return new StateNode<TContext, TStateSchema, TEvents>(
+): Machine<TContext, TStateSchema, AnyEvent<TEvents>> {
+  return new StateNode<TContext, TStateSchema, AnyEvent<TEvents>>(
     config,
     options,
     initialContext
-  ) as Machine<TContext>;
+  ) as Machine<TContext, TStateSchema, AnyEvent<TEvents>>;
 }

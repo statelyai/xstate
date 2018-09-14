@@ -7,7 +7,7 @@ export function getEventType<TEvents extends EventObject = EventObject>(
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`
-      : event.type;
+      : (event as TEvents).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'

@@ -5,7 +5,8 @@ import {
   SendAction,
   CancelAction,
   DefaultContext,
-  ActionObject
+  ActionObject,
+  StateSchema
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -84,13 +85,17 @@ export class SimulatedClock implements SimulatedClock {
 }
 
 // tslint:disable-next-line:max-classes-per-file
-export class Interpreter<TContext, TEvents extends EventObject = EventObject> {
+export class Interpreter<
+  TContext,
+  TStateSchema extends StateSchema = any,
+  TEvents extends EventObject = EventObject
+> {
   // TODO: fixme
   public static defaultOptions: InterpreterOptions = {
     clock: { setTimeout, clearTimeout },
     logger: global.console.log.bind(console)
   };
-  public state: State<TContext>;
+  public state: State<TContext, TEvents>;
   public extState: TContext;
   public eventQueue: TEvents[] = [];
   public delayedEventsMap: Record<string, number> = {};
@@ -100,7 +105,7 @@ export class Interpreter<TContext, TEvents extends EventObject = EventObject> {
   public logger: (...args: any[]) => void;
   public initialized = false;
   constructor(
-    public machine: Machine<TContext, TEvents>,
+    public machine: Machine<TContext, TStateSchema, TEvents>,
     listener?: StateListener,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
@@ -251,8 +256,12 @@ export class Interpreter<TContext, TEvents extends EventObject = EventObject> {
   }
 }
 
-export function interpret<TContext = DefaultContext>(
-  machine: Machine<TContext>,
+export function interpret<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any,
+  TEvents extends EventObject = EventObject
+>(
+  machine: Machine<TContext, TStateSchema, TEvents>,
   listener?: StateListener,
   options?: Partial<InterpreterOptions>
 ) {

@@ -42,7 +42,10 @@ import {
   StateSchema,
   TransitionsDefinition,
   StatesDefinition,
-  StateNodesConfig
+  StateNodesConfig,
+  ActionTypes,
+  AnyEvent,
+  RaisedEvent
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -77,7 +80,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TEvents extends AnyEvent<EventObject> = AnyEvent<EventObject>
 > {
   public key: string;
   public id: string;
@@ -182,7 +185,7 @@ class StateNode<
       id: this.id,
       key: this.key,
       type: this.type,
-      initial: this.initial as string, // TODO: fixme (no as string)
+      initial: this.initial,
       history: this.history,
       states: mapValues(
         this.states,
@@ -960,7 +963,7 @@ class StateNode<
       action =>
         typeof action === 'object' &&
         (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as TEvents[];
+    ) as Array<RaisedEvent<TEvents> | { type: ActionTypes.Null }>;
 
     const nonEventActions = actions.filter(
       action =>
@@ -982,7 +985,7 @@ class StateNode<
           if (typeof assignment === 'function') {
             partialUpdate = assignment(
               acc,
-              event || ({ type: 'xstate.init' } as TEvents)
+              event || ({ type: ActionTypes.Init } as TEvents)
             );
           } else {
             Object.keys(assignment).forEach(key => {
@@ -1005,7 +1008,7 @@ class StateNode<
 
     const isTransient = stateNodes.some(stateNode => stateNode.transient);
     if (isTransient) {
-      raisedEvents.push({ type: actionTypes.null } as TEvents); // TODO: fixme
+      raisedEvents.push({ type: actionTypes.null });
     }
 
     const data = [this, ...stateNodes].reduce((acc, stateNode) => {
@@ -1026,7 +1029,7 @@ class StateNode<
           toActionObjects(nonEventActions, this.options.actions),
           activities,
           data,
-          raisedEvents
+          raisedEvents as TEvents[]
         )
       : undefined;
 
@@ -1044,7 +1047,9 @@ class StateNode<
       const raisedEvent = raisedEvents.shift()!;
       maybeNextState = this.transition(
         maybeNextState,
-        raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
+        raisedEvent.type === actionTypes.null
+          ? NULL_EVENT
+          : (raisedEvent as RaisedEvent<TEvents>).event,
         maybeNextState.context
       );
       maybeNextState.actions.unshift(...currentActions);
