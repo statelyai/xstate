@@ -331,7 +331,7 @@ export enum ActionTypes {
   Raise = 'xstate.raise',
   Send = 'xstate.send',
   Cancel = 'xstate.cancel',
-  Null = 'xstate.null',
+  Null = '',
   Assign = 'xstate.assign',
   After = 'xstate.after',
   DoneState = 'done.state',

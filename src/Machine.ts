@@ -14,7 +14,7 @@ export function Machine<
   TStateSchema extends StateSchema = any,
   TEvents extends EventObject = EventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvents>,
+  config: MachineConfig<TContext, TStateSchema, AnyEvent<TEvents>>,
   options?: MachineOptions<TContext, TEvents>,
   initialContext?: TContext
 ): Machine<TContext, TStateSchema, AnyEvent<TEvents>> {

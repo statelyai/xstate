@@ -70,7 +70,11 @@ describe('StateSchema', () => {
               }
             }
           },
-          stop: {}
+          stop: {
+            on: {
+              '': { target: 'green' }
+            }
+          }
         }
       }
     }
