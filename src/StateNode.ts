@@ -39,7 +39,10 @@ import {
   StateNodeConfig,
   Activity,
   StateNodeValueTree,
-  StateSchema
+  StateSchema,
+  TransitionsDefinition,
+  StatesDefinition,
+  StateNodesConfig
 } from './types';
 import { matchesState } from './matchesState';
 import { State } from './State';
@@ -83,15 +86,7 @@ class StateNode<
   public initial?: keyof TStateSchema['states'];
   public parallel: boolean;
   public transient: boolean;
-  public states: TStateSchema['states'] extends { states: StateSchema }
-    ? {
-        [K in keyof TStateSchema['states']]: StateNode<
-          TContext,
-          TStateSchema['states'][K],
-          TEvents
-        >
-      }
-    : Record<string, StateNode<TContext>>;
+  public states: StateNodesConfig<TContext, TStateSchema, TEvents>;
   public history: false | 'shallow' | 'deep';
   public onEntry: Array<Action<TContext>>;
   public onExit: Array<Action<TContext>>;
@@ -162,15 +157,7 @@ class StateNode<
             return stateNode;
           }
         )
-      : EMPTY_OBJECT) as TStateSchema['states'] extends { states: StateSchema }
-      ? {
-          [K in keyof TStateSchema['states']]: StateNode<
-            TContext,
-            TStateSchema['states'][K],
-            TEvents
-          >
-        }
-      : Record<string, StateNode<TContext>>;
+      : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvents>;
 
     // History config
     this.history =
@@ -186,17 +173,21 @@ class StateNode<
       this.resolveActivity(activity)
     );
   }
-  public get definition(): StateNodeDefinition<TContext> {
+  public get definition(): StateNodeDefinition<
+    TContext,
+    TStateSchema,
+    TEvents
+  > {
     return {
       id: this.id,
       key: this.key,
       type: this.type,
       initial: this.initial as string, // TODO: fixme (no as string)
       history: this.history,
-      states: mapValues<StateNode<TContext>, StateNodeDefinition<TContext>>(
+      states: mapValues(
         this.states,
-        state => state.definition
-      ),
+        (state: StateNode<TContext, any, TEvents>) => state.definition
+      ) as StatesDefinition<TContext, TStateSchema, TEvents>,
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
@@ -211,10 +202,10 @@ class StateNode<
 
     return config;
   }
-  public get on(): Record<string, Array<TransitionDefinition<TContext>>> {
+  public get on(): TransitionsDefinition<TContext, TEvents> {
     return this.formatTransitions();
   }
-  public get after(): Array<DelayedTransitionDefinition<TContext>> {
+  public get after(): Array<DelayedTransitionDefinition<TContext, TEvents>> {
     const {
       config: { after: afterConfig }
     } = this;
@@ -235,7 +226,8 @@ class StateNode<
       Object.keys(afterConfig).map(delayKey => {
         const delayedTransition = (afterConfig as Record<
           number | string,
-          TransitionConfig<TContext> | Array<TransitionConfig<TContext>>
+          | TransitionConfig<TContext, TEvents>
+          | Array<TransitionConfig<TContext, TEvents>>
         >)[delayKey];
         const delay = +delayKey;
         const event = after(delay, this.id);
@@ -571,14 +563,14 @@ class StateNode<
     }
 
     let nextStateStrings: string[] = [];
-    let selectedTransition: TransitionConfig<TContext>;
+    let selectedTransition: TransitionConfig<TContext, TEvents>;
 
     for (const candidate of candidates) {
       const {
         cond,
         in: stateIn
         // actions: transitionActions
-      } = candidate as TransitionConfig<TContext>;
+      } = candidate as TransitionConfig<TContext, TEvents>;
       const resolvedContext = context || (EMPTY_OBJECT as TContext);
 
       const isInState = stateIn
@@ -1585,9 +1577,9 @@ class StateNode<
   }
   private formatTransition(
     target: string | string[] | undefined,
-    transitionConfig: TransitionConfig<TContext> | undefined,
+    transitionConfig: TransitionConfig<TContext, TEvents> | undefined,
     event: string
-  ): TransitionDefinition<TContext> {
+  ): TransitionDefinition<TContext, TEvents> {
     let internal = transitionConfig ? transitionConfig.internal : false;
 
     // Check if there is no target (targetless)
@@ -1631,16 +1623,13 @@ class StateNode<
       event
     };
   }
-  private formatTransitions(): Record<
-    string,
-    Array<TransitionDefinition<TContext>>
-  > {
+  private formatTransitions(): TransitionsDefinition<TContext, TEvents> {
     const onConfig = this.config.on || EMPTY_OBJECT;
     const delayedTransitions = this.after;
 
-    const formattedTransitions: Record<
-      string,
-      Array<TransitionDefinition<TContext>>
+    const formattedTransitions: TransitionsDefinition<
+      TContext,
+      TEvents
     > = mapValues(onConfig, (value, event) => {
       if (value === undefined) {
         return [{ target: undefined, event, actions: [] }];
@@ -1676,12 +1665,12 @@ class StateNode<
 
       return [
         this.formatTransition(
-          (value as TransitionConfig<TContext>).target,
+          (value as TransitionConfig<TContext, TEvents>).target,
           value,
           event
         )
       ];
-    });
+    }) as TransitionsDefinition<TContext, TEvents>;
 
     delayedTransitions.forEach(delayedTransition => {
       formattedTransitions[delayedTransition.event] =
