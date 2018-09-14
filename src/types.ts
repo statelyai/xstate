@@ -146,7 +146,11 @@ export interface StateNodeConfig<
       }
     | undefined;
   // on?: Record<string, Transition<TContext> | undefined>;
-  on?: { [K in TEvents['type']]?: Transition<TContext, TEvents> | undefined };
+  on?: {
+    [K in TEvents['type']]?:
+      | Transition<TContext, TEvents extends { type: K } ? TEvents : never>
+      | undefined
+  };
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
   after?: DelayedTransitions<TContext>;
@@ -384,18 +388,22 @@ export interface DelayedTransitionDefinition<TContext>
   delay: number;
 }
 
-export interface Edge<TContext, TEvents extends EventObject> {
-  event: string;
+export interface Edge<
+  TContext,
+  TEvents extends EventObject,
+  TEventType extends TEvents['type'] = string
+> {
+  event: TEventType;
   source: StateNode<TContext>;
   target: StateNode<TContext>;
-  cond?: Condition<TContext, TEvents>;
+  cond?: Condition<TContext, TEvents & { type: TEventType }>;
   actions: Array<Action<TContext>>;
   meta?: MetaObject;
   transition: TransitionDefinition<TContext>;
 }
 export interface NodesAndEdges<TContext, TEvents extends EventObject> {
   nodes: StateNode[];
-  edges: Array<Edge<TContext, TEvents>>;
+  edges: Array<Edge<TContext, TEvents, TEvents['type']>>;
 }
 
 export interface Segment<

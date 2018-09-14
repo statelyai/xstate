@@ -28,7 +28,7 @@ describe('StateSchema', () => {
   type LightEvents =
     | { type: 'TIMER' }
     | { type: 'POWER_OUTAGE' }
-    | { type: 'PED_COUNTDOWN' };
+    | { type: 'PED_COUNTDOWN'; foo: string };
 
   const lightMachine = Machine<undefined, LightStateSchema, LightEvents>({
     key: 'light',
@@ -62,7 +62,12 @@ describe('StateSchema', () => {
           },
           wait: {
             on: {
-              PED_COUNTDOWN: 'stop'
+              PED_COUNTDOWN: {
+                target: 'stop',
+                cond: (_, e) => {
+                  return e.foo === 'bar';
+                }
+              }
             }
           },
           stop: {}
