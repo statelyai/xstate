@@ -96,14 +96,14 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     return matchesState(parentStateValue, this.value);
   }
 
-  public get changed(): boolean {
+  public get changed(): boolean | undefined {
     if (!this.history) {
-      return false;
+      return undefined;
     }
 
     return (
       !!this.actions.length ||
-      (typeof this.history.value !== this.value
+      (typeof this.history.value !== typeof this.value
         ? true
         : typeof this.value === 'string'
           ? this.value !== this.history.value

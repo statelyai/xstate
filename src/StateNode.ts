@@ -944,14 +944,16 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined;
 
-    try {
-      this.ensureValidPaths(stateTransition.paths);
-    } catch (e) {
-      throw new Error(
-        `Event '${
-          event ? event.type : 'none'
-        }' leads to an invalid configuration: ${e.message}`
-      );
+    if (process.env.NODE_ENV !== 'production') {
+      try {
+        this.ensureValidPaths(stateTransition.paths);
+      } catch (e) {
+        throw new Error(
+          `Event '${
+            event ? event.type : 'none'
+          }' leads to an invalid configuration: ${e.message}`
+        );
+      }
     }
 
     const actions = this.getActions(stateTransition);
@@ -1039,8 +1041,10 @@ class StateNode<
       return State.inert<TContext, TEvents>(currentState, updatedContext);
     }
 
-    // Dispose of previous histories to prevent memory leaks
-    delete currentState.history;
+    // Dispose of penultimate histories to prevent memory leaks
+    if (currentState.history) {
+      delete currentState.history.history;
+    }
 
     let maybeNextState = nextState;
     while (raisedEvents.length) {

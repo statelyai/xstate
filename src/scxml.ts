@@ -402,8 +402,6 @@ export function toMachine(
       }, {})
     : undefined;
 
-  // console.log(dataModelEl, extState);
-
   return Machine(
     {
       ...toConfig(machineElement, '(machine)', options, extState),
