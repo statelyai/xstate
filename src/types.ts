@@ -179,7 +179,10 @@ export interface StateNodeConfig<
   // on?: Record<string, Transition<TContext> | undefined>;
   on?: {
     [K in TEvents['type']]?:
-      | Transition<TContext, TEvents extends { type: K } ? TEvents : never>
+      | Transition<
+          TContext,
+          TEvents extends { type: K } ? TEvents : EventObject
+        >
       | undefined
   };
   onEntry?: SingleOrArray<Action<TContext>>;

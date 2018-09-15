@@ -2,6 +2,10 @@ import { assert } from 'chai';
 import { Machine, matchesState } from '../src/index';
 
 describe('guard conditions', () => {
+  // type LightMachineEvents =
+  //   | { type: 'TIMER'; elapsed: number }
+  //   | { type: 'EMERGENCY'; isEmergency: boolean };
+
   const lightMachine = Machine<{ elapsed: number }>(
     {
       key: 'light',
