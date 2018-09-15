@@ -156,8 +156,28 @@ export type StatesDefinition<
   >
 };
 
+export type TransitionsConfig<TContext, TEvents extends EventObject> = {
+  [K in TEvents['type'] | BuiltInEvent<TEvents>['type']]?:
+    | string
+    | TransitionConfig<
+        TContext,
+        TEvents extends { type: K } ? TEvents : EventObject
+      >
+    | Array<
+        TransitionConfig<
+          TContext,
+          TEvents extends { type: K } ? TEvents : EventObject
+        >
+      >
+};
+
 export type TransitionsDefinition<TContext, TEvents extends EventObject> = {
-  [K in TEvents['type']]: Array<TransitionDefinition<TContext, TEvents>>
+  [K in TEvents['type']]: Array<
+    TransitionDefinition<
+      TContext,
+      TEvents extends { type: K } ? TEvents : EventObject
+    >
+  >
 };
 
 export interface StateNodeConfig<
@@ -177,14 +197,7 @@ export interface StateNodeConfig<
   history?: 'shallow' | 'deep' | boolean | undefined;
   states?: StatesConfig<TContext, TStateSchema, TEvents> | undefined;
   // on?: Record<string, Transition<TContext> | undefined>;
-  on?: {
-    [K in TEvents['type']]?:
-      | Transition<
-          TContext,
-          TEvents extends { type: K } ? TEvents : EventObject
-        >
-      | undefined
-  };
+  on?: TransitionsConfig<TContext, TEvents>;
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
   after?: DelayedTransitions<TContext, TEvents>;
@@ -208,9 +221,7 @@ export interface StateNodeDefinition<
   initial: StateNodeConfig<TContext, TStateSchema, TEvents>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvents>;
-  on: {
-    [K in TEvents['type']]: Array<TransitionDefinition<TContext, TEvents>>
-  };
+  on: TransitionsDefinition<TContext, TEvents>;
   onEntry: Array<Action<TContext>>;
   onExit: Array<Action<TContext>>;
   after: Array<DelayedTransitionDefinition<TContext, TEvents>>;

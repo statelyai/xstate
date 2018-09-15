@@ -14,7 +14,7 @@ const machine = Machine({
 });
 
 xdescribe('State', () => {
-  xit('should indicate that it is not changed if initial state', () => {
+  it('should indicate that it is not changed if initial state', () => {
     assert.ok(machine.initialState.changed);
   });
 

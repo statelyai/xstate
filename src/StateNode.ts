@@ -566,7 +566,7 @@ class StateNode<
     }
 
     let nextStateStrings: string[] = [];
-    let selectedTransition: TransitionConfig<TContext, TEvents>;
+    let selectedTransition: unknown;
 
     for (const candidate of candidates) {
       const {
@@ -628,7 +628,8 @@ class StateNode<
       (allEntryExitStates, nextStateNode) => {
         const { entry, exit } = this.getEntryExitStates(
           nextStateNode,
-          !!selectedTransition.internal
+          !!(selectedTransition as TransitionDefinition<TContext, TEvents>)
+            .internal
         );
 
         return {
@@ -1680,7 +1681,12 @@ class StateNode<
     delayedTransitions.forEach(delayedTransition => {
       formattedTransitions[delayedTransition.event] =
         formattedTransitions[delayedTransition.event] || [];
-      formattedTransitions[delayedTransition.event].push(delayedTransition);
+      formattedTransitions[delayedTransition.event].push(
+        delayedTransition as TransitionDefinition<
+          TContext,
+          TEvents | EventObject
+        >
+      );
     });
 
     return formattedTransitions;
