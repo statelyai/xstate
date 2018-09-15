@@ -39,6 +39,7 @@ export type StateValue = string | StateValueMap;
 export interface StateNodeValueTree {
   stateNode: StateNode<any>;
   parent?: StateNodeValueTree | undefined;
+  done: boolean;
   value: Record<string, StateNodeValueTree> | undefined;
 }
 export interface HistoryValue {

@@ -666,22 +666,28 @@ class StateNode<
   }
   private getStateNodeValueTree(stateValue: StateValue): StateNodeValueTree {
     if (typeof stateValue === 'string') {
+      const childStateNode = this.getStateNode(stateValue);
       return {
         stateNode: this,
+        done: childStateNode.type === 'final',
         value: {
           [stateValue]: {
             stateNode: this.getStateNode(stateValue),
-            value: undefined
+            value: undefined,
+            done: childStateNode.type === 'final'
           }
         }
       };
     }
 
+    const value = mapValues(stateValue, (subValue, key) => {
+      return this.getStateNode(key).getStateNodeValueTree(subValue);
+    });
+
     return {
       stateNode: this,
-      value: mapValues(stateValue, (subValue, key) => {
-        return this.getStateNode(key).getStateNodeValueTree(subValue);
-      })
+      value,
+      done: Object.keys(value).every(key => value[key].done)
     };
   }
   private getEntryExitStates(
@@ -792,20 +798,7 @@ class StateNode<
                     stateTree
                   ) as StateNodeValueTree;
 
-                  const isDone = Object.keys(grandparentTree.value!).every(
-                    key => {
-                      return Object.keys(
-                        grandparentTree.value![key].value!
-                      ).every(subKey => {
-                        return (
-                          grandparentTree.value![key].value![subKey].stateNode
-                            .type === 'final'
-                        );
-                      });
-                    }
-                  );
-
-                  if (isDone) {
+                  if (grandparentTree.done) {
                     doneEvents.add(done(grandparentTree.stateNode.id));
                   }
                 }
