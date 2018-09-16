@@ -70,12 +70,12 @@ const listener = (state) => {
 
 interpreter.onTransition(listener);
 
-// Initialize the interpreter
-interpreter.init();
+// Start the interpreter
+interpreter.start();
 
 // Send events
 interpreter.send('SOME_EVENT');
 
-// Unlisten to prevent memory leaks
-interpreter.off(listener);
+// Stop the interpreter when you are no longer using it.
+interpreter.stop();
 ```
