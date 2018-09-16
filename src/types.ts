@@ -1,12 +1,12 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 
-export type EventType = string | number;
+export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
 export interface EventObject extends Record<string, any> {
-  type: string | number;
+  type: string;
   id?: string | number;
 }
 
