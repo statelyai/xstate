@@ -5,7 +5,8 @@ import {
   SendAction,
   CancelAction,
   DefaultContext,
-  ActionObject
+  ActionObject,
+  StateSchema
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -14,6 +15,8 @@ import { toEventObject } from './actions';
 export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
+
+export type Listener = () => void;
 
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): number;
@@ -28,6 +31,7 @@ export interface SimulatedClock extends Clock {
 
 interface InterpreterOptions {
   clock: Clock;
+  logger: (...args: any[]) => void;
 }
 
 interface SimulatedTimeout {
@@ -81,30 +85,47 @@ export class SimulatedClock implements SimulatedClock {
 }
 
 // tslint:disable-next-line:max-classes-per-file
-export class Interpreter<TContext> {
+export class Interpreter<
+  TContext,
+  TStateSchema extends StateSchema = any,
+  TEvents extends EventObject = EventObject
+> {
+  // TODO: fixme
   public static defaultOptions: InterpreterOptions = {
-    clock: { setTimeout, clearTimeout }
+    clock: { setTimeout, clearTimeout },
+    logger: global.console.log.bind(console)
   };
-  public state: State<TContext>;
+  public state: State<TContext, TEvents>;
   public extState: TContext;
-  public eventQueue: EventObject[] = [];
+  public eventQueue: TEvents[] = [];
   public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
+  public stopListeners: Set<Listener> = new Set();
   public clock: Clock;
+  public logger: (...args: any[]) => void;
   public initialized = false;
   constructor(
-    public machine: Machine<TContext>,
+    public machine: Machine<TContext, TStateSchema, TEvents>,
     listener?: StateListener,
-    options: InterpreterOptions = Interpreter.defaultOptions
+    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     if (listener) {
       this.onTransition(listener);
     }
 
-    this.clock = options.clock;
+    const resolvedOptions: InterpreterOptions = {
+      ...Interpreter.defaultOptions,
+      ...options
+    };
+
+    this.clock = resolvedOptions.clock;
+    this.logger = resolvedOptions.logger;
   }
   public static interpret = interpret;
-  private update(state: State<TContext>, event?: Event): void {
+  private update(
+    state: State<TContext, TEvents>,
+    event?: Event<TEvents>
+  ): void {
     this.state = state;
     const { context } = this.state;
 
@@ -122,6 +143,10 @@ export class Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
+  public onStop(listener: Listener): Interpreter<TContext> {
+    this.stopListeners.add(listener);
+    return this;
+  }
   /**
    * Removes a listener.
    * @param listener The listener to remove
@@ -130,14 +155,27 @@ export class Interpreter<TContext> {
     this.listeners.delete(listener);
     return this;
   }
-  public init(
-    initialState: State<TContext> = this.machine.initialState
+  public init = this.start;
+  public start(
+    initialState: State<TContext, TEvents> = this.machine.initialState as State<
+      TContext,
+      TEvents
+    >
   ): Interpreter<TContext> {
     this.update(initialState);
     this.initialized = true;
     return this;
   }
-  public send = (event: Event): State<TContext> => {
+  public stop(): Interpreter<TContext> {
+    this.listeners.forEach(listener => this.off(listener));
+    this.stopListeners.forEach(listener => {
+      // call listener, then remove
+      listener();
+      this.stopListeners.delete(listener);
+    });
+    return this;
+  }
+  public send = (event: Event<TEvents>): State<TContext, TEvents> => {
     const eventObject = toEventObject(event);
     if (!this.initialized) {
       throw new Error(
@@ -150,14 +188,14 @@ export class Interpreter<TContext> {
       this.state,
       eventObject,
       this.extState
-    );
+    ) as State<TContext, TEvents>; // TODO: fixme
 
     this.update(nextState, event);
     this.flushEventQueue();
     return nextState;
     // tslint:disable-next-line:semicolon
   };
-  private defer(sendAction: SendAction): number {
+  private defer(sendAction: SendAction<TContext, TEvents>): number {
     return this.clock.setTimeout(
       () => this.send(sendAction.event),
       sendAction.delay || 0
@@ -169,16 +207,16 @@ export class Interpreter<TContext> {
   }
   private exec(
     action: ActionObject<TContext>,
-    extState: TContext,
-    event?: EventObject
+    context: TContext,
+    event?: TEvents
   ): Partial<TContext> | undefined {
     if (action.exec) {
-      return action.exec(extState, event);
+      return action.exec(context, event);
     }
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendAction;
+        const sendAction = action as SendAction<TContext, TEvents>;
 
         if (!sendAction.delay) {
           this.eventQueue.push(sendAction.event);
@@ -191,6 +229,15 @@ export class Interpreter<TContext> {
         this.cancel((action as CancelAction).sendId);
 
         break;
+      case actionTypes.log:
+        const expr = action.expr ? action.expr(context, event) : undefined;
+
+        if (action.label) {
+          this.logger(action.label, expr);
+        } else {
+          this.logger(expr);
+        }
+        break;
       default:
         // tslint:disable-next-line:no-console
         console.warn(
@@ -202,16 +249,21 @@ export class Interpreter<TContext> {
     return undefined;
   }
   private flushEventQueue() {
-    if (this.eventQueue.length) {
-      this.send(this.eventQueue.unshift());
+    const flushedEvent = this.eventQueue.shift();
+    if (flushedEvent) {
+      this.send(flushedEvent);
     }
   }
 }
 
-export function interpret<TContext = DefaultContext>(
-  machine: Machine<TContext>,
+export function interpret<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any,
+  TEvents extends EventObject = EventObject
+>(
+  machine: Machine<TContext, TStateSchema, TEvents>,
   listener?: StateListener,
-  options?: InterpreterOptions
+  options?: Partial<InterpreterOptions>
 ) {
   return new Interpreter(machine, listener, options);
 }

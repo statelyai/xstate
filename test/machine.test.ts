@@ -20,7 +20,15 @@ describe('machine', () => {
     }
   };
 
-  const lightMachine = Machine({
+  interface LightStateSchema {
+    states: {
+      green: any;
+      yellow: any;
+      red: any;
+    };
+  }
+
+  const lightMachine = Machine<undefined, LightStateSchema>({
     key: 'light',
     initial: 'green',
     states: {

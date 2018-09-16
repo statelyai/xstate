@@ -31,7 +31,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
                 type: 'element',
                 name: 'transition',
                 attributes: {
-                  target: stateNode.states[stateNode.initial].id
+                  target: stateNode.states[stateNode.initial as string].id
                 }
               }
             ]
@@ -214,7 +214,7 @@ function mapActions<TContext>(
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise(element.attributes!.event!);
+        return actions.raise(element.attributes!.event! as string);
       case 'assign':
         return actions.assign(xs => {
           const literalKeyExprs = xs
@@ -242,7 +242,7 @@ function mapActions<TContext>(
               ? +/(\d+)ms/.exec(delay)![1]
               : 0
           : 0;
-        return actions.send(element.attributes!.event!, {
+        return actions.send(element.attributes!.event! as string, {
           delay: numberDelay
         });
       default:
@@ -401,8 +401,6 @@ export function toMachine(
         return acc;
       }, {})
     : undefined;
-
-  // console.log(dataModelEl, extState);
 
   return Machine(
     {

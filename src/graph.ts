@@ -11,7 +11,8 @@ import {
   AdjacencyMap,
   DefaultContext,
   ValueAdjacencyMap,
-  Event
+  Event,
+  EventObject
 } from './types';
 
 const EMPTY_MAP = {};
@@ -32,11 +33,11 @@ export function getNodes(node: StateNode): StateNode[] {
   return nodes;
 }
 
-export function getEventEdges<TContext = DefaultContext>(
-  node: StateNode<TContext>,
-  event: string
-): Array<Edge<TContext>> {
-  const transitions = node.on[event]!;
+export function getEventEdges<
+  TContext = DefaultContext,
+  TEvents extends EventObject = EventObject
+>(node: StateNode<TContext>, event: string): Array<Edge<TContext, TEvents>> {
+  const transitions = node.definition.on[event];
 
   return flatten(
     transitions.map(transition => {
@@ -60,7 +61,7 @@ export function getEventEdges<TContext = DefaultContext>(
       }
 
       return targets
-        .map<Edge<TContext> | undefined>(target => {
+        .map<Edge<TContext, TEvents> | undefined>(target => {
           try {
             const targetNode = target
               ? node.getRelativeStateNodes(target, undefined, false)[0]
@@ -82,17 +83,22 @@ export function getEventEdges<TContext = DefaultContext>(
             return undefined;
           }
         })
-        .filter(maybeEdge => maybeEdge !== undefined) as Array<Edge<TContext>>;
+        .filter(maybeEdge => maybeEdge !== undefined) as Array<
+        Edge<TContext, TEvents>
+      >;
     })
   );
 }
 
-export function getEdges<TContext = DefaultContext>(
+export function getEdges<
+  TContext = DefaultContext,
+  TEvents extends EventObject = EventObject
+>(
   node: StateNode<TContext>,
   options?: { depth: null | number }
-): Array<Edge<TContext>> {
+): Array<Edge<TContext, TEvents>> {
   const { depth = null } = options || {};
-  const edges: Array<Edge<TContext>> = [];
+  const edges: Array<Edge<TContext, TEvents>> = [];
 
   if (node.states && depth === null) {
     Object.keys(node.states).forEach(stateKey => {
@@ -132,7 +138,7 @@ export function getAdjacencyMap<TContext = DefaultContext>(
 
     for (const event of events) {
       const nextState = node.transition(stateValue, event, context);
-      adjacency[stateKey][event] = { state: nextState.value };
+      adjacency[stateKey][event as string] = { state: nextState.value };
 
       findAdjacencies(nextState.value);
     }
@@ -143,11 +149,14 @@ export function getAdjacencyMap<TContext = DefaultContext>(
   return adjacency;
 }
 
-function eventToString(event: Event): string {
+function eventToString<TEvents extends EventObject = EventObject>(
+  event: Event<TEvents>
+): string {
   if (typeof event === 'string' || typeof event === 'number') {
     return `${event}`;
   }
 
+  // @ts-ignore - TODO: fix?
   const { type, ...rest } = event;
 
   return `${type} | ${JSON.stringify(rest)}`;
@@ -169,23 +178,31 @@ function serializeState<TContext>(state: State<TContext>): string {
   return JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }
 
-export interface GetValueAdjacencyMapOptions<TContext> {
-  events: Record<string, Event[]>;
+export interface GetValueAdjacencyMapOptions<
+  TContext,
+  TEvents extends EventObject
+> {
+  // events: Record<string, Array<Event<TEvents>>>;
+  events: { [K in TEvents['type']]: Event<TEvents> };
   filter?: (state: State<TContext>) => boolean;
 }
 
-export function getValueAdjacencyMap<TContext = DefaultContext>(
-  node: StateNode<TContext>,
-  options: GetValueAdjacencyMapOptions<TContext>
+export function getValueAdjacencyMap<
+  TContext = DefaultContext,
+  TEvents extends EventObject = EventObject
+>(
+  node: StateNode<TContext, any, TEvents>,
+  options: GetValueAdjacencyMapOptions<TContext, TEvents>
 ): ValueAdjacencyMap {
   const { events, filter } = options;
   const adjacency: ValueAdjacencyMap = {};
 
   const potentialEvents = flatten(
+    // @ts-ignore
     node.events.map(event => events[event] || [event])
   );
 
-  function findAdjacencies(state: State<TContext>) {
+  function findAdjacencies(state: State<TContext, TEvents>) {
     const stateKey = serializeState(state);
 
     if (adjacency[stateKey]) {
@@ -213,9 +230,12 @@ export function getValueAdjacencyMap<TContext = DefaultContext>(
   return adjacency;
 }
 
-export function getShortestValuePaths<TContext = DefaultContext>(
+export function getShortestValuePaths<
+  TContext = DefaultContext,
+  TEvents extends EventObject = EventObject
+>(
   machine: StateNode<TContext>,
-  options: GetValueAdjacencyMapOptions<TContext>
+  options: GetValueAdjacencyMapOptions<TContext, TEvents>
 ): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;

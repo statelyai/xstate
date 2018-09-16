@@ -3,6 +3,7 @@ import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
 import { State } from '../src/State';
+import { log, assign } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',
@@ -146,5 +147,53 @@ describe('interpreter', () => {
     interpreter.init();
 
     assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
+  });
+
+  it('should not update when stopped', () => {
+    let state = lightMachine.initialState;
+    const interpreter = interpret(lightMachine).onTransition(s => (state = s));
+
+    interpreter.init();
+    interpreter.send('TIMER'); // yellow
+    assert.deepEqual(state.value, 'yellow');
+
+    interpreter.stop();
+    interpreter.send('TIMER'); // red if interpreter is not stopped
+    assert.deepEqual(state.value, 'yellow');
+  });
+
+  it('should be able to log', () => {
+    const logs: any[] = [];
+
+    const logMachine = Machine(
+      {
+        id: 'log',
+        initial: 'x',
+        states: {
+          x: {
+            on: {
+              LOG: {
+                actions: [
+                  assign({ count: ctx => ctx.count + 1 }),
+                  log(ctx => ctx)
+                ]
+              }
+            }
+          }
+        }
+      },
+      {},
+      { count: 0 }
+    );
+
+    const interpreter = interpret(logMachine, noop, {
+      logger: msg => logs.push(msg)
+    }).start();
+
+    interpreter.send('LOG');
+    interpreter.send('LOG');
+
+    assert.lengthOf(logs, 2);
+    assert.deepEqual(logs, [{ count: 1 }, { count: 2 }]);
   });
 });

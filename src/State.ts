@@ -10,14 +10,15 @@ import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState } from '.';
 import { stateValuesEqual } from './utils';
 
-export class State<TContext> implements StateInterface<TContext> {
-  public static from<T>(
-    stateValue: State<T> | StateValue,
-    context: T
-  ): State<T> {
+export class State<TContext, TEvents extends EventObject = EventObject>
+  implements StateInterface<TContext> {
+  public static from<TC, TE extends EventObject = EventObject>(
+    stateValue: State<TC, TE> | StateValue,
+    context: TC
+  ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<T>(
+        return new State<TC, TE>(
           stateValue.value,
           context,
           stateValue.historyValue,
@@ -32,7 +33,7 @@ export class State<TContext> implements StateInterface<TContext> {
       return stateValue;
     }
 
-    return new State(
+    return new State<TC, TE>(
       stateValue,
       context,
       undefined,
@@ -43,10 +44,13 @@ export class State<TContext> implements StateInterface<TContext> {
       []
     );
   }
-  public static inert<T>(stateValue: State<T> | StateValue, ext: T): State<T> {
+  public static inert<TC, TE extends EventObject = EventObject>(
+    stateValue: State<TC> | StateValue,
+    ext: TC
+  ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
-        return stateValue;
+        return stateValue as State<TC, TE>;
       }
       return new State(
         stateValue.value,
@@ -60,7 +64,7 @@ export class State<TContext> implements StateInterface<TContext> {
       );
     }
 
-    return State.from(stateValue, ext);
+    return State.from<TC, TE>(stateValue, ext);
   }
 
   constructor(
@@ -74,7 +78,7 @@ export class State<TContext> implements StateInterface<TContext> {
     /**
      * Internal event queue
      */
-    public events: EventObject[] = []
+    public events: TEvents[] = []
   ) {}
 
   public toStrings(value: StateValue = this.value): string[] {
@@ -92,14 +96,14 @@ export class State<TContext> implements StateInterface<TContext> {
     return matchesState(parentStateValue, this.value);
   }
 
-  public get changed(): boolean {
+  public get changed(): boolean | undefined {
     if (!this.history) {
-      return false;
+      return undefined;
     }
 
     return (
       !!this.actions.length ||
-      (typeof this.history.value !== this.value
+      (typeof this.history.value !== typeof this.value
         ? true
         : typeof this.value === 'string'
           ? this.value !== this.history.value

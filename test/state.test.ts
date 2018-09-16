@@ -7,21 +7,52 @@ const machine = Machine({
     one: {
       onEntry: ['enter'],
       on: {
-        INERT: undefined
+        EXTERNAL: {
+          target: 'one',
+          internal: false
+        },
+        INERT: {
+          target: 'one',
+          internal: true
+        },
+        INTERNAL: {
+          target: 'one',
+          internal: true,
+          actions: ['doSomething']
+        },
+        TO_TWO: 'two'
       }
-    }
+    },
+    two: {}
   }
 });
 
-xdescribe('State', () => {
-  xit('should indicate that it is not changed if initial state', () => {
-    assert.ok(machine.initialState.changed);
+describe('State', () => {
+  it('should indicate that it is not changed if initial state', () => {
+    assert.isUndefined(machine.initialState.changed);
   });
 
-  it('should indicate that it is not changed if transition is inert', () => {
-    const changedState = machine.transition(machine.initialState, 'INERT');
+  it('states from external transitions with onEntry actions should be changed', () => {
+    const changedState = machine.transition(machine.initialState, 'EXTERNAL');
+    assert.isTrue(changedState.changed, 'changed due to onEntry action');
+  });
+
+  it('states from internal transitions with no actions should be unchanged', () => {
+    const changedState = machine.transition(machine.initialState, 'EXTERNAL');
     const unchangedState = machine.transition(changedState, 'INERT');
-    assert.isFalse(changedState.changed, 'changed due to onEntry action');
-    assert.isTrue(unchangedState.changed, 'unchanged - same state, no actions');
+    assert.isFalse(
+      unchangedState.changed,
+      'unchanged - same state, no actions'
+    );
+  });
+
+  it('states from internal transitions with actions should be changed', () => {
+    const changedState = machine.transition(machine.initialState, 'INTERNAL');
+    assert.isTrue(changedState.changed, 'changed - transition actions');
+  });
+
+  it('normal state transitions should be changed', () => {
+    const changedState = machine.transition(machine.initialState, 'TO_TWO');
+    assert.isTrue(changedState.changed, 'changed - different state');
   });
 });

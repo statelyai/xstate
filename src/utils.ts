@@ -1,11 +1,13 @@
 import { State } from './State';
-import { Event, StateValue, EventType, ActionType, Action } from './types';
+import { Event, StateValue, ActionType, Action, EventObject } from './types';
 
-export function getEventType(event: Event): EventType {
+export function getEventType<TEvents extends EventObject = EventObject>(
+  event: Event<TEvents>
+): TEvents['type'] {
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`
-      : event.type;
+      : (event as TEvents).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'
@@ -192,9 +194,9 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
   return result;
 };
 
-export const flatten = <T>(array: T[][]): T[] => {
+export function flatten<T>(array: T[][]): T[] {
   return ([] as T[]).concat(...array);
-};
+}
 
 export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
   if (a === b) {
@@ -208,4 +210,14 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
     aKeys.length === bKeys.length &&
     aKeys.every(key => stateValuesEqual(a[key], b[key]))
   );
+}
+
+export function toArray<T>(value: T[] | T | undefined): T[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value === undefined) {
+    return [];
+  }
+  return [value];
 }

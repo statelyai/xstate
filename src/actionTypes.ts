@@ -11,3 +11,5 @@ export { _null as null };
 export const assign = ActionTypes.Assign;
 export const after = ActionTypes.After;
 export const doneState = ActionTypes.DoneState;
+export const log = ActionTypes.Log;
+export const init = ActionTypes.Init;

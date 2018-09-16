@@ -66,7 +66,11 @@ describe('graph utilities', () => {
     }
   });
 
-  const condMachine = Machine<{ id: string }>({
+  const condMachine = Machine<
+    { id: string },
+    any,
+    { type: 'EVENT'; id: string } | { type: 'STATE' }
+  >({
     key: 'cond',
     initial: 'pending',
     states: {
