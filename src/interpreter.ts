@@ -16,6 +16,11 @@ export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
 
+export type ContextListener<TContext = DefaultContext> = (
+  context: TContext,
+  prevContext: TContext | undefined
+) => void;
+
 export type Listener = () => void;
 
 export interface Clock {
@@ -100,6 +105,7 @@ export class Interpreter<
   public eventQueue: TEvents[] = [];
   public delayedEventsMap: Record<string, number> = {};
   public listeners: Set<StateListener> = new Set();
+  public contextListeners: Set<ContextListener<TContext>> = new Set();
   public stopListeners: Set<Listener> = new Set();
   public clock: Clock;
   public logger: (...args: any[]) => void;
@@ -134,13 +140,23 @@ export class Interpreter<
     }, context);
 
     this.listeners.forEach(listener => listener(state));
+    this.contextListeners.forEach(ctxListener =>
+      ctxListener(
+        this.state.context,
+        this.state.history ? this.state.history.context : undefined
+      )
+    );
   }
-  /**
+  /*
    * Adds a listener that is called whenever a state transition happens.
    * @param listener The listener to add
    */
   public onTransition(listener: StateListener): Interpreter<TContext> {
     this.listeners.add(listener);
+    return this;
+  }
+  public onChange(listener: ContextListener<TContext>): Interpreter<TContext> {
+    this.contextListeners.add(listener);
     return this;
   }
   public onStop(listener: Listener): Interpreter<TContext> {
@@ -173,6 +189,9 @@ export class Interpreter<
       listener();
       this.stopListeners.delete(listener);
     });
+    this.contextListeners.forEach(ctxListener =>
+      this.contextListeners.delete(ctxListener)
+    );
     return this;
   }
   public send = (event: Event<TEvents>): State<TContext, TEvents> => {
