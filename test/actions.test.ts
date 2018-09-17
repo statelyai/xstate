@@ -316,7 +316,7 @@ describe('onEntry/onExit actions', () => {
       );
     });
 
-    it('should exit children of parallel state nodes', () => {
+    xit('should exit children of parallel state nodes', () => {
       const stateB = parallelMachine2.transition(
         parallelMachine2.initialState,
         'to-B'

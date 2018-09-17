@@ -316,6 +316,7 @@ class StateNode<
 
       return {
         value,
+        tree: value ? this.machine.getStateNodeValueTree(value) : undefined,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -358,6 +359,7 @@ class StateNode<
 
       return {
         value,
+        tree: value ? this.machine.getStateNodeValueTree(value) : undefined,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -423,6 +425,7 @@ class StateNode<
 
       return {
         value,
+        tree: value ? this.machine.getStateNodeValueTree(value) : undefined,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -445,8 +448,11 @@ class StateNode<
       allPaths.length === 1 &&
       !matchesState(pathToStateValue(this.path), pathToStateValue(allPaths[0]))
     ) {
+      const value = this.machine.resolve(pathsToStateValue(allPaths));
+
       return {
-        value: this.machine.resolve(pathsToStateValue(allPaths)),
+        value,
+        tree: value ? this.machine.getStateNodeValueTree(value) : undefined,
         source: state,
         entryExitStates: Object.keys(transitionMap)
           .map(key => transitionMap[key].entryExitStates)
@@ -493,6 +499,9 @@ class StateNode<
 
     return {
       value: nextStateValue,
+      tree: nextStateValue
+        ? this.machine.getStateNodeValueTree(nextStateValue)
+        : undefined,
       source: state,
       entryExitStates: Object.keys(transitionMap).reduce(
         (allEntryExitStates, key) => {
@@ -560,6 +569,7 @@ class StateNode<
     if (!candidates || !candidates.length) {
       return {
         value: undefined,
+        tree: undefined,
         source: state,
         entryExitStates: undefined,
         actions,
@@ -601,6 +611,9 @@ class StateNode<
     if (selectedTransition! && nextStateStrings.length === 0) {
       return {
         value: state.value,
+        tree: state.value
+          ? this.machine.getStateNodeValueTree(state.value)
+          : undefined,
         source: state,
         entryExitStates: undefined,
         actions,
@@ -611,6 +624,7 @@ class StateNode<
     if (!selectedTransition! && nextStateStrings.length === 0) {
       return {
         value: undefined,
+        tree: undefined,
         source: state,
         entryExitStates: undefined,
         actions,
@@ -648,18 +662,19 @@ class StateNode<
       { entry: new Set(), exit: new Set() } as EntryExitStates<TContext>
     );
 
-    return {
-      value: this.machine.resolve(
-        pathsToStateValue(
-          flatten(
-            nextStateStrings.map(str =>
-              this.getRelativeStateNodes(str, state.historyValue).map(
-                s => s.path
-              )
-            )
+    const value = this.machine.resolve(
+      pathsToStateValue(
+        flatten(
+          nextStateStrings.map(str =>
+            this.getRelativeStateNodes(str, state.historyValue).map(s => s.path)
           )
         )
-      ),
+      )
+    );
+
+    return {
+      value,
+      tree: value ? this.machine.getStateNodeValueTree(value) : undefined,
       source: state,
       entryExitStates,
       actions,
@@ -1319,6 +1334,9 @@ class StateNode<
     return this.resolveTransition(
       {
         value: state.value,
+        tree: state.value
+          ? this.machine.getStateNodeValueTree(state.value)
+          : undefined,
         source: undefined,
         entryExitStates: {
           entry: new Set(this.getStateNodes(state.value)),
