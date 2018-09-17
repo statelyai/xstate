@@ -1311,9 +1311,7 @@ class StateNode<
     return this.resolveTransition(
       {
         value: state.value,
-        tree: state.value
-          ? this.machine.getStateNodeValueTree(state.value)
-          : undefined,
+        tree: state.value ? this.getStateNodeValueTree(state.value) : undefined,
         source: undefined,
         entryExitStates: {
           entry: new Set(this.getStateNodes(state.value)),
