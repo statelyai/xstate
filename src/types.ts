@@ -1,5 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
+import { StateTree } from './StateTree';
 
 export type EventType = string;
 export type ActionType = string;
@@ -36,12 +37,6 @@ export interface StateValueMap {
 
 export type StateValue = string | StateValueMap;
 
-export interface StateNodeValueTree {
-  stateNode: StateNode<any>;
-  parent?: StateNodeValueTree | undefined;
-  done: boolean;
-  value: Record<string, StateNodeValueTree> | undefined;
-}
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
   current: StateValue | undefined;
@@ -328,7 +323,7 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext> {
   value: StateValue | undefined;
-  tree: StateNodeValueTree | undefined;
+  tree: StateTree | undefined;
   source: State<TContext> | undefined;
   entryExitStates: EntryExitStates<TContext> | undefined;
   actions: Array<Action<TContext>>;

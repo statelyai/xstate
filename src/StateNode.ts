@@ -38,7 +38,6 @@ import {
   StateTypes,
   StateNodeConfig,
   Activity,
-  StateNodeValueTree,
   StateSchema,
   TransitionsDefinition,
   StatesDefinition,
@@ -63,6 +62,7 @@ import {
   raise
   // done
 } from './actions';
+import { StateTree } from './StateTree';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -681,31 +681,8 @@ class StateNode<
       paths: nextStatePaths
     };
   }
-  private getStateNodeValueTree(stateValue: StateValue): StateNodeValueTree {
-    if (typeof stateValue === 'string') {
-      const childStateNode = this.getStateNode(stateValue);
-      return {
-        stateNode: this,
-        done: childStateNode.type === 'final',
-        value: {
-          [stateValue]: {
-            stateNode: this.getStateNode(stateValue),
-            value: undefined,
-            done: childStateNode.type === 'final'
-          }
-        }
-      };
-    }
-
-    const value = mapValues(stateValue, (subValue, key) => {
-      return this.getStateNode(key).getStateNodeValueTree(subValue);
-    });
-
-    return {
-      stateNode: this,
-      value,
-      done: Object.keys(value).every(key => value[key].done)
-    };
+  private getStateNodeValueTree(stateValue: StateValue): StateTree {
+    return new StateTree(this, stateValue);
   }
   private getEntryExitStates(
     nextStateNode: StateNode<TContext>,
@@ -803,7 +780,7 @@ class StateNode<
         ? flatten(
             Array.from(transition.entryExitStates.entry).map(stateNode => {
               if (stateNode.type === 'final') {
-                const stateTree = this.getStateNodeValueTree(transition.value!);
+                const stateTree = transition.tree;
                 doneEvents.add(done(stateNode.id));
                 const grandparent = stateNode.parent
                   ? stateNode.parent.parent
@@ -812,8 +789,8 @@ class StateNode<
                 if (grandparent) {
                   const grandparentPath = grandparent.path;
                   const grandparentTree = nestedPath(grandparentPath, 'value')(
-                    stateTree
-                  ) as StateNodeValueTree;
+                    stateTree!
+                  ) as StateTree;
 
                   if (grandparentTree.done) {
                     doneEvents.add(done(grandparentTree.stateNode.id));
