@@ -77,6 +77,8 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: EMPTY_OBJECT
 });
 
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
@@ -331,7 +333,7 @@ class StateNode<
 
     return next;
   }
-  private transitionNestedNode(
+  private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvents>,
     eventObject: TEvents,
@@ -538,7 +540,7 @@ class StateNode<
 
     // hierarchical node
     if (Object.keys(stateValue).length === 1) {
-      return this.transitionNestedNode(stateValue, state, event, context);
+      return this.transitionCompoundNode(stateValue, state, event, context);
     }
 
     // orthogonal node
@@ -937,7 +939,7 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined;
 
-    if (process.env.NODE_ENV !== 'production') {
+    if (!IS_PRODUCTION) {
       try {
         this.ensureValidPaths(stateTransition.paths);
       } catch (e) {
@@ -1407,6 +1409,14 @@ class StateNode<
       return [this];
     }
 
+    // Case when state node is compound but no initial state is defined
+    if (this.type === 'compound' && !this.initial) {
+      if (!IS_PRODUCTION) {
+        console.warn(`Compound state node '${this.id}' has no initial state.`);
+      }
+      return [this];
+    }
+
     const { initialStateValue } = this;
     const initialStateNodePaths = toStatePaths(initialStateValue!);
     return flatten(
@@ -1652,7 +1662,7 @@ class StateNode<
         return [this.formatTransition([value], undefined, event)];
       }
 
-      if (process.env.NODE_ENV !== 'production') {
+      if (!IS_PRODUCTION) {
         Object.keys(value).forEach(key => {
           if (
             ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) === -1
