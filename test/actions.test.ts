@@ -149,6 +149,46 @@ describe('onEntry/onExit actions', () => {
     }
   });
 
+  const parallelMachine2 = Machine({
+    initial: 'A',
+    states: {
+      A: {
+        on: {
+          'to-B': 'B'
+        }
+      },
+      B: {
+        parallel: true,
+        on: {
+          'to-A': 'A'
+        },
+        states: {
+          C: {
+            initial: 'C1',
+            states: {
+              C1: {},
+              C2: {}
+            }
+          },
+          D: {
+            initial: 'D1',
+            states: {
+              D1: {
+                on: {
+                  'to-D2': 'D2'
+                }
+              },
+              D2: {
+                onEntry: ['D2 Entry'],
+                onExit: ['D2 Exit']
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   describe('State.actions', () => {
     it('should return the entry actions of an initial state', () => {
       assert.sameMembers(lightMachine.initialState.actions.map(a => a.type), [
@@ -274,6 +314,17 @@ describe('onEntry/onExit actions', () => {
           .actions.map(action => action.type),
         ['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']
       );
+    });
+
+    it('should exit children of parallel state nodes', () => {
+      const stateB = parallelMachine2.transition(
+        parallelMachine2.initialState,
+        'to-B'
+      );
+      const stateD2 = parallelMachine2.transition(stateB, 'to-D2');
+      const stateA = parallelMachine2.transition(stateD2, 'to-A');
+
+      assert.deepEqual(stateA.actions.map(action => action.type), ['D2 Exit']);
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {
