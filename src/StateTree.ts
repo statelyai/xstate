@@ -1,6 +1,7 @@
 import { StateNode } from './StateNode';
-import { StateValue } from './types';
-import { mapValues } from './utils';
+import { StateValue, EntryExitStates } from './types';
+import { mapValues, flatten } from './utils';
+import { matchesState } from './matchesState';
 
 export class StateTree {
   public stateNode: StateNode;
@@ -59,5 +60,81 @@ export class StateTree {
     }
 
     return {};
+  }
+  public matches(parentValue: StateValue): boolean {
+    return matchesState(parentValue, this.stateValue);
+  }
+  public getEntryExitStates(prevTree: StateTree): EntryExitStates<any> {
+    if (prevTree.stateNode !== this.stateNode) {
+      throw new Error('Cannot compare distinct trees');
+    }
+
+    switch (this.stateNode.type) {
+      case 'compound':
+        if (Object.keys(this.value!)[0]! !== Object.keys(prevTree.value!)[0]!) {
+          return {
+            exit: new Set([
+              prevTree.value![Object.keys(prevTree.value!)[0]!].stateNode
+            ]),
+            entry: new Set([
+              this.value![Object.keys(this.value!)[0]!].stateNode
+            ])
+          };
+        }
+
+        return this.value![Object.keys(this.value!)[0]!].getEntryExitStates(
+          prevTree.value![Object.keys(prevTree.value!)[0]!]
+        );
+
+      case 'parallel':
+        const all = Object.keys(this.value!).map(key => {
+          return this.value![key].getEntryExitStates(prevTree.value![key]);
+        });
+
+        const result = {
+          exit: new Set(),
+          entry: new Set()
+        };
+
+        all.forEach(ees => {
+          result.exit = new Set([...result.exit, ...ees.exit]);
+          result.entry = new Set([...result.entry, ...ees.entry]);
+        });
+
+        return result;
+
+      case 'atomic':
+      default:
+        return {
+          exit: new Set(),
+          entry: new Set()
+        };
+    }
+  }
+
+  public getEntryStates(): StateNode[] {
+    if (!this.value) {
+      return [this.stateNode];
+    }
+
+    return [this.stateNode].concat(
+      flatten(
+        Object.keys(this.value).map(key => {
+          return this.value![key].getEntryStates();
+        })
+      )
+    );
+  }
+
+  public getExitStates(): StateNode[] {
+    if (!this.value) {
+      return [this.stateNode];
+    }
+
+    return flatten(
+      Object.keys(this.value).map(key => {
+        return this.value![key].getExitStates();
+      })
+    ).concat(this.stateNode);
   }
 }

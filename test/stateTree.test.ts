@@ -3,6 +3,7 @@ import { Machine } from '../src';
 import { assert } from 'chai';
 
 const testMachine = Machine({
+  id: 'test',
   initial: 'a',
   states: {
     a: {
@@ -31,6 +32,46 @@ const testMachine = Machine({
               }
             },
             bar: { type: 'final' }
+          }
+        }
+      }
+    },
+    c: {
+      initial: 'one',
+      states: {
+        one: {
+          initial: 'aa',
+          states: {
+            aa: {
+              initial: 'foo',
+              states: { foo: {} }
+            },
+            bb: {
+              initial: 'foo',
+              states: { foo: {} }
+            },
+            cc: {}
+          }
+        },
+        two: {
+          initial: 'aa',
+          states: {
+            aa: {},
+            bb: {},
+            cc: {}
+          }
+        },
+        three: {
+          type: 'parallel',
+          states: {
+            aa: {
+              initial: 'aaa',
+              states: { aaa: {}, bbb: {} }
+            },
+            bb: {
+              initial: 'aaa',
+              states: { aaa: {}, bbb: {} }
+            }
           }
         }
       }
@@ -65,5 +106,14 @@ describe('StateTree', () => {
         two: { foo: 'x' }
       }
     });
+  });
+
+  it('getEntryExitStates() should show correct entry/exit state nodes', () => {
+    const st_A = new StateTree(testMachine, 'c'); // { c: { one: 'aa' }}
+    const st_B = new StateTree(testMachine, { c: { one: 'bb' } });
+
+    const res = st_B.getEntryExitStates(st_A);
+    assert.deepEqual([...res.exit].map(n => n.id), ['test.c.one.aa']);
+    assert.deepEqual([...res.entry].map(n => n.id), ['test.c.one.bb']);
   });
 });

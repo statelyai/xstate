@@ -8,6 +8,7 @@
     "strictNullChecks": true,
     "outDir": "./lib",
     "moduleResolution": "node",
+    "downlevelIteration": true,
     "lib": [
       "es6",
       "dom"
