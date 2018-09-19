@@ -421,7 +421,8 @@ describe('actions option', () => {
     }
   );
   it('should reference actions defined in actions parameter of machine options', () => {
-    const nextState = simpleMachine.transition(simpleMachine.initialState, 'E');
+    const { initialState } = simpleMachine;
+    const nextState = simpleMachine.transition(initialState, 'E');
 
     assert.includeMembers(nextState.actions.map(a => a.type), [
       'definedAction',

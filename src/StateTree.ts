@@ -73,12 +73,12 @@ export class StateTree {
       case 'compound':
         if (Object.keys(this.value!)[0]! !== Object.keys(prevTree.value!)[0]!) {
           return {
-            exit: new Set([
-              prevTree.value![Object.keys(prevTree.value!)[0]!].stateNode
-            ]),
-            entry: new Set([
-              this.value![Object.keys(this.value!)[0]!].stateNode
-            ])
+            exit: new Set(
+              prevTree.value![Object.keys(prevTree.value!)[0]!].getExitStates()
+            ),
+            entry: new Set(
+              this.value![Object.keys(this.value!)[0]!].getEntryStates()
+            )
           };
         }
 
