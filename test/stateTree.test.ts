@@ -113,7 +113,13 @@ describe('StateTree', () => {
     const st_B = new StateTree(testMachine, { c: { one: 'bb' } });
 
     const res = st_B.getEntryExitStates(st_A);
-    assert.deepEqual([...res.exit].map(n => n.id), ['test.c.one.aa']);
-    assert.deepEqual([...res.entry].map(n => n.id), ['test.c.one.bb']);
+    assert.deepEqual([...res.exit].map(n => n.id), [
+      'test.c.one.aa.foo',
+      'test.c.one.aa'
+    ]);
+    assert.deepEqual([...res.entry].map(n => n.id), [
+      'test.c.one.bb',
+      'test.c.one.bb.foo'
+    ]);
   });
 });

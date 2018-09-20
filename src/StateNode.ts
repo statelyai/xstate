@@ -20,7 +20,6 @@ import {
   ActivityMap,
   EntryExitStates,
   StateTransition,
-  ActionObject,
   StateValueMap,
   MachineOptions,
   Condition,
@@ -646,15 +645,10 @@ class StateNode<
       ? []
       : flatten(nextStateNodes.map(n => this.nodesFromChild(n)));
 
-    console.log('reentry', reentryNodes.map(n => n.id));
-
     const entryExitStates = {
       entry: new Set(reentryNodes),
       exit: new Set(reentryNodes)
     };
-
-    console.log('selected', selectedTransition, nextStateNodes.map(n => n.id));
-    console.log('selfs', [...entryExitStates.entry].map(n => n.id));
 
     const value = this.machine.resolve(
       pathsToStateValue(
@@ -749,7 +743,8 @@ class StateNode<
   }
   private getActions(
     transition: StateTransition<TContext>,
-    prevState: State<TContext>
+    prevState: State<TContext>,
+    isInitial: boolean = false
   ): Array<Action<TContext>> {
     const doneEvents: Set<string> = new Set();
     const entryExitStates = transition.tree
@@ -761,18 +756,8 @@ class StateNode<
         )
       : { entry: [], exit: [] };
 
-    // if (transition.entryExitStates && entryExitStates) {
-    //   transition.entryExitStates.entry.forEach(n =>
-    //     entryExitStates.entry.push(n)
-    //   );
-    //   transition.entryExitStates.exit.forEach(n =>
-    //     entryExitStates.exit.push(n)
-    //   );
-    // }
-
-    if (entryExitStates) {
-      console.log('entry', [...entryExitStates.entry].map(n => n.id));
-      console.log('exit', [...entryExitStates.exit].map(n => n.id));
+    if (isInitial) {
+      entryExitStates.exit = [];
     }
 
     const entryExitActions = {
@@ -931,7 +916,8 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
     currentState: State<TContext, TEvents>,
-    event?: TEvents
+    event?: TEvents,
+    isInitial: boolean = false
   ): State<TContext, TEvents> {
     const historyValue = currentState.historyValue
       ? currentState.historyValue
@@ -951,7 +937,7 @@ class StateNode<
       }
     }
 
-    const actions = this.getActions(stateTransition, currentState);
+    const actions = this.getActions(stateTransition, currentState, isInitial);
     const ees = stateTransition.tree
       ? stateTransition.tree.getEntryExitStates(
           this.getStateTree(currentState.value)
@@ -1260,11 +1246,11 @@ class StateNode<
     });
 
     // TODO: deduplicate - DRY (from this.transition())
-    const raisedEvents = actions.filter(
-      action =>
-        typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as Array<ActionObject<TContext>>;
+    // const raisedEvents = actions.filter(
+    //   action =>
+    //     typeof action === 'object' &&
+    //     (action.type === actionTypes.raise || action.type === actionTypes.null)
+    // ) as Array<ActionObject<TContext>>;
 
     const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
@@ -1298,22 +1284,24 @@ class StateNode<
       updatedContext,
       undefined,
       undefined,
-      toActionObjects(actions, this.options.actions),
+      undefined,
       activityMap,
       undefined,
       []
     );
 
-    return raisedEvents.reduce((nextState, raisedEvent) => {
-      const currentActions = nextState.actions;
-      nextState = this.transition(
-        nextState,
-        raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-        nextState.context
-      );
-      nextState.actions.unshift(...currentActions);
-      return nextState;
-    }, initialNextState);
+    return initialNextState;
+
+    // return raisedEvents.reduce((nextState, raisedEvent) => {
+    //   const currentActions = nextState.actions;
+    //   nextState = this.transition(
+    //     nextState,
+    //     raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
+    //     nextState.context
+    //   );
+    //   nextState.actions.unshift(...currentActions);
+    //   return nextState;
+    // }, initialNextState);
   }
   public get initialState(): State<TContext, TEvents> {
     const { initialStateValue } = this;
@@ -1327,8 +1315,8 @@ class StateNode<
     const state = this.getState(initialStateValue);
     return this.resolveTransition(
       {
-        value: state.value,
-        tree: state.value ? this.getStateTree(state.value) : undefined,
+        value: initialStateValue,
+        tree: this.getStateTree(initialStateValue),
         source: undefined,
         entryExitStates: {
           entry: new Set(this.getStateNodes(initialStateValue)),
@@ -1337,7 +1325,9 @@ class StateNode<
         actions: [],
         paths: []
       },
-      state
+      state,
+      undefined,
+      true // isInitial
     );
   }
   public get target(): StateValue | undefined {

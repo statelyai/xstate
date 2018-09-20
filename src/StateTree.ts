@@ -72,11 +72,6 @@ export class StateTree {
       throw new Error('Cannot compare distinct trees');
     }
 
-    if (externalNodes) {
-      console.log('this one: ', this.stateNode.id);
-      console.log('ext', [...externalNodes].map(n => n.id));
-    }
-
     switch (this.stateNode.type) {
       case 'compound':
         let r1: EntryExitStateArrays<any> = {
