@@ -753,15 +753,22 @@ class StateNode<
   ): Array<Action<TContext>> {
     const doneEvents: Set<string> = new Set();
     const entryExitStates = transition.tree
-      ? transition.tree.getEntryExitStates(this.getStateTree(prevState.value))
-      : { entry: new Set(), exit: new Set() };
+      ? transition.tree.getEntryExitStates(
+          this.getStateTree(prevState.value),
+          transition.entryExitStates
+            ? transition.entryExitStates.entry
+            : undefined
+        )
+      : { entry: [], exit: [] };
 
-    if (transition.entryExitStates && entryExitStates) {
-      transition.entryExitStates.entry.forEach(n =>
-        entryExitStates.entry.add(n)
-      );
-      transition.entryExitStates.exit.forEach(n => entryExitStates.exit.add(n));
-    }
+    // if (transition.entryExitStates && entryExitStates) {
+    //   transition.entryExitStates.entry.forEach(n =>
+    //     entryExitStates.entry.push(n)
+    //   );
+    //   transition.entryExitStates.exit.forEach(n =>
+    //     entryExitStates.exit.push(n)
+    //   );
+    // }
 
     if (entryExitStates) {
       console.log('entry', [...entryExitStates.entry].map(n => n.id));
@@ -771,7 +778,7 @@ class StateNode<
     const entryExitActions = {
       entry: entryExitStates
         ? flatten(
-            Array.from(entryExitStates.entry).map(stateNode => {
+            Array.from(new Set(entryExitStates.entry)).map(stateNode => {
               if (stateNode.type === 'final') {
                 const stateTree = transition.tree;
                 doneEvents.add(done(stateNode.id));
@@ -803,7 +810,7 @@ class StateNode<
         : [],
       exit: entryExitStates
         ? flatten(
-            Array.from(entryExitStates.exit).map(stateNode => [
+            Array.from(new Set(entryExitStates.exit)).map(stateNode => [
               ...stateNode.onExit,
               ...stateNode.activities.map(activity => stop(activity)),
               ...stateNode.delays.map(({ delay, id }) =>
@@ -945,11 +952,17 @@ class StateNode<
     }
 
     const actions = this.getActions(stateTransition, currentState);
+    const ees = stateTransition.tree
+      ? stateTransition.tree.getEntryExitStates(
+          this.getStateTree(currentState.value)
+        )
+      : { entry: [], exit: [] };
     const activities = stateTransition.tree
       ? this.getActivities(
-          stateTransition.tree.getEntryExitStates(
-            this.getStateTree(currentState.value)
-          ),
+          {
+            entry: new Set(ees.entry),
+            exit: new Set(ees.exit)
+          },
           currentState.activities
         )
       : {};

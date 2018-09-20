@@ -1,5 +1,5 @@
 import { StateNode } from './StateNode';
-import { StateValue, EntryExitStates } from './types';
+import { StateValue, EntryExitStateArrays } from './types';
 import { mapValues, flatten } from './utils';
 import { matchesState } from './matchesState';
 
@@ -64,50 +64,80 @@ export class StateTree {
   public matches(parentValue: StateValue): boolean {
     return matchesState(parentValue, this.stateValue);
   }
-  public getEntryExitStates(prevTree: StateTree): EntryExitStates<any> {
+  public getEntryExitStates(
+    prevTree: StateTree,
+    externalNodes?: Set<StateNode<any>>
+  ): EntryExitStateArrays<any> {
     if (prevTree.stateNode !== this.stateNode) {
       throw new Error('Cannot compare distinct trees');
     }
 
+    if (externalNodes) {
+      console.log('this one: ', this.stateNode.id);
+      console.log('ext', [...externalNodes].map(n => n.id));
+    }
+
     switch (this.stateNode.type) {
       case 'compound':
+        let r1: EntryExitStateArrays<any> = {
+          exit: [],
+          entry: []
+        };
+
         if (Object.keys(this.value!)[0]! !== Object.keys(prevTree.value!)[0]!) {
-          return {
-            exit: new Set(
-              prevTree.value![Object.keys(prevTree.value!)[0]!].getExitStates()
-            ),
-            entry: new Set(
-              this.value![Object.keys(this.value!)[0]!].getEntryStates()
-            )
-          };
+          r1.exit = prevTree.value![
+            Object.keys(prevTree.value!)[0]!
+          ].getExitStates();
+          r1.entry = this.value![Object.keys(this.value!)[0]!].getEntryStates();
+        } else {
+          r1 = this.value![Object.keys(this.value!)[0]!].getEntryExitStates(
+            prevTree.value![Object.keys(prevTree.value!)[0]!],
+            externalNodes
+          );
         }
 
-        return this.value![Object.keys(this.value!)[0]!].getEntryExitStates(
-          prevTree.value![Object.keys(prevTree.value!)[0]!]
-        );
+        if (externalNodes && externalNodes.has(this.stateNode)) {
+          r1.exit.push(this.stateNode);
+          r1.entry.unshift(this.stateNode);
+        }
+        return r1;
 
       case 'parallel':
         const all = Object.keys(this.value!).map(key => {
-          return this.value![key].getEntryExitStates(prevTree.value![key]);
+          return this.value![key].getEntryExitStates(
+            prevTree.value![key],
+            externalNodes
+          );
         });
 
-        const result = {
-          exit: new Set(),
-          entry: new Set()
+        const result: EntryExitStateArrays<any> = {
+          exit: [],
+          entry: []
         };
 
         all.forEach(ees => {
-          result.exit = new Set([...result.exit, ...ees.exit]);
-          result.entry = new Set([...result.entry, ...ees.entry]);
+          result.exit = [...result.exit, ...ees.exit];
+          result.entry = [...result.entry, ...ees.entry];
         });
+
+        if (externalNodes && externalNodes.has(this.stateNode)) {
+          result.exit.push(this.stateNode);
+          result.entry.unshift(this.stateNode);
+        }
 
         return result;
 
       case 'atomic':
       default:
+        if (externalNodes && externalNodes.has(this.stateNode)) {
+          return {
+            exit: [this.stateNode],
+            entry: [this.stateNode]
+          };
+        }
         return {
-          exit: new Set(),
-          entry: new Set()
+          exit: [],
+          entry: []
         };
     }
   }

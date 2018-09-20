@@ -316,6 +316,11 @@ export interface EntryExitStates<TContext> {
   exit: Set<StateNode<TContext>>;
 }
 
+export interface EntryExitStateArrays<TContext> {
+  entry: Array<StateNode<TContext>>;
+  exit: Array<StateNode<TContext>>;
+}
+
 export interface ActivityMap {
   [activityKey: string]: boolean;
 }
