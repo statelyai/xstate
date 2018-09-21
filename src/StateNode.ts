@@ -1142,12 +1142,20 @@ class StateNode<
 
     return currentStateNode;
   }
-  private resolve(stateValue: StateValue): StateValue {
+  public resolve(stateValue: StateValue): StateValue {
     if (typeof stateValue === 'string') {
       const subStateNode = this.getStateNode(stateValue);
-      return subStateNode.initial
-        ? { [stateValue]: subStateNode.initialStateValue! }
-        : stateValue;
+      if (
+        subStateNode.type === 'parallel' ||
+        subStateNode.type === 'compound'
+      ) {
+        return { [stateValue]: subStateNode.initialStateValue! };
+      }
+
+      return stateValue;
+    }
+    if (!Object.keys(stateValue).length) {
+      return this.initialStateValue!;
     }
 
     if (this.type === 'parallel') {

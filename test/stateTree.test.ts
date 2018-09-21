@@ -99,6 +99,18 @@ describe('StateTree', () => {
     });
   });
 
+  describe('.combine', () => {
+    it('combines two state trees (compound)', () => {
+      const st_c = new StateTree(testMachine, 'c');
+      const st_c_two = new StateTree(testMachine, { c: 'two' });
+
+      const combined = st_c.combine(st_c_two);
+
+      assert.deepEqual(combined.stateValue, { c: { two: {} } });
+      assert.deepEqual(combined.resolved.stateValue, { c: { two: 'aa' } });
+    });
+  });
+
   xit('represents the full value (parallel deep)', () => {
     const st = new StateTree(testMachine, { b: 'two' });
 

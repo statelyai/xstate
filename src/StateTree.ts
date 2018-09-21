@@ -4,50 +4,102 @@ import { mapValues, flatten } from './utils';
 import { matchesState } from './matchesState';
 
 export class StateTree {
-  public stateNode: StateNode;
-  private _stateValue: StateValue | undefined;
   public parent?: StateTree | undefined;
-  public done: boolean;
-  public value: Record<string, StateTree> | undefined;
+  public value: Record<string, StateTree>;
 
   constructor(
-    stateNode: StateNode,
-    stateValue: StateValue | undefined,
-    resolved: boolean = false
+    public stateNode: StateNode,
+    public _stateValue: StateValue | undefined
   ) {
-    this.stateNode = stateNode;
-    this._stateValue = stateValue;
+    this.value = _stateValue
+      ? typeof _stateValue === 'string'
+        ? {
+            [_stateValue]: new StateTree(
+              stateNode.getStateNode(_stateValue),
+              undefined
+            )
+          }
+        : mapValues(_stateValue, (subValue, key) => {
+            return new StateTree(stateNode.getStateNode(key), subValue);
+          })
+      : {};
+  }
 
-    if (!stateValue) {
-      this.done = stateNode.type === 'final';
-      this.value = undefined;
-    } else if (typeof stateValue === 'string') {
-      const childStateNode = stateNode.getStateNode(stateValue);
-      this.done = childStateNode.type === 'final';
-      this.value = {
-        [stateValue]: new StateTree(
-          childStateNode,
-          childStateNode.type === 'compound' ||
-          childStateNode.type === 'parallel'
-            ? resolved
-              ? childStateNode.initialState.value
-              : {}
-            : undefined,
-          resolved
-        )
-      };
-    } else {
-      const value = mapValues(stateValue, (subValue, key) => {
-        return new StateTree(stateNode.getStateNode(key), subValue, resolved);
-      });
-
-      this.value = value;
-      this.done = Object.keys(value).every(key => value[key].done);
+  public get done(): boolean {
+    switch (this.stateNode.type) {
+      case 'final':
+        return true;
+      case 'compound':
+        return this.value[Object.keys(this.value)[0]].done;
+      case 'parallel':
+        return Object.keys(this.value).some(key => this.value[key].done);
+      default:
+        return false;
     }
   }
 
   public get resolved(): StateTree {
-    return new StateTree(this.stateNode, this._stateValue, true);
+    return new StateTree(
+      this.stateNode,
+      this.stateNode.resolve(this.stateValue)
+    );
+  }
+
+  public clone(): StateTree {
+    return new StateTree(this.stateNode, this.stateValue);
+  }
+
+  public combine(tree: StateTree): StateTree {
+    if (tree.stateNode !== this.stateNode) {
+      throw new Error('Cannot combine distinct trees');
+    }
+
+    if (this.stateNode.type === 'compound') {
+      // Only combine if no child state is defined
+      let newValue: Record<string, StateTree>;
+      if (!Object.keys(this.value).length || !Object.keys(tree.value).length) {
+        newValue = Object.assign({}, this.value, tree.value);
+
+        const newTree = this.clone();
+        newTree.value = newValue;
+
+        return newTree;
+      } else {
+        const childKey = Object.keys(this.value)[0];
+
+        newValue = {
+          [childKey]: this.value[childKey].combine(tree.value[childKey])
+        };
+
+        const newTree = this.clone();
+        newTree.value = newValue;
+        return newTree;
+      }
+    }
+
+    if (this.stateNode.type === 'parallel') {
+      const keys = new Set([
+        ...Object.keys(this.value),
+        ...Object.keys(tree.value)
+      ]);
+
+      const newValue: Record<string, StateTree> = {};
+
+      keys.forEach(key => {
+        if (!this.value[key] || !tree.value[key]) {
+          newValue[key] = this.value[key] || tree.value[key];
+        } else {
+          newValue[key] = this.value[key]!.combine(tree.value[key]!);
+        }
+      });
+
+      const newTree = this.clone();
+      newTree.value = newValue;
+      return newTree;
+    }
+
+    // nothing to do
+    return this;
   }
 
   public get stateValue(): StateValue {
@@ -56,21 +108,21 @@ export class StateTree {
     }
 
     if (this.stateNode.type === 'parallel') {
-      return mapValues(this.value!, st => {
+      return mapValues(this.value, st => {
         return st.stateValue;
       });
     }
 
     if (this.stateNode.type === 'compound') {
-      if (Object.keys(this.value!).length === 0) {
+      if (Object.keys(this.value).length === 0) {
         return {};
       }
-      const childStateNode = this.value![Object.keys(this.value!)[0]].stateNode;
+      const childStateNode = this.value[Object.keys(this.value)[0]].stateNode;
       if (childStateNode.type === 'atomic') {
         return childStateNode.key;
       }
 
-      return mapValues(this.value!, st => {
+      return mapValues(this.value, st => {
         return st.stateValue;
       });
     }
@@ -95,14 +147,14 @@ export class StateTree {
           entry: []
         };
 
-        if (Object.keys(this.value!)[0]! !== Object.keys(prevTree.value!)[0]!) {
-          r1.exit = prevTree.value![
-            Object.keys(prevTree.value!)[0]!
+        if (Object.keys(this.value)[0]! !== Object.keys(prevTree.value)[0]!) {
+          r1.exit = prevTree.value[
+            Object.keys(prevTree.value)[0]!
           ].getExitStates();
-          r1.entry = this.value![Object.keys(this.value!)[0]!].getEntryStates();
+          r1.entry = this.value[Object.keys(this.value)[0]!].getEntryStates();
         } else {
-          r1 = this.value![Object.keys(this.value!)[0]!].getEntryExitStates(
-            prevTree.value![Object.keys(prevTree.value!)[0]!],
+          r1 = this.value[Object.keys(this.value)[0]!].getEntryExitStates(
+            prevTree.value[Object.keys(prevTree.value)[0]!],
             externalNodes
           );
         }
@@ -114,9 +166,9 @@ export class StateTree {
         return r1;
 
       case 'parallel':
-        const all = Object.keys(this.value!).map(key => {
-          return this.value![key].getEntryExitStates(
-            prevTree.value![key],
+        const all = Object.keys(this.value).map(key => {
+          return this.value[key].getEntryExitStates(
+            prevTree.value[key],
             externalNodes
           );
         });
@@ -161,7 +213,7 @@ export class StateTree {
     return [this.stateNode].concat(
       flatten(
         Object.keys(this.value).map(key => {
-          return this.value![key].getEntryStates();
+          return this.value[key].getEntryStates();
         })
       )
     );
@@ -174,7 +226,7 @@ export class StateTree {
 
     return flatten(
       Object.keys(this.value).map(key => {
-        return this.value![key].getExitStates();
+        return this.value[key].getExitStates();
       })
     ).concat(this.stateNode);
   }
