@@ -307,7 +307,7 @@ class StateNode<
     const next = stateNode.next(state, eventObject, context);
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this.next(
+      const { value, entryExitStates, actions } = this.next(
         state,
         eventObject,
         context
@@ -326,8 +326,7 @@ class StateNode<
               : ([] as Array<StateNode<TContext>>))
           ])
         },
-        actions,
-        paths
+        actions
       };
     }
 
@@ -350,7 +349,7 @@ class StateNode<
     );
 
     if (!next.value) {
-      const { value, entryExitStates, actions, paths } = this.next(
+      const { value, entryExitStates, actions } = this.next(
         state,
         eventObject,
         context
@@ -372,8 +371,7 @@ class StateNode<
               : ([] as Array<StateNode<TContext>>))
           ])
         },
-        actions,
-        paths
+        actions
       };
     }
 
@@ -416,7 +414,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const { value, entryExitStates, actions, paths } = this.next(
+      const { value, entryExitStates, actions } = this.next(
         state,
         eventObject,
         context
@@ -433,13 +431,14 @@ class StateNode<
             ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
           ])
         },
-        actions,
-        paths
+        actions
       };
     }
 
     const allPaths = flatten(
-      Object.keys(transitionMap).map(key => transitionMap[key].paths)
+      Object.keys(transitionMap).map(
+        key => (transitionMap[key].tree ? transitionMap[key].tree!.paths : [])
+      )
     );
 
     const allTrees = Object.keys(transitionMap)
@@ -487,8 +486,7 @@ class StateNode<
           Object.keys(transitionMap).map(key => {
             return transitionMap[key].actions;
           })
-        ),
-        paths: []
+        )
       };
     }
 
@@ -542,8 +540,7 @@ class StateNode<
         Object.keys(transitionMap).map(key => {
           return transitionMap[key].actions;
         })
-      ),
-      paths: toStatePaths(nextStateValue)
+      )
     };
   }
   public _transition(
@@ -582,8 +579,7 @@ class StateNode<
         tree: undefined,
         source: state,
         entryExitStates: undefined,
-        actions,
-        paths: []
+        actions
       };
     }
 
@@ -624,8 +620,7 @@ class StateNode<
         tree: state.value ? this.machine.getStateTree(state.value) : undefined,
         source: state,
         entryExitStates: undefined,
-        actions,
-        paths: []
+        actions
       };
     }
 
@@ -635,8 +630,7 @@ class StateNode<
         tree: undefined,
         source: state,
         entryExitStates: undefined,
-        actions,
-        paths: []
+        actions
       };
     }
 
@@ -670,8 +664,7 @@ class StateNode<
       tree: combinedTree,
       source: state,
       entryExitStates,
-      actions,
-      paths: combinedTree.paths
+      actions
     };
   }
   private get tree(): StateTree {
@@ -935,9 +928,9 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined;
 
-    if (!IS_PRODUCTION) {
+    if (!IS_PRODUCTION && stateTransition.tree) {
       try {
-        this.ensureValidPaths(stateTransition.paths);
+        this.ensureValidPaths(stateTransition.tree.paths); // TODO: ensure code coverage for this
       } catch (e) {
         throw new Error(
           `Event '${
@@ -1340,8 +1333,7 @@ class StateNode<
           entry: new Set(this.getStateNodes(initialStateValue)),
           exit: new Set()
         },
-        actions: [],
-        paths: []
+        actions: []
       },
       state,
       undefined,

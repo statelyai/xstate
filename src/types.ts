@@ -332,7 +332,6 @@ export interface StateTransition<TContext> {
   source: State<TContext> | undefined;
   entryExitStates: EntryExitStates<TContext> | undefined;
   actions: Array<Action<TContext>>;
-  paths: string[][];
 }
 
 export interface TransitionData<TContext> {
