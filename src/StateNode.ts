@@ -1155,7 +1155,7 @@ class StateNode<
       return stateValue;
     }
     if (!Object.keys(stateValue).length) {
-      return this.initialStateValue!;
+      return this.initialStateValue || {};
     }
 
     if (this.type === 'parallel') {

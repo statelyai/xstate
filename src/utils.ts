@@ -153,7 +153,13 @@ export function nestedPath<T extends Record<string, any>>(
   };
 }
 
-export const toStatePaths = (stateValue: StateValue): string[][] => {
+export const toStatePaths = (
+  stateValue: StateValue | undefined
+): string[][] => {
+  if (!stateValue) {
+    return [[]];
+  }
+
   if (typeof stateValue === 'string') {
     return [[stateValue]];
   }
