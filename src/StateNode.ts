@@ -435,11 +435,11 @@ class StateNode<
       };
     }
 
-    const allPaths = flatten(
-      Object.keys(transitionMap).map(
-        key => (transitionMap[key].tree ? transitionMap[key].tree!.paths : [])
-      )
-    );
+    // const allPaths = flatten(
+    //   Object.keys(transitionMap).map(
+    //     key => (transitionMap[key].tree ? transitionMap[key].tree!.paths : [])
+    //   )
+    // );
 
     const allTrees = Object.keys(transitionMap)
       .map(key => transitionMap[key].tree)
@@ -448,6 +448,8 @@ class StateNode<
     const combinedTree = allTrees.reduce((acc, t) => {
       return acc.combine(t);
     });
+
+    const allPaths = combinedTree.paths;
 
     // External transition that escapes orthogonal region
     if (
