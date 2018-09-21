@@ -327,7 +327,6 @@ export interface ActivityMap {
 
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext> {
-  value: StateValue | undefined;
   tree: StateTree | undefined;
   source: State<TContext> | undefined;
   entryExitStates: EntryExitStates<TContext> | undefined;

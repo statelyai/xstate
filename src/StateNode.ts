@@ -5,7 +5,6 @@ import {
   mapValues,
   path,
   toStatePaths,
-  pathsToStateValue,
   pathToStateValue,
   flatten,
   mapFilterValues,
@@ -306,7 +305,7 @@ class StateNode<
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, eventObject, context);
 
-    if (!next.value) {
+    if (!next.tree) {
       const { entryExitStates, actions, tree } = this.next(
         state,
         eventObject,
@@ -314,7 +313,6 @@ class StateNode<
       );
 
       return {
-        value: tree ? tree.resolved.stateValue : undefined,
         tree,
         source: state,
         entryExitStates: {
@@ -348,7 +346,7 @@ class StateNode<
       context
     );
 
-    if (!next.value) {
+    if (!next.tree) {
       const { entryExitStates, actions, tree } = this.next(
         state,
         eventObject,
@@ -356,7 +354,6 @@ class StateNode<
       );
 
       return {
-        value: tree ? tree.resolved.stateValue : undefined,
         tree,
         source: state,
         entryExitStates: {
@@ -402,7 +399,7 @@ class StateNode<
         context
       );
 
-      if (!next.value) {
+      if (!next.tree) {
         noTransitionKeys.push(subStateKey);
       }
 
@@ -410,7 +407,7 @@ class StateNode<
     });
 
     const willTransition = Object.keys(transitionMap).some(
-      key => transitionMap[key].value !== undefined
+      key => transitionMap[key].tree !== undefined
     );
 
     if (!willTransition) {
@@ -421,7 +418,6 @@ class StateNode<
       );
 
       return {
-        value: tree ? tree.resolved.stateValue : undefined,
         tree,
         source: state,
         entryExitStates: {
@@ -454,7 +450,6 @@ class StateNode<
       )
     ) {
       return {
-        value: combinedTree.resolved.stateValue,
         tree: combinedTree,
         source: state,
         entryExitStates: Object.keys(transitionMap)
@@ -484,19 +479,6 @@ class StateNode<
       };
     }
 
-    const allResolvedPaths = flatten(
-      Object.keys(transitionMap).map(key => {
-        const transition = transitionMap[key];
-        const value = transition.tree
-          ? transition.tree.stateValue
-          : state.value;
-
-        return toStatePaths(path(this.path)(value)[key]).map(statePath =>
-          this.path.concat(key, statePath)
-        );
-      })
-    );
-
     const allResolvedTrees = Object.keys(transitionMap).map(key => {
       const transition = transitionMap[key];
       const subValue = path(this.path)(
@@ -508,25 +490,20 @@ class StateNode<
       return new StateTree(this.getStateNode(key), subValue).absolute;
     });
 
-    const nextStateValue = this.machine.resolve(
-      pathsToStateValue(allResolvedPaths)
-    );
-
     const finalCombinedTree = allResolvedTrees.reduce((acc, t) => {
       return acc.combine(t);
     });
 
     return {
-      value: nextStateValue,
       tree: finalCombinedTree,
       source: state,
       entryExitStates: Object.keys(transitionMap).reduce(
         (allEntryExitStates, key) => {
-          const { value: subStateValue, entryExitStates } = transitionMap[key];
+          const { tree, entryExitStates } = transitionMap[key];
 
           // If the event was not handled (no subStateValue),
           // machine should still be in state without reentry/exit.
-          if (!subStateValue || !entryExitStates) {
+          if (!tree || !entryExitStates) {
             return allEntryExitStates;
           }
 
@@ -584,7 +561,6 @@ class StateNode<
 
     if (!candidates || !candidates.length) {
       return {
-        value: undefined,
         tree: undefined,
         source: state,
         entryExitStates: undefined,
@@ -628,7 +604,6 @@ class StateNode<
         ? this.machine.getStateTree(state.value)
         : undefined;
       return {
-        value: tree ? tree.resolved.stateValue : undefined,
         tree,
         source: state,
         entryExitStates: undefined,
@@ -638,7 +613,6 @@ class StateNode<
 
     if (!selectedTransition && nextStateStrings.length === 0) {
       return {
-        value: undefined,
         tree: undefined,
         source: state,
         entryExitStates: undefined,
@@ -672,7 +646,6 @@ class StateNode<
     });
 
     return {
-      value: combinedTree.resolved.stateValue,
       tree: combinedTree,
       source: state,
       entryExitStates,
@@ -1318,17 +1291,6 @@ class StateNode<
     );
 
     return initialNextState;
-
-    // return raisedEvents.reduce((nextState, raisedEvent) => {
-    //   const currentActions = nextState.actions;
-    //   nextState = this.transition(
-    //     nextState,
-    //     raisedEvent.type === actionTypes.null ? NULL_EVENT : raisedEvent.event,
-    //     nextState.context
-    //   );
-    //   nextState.actions.unshift(...currentActions);
-    //   return nextState;
-    // }, initialNextState);
   }
   public get initialState(): State<TContext, TEvents> {
     const { initialStateValue } = this;
@@ -1342,7 +1304,6 @@ class StateNode<
     const state = this.getState(initialStateValue);
     return this.resolveTransition(
       {
-        value: initialStateValue,
         tree: this.getStateTree(initialStateValue),
         source: undefined,
         entryExitStates: {
