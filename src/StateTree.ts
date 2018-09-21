@@ -1,6 +1,6 @@
 import { StateNode } from './StateNode';
 import { StateValue, EntryExitStateArrays } from './types';
-import { mapValues, flatten } from './utils';
+import { mapValues, flatten, toStatePaths } from './utils';
 import { matchesState } from './matchesState';
 
 export class StateTree {
@@ -43,6 +43,10 @@ export class StateTree {
       this.stateNode,
       this.stateNode.resolve(this.stateValue)
     );
+  }
+
+  public get paths(): string[][] {
+    return toStatePaths(this.stateValue);
   }
 
   public clone(): StateTree {
@@ -118,7 +122,7 @@ export class StateTree {
         return {};
       }
       const childStateNode = this.value[Object.keys(this.value)[0]].stateNode;
-      if (childStateNode.type === 'atomic') {
+      if (childStateNode.type === 'atomic' || childStateNode.type === 'final') {
         return childStateNode.key;
       }
 

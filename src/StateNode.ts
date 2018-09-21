@@ -453,7 +453,10 @@ class StateNode<
     // External transition that escapes orthogonal region
     if (
       allPaths.length === 1 &&
-      !matchesState(pathToStateValue(this.path), pathToStateValue(allPaths[0]))
+      !matchesState(
+        toStateValue(this.path, this.delimiter),
+        combinedTree.stateValue
+      )
     ) {
       const value = this.machine.resolve(pathsToStateValue(allPaths));
 
@@ -485,7 +488,7 @@ class StateNode<
             return transitionMap[key].actions;
           })
         ),
-        paths: allPaths
+        paths: []
       };
     }
 
@@ -643,7 +646,6 @@ class StateNode<
       )
     );
 
-    const nextStatePaths = nextStateNodes.map(stateNode => stateNode.path);
     const isInternal = !!(selectedTransition as TransitionDefinition<
       TContext,
       TEvents
@@ -658,28 +660,18 @@ class StateNode<
       exit: new Set(reentryNodes)
     };
 
-    const value = this.machine.resolve(
-      pathsToStateValue(
-        flatten(
-          nextStateStrings.map(str =>
-            this.getRelativeStateNodes(str, state.historyValue).map(s => s.path)
-          )
-        )
-      )
-    );
-
     const trees = nextStateNodes.map(stateNode => stateNode.tree);
     const combinedTree = trees.reduce((acc, t) => {
       return acc.combine(t);
     });
 
     return {
-      value,
+      value: combinedTree.resolved.stateValue,
       tree: combinedTree,
       source: state,
       entryExitStates,
       actions,
-      paths: nextStatePaths
+      paths: combinedTree.paths
     };
   }
   private get tree(): StateTree {
