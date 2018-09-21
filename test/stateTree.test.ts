@@ -80,20 +80,22 @@ const testMachine = Machine({
 });
 
 describe('StateTree', () => {
-  it('represents the full value (compound)', () => {
-    const st = new StateTree(testMachine, 'a');
+  describe('.resolved', () => {
+    it('represents the full value (compound)', () => {
+      const st = new StateTree(testMachine, 'a').resolved;
 
-    assert.deepEqual(st.stateValue, { a: 'one' });
-  });
+      assert.deepEqual(st.stateValue, { a: 'one' });
+    });
 
-  it('represents the full value (parallel)', () => {
-    const st = new StateTree(testMachine, 'b');
+    it('represents the full value (parallel)', () => {
+      const st = new StateTree(testMachine, 'b').resolved;
 
-    assert.deepEqual(st.stateValue, {
-      b: {
-        one: 'foo',
-        two: { foo: 'x' }
-      }
+      assert.deepEqual(st.stateValue, {
+        b: {
+          one: 'foo',
+          two: { foo: 'x' }
+        }
+      });
     });
   });
 
@@ -109,8 +111,8 @@ describe('StateTree', () => {
   });
 
   it('getEntryExitStates() should show correct entry/exit state nodes', () => {
-    const st_A = new StateTree(testMachine, 'c'); // { c: { one: 'aa' }}
-    const st_B = new StateTree(testMachine, { c: { one: 'bb' } });
+    const st_A = new StateTree(testMachine, 'c').resolved; // { c: { one: 'aa' }}
+    const st_B = new StateTree(testMachine, { c: { one: 'bb' } }).resolved;
 
     const res = st_B.getEntryExitStates(st_A);
     assert.deepEqual([...res.exit].map(n => n.id), [

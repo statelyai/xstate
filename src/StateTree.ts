@@ -5,12 +5,18 @@ import { matchesState } from './matchesState';
 
 export class StateTree {
   public stateNode: StateNode;
+  private _stateValue: StateValue | undefined;
   public parent?: StateTree | undefined;
   public done: boolean;
   public value: Record<string, StateTree> | undefined;
 
-  constructor(stateNode: StateNode, stateValue: StateValue | undefined) {
+  constructor(
+    stateNode: StateNode,
+    stateValue: StateValue | undefined,
+    resolved: boolean = false
+  ) {
     this.stateNode = stateNode;
+    this._stateValue = stateValue;
 
     if (!stateValue) {
       this.done = stateNode.type === 'final';
@@ -23,18 +29,25 @@ export class StateTree {
           childStateNode,
           childStateNode.type === 'compound' ||
           childStateNode.type === 'parallel'
-            ? childStateNode.initialState.value
-            : undefined
+            ? resolved
+              ? childStateNode.initialState.value
+              : {}
+            : undefined,
+          resolved
         )
       };
     } else {
       const value = mapValues(stateValue, (subValue, key) => {
-        return new StateTree(stateNode.getStateNode(key), subValue);
+        return new StateTree(stateNode.getStateNode(key), subValue, resolved);
       });
 
       this.value = value;
       this.done = Object.keys(value).every(key => value[key].done);
     }
+  }
+
+  public get resolved(): StateTree {
+    return new StateTree(this.stateNode, this._stateValue, true);
   }
 
   public get stateValue(): StateValue {
@@ -49,6 +62,9 @@ export class StateTree {
     }
 
     if (this.stateNode.type === 'compound') {
+      if (Object.keys(this.value!).length === 0) {
+        return {};
+      }
       const childStateNode = this.value![Object.keys(this.value!)[0]].stateNode;
       if (childStateNode.type === 'atomic') {
         return childStateNode.key;
