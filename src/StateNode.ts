@@ -918,7 +918,16 @@ class StateNode<
       resolvedContext
     );
 
-    return this.resolveTransition(stateTransition, currentState, eventObject);
+    const resolvedStateTransition: StateTransition<TContext> = {
+      ...stateTransition,
+      tree: stateTransition.tree ? stateTransition.tree.resolved : undefined
+    };
+
+    return this.resolveTransition(
+      resolvedStateTransition,
+      currentState,
+      eventObject
+    );
   }
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
@@ -926,6 +935,9 @@ class StateNode<
     event?: TEvents,
     isInitial: boolean = false
   ): State<TContext, TEvents> {
+    const resolvedStateValue = stateTransition.tree
+      ? stateTransition.tree.stateValue
+      : undefined;
     const historyValue = currentState.historyValue
       ? currentState.historyValue
       : stateTransition.source
@@ -946,7 +958,7 @@ class StateNode<
 
     const actions = this.getActions(stateTransition, currentState, isInitial);
     const entryExitStates = stateTransition.tree
-      ? stateTransition.tree.resolved.getEntryExitStates(
+      ? stateTransition.tree.getEntryExitStates(
           this.getStateTree(currentState.value)
         )
       : { entry: [], exit: [] };
@@ -1003,8 +1015,8 @@ class StateNode<
         }, currentState.context)
       : currentState.context;
 
-    const stateNodes = stateTransition.value
-      ? this.getStateNodes(stateTransition.value)
+    const stateNodes = resolvedStateValue
+      ? this.getStateNodes(resolvedStateValue)
       : [];
 
     const isTransient = stateNodes.some(stateNode => stateNode.transient);
@@ -1019,12 +1031,12 @@ class StateNode<
       return acc;
     }, {});
 
-    const nextState = stateTransition.value
+    const nextState = resolvedStateValue
       ? new State<TContext, TEvents>(
-          stateTransition.value,
+          resolvedStateValue,
           updatedContext,
           historyValue
-            ? StateNode.updateHistoryValue(historyValue, stateTransition.value)
+            ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
           stateTransition.source ? currentState : undefined,
           toActionObjects(nonEventActions, this.options.actions),
