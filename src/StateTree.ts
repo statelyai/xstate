@@ -49,6 +49,23 @@ export class StateTree {
     return toStatePaths(this.stateValue);
   }
 
+  public get absolute(): StateTree {
+    const { _stateValue } = this;
+    const absoluteStateValue = {};
+    let marker: any = absoluteStateValue;
+
+    this.stateNode.path.forEach((key, i) => {
+      if (i === this.stateNode.path.length - 1) {
+        marker[key] = _stateValue;
+      } else {
+        marker[key] = {};
+        marker = marker[key];
+      }
+    });
+
+    return new StateTree(this.stateNode.machine, absoluteStateValue);
+  }
+
   public clone(): StateTree {
     return new StateTree(this.stateNode, this.stateValue);
   }
@@ -151,14 +168,15 @@ export class StateTree {
           entry: []
         };
 
-        if (Object.keys(this.value)[0]! !== Object.keys(prevTree.value)[0]!) {
-          r1.exit = prevTree.value[
-            Object.keys(prevTree.value)[0]!
-          ].getExitStates();
-          r1.entry = this.value[Object.keys(this.value)[0]!].getEntryStates();
+        const currentChildKey = Object.keys(this.value)[0];
+        const prevChildKey = Object.keys(prevTree.value)[0];
+
+        if (currentChildKey !== prevChildKey) {
+          r1.exit = prevTree.value[prevChildKey!].getExitStates();
+          r1.entry = this.value[currentChildKey!].getEntryStates();
         } else {
-          r1 = this.value[Object.keys(this.value)[0]!].getEntryExitStates(
-            prevTree.value[Object.keys(prevTree.value)[0]!],
+          r1 = this.value[currentChildKey!].getEntryExitStates(
+            prevTree.value[prevChildKey!],
             externalNodes
           );
         }

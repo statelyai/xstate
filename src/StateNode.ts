@@ -307,15 +307,15 @@ class StateNode<
     const next = stateNode.next(state, eventObject, context);
 
     if (!next.value) {
-      const { value, entryExitStates, actions } = this.next(
+      const { entryExitStates, actions, tree } = this.next(
         state,
         eventObject,
         context
       );
 
       return {
-        value,
-        tree: value ? this.machine.getStateTree(value) : undefined,
+        value: tree ? tree.resolved.stateValue : undefined,
+        tree,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -349,15 +349,15 @@ class StateNode<
     );
 
     if (!next.value) {
-      const { value, entryExitStates, actions } = this.next(
+      const { entryExitStates, actions, tree } = this.next(
         state,
         eventObject,
         context
       );
 
       return {
-        value,
-        tree: value ? this.machine.getStateTree(value) : undefined,
+        value: tree ? tree.resolved.stateValue : undefined,
+        tree,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -414,15 +414,15 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const { value, entryExitStates, actions } = this.next(
+      const { entryExitStates, actions, tree } = this.next(
         state,
         eventObject,
         context
       );
 
       return {
-        value,
-        tree: value ? this.machine.getStateTree(value) : undefined,
+        value: tree ? tree.resolved.stateValue : undefined,
+        tree,
         source: state,
         entryExitStates: {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
@@ -434,12 +434,6 @@ class StateNode<
         actions
       };
     }
-
-    // const allPaths = flatten(
-    //   Object.keys(transitionMap).map(
-    //     key => (transitionMap[key].tree ? transitionMap[key].tree!.paths : [])
-    //   )
-    // );
 
     const allTrees = Object.keys(transitionMap)
       .map(key => transitionMap[key].tree)
@@ -459,10 +453,8 @@ class StateNode<
         combinedTree.stateValue
       )
     ) {
-      const value = this.machine.resolve(pathsToStateValue(allPaths));
-
       return {
-        value,
+        value: combinedTree.resolved.stateValue,
         tree: combinedTree,
         source: state,
         entryExitStates: Object.keys(transitionMap)
@@ -495,7 +487,9 @@ class StateNode<
     const allResolvedPaths = flatten(
       Object.keys(transitionMap).map(key => {
         const transition = transitionMap[key];
-        const value = transition.value || state.value;
+        const value = transition.tree
+          ? transition.tree.stateValue
+          : state.value;
 
         return toStatePaths(path(this.path)(value)[key]).map(statePath =>
           this.path.concat(key, statePath)
@@ -503,15 +497,28 @@ class StateNode<
       })
     );
 
+    const allResolvedTrees = Object.keys(transitionMap).map(key => {
+      const transition = transitionMap[key];
+      const subValue = path(this.path)(
+        transition.tree
+          ? transition.tree.stateValue
+          : state.value || state.value
+      )[key];
+
+      return new StateTree(this.getStateNode(key), subValue).absolute;
+    });
+
     const nextStateValue = this.machine.resolve(
       pathsToStateValue(allResolvedPaths)
     );
 
+    const finalCombinedTree = allResolvedTrees.reduce((acc, t) => {
+      return acc.combine(t);
+    });
+
     return {
       value: nextStateValue,
-      tree: nextStateValue
-        ? this.machine.getStateTree(nextStateValue)
-        : undefined,
+      tree: finalCombinedTree,
       source: state,
       entryExitStates: Object.keys(transitionMap).reduce(
         (allEntryExitStates, key) => {
@@ -616,17 +623,20 @@ class StateNode<
     }
 
     // targetless transition
-    if (selectedTransition! && nextStateStrings.length === 0) {
+    if (selectedTransition && nextStateStrings.length === 0) {
+      const tree = state.value
+        ? this.machine.getStateTree(state.value)
+        : undefined;
       return {
-        value: state.value,
-        tree: state.value ? this.machine.getStateTree(state.value) : undefined,
+        value: tree ? tree.resolved.stateValue : undefined,
+        tree,
         source: state,
         entryExitStates: undefined,
         actions
       };
     }
 
-    if (!selectedTransition! && nextStateStrings.length === 0) {
+    if (!selectedTransition && nextStateStrings.length === 0) {
       return {
         value: undefined,
         tree: undefined,
@@ -753,7 +763,7 @@ class StateNode<
   ): Array<Action<TContext>> {
     const doneEvents: Set<string> = new Set();
     const entryExitStates = transition.tree
-      ? transition.tree.getEntryExitStates(
+      ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
           transition.entryExitStates
             ? transition.entryExitStates.entry
@@ -908,14 +918,6 @@ class StateNode<
       resolvedContext
     );
 
-    // if (stateTransition.tree) {
-    //   const ees = stateTransition.tree.getEntryExitStates(
-    //     this.getStateNodeValueTree(currentState.value)
-    //   );
-    //   console.log('entry', [...ees.entry].map(s => s.id));
-    //   console.log('exit', [...ees.exit].map(s => s.id));
-    // }
-
     return this.resolveTransition(stateTransition, currentState, eventObject);
   }
   private resolveTransition(
@@ -943,16 +945,16 @@ class StateNode<
     }
 
     const actions = this.getActions(stateTransition, currentState, isInitial);
-    const ees = stateTransition.tree
-      ? stateTransition.tree.getEntryExitStates(
+    const entryExitStates = stateTransition.tree
+      ? stateTransition.tree.resolved.getEntryExitStates(
           this.getStateTree(currentState.value)
         )
       : { entry: [], exit: [] };
     const activities = stateTransition.tree
       ? this.getActivities(
           {
-            entry: new Set(ees.entry),
-            exit: new Set(ees.exit)
+            entry: new Set(entryExitStates.entry),
+            exit: new Set(entryExitStates.exit)
           },
           currentState.activities
         )
