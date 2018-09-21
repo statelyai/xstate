@@ -442,6 +442,14 @@ class StateNode<
       Object.keys(transitionMap).map(key => transitionMap[key].paths)
     );
 
+    const allTrees = Object.keys(transitionMap)
+      .map(key => transitionMap[key].tree)
+      .filter(t => t !== undefined) as StateTree[];
+
+    const combinedTree = allTrees.reduce((acc, t) => {
+      return acc.combine(t);
+    });
+
     // External transition that escapes orthogonal region
     if (
       allPaths.length === 1 &&
@@ -451,7 +459,7 @@ class StateNode<
 
       return {
         value,
-        tree: value ? this.machine.getStateTree(value) : undefined,
+        tree: combinedTree,
         source: state,
         entryExitStates: Object.keys(transitionMap)
           .map(key => transitionMap[key].entryExitStates)
@@ -660,14 +668,24 @@ class StateNode<
       )
     );
 
+    const trees = nextStateNodes.map(stateNode => stateNode.tree);
+    const combinedTree = trees.reduce((acc, t) => {
+      return acc.combine(t);
+    });
+
     return {
       value,
-      tree: value ? this.machine.getStateTree(value) : undefined,
+      tree: combinedTree,
       source: state,
       entryExitStates,
       actions,
       paths: nextStatePaths
     };
+  }
+  private get tree(): StateTree {
+    const stateValue = toStateValue(this.path, this.delimiter);
+
+    return new StateTree(this.machine, stateValue);
   }
   private nodesFromChild(
     childStateNode: StateNode<TContext>

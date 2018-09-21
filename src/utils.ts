@@ -44,11 +44,15 @@ export function toStatePath(
 }
 
 export function toStateValue(
-  stateValue: State<any> | StateValue,
+  stateValue: State<any> | StateValue | string[],
   delimiter: string
 ): StateValue {
   if (stateValue instanceof State) {
     return stateValue.value;
+  }
+
+  if (Array.isArray(stateValue)) {
+    return pathToStateValue(stateValue);
   }
 
   if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
