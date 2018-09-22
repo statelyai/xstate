@@ -176,6 +176,12 @@ class StateNode<
       this.resolveActivity(activity)
     );
   }
+  public withConfig(
+    options: MachineOptions<TContext, TEvents>,
+    context?: TContext
+  ): StateNode<TContext, TStateSchema, TEvents> {
+    return new StateNode(this.definition, options, context);
+  }
   public get definition(): StateNodeDefinition<
     TContext,
     TStateSchema,

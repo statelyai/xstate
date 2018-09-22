@@ -21,7 +21,7 @@ const greetingMachine = Machine({
     evening: {}
   },
   on: {
-    CHANGE: [{ actions: [assign({ hour: 20 })] }],
+    CHANGE: { actions: assign({ hour: 20 }) },
     RECHECK: '#greeting'
   }
 });
