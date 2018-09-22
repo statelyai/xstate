@@ -312,7 +312,7 @@ class StateNode<
     const next = stateNode.next(state, eventObject, context);
 
     if (!next.tree) {
-      const { entryExitStates, actions, tree } = this.next(
+      const { reentryStates, actions, tree } = this.next(
         state,
         eventObject,
         context
@@ -321,15 +321,7 @@ class StateNode<
       return {
         tree,
         source: state,
-        entryExitStates: {
-          entry: entryExitStates ? entryExitStates.entry : new Set(),
-          exit: new Set<StateNode<TContext>>([
-            stateNode,
-            ...(entryExitStates
-              ? Array.from(entryExitStates.exit)
-              : ([] as Array<StateNode<TContext>>))
-          ])
-        },
+        reentryStates,
         actions
       };
     }
@@ -353,7 +345,7 @@ class StateNode<
     );
 
     if (!next.tree) {
-      const { entryExitStates, actions, tree } = this.next(
+      const { reentryStates, actions, tree } = this.next(
         state,
         eventObject,
         context
@@ -362,18 +354,7 @@ class StateNode<
       return {
         tree,
         source: state,
-        entryExitStates: {
-          entry: entryExitStates ? entryExitStates.entry : new Set(),
-          exit: new Set<StateNode<TContext>>([
-            ...(next.entryExitStates
-              ? Array.from(next.entryExitStates.exit)
-              : []),
-            stateNode,
-            ...(entryExitStates
-              ? Array.from(entryExitStates.exit)
-              : ([] as Array<StateNode<TContext>>))
-          ])
-        },
+        reentryStates,
         actions
       };
     }
@@ -417,7 +398,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const { entryExitStates, actions, tree } = this.next(
+      const { reentryStates, actions, tree } = this.next(
         state,
         eventObject,
         context
@@ -426,13 +407,7 @@ class StateNode<
       return {
         tree,
         source: state,
-        entryExitStates: {
-          entry: entryExitStates ? entryExitStates.entry : new Set(),
-          exit: new Set([
-            ...Object.keys(this.states).map(key => this.states[key]),
-            ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
-          ])
-        },
+        reentryStates,
         actions
       };
     }
@@ -458,25 +433,14 @@ class StateNode<
       return {
         tree: combinedTree,
         source: state,
-        entryExitStates: Object.keys(transitionMap)
-          .map(key => transitionMap[key].entryExitStates)
-          .reduce(
-            (allEntryExitStates, entryExitStates) => {
-              const { entry, exit } = entryExitStates!;
-
-              return {
-                entry: new Set([
-                  ...Array.from(allEntryExitStates!.entry),
-                  ...Array.from(entry)
-                ]),
-                exit: new Set([
-                  ...Array.from(allEntryExitStates!.exit),
-                  ...Array.from(exit)
-                ])
-              };
-            },
-            { entry: new Set(), exit: new Set() } as EntryExitStates<TContext>
-          ),
+        reentryStates: Object.keys(transitionMap)
+          .map(key => transitionMap[key].reentryStates)
+          .reduce((allReentryStates, reentryStates) => {
+            return new Set([
+              ...Array.from(allReentryStates || []),
+              ...Array.from(reentryStates || [])
+            ]);
+          }, new Set<StateNode<TContext>>()),
         actions: flatten(
           Object.keys(transitionMap).map(key => {
             return transitionMap[key].actions;
@@ -503,30 +467,22 @@ class StateNode<
     return {
       tree: finalCombinedTree,
       source: state,
-      entryExitStates: Object.keys(transitionMap).reduce(
-        (allEntryExitStates, key) => {
-          const { tree, entryExitStates } = transitionMap[key];
+      reentryStates: Object.keys(transitionMap).reduce(
+        (allReentryStates, key) => {
+          const { tree, reentryStates } = transitionMap[key];
 
           // If the event was not handled (no subStateValue),
           // machine should still be in state without reentry/exit.
-          if (!tree || !entryExitStates) {
-            return allEntryExitStates;
+          if (!tree || !reentryStates) {
+            return allReentryStates;
           }
 
-          const { entry, exit } = entryExitStates;
-
-          return {
-            entry: new Set([
-              ...Array.from(allEntryExitStates.entry),
-              ...Array.from(entry)
-            ]),
-            exit: new Set([
-              ...Array.from(allEntryExitStates.exit),
-              ...Array.from(exit)
-            ])
-          };
+          return new Set([
+            ...Array.from(allReentryStates),
+            ...Array.from(reentryStates)
+          ]);
         },
-        { entry: new Set(), exit: new Set() } as EntryExitStates<TContext>
+        new Set<StateNode<TContext>>()
       ),
       actions: flatten(
         Object.keys(transitionMap).map(key => {
@@ -569,7 +525,7 @@ class StateNode<
       return {
         tree: undefined,
         source: state,
-        entryExitStates: undefined,
+        reentryStates: undefined,
         actions
       };
     }
@@ -612,7 +568,7 @@ class StateNode<
       return {
         tree,
         source: state,
-        entryExitStates: undefined,
+        reentryStates: undefined,
         actions
       };
     }
@@ -621,7 +577,7 @@ class StateNode<
       return {
         tree: undefined,
         source: state,
-        entryExitStates: undefined,
+        reentryStates: undefined,
         actions
       };
     }
@@ -641,11 +597,6 @@ class StateNode<
       ? []
       : flatten(nextStateNodes.map(n => this.nodesFromChild(n)));
 
-    const entryExitStates = {
-      entry: new Set(reentryNodes),
-      exit: new Set(reentryNodes)
-    };
-
     const trees = nextStateNodes.map(stateNode => stateNode.tree);
     const combinedTree = trees.reduce((acc, t) => {
       return acc.combine(t);
@@ -654,7 +605,7 @@ class StateNode<
     return {
       tree: combinedTree,
       source: state,
-      entryExitStates,
+      reentryStates: new Set(reentryNodes),
       actions
     };
   }
@@ -743,9 +694,7 @@ class StateNode<
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
-          transition.entryExitStates
-            ? transition.entryExitStates.entry
-            : undefined
+          transition.reentryStates ? transition.reentryStates : undefined
         )
       : { entry: [], exit: [] };
 
@@ -754,49 +703,43 @@ class StateNode<
     }
 
     const entryExitActions = {
-      entry: entryExitStates
-        ? flatten(
-            Array.from(new Set(entryExitStates.entry)).map(stateNode => {
-              if (stateNode.type === 'final') {
-                const stateTree = transition.tree;
-                doneEvents.add(done(stateNode.id));
-                const grandparent = stateNode.parent
-                  ? stateNode.parent.parent
-                  : undefined;
+      entry: flatten(
+        Array.from(new Set(entryExitStates.entry)).map(stateNode => {
+          if (stateNode.type === 'final') {
+            const stateTree = transition.tree;
+            doneEvents.add(done(stateNode.id));
+            const grandparent = stateNode.parent
+              ? stateNode.parent.parent
+              : undefined;
 
-                if (grandparent) {
-                  const grandparentPath = grandparent.path;
-                  const grandparentTree = nestedPath(grandparentPath, 'value')(
-                    stateTree!
-                  ) as StateTree;
+            if (grandparent) {
+              const grandparentPath = grandparent.path;
+              const grandparentTree = nestedPath(grandparentPath, 'value')(
+                stateTree!
+              ) as StateTree;
 
-                  if (grandparentTree.done) {
-                    doneEvents.add(done(grandparentTree.stateNode.id));
-                  }
-                }
+              if (grandparentTree.done) {
+                doneEvents.add(done(grandparentTree.stateNode.id));
               }
+            }
+          }
 
-              return [
-                ...stateNode.onEntry,
-                ...stateNode.activities.map(activity => start(activity)),
-                ...stateNode.delays.map(({ delay, id }) =>
-                  send(after(delay, id), { delay })
-                )
-              ];
-            })
-          ).concat(Array.from(doneEvents).map(raise))
-        : [],
-      exit: entryExitStates
-        ? flatten(
-            Array.from(new Set(entryExitStates.exit)).map(stateNode => [
-              ...stateNode.onExit,
-              ...stateNode.activities.map(activity => stop(activity)),
-              ...stateNode.delays.map(({ delay, id }) =>
-                cancel(after(delay, id))
-              )
-            ])
-          )
-        : []
+          return [
+            ...stateNode.onEntry,
+            ...stateNode.activities.map(activity => start(activity)),
+            ...stateNode.delays.map(({ delay, id }) =>
+              send(after(delay, id), { delay })
+            )
+          ];
+        })
+      ).concat(Array.from(doneEvents).map(raise)),
+      exit: flatten(
+        Array.from(new Set(entryExitStates.exit)).map(stateNode => [
+          ...stateNode.onExit,
+          ...stateNode.activities.map(activity => stop(activity)),
+          ...stateNode.delays.map(({ delay, id }) => cancel(after(delay, id)))
+        ])
+      )
     };
 
     const actions = entryExitActions.exit
@@ -1299,10 +1242,7 @@ class StateNode<
       {
         tree: this.getStateTree(initialStateValue),
         source: undefined,
-        entryExitStates: {
-          entry: new Set(this.getStateNodes(initialStateValue)),
-          exit: new Set()
-        },
+        reentryStates: new Set(this.getStateNodes(initialStateValue)),
         actions: []
       },
       state,

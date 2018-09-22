@@ -341,7 +341,7 @@ export interface StateTransition<TContext> {
    * The source state that preceded the transition.
    */
   source: State<TContext> | undefined;
-  entryExitStates: EntryExitStates<TContext> | undefined;
+  reentryStates: Set<StateNode<TContext>> | undefined;
   actions: Array<Action<TContext>>;
 }
 
