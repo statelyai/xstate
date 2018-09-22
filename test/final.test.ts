@@ -30,7 +30,7 @@ const finalMachine = Machine({
             }
           },
           onDone: {
-            actions: 'syncFirstCrosswalk'
+            actions: 'stopCrosswalk1'
           }
         },
         crosswalk2: {
@@ -43,23 +43,20 @@ const finalMachine = Machine({
               on: { PED_STOP: 'stop' }
             },
             stop: {
+              on: { PED_STOP: 'stop2' }
+            },
+            stop2: {
               type: 'final'
             }
           },
           on: {
             [done('final.red.crosswalk2')]: {
-              actions: 'syncWithOtherCrosswalk'
+              actions: 'stopCrosswalk2'
             }
           }
         }
       },
       on: {
-        [done('final.red.crosswalk1.stop')]: {
-          actions: 'stopCrosswalk1'
-        },
-        [done('final.red.crosswalk2.stop')]: {
-          actions: 'stopCrosswalk2'
-        },
         [done('final.red')]: {
           actions: 'prepareGreenLight'
         }
@@ -79,11 +76,14 @@ describe('final states', () => {
     const stopState = finalMachine.transition(waitState, 'PED_STOP');
 
     assert.sameDeepMembers(stopState.actions, [
-      { type: 'stopCrosswalk1', exec: undefined },
+      { type: 'stopCrosswalk1', exec: undefined }
+    ]);
+
+    const stopState2 = finalMachine.transition(stopState, 'PED_STOP');
+
+    assert.sameDeepMembers(stopState2.actions, [
       { type: 'stopCrosswalk2', exec: undefined },
-      { type: 'prepareGreenLight', exec: undefined },
-      { type: 'syncFirstCrosswalk', exec: undefined },
-      { type: 'syncWithOtherCrosswalk', exec: undefined }
+      { type: 'prepareGreenLight', exec: undefined }
     ]);
 
     const greenState = finalMachine.transition(stopState, 'TIMER');

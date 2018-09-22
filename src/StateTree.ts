@@ -72,6 +72,18 @@ export class StateTree {
       })
     );
 
+    if (this.stateNode.type === 'parallel') {
+      const allChildrenDone = Object.keys(this.nodes).every(
+        key => this.nodes[key].done
+      );
+
+      if (childDoneEvents && allChildrenDone) {
+        return [done(this.stateNode.id)].concat(childDoneEvents);
+      } else {
+        return childDoneEvents;
+      }
+    }
+
     if (!this.done || !childDoneEvents.length) {
       return childDoneEvents;
     }
