@@ -731,8 +731,7 @@ class StateNode<
   }
   private getActions(
     transition: StateTransition<TContext>,
-    prevState: State<TContext>,
-    isInitial: boolean = false
+    prevState: State<TContext>
   ): Array<Action<TContext>> {
     const doneEvents: Set<string> = new Set();
     const entryExitStates = transition.tree
@@ -744,7 +743,7 @@ class StateNode<
         )
       : { entry: [], exit: [] };
 
-    if (isInitial) {
+    if (!transition.source) {
       entryExitStates.exit = [];
     }
 
@@ -905,8 +904,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
     currentState: State<TContext, TEvents>,
-    event?: TEvents,
-    isInitial: boolean = false
+    event?: TEvents
   ): State<TContext, TEvents> {
     const resolvedStateValue = stateTransition.tree
       ? stateTransition.tree.stateValue
@@ -929,7 +927,7 @@ class StateNode<
       }
     }
 
-    const actions = this.getActions(stateTransition, currentState, isInitial);
+    const actions = this.getActions(stateTransition, currentState);
     const entryExitStates = stateTransition.tree
       ? stateTransition.tree.getEntryExitStates(
           this.getStateTree(currentState.value)
@@ -1313,8 +1311,7 @@ class StateNode<
         actions: []
       },
       state,
-      undefined,
-      true // isInitial
+      undefined
     );
   }
   public get target(): StateValue | undefined {
