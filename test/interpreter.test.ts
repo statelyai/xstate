@@ -165,26 +165,23 @@ describe('interpreter', () => {
   it('should be able to log', () => {
     const logs: any[] = [];
 
-    const logMachine = Machine(
-      {
-        id: 'log',
-        initial: 'x',
-        states: {
-          x: {
-            on: {
-              LOG: {
-                actions: [
-                  assign({ count: ctx => ctx.count + 1 }),
-                  log(ctx => ctx)
-                ]
-              }
+    const logMachine = Machine({
+      id: 'log',
+      initial: 'x',
+      context: { count: 0 },
+      states: {
+        x: {
+          on: {
+            LOG: {
+              actions: [
+                assign({ count: ctx => ctx.count + 1 }),
+                log(ctx => ctx)
+              ]
             }
           }
         }
-      },
-      {},
-      { count: 0 }
-    );
+      }
+    });
 
     const interpreter = interpret(logMachine, noop, {
       logger: msg => logs.push(msg)

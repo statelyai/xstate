@@ -15,7 +15,7 @@ export function Machine<
 >(
   config: MachineConfig<TContext, TStateSchema, TEvents>,
   options?: MachineOptions<TContext, TEvents>,
-  initialContext?: TContext
+  initialContext: TContext | undefined = config.context
 ): Machine<TContext, TStateSchema, TEvents> {
   return new StateNode<TContext, TStateSchema, TEvents>(
     config,

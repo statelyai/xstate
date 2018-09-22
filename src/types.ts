@@ -186,6 +186,10 @@ export interface StateNodeConfig<
   parallel?: boolean | undefined;
   type?: StateTypes;
   /**
+   * The initial context (extended state).
+   */
+  context?: TContext;
+  /**
    * Indicates whether the state node is a history state node, and what
    * type of history:
    * shallow, deep, true (shallow), false (none), undefined (none)
@@ -265,11 +269,16 @@ export interface MachineOptions<TContext, TEvents extends EventObject> {
   actions?: ActionFunctionMap<TContext>;
   activities?: Record<string, ActivityConfig<TContext>>;
 }
-export type MachineConfig<
+export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvents extends EventObject
-> = CompoundStateNodeConfig<TContext, TStateSchema, TEvents>;
+> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvents> {
+  /**
+   * The initial context (extended state)
+   */
+  context?: TContext;
+}
 
 export interface StandardMachineConfig<
   TContext,
