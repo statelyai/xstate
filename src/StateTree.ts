@@ -1,15 +1,25 @@
 import { StateNode } from './StateNode';
-import { StateValue, EntryExitStateArrays } from './types';
+import { StateValue, EntryExitStateArrays, EventType } from './types';
 import { mapValues, flatten, toStatePaths } from './utils';
 import { matchesState } from './matchesState';
+
+export interface StateTreeOptions {
+  resolved?: boolean;
+}
+
+const defaultStateTreeOptions = {
+  resolved: false
+};
 
 export class StateTree {
   public parent?: StateTree | undefined;
   public value: Record<string, StateTree>;
+  public isResolved: boolean;
 
   constructor(
     public stateNode: StateNode,
-    public _stateValue: StateValue | undefined
+    public _stateValue: StateValue | undefined,
+    options: StateTreeOptions = defaultStateTreeOptions
   ) {
     this.value = _stateValue
       ? typeof _stateValue === 'string'
@@ -23,6 +33,9 @@ export class StateTree {
             return new StateTree(stateNode.getStateNode(key), subValue);
           })
       : {};
+
+    const resolvedOptions = { ...defaultStateTreeOptions, ...options };
+    this.isResolved = resolvedOptions.resolved;
   }
 
   public get done(): boolean {
@@ -41,7 +54,8 @@ export class StateTree {
   public get resolved(): StateTree {
     return new StateTree(
       this.stateNode,
-      this.stateNode.resolve(this.stateValue)
+      this.stateNode.resolve(this.stateValue),
+      { resolved: true }
     );
   }
 
@@ -64,6 +78,20 @@ export class StateTree {
     });
 
     return new StateTree(this.stateNode.machine, absoluteStateValue);
+  }
+
+  public get nextEvents(): EventType[] {
+    const ownEvents = this.stateNode.ownEvents;
+
+    const childEvents = flatten(
+      Object.keys(this.value).map(key => {
+        const subTree = this.value[key];
+
+        return subTree.nextEvents;
+      })
+    );
+
+    return [...new Set(childEvents.concat(ownEvents))];
   }
 
   public clone(): StateTree {

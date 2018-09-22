@@ -504,6 +504,7 @@ export interface StateInterface<
   TEvents extends EventObject = EventObject
 > {
   value: StateValue;
+  tree?: StateTree;
   history?: State<TContext>;
   actions: Array<Action<TContext>>;
   activities: ActivityMap;

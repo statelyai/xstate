@@ -35,7 +35,8 @@ const lightMachine = Machine<undefined, LightStateSchema>({
     green: {
       on: {
         TIMER: 'yellow',
-        POWER_OUTAGE: 'red'
+        POWER_OUTAGE: 'red',
+        FORBIDDEN_EVENT: undefined
       }
     },
     yellow: {

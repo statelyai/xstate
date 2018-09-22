@@ -550,7 +550,12 @@ class StateNode<
 
       if (
         (!cond ||
-          this.evaluateCond(cond, resolvedContext, eventObject, state.value)) &&
+          this.evaluateGuard(
+            cond,
+            resolvedContext,
+            eventObject,
+            state.value
+          )) &&
         isInState
       ) {
         nextStateStrings = toArray(candidate.target);
@@ -651,7 +656,7 @@ class StateNode<
 
     return true;
   }
-  private evaluateCond(
+  private evaluateGuard(
     condition: Condition<TContext, TEvents>,
     context: TContext,
     eventObject: TEvents,
@@ -942,7 +947,8 @@ class StateNode<
           toActionObjects(nonEventActions, this.options.actions),
           activities,
           data,
-          raisedEvents as TEvents[]
+          raisedEvents as TEvents[],
+          stateTransition.tree
         )
       : undefined;
 
@@ -1492,7 +1498,7 @@ class StateNode<
       return this.__cache.events;
     }
     const { states } = this;
-    const events = new Set(Object.keys(this.on));
+    const events = new Set(this.ownEvents);
 
     if (states) {
       Object.keys(states).forEach(stateId => {
@@ -1506,6 +1512,22 @@ class StateNode<
     }
 
     return (this.__cache.events = Array.from(events));
+  }
+  public get ownEvents(): Array<TEvents['type']> {
+    const events = new Set(
+      Object.keys(this.on).filter(key => {
+        const transitions = this.on[key];
+        return transitions.some(transition => {
+          return !(
+            !transition.target &&
+            !transition.actions.length &&
+            transition.internal
+          );
+        });
+      })
+    );
+
+    return Array.from(events);
   }
   private formatTransition(
     target: string | string[] | undefined,
@@ -1564,7 +1586,7 @@ class StateNode<
       TEvents
     > = mapValues(onConfig, (value, event) => {
       if (value === undefined) {
-        return [{ target: undefined, event, actions: [] }];
+        return [{ target: undefined, event, actions: [], internal: true }];
       }
 
       if (Array.isArray(value)) {

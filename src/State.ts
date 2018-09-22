@@ -4,14 +4,17 @@ import {
   EventObject,
   StateInterface,
   HistoryValue,
-  ActionObject
+  ActionObject,
+  EventType
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState } from '.';
 import { stateValuesEqual } from './utils';
+import { StateTree } from './StateTree';
 
 export class State<TContext, TEvents extends EventObject = EventObject>
   implements StateInterface<TContext> {
+  public tree?: StateTree;
   public static from<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC, TE> | StateValue,
     context: TC
@@ -46,7 +49,7 @@ export class State<TContext, TEvents extends EventObject = EventObject>
   }
   public static inert<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC> | StateValue,
-    ext: TC
+    context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
@@ -54,17 +57,17 @@ export class State<TContext, TEvents extends EventObject = EventObject>
       }
       return new State(
         stateValue.value,
-        ext,
+        context,
         stateValue.historyValue,
         stateValue.history,
-        [],
+        undefined,
         stateValue.activities,
         undefined,
-        []
+        undefined
       );
     }
 
-    return State.from<TC, TE>(stateValue, ext);
+    return State.from<TC, TE>(stateValue, context);
   }
 
   constructor(
@@ -78,17 +81,36 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     /**
      * Internal event queue
      */
-    public events: TEvents[] = []
-  ) {}
+    public events: TEvents[] = [],
+    tree?: StateTree
+  ) {
+    Object.defineProperty(this, 'tree', {
+      value: tree,
+      enumerable: false
+    });
+  }
 
-  public toStrings(value: StateValue = this.value): string[] {
+  public get nextEvents(): EventType[] {
+    if (!this.tree) {
+      return [];
+    }
+
+    return this.tree.nextEvents;
+  }
+
+  public toStrings(
+    value: StateValue = this.value,
+    delimiter: string = '.'
+  ): string[] {
     if (typeof value === 'string') {
       return [value];
     }
     const keys = Object.keys(value);
 
     return keys.concat(
-      ...keys.map(key => this.toStrings(value[key]).map(s => key + '.' + s))
+      ...keys.map(key =>
+        this.toStrings(value[key]).map(s => key + delimiter + s)
+      )
     );
   }
 

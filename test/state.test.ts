@@ -20,10 +20,62 @@ const machine = Machine({
           internal: true,
           actions: ['doSomething']
         },
-        TO_TWO: 'two'
+        TO_TWO: 'two',
+        TO_THREE: 'three',
+        FORBIDDEN_EVENT: undefined
       }
     },
-    two: {}
+    two: {
+      initial: 'deep',
+      states: {
+        deep: {
+          initial: 'foo',
+          states: {
+            foo: {
+              on: {
+                FOO_EVENT: 'bar',
+                FORBIDDEN_EVENT: undefined
+              }
+            },
+            bar: {
+              on: {
+                BAR_EVENT: 'foo'
+              }
+            }
+          }
+        }
+      },
+      on: {
+        DEEP_EVENT: '.'
+      }
+    },
+    three: {
+      type: 'parallel',
+      states: {
+        first: {
+          initial: 'p31',
+          states: {
+            p31: {
+              on: { P31: '.' }
+            }
+          }
+        },
+        second: {
+          initial: 'p32',
+          states: {
+            p32: {
+              on: { P32: '.' }
+            }
+          }
+        }
+      },
+      on: {
+        THREE_EVENT: '.'
+      }
+    }
+  },
+  on: {
+    MACHINE_EVENT: '.two'
   }
 });
 
@@ -54,5 +106,28 @@ describe('State', () => {
   it('normal state transitions should be changed', () => {
     const changedState = machine.transition(machine.initialState, 'TO_TWO');
     assert.isTrue(changedState.changed, 'changed - different state');
+  });
+
+  describe('.nextEvents', () => {
+    it('returns the next possible events for the current state', () => {
+      assert.deepEqual(machine.initialState.nextEvents, [
+        'EXTERNAL',
+        'INERT',
+        'INTERNAL',
+        'TO_TWO',
+        'TO_THREE',
+        'MACHINE_EVENT'
+      ]);
+
+      assert.deepEqual(
+        machine.transition(machine.initialState, 'TO_TWO').nextEvents,
+        ['FOO_EVENT', 'DEEP_EVENT', 'MACHINE_EVENT']
+      );
+
+      assert.deepEqual(
+        machine.transition(machine.initialState, 'TO_THREE').nextEvents,
+        ['P31', 'P32', 'THREE_EVENT', 'MACHINE_EVENT']
+      );
+    });
   });
 });
