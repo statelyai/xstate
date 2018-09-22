@@ -91,7 +91,7 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  let nextState: State<any> = machine.getState(
+  let nextState: State<any> = machine.getInitialState(
     pathsToStateValue(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )

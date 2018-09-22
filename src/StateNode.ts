@@ -960,31 +960,11 @@ class StateNode<
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvents>>;
 
-    const updatedContext = currentState.context
-      ? assignActions.reduce((acc, assignAction) => {
-          const { assignment } = assignAction;
-
-          let partialUpdate: Partial<TContext> = {};
-
-          if (typeof assignment === 'function') {
-            partialUpdate = assignment(
-              acc,
-              event || ({ type: ActionTypes.Init } as TEvents)
-            );
-          } else {
-            Object.keys(assignment).forEach(key => {
-              const propAssignment = assignment[key];
-
-              partialUpdate[key] =
-                typeof propAssignment === 'function'
-                  ? propAssignment(acc, event)
-                  : propAssignment;
-            });
-          }
-
-          return Object.assign({}, acc, partialUpdate);
-        }, currentState.context)
-      : currentState.context;
+    const updatedContext = StateNode.updateContext(
+      currentState.context,
+      event,
+      assignActions
+    );
 
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)
@@ -1042,6 +1022,39 @@ class StateNode<
     }
 
     return maybeNextState;
+  }
+  public static updateContext<TContext, TEvents extends EventObject>(
+    context: TContext,
+    event: TEvents | undefined,
+    assignActions: Array<AssignAction<TContext, TEvents>>
+  ): TContext {
+    const updatedContext = context
+      ? assignActions.reduce((acc, assignAction) => {
+          const { assignment } = assignAction;
+
+          let partialUpdate: Partial<TContext> = {};
+
+          if (typeof assignment === 'function') {
+            partialUpdate = assignment(
+              acc,
+              event || ({ type: ActionTypes.Init } as TEvents)
+            );
+          } else {
+            Object.keys(assignment).forEach(key => {
+              const propAssignment = assignment[key];
+
+              partialUpdate[key] =
+                typeof propAssignment === 'function'
+                  ? propAssignment(acc, event)
+                  : propAssignment;
+            });
+          }
+
+          return Object.assign({}, acc, partialUpdate);
+        }, context)
+      : context;
+
+    return updatedContext;
   }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<
@@ -1224,7 +1237,7 @@ class StateNode<
 
     return this.__cache.initialState;
   }
-  public getState(
+  public getInitialState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
   ): State<TContext, TEvents> {
@@ -1243,39 +1256,15 @@ class StateNode<
       }
     });
 
-    // TODO: deduplicate - DRY (from this.transition())
-    // const raisedEvents = actions.filter(
-    //   action =>
-    //     typeof action === 'object' &&
-    //     (action.type === actionTypes.raise || action.type === actionTypes.null)
-    // ) as Array<ActionObject<TContext>>;
-
     const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvents>>;
 
-    const updatedContext = context
-      ? assignActions.reduce((acc, assignAction) => {
-          const { assignment } = assignAction;
-
-          let partialUpdate: Partial<TContext> = {};
-
-          if (typeof assignment === 'function') {
-            partialUpdate = assignment(acc, { type: 'init' } as TEvents); // TODO: fix init
-          } else {
-            Object.keys(assignment).forEach(key => {
-              const propAssignment = assignment[key];
-
-              partialUpdate[key] =
-                typeof propAssignment === 'function'
-                  ? propAssignment(acc, { type: 'init' }) // TODO: fix init
-                  : propAssignment;
-            });
-          }
-
-          return Object.assign({}, acc, partialUpdate);
-        }, context)
-      : context;
+    const updatedContext = StateNode.updateContext(
+      context,
+      undefined,
+      assignActions
+    );
 
     const initialNextState = new State<TContext, TEvents>(
       stateValue,
@@ -1299,7 +1288,7 @@ class StateNode<
       );
     }
 
-    const state = this.getState(initialStateValue);
+    const state = this.getInitialState(initialStateValue);
     return this.resolveTransition(
       {
         tree: this.getStateTree(initialStateValue),
