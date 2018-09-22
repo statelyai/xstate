@@ -52,10 +52,16 @@ describe('interpreter', () => {
       initialState => (result = initialState)
     );
 
-    interpreter.init();
+    interpreter.start();
 
     assert.instanceOf(result, State);
     assert.deepEqual(result!.value, idMachine.initialState.value);
+  });
+
+  it('.initialState returns the initial state', () => {
+    const interpreter = interpret(idMachine);
+
+    assert.deepEqual(interpreter.initialState, idMachine.initialState);
   });
 
   describe('send with delay', () => {
@@ -78,7 +84,7 @@ describe('interpreter', () => {
         clock: new SimulatedClock()
       });
       const clock = interpreter.clock as SimulatedClock;
-      interpreter.init();
+      interpreter.start();
 
       clock.increment(5);
       assert.equal(
@@ -125,7 +131,7 @@ describe('interpreter', () => {
       clock: new SimulatedClock()
     });
     const clock = interpreter.clock as SimulatedClock;
-    interpreter.init();
+    interpreter.start();
 
     clock.increment(5);
     interpreter.send('KEEP_GOING');
@@ -144,7 +150,7 @@ describe('interpreter', () => {
 
     assert.throws(() => interpreter.send('SOME_EVENT'));
 
-    interpreter.init();
+    interpreter.start();
 
     assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
   });
@@ -153,7 +159,7 @@ describe('interpreter', () => {
     let state = lightMachine.initialState;
     const interpreter = interpret(lightMachine).onTransition(s => (state = s));
 
-    interpreter.init();
+    interpreter.start();
     interpreter.send('TIMER'); // yellow
     assert.deepEqual(state.value, 'yellow');
 

@@ -128,6 +128,12 @@ export class Interpreter<
     this.logger = resolvedOptions.logger;
   }
   public static interpret = interpret;
+  /**
+   * The initial state of the statechart.
+   */
+  public get initialState(): State<TContext, TEvents> {
+    return this.machine.initialState;
+  }
   private update(
     state: State<TContext, TEvents>,
     event?: Event<TEvents>
