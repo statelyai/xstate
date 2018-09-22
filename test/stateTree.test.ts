@@ -84,13 +84,13 @@ describe('StateTree', () => {
     it('represents the full value (compound)', () => {
       const st = new StateTree(testMachine, 'a').resolved;
 
-      assert.deepEqual(st.stateValue, { a: 'one' });
+      assert.deepEqual(st.value, { a: 'one' });
     });
 
     it('represents the full value (parallel)', () => {
       const st = new StateTree(testMachine, 'b').resolved;
 
-      assert.deepEqual(st.stateValue, {
+      assert.deepEqual(st.value, {
         b: {
           one: 'foo',
           two: { foo: 'x' }
@@ -106,15 +106,15 @@ describe('StateTree', () => {
 
       const combined = st_c.combine(st_c_two);
 
-      assert.deepEqual(combined.stateValue, { c: { two: {} } });
-      assert.deepEqual(combined.resolved.stateValue, { c: { two: 'aa' } });
+      assert.deepEqual(combined.value, { c: { two: {} } });
+      assert.deepEqual(combined.resolved.value, { c: { two: 'aa' } });
     });
   });
 
   xit('represents the full value (parallel deep)', () => {
     const st = new StateTree(testMachine, { b: 'two' });
 
-    assert.deepEqual(st.stateValue, {
+    assert.deepEqual(st.value, {
       b: {
         one: 'foo',
         two: { foo: 'x' }

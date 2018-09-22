@@ -56,7 +56,6 @@ import {
   send,
   cancel,
   after,
-  done,
   raise
   // done
 } from './actions';
@@ -425,10 +424,7 @@ class StateNode<
     // External transition that escapes orthogonal region
     if (
       allPaths.length === 1 &&
-      !matchesState(
-        toStateValue(this.path, this.delimiter),
-        combinedTree.stateValue
-      )
+      !matchesState(toStateValue(this.path, this.delimiter), combinedTree.value)
     ) {
       return {
         tree: combinedTree,
@@ -452,9 +448,7 @@ class StateNode<
     const allResolvedTrees = Object.keys(transitionMap).map(key => {
       const transition = transitionMap[key];
       const subValue = path(this.path)(
-        transition.tree
-          ? transition.tree.stateValue
-          : state.value || state.value
+        transition.tree ? transition.tree.value : state.value || state.value
       )[key];
 
       return new StateTree(this.getStateNode(key), subValue).absolute;
@@ -695,13 +689,15 @@ class StateNode<
     transition: StateTransition<TContext>,
     prevState: State<TContext>
   ): Array<Action<TContext>> {
-    const doneEvents: Set<string> = new Set();
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
           transition.reentryStates ? transition.reentryStates : undefined
         )
       : { entry: [], exit: [] };
+    const doneEvents = transition.tree
+      ? transition.tree.getDoneEvents(new Set(entryExitStates.entry))
+      : [];
 
     if (!transition.source) {
       entryExitStates.exit = [];
@@ -710,25 +706,6 @@ class StateNode<
     const entryExitActions = {
       entry: flatten(
         Array.from(new Set(entryExitStates.entry)).map(stateNode => {
-          if (stateNode.type === 'final') {
-            const stateTree = transition.tree;
-            doneEvents.add(done(stateNode.id));
-            const grandparent = stateNode.parent
-              ? stateNode.parent.parent
-              : undefined;
-
-            if (grandparent) {
-              const grandparentPath = grandparent.path;
-              const grandparentTree = nestedPath(grandparentPath, 'value')(
-                stateTree!
-              ) as StateTree;
-
-              if (grandparentTree.done) {
-                doneEvents.add(done(grandparentTree.stateNode.id));
-              }
-            }
-          }
-
           return [
             ...stateNode.onEntry,
             ...stateNode.activities.map(activity => start(activity)),
@@ -737,7 +714,7 @@ class StateNode<
             )
           ];
         })
-      ).concat(Array.from(doneEvents).map(raise)),
+      ).concat(doneEvents.map(raise)),
       exit: flatten(
         Array.from(new Set(entryExitStates.exit)).map(stateNode => [
           ...stateNode.onExit,
@@ -861,7 +838,7 @@ class StateNode<
     event?: TEvents
   ): State<TContext, TEvents> {
     const resolvedStateValue = stateTransition.tree
-      ? stateTransition.tree.stateValue
+      ? stateTransition.tree.value
       : undefined;
     const historyValue = currentState.historyValue
       ? currentState.historyValue

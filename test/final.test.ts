@@ -42,25 +42,24 @@ const finalMachine = Machine({
             stop: {
               type: 'final'
             }
+          },
+          on: {
+            [done('final.red.crosswalk2')]: {
+              actions: 'syncWithOtherCrosswalk'
+            }
           }
         }
       },
       on: {
-        [done('final.red.crosswalk1.stop')]: [
-          {
-            actions: ['stopCrosswalk1']
-          }
-        ],
-        [done('final.red.crosswalk2.stop')]: [
-          {
-            actions: ['stopCrosswalk2']
-          }
-        ],
-        [done('final.red')]: [
-          {
-            actions: ['prepareGreenLight']
-          }
-        ]
+        [done('final.red.crosswalk1.stop')]: {
+          actions: 'stopCrosswalk1'
+        },
+        [done('final.red.crosswalk2.stop')]: {
+          actions: 'stopCrosswalk2'
+        },
+        [done('final.red')]: {
+          actions: 'prepareGreenLight'
+        }
       }
     }
   }
@@ -75,7 +74,8 @@ describe('final states', () => {
     assert.sameDeepMembers(stopState.actions, [
       { type: 'stopCrosswalk1', exec: undefined },
       { type: 'stopCrosswalk2', exec: undefined },
-      { type: 'prepareGreenLight', exec: undefined }
+      { type: 'prepareGreenLight', exec: undefined },
+      { type: 'syncWithOtherCrosswalk', exec: undefined }
     ]);
 
     const greenState = finalMachine.transition(stopState, 'TIMER');
