@@ -29,7 +29,8 @@ export class State<TContext, TEvents extends EventObject = EventObject>
           [],
           stateValue.activities,
           {},
-          []
+          [],
+          stateValue.tree
         );
       }
 
@@ -63,7 +64,8 @@ export class State<TContext, TEvents extends EventObject = EventObject>
         undefined,
         stateValue.activities,
         undefined,
-        undefined
+        undefined,
+        stateValue.tree
       );
     }
 

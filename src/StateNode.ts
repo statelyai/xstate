@@ -528,11 +528,10 @@ class StateNode<
     let selectedTransition: unknown;
 
     for (const candidate of candidates) {
-      const {
-        cond,
-        in: stateIn
-        // actions: transitionActions
-      } = candidate as TransitionConfig<TContext, TEvents>;
+      const { cond, in: stateIn } = candidate as TransitionConfig<
+        TContext,
+        TEvents
+      >;
       const resolvedContext = context || (EMPTY_OBJECT as TContext);
 
       const isInState = stateIn
