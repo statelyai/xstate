@@ -200,6 +200,10 @@ export interface StateNodeConfig<
   on?: TransitionsConfig<TContext, TEvents>;
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
+  onDone?:
+    | string
+    | TransitionConfig<TContext, { type: ActionTypes.DoneState }>
+    | Array<TransitionConfig<TContext, { type: ActionTypes.DoneState }>>;
   after?: DelayedTransitions<TContext, TEvents>;
   activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
@@ -229,15 +233,16 @@ export interface StateNodeDefinition<
   data: any;
   order: number;
 }
-export interface SimpleStateNodeConfig<TContext, TEvents extends EventObject>
+export interface AtomicStateNodeConfig<TContext, TEvents extends EventObject>
   extends StateNodeConfig<TContext, never, TEvents> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
+  onDone?: undefined;
 }
 
 export interface HistoryStateNodeConfig<TContext, TEvents extends EventObject>
-  extends SimpleStateNodeConfig<TContext, TEvents> {
+  extends AtomicStateNodeConfig<TContext, TEvents> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
 }
@@ -256,7 +261,7 @@ export type SimpleOrCompoundStateNodeConfig<
   TStateSchema extends StateSchema,
   TEvents extends EventObject
 > =
-  | SimpleStateNodeConfig<TContext, TEvents>
+  | AtomicStateNodeConfig<TContext, TEvents>
   | CompoundStateNodeConfig<TContext, TStateSchema, TEvents>;
 
 export type ActionFunctionMap<TContext> = Record<

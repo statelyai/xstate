@@ -56,8 +56,8 @@ import {
   send,
   cancel,
   after,
-  raise
-  // done
+  raise,
+  done
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -1556,12 +1556,17 @@ class StateNode<
   }
   private formatTransitions(): TransitionsDefinition<TContext, TEvents> {
     const onConfig = this.config.on || EMPTY_OBJECT;
+    const doneConfig = this.config.onDone
+      ? {
+          [done(this.id)]: this.config.onDone
+        }
+      : undefined;
     const delayedTransitions = this.after;
 
     const formattedTransitions: TransitionsDefinition<
       TContext,
       TEvents
-    > = mapValues(onConfig, (value, event) => {
+    > = mapValues({ ...onConfig, ...doneConfig }, (value, event) => {
       if (value === undefined) {
         return [{ target: undefined, event, actions: [], internal: true }];
       }

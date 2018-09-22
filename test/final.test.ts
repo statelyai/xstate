@@ -28,6 +28,9 @@ const finalMachine = Machine({
             stop: {
               type: 'final'
             }
+          },
+          onDone: {
+            actions: 'syncFirstCrosswalk'
           }
         },
         crosswalk2: {
@@ -62,6 +65,10 @@ const finalMachine = Machine({
         }
       }
     }
+  },
+  onDone: {
+    // this action should never occur because final states are not direct children of machine
+    actions: 'shouldNeverOccur'
   }
 });
 
@@ -75,6 +82,7 @@ describe('final states', () => {
       { type: 'stopCrosswalk1', exec: undefined },
       { type: 'stopCrosswalk2', exec: undefined },
       { type: 'prepareGreenLight', exec: undefined },
+      { type: 'syncFirstCrosswalk', exec: undefined },
       { type: 'syncWithOtherCrosswalk', exec: undefined }
     ]);
 

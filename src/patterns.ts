@@ -1,10 +1,10 @@
-import { SimpleStateNodeConfig } from './types';
+import { AtomicStateNodeConfig } from './types';
 
 export function toggle<TEventType extends string = string>(
   onState: string,
   offState: string,
   eventType: TEventType
-): Record<string, SimpleStateNodeConfig<any, { type: TEventType }>> {
+): Record<string, AtomicStateNodeConfig<any, { type: TEventType }>> {
   return {
     [onState]: {
       on: { [eventType]: offState }
@@ -12,5 +12,5 @@ export function toggle<TEventType extends string = string>(
     [offState]: {
       on: { [eventType]: onState }
     }
-  } as Record<string, SimpleStateNodeConfig<any, { type: TEventType }>>;
+  } as Record<string, AtomicStateNodeConfig<any, { type: TEventType }>>;
 }
