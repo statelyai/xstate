@@ -34,12 +34,9 @@ const lightMachine = Machine({
   }
 });
 
-// tslint:disable-next-line:no-empty
-const noop = () => {};
-
 describe('interpreter', () => {
   it('creates an interpreter', () => {
-    const interpreter = interpret(idMachine, noop);
+    const interpreter = interpret(idMachine);
 
     assert.instanceOf(interpreter, Interpreter);
   });
@@ -47,8 +44,7 @@ describe('interpreter', () => {
   it('immediately notifies the listener with the initial state', () => {
     let result: State<any> | undefined;
 
-    const interpreter = interpret(
-      idMachine,
+    const interpreter = interpret(idMachine).onTransition(
       initialState => (result = initialState)
     );
 
@@ -80,9 +76,9 @@ describe('interpreter', () => {
         }
       };
 
-      const interpreter = interpret(lightMachine, listener, {
+      const interpreter = interpret(lightMachine, {
         clock: new SimulatedClock()
-      });
+      }).onTransition(listener);
       const clock = interpreter.clock as SimulatedClock;
       interpreter.start();
 
@@ -127,9 +123,9 @@ describe('interpreter', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);
 
-    const interpreter = interpret(lightMachine, listener, {
+    const interpreter = interpret(lightMachine, {
       clock: new SimulatedClock()
-    });
+    }).onTransition(listener);
     const clock = interpreter.clock as SimulatedClock;
     interpreter.start();
 
@@ -146,7 +142,7 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const interpreter = interpret(lightMachine, noop);
+    const interpreter = interpret(lightMachine);
 
     assert.throws(() => interpreter.send('SOME_EVENT'));
 
@@ -189,7 +185,7 @@ describe('interpreter', () => {
       }
     });
 
-    const interpreter = interpret(logMachine, noop, {
+    const interpreter = interpret(logMachine, {
       logger: msg => logs.push(msg)
     }).start();
 

@@ -112,13 +112,8 @@ export class Interpreter<
   public initialized = false;
   constructor(
     public machine: Machine<TContext, TStateSchema, TEvents>,
-    listener?: StateListener,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
-    if (listener) {
-      this.onTransition(listener);
-    }
-
     const resolvedOptions: InterpreterOptions = {
       ...Interpreter.defaultOptions,
       ...options
@@ -287,8 +282,9 @@ export function interpret<
   TEvents extends EventObject = EventObject
 >(
   machine: Machine<TContext, TStateSchema, TEvents>,
-  listener?: StateListener,
   options?: Partial<InterpreterOptions>
 ) {
-  return new Interpreter(machine, listener, options);
+  const interpreter = new Interpreter(machine, options);
+
+  return interpreter;
 }
