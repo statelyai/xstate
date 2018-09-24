@@ -119,6 +119,54 @@ describe('interpreter', () => {
     });
   });
 
+  describe('activities', () => {
+    let activityState = 'off';
+
+    const activityMachine = Machine(
+      {
+        id: 'activity',
+        initial: 'on',
+        states: {
+          on: {
+            activities: 'myActivity',
+            on: {
+              TURN_OFF: 'off'
+            }
+          },
+          off: {}
+        }
+      },
+      {
+        activities: {
+          myActivity: () => {
+            activityState = 'on';
+            return () => (activityState = 'off');
+          }
+        }
+      }
+    );
+
+    it('should start activities', () => {
+      const interpreter = interpret(activityMachine);
+
+      interpreter.start();
+
+      assert.equal(activityState, 'on');
+    });
+
+    it('should stop activities', () => {
+      const interpreter = interpret(activityMachine);
+
+      interpreter.start();
+
+      assert.equal(activityState, 'on');
+
+      interpreter.send('TURN_OFF');
+
+      assert.equal(activityState, 'off');
+    });
+  });
+
   it('can cancel a delayed event', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);

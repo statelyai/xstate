@@ -99,7 +99,8 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   const interpreter = interpret(machine, {
     clock: new SimulatedClock()
   }).onTransition(state => (nextState = state));
-  interpreter.init(nextState);
+
+  interpreter.start(nextState);
 
   test.events.forEach(({ event, nextConfiguration, after }, i) => {
     if (after) {

@@ -75,17 +75,19 @@ export type Transition<TContext, TEvents extends EventObject = EventObject> =
   | TransitionConfig<TContext, TEvents>
   | ConditionalTransitionConfig<TContext, TEvents>;
 
-export interface ActivityConfig<TContext> {
-  start?: Action<TContext>;
-  stop?: Action<TContext>;
-}
+export type DisposeActivityFunction = () => void;
+
+export type ActivityConfig<TContext> = (
+  ctx: TContext,
+  activity: ActivityDefinition<TContext>
+) => DisposeActivityFunction | void;
 
 export type Activity<TContext> = string | ActivityDefinition<TContext>;
 
 export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
+  id: string;
   type: string;
-  start?: ActionObject<TContext>;
-  stop?: ActionObject<TContext>;
+  src?: string;
 }
 
 export interface Delay {
@@ -269,10 +271,15 @@ export type ActionFunctionMap<TContext> = Record<
   ActionObject<TContext> | ActionFunction<TContext>
 >;
 
+export type ServiceConfig =
+  | string // URL
+  | StateNodeDefinition<any, any, any>;
+
 export interface MachineOptions<TContext, TEvents extends EventObject> {
   guards?: Record<string, ConditionPredicate<TContext, TEvents>>;
   actions?: ActionFunctionMap<TContext>;
   activities?: Record<string, ActivityConfig<TContext>>;
+  services?: Record<string, ServiceConfig>;
 }
 export interface MachineConfig<
   TContext,
@@ -390,13 +397,18 @@ export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
 
 export interface SendAction<TContext, TEvents extends EventObject>
   extends ActionObject<TContext> {
+  target: string | undefined;
   event: TEvents;
   delay?: number;
   id: string | number;
 }
+
+export type SendTarget = '_parent' | string;
+
 export interface SendActionOptions {
   delay?: number;
   id?: string | number;
+  target?: SendTarget;
 }
 
 export interface CancelAction extends ActionObject<any> {

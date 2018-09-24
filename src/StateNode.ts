@@ -179,7 +179,15 @@ class StateNode<
     options: MachineOptions<TContext, TEvents>,
     context?: TContext
   ): StateNode<TContext, TStateSchema, TEvents> {
-    return new StateNode(this.definition, options, context);
+    return new StateNode(
+      this.definition,
+      {
+        actions: { ...this.options.actions, ...options.actions },
+        activities: { ...this.options.activities, ...options.activities },
+        guards: { ...this.options.guards, ...options.guards }
+      },
+      context
+    );
   }
   public get definition(): StateNodeDefinition<
     TContext,
@@ -741,15 +749,11 @@ class StateNode<
   private resolveActivity(
     activity: Activity<TContext>
   ): ActivityDefinition<TContext> {
-    const { activities } = this.machine.options;
+    // const { activities } = this.machine.options;
 
-    if (typeof activity === 'string') {
-      return toActivityDefinition(
-        activities ? { type: activity, ...activities[activity] } : activity
-      );
-    }
+    const activityDefinition = toActivityDefinition(activity);
 
-    return activity;
+    return activityDefinition;
   }
   private getActivities(
     entryExitStates?: EntryExitStates<TContext>,
