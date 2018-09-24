@@ -403,12 +403,15 @@ export interface SendAction<TContext, TEvents extends EventObject>
   id: string | number;
 }
 
-export type SendTarget = '_parent' | string;
+export enum SpecialTargets {
+  Parent = '#_parent',
+  Internal = '#_internal'
+}
 
 export interface SendActionOptions {
   delay?: number;
   id?: string | number;
-  target?: SendTarget;
+  target?: string;
 }
 
 export interface CancelAction extends ActionObject<any> {

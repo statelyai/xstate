@@ -3,7 +3,7 @@ import { assert } from 'chai';
 
 const { actionTypes } = actions;
 
-xdescribe('action creators', () => {
+describe('action creators', () => {
   ['start', 'stop'].forEach(actionKey => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
@@ -15,8 +15,7 @@ xdescribe('action creators', () => {
           activity: {
             type: 'test',
             exec: undefined,
-            start: undefined,
-            stop: undefined
+            id: 'test'
           }
         });
       });
@@ -29,31 +28,27 @@ xdescribe('action creators', () => {
           exec: undefined,
           activity: {
             type: 'test',
-            foo: 'bar',
-            start: undefined,
-            stop: undefined
+            id: undefined,
+            foo: 'bar'
           }
         });
       });
 
       it('should accept an activity definition', () => {
-        const startFoo = () => 'start foo';
-        const stopFoo = () => 'stop foo';
         const action = actions[actionKey]({
           type: 'test',
           foo: 'bar',
-          start: startFoo,
-          stop: stopFoo
+          src: 'someSrc'
         });
         assert.equal(action.type, actionTypes[actionKey]);
         assert.deepEqual(action, {
           type: actionTypes[actionKey],
-          exec: action.activity[actionKey].exec,
+          exec: undefined,
           activity: {
             type: 'test',
+            id: undefined,
             foo: 'bar',
-            start: { type: 'startFoo', exec: startFoo },
-            stop: { type: 'stopFoo', exec: stopFoo }
+            src: 'someSrc'
           }
         });
       });

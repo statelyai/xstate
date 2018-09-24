@@ -7,7 +7,8 @@ import {
   DefaultContext,
   ActionObject,
   StateSchema,
-  ActivityActionObject
+  ActivityActionObject,
+  SpecialTargets
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -259,10 +260,8 @@ export class Interpreter<
       case actionTypes.send:
         const sendAction = action as SendAction<TContext, TEvents>;
 
-        console.log('SENT', sendAction);
-
         switch (sendAction.target) {
-          case '_parent':
+          case SpecialTargets.Parent:
             if (this.parent) {
               this.parent.send(sendAction.event);
             }

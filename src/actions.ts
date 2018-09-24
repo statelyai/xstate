@@ -14,7 +14,8 @@ import {
   ActionFunctionMap,
   ActivityActionObject,
   ActionTypes,
-  ActivityDefinition
+  ActivityDefinition,
+  SpecialTargets
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -152,7 +153,7 @@ export function sendParent<TContext, TEvents extends EventObject>(
 ): SendAction<TContext, TEvents> {
   return send<TContext, TEvents>(event, {
     ...options,
-    target: '_parent'
+    target: SpecialTargets.Parent
   });
 }
 
