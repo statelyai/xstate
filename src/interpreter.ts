@@ -8,7 +8,9 @@ import {
   ActionObject,
   StateSchema,
   ActivityActionObject,
-  SpecialTargets
+  SpecialTargets,
+  ActionTypes,
+  Invocation
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -42,6 +44,7 @@ export interface SimulatedClock extends Clock {
 interface InterpreterOptions {
   clock: Clock;
   logger: (...args: any[]) => void;
+  parent?: Interpreter<any, any, any>;
 }
 
 interface SimulatedTimeout {
@@ -119,6 +122,7 @@ export class Interpreter<
 
   // Actor
   public parent?: Interpreter<any>;
+  private children: Set<Interpreter<any>> = new Set();
 
   constructor(
     public machine: XSMachine<TContext, TStateSchema, TEvents>,
@@ -131,6 +135,7 @@ export class Interpreter<
 
     this.clock = resolvedOptions.clock;
     this.logger = resolvedOptions.logger;
+    this.parent = resolvedOptions.parent;
   }
   public static interpret = interpret;
   /**
@@ -234,9 +239,16 @@ export class Interpreter<
 
     this.update(nextState, event);
     this.flushEventQueue();
+
+    // Forward copy of event to child interpreters
+    this.forward(eventObject);
+
     return nextState;
     // tslint:disable-next-line:semicolon
   };
+  private forward(event: Event<TEvents>): void {
+    this.children.forEach(childInterpreter => childInterpreter.send(event));
+  }
   private defer(sendAction: SendAction<TContext, TEvents>): number {
     return this.clock.setTimeout(
       () => this.send(sendAction.event),
@@ -281,13 +293,16 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
-        const { activity } = action as ActivityActionObject<TContext>;
+        const activity = (action as ActivityActionObject<TContext>)
+          .activity as Invocation<TContext>;
 
-        if (activity.type === 'xstate.invoke') {
+        if (activity.type === ActionTypes.Invoke) {
           const service =
             this.machine.options.services && activity.src
               ? this.machine.options.services[activity.src]
               : undefined;
+
+          const autoForward = !!activity.forward;
 
           if (!service) {
             console.warn(`No service found for invocation '${activity.src}'`);
@@ -296,16 +311,16 @@ export class Interpreter<
 
           if (typeof service !== 'string') {
             // TODO: try/catch here
-            const interpreter = interpret(Machine(service));
-
-            interpreter.parent = this;
+            const interpreter = this.spawn(Machine(service), autoForward);
 
             interpreter.start();
 
-            this.activitiesMap[activity.id] = () => interpreter.stop();
+            this.activitiesMap[activity.id] = () => {
+              this.children.delete(interpreter);
+              interpreter.stop();
+            };
           }
         } else {
-          console.log(activity);
           const implementation =
             this.machine.options && this.machine.options.activities
               ? this.machine.options.activities[activity.type]
@@ -355,6 +370,24 @@ export class Interpreter<
     }
 
     return undefined;
+  }
+  private spawn<
+    TChildContext,
+    TChildStateSchema,
+    TChildEvents extends EventObject
+  >(
+    machine: XSMachine<TChildContext, TChildStateSchema, TChildEvents>,
+    autoForward: boolean = false
+  ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
+    const childInterpreter = new Interpreter(machine, {
+      parent: this
+    });
+
+    if (autoForward) {
+      this.children.add(childInterpreter);
+    }
+
+    return childInterpreter;
   }
   private flushEventQueue() {
     const flushedEvent = this.eventQueue.shift();

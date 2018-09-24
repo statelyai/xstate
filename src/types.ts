@@ -90,6 +90,11 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   src?: string;
 }
 
+export interface Invocation<TContext> extends ActivityDefinition<TContext> {
+  src: string;
+  forward?: boolean;
+}
+
 export interface Delay {
   id: string;
   delay: number;
@@ -374,7 +379,8 @@ export enum ActionTypes {
   After = 'xstate.after',
   DoneState = 'done.state',
   Log = 'xstate.log',
-  Init = 'xstate.init'
+  Init = 'xstate.init',
+  Invoke = 'xstate.invoke'
 }
 
 export interface RaisedEvent<TEvents extends EventObject> {

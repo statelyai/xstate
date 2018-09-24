@@ -15,7 +15,8 @@ import {
   ActivityActionObject,
   ActionTypes,
   ActivityDefinition,
-  SpecialTargets
+  SpecialTargets,
+  Invocation
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -221,4 +222,20 @@ export function after(delay: number, id?: string) {
 
 export function done(id: string) {
   return `${ActionTypes.DoneState}.${id}`;
+}
+
+export function invoke<TContext>(
+  invokeConfig: string | Invocation<TContext>,
+  options?: Partial<Invocation<TContext>>
+): ActivityDefinition<TContext> {
+  if (typeof invokeConfig === 'string') {
+    return {
+      id: invokeConfig,
+      src: invokeConfig,
+      type: ActionTypes.Invoke,
+      ...options
+    };
+  }
+
+  return invokeConfig;
 }
