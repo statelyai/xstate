@@ -1,4 +1,5 @@
 module.exports = {
+  pathPrefix: '/xstate',
   siteMetadata: {
     title: 'Xstate Docs',
   },
