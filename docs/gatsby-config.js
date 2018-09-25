@@ -37,7 +37,7 @@ module.exports = {
           // {
           //   resolve: 'gatsby-remark-embedded-codesandbox',
           //   options: {
-          //     directory: `${__dirname}/src/_examples`,
+          //     directory: `${__dirname}/src/sandboxes`,
           //   },
           // },
           {
