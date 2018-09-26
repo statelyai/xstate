@@ -1,4 +1,4 @@
-import { matchesState } from './matchesState';
+import { matchesState } from './utils';
 
 export function mapState(
   stateMap: { [stateId: string]: any },

@@ -1,5 +1,50 @@
-import { State } from './State';
-import { Event, StateValue, ActionType, Action, EventObject } from './types';
+import {
+  Event,
+  StateValue,
+  ActionType,
+  Action,
+  EventObject,
+  StateInterface
+} from './types';
+import { STATE_DELIMITER } from './constants';
+
+function isState(state: object | string): state is StateInterface {
+  if (typeof state === 'string') {
+    return false;
+  }
+
+  return 'value' in state && 'tree' in state && 'history' in state;
+}
+
+export function matchesState(
+  parentStateId: StateValue,
+  childStateId: StateValue,
+  delimiter: string = STATE_DELIMITER
+): boolean {
+  const parentStateValue = toStateValue(parentStateId, delimiter);
+  const childStateValue = toStateValue(childStateId, delimiter);
+
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
+      return childStateValue === parentStateValue;
+    }
+
+    // Parent more specific than child
+    return false;
+  }
+
+  if (typeof parentStateValue === 'string') {
+    return parentStateValue in childStateValue;
+  }
+
+  return Object.keys(parentStateValue).every(key => {
+    if (!(key in childStateValue)) {
+      return false;
+    }
+
+    return matchesState(parentStateValue[key], childStateValue[key]);
+  });
+}
 
 export function getEventType<TEvents extends EventObject = EventObject>(
   event: Event<TEvents>
@@ -44,10 +89,10 @@ export function toStatePath(
 }
 
 export function toStateValue(
-  stateValue: State<any> | StateValue | string[],
+  stateValue: StateInterface<any> | StateValue | string[],
   delimiter: string
 ): StateValue {
-  if (stateValue instanceof State) {
+  if (isState(stateValue)) {
     return stateValue.value;
   }
 
@@ -55,8 +100,8 @@ export function toStateValue(
     return pathToStateValue(stateValue);
   }
 
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    return stateValue;
+  if (typeof stateValue !== 'string' && !isState(stateValue)) {
+    return stateValue as StateValue;
   }
 
   const statePath = toStatePath(stateValue as string, delimiter);
@@ -206,20 +251,6 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
 
 export function flatten<T>(array: T[][]): T[] {
   return ([] as T[]).concat(...array);
-}
-
-export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-
-  return (
-    aKeys.length === bKeys.length &&
-    aKeys.every(key => stateValuesEqual(a[key], b[key]))
-  );
 }
 
 export function toArray<T>(value: T[] | T | undefined): T[] {

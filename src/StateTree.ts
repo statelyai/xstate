@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { StateValue, EntryExitStateArrays, EventType } from './types';
 import { mapValues, flatten, toStatePaths } from './utils';
-import { matchesState } from './matchesState';
+import { matchesState } from './utils';
 import { done } from './actions';
 
 export interface StateTreeOptions {

@@ -1,6 +1,7 @@
 import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
+import fileSize from 'rollup-plugin-filesize';
 
 const createConfig = ({ input, output }) => ({
   input,
@@ -17,7 +18,8 @@ const createConfig = ({ input, output }) => ({
         }
       }
     }),
-    terser()
+    terser(),
+    fileSize()
   ]
 });
 

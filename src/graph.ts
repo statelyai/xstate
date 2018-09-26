@@ -173,7 +173,7 @@ export function deserializeStateString(
   };
 }
 
-function serializeState<TContext>(state: State<TContext>): string {
+export function serializeState<TContext>(state: State<TContext>): string {
   const { value, context } = state;
   return JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }

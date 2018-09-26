@@ -44,7 +44,7 @@ import {
   AnyEvent,
   RaisedEvent
 } from './types';
-import { matchesState } from './matchesState';
+import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import {

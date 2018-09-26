@@ -8,9 +8,22 @@ import {
   EventType
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState } from '.';
-import { stateValuesEqual } from './utils';
+import { matchesState } from './utils';
 import { StateTree } from './StateTree';
+
+export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
+  if (a === b) {
+    return true;
+  }
+
+  const aKeys = Object.keys(a);
+  const bKeys = Object.keys(b);
+
+  return (
+    aKeys.length === bKeys.length &&
+    aKeys.every(key => stateValuesEqual(a[key], b[key]))
+  );
+}
 
 export class State<TContext, TEvents extends EventObject = EventObject>
   implements StateInterface<TContext> {
