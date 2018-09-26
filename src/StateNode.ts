@@ -9,7 +9,8 @@ import {
   flatten,
   mapFilterValues,
   nestedPath,
-  toArray
+  toArray,
+  keys
 } from './utils';
 import {
   Event,
@@ -123,7 +124,7 @@ class StateNode<
       _config.type ||
       (_config.parallel // TODO: deprecate
         ? 'parallel'
-        : _config.states && Object.keys(_config.states).length
+        : _config.states && keys(_config.states).length
           ? 'compound'
           : _config.history
             ? 'history'
@@ -239,7 +240,7 @@ class StateNode<
     }
 
     const allDelayedTransitions = flatten(
-      Object.keys(afterConfig).map(delayKey => {
+      keys(afterConfig).map(delayKey => {
         const delayedTransition = (afterConfig as Record<
           number | string,
           | TransitionConfig<TContext, TEvents>
@@ -286,7 +287,7 @@ class StateNode<
         : [this.states[stateValue]];
     }
 
-    const subStateKeys = Object.keys(stateValue);
+    const subStateKeys = keys(stateValue);
     const subStateNodes: Array<StateNode<TContext>> = subStateKeys.map(
       subStateKey => this.getStateNode(subStateKey)
     );
@@ -341,7 +342,7 @@ class StateNode<
     eventObject: TEvents,
     context?: TContext
   ): StateTransition<TContext> {
-    const subStateKeys = Object.keys(stateValue);
+    const subStateKeys = keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
     const next = stateNode._transition(
@@ -377,7 +378,7 @@ class StateNode<
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext>> = {};
 
-    Object.keys(stateValue).forEach(subStateKey => {
+    keys(stateValue).forEach(subStateKey => {
       const subStateValue = stateValue[subStateKey];
 
       if (!subStateValue) {
@@ -400,7 +401,7 @@ class StateNode<
       transitionMap[subStateKey] = next;
     });
 
-    const willTransition = Object.keys(transitionMap).some(
+    const willTransition = keys(transitionMap).some(
       key => transitionMap[key].tree !== undefined
     );
 
@@ -419,7 +420,7 @@ class StateNode<
       };
     }
 
-    const allTrees = Object.keys(transitionMap)
+    const allTrees = keys(transitionMap)
       .map(key => transitionMap[key].tree)
       .filter(t => t !== undefined) as StateTree[];
 
@@ -437,7 +438,7 @@ class StateNode<
       return {
         tree: combinedTree,
         source: state,
-        reentryStates: Object.keys(transitionMap)
+        reentryStates: keys(transitionMap)
           .map(key => transitionMap[key].reentryStates)
           .reduce((allReentryStates, reentryStates) => {
             return new Set([
@@ -446,14 +447,14 @@ class StateNode<
             ]);
           }, new Set<StateNode<TContext>>()),
         actions: flatten(
-          Object.keys(transitionMap).map(key => {
+          keys(transitionMap).map(key => {
             return transitionMap[key].actions;
           })
         )
       };
     }
 
-    const allResolvedTrees = Object.keys(transitionMap).map(key => {
+    const allResolvedTrees = keys(transitionMap).map(key => {
       const transition = transitionMap[key];
       const subValue = path(this.path)(
         transition.tree ? transition.tree.value : state.value || state.value
@@ -469,25 +470,22 @@ class StateNode<
     return {
       tree: finalCombinedTree,
       source: state,
-      reentryStates: Object.keys(transitionMap).reduce(
-        (allReentryStates, key) => {
-          const { tree, reentryStates } = transitionMap[key];
+      reentryStates: keys(transitionMap).reduce((allReentryStates, key) => {
+        const { tree, reentryStates } = transitionMap[key];
 
-          // If the event was not handled (no subStateValue),
-          // machine should still be in state without reentry/exit.
-          if (!tree || !reentryStates) {
-            return allReentryStates;
-          }
+        // If the event was not handled (no subStateValue),
+        // machine should still be in state without reentry/exit.
+        if (!tree || !reentryStates) {
+          return allReentryStates;
+        }
 
-          return new Set([
-            ...Array.from(allReentryStates),
-            ...Array.from(reentryStates)
-          ]);
-        },
-        new Set<StateNode<TContext>>()
-      ),
+        return new Set([
+          ...Array.from(allReentryStates),
+          ...Array.from(reentryStates)
+        ]);
+      }, new Set<StateNode<TContext>>()),
       actions: flatten(
-        Object.keys(transitionMap).map(key => {
+        keys(transitionMap).map(key => {
           return transitionMap[key].actions;
         })
       )
@@ -505,7 +503,7 @@ class StateNode<
     }
 
     // hierarchical node
-    if (Object.keys(stateValue).length === 1) {
+    if (keys(stateValue).length === 1) {
       return this.transitionCompoundNode(stateValue, state, event, context);
     }
 
@@ -975,7 +973,7 @@ class StateNode<
               event || ({ type: ActionTypes.Init } as TEvents)
             );
           } else {
-            Object.keys(assignment).forEach(key => {
+            keys(assignment).forEach(key => {
               const propAssignment = assignment[key];
 
               partialUpdate[key] =
@@ -1092,7 +1090,7 @@ class StateNode<
 
       return stateValue;
     }
-    if (!Object.keys(stateValue).length) {
+    if (!keys(stateValue).length) {
       return this.initialStateValue || {};
     }
 
@@ -1264,7 +1262,7 @@ class StateNode<
 
     const stateNodes: Array<StateNode<TContext>> = [];
 
-    Object.keys(stateValue).forEach(key => {
+    keys(stateValue).forEach(key => {
       stateNodes.push(...this.states[key].getStates(stateValue[key]));
     });
 
@@ -1398,7 +1396,7 @@ class StateNode<
   public historyValue(
     relativeStateValue?: StateValue | undefined
   ): HistoryValue | undefined {
-    if (!Object.keys(this.states).length) {
+    if (!keys(this.states).length) {
       return undefined;
     }
 
@@ -1467,7 +1465,7 @@ class StateNode<
   }
   public get stateIds(): string[] {
     const childStateIds = flatten(
-      Object.keys(this.states).map(stateKey => {
+      keys(this.states).map(stateKey => {
         return (this.states[stateKey] as StateNode<TContext>).stateIds;
       })
     );
@@ -1481,7 +1479,7 @@ class StateNode<
     const events = new Set(this.ownEvents);
 
     if (states) {
-      Object.keys(states).forEach(stateId => {
+      keys(states).forEach(stateId => {
         const state = states[stateId];
         if (state.states) {
           for (const event of state.events) {
@@ -1495,7 +1493,7 @@ class StateNode<
   }
   public get ownEvents(): Array<TEvents['type']> {
     const events = new Set(
-      Object.keys(this.on).filter(key => {
+      keys(this.on).filter(key => {
         const transitions = this.on[key];
         return transitions.some(transition => {
           return !(
@@ -1589,7 +1587,7 @@ class StateNode<
       }
 
       if (!IS_PRODUCTION) {
-        Object.keys(value).forEach(key => {
+        keys(value).forEach(key => {
           if (
             ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) === -1
           ) {

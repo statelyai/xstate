@@ -1,5 +1,5 @@
 import { StateNode, State } from './index';
-import { toStateValue, getActionType, flatten } from './utils';
+import { toStateValue, getActionType, flatten, keys } from './utils';
 import {
   StateValue,
   Edge,
@@ -19,16 +19,13 @@ const EMPTY_MAP = {};
 
 export function getNodes(node: StateNode): StateNode[] {
   const { states } = node;
-  const nodes = Object.keys(states).reduce(
-    (accNodes: StateNode[], stateKey) => {
-      const subState = states[stateKey];
-      const subNodes = getNodes(states[stateKey]);
+  const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
+    const subState = states[stateKey];
+    const subNodes = getNodes(states[stateKey]);
 
-      accNodes.push(subState, ...subNodes);
-      return accNodes;
-    },
-    []
-  );
+    accNodes.push(subState, ...subNodes);
+    return accNodes;
+  }, []);
 
   return nodes;
 }
@@ -101,18 +98,18 @@ export function getEdges<
   const edges: Array<Edge<TContext, TEvents>> = [];
 
   if (node.states && depth === null) {
-    Object.keys(node.states).forEach(stateKey => {
+    keys(node.states).forEach(stateKey => {
       edges.push(...getEdges<TContext>(node.states[stateKey]));
     });
   } else if (depth && depth > 0) {
-    Object.keys(node.states).forEach(stateKey => {
+    keys(node.states).forEach(stateKey => {
       edges.push(
         ...getEdges<TContext>(node.states[stateKey], { depth: depth - 1 })
       );
     });
   }
 
-  Object.keys(node.on).forEach(event => {
+  keys(node.on).forEach(event => {
     edges.push(...getEventEdges<TContext>(node, event));
   });
 
@@ -249,7 +246,7 @@ export function getShortestValuePaths<
     visited.add(stateKey);
     const eventMap = adjacency[stateKey];
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const { value, context } = eventMap[event];
 
       if (!value) {
@@ -270,7 +267,7 @@ export function getShortestValuePaths<
       }
     }
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const { value, context } = eventMap[event];
 
       if (!value) {
@@ -314,7 +311,7 @@ export function getShortestPaths<TContext = DefaultContext>(
     visited.add(stateId);
     const eventMap = adjacency[stateId];
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const nextStateValue = eventMap[event].state;
 
       if (!nextStateValue) {
@@ -336,7 +333,7 @@ export function getShortestPaths<TContext = DefaultContext>(
       }
     }
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const nextStateValue = eventMap[event].state;
 
       if (!nextStateValue) {
@@ -365,7 +362,7 @@ export function getShortestPathsAsArray<TContext = DefaultContext>(
   context?: TContext
 ): PathItem[] {
   const result = getShortestPaths(machine, context);
-  return Object.keys(result).map(key => ({
+  return keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
   }));
@@ -391,7 +388,7 @@ export function getSimplePaths<TContext = DefaultContext>(
       paths[toPathId] = paths[toPathId] || [];
       paths[toPathId].push([...path]);
     } else {
-      for (const subEvent of Object.keys(adjacency[fromPathId])) {
+      for (const subEvent of keys(adjacency[fromPathId])) {
         const nextStateValue = adjacency[fromPathId][subEvent].state;
 
         if (!nextStateValue) {
@@ -413,7 +410,7 @@ export function getSimplePaths<TContext = DefaultContext>(
 
   const initialStateId = JSON.stringify(machine.initialState.value);
 
-  Object.keys(adjacency).forEach(nextStateId => {
+  keys(adjacency).forEach(nextStateId => {
     util(initialStateId, nextStateId);
   });
 
@@ -425,7 +422,7 @@ export function getSimplePathsAsArray<TContext = DefaultContext>(
   context?: TContext
 ): PathsItem[] {
   const result = getSimplePaths(machine, context);
-  return Object.keys(result).map(key => ({
+  return keys(result).map(key => ({
     state: JSON.parse(key),
     paths: result[key]
   }));

@@ -56,6 +56,7 @@
     "rollup-plugin-replace": "^2.0.0",
     "rollup-plugin-terser": "^1.0.1",
     "rollup-plugin-typescript2": "^0.16.1",
+    "rollup-plugin-uglify": "^6.0.0",
     "scion-core-test-framework": "^1.0.0",
     "scxml-test-framework": "^1.0.2",
     "ts-node": "^7.0.1",

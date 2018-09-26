@@ -16,6 +16,10 @@ function isState(state: object | string): state is StateInterface {
   return 'value' in state && 'tree' in state && 'history' in state;
 }
 
+export function keys<T extends object>(value: T): Array<keyof T & string> {
+  return Object.keys(value) as Array<keyof T & string>;
+}
+
 export function matchesState(
   parentStateId: StateValue,
   childStateId: StateValue,
@@ -37,7 +41,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return Object.keys(parentStateValue).every(key => {
+  return keys(parentStateValue).every(key => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -140,7 +144,7 @@ export function mapValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach((key, i) => {
+  keys(collection).forEach((key, i) => {
     result[key] = iteratee(collection[key], key, collection, i);
   });
 
@@ -154,7 +158,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
+  keys(collection).forEach(key => {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -214,7 +218,7 @@ export const toStatePaths = (
   }
 
   const result = flatten(
-    Object.keys(stateValue).map(key => {
+    keys(stateValue).map(key => {
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
       });

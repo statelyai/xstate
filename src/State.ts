@@ -5,10 +5,11 @@ import {
   StateInterface,
   HistoryValue,
   ActionObject,
-  EventType
+  EventType,
+  StateValueMap
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState } from './utils';
+import { matchesState, keys } from './utils';
 import { StateTree } from './StateTree';
 
 export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
@@ -16,8 +17,8 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
     return true;
   }
 
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
+  const aKeys = keys(a as StateValueMap);
+  const bKeys = keys(b as StateValueMap);
 
   return (
     aKeys.length === bKeys.length &&
@@ -120,10 +121,10 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     if (typeof value === 'string') {
       return [value];
     }
-    const keys = Object.keys(value);
+    const valueKeys = keys(value);
 
-    return keys.concat(
-      ...keys.map(key =>
+    return valueKeys.concat(
+      ...valueKeys.map(key =>
         this.toStrings(value[key]).map(s => key + delimiter + s)
       )
     );

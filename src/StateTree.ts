@@ -1,6 +1,11 @@
 import { StateNode } from './StateNode';
-import { StateValue, EntryExitStateArrays, EventType } from './types';
-import { mapValues, flatten, toStatePaths } from './utils';
+import {
+  StateValue,
+  EntryExitStateArrays,
+  EventType,
+  StateValueMap
+} from './types';
+import { mapValues, flatten, toStatePaths, keys } from './utils';
 import { matchesState } from './utils';
 import { done } from './actions';
 
@@ -44,10 +49,10 @@ export class StateTree {
       case 'final':
         return true;
       case 'compound':
-        const childNode = this.nodes[Object.keys(this.nodes)[0]];
+        const childNode = this.nodes[keys(this.nodes)[0]];
         return childNode.stateNode.type === 'final';
       case 'parallel':
-        return Object.keys(this.nodes).some(key => this.nodes[key].done);
+        return keys(this.nodes).some(key => this.nodes[key].done);
       default:
         return false;
     }
@@ -59,7 +64,7 @@ export class StateTree {
     }
 
     return flatten(
-      Object.keys(this.value).map(key => {
+      keys(this.value as StateValueMap).map(key => {
         return this.value[key].atomicNodes;
       })
     );
@@ -79,13 +84,13 @@ export class StateTree {
     }
 
     const childDoneEvents = flatten(
-      Object.keys(this.nodes).map(key => {
+      keys(this.nodes).map(key => {
         return this.nodes[key].getDoneEvents(entryStateNodes);
       })
     );
 
     if (this.stateNode.type === 'parallel') {
-      const allChildrenDone = Object.keys(this.nodes).every(
+      const allChildrenDone = keys(this.nodes).every(
         key => this.nodes[key].done
       );
 
@@ -134,7 +139,7 @@ export class StateTree {
     const ownEvents = this.stateNode.ownEvents;
 
     const childEvents = flatten(
-      Object.keys(this.nodes).map(key => {
+      keys(this.nodes).map(key => {
         const subTree = this.nodes[key];
 
         return subTree.nextEvents;
@@ -156,7 +161,7 @@ export class StateTree {
     if (this.stateNode.type === 'compound') {
       // Only combine if no child state is defined
       let newValue: Record<string, StateTree>;
-      if (!Object.keys(this.nodes).length || !Object.keys(tree.nodes).length) {
+      if (!keys(this.nodes).length || !keys(tree.nodes).length) {
         newValue = Object.assign({}, this.nodes, tree.nodes);
 
         const newTree = this.clone();
@@ -164,7 +169,7 @@ export class StateTree {
 
         return newTree;
       } else {
-        const childKey = Object.keys(this.nodes)[0];
+        const childKey = keys(this.nodes)[0];
 
         newValue = {
           [childKey]: this.nodes[childKey].combine(tree.nodes[childKey])
@@ -177,14 +182,11 @@ export class StateTree {
     }
 
     if (this.stateNode.type === 'parallel') {
-      const keys = new Set([
-        ...Object.keys(this.nodes),
-        ...Object.keys(tree.nodes)
-      ]);
+      const valueKeys = new Set([...keys(this.nodes), ...keys(tree.nodes)]);
 
       const newValue: Record<string, StateTree> = {};
 
-      keys.forEach(key => {
+      valueKeys.forEach(key => {
         if (!this.nodes[key] || !tree.nodes[key]) {
           newValue[key] = this.nodes[key] || tree.nodes[key];
         } else {
@@ -213,10 +215,10 @@ export class StateTree {
     }
 
     if (this.stateNode.type === 'compound') {
-      if (Object.keys(this.nodes).length === 0) {
+      if (keys(this.nodes).length === 0) {
         return {};
       }
-      const childStateNode = this.nodes[Object.keys(this.nodes)[0]].stateNode;
+      const childStateNode = this.nodes[keys(this.nodes)[0]].stateNode;
       if (childStateNode.type === 'atomic' || childStateNode.type === 'final') {
         return childStateNode.key;
       }
@@ -246,8 +248,8 @@ export class StateTree {
           entry: []
         };
 
-        const currentChildKey = Object.keys(this.nodes)[0];
-        const prevChildKey = Object.keys(prevTree.nodes)[0];
+        const currentChildKey = keys(this.nodes)[0];
+        const prevChildKey = keys(prevTree.nodes)[0];
 
         if (currentChildKey !== prevChildKey) {
           r1.exit = prevTree.nodes[prevChildKey!].getExitStates();
@@ -266,7 +268,7 @@ export class StateTree {
         return r1;
 
       case 'parallel':
-        const all = Object.keys(this.nodes).map(key => {
+        const all = keys(this.nodes).map(key => {
           return this.nodes[key].getEntryExitStates(
             prevTree.nodes[key],
             externalNodes
@@ -312,7 +314,7 @@ export class StateTree {
 
     return [this.stateNode].concat(
       flatten(
-        Object.keys(this.nodes).map(key => {
+        keys(this.nodes).map(key => {
           return this.nodes[key].getEntryStates();
         })
       )
@@ -325,7 +327,7 @@ export class StateTree {
     }
 
     return flatten(
-      Object.keys(this.nodes).map(key => {
+      keys(this.nodes).map(key => {
         return this.nodes[key].getExitStates();
       })
     ).concat(this.stateNode);
