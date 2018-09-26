@@ -115,6 +115,7 @@ export class Interpreter<
   public listeners: Set<StateListener> = new Set();
   public contextListeners: Set<ContextListener<TContext>> = new Set();
   public stopListeners: Set<Listener> = new Set();
+  public doneListeners: Set<StateListener> = new Set();
   public eventListeners: Set<EventListener> = new Set();
   public clock: Clock;
   public logger: (...args: any[]) => void;
@@ -167,6 +168,11 @@ export class Interpreter<
         this.state.history ? this.state.history.context : undefined
       )
     );
+
+    if (this.state.tree && this.state.tree.done) {
+      this.doneListeners.forEach(listener => listener(state));
+      this.stop();
+    }
   }
   /*
    * Adds a listener that is called whenever a state transition happens.
@@ -186,6 +192,10 @@ export class Interpreter<
   }
   public onStop(listener: Listener): Interpreter<TContext> {
     this.stopListeners.add(listener);
+    return this;
+  }
+  public onDone(listener: StateListener): Interpreter<TContext> {
+    this.doneListeners.add(listener);
     return this;
   }
   /**
@@ -216,6 +226,9 @@ export class Interpreter<
     });
     this.contextListeners.forEach(ctxListener =>
       this.contextListeners.delete(ctxListener)
+    );
+    this.doneListeners.forEach(doneListener =>
+      this.doneListeners.delete(doneListener)
     );
     return this;
   }
@@ -342,8 +355,6 @@ export class Interpreter<
       case actionTypes.stop: {
         const { activity } = action as ActivityActionObject<TContext>;
         const dispose = this.activitiesMap[activity.id];
-
-        console.log({ dispose });
 
         if (dispose) {
           dispose();

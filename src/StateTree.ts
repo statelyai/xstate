@@ -53,6 +53,18 @@ export class StateTree {
     }
   }
 
+  public get atomicNodes(): StateNode[] {
+    if (this.stateNode.type === 'atomic' || this.stateNode.type === 'final') {
+      return [this.stateNode];
+    }
+
+    return flatten(
+      Object.keys(this.value).map(key => {
+        return this.value[key].atomicNodes;
+      })
+    );
+  }
+
   public getDoneEvents(entryStateNodes?: Set<StateNode>): EventType[] {
     // If no state nodes are being entered, no done events will be fired
     if (!entryStateNodes || !entryStateNodes.size) {

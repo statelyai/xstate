@@ -47,6 +47,7 @@
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
     "chai": "^4.1.2",
+    "docz": "^0.11.2",
     "mocha": "^3.5.3",
     "prettier": "^1.14.0",
     "puppeteer": "^1.7.0",

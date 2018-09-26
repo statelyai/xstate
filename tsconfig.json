@@ -9,6 +9,7 @@
     "outDir": "./lib",
     "moduleResolution": "node",
     "downlevelIteration": true,
+    "experimentalDecorators": true,
     "lib": [
       "es6",
       "dom"
