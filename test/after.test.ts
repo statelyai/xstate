@@ -5,6 +5,9 @@ import { after, cancel, send } from '../src/actions';
 const lightMachine = Machine({
   id: 'light',
   initial: 'green',
+  context: {
+    canTurnGreen: true
+  },
   states: {
     green: {
       after: {

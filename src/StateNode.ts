@@ -68,7 +68,6 @@ const STATE_IDENTIFIER = '#';
 const TARGETLESS_KEY = '';
 
 const EMPTY_OBJECT = {};
-const EMPTY_ARRAY = [];
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
@@ -209,7 +208,7 @@ class StateNode<
       onEntry: this.onEntry,
       onExit: this.onExit,
       after: this.after,
-      activities: this.activities || EMPTY_ARRAY,
+      activities: this.activities || [],
       data: this.data,
       order: this.order || -1
     };
@@ -228,7 +227,7 @@ class StateNode<
     } = this;
 
     if (!afterConfig) {
-      return EMPTY_ARRAY;
+      return [];
     }
 
     if (Array.isArray(afterConfig)) {
@@ -242,7 +241,7 @@ class StateNode<
     const allDelayedTransitions = flatten(
       keys(afterConfig).map(delayKey => {
         const delayedTransition = (afterConfig as Record<
-          number | string,
+          string,
           | TransitionConfig<TContext, TEvents>
           | Array<TransitionConfig<TContext, TEvents>>
         >)[delayKey];
