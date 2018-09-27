@@ -121,8 +121,8 @@ const lightMachine = Machine({
     - Optional.
   - `actions`: (Action[]) an array of action strings or objects that are to be executed when the transition takes place (see [actions](api/actions.md))
     - Optional.
-  <!-- - `in`: (string | object) a string or object representing the state that the current state must match for the transition to take place (see [guarded transitions](guides/guards.md))
-    - Optional. -->
+/* - `in`: (string | object) a string or object representing the state that the current state must match for the transition to take place (see [guarded transitions](guides/guards.md))
+    - Optional. */
   - `internal`: (boolean) whether the transition is an internal transition or not (see [internal transitions](guides/internal.md))
     - Optional, defaults to `false`
 

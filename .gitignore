@@ -36,3 +36,6 @@ editor/
 examples/
 _examples/
 !docs/examples/
+
+public/
+.cache

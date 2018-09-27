@@ -6,6 +6,8 @@
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
+test example for codesandbox integration (temporal) [hello world example](embedded-codesandbox://example)
+
 ## Super quick start
 
 ```bash
