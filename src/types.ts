@@ -235,7 +235,6 @@ export interface StateNodeDefinition<
   on: TransitionsDefinition<TContext, TEvents>;
   onEntry: Array<Action<TContext>>;
   onExit: Array<Action<TContext>>;
-  after: Array<DelayedTransitionDefinition<TContext, TEvents>>;
   activities: Array<ActivityDefinition<TContext>>;
   data: any;
   order: number;

@@ -65,4 +65,14 @@ describe('delayed transitions', () => {
       send(after(1000, 'light.yellow'), { delay: 1000 })
     ]);
   });
+
+  it('should format transitions properly', () => {
+    const greenNode = lightMachine.states.green;
+
+    const transitions = greenNode.transitions;
+
+    assert.deepEqual(transitions.map(t => t.event), [
+      after(1000, greenNode.id)
+    ]);
+  });
 });

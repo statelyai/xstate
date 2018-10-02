@@ -136,3 +136,17 @@ describe('machine', () => {
     assert.deepEqual(differentMachine.transition('foo', 'EVENT').value, 'bar');
   });
 });
+
+describe('StateNode', () => {
+  it('should list transitions', () => {
+    const greenNode = lightMachine.states.green;
+
+    const transitions = greenNode.transitions;
+
+    assert.deepEqual(transitions.map(t => t.event), [
+      'TIMER',
+      'POWER_OUTAGE',
+      'FORBIDDEN_EVENT'
+    ]);
+  });
+});

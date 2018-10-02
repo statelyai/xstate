@@ -165,7 +165,6 @@ class StateNode<
     this.history =
       _config.history === true ? 'shallow' : _config.history || false;
 
-    // this.on = config.on ? this.formatTransitions(config.on) : {};
     this.transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
     this.onEntry = toArray(_config.onEntry);
@@ -207,7 +206,6 @@ class StateNode<
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
-      after: this.after,
       activities: this.activities || [],
       data: this.data,
       order: this.order || -1
@@ -220,6 +218,14 @@ class StateNode<
   }
   public get on(): TransitionsDefinition<TContext, TEvents> {
     return this.formatTransitions();
+  }
+  public get transitions(): Array<TransitionDefinition<TContext, TEvents>> {
+    return flatten(
+      keys(this.on).map(
+        event =>
+          this.on[event] as Array<TransitionDefinition<TContext, TEvents>>
+      )
+    );
   }
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvents>> {
     const {
@@ -681,7 +687,13 @@ class StateNode<
   }
   public get delays(): Delay[] {
     const delays = Array.from(
-      new Set(this.after.map(delayedTransition => delayedTransition.delay))
+      new Set(
+        this.transitions
+          .map(transition => transition.delay)
+          .filter<number>((delay => delay !== undefined) as (
+            delay: number | undefined
+          ) => delay is number)
+      )
     );
 
     return delays.map(delay => ({
