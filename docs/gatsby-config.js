@@ -1,7 +1,7 @@
 module.exports = {
   pathPrefix: '/xstate',
   siteMetadata: {
-    title: 'Xstate Docs',
+    title: 'Xstate Docs'
   },
   plugins: [
     {
@@ -21,8 +21,8 @@ module.exports = {
         background_color: '#663399',
         theme_color: '#663399',
         display: 'minimal-ui',
-        icon: 'src/images/gatsby-icon.png',
-      },
+        icon: 'src/images/gatsby-icon.png'
+      }
     },
     'gatsby-plugin-offline',
     'gatsby-plugin-sharp',
@@ -30,9 +30,7 @@ module.exports = {
       resolve: 'gatsby-mdx',
       options: {
         extensions: ['.mdx', '.md'],
-        defaultLayout: require.resolve(
-          './src/components/layout.js'
-        ),
+        defaultLayout: require.resolve('./src/components/layout.js'),
         mdPlugins: [require('remark-toc')],
         gatsbyRemarkPlugins: [
           // {
@@ -48,9 +46,9 @@ module.exports = {
               sizeByPixelDensity: true
             }
           },
-          { resolve: 'gatsby-remark-autolink-headers' },
-        ],
+          { resolve: 'gatsby-remark-autolink-headers' }
+        ]
       }
-    },
-  ],
-}
+    }
+  ]
+};

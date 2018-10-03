@@ -1,6 +1,20 @@
+import { StateChart } from '../../components/stateChart';
+import { Machine } from 'xstate';
+
+<StateChart machine={Machine({
+  id: 'light',
+  initial: 'green',
+  states: {
+    green: {},
+    yellow: {},
+    red: {}
+  }
+})} />
+
 # Activities
 
 An activity is an action that occurs over time, and can be started and stopped. According to Harel's original statecharts paper:
+
 
 > An activity always takes a nonzero amount of time, like beeping, displaying, or executing lengthy computations.
 
