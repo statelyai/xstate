@@ -10,7 +10,7 @@ An `Action` can be a:
     - an `action.type` property whose `string` value identifies the action
     - any other arbitrary properties relevant to the `action`.
   - `function`, a named function with two arguments (since 3.3):
-    - `extState` - the extended state
+    - `ctx` - the context (i.e., the extended state)
     - `event` - the `EventObject` associated with the action
 
 # `StateNode` Action Properties
@@ -44,7 +44,7 @@ All `onExit` actions will always occur first, before any `onEntry` or transition
 
 ```js
 // example of a named function action
-function showLoader(extState, event) {
+function showLoader(ctx, event) {
   // ...
 }
 

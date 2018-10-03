@@ -34,7 +34,7 @@ Now suppose you only want search to be allowed if:
 
 This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard condition** is a function that takes 3 arguments:
 
-- `extendedState`: (any) which is specified as the 3rd argument to `machine.transition(...)`
+- `context`: (any) which is specified as the 3rd argument to `machine.transition(...)`
 - `eventObject`: (EventObject) which is the event, represented as an object
 - `stateValue`: (StateValue) which is the current state value, represented as an object
 
@@ -49,10 +49,10 @@ const searchMachine = Machine({
         SEARCH: {
           target: 'searching', // since 4.0
           // only transition to 'searching' if cond is true
-          cond: (extState, eventObj) => {
-            return extState.canSearch
-              && eventObj.query
-              && eventObj.query.length > 0;
+          cond: (ctx, event) => {
+            return ctx.canSearch
+              && event.query
+              && event.query.length > 0;
           }
         }
       }
@@ -123,7 +123,7 @@ const doorMachine = new Machine({
       },
       on: {
         OPEN: [
-          { target: 'opened', cond: (extState) => extState.isAdmin },
+          { target: 'opened', cond: (ctx) => ctx.isAdmin },
           { target: 'closed.error' }
         ]
       }
