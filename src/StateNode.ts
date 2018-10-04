@@ -189,6 +189,11 @@ class StateNode<
       context
     );
   }
+  public withContext(
+    context: TContext
+  ): StateNode<TContext, TStateSchema, TEvents> {
+    return new StateNode(this.definition, this.options, context);
+  }
   public get definition(): StateNodeDefinition<
     TContext,
     TStateSchema,

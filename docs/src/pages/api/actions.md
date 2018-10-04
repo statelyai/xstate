@@ -2,18 +2,16 @@
 
 Actions in `xstate` represent the side-effects that transitioning from/to a state can produce. These actions are never executed in `xstate`; rather, they are provided to you in the `state.actions` property of the `State` instance, returned from `machine.transition(...)`.
 
-<!-- See the [executing actions](#TODO) guide for more information. -->
-
 An `Action` can be a:
   - `string`, e.g., `'fetchData'`
   - `ActionObject`, which is an `object` with:
     - an `action.type` property whose `string` value identifies the action
     - any other arbitrary properties relevant to the `action`.
   - `function`, a named function with two arguments (since 3.3):
-    - `ctx` - the context (i.e., the extended state)
+    - `ctx` - the context (i.e., the [extended state](/guides/context))
     - `event` - the `EventObject` associated with the action
 
-# `StateNode` Action Properties
+# State Node Action Properties
 
 ## `stateNode.onEntry`
 
