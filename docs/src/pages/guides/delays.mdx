@@ -92,6 +92,50 @@ states: {
 // ...
 ```
 
+## Delayed actions
+
+If you just want to send an event after a delay, you can specify the `delay` as an option in the second argument of the `send(...)` action creator:
+
+```js
+import { actions } from 'xstate';
+const { send } = actions;
+
+// action to send the 'TIMER' event after 1 second
+const sendTimerAfter1Second = send('TIMER', { delay: 1000 });
+```
+
+You can also prevent those delayed events from being sent by cancelling them. This is done with the `cancel(...)` action creator:
+
+```js
+import { actions } from 'xstate';
+const { send, cancel } = actions;
+
+// action to send the 'TIMER' event after 1 second
+const sendTimerAfter1Second = send('TIMER', {
+  delay: 1000,
+  id: 'oneSecondTimer' // give the event a unique ID
+});
+
+const cancelTimer = cancel('oneSecondTimer'); // pass the ID of event to cancel
+
+const toggleMachine = Machine({
+  id: 'toggle',
+  initial: 'inactive',
+  states: {
+    inactive: {
+      onEntry: sendTimerAfter1Second,
+      on: {
+        TIMER: 'active'
+        CANCEL: { actions: cancelTimer }
+      }
+    },
+    active: {}
+  }
+});
+
+// if the CANCEL event is sent before 1 second, the TIMER event will be canceled.
+```
+
 ## Interpretation
 
 With the xstate interpreter, delayed actions will use the native`setTimeout` and `clearTimeout` functions:
@@ -110,7 +154,7 @@ interpreter.start();
 // => 'yellow'
 ```
 
-For testing, xstate provides a `SimulatedClock`:
+For testing, the xstate interpreter provides a `SimulatedClock`:
 
 ```js
 import { interpret, SimulatedClock } from 'xstate/lib/interpreter';
@@ -164,3 +208,6 @@ states: {
 ```
 
 The interpreted statechart will `send(...)` the `after(...)` events after their `delay`, unless the state node is exited, which will `cancel(...)` those delayed `send(...)` events.
+
+## Notes
+
