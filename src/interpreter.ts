@@ -16,6 +16,7 @@ import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject } from './actions';
 import { Machine } from './Machine';
+import { StateNode } from './StateNode';
 
 export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
@@ -31,8 +32,8 @@ export type EventListener = (event: EventObject) => void;
 export type Listener = () => void;
 
 export interface Clock {
-  setTimeout(fn: (...args: any[]) => void, timeout: number): number;
-  clearTimeout(id: number): void;
+  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
+  clearTimeout(id: any): void;
 }
 
 export interface SimulatedClock extends Clock {
@@ -105,7 +106,14 @@ export class Interpreter<
 > {
   // TODO: fixme
   public static defaultOptions: InterpreterOptions = {
-    clock: { setTimeout, clearTimeout },
+    clock: {
+      setTimeout: (fn, ms) => {
+        return global.setTimeout.call(null, fn, ms);
+      },
+      clearTimeout: id => {
+        return global.clearTimeout.call(null, id);
+      }
+    },
     logger: global.console.log.bind(console)
   };
   public state: State<TContext, TEvents>;
@@ -117,6 +125,7 @@ export class Interpreter<
   public stopListeners: Set<Listener> = new Set();
   public doneListeners: Set<StateListener> = new Set();
   public eventListeners: Set<EventListener> = new Set();
+  public sendListeners: Set<EventListener> = new Set();
   public clock: Clock;
   public logger: (...args: any[]) => void;
   public initialized = false;
@@ -175,25 +184,49 @@ export class Interpreter<
     }
   }
   /*
-   * Adds a listener that is called whenever a state transition happens.
-   * @param listener The listener to add
+   * Adds a listener that is notified whenever a state transition happens.
+   * @param listener The state listener
    */
   public onTransition(listener: StateListener): Interpreter<TContext> {
     this.listeners.add(listener);
     return this;
   }
+  /**
+   * Adds an event listener that is notified whenever an event is sent to the running interpreter.
+   * @param listener The event listener
+   */
   public onEvent(listener: EventListener): Interpreter<TContext> {
     this.eventListeners.add(listener);
     return this;
   }
+  /**
+   * Adds an event listener that is notified whenever a `send` event occurs.
+   * @param listener The event listener
+   */
+  public onSend(listener: EventListener): Interpreter<TContext> {
+    this.sendListeners.add(listener);
+    return this;
+  }
+  /**
+   * Adds a context listener that is notified whenever the state context changes.
+   * @param listener The context listener
+   */
   public onChange(listener: ContextListener<TContext>): Interpreter<TContext> {
     this.contextListeners.add(listener);
     return this;
   }
+  /**
+   * Adds a listener that is notified when the machine is stopped.
+   * @param listener The listener
+   */
   public onStop(listener: Listener): Interpreter<TContext> {
     this.stopListeners.add(listener);
     return this;
   }
+  /**
+   * Adds a state listener that is notified when the statechart has reached its final state.
+   * @param listener The state listener
+   */
   public onDone(listener: StateListener): Interpreter<TContext> {
     this.doneListeners.add(listener);
     return this;
@@ -206,7 +239,14 @@ export class Interpreter<
     this.listeners.delete(listener);
     return this;
   }
+  /**
+   * Alias for Interpreter.prototype.start
+   */
   public init = this.start;
+  /**
+   * Starts the interpreter from the given state, or the initial state.
+   * @param initialState The state to start the statechart from
+   */
   public start(
     initialState: State<TContext, TEvents> = this.machine.initialState as State<
       TContext,
@@ -217,6 +257,11 @@ export class Interpreter<
     this.update(initialState);
     return this;
   }
+  /**
+   * Stops the interpreter and unsubscribe all listeners.
+   *
+   * This will also notify the `onStop` listeners.
+   */
   public stop(): Interpreter<TContext> {
     this.listeners.forEach(listener => this.off(listener));
     this.stopListeners.forEach(listener => {
@@ -232,6 +277,10 @@ export class Interpreter<
     );
     return this;
   }
+  /**
+   * Sends an event to the running interpreter to trigger a transition.
+   * @param event The event to send
+   */
   public send = (event: Event<TEvents>): State<TContext, TEvents> => {
     const eventObject = toEventObject(event);
     if (!this.initialized) {
@@ -285,7 +334,7 @@ export class Interpreter<
       case actionTypes.send:
         const sendAction = action as SendAction<TContext, TEvents>;
 
-        switch (sendAction.target) {
+        switch (sendAction.to) {
           case SpecialTargets.Parent:
             if (this.parent) {
               this.parent.send(sendAction.event);
@@ -324,7 +373,9 @@ export class Interpreter<
 
           if (typeof service !== 'string') {
             // TODO: try/catch here
-            const interpreter = this.spawn(Machine(service), autoForward);
+            const childMachine =
+              service instanceof StateNode ? service : Machine(service);
+            const interpreter = this.spawn(childMachine, autoForward);
 
             interpreter.start();
 

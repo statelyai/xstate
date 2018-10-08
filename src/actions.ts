@@ -16,7 +16,8 @@ import {
   ActionTypes,
   ActivityDefinition,
   SpecialTargets,
-  Invocation
+  Invocation,
+  RaiseEvent
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -59,10 +60,10 @@ function getActionFunction<TContext>(
   return actionReference.exec;
 }
 
-export const toActionObject = <TContext>(
+export function toActionObject<TContext>(
   action: Action<TContext>,
   actionFunctionMap?: ActionFunctionMap<TContext>
-): ActionObject<TContext> => {
+): ActionObject<TContext> {
   let actionObject: ActionObject<TContext>;
 
   if (typeof action === 'string' || typeof action === 'number') {
@@ -91,7 +92,7 @@ export const toActionObject = <TContext>(
   });
 
   return actionObject;
-};
+}
 
 export function toActivityDefinition<TContext>(
   action: string | ActivityDefinition<TContext>
@@ -118,11 +119,6 @@ export const toActionObjects = <TContext>(
   return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
 
-interface RaiseEvent<TContext, TEvents extends EventObject>
-  extends ActionObject<TContext> {
-  event: TEvents['type'];
-}
-
 export function raise<TContext, TEvents extends EventObject>(
   eventType: TEvents['type']
 ): RaiseEvent<TContext, TEvents> {
@@ -137,7 +133,7 @@ export function send<TContext, TEvents extends EventObject>(
   options?: SendActionOptions
 ): SendAction<TContext, TEvents> {
   return {
-    target: options ? options.target : undefined,
+    to: options ? options.target : undefined,
     type: actionTypes.send,
     event: toEventObject<TEvents>(event),
     delay: options ? options.delay : undefined,

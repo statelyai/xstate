@@ -277,6 +277,7 @@ export type ActionFunctionMap<TContext> = Record<
 
 export type ServiceConfig =
   | string // URL
+  | StateNode
   | StateNodeDefinition<any, any, any>;
 
 export interface MachineOptions<TContext, TEvents extends EventObject> {
@@ -386,6 +387,11 @@ export interface RaisedEvent<TEvents extends EventObject> {
   type: ActionTypes.Raise;
   event: TEvents;
 }
+export interface RaiseEvent<TContext, TEvents extends EventObject>
+  extends ActionObject<TContext> {
+  event: TEvents['type'];
+}
+
 export type BuiltInEvent<TEvents extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvents>
@@ -402,7 +408,7 @@ export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
 
 export interface SendAction<TContext, TEvents extends EventObject>
   extends ActionObject<TContext> {
-  target: string | undefined;
+  to: string | undefined;
   event: TEvents;
   delay?: number;
   id: string | number;

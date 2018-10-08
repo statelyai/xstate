@@ -36,3 +36,9 @@ editor/
 examples/
 _examples/
 !docs/examples/
+
+# Docs
+docs/*
+!docs/api
+!docs/examples
+!docs/guides

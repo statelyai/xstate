@@ -42,7 +42,7 @@ const parentMachine = Machine(
   },
   {
     services: {
-      child: childMachine.definition
+      child: childMachine
     }
   }
 );

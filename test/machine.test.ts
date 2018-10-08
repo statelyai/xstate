@@ -116,24 +116,29 @@ describe('machine', () => {
   });
 
   describe('machine.withConfig', () => {
-    const differentMachine = configMachine.withConfig({
-      actions: {
-        entryAction: () => {
-          throw new Error('new entry');
-        }
-      },
-      guards: { someCondition: () => true }
+    it('should override guards', () => {
+      const differentMachine = configMachine.withConfig({
+        actions: {
+          entryAction: () => {
+            throw new Error('new entry');
+          }
+        },
+        guards: { someCondition: () => true }
+      });
+
+      const interpreter = interpret(differentMachine);
+
+      assert.throws(
+        () => interpreter.start(),
+        /new entry/,
+        'different action should be used'
+      );
+
+      assert.deepEqual(
+        differentMachine.transition('foo', 'EVENT').value,
+        'bar'
+      );
     });
-
-    const interpreter = interpret(differentMachine);
-
-    assert.throws(
-      () => interpreter.start(),
-      /new entry/,
-      'different action should be used'
-    );
-
-    assert.deepEqual(differentMachine.transition('foo', 'EVENT').value, 'bar');
   });
 });
 

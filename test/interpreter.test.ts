@@ -212,7 +212,7 @@ describe('interpreter', () => {
     assert.deepEqual(state.value, 'yellow');
   });
 
-  it('should be able to log', () => {
+  it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
     const logMachine = Machine({
