@@ -104,7 +104,12 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvents extends EventObject = EventObject
 > {
-  // TODO: fixme
+  /**
+   * The default interpreter options:
+   *
+   * - `clock` uses the global `setTimeout` and `clearTimeout` functions
+   * - `logger` uses the global `console.log()` method
+   */
   public static defaultOptions: InterpreterOptions = {
     clock: {
       setTimeout: (fn, ms) => {
@@ -116,24 +121,37 @@ export class Interpreter<
     },
     logger: global.console.log.bind(console)
   };
+  /**
+   * The current state of the interpreted machine.
+   */
   public state: State<TContext, TEvents>;
-  public eventQueue: TEvents[] = [];
-  public delayedEventsMap: Record<string, number> = {};
-  public activitiesMap: Record<string, any> = {};
-  public listeners: Set<StateListener> = new Set();
-  public contextListeners: Set<ContextListener<TContext>> = new Set();
-  public stopListeners: Set<Listener> = new Set();
-  public doneListeners: Set<StateListener> = new Set();
-  public eventListeners: Set<EventListener> = new Set();
-  public sendListeners: Set<EventListener> = new Set();
+  /**
+   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   */
   public clock: Clock;
-  public logger: (...args: any[]) => void;
-  public initialized = false;
+
+  private eventQueue: TEvents[] = [];
+  private delayedEventsMap: Record<string, number> = {};
+  private activitiesMap: Record<string, any> = {};
+  private listeners: Set<StateListener> = new Set();
+  private contextListeners: Set<ContextListener<TContext>> = new Set();
+  private stopListeners: Set<Listener> = new Set();
+  private doneListeners: Set<StateListener> = new Set();
+  private eventListeners: Set<EventListener> = new Set();
+  private sendListeners: Set<EventListener> = new Set();
+  private logger: (...args: any[]) => void;
+  private initialized = false;
 
   // Actor
   public parent?: Interpreter<any>;
   private children: Set<Interpreter<any>> = new Set();
 
+  /**
+   * Creates a new Interpreter instance for the given machine with the provided options, if any.
+   *
+   * @param machine The machine to be interpreted
+   * @param options Interpreter options
+   */
   constructor(
     public machine: XSMachine<TContext, TStateSchema, TEvents>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
@@ -283,6 +301,27 @@ export class Interpreter<
    */
   public send = (event: Event<TEvents>): State<TContext, TEvents> => {
     const eventObject = toEventObject(event);
+    const nextState = this.nextState(eventObject);
+
+    this.update(nextState, event);
+    this.flushEventQueue();
+
+    // Forward copy of event to child interpreters
+    this.forward(eventObject);
+
+    return nextState;
+    // tslint:disable-next-line:semicolon
+  };
+  /**
+   * Returns the next state given the interpreter's current state and the event.
+   *
+   * This does _not_ update the interpreter's state.
+   *
+   * @param event The event to determine the next state
+   */
+  public nextState(event: Event<TEvents>): State<TContext, TEvents> {
+    const eventObject = toEventObject(event);
+
     if (!this.initialized) {
       throw new Error(
         `Unable to send event "${
@@ -297,17 +336,10 @@ export class Interpreter<
       this.state,
       eventObject,
       this.state.context
-    ) as State<TContext, TEvents>; // TODO: fixme
-
-    this.update(nextState, event);
-    this.flushEventQueue();
-
-    // Forward copy of event to child interpreters
-    this.forward(eventObject);
+    );
 
     return nextState;
-    // tslint:disable-next-line:semicolon
-  };
+  }
   private forward(event: Event<TEvents>): void {
     this.children.forEach(childInterpreter => childInterpreter.send(event));
   }
@@ -391,6 +423,7 @@ export class Interpreter<
               : undefined;
 
           if (!implementation) {
+            // tslint:disable-next-line:no-console
             console.warn(
               `No implementation found for activity '${activity.type}'`
             );
@@ -459,6 +492,12 @@ export class Interpreter<
   }
 }
 
+/**
+ * Creates a new Interpreter instance for the given machine with the provided options, if any.
+ *
+ * @param machine The machine to interpret
+ * @param options Interpreter options
+ */
 export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,

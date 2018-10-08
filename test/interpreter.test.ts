@@ -60,6 +60,16 @@ describe('interpreter', () => {
     assert.deepEqual(interpreter.initialState, idMachine.initialState);
   });
 
+  describe('.nextState() method', () => {
+    it('returns the next state for the given event without changing the interpreter state', () => {
+      const interpreter = interpret(lightMachine).start();
+
+      const nextState = interpreter.nextState('TIMER');
+      assert.equal(nextState.value, 'yellow');
+      assert.equal(interpreter.state.value, 'green');
+    });
+  });
+
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
       const currentStates: Array<State<any>> = [];
