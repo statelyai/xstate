@@ -61,7 +61,7 @@ describe('onEntry/onExit actions', () => {
   });
 
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       a: {
         initial: 'a1',
@@ -158,7 +158,7 @@ describe('onEntry/onExit actions', () => {
         }
       },
       B: {
-        parallel: true,
+        type: 'parallel',
         on: {
           'to-A': 'A'
         },

@@ -66,7 +66,7 @@ describe('strict mode', () => {
 
   // @ts-ignore
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       a: {
         initial: 'a1',

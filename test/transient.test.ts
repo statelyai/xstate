@@ -118,7 +118,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should execute all internal events one after the other', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -186,7 +186,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should execute all eventless transitions in the same microstep', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -250,7 +250,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should check for automatic transitions even after microsteps are done', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',

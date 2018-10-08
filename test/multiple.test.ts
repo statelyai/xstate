@@ -33,7 +33,7 @@ describe('multiple', () => {
         }
       },
       para: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A: {
             initial: 'B',
@@ -59,7 +59,7 @@ describe('multiple', () => {
         }
       },
       para2: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A2: {
             initial: 'B2',
@@ -72,7 +72,7 @@ describe('multiple', () => {
             initial: 'L2',
             states: {
               L2: {
-                parallel: true,
+                type: 'parallel',
                 states: {
                   L2A: {
                     initial: 'L2B',
@@ -98,7 +98,7 @@ describe('multiple', () => {
                 }
               },
               M2: {
-                parallel: true,
+                type: 'parallel',
                 states: {
                   M2A: {
                     initial: 'M2B',

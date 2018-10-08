@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 const machine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     a: {
       initial: 'a1',
@@ -34,7 +34,7 @@ const machine = Machine({
           }
         },
         b2: {
-          parallel: true,
+          type: 'parallel',
           states: {
             foo: {
               initial: 'foo1',
