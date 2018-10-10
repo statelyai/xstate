@@ -22,7 +22,7 @@ const testGroups = {
     'send4',
     'send7',
     'send8'
-    // 'send9' - edge case, since initial transitions in xstate are not microstepped
+    // 'send9' // - edge case, since initial transitions in xstate are not microstepped
   ],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic1', 'basic2'],
@@ -58,20 +58,12 @@ const testGroups = {
   //   'test9',
   //   'test10'
   // ], // not well-formed tests
-  parallel: [
-    'test0',
-    'test1'
-
-    // TODO: add support for parallel states with leaf nodes,
-    // e.g.: { foo: { bar: undefined, baz: undefined } }
-    // 'test2',
-    // 'test3'
-  ],
+  parallel: ['test0', 'test1', 'test2', 'test3'],
   'targetless-transition': [
     'test0',
     'test1'
-    // 'test2', // TODO: parallel states with leaf node support
-    // 'test3', // TODO: parallel states with leaf node support
+    // ,'test2', // TODO: parallel states with leaf node support
+    // 'test3' // TODO: parallel states with leaf node support
   ]
   // 'parallel+interrupt': ['test0']
 };
@@ -91,16 +83,19 @@ interface SCIONTest {
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  let nextState: State<any> = machine.getInitialState(
+  const resolvedStateValue = machine.resolve(
     pathsToStateValue(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )
   );
+  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
   const interpreter = interpret(machine, {
     clock: new SimulatedClock()
-  }).onTransition(state => (nextState = state));
-
-  interpreter.start(nextState);
+  })
+    .onTransition(state => {
+      nextState = state;
+    })
+    .start(nextState);
 
   test.events.forEach(({ event, nextConfiguration, after }, i) => {
     if (after) {
@@ -132,7 +127,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['actionSend'];
+  // const testGroupKeys = ['parallel'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {

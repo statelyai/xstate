@@ -1090,39 +1090,53 @@ class StateNode<
     return currentStateNode;
   }
   public resolve(stateValue: StateValue): StateValue {
-    if (typeof stateValue === 'string') {
-      const subStateNode = this.getStateNode(stateValue);
-      if (
-        subStateNode.type === 'parallel' ||
-        subStateNode.type === 'compound'
-      ) {
-        return { [stateValue]: subStateNode.initialStateValue! };
-      }
-
-      return stateValue;
-    }
-    if (!keys(stateValue).length) {
-      return this.initialStateValue || {};
+    if (!stateValue) {
+      return this.initialStateValue || EMPTY_OBJECT; // TODO: type-specific properties
     }
 
-    if (this.type === 'parallel') {
-      return mapValues(
-        this.initialStateValue as Record<string, StateValue>,
-        (subStateValue, subStateKey) => {
-          return subStateValue
-            ? this.getStateNode(subStateKey).resolve(
-                stateValue[subStateKey] || subStateValue
-              )
-            : EMPTY_OBJECT;
+    switch (this.type) {
+      case 'parallel':
+        const r = mapValues(
+          this.initialStateValue as Record<string, StateValue>,
+          (subStateValue, subStateKey) => {
+            const sv = subStateValue
+              ? this.getStateNode(subStateKey).resolve(
+                  stateValue[subStateKey] || subStateValue
+                )
+              : EMPTY_OBJECT;
+
+            return sv;
+          }
+        );
+
+        return r;
+
+      case 'compound':
+        if (typeof stateValue === 'string') {
+          const subStateNode = this.getStateNode(stateValue);
+
+          if (
+            subStateNode.type === 'parallel' ||
+            subStateNode.type === 'compound'
+          ) {
+            return { [stateValue]: subStateNode.initialStateValue! };
+          }
+
+          return stateValue;
         }
-      );
-    }
+        if (!keys(stateValue).length) {
+          return this.initialStateValue || {};
+        }
 
-    return mapValues(stateValue, (subStateValue, subStateKey) => {
-      return subStateValue
-        ? this.getStateNode(subStateKey).resolve(subStateValue)
-        : EMPTY_OBJECT;
-    });
+        return mapValues(stateValue, (subStateValue, subStateKey) => {
+          return subStateValue
+            ? this.getStateNode(subStateKey).resolve(subStateValue)
+            : EMPTY_OBJECT;
+        });
+
+      default:
+        return stateValue || EMPTY_OBJECT;
+    }
   }
 
   private get resolvedStateValue(): StateValue {
