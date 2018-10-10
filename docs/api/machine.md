@@ -178,3 +178,19 @@ const greenStateNode = standardMachine.getState('green');
 console.log(greenStateNode.id);
 // => 'green'
 ```
+
+## `machine.handles`
+(`boolean`) Determines if the machine handles a given event.
+
+**Arguments:**
+  - `event`: `Event`
+  - e.g., 'TIMER' or { type: 'TIMER', elapsed: 2000 }
+
+**Usage:**
+
+```js
+console.log(standardMachine.handles('TIMER'));
+// => true
+console.log(standardMachine.handles('INIT_UPLOAD'));
+// => false
+```
