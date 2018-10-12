@@ -420,8 +420,8 @@ export enum SpecialTargets {
 }
 
 export interface SendActionOptions {
-  delay?: number;
   id?: string | number;
+  delay?: number;
   target?: string;
 }
 

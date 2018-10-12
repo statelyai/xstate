@@ -237,7 +237,7 @@ class StateNode<
   }
 
   /**
-   * Clones the current state machine with custom options and context.
+   * Clones this state machine with custom options and context.
    *
    * @param options Options (actions, guards, activities, services) to recursively merge with the existing options.
    * @param context Custom context (will override predefined context)
@@ -257,6 +257,17 @@ class StateNode<
       },
       context
     );
+  }
+
+  /**
+   * Clones this state machine with custom context.
+   *
+   * @param context Custom context (will override predefined context, not recursive)
+   */
+  public withContext(
+    context: TContext
+  ): StateNode<TContext, TStateSchema, TEvents> {
+    return new StateNode(this.definition, this.options, context);
   }
 
   /**
@@ -1341,7 +1352,7 @@ class StateNode<
     return this.__cache.initialState;
   }
 
-  private getInitialState(
+  public getInitialState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
   ): State<TContext, TEvents> {
@@ -1497,6 +1508,7 @@ class StateNode<
     // Case when state node is compound but no initial state is defined
     if (this.type === 'compound' && !this.initial) {
       if (!IS_PRODUCTION) {
+        // tslint:disable-next-line:no-console
         console.warn(`Compound state node '${this.id}' has no initial state.`);
       }
       return [this];
