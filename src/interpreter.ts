@@ -97,8 +97,8 @@ export class SimulatedClock implements SimulatedClock {
   }
 }
 
-// tslint:disable-next-line:max-classes-per-file
 export class Interpreter<
+  // tslint:disable-next-line:max-classes-per-file
   TContext,
   TStateSchema extends StateSchema = any,
   TEvents extends EventObject = EventObject
