@@ -1508,6 +1508,7 @@ class StateNode<
     // Case when state node is compound but no initial state is defined
     if (this.type === 'compound' && !this.initial) {
       if (!IS_PRODUCTION) {
+        // tslint:disable-next-line:no-console
         console.warn(`Compound state node '${this.id}' has no initial state.`);
       }
       return [this];

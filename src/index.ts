@@ -3,7 +3,33 @@ import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine } from './Machine';
-import * as actions from './actions';
+import {
+  raise,
+  send,
+  sendParent,
+  log,
+  cancel,
+  start,
+  stop,
+  assign,
+  after,
+  done,
+  invoke
+} from './actions';
+
+const actions = {
+  raise,
+  send,
+  sendParent,
+  log,
+  cancel,
+  start,
+  stop,
+  assign,
+  after,
+  done,
+  invoke
+};
 
 export { Machine, StateNode, State, matchesState, mapState, actions };
 
