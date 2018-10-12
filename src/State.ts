@@ -28,7 +28,15 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
 
 export class State<TContext, TEvents extends EventObject = EventObject>
   implements StateInterface<TContext> {
+  /**
+   * The state node tree representation of the state value.
+   */
   public tree?: StateTree;
+  /**
+   * Creates a new State instance for the given `stateValue` and `context`.
+   * @param stateValue
+   * @param context
+   */
   public static from<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC, TE> | StateValue,
     context: TC
@@ -62,6 +70,11 @@ export class State<TContext, TEvents extends EventObject = EventObject>
       []
     );
   }
+  /**
+   * Creates a new State instance for the given `stateValue` and `context` with no actions (side-effects).
+   * @param stateValue
+   * @param context
+   */
   public static inert<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC> | StateValue,
     context: TC
@@ -86,6 +99,18 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     return State.from<TC, TE>(stateValue, context);
   }
 
+  /**
+   * Creates a new State instance.
+   * @param value The state value
+   * @param context The extended state
+   * @param historyValue The tree representing historical values of the state nodes
+   * @param history The previous state
+   * @param actions An array of action objects to execute as side-effects
+   * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
+   * @param data
+   * @param events Internal event queue. Should be empty with run-to-completion semantics.
+   * @param tree
+   */
   constructor(
     public value: StateValue,
     public context: TContext,
@@ -94,9 +119,6 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     public actions: Array<ActionObject<TContext>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public data: Record<string, any> = {},
-    /**
-     * Internal event queue
-     */
     public events: TEvents[] = [],
     tree?: StateTree
   ) {
@@ -106,6 +128,9 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     });
   }
 
+  /**
+   * The next events that will cause a transition from the current state.
+   */
   public get nextEvents(): EventType[] {
     if (!this.tree) {
       return [];
@@ -114,26 +139,43 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     return this.tree.nextEvents;
   }
 
+  /**
+   * Returns an array of all the string leaf state node paths.
+   * @param stateValue
+   * @param delimiter The character(s) that separate each subpath in the string state node path.
+   */
   public toStrings(
-    value: StateValue = this.value,
+    stateValue: StateValue = this.value,
     delimiter: string = '.'
   ): string[] {
-    if (typeof value === 'string') {
-      return [value];
+    if (typeof stateValue === 'string') {
+      return [stateValue];
     }
-    const valueKeys = keys(value);
+    const valueKeys = keys(stateValue);
 
     return valueKeys.concat(
       ...valueKeys.map(key =>
-        this.toStrings(value[key]).map(s => key + delimiter + s)
+        this.toStrings(stateValue[key]).map(s => key + delimiter + s)
       )
     );
   }
 
+  /**
+   * Whether the current state value is a subset of the given parent state value.
+   * @param parentStateValue
+   */
   public matches(parentStateValue: StateValue): boolean {
     return matchesState(parentStateValue, this.value);
   }
 
+  /**
+   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
+   *
+   * - Its value is not equal to its previous value, or:
+   * - It has any new actions (side-effects) to execute.
+   *
+   * An initial state (with no history) will return `undefined`.
+   */
   public get changed(): boolean | undefined {
     if (!this.history) {
       return undefined;

@@ -81,23 +81,84 @@ class StateNode<
   TStateSchema extends StateSchema = any,
   TEvents extends AnyEvent<EventObject> = AnyEvent<EventObject>
 > {
+  /**
+   * The relative key of the state node, which represents its location in the overall state value.
+   */
   public key: string;
+  /**
+   * The unique ID of the state node.
+   */
   public id: string;
+  /**
+   * The type of this state node:
+   *
+   *  - `'atomic'` - no child state nodes
+   *  - `'compound'` - nested child state nodes (XOR)
+   *  - `'parallel'` - orthogonal nested child state nodes (AND)
+   *  - `'history'` - history state node
+   *  - `'final'` - final state node
+   */
   public type: StateTypes;
+  /**
+   * The string path from the root machine node to this node.
+   */
   public path: string[];
+  /**
+   * The initial state node key.
+   */
   public initial?: keyof TStateSchema['states'];
+  /**
+   * (DEPRECATED) Whether the state node is a parallel state node.
+   *
+   * Use `type: 'parallel'` instead.
+   */
   public parallel: boolean;
+  /**
+   * Whether the state node is "transient". A state node is considered transient if it has
+   * an immediate transition from a "null event" (empty string), taken upon entering the state node.
+   */
   public transient: boolean;
+  /**
+   * The child state nodes.
+   */
   public states: StateNodesConfig<TContext, TStateSchema, TEvents>;
+  /**
+   * The type of history exhibited. Can be:
+   *
+   *  - `'shallow'` - recalls only top-level historical state value
+   *  - `'deep'` - recalls historical state value at all levels
+   */
   public history: false | 'shallow' | 'deep';
+  /**
+   * The action(s) to be executed upon entering the state node.
+   */
   public onEntry: Array<Action<TContext>>;
+  /**
+   * The action(s) to be executed upon exiting the state node.
+   */
   public onExit: Array<Action<TContext>>;
+  /**
+   * The activities to be started upon entering the state node,
+   * and stopped upon exiting the state node.
+   */
   public activities: Array<ActivityDefinition<TContext>>;
   public strict: boolean;
+  /**
+   * The parent state node.
+   */
   public parent?: StateNode<TContext>;
+  /**
+   * The root machine node.
+   */
   public machine: StateNode<TContext>;
   public data?: TStateSchema extends { data: infer D } ? D : any;
+  /**
+   * The string delimiter for serializing the path to a string. The default is "."
+   */
   public delimiter: string;
+  /**
+   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   */
   public order: number;
 
   private __cache = {
@@ -165,7 +226,6 @@ class StateNode<
     this.history =
       _config.history === true ? 'shallow' : _config.history || false;
 
-    // this.on = config.on ? this.formatTransitions(config.on) : {};
     this.transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
     this.onEntry = toArray(_config.onEntry);
@@ -175,25 +235,33 @@ class StateNode<
       this.resolveActivity(activity)
     );
   }
+
+  /**
+   * Clones the current state machine with custom options and context.
+   *
+   * @param options Options (actions, guards, activities, services) to recursively merge with the existing options.
+   * @param context Custom context (will override predefined context)
+   */
   public withConfig(
     options: MachineOptions<TContext, TEvents>,
     context?: TContext
   ): StateNode<TContext, TStateSchema, TEvents> {
+    const { actions, activities, guards } = this.options;
+
     return new StateNode(
       this.definition,
       {
-        actions: { ...this.options.actions, ...options.actions },
-        activities: { ...this.options.activities, ...options.activities },
-        guards: { ...this.options.guards, ...options.guards }
+        actions: { ...actions, ...options.actions },
+        activities: { ...activities, ...options.activities },
+        guards: { ...guards, ...options.guards }
       },
       context
     );
   }
-  public withContext(
-    context: TContext
-  ): StateNode<TContext, TStateSchema, TEvents> {
-    return new StateNode(this.definition, this.options, context);
-  }
+
+  /**
+   * The well-structured state node definition.
+   */
   public get definition(): StateNodeDefinition<
     TContext,
     TStateSchema,
@@ -212,20 +280,43 @@ class StateNode<
       on: this.on,
       onEntry: this.onEntry,
       onExit: this.onExit,
-      after: this.after,
       activities: this.activities || [],
       data: this.data,
       order: this.order || -1
     };
   }
+
+  /**
+   * The raw config used to create the machine.
+   */
   public get config(): StateNodeConfig<TContext, TStateSchema, TEvents> {
     const { parent, ...config } = this._config;
 
     return config;
   }
+
+  /**
+   * The mapping of events to transitions.
+   */
   public get on(): TransitionsDefinition<TContext, TEvents> {
     return this.formatTransitions();
   }
+
+  /**
+   * All the transitions that can be taken from this state node.
+   */
+  public get transitions(): Array<TransitionDefinition<TContext, TEvents>> {
+    return flatten(
+      keys(this.on).map(
+        event =>
+          this.on[event] as Array<TransitionDefinition<TContext, TEvents>>
+      )
+    );
+  }
+
+  /**
+   * All delayed transitions from the config.
+   */
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvents>> {
     const {
       config: { after: afterConfig }
@@ -272,6 +363,12 @@ class StateNode<
 
     return allDelayedTransitions;
   }
+
+  /**
+   * Returns the state nodes represented by the current state value.
+   *
+   * @param state The state value or State instance
+   */
   public getStateNodes(
     state: StateValue | State<TContext, TEvents>
   ): Array<StateNode<TContext>> {
@@ -309,6 +406,12 @@ class StateNode<
       )
     );
   }
+
+  /**
+   * Whether this state node explicitly handles the given event.
+   *
+   * @param event The event in question
+   */
   public handles(event: Event<TEvents>): boolean {
     const eventType = getEventType<TEvents>(event);
 
@@ -495,7 +598,7 @@ class StateNode<
       )
     };
   }
-  public _transition(
+  private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvents>,
     event: TEvents,
@@ -617,6 +720,10 @@ class StateNode<
       actions
     };
   }
+
+  /**
+   * The state tree represented by this state node.
+   */
   private get tree(): StateTree {
     const stateValue = toStateValue(this.path, this.delimiter);
 
@@ -643,6 +750,11 @@ class StateNode<
   private getStateTree(stateValue: StateValue): StateTree {
     return new StateTree(this, stateValue);
   }
+
+  /**
+   * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
+   * this state node, it does not escape.
+   */
   private escapes(stateNode: StateNode): boolean {
     if (this === stateNode) {
       return false;
@@ -684,9 +796,19 @@ class StateNode<
 
     return condFn(context, eventObject, interimState);
   }
+
+  /**
+   * The array of all delayed transitions.
+   */
   public get delays(): Delay[] {
     const delays = Array.from(
-      new Set(this.after.map(delayedTransition => delayedTransition.delay))
+      new Set(
+        this.transitions
+          .map(transition => transition.delay)
+          .filter<number>((delay => delay !== undefined) as (
+            delay: number | undefined
+          ) => delay is number)
+      )
     );
 
     return delays.map(delay => ({
@@ -789,6 +911,14 @@ class StateNode<
 
     return activityMap;
   }
+
+  /**
+   * Determines the next state given the current `state` and sent `event`.
+   *
+   * @param state The current State instance or state value
+   * @param event The event that was sent at the current state
+   * @param context The current context (extended state) of the current state
+   */
   public transition(
     state: StateValue | State<TContext, TEvents>,
     event: Event<TEvents>,
@@ -960,7 +1090,7 @@ class StateNode<
 
     return maybeNextState;
   }
-  public static updateContext<TContext, TEvents extends EventObject>(
+  private static updateContext<TContext, TEvents extends EventObject>(
     context: TContext,
     event: TEvents | undefined,
     assignActions: Array<AssignAction<TContext, TEvents>>
@@ -1031,6 +1161,10 @@ class StateNode<
       }
     }
   }
+
+  /**
+   * Returns the child state node from its relative `stateKey`, or throws.
+   */
   public getStateNode(stateKey: string): StateNode<TContext> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
@@ -1053,6 +1187,12 @@ class StateNode<
 
     return result;
   }
+
+  /**
+   * Returns the state node with the given `stateId`, or throws.
+   *
+   * @param stateId The state ID. The prefix "#" is removed.
+   */
   public getStateNodeById(stateId: string): StateNode<TContext> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
@@ -1072,6 +1212,12 @@ class StateNode<
 
     return stateNode;
   }
+
+  /**
+   * Returns the relative state node from the given `statePath`, or throws.
+   *
+   * @param statePath The string or string array relative path to the state node.
+   */
   public getStateNodeByPath(statePath: string | string[]): StateNode<TContext> {
     const arrayStatePath = toStatePath(statePath, this.delimiter);
     let currentStateNode: StateNode<TContext> = this;
@@ -1082,40 +1228,60 @@ class StateNode<
 
     return currentStateNode;
   }
+
+  /**
+   * Resolves a partial state value with its full representation in this machine.
+   *
+   * @param stateValue The partial state value to resolve.
+   */
   public resolve(stateValue: StateValue): StateValue {
-    if (typeof stateValue === 'string') {
-      const subStateNode = this.getStateNode(stateValue);
-      if (
-        subStateNode.type === 'parallel' ||
-        subStateNode.type === 'compound'
-      ) {
-        return { [stateValue]: subStateNode.initialStateValue! };
-      }
-
-      return stateValue;
-    }
-    if (!keys(stateValue).length) {
-      return this.initialStateValue || {};
+    if (!stateValue) {
+      return this.initialStateValue || EMPTY_OBJECT; // TODO: type-specific properties
     }
 
-    if (this.type === 'parallel') {
-      return mapValues(
-        this.initialStateValue as Record<string, StateValue>,
-        (subStateValue, subStateKey) => {
-          return subStateValue
-            ? this.getStateNode(subStateKey).resolve(
-                stateValue[subStateKey] || subStateValue
-              )
-            : EMPTY_OBJECT;
+    switch (this.type) {
+      case 'parallel':
+        const r = mapValues(
+          this.initialStateValue as Record<string, StateValue>,
+          (subStateValue, subStateKey) => {
+            const sv = subStateValue
+              ? this.getStateNode(subStateKey).resolve(
+                  stateValue[subStateKey] || subStateValue
+                )
+              : EMPTY_OBJECT;
+
+            return sv;
+          }
+        );
+
+        return r;
+
+      case 'compound':
+        if (typeof stateValue === 'string') {
+          const subStateNode = this.getStateNode(stateValue);
+
+          if (
+            subStateNode.type === 'parallel' ||
+            subStateNode.type === 'compound'
+          ) {
+            return { [stateValue]: subStateNode.initialStateValue! };
+          }
+
+          return stateValue;
         }
-      );
-    }
+        if (!keys(stateValue).length) {
+          return this.initialStateValue || {};
+        }
 
-    return mapValues(stateValue, (subStateValue, subStateKey) => {
-      return subStateValue
-        ? this.getStateNode(subStateKey).resolve(subStateValue)
-        : EMPTY_OBJECT;
-    });
+        return mapValues(stateValue, (subStateValue, subStateKey) => {
+          return subStateValue
+            ? this.getStateNode(subStateKey).resolve(subStateValue)
+            : EMPTY_OBJECT;
+        });
+
+      default:
+        return stateValue || EMPTY_OBJECT;
+    }
   }
 
   private get resolvedStateValue(): StateValue {
@@ -1174,7 +1340,8 @@ class StateNode<
 
     return this.__cache.initialState;
   }
-  public getInitialState(
+
+  private getInitialState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
   ): State<TContext, TEvents> {
@@ -1216,6 +1383,11 @@ class StateNode<
 
     return initialNextState;
   }
+
+  /**
+   * The initial State instance, which includes all actions to be executed from
+   * entering the initial state.
+   */
   public get initialState(): State<TContext, TEvents> {
     const { initialStateValue } = this;
 
@@ -1237,6 +1409,11 @@ class StateNode<
       undefined
     );
   }
+
+  /**
+   * The target state value of the history state node, if it exists. This represents the
+   * default state value to transition to if no history value exists yet.
+   */
   public get target(): StateValue | undefined {
     let target;
     if (this.history) {
@@ -1259,6 +1436,7 @@ class StateNode<
 
     return target;
   }
+
   public getStates(stateValue: StateValue): Array<StateNode<TContext>> {
     if (typeof stateValue === 'string') {
       return [this.states[stateValue]];
@@ -1366,7 +1544,7 @@ class StateNode<
 
     return this.states[x].getFromRelativePath(xs, historyValue);
   }
-  public static updateHistoryValue(
+  private static updateHistoryValue(
     hist: HistoryValue,
     stateValue: StateValue
   ): HistoryValue {
@@ -1397,7 +1575,7 @@ class StateNode<
       states: update(hist, stateValue)
     };
   }
-  public historyValue(
+  private historyValue(
     relativeStateValue?: StateValue | undefined
   ): HistoryValue | undefined {
     if (!keys(this.states).length) {
@@ -1467,6 +1645,10 @@ class StateNode<
       })
     );
   }
+
+  /**
+   * All the state node IDs of this state node and its descendant state nodes.
+   */
   public get stateIds(): string[] {
     const childStateIds = flatten(
       keys(this.states).map(stateKey => {
@@ -1475,6 +1657,10 @@ class StateNode<
     );
     return [this.id].concat(childStateIds);
   }
+
+  /**
+   * All the event types accepted by this state node and its descendants.
+   */
   public get events(): Array<TEvents['type']> {
     if (this.__cache.events) {
       return this.__cache.events;
@@ -1495,6 +1681,12 @@ class StateNode<
 
     return (this.__cache.events = Array.from(events));
   }
+
+  /**
+   * All the events that have transitions directly from this state node.
+   *
+   * Excludes any inert events.
+   */
   public get ownEvents(): Array<TEvents['type']> {
     const events = new Set(
       keys(this.on).filter(key => {

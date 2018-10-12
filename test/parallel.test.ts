@@ -14,7 +14,7 @@ const composerMachine = Machine({
       states: {
         StructureEdit: {
           id: 'StructureEditRO',
-          parallel: true,
+          type: 'parallel',
           on: {
             switchToProjectManagement: [
               {
@@ -129,7 +129,7 @@ const composerMachine = Machine({
         },
         ProjectManagement: {
           id: 'ProjectManagementRO',
-          parallel: true,
+          type: 'parallel',
           on: {
             switchToStructureEdit: [
               {
@@ -191,7 +191,7 @@ const composerMachine = Machine({
 
 const wakMachine = Machine({
   id: 'wakMachine',
-  parallel: true,
+  type: 'parallel',
   strict: true,
   states: {
     wak1: {
@@ -235,7 +235,7 @@ const wakMachine = Machine({
 
 const wordMachine = Machine({
   id: 'word',
-  parallel: true,
+  type: 'parallel',
   states: {
     bold: {
       initial: 'off',
@@ -291,7 +291,7 @@ const wordMachine = Machine({
 });
 
 const flatParallelMachine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     foo: {},
     bar: {},
@@ -307,7 +307,7 @@ const flatParallelMachine = Machine({
 
 const raisingParallelMachine = Machine({
   strict: true,
-  parallel: true,
+  type: 'parallel',
   states: {
     OUTER1: {
       initial: 'C',
@@ -336,7 +336,7 @@ const raisingParallelMachine = Machine({
       }
     },
     OUTER2: {
-      parallel: true,
+      type: 'parallel',
       states: {
         INNER1: {
           initial: 'ON',
@@ -374,7 +374,7 @@ const raisingParallelMachine = Machine({
 });
 
 const nestedParallelState = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     OUTER1: {
       initial: 'STATE_OFF',
@@ -386,7 +386,7 @@ const nestedParallelState = Machine({
           }
         },
         STATE_ON: {
-          parallel: true,
+          type: 'parallel',
           states: {
             STATE_NTJ0: {
               initial: 'STATE_IDLE_0',
@@ -433,7 +433,7 @@ const nestedParallelState = Machine({
         },
         STATE_ON_SIMPLE: {},
         STATE_ON_COMPLEX: {
-          parallel: true,
+          type: 'parallel',
           states: {
             STATE_INNER1: {
               initial: 'STATE_OFF',

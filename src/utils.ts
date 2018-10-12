@@ -219,6 +219,15 @@ export const toStatePaths = (
 
   const result = flatten(
     keys(stateValue).map(key => {
+      const subStateValue = stateValue[key];
+
+      if (
+        typeof subStateValue !== 'string' &&
+        !Object.keys(subStateValue).length
+      ) {
+        return [[key]];
+      }
+
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
       });

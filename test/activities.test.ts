@@ -158,7 +158,7 @@ describe('activities', () => {
 
 describe('transient activities', () => {
   const machine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       A: {
         activities: ['A'],

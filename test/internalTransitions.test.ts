@@ -3,7 +3,7 @@ import { assert } from 'chai';
 
 const wordMachine = Machine({
   key: 'word',
-  parallel: true,
+  type: 'parallel',
   states: {
     direction: {
       initial: 'left',
