@@ -1352,7 +1352,7 @@ class StateNode<
     return this.__cache.initialState;
   }
 
-  private getInitialState(
+  public getInitialState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
   ): State<TContext, TEvents> {
