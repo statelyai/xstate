@@ -408,7 +408,6 @@ export type DoneEvent = DoneEventObject & string;
 export type BuiltInEvent<TEvents extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvents>
-  | DoneEventObject
   | { type: ActionTypes.Init };
 
 export type AnyEvent<TEvents extends EventObject> =
