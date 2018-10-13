@@ -1,6 +1,6 @@
 import { Machine, actions } from '../src/index';
 import { interpret } from '../src/interpreter';
-import { assign, invoke } from '../src/actions';
+import { assign, invoke, sendParent, send } from '../src/actions';
 import { assert } from 'chai';
 
 const childMachine = Machine({
@@ -47,6 +47,44 @@ const parentMachine = Machine(
   }
 );
 
+const fetchMachine = Machine({
+  id: 'fetch',
+  initial: 'pending',
+  states: {
+    pending: {
+      onEntry: send('RESOLVE'),
+      on: {
+        RESOLVE: 'success'
+      }
+    },
+    success: {
+      onEntry: sendParent({
+        type: 'FETCH.RESOLVE',
+        data: { foo: 'bar' }
+      })
+    },
+    failure: {
+      onEntry: sendParent('REJECT')
+    }
+  }
+});
+
+const fetcherMachine = Machine({
+  id: 'fetcher',
+  initial: 'waiting',
+  states: {
+    waiting: {
+      activities: invoke(fetchMachine),
+      on: {
+        'FETCH.RESOLVE': 'received'
+      }
+    },
+    received: {
+      type: 'final'
+    }
+  }
+});
+
 describe('invoke', () => {
   it('should start services (external machines)', () => {
     const interpreter = interpret(parentMachine).start();
@@ -71,5 +109,14 @@ describe('invoke', () => {
     // 4. The context of the 'parent' machine will be updated from 2 to -1
 
     assert.deepEqual(interpreter.state.context, { count: -1 });
+  });
+
+  it('should start services (explicit machines)', done => {
+    interpret(fetcherMachine)
+      .onDone(state => {
+        assert.deepEqual(state.value, 'received');
+        done();
+      })
+      .start();
   });
 });

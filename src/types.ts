@@ -87,11 +87,10 @@ export type Activity<TContext> = string | ActivityDefinition<TContext>;
 export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   id: string;
   type: string;
-  src?: string;
 }
 
 export interface Invocation<TContext> extends ActivityDefinition<TContext> {
-  src: string;
+  src: string | Machine<TContext, any, any>;
   forward?: boolean;
 }
 

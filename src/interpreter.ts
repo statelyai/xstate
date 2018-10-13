@@ -200,6 +200,8 @@ export class Interpreter<
       this.doneListeners.forEach(listener => listener(state));
       this.stop();
     }
+
+    this.flushEventQueue();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens.
@@ -304,7 +306,6 @@ export class Interpreter<
     const nextState = this.nextState(eventObject);
 
     this.update(nextState, event);
-    this.flushEventQueue();
 
     // Forward copy of event to child interpreters
     this.forward(eventObject);
@@ -391,14 +392,18 @@ export class Interpreter<
           .activity as Invocation<TContext>;
 
         if (activity.type === ActionTypes.Invoke) {
-          const service =
-            this.machine.options.services && activity.src
-              ? this.machine.options.services[activity.src]
-              : undefined;
+          const service = activity.src
+            ? activity.src instanceof StateNode
+              ? activity.src
+              : this.machine.options.services
+                ? this.machine.options.services[activity.src]
+                : undefined
+            : undefined;
 
           const autoForward = !!activity.forward;
 
           if (!service) {
+            // tslint:disable-next-line:no-console
             console.warn(`No service found for invocation '${activity.src}'`);
             return;
           }

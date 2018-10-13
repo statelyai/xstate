@@ -17,7 +17,8 @@ import {
   ActivityDefinition,
   SpecialTargets,
   Invocation,
-  RaiseEvent
+  RaiseEvent,
+  Machine
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -295,15 +296,25 @@ export function done(id: string) {
  * @param options
  */
 export function invoke<TContext>(
-  invokeConfig: string | Invocation<TContext>,
+  invokeConfig: string | Invocation<TContext> | Machine<any, any, any>,
   options?: Partial<Invocation<TContext>>
-): ActivityDefinition<TContext> {
+): Invocation<TContext> {
   if (typeof invokeConfig === 'string') {
     return {
       id: invokeConfig,
       src: invokeConfig,
       type: ActionTypes.Invoke,
       ...options
+    };
+  }
+
+  if (!('src' in invokeConfig)) {
+    const machine = invokeConfig as Machine<any, any, any>;
+
+    return {
+      type: ActionTypes.Invoke,
+      id: machine.id,
+      src: machine
     };
   }
 
