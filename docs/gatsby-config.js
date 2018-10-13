@@ -30,7 +30,7 @@ module.exports = {
       resolve: 'gatsby-mdx',
       options: {
         extensions: ['.mdx', '.md'],
-        defaultLayout: require.resolve('./src/components/layout.js'),
+        defaultLayout: require.resolve('./src/components/layout.jsx'),
         mdPlugins: [require('remark-toc')],
         gatsbyRemarkPlugins: [
           // {
