@@ -279,9 +279,10 @@ export function after(delay: number, id?: string) {
 
 /**
  * Returns an event that represents that a final state node
- * has been entered.
+ * has been reached.
  *
  * @param id The final state node ID
+ * @param data The data to pass into the event
  */
 export function done(id: string, data?: any): DoneEvent {
   const type = `${ActionTypes.DoneState}.${id}`;
@@ -292,7 +293,28 @@ export function done(id: string, data?: any): DoneEvent {
 
   eventObject.toString = () => type;
 
-  return eventObject;
+  return eventObject as DoneEvent;
+}
+
+/**
+ * Returns an event that represents that an invoked service has terminated.
+ *
+ * An invoked service is terminated when it has reached a top-level final state node,
+ * but not when it is canceled.
+ *
+ * @param id The final state node ID
+ * @param data The data to pass into the event
+ */
+export function doneInvoke(id: string, data?: any): DoneEvent {
+  const type = `${ActionTypes.DoneInvoke}.${id}`;
+  const eventObject = {
+    type,
+    data
+  };
+
+  eventObject.toString = () => type;
+
+  return eventObject as DoneEvent;
 }
 
 /**

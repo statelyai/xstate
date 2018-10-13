@@ -51,7 +51,7 @@ const finalMachine = Machine({
             }
           },
           on: {
-            [done('final.red.crosswalk2') + '']: {
+            [done('final.red.crosswalk2')]: {
               actions: 'stopCrosswalk2'
             }
           }
