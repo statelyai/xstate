@@ -7,12 +7,24 @@ export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
 export interface EventObject extends Record<string, any> {
+  /**
+   * The type of event that is sent.
+   */
   type: string;
+  /**
+   * The unique ID that identifies this specific event instance.
+   */
   id?: string | number;
 }
 
 export interface ActionObject<TContext> extends Record<string, any> {
+  /**
+   * The type of action that is executed.
+   */
   type: string;
+  /**
+   * The implementation for executing the action.
+   */
   exec?: ActionFunction<TContext>;
 }
 
@@ -35,6 +47,12 @@ export interface StateValueMap {
   [key: string]: StateValue;
 }
 
+/**
+ * The string or object representing the state value relative to the parent state node.
+ *
+ * - For a child atomic state node, this is a string, e.g., `"pending"`.
+ * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
+ */
 export type StateValue = string | StateValueMap;
 
 export interface HistoryValue {
@@ -90,12 +108,21 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
 }
 
 export interface Invocation<TContext> extends ActivityDefinition<TContext> {
+  /**
+   * The source of the machine to be invoked, or the machine itself.
+   */
   src: string | Machine<any, any, any>;
+  /**
+   * Whether any events sent to the parent are forwarded to the invoked child machine.
+   */
   forward?: boolean;
 }
 
 export interface Delay {
   id: string;
+  /**
+   * The time to delay the event, in milliseconds.
+   */
   delay: number;
 }
 
@@ -187,12 +214,31 @@ export interface StateNodeConfig<
   TStateSchema extends StateSchema,
   TEvents extends EventObject
 > {
+  /**
+   * The relative key of the state node, which represents its location in the overall state value.
+   * This is automatically determined by the configuration shape via the key where it was defined.
+   */
   key?: string;
+  /**
+   * The initial state node key.
+   */
   initial?: keyof TStateSchema['states'] | undefined;
+  /**
+   * @deprecated
+   */
   parallel?: boolean | undefined;
+  /**
+   * The type of this state node:
+   *
+   *  - `'atomic'` - no child state nodes
+   *  - `'compound'` - nested child state nodes (XOR)
+   *  - `'parallel'` - orthogonal nested child state nodes (AND)
+   *  - `'history'` - history state node
+   *  - `'final'` - final state node
+   */
   type?: StateTypes;
   /**
-   * The initial context (extended state).
+   * The initial context (extended state) of the machine.
    */
   context?: TContext;
   /**
@@ -201,22 +247,66 @@ export interface StateNodeConfig<
    * shallow, deep, true (shallow), false (none), undefined (none)
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
+  /**
+   * The mapping of state node keys to their state node configurations (recursive).
+   */
   states?: StatesConfig<TContext, TStateSchema, TEvents> | undefined;
+  /**
+   * The mapping of event types to their potential transition(s).
+   */
   on?: TransitionsConfig<TContext, TEvents>;
+  /**
+   * The action(s) to be executed upon entering the state node.
+   */
   onEntry?: SingleOrArray<Action<TContext>>;
+  /**
+   * The action(s) to be executed upon exiting the state node.
+   */
   onExit?: SingleOrArray<Action<TContext>>;
+  /**
+   * The potential transition(s) to be taken upon reaching a final child state node.
+   *
+   * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
+   */
   onDone?:
     | string
     | TransitionConfig<TContext, { type: ActionTypes.DoneState }>
     | Array<TransitionConfig<TContext, { type: ActionTypes.DoneState }>>;
+  /**
+   * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
+   * The delayed transitions are taken after the specified delay in an interpreter.
+   */
   after?: DelayedTransitions<TContext, TEvents>;
+  /**
+   * The activities to be started upon entering the state node,
+   * and stopped upon exiting the state node.
+   */
   activities?: SingleOrArray<Activity<TContext>>;
+  /**
+   * @private
+   */
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
+  /**
+   * The meta data associated with this state node, which will be returned in State instances.
+   */
   meta?: TStateSchema extends { meta: infer D } ? D : any;
+  /**
+   * The data sent with the "done.state._id_" event if this is a final state node.
+   */
   data?: any;
+  /**
+   * The unique ID of the state node, which can be referenced as a transition target via the
+   * `#id` syntax.
+   */
   id?: string | undefined;
+  /**
+   * The string delimiter for serializing the path to a string. The default is "."
+   */
   delimiter?: string;
+  /**
+   * The order this state node appears. Corresponds to the implicit SCXML document order.
+   */
   order?: number;
 }
 
