@@ -18,7 +18,8 @@ import {
   SpecialTargets,
   Invocation,
   RaiseEvent,
-  Machine
+  Machine,
+  DoneEvent
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -127,11 +128,11 @@ export const toActionObjects = <TContext>(
  * @param eventType The event to raise.
  */
 export function raise<TContext, TEvents extends EventObject>(
-  eventType: TEvents['type']
+  event: Event<TEvents>
 ): RaiseEvent<TContext, TEvents> {
   return {
     type: actionTypes.raise,
-    event: eventType
+    event
   };
 }
 
@@ -277,13 +278,21 @@ export function after(delay: number, id?: string) {
 }
 
 /**
- * Returns an event type that represents that a final state node
+ * Returns an event that represents that a final state node
  * has been entered.
  *
  * @param id The final state node ID
  */
-export function done(id: string) {
-  return `${ActionTypes.DoneState}.${id}`;
+export function done(id: string, data?: any): DoneEvent {
+  const type = `${ActionTypes.DoneState}.${id}`;
+  const eventObject = {
+    type,
+    data
+  };
+
+  eventObject.toString = () => type;
+
+  return eventObject;
 }
 
 /**

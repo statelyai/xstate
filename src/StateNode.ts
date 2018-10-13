@@ -43,7 +43,8 @@ import {
   StateNodesConfig,
   ActionTypes,
   AnyEvent,
-  RaisedEvent
+  RaisedEvent,
+  FinalStateNodeConfig
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -151,7 +152,14 @@ class StateNode<
    * The root machine node.
    */
   public machine: StateNode<TContext>;
+  /**
+   * The meta data associated with this state node, which will be returned in State instances.
+   */
   public meta?: TStateSchema extends { meta: infer D } ? D : any;
+  /**
+   * The data sent with the "done.state._id_" event if this is a final state node.
+   */
+  public data?: any;
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -231,6 +239,10 @@ class StateNode<
     this.onEntry = toArray(_config.onEntry);
     this.onExit = toArray(_config.onExit);
     this.meta = _config.meta;
+    this.data =
+      this.type === 'final'
+        ? (_config as FinalStateNodeConfig<TContext, TEvents>).data
+        : undefined;
     this.activities = toArray(_config.activities).map(activity =>
       this.resolveActivity(activity)
     );
@@ -1767,7 +1779,7 @@ class StateNode<
     const onConfig = this.config.on || EMPTY_OBJECT;
     const doneConfig = this.config.onDone
       ? {
-          [done(this.id)]: this.config.onDone
+          [`${done(this.id)}`]: this.config.onDone
         }
       : undefined;
     const delayedTransitions = this.after;

@@ -214,6 +214,7 @@ export interface StateNodeConfig<
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
   meta?: TStateSchema extends { meta: infer D } ? D : any;
+  data?: any;
   id?: string | undefined;
   delimiter?: string;
   order?: number;
@@ -249,6 +250,12 @@ export interface HistoryStateNodeConfig<TContext, TEvents extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvents> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
+}
+
+export interface FinalStateNodeConfig<TContext, TEvents extends EventObject>
+  extends AtomicStateNodeConfig<TContext, TEvents> {
+  type: 'final';
+  data?: any;
 }
 
 export interface CompoundStateNodeConfig<
@@ -387,13 +394,19 @@ export interface RaisedEvent<TEvents extends EventObject> {
 }
 export interface RaiseEvent<TContext, TEvents extends EventObject>
   extends ActionObject<TContext> {
-  event: TEvents['type'];
+  event: Event<TEvents>;
+}
+
+export interface DoneEvent extends EventObject {
+  data?: any;
+  toString(): string;
 }
 
 export type BuiltInEvent<TEvents extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvents>
   | { type: ActionTypes.Init };
+
 export type AnyEvent<TEvents extends EventObject> =
   | TEvents
   | BuiltInEvent<TEvents>;

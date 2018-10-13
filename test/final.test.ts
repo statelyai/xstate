@@ -26,7 +26,8 @@ const finalMachine = Machine({
               on: { PED_STOP: 'stop' }
             },
             stop: {
-              type: 'final'
+              type: 'final',
+              data: 'stop'
             }
           },
           onDone: {
@@ -50,14 +51,14 @@ const finalMachine = Machine({
             }
           },
           on: {
-            [done('final.red.crosswalk2')]: {
+            [done('final.red.crosswalk2') + '']: {
               actions: 'stopCrosswalk2'
             }
           }
         }
       },
       on: {
-        [done('final.red')]: {
+        [done('final.red') + '']: {
           actions: 'prepareGreenLight'
         }
       }
