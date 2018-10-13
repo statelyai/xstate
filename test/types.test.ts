@@ -17,23 +17,28 @@ describe('StateSchema', () => {
       yellow: {};
       red: {
         states: {
-          walk: any;
-          wait: any;
-          stop: any;
+          walk: {};
+          wait: {};
+          stop: {};
         };
       };
     };
   }
 
-  type LightEvents =
+  type LightEvent =
     | { type: 'TIMER' }
     | { type: 'POWER_OUTAGE' }
     | { type: 'PED_COUNTDOWN'; duration: number };
 
-  const lightMachine = Machine<undefined, LightStateSchema, LightEvents>({
+  interface LightContext {
+    elapsed: number;
+  }
+
+  const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
     key: 'light',
     initial: 'green',
     meta: { interval: 1000 },
+    context: { elapsed: 0 },
     states: {
       green: {
         meta: { name: 'greenLight' },
@@ -64,8 +69,8 @@ describe('StateSchema', () => {
             on: {
               PED_COUNTDOWN: {
                 target: 'stop',
-                cond: (_, e) => {
-                  return e.duration === 0;
+                cond: (ctx, e) => {
+                  return e.duration === 0 && ctx.elapsed > 0;
                 }
               }
             }

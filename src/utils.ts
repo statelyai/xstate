@@ -50,13 +50,13 @@ export function matchesState(
   });
 }
 
-export function getEventType<TEvents extends EventObject = EventObject>(
-  event: Event<TEvents>
-): TEvents['type'] {
+export function getEventType<TEvent extends EventObject = EventObject>(
+  event: Event<TEvent>
+): TEvent['type'] {
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`
-      : (event as TEvents).type;
+      : (event as TEvent).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'

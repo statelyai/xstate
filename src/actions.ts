@@ -26,20 +26,20 @@ import { getEventType } from './utils';
 
 export { actionTypes };
 
-export function toEventObject<TEvents extends EventObject>(
-  event: Event<TEvents>
-  // id?: TEvents['type']
-): TEvents {
+export function toEventObject<TEvent extends EventObject>(
+  event: Event<TEvent>
+  // id?: TEvent['type']
+): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
     const eventObject = { type: event };
     // if (id !== undefined) {
     //   eventObject.id = id;
     // }
 
-    return eventObject as TEvents;
+    return eventObject as TEvent;
   }
 
-  return event as TEvents;
+  return event as TEvent;
 }
 
 function getActionFunction<TContext>(
@@ -127,9 +127,9 @@ export const toActionObjects = <TContext>(
  *
  * @param eventType The event to raise.
  */
-export function raise<TContext, TEvents extends EventObject>(
-  event: Event<TEvents>
-): RaiseEvent<TContext, TEvents> {
+export function raise<TContext, TEvent extends EventObject>(
+  event: Event<TEvent>
+): RaiseEvent<TContext, TEvent> {
   return {
     type: actionTypes.raise,
     event
@@ -146,19 +146,19 @@ export function raise<TContext, TEvents extends EventObject>(
  *  - `delay` - The number of milliseconds to delay the sending of the event.
  *  - `target` - The target of this event (by default, the machine the event was sent from).
  */
-export function send<TContext, TEvents extends EventObject>(
-  event: Event<TEvents>,
+export function send<TContext, TEvent extends EventObject>(
+  event: Event<TEvent>,
   options?: SendActionOptions
-): SendAction<TContext, TEvents> {
+): SendAction<TContext, TEvent> {
   return {
     to: options ? options.target : undefined,
     type: actionTypes.send,
-    event: toEventObject<TEvents>(event),
+    event: toEventObject<TEvent>(event),
     delay: options ? options.delay : undefined,
     id:
       options && options.id !== undefined
         ? options.id
-        : (getEventType<TEvents>(event) as string)
+        : (getEventType<TEvent>(event) as string)
   };
 }
 
@@ -168,11 +168,11 @@ export function send<TContext, TEvents extends EventObject>(
  * @param event The event to send to the parent machine.
  * @param options Options to pass into the send event.
  */
-export function sendParent<TContext, TEvents extends EventObject>(
-  event: Event<TEvents>,
+export function sendParent<TContext, TEvent extends EventObject>(
+  event: Event<TEvent>,
   options?: SendActionOptions
-): SendAction<TContext, TEvents> {
-  return send<TContext, TEvents>(event, {
+): SendAction<TContext, TEvent> {
+  return send<TContext, TEvent>(event, {
     ...options,
     target: SpecialTargets.Parent
   });
@@ -186,8 +186,8 @@ export function sendParent<TContext, TEvents extends EventObject>(
  *  - `event` - the event that caused this action to be executed.
  * @param label The label to give to the logged expression.
  */
-export function log<TContext, TEvents extends EventObject>(
-  expr: (ctx: TContext, event: TEvents) => any,
+export function log<TContext, TEvent extends EventObject>(
+  expr: (ctx: TContext, event: TEvent) => any,
   label?: string
 ) {
   return {
@@ -250,9 +250,9 @@ export function stop<TContext>(
  *
  * @param assignment An object that represents the partial context to update.
  */
-export const assign = <TContext, TEvents extends EventObject = EventObject>(
-  assignment: Assigner<TContext, TEvents> | PropertyAssigner<TContext, TEvents>
-): AssignAction<TContext, TEvents> => {
+export const assign = <TContext, TEvent extends EventObject = EventObject>(
+  assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
+): AssignAction<TContext, TEvent> => {
   return {
     type: actionTypes.assign,
     assignment

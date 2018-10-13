@@ -26,7 +26,7 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
   );
 }
 
-export class State<TContext, TEvents extends EventObject = EventObject>
+export class State<TContext, TEvent extends EventObject = EventObject>
   implements StateInterface<TContext> {
   /**
    * The state node tree representation of the state value.
@@ -119,7 +119,7 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     public actions: Array<ActionObject<TContext>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
     public meta: any = {},
-    public events: TEvents[] = [],
+    public events: TEvent[] = [],
     tree?: StateTree
   ) {
     Object.defineProperty(this, 'tree', {

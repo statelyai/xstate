@@ -102,7 +102,7 @@ export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 > {
   /**
    * The default interpreter options:
@@ -124,13 +124,13 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  public state: State<TContext, TEvents>;
+  public state: State<TContext, TEvent>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
 
-  private eventQueue: TEvents[] = [];
+  private eventQueue: TEvent[] = [];
   private delayedEventsMap: Record<string, number> = {};
   private activitiesMap: Record<string, any> = {};
   private listeners: Set<StateListener> = new Set();
@@ -153,7 +153,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: XSMachine<TContext, TStateSchema, TEvents>,
+    public machine: XSMachine<TContext, TStateSchema, TEvent>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -169,13 +169,10 @@ export class Interpreter<
   /**
    * The initial state of the statechart.
    */
-  public get initialState(): State<TContext, TEvents> {
+  public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
   }
-  private update(
-    state: State<TContext, TEvents>,
-    event?: Event<TEvents>
-  ): void {
+  private update(state: State<TContext, TEvent>, event?: Event<TEvent>): void {
     this.state = state;
     const { context } = this.state;
     const eventObject = event ? toEventObject(event) : undefined;
@@ -268,9 +265,9 @@ export class Interpreter<
    * @param initialState The state to start the statechart from
    */
   public start(
-    initialState: State<TContext, TEvents> = this.machine.initialState as State<
+    initialState: State<TContext, TEvent> = this.machine.initialState as State<
       TContext,
-      TEvents
+      TEvent
     >
   ): Interpreter<TContext> {
     this.initialized = true;
@@ -304,7 +301,7 @@ export class Interpreter<
    *
    * @param event The event to send
    */
-  public send = (event: Event<TEvents>): State<TContext, TEvents> => {
+  public send = (event: Event<TEvent>): State<TContext, TEvent> => {
     const eventObject = toEventObject(event);
     const nextState = this.nextState(eventObject);
 
@@ -321,7 +318,7 @@ export class Interpreter<
    *
    * @param event The event to be sent by the sender.
    */
-  public sender = (event: Event<TEvents>): (() => State<TContext, TEvents>) => {
+  public sender = (event: Event<TEvent>): (() => State<TContext, TEvent>) => {
     function sender() {
       return this.send(event);
     }
@@ -335,7 +332,7 @@ export class Interpreter<
    *
    * @param event The event to determine the next state
    */
-  public nextState(event: Event<TEvents>): State<TContext, TEvents> {
+  public nextState(event: Event<TEvent>): State<TContext, TEvent> {
     const eventObject = toEventObject(event);
 
     if (!this.initialized) {
@@ -356,10 +353,10 @@ export class Interpreter<
 
     return nextState;
   }
-  private forward(event: Event<TEvents>): void {
+  private forward(event: Event<TEvent>): void {
     this.children.forEach(childInterpreter => childInterpreter.send(event));
   }
-  private defer(sendAction: SendAction<TContext, TEvents>): number {
+  private defer(sendAction: SendAction<TContext, TEvent>): number {
     return this.clock.setTimeout(
       this.sender(sendAction.event),
       sendAction.delay || 0
@@ -372,7 +369,7 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: TEvents
+    event?: TEvent
   ): Partial<TContext> | undefined {
     if (action.exec) {
       return action.exec(context, event);
@@ -380,7 +377,7 @@ export class Interpreter<
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendAction<TContext, TEvents>;
+        const sendAction = action as SendAction<TContext, TEvent>;
 
         switch (sendAction.to) {
           case SpecialTargets.Parent:
@@ -522,9 +519,9 @@ export class Interpreter<
 export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 >(
-  machine: XSMachine<TContext, TStateSchema, TEvents>,
+  machine: XSMachine<TContext, TStateSchema, TEvent>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter(machine, options);
