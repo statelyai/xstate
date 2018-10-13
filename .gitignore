@@ -44,7 +44,6 @@ public/
 .cache
 
 # Docs
-docs/*
 !docs/api
 !docs/examples
 !docs/guides
