@@ -44,6 +44,4 @@ public/
 .cache
 
 # Docs
-!docs/api
-!docs/examples
-!docs/guides
+docs/
