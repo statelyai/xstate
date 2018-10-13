@@ -43,7 +43,8 @@ import {
   StateNodesConfig,
   ActionTypes,
   AnyEvent,
-  RaisedEvent
+  RaisedEvent,
+  FinalStateNodeConfig
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -151,7 +152,14 @@ class StateNode<
    * The root machine node.
    */
   public machine: StateNode<TContext>;
-  public data?: TStateSchema extends { data: infer D } ? D : any;
+  /**
+   * The meta data associated with this state node, which will be returned in State instances.
+   */
+  public meta?: TStateSchema extends { meta: infer D } ? D : any;
+  /**
+   * The data sent with the "done.state._id_" event if this is a final state node.
+   */
+  public data?: any;
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -230,7 +238,11 @@ class StateNode<
     this.strict = !!_config.strict;
     this.onEntry = toArray(_config.onEntry);
     this.onExit = toArray(_config.onExit);
-    this.data = _config.data;
+    this.meta = _config.meta;
+    this.data =
+      this.type === 'final'
+        ? (_config as FinalStateNodeConfig<TContext, TEvents>).data
+        : undefined;
     this.activities = toArray(_config.activities).map(activity =>
       this.resolveActivity(activity)
     );
@@ -292,7 +304,7 @@ class StateNode<
       onEntry: this.onEntry,
       onExit: this.onExit,
       activities: this.activities || [],
-      data: this.data,
+      meta: this.meta,
       order: this.order || -1
     };
   }
@@ -1052,9 +1064,9 @@ class StateNode<
       raisedEvents.push({ type: actionTypes.null });
     }
 
-    const data = [this, ...stateNodes].reduce((acc, stateNode) => {
-      if (stateNode.data !== undefined) {
-        acc[stateNode.id] = stateNode.data;
+    const meta = [this, ...stateNodes].reduce((acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
       }
       return acc;
     }, {});
@@ -1069,7 +1081,7 @@ class StateNode<
           stateTransition.source ? currentState : undefined,
           toActionObjects(nonEventActions, this.options.actions),
           activities,
-          data,
+          meta,
           raisedEvents as TEvents[],
           stateTransition.tree
         )
@@ -1767,7 +1779,7 @@ class StateNode<
     const onConfig = this.config.on || EMPTY_OBJECT;
     const doneConfig = this.config.onDone
       ? {
-          [done(this.id)]: this.config.onDone
+          [`${done(this.id)}`]: this.config.onDone
         }
       : undefined;
     const delayedTransitions = this.after;

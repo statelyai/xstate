@@ -3,7 +3,8 @@ import {
   StateValue,
   EntryExitStateArrays,
   EventType,
-  StateValueMap
+  StateValueMap,
+  EventObject
 } from './types';
 import { mapValues, flatten, toStatePaths, keys } from './utils';
 import { matchesState } from './utils';
@@ -70,7 +71,7 @@ export class StateTree {
     );
   }
 
-  public getDoneEvents(entryStateNodes?: Set<StateNode>): EventType[] {
+  public getDoneEvents(entryStateNodes?: Set<StateNode>): EventObject[] {
     // If no state nodes are being entered, no done events will be fired
     if (!entryStateNodes || !entryStateNodes.size) {
       return [];

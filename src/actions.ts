@@ -17,7 +17,9 @@ import {
   ActivityDefinition,
   SpecialTargets,
   Invocation,
-  RaiseEvent
+  RaiseEvent,
+  Machine,
+  DoneEvent
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -126,11 +128,11 @@ export const toActionObjects = <TContext>(
  * @param eventType The event to raise.
  */
 export function raise<TContext, TEvents extends EventObject>(
-  eventType: TEvents['type']
+  event: Event<TEvents>
 ): RaiseEvent<TContext, TEvents> {
   return {
     type: actionTypes.raise,
-    event: eventType
+    event
   };
 }
 
@@ -276,13 +278,21 @@ export function after(delay: number, id?: string) {
 }
 
 /**
- * Returns an event type that represents that a final state node
+ * Returns an event that represents that a final state node
  * has been entered.
  *
  * @param id The final state node ID
  */
-export function done(id: string) {
-  return `${ActionTypes.DoneState}.${id}`;
+export function done(id: string, data?: any): DoneEvent {
+  const type = `${ActionTypes.DoneState}.${id}`;
+  const eventObject = {
+    type,
+    data
+  };
+
+  eventObject.toString = () => type;
+
+  return eventObject;
 }
 
 /**
@@ -295,15 +305,25 @@ export function done(id: string) {
  * @param options
  */
 export function invoke<TContext>(
-  invokeConfig: string | Invocation<TContext>,
+  invokeConfig: string | Invocation<TContext> | Machine<any, any, any>,
   options?: Partial<Invocation<TContext>>
-): ActivityDefinition<TContext> {
+): Invocation<TContext> {
   if (typeof invokeConfig === 'string') {
     return {
       id: invokeConfig,
       src: invokeConfig,
       type: ActionTypes.Invoke,
       ...options
+    };
+  }
+
+  if (!('src' in invokeConfig)) {
+    const machine = invokeConfig as Machine<any, any, any>;
+
+    return {
+      type: ActionTypes.Invoke,
+      id: machine.id,
+      src: machine
     };
   }
 

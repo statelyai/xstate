@@ -87,11 +87,10 @@ export type Activity<TContext> = string | ActivityDefinition<TContext>;
 export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   id: string;
   type: string;
-  src?: string;
 }
 
 export interface Invocation<TContext> extends ActivityDefinition<TContext> {
-  src: string;
+  src: string | Machine<any, any, any>;
   forward?: boolean;
 }
 
@@ -203,7 +202,6 @@ export interface StateNodeConfig<
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
   states?: StatesConfig<TContext, TStateSchema, TEvents> | undefined;
-  // on?: Record<string, Transition<TContext> | undefined>;
   on?: TransitionsConfig<TContext, TEvents>;
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
@@ -215,7 +213,8 @@ export interface StateNodeConfig<
   activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
-  data?: TStateSchema extends { data: infer D } ? D : any;
+  meta?: TStateSchema extends { meta: infer D } ? D : any;
+  data?: any;
   id?: string | undefined;
   delimiter?: string;
   order?: number;
@@ -236,7 +235,7 @@ export interface StateNodeDefinition<
   onEntry: Array<Action<TContext>>;
   onExit: Array<Action<TContext>>;
   activities: Array<ActivityDefinition<TContext>>;
-  data: any;
+  meta: any;
   order: number;
 }
 export interface AtomicStateNodeConfig<TContext, TEvents extends EventObject>
@@ -251,6 +250,12 @@ export interface HistoryStateNodeConfig<TContext, TEvents extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvents> {
   history: 'shallow' | 'deep' | true;
   target: StateValue | undefined;
+}
+
+export interface FinalStateNodeConfig<TContext, TEvents extends EventObject>
+  extends AtomicStateNodeConfig<TContext, TEvents> {
+  type: 'final';
+  data?: any;
 }
 
 export interface CompoundStateNodeConfig<
@@ -389,13 +394,19 @@ export interface RaisedEvent<TEvents extends EventObject> {
 }
 export interface RaiseEvent<TContext, TEvents extends EventObject>
   extends ActionObject<TContext> {
-  event: TEvents['type'];
+  event: Event<TEvents>;
+}
+
+export interface DoneEvent extends EventObject {
+  data?: any;
+  toString(): string;
 }
 
 export type BuiltInEvent<TEvents extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvents>
   | { type: ActionTypes.Init };
+
 export type AnyEvent<TEvents extends EventObject> =
   | TEvents
   | BuiltInEvent<TEvents>;
@@ -539,14 +550,14 @@ export interface StateInterface<
   history?: State<TContext>;
   actions: Array<Action<TContext>>;
   activities: ActivityMap;
-  data: any;
+  meta: any;
   events: TEvents[];
   context: TContext;
   toStrings: () => string[];
 }
 
 export interface StateSchema {
-  data?: any;
+  meta?: any;
   states?: {
     [key: string]: StateSchema;
   };
