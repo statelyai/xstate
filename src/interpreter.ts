@@ -14,7 +14,7 @@ import {
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject } from './actions';
+import { toEventObject, doneInvoke } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 
@@ -295,10 +295,13 @@ export class Interpreter<
     this.doneListeners.forEach(doneListener =>
       this.doneListeners.delete(doneListener)
     );
+
     return this;
   }
   /**
-   * Sends an event to the running interpreter to trigger a transition.
+   * Sends an event to the running interpreter to trigger a transition,
+   * and returns the immediate next state.
+   *
    * @param event The event to send
    */
   public send = (event: Event<TEvents>): State<TContext, TEvents> => {
@@ -314,9 +317,21 @@ export class Interpreter<
     // tslint:disable-next-line:semicolon
   };
   /**
+   * Returns a send function bound to this interpreter instance.
+   *
+   * @param event The event to be sent by the sender.
+   */
+  public sender = (event: Event<TEvents>): (() => State<TContext, TEvents>) => {
+    function sender() {
+      return this.send(event);
+    }
+
+    return sender.bind(this);
+  }
+  /**
    * Returns the next state given the interpreter's current state and the event.
    *
-   * This does _not_ update the interpreter's state.
+   * This is a pure method that does _not_ update the interpreter's state.
    *
    * @param event The event to determine the next state
    */
@@ -346,7 +361,7 @@ export class Interpreter<
   }
   private defer(sendAction: SendAction<TContext, TEvents>): number {
     return this.clock.setTimeout(
-      () => this.send(sendAction.event),
+      this.sender(sendAction.event),
       sendAction.delay || 0
     );
   }
@@ -412,8 +427,9 @@ export class Interpreter<
             // TODO: try/catch here
             const childMachine =
               service instanceof StateNode ? service : Machine(service);
-            const interpreter = this.spawn(childMachine, autoForward);
-
+            const interpreter = this.spawn(childMachine, autoForward).onDone(
+              this.sender(doneInvoke(activity.id)) // todo: fix coercion
+            );
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {

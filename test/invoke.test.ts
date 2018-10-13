@@ -1,6 +1,6 @@
 import { Machine, actions } from '../src/index';
 import { interpret } from '../src/interpreter';
-import { assign, invoke, sendParent, send } from '../src/actions';
+import { assign, invoke, sendParent, send, doneInvoke } from '../src/actions';
 import { assert } from 'chai';
 
 const childMachine = Machine({
@@ -58,10 +58,7 @@ const fetchMachine = Machine({
       }
     },
     success: {
-      onEntry: sendParent({
-        type: 'FETCH.RESOLVE',
-        data: { foo: 'bar' }
-      })
+      type: 'final'
     },
     failure: {
       onEntry: sendParent('REJECT')
@@ -76,7 +73,7 @@ const fetcherMachine = Machine({
     waiting: {
       activities: invoke(fetchMachine),
       on: {
-        'FETCH.RESOLVE': 'received'
+        [doneInvoke(fetchMachine.id).toString()]: 'received'
       }
     },
     received: {

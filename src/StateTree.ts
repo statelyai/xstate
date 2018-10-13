@@ -96,7 +96,7 @@ export class StateTree {
       );
 
       if (childDoneEvents && allChildrenDone) {
-        return [done(this.stateNode.id)].concat(childDoneEvents);
+        return [done(this.stateNode.id) as EventObject].concat(childDoneEvents);
       } else {
         return childDoneEvents;
       }
@@ -106,7 +106,7 @@ export class StateTree {
       return childDoneEvents;
     }
 
-    return [done(this.stateNode.id)].concat(childDoneEvents);
+    return [done(this.stateNode.id) as EventObject].concat(childDoneEvents);
   }
 
   public get resolved(): StateTree {
