@@ -107,7 +107,7 @@ export class State<TContext, TEvents extends EventObject = EventObject>
    * @param history The previous state
    * @param actions An array of action objects to execute as side-effects
    * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
-   * @param data
+   * @param meta
    * @param events Internal event queue. Should be empty with run-to-completion semantics.
    * @param tree
    */
@@ -118,7 +118,7 @@ export class State<TContext, TEvents extends EventObject = EventObject>
     public history?: State<TContext>,
     public actions: Array<ActionObject<TContext>> = [],
     public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
-    public data: Record<string, any> = {},
+    public meta: any = {},
     public events: TEvents[] = [],
     tree?: StateTree
   ) {

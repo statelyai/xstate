@@ -90,7 +90,7 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
 }
 
 export interface Invocation<TContext> extends ActivityDefinition<TContext> {
-  src: string | Machine<TContext, any, any>;
+  src: string | Machine<any, any, any>;
   forward?: boolean;
 }
 
@@ -202,7 +202,6 @@ export interface StateNodeConfig<
    */
   history?: 'shallow' | 'deep' | boolean | undefined;
   states?: StatesConfig<TContext, TStateSchema, TEvents> | undefined;
-  // on?: Record<string, Transition<TContext> | undefined>;
   on?: TransitionsConfig<TContext, TEvents>;
   onEntry?: SingleOrArray<Action<TContext>>;
   onExit?: SingleOrArray<Action<TContext>>;
@@ -214,7 +213,7 @@ export interface StateNodeConfig<
   activities?: SingleOrArray<Activity<TContext>>;
   parent?: StateNode<TContext>;
   strict?: boolean | undefined;
-  data?: TStateSchema extends { data: infer D } ? D : any;
+  meta?: TStateSchema extends { meta: infer D } ? D : any;
   id?: string | undefined;
   delimiter?: string;
   order?: number;
@@ -235,7 +234,7 @@ export interface StateNodeDefinition<
   onEntry: Array<Action<TContext>>;
   onExit: Array<Action<TContext>>;
   activities: Array<ActivityDefinition<TContext>>;
-  data: any;
+  meta: any;
   order: number;
 }
 export interface AtomicStateNodeConfig<TContext, TEvents extends EventObject>
@@ -538,14 +537,14 @@ export interface StateInterface<
   history?: State<TContext>;
   actions: Array<Action<TContext>>;
   activities: ActivityMap;
-  data: any;
+  meta: any;
   events: TEvents[];
   context: TContext;
   toStrings: () => string[];
 }
 
 export interface StateSchema {
-  data?: any;
+  meta?: any;
   states?: {
     [key: string]: StateSchema;
   };

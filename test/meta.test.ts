@@ -1,12 +1,12 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
 
-describe('state data', () => {
+describe('state meta data', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
       walk: {
-        data: { walkData: 'walk data' },
+        meta: { walkData: 'walk data' },
         on: {
           PED_COUNTDOWN: 'wait'
         },
@@ -14,7 +14,7 @@ describe('state data', () => {
         onExit: 'exit_walk'
       },
       wait: {
-        data: { waitData: 'wait data' },
+        meta: { waitData: 'wait data' },
         on: {
           PED_COUNTDOWN: 'stop'
         },
@@ -22,7 +22,7 @@ describe('state data', () => {
         onExit: 'exit_wait'
       },
       stop: {
-        data: { stopData: 'stop data' },
+        meta: { stopData: 'stop data' },
         onEntry: 'enter_stop',
         onExit: 'exit_stop'
       }
@@ -34,7 +34,7 @@ describe('state data', () => {
     initial: 'green',
     states: {
       green: {
-        data: ['green', 'array', 'data'],
+        meta: ['green', 'array', 'data'],
         on: {
           TIMER: 'yellow',
           POWER_OUTAGE: 'red',
@@ -44,7 +44,7 @@ describe('state data', () => {
         onExit: 'exit_green'
       },
       yellow: {
-        data: { yellowData: 'yellow data' },
+        meta: { yellowData: 'yellow data' },
         on: {
           TIMER: 'red',
           POWER_OUTAGE: 'red'
@@ -53,7 +53,7 @@ describe('state data', () => {
         onExit: 'exit_yellow'
       },
       red: {
-        data: {
+        meta: {
           redData: {
             nested: {
               red: 'data',
@@ -73,19 +73,19 @@ describe('state data', () => {
     }
   });
 
-  it('states should aggregate data', () => {
+  it('states should aggregate meta data', () => {
     const yellowState = lightMachine.transition('green', 'TIMER');
-    assert.deepEqual(yellowState.data, {
+    assert.deepEqual(yellowState.meta, {
       'light.yellow': {
         yellowData: 'yellow data'
       }
     });
-    assert.notProperty(yellowState.data, 'light.green');
-    assert.notProperty(yellowState.data, 'light');
+    assert.notProperty(yellowState.meta, 'light.green');
+    assert.notProperty(yellowState.meta, 'light');
   });
 
-  it('states should aggregate data (deep)', () => {
-    assert.deepEqual(lightMachine.transition('yellow', 'TIMER').data, {
+  it('states should aggregate meta data (deep)', () => {
+    assert.deepEqual(lightMachine.transition('yellow', 'TIMER').meta, {
       'light.red': {
         redData: {
           nested: {
