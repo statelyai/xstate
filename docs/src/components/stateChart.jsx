@@ -2,17 +2,28 @@ import React from 'react';
 import styled from 'styled-components';
 import { interpret } from 'xstate/lib/interpreter';
 import SyntaxHighlighter from 'react-syntax-highlighter';
-import 'highlight.js/styles/monokai.css';
+// import 'highlight.js/styles/monokai.css';
 import { Machine as _Machine } from 'xstate';
 
-const StyledMiniState = styled.div`
-  padding: 0.25rem;
+const StyledState = styled.div`
+  border-radius: 0.25rem;
   text-align: left;
   border: 2px solid #dedede;
-  margin: 0.5rem;
+  margin: 0.5rem 1rem;
   flex-grow: 0;
   flex-shrink: 1;
-  opacity: 0.8;
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  background: white;
+
+  &:not([data-type='machine']) {
+    opacity: 0.75;
+  }
+
+  &[data-type='machine'] {
+    padding: 0.5rem;
+  }
+
+  color: #313131;
 
   & > .children {
     display: none;
@@ -31,7 +42,36 @@ const StyledMiniState = styled.div`
   }
 
   &[data-preview]:not([data-active]) {
-    outline: 1px solid green;
+    border-color: var(--color-primary-faded);
+  }
+
+  > header {
+    padding: 0.5rem;
+
+    &[data-type-symbol='final' i] {
+      --symbol-color: red;
+    }
+
+    &[data-type-symbol='history' i] {
+      --symbol-color: orange;
+    }
+
+    &[data-type-symbol] {
+      padding-right: 5em;
+
+      &:after {
+        content: attr(data-type-symbol);
+        position: absolute;
+        top: 0;
+        right: 0;
+        border-bottom-left-radius: 0.25rem;
+        background: var(--symbol-color, gray);
+        color: white;
+        padding: 0.25rem 0.5rem;
+        font-weight: bold;
+        font-size: 0.75em;
+      }
+    }
   }
 `;
 
@@ -39,6 +79,11 @@ const StyledEvents = styled.ul`
   padding: 0;
   margin: 0;
   list-style: none;
+  padding: 0.5rem;
+
+  &:empty {
+    display: none;
+  }
 `;
 
 const StyledEvent = styled.li`
@@ -47,20 +92,48 @@ const StyledEvent = styled.li`
   display: flex;
   flex-direction: row;
   justify-content: flex-end;
-  margin-right: -1rem;
-  margin-bottom: 0.25rem;
+  margin-right: -1.25rem;
+
+  &:not(:last-child) {
+    margin-bottom: 0.25rem;
+  }
 `;
 
 const StyledEventButton = styled.button`
   appearance: none;
   background: #57b0ea;
+  border: none;
   color: white;
   font-size: 0.75em;
   font-weight: bold;
-  padding: 0.5em 1em;
-  border-radius: 2em;
-  margin-bottom: 0.25em;
+  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  cursor: pointer;
+  border-radius: 2rem;
+  margin-bottom: 0.25rem;
   line-height: 1;
+  display: inline-flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+
+  &:disabled {
+    cursor: not-allowed;
+    background: #888;
+  }
+
+  &:focus {
+    outline: none;
+  }
+
+  &:after {
+    content: '';
+    display: inline-block;
+    height: 0.5rem;
+    width: 0.5rem;
+    border-radius: 50%;
+    background-color: white;
+    margin-left: 0.5rem;
+  }
 `;
 
 class StateChartNode extends React.Component {
@@ -82,9 +155,9 @@ class StateChartNode extends React.Component {
       : undefined;
 
     return (
-      <StyledMiniState
+      <StyledState
         key={stateNode.id}
-        data-type={stateNode.type}
+        data-type={stateNode.parent ? stateNode.type : 'machine'}
         data-active={isActive && stateNode.parent}
         data-preview={isPreview && stateNode.parent}
         data-open={
@@ -93,36 +166,27 @@ class StateChartNode extends React.Component {
             : this.state.toggleStates[stateNode.id]
         }
       >
-        <strong
-          onClick={e => {
-            e.stopPropagation();
-            this.setState({
-              toggleStates: {
-                ...this.state.toggleStates,
-                [stateNode.id]: !this.state.toggleStates[stateNode.id]
-              }
-            });
-          }}
+        <header
+          data-type-symbol={
+            ['history', 'final', 'parallel'].includes(stateNode.type)
+              ? stateNode.type.toUpperCase()
+              : undefined
+          }
         >
-          {stateNode.key}
-        </strong>
-        <div className="children">
-          {Object.keys(stateNode.states || []).map(key => {
-            const childStateNode = stateNode.states[key];
-
-            return (
-              <StateChartNode
-                stateNode={childStateNode}
-                current={current}
-                preview={preview}
-                key={childStateNode.id}
-                onEvent={onEvent}
-                onPreEvent={onPreEvent}
-                onExitPreEvent={onExitPreEvent}
-              />
-            );
-          })}
-        </div>
+          <strong
+            onClick={e => {
+              e.stopPropagation();
+              this.setState({
+                toggleStates: {
+                  ...this.state.toggleStates,
+                  [stateNode.id]: !this.state.toggleStates[stateNode.id]
+                }
+              });
+            }}
+          >
+            {stateNode.key}
+          </strong>
+        </header>
         <StyledEvents>
           {stateNode.ownEvents.map(ownEvent => {
             const disabled = current.nextEvents.indexOf(ownEvent) === -1;
@@ -140,7 +204,24 @@ class StateChartNode extends React.Component {
             );
           })}
         </StyledEvents>
-      </StyledMiniState>
+        <div className="children">
+          {Object.keys(stateNode.states || []).map(key => {
+            const childStateNode = stateNode.states[key];
+
+            return (
+              <StateChartNode
+                stateNode={childStateNode}
+                current={current}
+                preview={preview}
+                key={childStateNode.id}
+                onEvent={onEvent}
+                onPreEvent={onPreEvent}
+                onExitPreEvent={onExitPreEvent}
+              />
+            );
+          })}
+        </div>
+      </StyledState>
     );
   }
 }

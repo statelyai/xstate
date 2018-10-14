@@ -37,8 +37,12 @@ import { Machine } from 'xstate';
             PED_COUNTDOWN: 'stop'
           }
         },
-        stop: {},
-        blinking: {}
+        stop: {
+          type: 'final'
+        },
+        blinking: {
+          type: 'history'
+        }
       }
     }
   }

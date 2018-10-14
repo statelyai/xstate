@@ -1,5 +1,3 @@
-import { StateChart } from '../../components/StateChart';
-
 # Actions
 
 Actions in `xstate` represent the side-effects that transitioning from/to a state can produce. These actions are never executed in `xstate`; rather, they are provided to you in the `state.actions` property of the `State` instance, returned from `machine.transition(...)`.
