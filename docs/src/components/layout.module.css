@@ -8,14 +8,13 @@ body {
   padding: 0;
   font-size: 14px;
   font-family: sans-serif;
-  color: white;
-  background: black;
 }
 
 :root {
   --color-border: #555;
   --color-primary: rgba(87, 176, 234, 1);
   --color-primary-faded: rgba(87, 176, 234, 0.75);
+  --color-primary-shadow: rgba(87, 176, 234, 0.75);
 }
 
 *,

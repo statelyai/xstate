@@ -101,7 +101,7 @@ const StyledEvent = styled.li`
 
 const StyledEventButton = styled.button`
   appearance: none;
-  background: #57b0ea;
+  background-color: var(--color-primary-faded);
   border: none;
   color: white;
   font-size: 0.75em;
@@ -115,6 +115,10 @@ const StyledEventButton = styled.button`
   flex-direction: row;
   justify-content: space-between;
   align-items: center;
+
+  &:not(:disabled):hover {
+    background-color: var(--color-primary);
+  }
 
   &:disabled {
     cursor: not-allowed;
