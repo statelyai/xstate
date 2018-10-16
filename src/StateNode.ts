@@ -243,9 +243,29 @@ class StateNode<
       this.type === 'final'
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    this.activities = toArray(_config.activities).map(activity =>
-      this.resolveActivity(activity)
-    );
+    const invokeActivities = _config.invoke
+      ? toArray(_config.invoke).map(invokeConfig => {
+          if (invokeConfig instanceof StateNode) {
+            return {
+              type: ActionTypes.Invoke,
+              id: invokeConfig.id,
+              src: invokeConfig
+            };
+          }
+
+          return {
+            type: ActionTypes.Invoke,
+            id:
+              invokeConfig.src instanceof StateNode
+                ? invokeConfig.src.id
+                : invokeConfig.src,
+            ...invokeConfig
+          };
+        })
+      : [];
+    this.activities = toArray(_config.activities)
+      .concat(invokeActivities)
+      .map(activity => this.resolveActivity(activity));
   }
 
   /**

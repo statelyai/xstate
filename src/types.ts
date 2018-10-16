@@ -107,7 +107,8 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   type: string;
 }
 
-export interface Invocation<TContext> extends ActivityDefinition<TContext> {
+export interface InvokeDefinition<TContext>
+  extends ActivityDefinition<TContext> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -209,6 +210,22 @@ export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
   >
 };
 
+export type InvokeConfig<TContext> =
+  | {
+      id?: string;
+      src: string | Machine<any, any, any>;
+      forward?: boolean;
+      onDone?:
+        | string
+        | TransitionConfig<TContext, { type: ActionTypes.DoneInvoke }>
+        | Array<TransitionConfig<TContext, { type: ActionTypes.DoneInvoke }>>;
+    }
+  | Machine<any, any, any>;
+
+export type InvokesConfig<TContext> =
+  | InvokeConfig<TContext>
+  | Array<InvokeConfig<TContext>>;
+
 export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
@@ -251,6 +268,10 @@ export interface StateNodeConfig<
    * The mapping of state node keys to their state node configurations (recursive).
    */
   states?: StatesConfig<TContext, TStateSchema, TEvent> | undefined;
+  /**
+   * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
+   */
+  invoke?: InvokesConfig<TContext>;
   /**
    * The mapping of event types to their potential transition(s).
    */

@@ -16,7 +16,7 @@ import {
   ActionTypes,
   ActivityDefinition,
   SpecialTargets,
-  Invocation,
+  InvokeDefinition,
   RaiseEvent,
   Machine,
   DoneEvent
@@ -327,9 +327,9 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
  * @param options
  */
 export function invoke<TContext>(
-  invokeConfig: string | Invocation<TContext> | Machine<any, any, any>,
-  options?: Partial<Invocation<TContext>>
-): Invocation<TContext> {
+  invokeConfig: string | InvokeDefinition<TContext> | Machine<any, any, any>,
+  options?: Partial<InvokeDefinition<TContext>>
+): InvokeDefinition<TContext> {
   if (typeof invokeConfig === 'string') {
     return {
       id: invokeConfig,

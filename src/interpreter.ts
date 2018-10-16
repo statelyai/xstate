@@ -10,7 +10,7 @@ import {
   ActivityActionObject,
   SpecialTargets,
   ActionTypes,
-  Invocation
+  InvokeDefinition
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -46,6 +46,7 @@ interface InterpreterOptions {
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
+  id?: string;
 }
 
 interface SimulatedTimeout {
@@ -401,7 +402,7 @@ export class Interpreter<
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext>)
-          .activity as Invocation<TContext>;
+          .activity as InvokeDefinition<TContext>;
 
         if (activity.type === ActionTypes.Invoke) {
           const service = activity.src
@@ -411,6 +412,7 @@ export class Interpreter<
                 ? this.machine.options.services[activity.src]
                 : undefined
             : undefined;
+          const { id } = activity;
 
           const autoForward = !!activity.forward;
 
@@ -424,9 +426,10 @@ export class Interpreter<
             // TODO: try/catch here
             const childMachine =
               service instanceof StateNode ? service : Machine(service);
-            const interpreter = this.spawn(childMachine, autoForward).onDone(
-              this.sender(doneInvoke(activity.id)) // todo: fix coercion
-            );
+            const interpreter = this.spawn(childMachine, {
+              id,
+              autoForward
+            }).onDone(this.sender(doneInvoke(activity.id)));
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {
@@ -490,13 +493,14 @@ export class Interpreter<
     TChildEvents extends EventObject
   >(
     machine: XSMachine<TChildContext, TChildStateSchema, TChildEvents>,
-    autoForward: boolean = false
+    options: { id?: string; autoForward?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
     const childInterpreter = new Interpreter(machine, {
-      parent: this
+      parent: this,
+      id: options.id || machine.id
     });
 
-    if (autoForward) {
+    if (options.autoForward) {
       this.children.add(childInterpreter);
     }
 
