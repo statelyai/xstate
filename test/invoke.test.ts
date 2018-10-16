@@ -68,12 +68,24 @@ const fetchMachine = Machine({
 
 const fetcherMachine = Machine({
   id: 'fetcher',
-  initial: 'waiting',
+  initial: 'idle',
   states: {
-    waiting: {
-      activities: invoke(fetchMachine),
+    idle: {
       on: {
-        [doneInvoke(fetchMachine.id).toString()]: 'received'
+        GO_TO_WAITING: 'waiting',
+        GO_TO_WAITING_MACHINE: 'waitingInvokeMachine'
+      }
+    },
+    waiting: {
+      invoke: { src: fetchMachine },
+      on: {
+        [doneInvoke(fetchMachine.id)]: 'received'
+      }
+    },
+    waitingInvokeMachine: {
+      invoke: fetchMachine,
+      on: {
+        [doneInvoke(fetchMachine.id)]: 'received'
       }
     },
     received: {
@@ -108,12 +120,23 @@ describe('invoke', () => {
     assert.deepEqual(interpreter.state.context, { count: -1 });
   });
 
-  it('should start services (explicit machines)', done => {
+  it('should start services (explicit machine, invoke = config)', done => {
     interpret(fetcherMachine)
       .onDone(state => {
         assert.deepEqual(state.value, 'received');
         done();
       })
-      .start();
+      .start()
+      .send('GO_TO_WAITING');
+  });
+
+  it('should start services (explicit machine, invoke = machine)', done => {
+    interpret(fetcherMachine)
+      .onDone(state => {
+        assert.deepEqual(state.value, 'received');
+        done();
+      })
+      .start()
+      .send('GO_TO_WAITING_MACHINE');
   });
 });
