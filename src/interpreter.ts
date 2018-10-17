@@ -18,6 +18,9 @@ import { toEventObject, doneInvoke } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 
+// Check if in Node or browser environment to use proper "global"
+const globalOrWindow = window !== undefined ? window : global;
+
 export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
 ) => void;
@@ -114,13 +117,13 @@ export class Interpreter<
   public static defaultOptions: InterpreterOptions = {
     clock: {
       setTimeout: (fn, ms) => {
-        return global.setTimeout.call(null, fn, ms);
+        return globalOrWindow.setTimeout.call(null, fn, ms);
       },
       clearTimeout: id => {
-        return global.clearTimeout.call(null, id);
+        return globalOrWindow.clearTimeout.call(null, id);
       }
     },
-    logger: global.console.log.bind(console)
+    logger: globalOrWindow.console.log.bind(console)
   };
   /**
    * The current state of the interpreted machine.
