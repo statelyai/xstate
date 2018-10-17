@@ -59,7 +59,9 @@ import {
   cancel,
   after,
   raise,
-  done
+  done,
+  doneInvoke,
+  invoke
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -243,25 +245,9 @@ class StateNode<
       this.type === 'final'
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    const invokeActivities = _config.invoke
-      ? toArray(_config.invoke).map(invokeConfig => {
-          if (invokeConfig instanceof StateNode) {
-            return {
-              type: ActionTypes.Invoke,
-              id: invokeConfig.id,
-              src: invokeConfig
-            };
-          }
 
-          return {
-            type: ActionTypes.Invoke,
-            id:
-              invokeConfig.src instanceof StateNode
-                ? invokeConfig.src.id
-                : invokeConfig.src,
-            ...invokeConfig
-          };
-        })
+    const invokeActivities = _config.invoke
+      ? toArray(_config.invoke).map(invokeConfig => invoke(invokeConfig))
       : [];
     this.activities = toArray(_config.activities)
       .concat(invokeActivities)
@@ -928,20 +914,12 @@ class StateNode<
     const activityMap = { ...activities };
 
     Array.from(entryExitStates.exit).forEach(stateNode => {
-      if (!stateNode.activities) {
-        return; // TODO: fixme
-      }
-
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = false;
       });
     });
 
     Array.from(entryExitStates.entry).forEach(stateNode => {
-      if (!stateNode.activities) {
-        return; // TODO: fixme
-      }
-
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = true;
       });
@@ -1797,52 +1775,76 @@ class StateNode<
           [`${done(this.id)}`]: this.config.onDone
         }
       : undefined;
+    const invokeConfig = this.config.invoke
+      ? toArray(this.config.invoke).reduce(
+          (acc, singleInvokeConfig) => {
+            if (
+              !(singleInvokeConfig instanceof StateNode) &&
+              singleInvokeConfig.onDone
+            ) {
+              acc[
+                doneInvoke(
+                  singleInvokeConfig.id ||
+                    (singleInvokeConfig.src instanceof StateNode
+                      ? singleInvokeConfig.src.id
+                      : singleInvokeConfig.id!)
+                )
+              ] = singleInvokeConfig.onDone;
+            }
+          },
+          {} as any
+        )
+      : undefined;
     const delayedTransitions = this.after;
 
     const formattedTransitions: TransitionsDefinition<
       TContext,
       TEvent
-    > = mapValues({ ...onConfig, ...doneConfig }, (value, event) => {
-      if (value === undefined) {
-        return [{ target: undefined, event, actions: [], internal: true }];
-      }
+    > = mapValues(
+      { ...onConfig, ...doneConfig, ...invokeConfig },
+      (value, event) => {
+        if (value === undefined) {
+          return [{ target: undefined, event, actions: [], internal: true }];
+        }
 
-      if (Array.isArray(value)) {
-        return value.map(targetTransitionConfig =>
+        if (Array.isArray(value)) {
+          return value.map(targetTransitionConfig =>
+            this.formatTransition(
+              targetTransitionConfig.target,
+              targetTransitionConfig,
+              event
+            )
+          );
+        }
+
+        if (typeof value === 'string') {
+          return [this.formatTransition([value], undefined, event)];
+        }
+
+        if (!IS_PRODUCTION) {
+          keys(value).forEach(key => {
+            if (
+              ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) ===
+              -1
+            ) {
+              throw new Error(
+                `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
+                  this.id
+                }'.`
+              );
+            }
+          });
+        }
+
+        return [
           this.formatTransition(
-            targetTransitionConfig.target,
-            targetTransitionConfig,
+            (value as TransitionConfig<TContext, TEvent>).target,
+            value,
             event
           )
-        );
+        ];
       }
-
-      if (typeof value === 'string') {
-        return [this.formatTransition([value], undefined, event)];
-      }
-
-      if (!IS_PRODUCTION) {
-        keys(value).forEach(key => {
-          if (
-            ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) === -1
-          ) {
-            throw new Error(
-              `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
-                this.id
-              }'.`
-            );
-          }
-        });
-      }
-
-      return [
-        this.formatTransition(
-          (value as TransitionConfig<TContext, TEvent>).target,
-          value,
-          event
-        )
-      ];
-    }) as TransitionsDefinition<TContext, TEvent>;
+    ) as TransitionsDefinition<TContext, TEvent>;
 
     delayedTransitions.forEach(delayedTransition => {
       formattedTransitions[delayedTransition.event] =

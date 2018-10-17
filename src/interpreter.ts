@@ -17,6 +17,7 @@ import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
+import { mapContext } from './utils';
 
 export type StateListener = <TContext = DefaultContext>(
   state: State<TContext>
@@ -402,7 +403,7 @@ export class Interpreter<
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext>)
-          .activity as InvokeDefinition<TContext>;
+          .activity as InvokeDefinition<TContext, TEvent>;
 
         if (activity.type === ActionTypes.Invoke) {
           const service = activity.src
@@ -412,7 +413,7 @@ export class Interpreter<
                 ? this.machine.options.services[activity.src]
                 : undefined
             : undefined;
-          const { id } = activity;
+          const { id, params } = activity;
 
           const autoForward = !!activity.forward;
 
@@ -426,10 +427,15 @@ export class Interpreter<
             // TODO: try/catch here
             const childMachine =
               service instanceof StateNode ? service : Machine(service);
-            const interpreter = this.spawn(childMachine, {
-              id,
-              autoForward
-            }).onDone(this.sender(doneInvoke(activity.id)));
+            const interpreter = this.spawn(
+              params
+                ? childMachine.withContext(mapContext(params, context, event!))
+                : childMachine,
+              {
+                id,
+                autoForward
+              }
+            ).onDone(this.sender(doneInvoke(activity.id)));
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {
