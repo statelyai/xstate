@@ -548,7 +548,7 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | RaisedEvent<TEvent>
   | { type: ActionTypes.Init };
 
-export type AnyEvent<TEvent extends EventObject> =
+export type AnyEventObject<TEvent extends EventObject> =
   | TEvent
   | BuiltInEvent<TEvent>;
 

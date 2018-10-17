@@ -42,7 +42,7 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  AnyEvent,
+  AnyEventObject,
   RaisedEvent,
   FinalStateNodeConfig
 } from './types';
@@ -82,7 +82,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends AnyEvent<EventObject> = AnyEvent<EventObject>
+  TEvent extends AnyEventObject<EventObject> = AnyEventObject<EventObject>
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.

@@ -3,7 +3,7 @@ import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
 import { State } from '../src/State';
-import { log, assign } from '../src/actions';
+import { log, assign, actionTypes } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',
@@ -41,17 +41,17 @@ describe('interpreter', () => {
     assert.instanceOf(interpreter, Interpreter);
   });
 
-  it('immediately notifies the listener with the initial state', () => {
-    let result: State<any> | undefined;
-
+  it('immediately notifies the listener with the initial state and event', done => {
     const interpreter = interpret(idMachine).onTransition(
-      initialState => (result = initialState)
+      (initialState, event) => {
+        assert.instanceOf(initialState, State);
+        assert.deepEqual(initialState.value, idMachine.initialState.value);
+        assert.deepEqual(event.type, actionTypes.init);
+        done();
+      }
     );
 
     interpreter.start();
-
-    assert.instanceOf(result, State);
-    assert.deepEqual(result!.value, idMachine.initialState.value);
   });
 
   it('.initialState returns the initial state', () => {
