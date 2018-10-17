@@ -210,7 +210,9 @@ export class Interpreter<
     this.flushEventQueue();
   }
   /*
-   * Adds a listener that is notified whenever a state transition happens.
+   * Adds a listener that is notified whenever a state transition happens. The listener is called with
+   * the next state and the event object that caused the state transition.
+   *
    * @param listener The state listener
    */
   public onTransition(listener: StateListener): Interpreter<TContext> {
