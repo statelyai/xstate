@@ -190,15 +190,6 @@ class StateNode<
     public context?: Readonly<TContext>
   ) {
     this.key = _config.key || _config.id || '(machine)';
-    this.type =
-      _config.type ||
-      (_config.parallel // TODO: deprecate
-        ? 'parallel'
-        : _config.states && keys(_config.states).length
-          ? 'compound'
-          : _config.history
-            ? 'history'
-            : 'atomic');
     this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
@@ -210,6 +201,25 @@ class StateNode<
       (this.machine
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
+    this.type =
+      _config.type ||
+      (_config.parallel
+        ? 'parallel'
+        : _config.states && keys(_config.states).length
+          ? 'compound'
+          : _config.history
+            ? 'history'
+            : 'atomic');
+    if (!IS_PRODUCTION && 'parallel' in _config) {
+      // tslint:disable-next-line:no-console
+      console.warn(
+        `The "parallel" property is deprecated and will be removed in version 4.1. ${
+          _config.parallel
+            ? `Replace with \`type: 'parallel'\``
+            : `Use \`type: '${this.type}'\``
+        } in the config for state node '${this.id}' instead.`
+      );
+    }
     this.initial = _config.initial;
     this.order = _config.order || -1;
 
@@ -903,8 +913,6 @@ class StateNode<
   private resolveActivity(
     activity: Activity<TContext>
   ): ActivityDefinition<TContext> {
-    // const { activities } = this.machine.options;
-
     const activityDefinition = toActivityDefinition(activity);
 
     return activityDefinition;
@@ -1376,7 +1384,7 @@ class StateNode<
       }
       if (stateNode.activities) {
         stateNode.activities.forEach(activity => {
-          activityMap[getEventType(activity) as string] = true; // TODO: fixme
+          activityMap[getEventType(activity)] = true;
           actions.push(start(activity));
         });
       }

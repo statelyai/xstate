@@ -327,7 +327,7 @@ function toConfig(
     return {
       id,
       ...(initial ? { initial } : undefined),
-      ...(parallel ? { parallel } : undefined),
+      ...(parallel ? { type: 'parallel' } : undefined),
       ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
