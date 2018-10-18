@@ -20,16 +20,34 @@ import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
 
+/**
+ * Listens for state transitions. Receives the next `state` and triggering `event`.
+ *
+ * @param state The next state
+ * @param event The event object that caused the transition
+ */
 export type StateListener = <TContext, TEvent extends EventObject>(
   state: State<TContext>,
   event: TEvent
 ) => void;
 
+/**
+ * Listens for context changes, which are concurrent with state transitions.
+ * Receives the next context and the previous context.
+ *
+ * @param context The context of the current state
+ * @param prevContext The context of the previous state
+ */
 export type ContextListener<TContext = DefaultContext> = (
   context: TContext,
   prevContext: TContext | undefined
 ) => void;
 
+/**
+ * Listens for events sent to the interpreter.
+ *
+ * @param event The event object that was sent.
+ */
 export type EventListener = (event: EventObject) => void;
 
 export type Listener = () => void;
@@ -62,12 +80,23 @@ export class SimulatedClock implements SimulatedClock {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
   private _now: number = 0;
   private _id: number = 0;
+
+  /**
+   * Returns the virtual time elapsed since the simulated clock was started, in milliseconds.
+   */
   public now() {
     return this._now;
   }
   private getId() {
     return this._id++;
   }
+  /**
+   * Calls a function upon reaching a timeout (in milliseconds).
+   * Returns a numeric ID.
+   *
+   * @param fn The function to call upon reaching the timeout
+   * @param timeout The timeout, in milliseconds
+   */
   public setTimeout(fn: (...args: any[]) => void, timeout: number) {
     const id = this.getId();
     this.timeouts.set(id, {
@@ -77,12 +106,28 @@ export class SimulatedClock implements SimulatedClock {
     });
     return id;
   }
+  /**
+   * Clears a timeout with the specified ID (returned from `simulatedClock.setTimeout(...)`).
+   *
+   * @param id The numeric timeout ID
+   */
   public clearTimeout(id: number) {
     this.timeouts.delete(id);
   }
+  /**
+   * Sets the clock to the specified elapsed time (in milliseconds).
+   * Can only move forward in time. An error will be thrown otherwise.
+   *
+   * @param time The time (in milliseconds) to set the clock to.
+   */
   public set(time: number) {
     if (this._now > time) {
-      throw new Error('Unable to travel back in time');
+      throw new Error(
+        // tslint:disable-next-line:max-line-length
+        `Unable to travel back in time. Attempted to set simulated clock back to ${time} ms, which is before the current time of ${
+          this._now
+        } ms.`
+      );
     }
 
     this._now = time;
@@ -96,7 +141,17 @@ export class SimulatedClock implements SimulatedClock {
       }
     });
   }
+  /**
+   * Increases the elapsed simulated time by the specified number of milliseconds.
+   *
+   * @param ms The time (in milliseconds) to increment the clock by.
+   */
   public increment(ms: number): void {
+    if (ms < 0) {
+      throw new Error(
+        `Unable to travel back in time. Attempted to increment simulated clock by ${ms} ms.`
+      );
+    }
     this._now += ms;
     this.flushTimeouts();
   }
