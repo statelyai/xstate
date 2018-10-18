@@ -20,9 +20,6 @@ import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
 
-// Check if in Node or browser environment to use proper "global"
-const globalOrWindow = global; // window !== undefined ? window : global;
-
 export type StateListener = <TContext, TEvent extends EventObject>(
   state: State<TContext>,
   event: TEvent
@@ -120,10 +117,10 @@ export class Interpreter<
   public static defaultOptions: InterpreterOptions = (global => ({
     clock: {
       setTimeout: (fn, ms) => {
-        return globalOrWindow.setTimeout.call(null, fn, ms);
+        return global.setTimeout.call(null, fn, ms);
       },
       clearTimeout: id => {
-        return globalOrWindow.clearTimeout.call(null, id);
+        return global.clearTimeout.call(null, id);
       }
     },
     logger: global.console.log.bind(console)
