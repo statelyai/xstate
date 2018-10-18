@@ -672,10 +672,16 @@ class StateNode<
       const resolvedContext = context || (EMPTY_OBJECT as TContext);
 
       const isInState = stateIn
-        ? matchesState(
-            toStateValue(stateIn, this.delimiter),
-            path(this.path.slice(0, -2))(state.value)
-          )
+        ? typeof stateIn === 'string' && isStateId(stateIn)
+          ? // Check if in state by ID
+            state.matches(
+              toStateValue(this.getStateNodeById(stateIn).path, this.delimiter)
+            )
+          : // Check if in state by relative grandparent
+            matchesState(
+              toStateValue(stateIn, this.delimiter),
+              path(this.path.slice(0, -2))(state.value)
+            )
         : true;
 
       if (
