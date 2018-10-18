@@ -128,6 +128,15 @@ describe('State', () => {
         machine.transition(machine.initialState, 'TO_THREE').nextEvents,
         ['P31', 'P32', 'THREE_EVENT', 'MACHINE_EVENT']
       );
+    })
+
+    it('returns events when transitioned from StateValue', () => {
+      let A = machine.transition(machine.initialState, 'TO_THREE');
+      let B = machine.transition(A.value, 'TO_THREE');
+      assert.deepEqual(
+        B.nextEvents,
+        ['P31', 'P32', 'THREE_EVENT', 'MACHINE_EVENT']
+      );
     });
   });
 });
