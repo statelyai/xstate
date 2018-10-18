@@ -1235,7 +1235,7 @@ class StateNode<
    * @param statePath The string or string array relative path to the state node.
    */
   public getStateNodeByPath(statePath: string | string[]): StateNode<TContext> {
-    const arrayStatePath = toStatePath(statePath, this.delimiter);
+    const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
     let currentStateNode: StateNode<TContext> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
