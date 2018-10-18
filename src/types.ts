@@ -107,7 +107,7 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   type: string;
 }
 
-export interface InvokeDefinition<TContext>
+export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext> {
   /**
    * The source of the machine to be invoked, or the machine itself.
@@ -117,6 +117,13 @@ export interface InvokeDefinition<TContext>
    * Whether any events sent to the parent are forwarded to the invoked child machine.
    */
   forward?: boolean;
+  /**
+   * Parameters from the parent machine's context to set as the (partial or full) context
+   * for the invoked child machine.
+   *
+   * Parameters should be mapped to match the child machine's context shape.
+   */
+  params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
 }
 
 export interface Delay {
@@ -210,11 +217,31 @@ export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
   >
 };
 
-export type InvokeConfig<TContext> =
+export type InvokeConfig<TContext, TEvent extends EventObject> =
   | {
+      /**
+       * The unique identifier for the invoked machine. If not specified, this
+       * will be the machine's own `id`, or the URL (from `src`).
+       */
       id?: string;
+      /**
+       * The source of the machine to be invoked, or the machine itself.
+       */
       src: string | Machine<any, any, any>;
+      /**
+       * Whether any events sent to the parent are forwarded to the invoked child machine.
+       */
       forward?: boolean;
+      /**
+       * Parameters from the parent machine's context to set as the (partial or full) context
+       * for the invoked child machine.
+       *
+       * Parameters should be mapped to match the child machine's context shape.
+       */
+      params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+      /**
+       * The transition to take upon the invoked child machine reaching its final top-level state.
+       */
       onDone?:
         | string
         | TransitionConfig<TContext, { type: ActionTypes.DoneInvoke }>
@@ -222,9 +249,9 @@ export type InvokeConfig<TContext> =
     }
   | Machine<any, any, any>;
 
-export type InvokesConfig<TContext> =
-  | InvokeConfig<TContext>
-  | Array<InvokeConfig<TContext>>;
+export type InvokesConfig<TContext, TEvent extends EventObject> =
+  | InvokeConfig<TContext, TEvent>
+  | Array<InvokeConfig<TContext, TEvent>>;
 
 export interface StateNodeConfig<
   TContext,
@@ -271,7 +298,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: InvokesConfig<TContext>;
+  invoke?: InvokesConfig<TContext, TEvent>;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -521,7 +548,7 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | RaisedEvent<TEvent>
   | { type: ActionTypes.Init };
 
-export type AnyEvent<TEvent extends EventObject> =
+export type AnyEventObject<TEvent extends EventObject> =
   | TEvent
   | BuiltInEvent<TEvent>;
 
@@ -566,6 +593,15 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = Partial<
       | TContext[K]
   }
 >;
+
+export type Mapper<TContext, TEvent extends EventObject> = (
+  extState: TContext,
+  event: TEvent
+) => any;
+
+export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
+  [key: string]: ((extState: TContext, event: TEvent) => any) | any;
+}>;
 
 export interface AssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext> {

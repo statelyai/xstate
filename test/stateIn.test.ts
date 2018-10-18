@@ -16,6 +16,10 @@ const machine = Machine({
             EVENT2: {
               target: 'a2',
               in: { b: 'b2' }
+            },
+            EVENT3: {
+              target: 'a2',
+              in: '#b_b2'
             }
           }
         },
@@ -34,6 +38,7 @@ const machine = Machine({
           }
         },
         b2: {
+          id: 'b_b2',
           type: 'parallel',
           states: {
             foo: {
@@ -113,6 +118,32 @@ describe('transition "in" check', () => {
     );
   });
 
+  it('should transition if state node ID matches current state value', () => {
+    assert.deepEqual(
+      machine.transition(
+        {
+          a: 'a1',
+          b: {
+            b2: {
+              foo: 'foo2',
+              bar: 'bar1'
+            }
+          }
+        },
+        'EVENT3'
+      ).value,
+      {
+        a: 'a2',
+        b: {
+          b2: {
+            foo: 'foo2',
+            bar: 'bar1'
+          }
+        }
+      }
+    );
+  });
+
   it('should not transition if string state path does not match current state value', () => {
     assert.deepEqual(machine.transition({ a: 'a1', b: 'b1' }, 'EVENT1').value, {
       a: 'a1',
@@ -146,7 +177,7 @@ describe('transition "in" check', () => {
     );
   });
 
-  xit('matching should be relative to grandparent (match)', () => {
+  it('matching should be relative to grandparent (match)', () => {
     assert.deepEqual(
       machine.transition(
         { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },

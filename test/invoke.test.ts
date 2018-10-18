@@ -47,14 +47,20 @@ const parentMachine = Machine(
   }
 );
 
-const fetchMachine = Machine({
+const fetchMachine = Machine<{ userId: string | undefined }>({
   id: 'fetch',
+  context: {
+    userId: undefined
+  },
   initial: 'pending',
   states: {
     pending: {
       onEntry: send('RESOLVE'),
       on: {
-        RESOLVE: 'success'
+        RESOLVE: {
+          target: 'success',
+          cond: ctx => ctx.userId !== undefined
+        }
       }
     },
     success: {
@@ -69,6 +75,9 @@ const fetchMachine = Machine({
 const fetcherMachine = Machine({
   id: 'fetcher',
   initial: 'idle',
+  context: {
+    selectedUserId: '42'
+  },
   states: {
     idle: {
       on: {
@@ -77,13 +86,18 @@ const fetcherMachine = Machine({
       }
     },
     waiting: {
-      invoke: { src: fetchMachine },
+      invoke: {
+        src: fetchMachine,
+        params: {
+          userId: ctx => ctx.selectedUserId
+        }
+      },
       on: {
         [doneInvoke(fetchMachine.id)]: 'received'
       }
     },
     waitingInvokeMachine: {
-      invoke: fetchMachine,
+      invoke: fetchMachine.withContext({ userId: '55' }),
       on: {
         [doneInvoke(fetchMachine.id)]: 'received'
       }

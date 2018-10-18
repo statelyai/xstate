@@ -310,7 +310,6 @@ describe('parallel history states', () => {
 describe('transient history', () => {
   const transientMachine = Machine({
     initial: 'A',
-    parallel: false,
     states: {
       A: {
         on: { EVENT: 'B' }

@@ -4,7 +4,9 @@ import {
   ActionType,
   Action,
   EventObject,
-  StateInterface
+  StateInterface,
+  PropertyMapper,
+  Mapper
 } from './types';
 import { STATE_DELIMITER } from './constants';
 
@@ -274,4 +276,29 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
     return [];
   }
   return [value];
+}
+
+export function mapContext<TContext, TEvent extends EventObject>(
+  mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
+  context: TContext,
+  event: TEvent
+): any {
+  if (typeof mapper === 'function') {
+    return (mapper as Mapper<TContext, TEvent>)(context, event);
+  }
+
+  return keys(mapper).reduce(
+    (acc, key) => {
+      const subMapper = mapper[key];
+
+      if (typeof subMapper === 'function') {
+        acc[key] = subMapper(context, event);
+      } else {
+        acc[key] = subMapper;
+      }
+
+      return acc;
+    },
+    {} as any
+  );
 }

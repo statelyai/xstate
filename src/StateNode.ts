@@ -42,7 +42,7 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  AnyEvent,
+  AnyEventObject,
   RaisedEvent,
   FinalStateNodeConfig
 } from './types';
@@ -59,7 +59,9 @@ import {
   cancel,
   after,
   raise,
-  done
+  done,
+  doneInvoke,
+  invoke
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -80,7 +82,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends AnyEvent<EventObject> = AnyEvent<EventObject>
+  TEvent extends AnyEventObject<EventObject> = AnyEventObject<EventObject>
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -188,15 +190,6 @@ class StateNode<
     public context?: Readonly<TContext>
   ) {
     this.key = _config.key || _config.id || '(machine)';
-    this.type =
-      _config.type ||
-      (_config.parallel // TODO: deprecate
-        ? 'parallel'
-        : _config.states && keys(_config.states).length
-          ? 'compound'
-          : _config.history
-            ? 'history'
-            : 'atomic');
     this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
@@ -208,6 +201,25 @@ class StateNode<
       (this.machine
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
+    this.type =
+      _config.type ||
+      (_config.parallel
+        ? 'parallel'
+        : _config.states && keys(_config.states).length
+          ? 'compound'
+          : _config.history
+            ? 'history'
+            : 'atomic');
+    if (!IS_PRODUCTION && 'parallel' in _config) {
+      // tslint:disable-next-line:no-console
+      console.warn(
+        `The "parallel" property is deprecated and will be removed in version 4.1. ${
+          _config.parallel
+            ? `Replace with \`type: 'parallel'\``
+            : `Use \`type: '${this.type}'\``
+        } in the config for state node '${this.id}' instead.`
+      );
+    }
     this.initial = _config.initial;
     this.order = _config.order || -1;
 
@@ -243,25 +255,9 @@ class StateNode<
       this.type === 'final'
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    const invokeActivities = _config.invoke
-      ? toArray(_config.invoke).map(invokeConfig => {
-          if (invokeConfig instanceof StateNode) {
-            return {
-              type: ActionTypes.Invoke,
-              id: invokeConfig.id,
-              src: invokeConfig
-            };
-          }
 
-          return {
-            type: ActionTypes.Invoke,
-            id:
-              invokeConfig.src instanceof StateNode
-                ? invokeConfig.src.id
-                : invokeConfig.src,
-            ...invokeConfig
-          };
-        })
+    const invokeActivities = _config.invoke
+      ? toArray(_config.invoke).map(invokeConfig => invoke(invokeConfig))
       : [];
     this.activities = toArray(_config.activities)
       .concat(invokeActivities)
@@ -686,10 +682,16 @@ class StateNode<
       const resolvedContext = context || (EMPTY_OBJECT as TContext);
 
       const isInState = stateIn
-        ? matchesState(
-            toStateValue(stateIn, this.delimiter),
-            path(this.path.slice(0, -2))(state.value)
-          )
+        ? typeof stateIn === 'string' && isStateId(stateIn)
+          ? // Check if in state by ID
+            state.matches(
+              toStateValue(this.getStateNodeById(stateIn).path, this.delimiter)
+            )
+          : // Check if in state by relative grandparent
+            matchesState(
+              toStateValue(stateIn, this.delimiter),
+              path(this.path.slice(0, -2))(state.value)
+            )
         : true;
 
       if (
@@ -911,8 +913,6 @@ class StateNode<
   private resolveActivity(
     activity: Activity<TContext>
   ): ActivityDefinition<TContext> {
-    // const { activities } = this.machine.options;
-
     const activityDefinition = toActivityDefinition(activity);
 
     return activityDefinition;
@@ -928,20 +928,12 @@ class StateNode<
     const activityMap = { ...activities };
 
     Array.from(entryExitStates.exit).forEach(stateNode => {
-      if (!stateNode.activities) {
-        return; // TODO: fixme
-      }
-
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = false;
       });
     });
 
     Array.from(entryExitStates.entry).forEach(stateNode => {
-      if (!stateNode.activities) {
-        return; // TODO: fixme
-      }
-
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = true;
       });
@@ -1392,7 +1384,7 @@ class StateNode<
       }
       if (stateNode.activities) {
         stateNode.activities.forEach(activity => {
-          activityMap[getEventType(activity) as string] = true; // TODO: fixme
+          activityMap[getEventType(activity)] = true;
           actions.push(start(activity));
         });
       }
@@ -1797,52 +1789,76 @@ class StateNode<
           [`${done(this.id)}`]: this.config.onDone
         }
       : undefined;
+    const invokeConfig = this.config.invoke
+      ? toArray(this.config.invoke).reduce(
+          (acc, singleInvokeConfig) => {
+            if (
+              !(singleInvokeConfig instanceof StateNode) &&
+              singleInvokeConfig.onDone
+            ) {
+              acc[
+                doneInvoke(
+                  singleInvokeConfig.id ||
+                    (singleInvokeConfig.src instanceof StateNode
+                      ? singleInvokeConfig.src.id
+                      : singleInvokeConfig.id!)
+                )
+              ] = singleInvokeConfig.onDone;
+            }
+          },
+          {} as any
+        )
+      : undefined;
     const delayedTransitions = this.after;
 
     const formattedTransitions: TransitionsDefinition<
       TContext,
       TEvent
-    > = mapValues({ ...onConfig, ...doneConfig }, (value, event) => {
-      if (value === undefined) {
-        return [{ target: undefined, event, actions: [], internal: true }];
-      }
+    > = mapValues(
+      { ...onConfig, ...doneConfig, ...invokeConfig },
+      (value, event) => {
+        if (value === undefined) {
+          return [{ target: undefined, event, actions: [], internal: true }];
+        }
 
-      if (Array.isArray(value)) {
-        return value.map(targetTransitionConfig =>
+        if (Array.isArray(value)) {
+          return value.map(targetTransitionConfig =>
+            this.formatTransition(
+              targetTransitionConfig.target,
+              targetTransitionConfig,
+              event
+            )
+          );
+        }
+
+        if (typeof value === 'string') {
+          return [this.formatTransition([value], undefined, event)];
+        }
+
+        if (!IS_PRODUCTION) {
+          keys(value).forEach(key => {
+            if (
+              ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) ===
+              -1
+            ) {
+              throw new Error(
+                `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
+                  this.id
+                }'.`
+              );
+            }
+          });
+        }
+
+        return [
           this.formatTransition(
-            targetTransitionConfig.target,
-            targetTransitionConfig,
+            (value as TransitionConfig<TContext, TEvent>).target,
+            value,
             event
           )
-        );
+        ];
       }
-
-      if (typeof value === 'string') {
-        return [this.formatTransition([value], undefined, event)];
-      }
-
-      if (!IS_PRODUCTION) {
-        keys(value).forEach(key => {
-          if (
-            ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) === -1
-          ) {
-            throw new Error(
-              `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
-                this.id
-              }'.`
-            );
-          }
-        });
-      }
-
-      return [
-        this.formatTransition(
-          (value as TransitionConfig<TContext, TEvent>).target,
-          value,
-          event
-        )
-      ];
-    }) as TransitionsDefinition<TContext, TEvent>;
+    ) as TransitionsDefinition<TContext, TEvent>;
 
     delayedTransitions.forEach(delayedTransition => {
       formattedTransitions[delayedTransition.event] =

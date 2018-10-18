@@ -19,7 +19,8 @@ import {
   InvokeDefinition,
   RaiseEvent,
   Machine,
-  DoneEvent
+  DoneEvent,
+  InvokeConfig
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -187,7 +188,10 @@ export function sendParent<TContext, TEvent extends EventObject>(
  * @param label The label to give to the logged expression.
  */
 export function log<TContext, TEvent extends EventObject>(
-  expr: (ctx: TContext, event: TEvent) => any,
+  expr: (ctx: TContext, event: TEvent) => any = (context, event) => ({
+    context,
+    event
+  }),
   label?: string
 ) {
   return {
@@ -326,10 +330,13 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
  *    invoked machine.
  * @param options
  */
-export function invoke<TContext>(
-  invokeConfig: string | InvokeDefinition<TContext> | Machine<any, any, any>,
-  options?: Partial<InvokeDefinition<TContext>>
-): InvokeDefinition<TContext> {
+export function invoke<TContext, TEvent extends EventObject>(
+  invokeConfig:
+    | string
+    | InvokeConfig<TContext, TEvent>
+    | Machine<any, any, any>,
+  options?: Partial<InvokeDefinition<TContext, TEvent>>
+): InvokeDefinition<TContext, TEvent> {
   if (typeof invokeConfig === 'string') {
     return {
       id: invokeConfig,
@@ -349,5 +356,13 @@ export function invoke<TContext>(
     };
   }
 
-  return invokeConfig;
+  return {
+    type: ActionTypes.Invoke,
+    ...invokeConfig,
+    id:
+      invokeConfig.id ||
+      (typeof invokeConfig.src === 'string'
+        ? invokeConfig.src
+        : (invokeConfig.src as Machine<any, any, any>).id)
+  };
 }

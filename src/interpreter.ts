@@ -10,19 +10,22 @@ import {
   ActivityActionObject,
   SpecialTargets,
   ActionTypes,
-  InvokeDefinition
+  InvokeDefinition,
+  AnyEventObject
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
+import { mapContext } from './utils';
 
 // Check if in Node or browser environment to use proper "global"
-const globalOrWindow = window !== undefined ? window : global;
+const globalOrWindow = global; // window !== undefined ? window : global;
 
-export type StateListener = <TContext = DefaultContext>(
-  state: State<TContext>
+export type StateListener = <TContext, TEvent extends EventObject>(
+  state: State<TContext>,
+  event: TEvent
 ) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
@@ -176,10 +179,15 @@ export class Interpreter<
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
   }
-  private update(state: State<TContext, TEvent>, event?: Event<TEvent>): void {
+  private update(
+    state: State<TContext, TEvent>,
+    event: Event<TEvent> | AnyEventObject<TEvent>
+  ): void {
     this.state = state;
     const { context } = this.state;
-    const eventObject = event ? toEventObject(event) : undefined;
+    const eventObject: AnyEventObject<TEvent> = toEventObject<
+      AnyEventObject<TEvent>
+    >(event);
 
     this.state.actions.forEach(action => {
       this.exec(action, context, eventObject);
@@ -189,7 +197,7 @@ export class Interpreter<
       this.eventListeners.forEach(listener => listener(eventObject));
     }
 
-    this.listeners.forEach(listener => listener(state));
+    this.listeners.forEach(listener => listener(state, eventObject));
     this.contextListeners.forEach(ctxListener =>
       ctxListener(
         this.state.context,
@@ -198,14 +206,16 @@ export class Interpreter<
     );
 
     if (this.state.tree && this.state.tree.done) {
-      this.doneListeners.forEach(listener => listener(state));
+      this.doneListeners.forEach(listener => listener(state, eventObject));
       this.stop();
     }
 
     this.flushEventQueue();
   }
   /*
-   * Adds a listener that is notified whenever a state transition happens.
+   * Adds a listener that is notified whenever a state transition happens. The listener is called with
+   * the next state and the event object that caused the state transition.
+   *
    * @param listener The state listener
    */
   public onTransition(listener: StateListener): Interpreter<TContext> {
@@ -275,7 +285,7 @@ export class Interpreter<
     >
   ): Interpreter<TContext> {
     this.initialized = true;
-    this.update(initialState);
+    this.update(initialState, { type: actionTypes.init });
     return this;
   }
   /**
@@ -373,7 +383,7 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: TEvent
+    event?: AnyEventObject<TEvent>
   ): Partial<TContext> | undefined {
     if (action.exec) {
       return action.exec(context, event);
@@ -405,7 +415,7 @@ export class Interpreter<
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext>)
-          .activity as InvokeDefinition<TContext>;
+          .activity as InvokeDefinition<TContext, TEvent>;
 
         if (activity.type === ActionTypes.Invoke) {
           const service = activity.src
@@ -415,7 +425,7 @@ export class Interpreter<
                 ? this.machine.options.services[activity.src]
                 : undefined
             : undefined;
-          const { id } = activity;
+          const { id, params } = activity;
 
           const autoForward = !!activity.forward;
 
@@ -429,10 +439,17 @@ export class Interpreter<
             // TODO: try/catch here
             const childMachine =
               service instanceof StateNode ? service : Machine(service);
-            const interpreter = this.spawn(childMachine, {
-              id,
-              autoForward
-            }).onDone(this.sender(doneInvoke(activity.id)));
+            const interpreter = this.spawn(
+              params
+                ? childMachine.withContext(
+                    mapContext(params, context, event as TEvent)
+                  )
+                : childMachine,
+              {
+                id,
+                autoForward
+              }
+            ).onDone(this.sender(doneInvoke(activity.id)));
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {

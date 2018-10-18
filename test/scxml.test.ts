@@ -39,10 +39,10 @@ const testGroups = {
     'history0',
     'history1',
     'history2',
-    'history3'
-    // 'history4'
-    // 'history5'
-    // 'history6'
+    'history3',
+    // 'history4',
+    'history5',
+    'history6'
   ],
   misc: ['deep-initial'],
   // 'more-parallel': [
