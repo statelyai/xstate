@@ -1,0 +1,11 @@
+.heading {
+}
+
+.heading.h1 {
+  font-size: 2rem;
+}
+
+.code {
+  height: 2rem;
+  background-color: #26292c;
+}
