@@ -102,6 +102,10 @@ const eastLightMachine = Machine({
 const superLightMachine = Machine({
   id: 'supervisor',
   initial: 'active',
+  invoke: [
+    { id: 'north', src: northLightMachine },
+    { id: 'east', src: eastLightMachine },
+  ],
   states: {
     active: {
       on: {
@@ -119,12 +123,7 @@ const superLightMachine = Machine({
 });
 
 // parent supervisor machine
-const interpretedSuperLight = interpret(superLightMachine, {
-  children: {
-    north: northLightMachine,
-    east: eastLightMachine
-  }
-});
+const interpretedSuperLight = interpret(superLightMachine);
 ```
 
 

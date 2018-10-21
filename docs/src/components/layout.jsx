@@ -10,10 +10,12 @@ import cn from 'classnames';
 
 // Highlight
 import hljs from 'highlight.js/lib/highlight';
-import javascript from 'highlight.js/lib/languages/javascript';
+// import javascript from 'highlight.js/lib/languages/javascript';
 
 import Header from './header';
-hljs.registerLanguage('javascript', javascript);
+import { Sidebar } from './sidebar';
+// hljs.registerLanguage('javascript', javascript);
+// hljs.registerLanguage('typescript', typescript);
 
 class Layout extends React.Component {
   componentDidMount() {
@@ -44,7 +46,7 @@ class Layout extends React.Component {
             >
               <html lang="en" />
               <link
-                href="https://fonts.googleapis.com/css?family=Noto+Sans|Source+Code+Pro"
+                href="https://fonts.googleapis.com/css?family=Roboto|Source+Code+Pro"
                 rel="stylesheet"
               />
             </Helmet>
@@ -52,7 +54,9 @@ class Layout extends React.Component {
               className={layoutStyles.header}
               siteTitle={data.site.siteMetadata.title}
             />
-            <div className={layoutStyles.sidebar}>hello</div>
+            <div className={layoutStyles.sidebar}>
+              <Sidebar />
+            </div>
 
             <MDXProvider
               components={{
@@ -63,6 +67,14 @@ class Layout extends React.Component {
                   >
                     {props.children}
                   </h1>
+                ),
+                h2: props => (
+                  <h2
+                    className={cn(typeStyles.heading, typeStyles.h2)}
+                    id={props.id}
+                  >
+                    {props.children}
+                  </h2>
                 )
               }}
             >

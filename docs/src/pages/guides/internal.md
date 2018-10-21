@@ -31,25 +31,25 @@ The above machine will start in the `'direction.left'` state, and based on what 
 
 ```js
 // ...
-      states: {
-        left: {
-          on: {
-            LEFT_CLICK: 'left',
-            RIGHT_CLICK: 'right',
-            CENTER_CLICK: 'center',
-            JUSTIFY_CLICK: 'justify'
-          }
-        },
-        right: {
-          on: {
-            LEFT_CLICK: 'left',
-            RIGHT_CLICK: 'right',
-            CENTER_CLICK: 'center',
-            JUSTIFY_CLICK: 'justify'
-          }
-        },
-        // ... etc.
-      },
+states: {
+  left: {
+    on: {
+      LEFT_CLICK: 'left',
+      RIGHT_CLICK: 'right',
+      CENTER_CLICK: 'center',
+      JUSTIFY_CLICK: 'justify'
+    }
+  },
+  right: {
+    on: {
+      LEFT_CLICK: 'left',
+      RIGHT_CLICK: 'right',
+      CENTER_CLICK: 'center',
+      JUSTIFY_CLICK: 'justify'
+    }
+  },
+  // ... etc.
+},
 // ...
 ```
 
@@ -59,13 +59,13 @@ Alternatively, the internal transition can be made explicit using a transition c
 
 ```js
 // ...
-      on: {
-        // internal transitions, equivalent to the first example
-        LEFT_CLICK: { target: 'direction.left', internal: true },
-        RIGHT_CLICK: { target: 'direction.right', internal: true },
-        CENTER_CLICK: { target: 'direction.center', internal: true },
-        JUSTIFY_CLICK: { target: 'direction.justify', internal: true }
-      }
+on: {
+  // internal transitions, equivalent to the first example
+  LEFT_CLICK: { target: 'direction.left', internal: true },
+  RIGHT_CLICK: { target: 'direction.right', internal: true },
+  CENTER_CLICK: { target: 'direction.center', internal: true },
+  JUSTIFY_CLICK: { target: 'direction.justify', internal: true }
+}
 // ...
 ```
 
@@ -73,11 +73,11 @@ By default, transitions are external, so a normal transition:
 
 ```js
 // ...
-      on: {
-        // external transition
-        LEFT_CLICK: 'direction.left',
-        // ...
-      }
+on: {
+  // external transition
+  LEFT_CLICK: 'direction.left',
+  // ...
+}
 // ...
 ```
 

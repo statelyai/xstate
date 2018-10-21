@@ -1,11 +1,26 @@
 .heading {
+  font-weight: 300;
 }
 
 .heading.h1 {
   font-size: 2rem;
 }
 
+.heading.h2 {
+  font-size: 1.5rem;
+  margin-top: 2rem;
+}
+
 .code {
   height: 2rem;
   background-color: #26292c;
+}
+
+:global .gatsby-highlight-code-line {
+  background-color: #4a4a4a;
+}
+
+code[class*='language-'],
+pre[class*='language-'] {
+  line-height: 1 !important;
 }

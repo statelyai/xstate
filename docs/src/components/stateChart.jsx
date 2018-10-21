@@ -6,6 +6,7 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 import { Machine as _Machine } from 'xstate';
 
 const StyledState = styled.div`
+  display: inline-block;
   border-radius: 0.25rem;
   text-align: left;
   border: 2px solid #dedede;
@@ -26,10 +27,13 @@ const StyledState = styled.div`
   color: #313131;
 
   & > .children {
-    display: none;
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
+  }
+
+  &:not([data-open='true']) > .children {
+    display: none;
   }
 
   &[data-open='true'] > .children {
@@ -142,7 +146,7 @@ const StyledEventButton = styled.button`
 
 class StateChartNode extends React.Component {
   state = {
-    toggleStates: {}
+    toggled: this.props.toggled
   };
   render() {
     const {
@@ -164,11 +168,7 @@ class StateChartNode extends React.Component {
         data-type={stateNode.parent ? stateNode.type : 'machine'}
         data-active={isActive && stateNode.parent}
         data-preview={isPreview && stateNode.parent}
-        data-open={
-          this.state.toggleStates[stateNode.id] === undefined
-            ? true
-            : this.state.toggleStates[stateNode.id]
-        }
+        data-open={this.state.toggled || undefined}
       >
         <header
           data-type-symbol={
@@ -181,10 +181,7 @@ class StateChartNode extends React.Component {
             onClick={e => {
               e.stopPropagation();
               this.setState({
-                toggleStates: {
-                  ...this.state.toggleStates,
-                  [stateNode.id]: !this.state.toggleStates[stateNode.id]
-                }
+                toggled: !this.state.toggled
               });
             }}
           >
@@ -247,7 +244,6 @@ export class StateChart extends React.Component {
     this.setState({ current });
   });
   componentDidMount() {
-    console.log(this.interpreter);
     this.interpreter.start();
   }
   render() {
@@ -283,6 +279,7 @@ export class StateChart extends React.Component {
               this.setState({ preview: this.interpreter.nextState(event) })
             }
             onExitPreEvent={() => this.setState({ preview: undefined })}
+            toggled={true}
           />
           <SyntaxHighlighter
             language="json"

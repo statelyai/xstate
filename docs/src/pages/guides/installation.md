@@ -10,8 +10,8 @@ yarn add xstate@latest --save
 
 Or you can include `xstate` directly from the [unpkg CDN](https://unpkg.com):
 
-- https://unpkg.com/xstate@3/dist/xstate.js
+- https://unpkg.com/xstate@4/dist/xstate.js
 
 ```html
-<script src="https://unpkg.com/xstate@3/dist/xstate.js"></script>
+<script src="https://unpkg.com/xstate@4/dist/xstate.js"></script>
 ```

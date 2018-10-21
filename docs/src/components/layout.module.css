@@ -6,8 +6,8 @@ body {
   width: 100%;
   margin: 0;
   padding: 0;
-  font-size: 14px;
-  font-family: 'Noto Sans', sans-serif;
+  font-size: 16px;
+  font-family: 'Roboto', sans-serif;
   line-height: 1.5rem;
 }
 
@@ -58,7 +58,9 @@ body {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   overflow-y: auto;
-  padding: 2rem;
+  --padding: 2rem;
+  padding: var(--padding);
+  color: #1b1b1b;
 }
 
 .content code:not([class*='language']) {
@@ -74,9 +76,11 @@ body {
 .content pre {
   background: #26292c;
   font-family: 'Source Code Pro', monospace !important;
+  border-radius: 0 !important;
+  margin: 2rem 0 !important;
 }
 
-[class~='hljs'],
+.content pre,
 p,
 ul {
   max-width: 40rem;
