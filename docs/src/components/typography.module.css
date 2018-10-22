@@ -22,5 +22,5 @@
 
 code[class*='language-'],
 pre[class*='language-'] {
-  line-height: 1 !important;
+  line-height: 1.1 !important;
 }

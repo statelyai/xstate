@@ -8,7 +8,7 @@ body {
   padding: 0;
   font-size: 16px;
   font-family: 'Roboto', sans-serif;
-  line-height: 1.5rem;
+  line-height: 1.5;
 }
 
 :root {
@@ -64,10 +64,9 @@ body {
 }
 
 .content code:not([class*='language']) {
-  background-color: #26292c;
+  background-color: #e1e4e8;
   height: 1.5rem;
   padding: 0 0.5ch;
-  color: white;
   display: inline-block;
   border-radius: var(--radius);
   font-family: 'Source Code Pro', monospace;

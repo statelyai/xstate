@@ -6,8 +6,6 @@
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
-test example for codesandbox integration (temporal) [hello world example](embedded-codesandbox://example)
-
 ## Super quick start
 
 ```bash
@@ -59,11 +57,13 @@ send('TOGGLE'); // 'inactive'
 ## 3rd-Party Usage
 
 With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as `xstate`-compatible JSON!
+
 1. Create your sketch (example: https://sketch.systems/anon/sketch/new)
 2. Click **Export to clipboard...**
 3. Select `XState JSON`
 
 ## Why?
+
 Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
 
 Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) ([🎥 video](https://www.youtube.com/watch?v=VU1NKX6Qkxc)) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:
@@ -75,6 +75,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
 
 ## Installation
+
 1. `npm install xstate --save`
 2. `import { Machine } from 'xstate';`
 
@@ -91,17 +92,17 @@ const lightMachine = Machine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow',
+        TIMER: 'yellow'
       }
     },
     yellow: {
       on: {
-        TIMER: 'red',
+        TIMER: 'red'
       }
     },
     red: {
       on: {
-        TIMER: 'green',
+        TIMER: 'green'
       }
     }
   }
@@ -109,9 +110,7 @@ const lightMachine = Machine({
 
 const currentState = 'green';
 
-const nextState = lightMachine
-  .transition(currentState, 'TIMER')
-  .value;
+const nextState = lightMachine.transition(currentState, 'TIMER').value;
 
 // => 'yellow'
 ```
@@ -165,16 +164,12 @@ const lightMachine = Machine({
 
 const currentState = 'yellow';
 
-const nextState = lightMachine
-  .transition(currentState, 'TIMER')
-  .value;
+const nextState = lightMachine.transition(currentState, 'TIMER').value;
 // => {
 //   red: 'walk'
 // }
 
-lightMachine
-  .transition('red.walk', 'PED_TIMER')
-  .value;
+lightMachine.transition('red.walk', 'PED_TIMER').value;
 // => {
 //   red: 'wait'
 // }
@@ -184,21 +179,15 @@ lightMachine
 
 ```js
 // ...
-const waitState = lightMachine
-  .transition({ red: 'walk' }, 'PED_TIMER')
-  .value;
+const waitState = lightMachine.transition({ red: 'walk' }, 'PED_TIMER').value;
 
 // => { red: 'wait' }
 
-lightMachine
-  .transition(waitState, 'PED_TIMER')
-  .value;
+lightMachine.transition(waitState, 'PED_TIMER').value;
 
 // => { red: 'stop' }
 
-lightMachine
-  .transition({ red: 'stop' }, 'TIMER')
-  .value;
+lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 
 // => 'green'
 ```
@@ -261,9 +250,7 @@ const wordMachine = Machine({
   }
 });
 
-const boldState = wordMachine
-  .transition('bold.off', 'TOGGLE_BOLD')
-  .value;
+const boldState = wordMachine.transition('bold.off', 'TOGGLE_BOLD').value;
 
 // {
 //   bold: 'on',
@@ -272,14 +259,15 @@ const boldState = wordMachine
 //   list: 'none'
 // }
 
-const nextState = wordMachine
-  .transition({
+const nextState = wordMachine.transition(
+  {
     bold: 'off',
     italics: 'off',
     underline: 'on',
     list: 'bullets'
-  }, 'TOGGLE_ITALICS')
-  .value;
+  },
+  'TOGGLE_ITALICS'
+).value;
 
 // {
 //   bold: 'off',
@@ -312,28 +300,25 @@ const paymentMachine = Machine({
   }
 });
 
-const checkState = paymentMachine
-  .transition('method.cash', 'SWITCH_CHECK');
+const checkState = paymentMachine.transition('method.cash', 'SWITCH_CHECK');
 
 // => State {
 //   value: { method: 'check' },
 //   history: State { ... }
 // }
 
-const reviewState = paymentMachine
-  .transition(checkState, 'NEXT');
+const reviewState = paymentMachine.transition(checkState, 'NEXT');
 
 // => State {
 //   value: 'review',
 //   history: State { ... }
 // }
 
-const previousState = paymentMachine
-  .transition(reviewState, 'PREVIOUS')
-  .value;
+const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 
 // => { method: 'check' }
 ```
 
 ## Interpreters
+
 - [`xstateful` by @avaragado](https://www.npmjs.com/package/@avaragado/xstateful)

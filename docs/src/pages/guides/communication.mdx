@@ -7,14 +7,22 @@ Expressing the entire app's behavior in a single statechart can quickly become c
 With actions, there are a few ways you can do this. For example, you can create your own "supervisor" function that dispatches events to their proper targets:
 
 ```js
+import { Machine, actions } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter';
+const { send, sendParent } = actions;
+
 const pingMachine = Machine({
   id: 'ping',
   initial: 'active',
   states: {
     active: {
-      onEntry: sendPing,
+      onEntry: sendParent('PING'),
       on: {
-        PONG: { actions: sendPing }
+        PONG: {
+          actions: sendParent('PING', {
+            delay: 1000
+          })
+        }
       }
     }
   }
@@ -25,37 +33,42 @@ const pongMachine = Machine({
   initial: 'active',
   states: {
     active: {
-      onEntry: sendPong,
       on: {
-        PING: { actions: sendPong }
+        PING: {
+          actions: sendParent('PONG', {
+            delay: 1000
+          })
+        }
       }
     }
   }
 });
 
-const interpretedPing = interpret(pingMachine).start();
-const interpretedPong = interpret(pongMachine).start();
-
-function sendPing() { sendPingPong('ping'); }
-function sendPong() { sendPingPong('pong'); }
-
-function sendPingPong(pingOrPong) {
-  setTimeout(() => {
-    switch pingOrPong {
-      case 'ping':
-        return interpretedPong.send('PING');
-      case 'pong':
-        return interpretedPing.send('PONG');
-      default:
-        return;
+const parentMachine = Machine({
+  id: 'parent',
+  initial: 'active',
+  states: {
+    active: {
+      invoke: [pingMachine, pongMachine],
+      on: {
+        PING: {
+          actions: send('PING', { to: pongMachine.id })
+        },
+        PONG: {
+          actions: send('PONG', { to: pingMachine.id })
+        }
+      }
     }
-  }, 1000);
-}
+  }
+});
+
+const interpreter = interpret(parentMachine).start();
+
 
 // => 'ping'
 // ...
 // => 'pong'
-// ...
+// ..
 // => 'ping'
 // ...
 // => 'pong'
