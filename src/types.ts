@@ -591,7 +591,7 @@ export enum SpecialTargets {
 export interface SendActionOptions {
   id?: string | number;
   delay?: number;
-  target?: string;
+  to?: string;
 }
 
 export interface CancelAction extends ActionObject<any> {
