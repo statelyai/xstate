@@ -153,4 +153,36 @@ describe('invoke', () => {
       .start()
       .send('GO_TO_WAITING_MACHINE');
   });
+
+  describe('with promises', () => {
+    const invokePromiseMachine = Machine({
+      id: 'invokePromise',
+      initial: 'pending',
+      context: {
+        id: 42
+      },
+      states: {
+        pending: {
+          invoke: {
+            src: ctx => new Promise(res => res(ctx.id * 2)),
+            onDone: {
+              target: 'success',
+              cond: (_, e) => {
+                return e.data === 84;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    it('should be invoked with a promise factory and resolve through onDone', done => {
+      interpret(invokePromiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+  });
 });
