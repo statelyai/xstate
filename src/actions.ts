@@ -20,7 +20,8 @@ import {
   RaiseEvent,
   Machine,
   DoneEvent,
-  InvokeConfig
+  InvokeConfig,
+  ErrorExecutionEvent
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -363,6 +364,15 @@ export function invoke<TContext, TEvent extends EventObject>(
       invokeConfig.id ||
       (typeof invokeConfig.src === 'string'
         ? invokeConfig.src
-        : (invokeConfig.src as Machine<any, any, any>).id)
+        : typeof invokeConfig.src === 'function'
+          ? 'promise'
+          : invokeConfig.src.id)
+  };
+}
+
+export function error(data: any): ErrorExecutionEvent {
+  return {
+    type: ActionTypes.ErrorExecution,
+    data
   };
 }

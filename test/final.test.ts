@@ -71,7 +71,7 @@ const finalMachine = Machine({
 });
 
 describe('final states', () => {
-  it('should emit the "done.state.final.red" event when all nested states are finalized', () => {
+  it('should emit the "done.state.final.red" event when all nested states are in their final states', () => {
     const redState = finalMachine.transition('yellow', 'TIMER');
     const waitState = finalMachine.transition(redState, 'PED_WAIT');
     const stopState = finalMachine.transition(waitState, 'PED_STOP');

@@ -107,12 +107,17 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   type: string;
 }
 
+export type InvokeCreator<TFinalContext, TContext> = (
+  ctx: TContext,
+  event: EventObject
+) => Promise<TFinalContext>;
+
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | Machine<any, any, any>;
+  src: string | Machine<any, any, any> | InvokeCreator<any, TContext>;
   /**
    * Whether any events sent to the parent are forwarded to the invoked child machine.
    */
@@ -227,7 +232,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: string | Machine<any, any, any>;
+      src: string | Machine<any, any, any> | InvokeCreator<any, TContext>;
       /**
        * Whether any events sent to the parent are forwarded to the invoked child machine.
        */
@@ -244,8 +249,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        */
       onDone?:
         | string
-        | TransitionConfig<TContext, { type: ActionTypes.DoneInvoke }>
-        | Array<TransitionConfig<TContext, { type: ActionTypes.DoneInvoke }>>;
+        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
     }
   | Machine<any, any, any>;
 
@@ -524,7 +528,9 @@ export enum ActionTypes {
   DoneInvoke = 'done.invoke',
   Log = 'xstate.log',
   Init = 'xstate.init',
-  Invoke = 'xstate.invoke'
+  Invoke = 'xstate.invoke',
+  ErrorExecution = 'error.execution',
+  ErrorCommunication = 'error.communication'
 }
 
 export interface RaisedEvent<TEvent extends EventObject> {
@@ -534,6 +540,16 @@ export interface RaisedEvent<TEvent extends EventObject> {
 export interface RaiseEvent<TContext, TEvent extends EventObject>
   extends ActionObject<TContext> {
   event: Event<TEvent>;
+}
+
+export interface DoneInvokeEvent<TData> extends EventObject {
+  type: ActionTypes.DoneInvoke;
+  data: TData;
+}
+
+export interface ErrorExecutionEvent extends EventObject {
+  type: ActionTypes.ErrorExecution;
+  data: any;
 }
 
 export interface DoneEventObject extends EventObject {
@@ -546,7 +562,8 @@ export type DoneEvent = DoneEventObject & string;
 export type BuiltInEvent<TEvent extends EventObject> =
   | { type: ActionTypes.Null }
   | RaisedEvent<TEvent>
-  | { type: ActionTypes.Init };
+  | { type: ActionTypes.Init }
+  | ErrorExecutionEvent;
 
 export type AnyEventObject<TEvent extends EventObject> =
   | TEvent

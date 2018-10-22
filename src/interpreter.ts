@@ -414,13 +414,16 @@ export class Interpreter<
         const activity = (action as ActivityActionObject<TContext>)
           .activity as InvokeDefinition<TContext, TEvent>;
 
+        // Invoked services
         if (activity.type === ActionTypes.Invoke) {
           const service = activity.src
             ? activity.src instanceof StateNode
               ? activity.src
-              : this.machine.options.services
-                ? this.machine.options.services[activity.src]
-                : undefined
+              : typeof activity.src === 'function'
+                ? activity.src
+                : this.machine.options.services
+                  ? this.machine.options.services[activity.src]
+                  : undefined
             : undefined;
           const { id, params } = activity;
 
@@ -428,11 +431,37 @@ export class Interpreter<
 
           if (!service) {
             // tslint:disable-next-line:no-console
-            console.warn(`No service found for invocation '${activity.src}'`);
+            console.warn(
+              `No service found for invocation '${activity.src}' in machine '${
+                this.machine.id
+              }'.`
+            );
             return;
           }
 
-          if (typeof service !== 'string') {
+          if (typeof service === 'function') {
+            const promise = service(context, event!);
+
+            let canceled = false;
+
+            console.log('here');
+
+            promise
+              .then(data => {
+                console.log(data, canceled, activity.id);
+                if (!canceled) {
+                  this.send(doneInvoke(activity.id, data));
+                }
+              })
+              .catch(e => {
+                // tslint:disable-next-line:no-console
+                console.error(e);
+              });
+
+            this.activitiesMap[activity.id] = () => {
+              canceled = true;
+            };
+          } else if (typeof service !== 'string') {
             // TODO: try/catch here
             const childMachine =
               service instanceof StateNode ? service : Machine(service);

@@ -44,7 +44,8 @@ import {
   ActionTypes,
   AnyEventObject,
   RaisedEvent,
-  FinalStateNodeConfig
+  FinalStateNodeConfig,
+  InvokeDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -171,6 +172,8 @@ class StateNode<
    */
   public order: number;
 
+  private invoke: Array<InvokeDefinition<TContext, TEvent>>;
+
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
@@ -255,12 +258,11 @@ class StateNode<
       this.type === 'final'
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-
-    const invokeActivities = _config.invoke
-      ? toArray(_config.invoke).map(invokeConfig => invoke(invokeConfig))
-      : [];
+    this.invoke = toArray(_config.invoke).map(invokeConfig =>
+      invoke(invokeConfig)
+    );
     this.activities = toArray(_config.activities)
-      .concat(invokeActivities)
+      .concat(this.invoke)
       .map(activity => this.resolveActivity(activity));
   }
 
@@ -1789,26 +1791,15 @@ class StateNode<
           [`${done(this.id)}`]: this.config.onDone
         }
       : undefined;
-    const invokeConfig = this.config.invoke
-      ? toArray(this.config.invoke).reduce(
-          (acc, singleInvokeConfig) => {
-            if (
-              !(singleInvokeConfig instanceof StateNode) &&
-              singleInvokeConfig.onDone
-            ) {
-              acc[
-                doneInvoke(
-                  singleInvokeConfig.id ||
-                    (singleInvokeConfig.src instanceof StateNode
-                      ? singleInvokeConfig.src.id
-                      : singleInvokeConfig.id!)
-                )
-              ] = singleInvokeConfig.onDone;
-            }
-          },
-          {} as any
-        )
-      : undefined;
+    const invokeConfig = this.invoke.reduce(
+      (acc, singleInvokeConfig) => {
+        if (singleInvokeConfig.onDone) {
+          acc[doneInvoke(singleInvokeConfig.id)] = singleInvokeConfig.onDone;
+        }
+        return acc;
+      },
+      {} as any
+    );
     const delayedTransitions = this.after;
 
     const formattedTransitions: TransitionsDefinition<
