@@ -1,5 +1,6 @@
 .heading {
-  font-weight: 300;
+  font-weight: 700;
+  color: #2b3a42;
 }
 
 .heading.h1 {
@@ -13,7 +14,12 @@
 
 .code {
   height: 2rem;
-  background-color: #26292c;
+  background-color: #e1e4e8;
+  height: 1.5rem;
+  padding: 0 0.5ch;
+  display: inline-block;
+  border-radius: var(--radius);
+  font-family: 'Source Code Pro', monospace;
 }
 
 :global .gatsby-highlight-code-line {

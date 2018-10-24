@@ -5,7 +5,7 @@ import { StaticQuery, graphql } from 'gatsby';
 import { MDXProvider } from '@mdx-js/tag';
 import layoutStyles from './layout.module.css';
 import typeStyles from './typography.module.css';
-import 'prismjs/themes/prism-okaidia.css';
+import 'prismjs/themes/prism.css';
 import cn from 'classnames';
 
 // Highlight
@@ -23,6 +23,8 @@ class Layout extends React.Component {
   }
   render() {
     const { children } = this.props;
+
+    console.log(children);
 
     return (
       <StaticQuery
@@ -46,7 +48,7 @@ class Layout extends React.Component {
             >
               <html lang="en" />
               <link
-                href="https://fonts.googleapis.com/css?family=Roboto|Source+Code+Pro"
+                href="https://fonts.googleapis.com/css?family=Roboto:400,700|Source+Code+Pro"
                 rel="stylesheet"
               />
             </Helmet>
@@ -75,6 +77,9 @@ class Layout extends React.Component {
                   >
                     {props.children}
                   </h2>
+                ),
+                inlineCode: props => (
+                  <code className={typeStyles.code}>{props.children}</code>
                 )
               }}
             >

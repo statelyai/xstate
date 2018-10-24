@@ -8,27 +8,27 @@
     "@mdx-js/tag": "^0.15.0",
     "classnames": "^2.2.6",
     "core-js": "^2.5.7",
-    "gatsby": "^2.0.0",
+    "gatsby": "^2.0.29",
     "gatsby-mdx": "^0.2.0",
-    "gatsby-plugin-manifest": "^2.0.2",
-    "gatsby-plugin-offline": "^2.0.5",
+    "gatsby-plugin-manifest": "^2.0.5",
+    "gatsby-plugin-offline": "^2.0.8",
     "gatsby-plugin-react-helmet": "^3.0.0",
-    "gatsby-plugin-sharp": "^2.0.5",
-    "gatsby-remark-autolink-headers": "^2.0.6",
+    "gatsby-plugin-sharp": "^2.0.7",
+    "gatsby-remark-autolink-headers": "^2.0.8",
     "gatsby-remark-embedded-codesandbox": "^1.2.0",
-    "gatsby-remark-images": "^2.0.1",
+    "gatsby-remark-images": "^2.0.4",
     "gatsby-remark-prismjs": "^3.0.2",
-    "gatsby-source-filesystem": "^2.0.1",
+    "gatsby-source-filesystem": "^2.0.5",
     "gatsby-transformer-remark": "^2.1.8",
-    "highlight.js": "^9.13.0",
+    "highlight.js": "^9.13.1",
     "prismjs": "^1.15.0",
-    "react": "^16.5.1",
-    "react-dom": "^16.5.1",
+    "react": "^16.6.0",
+    "react-dom": "^16.6.0",
     "react-helmet": "^5.2.0",
-    "react-syntax-highlighter": "^9.0.0",
+    "react-syntax-highlighter": "^9.0.1",
     "remark-toc": "^5.0.0",
-    "styled-components": "^3.4.9",
-    "xstate": "^4.0.0-13"
+    "styled-components": "^3.4.10",
+    "xstate": "^4.0.0-15"
   },
   "keywords": [
     "gatsby"
@@ -43,7 +43,7 @@
     "test": "echo \"Error: no test specified\" && exit 1"
   },
   "devDependencies": {
-    "gh-pages": "^2.0.0",
+    "gh-pages": "^2.0.1",
     "prettier": "^1.14.2"
   },
   "repository": {

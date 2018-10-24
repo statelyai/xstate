@@ -5,6 +5,20 @@ import SyntaxHighlighter from 'react-syntax-highlighter';
 // import 'highlight.js/styles/monokai.css';
 import { Machine as _Machine } from 'xstate';
 
+const StyledChildStatesToggle = styled.button`
+  display: inline-block;
+  appearance: none;
+  background: transparent;
+  border: 2px solid #dedede;
+  border-bottom: none;
+  border-right: none;
+  border-radius: 0.25rem 0 0 0;
+
+  &:focus {
+    outline: none;
+  }
+`;
+
 const StyledState = styled.div`
   display: inline-block;
   border-radius: 0.25rem;
@@ -13,31 +27,34 @@ const StyledState = styled.div`
   margin: 0.5rem 1rem;
   flex-grow: 0;
   flex-shrink: 1;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.1);
+  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
   background: white;
+  color: #313131;
 
   &:not([data-type='machine']) {
-    opacity: 0.75;
+    // opacity: 0.75;
   }
-
-  &[data-type='machine'] {
-    padding: 0.5rem;
-  }
-
-  color: #313131;
 
   & > .children {
     flex-direction: row;
     flex-wrap: wrap;
     align-items: flex-start;
+    min-height: 1rem;
   }
 
-  &:not([data-open='true']) > .children {
+  &:not([data-open='true']) > .children > *:not(${StyledChildStatesToggle}) {
     display: none;
   }
 
-  &[data-open='true'] > .children {
+  > .children {
     display: flex;
+    padding-bottom: 1rem;
+  }
+
+  ${StyledChildStatesToggle} {
+    position: absolute;
+    bottom: 0;
+    right: 0;
   }
 
   &[data-active] {
@@ -83,7 +100,7 @@ const StyledEvents = styled.ul`
   padding: 0;
   margin: 0;
   list-style: none;
-  padding: 0.5rem;
+  padding: 0 0.5rem 0.5rem 0.5rem;
 
   &:empty {
     display: none;
@@ -110,10 +127,9 @@ const StyledEventButton = styled.button`
   color: white;
   font-size: 0.75em;
   font-weight: bold;
-  padding: 0.5rem 0.5rem 0.5rem 1rem;
+  padding: 0.25rem 0.25rem 0.25rem 0.5rem;
   cursor: pointer;
   border-radius: 2rem;
-  margin-bottom: 0.25rem;
   line-height: 1;
   display: inline-flex;
   flex-direction: row;
@@ -177,19 +193,11 @@ class StateChartNode extends React.Component {
               : undefined
           }
         >
-          <strong
-            onClick={e => {
-              e.stopPropagation();
-              this.setState({
-                toggled: !this.state.toggled
-              });
-            }}
-          >
-            {stateNode.key}
-          </strong>
+          <strong>{stateNode.key}</strong>
         </header>
         <StyledEvents>
           {stateNode.ownEvents.map(ownEvent => {
+            console.log(current.nextEvents);
             const disabled = current.nextEvents.indexOf(ownEvent) === -1;
             return (
               <StyledEvent>
@@ -205,34 +213,46 @@ class StateChartNode extends React.Component {
             );
           })}
         </StyledEvents>
-        <div className="children">
-          {Object.keys(stateNode.states || []).map(key => {
-            const childStateNode = stateNode.states[key];
+        {Object.keys(stateNode.states).length ? (
+          <div className="children">
+            {Object.keys(stateNode.states || []).map(key => {
+              const childStateNode = stateNode.states[key];
 
-            return (
-              <StateChartNode
-                stateNode={childStateNode}
-                current={current}
-                preview={preview}
-                key={childStateNode.id}
-                onEvent={onEvent}
-                onPreEvent={onPreEvent}
-                onExitPreEvent={onExitPreEvent}
-              />
-            );
-          })}
-        </div>
+              return (
+                <StateChartNode
+                  stateNode={childStateNode}
+                  current={current}
+                  preview={preview}
+                  key={childStateNode.id}
+                  onEvent={onEvent}
+                  onPreEvent={onPreEvent}
+                  onExitPreEvent={onExitPreEvent}
+                />
+              );
+            })}
+            <StyledChildStatesToggle
+              onClick={e => {
+                e.stopPropagation();
+                this.setState({
+                  toggled: !this.state.toggled
+                });
+              }}
+            >
+              ...
+            </StyledChildStatesToggle>
+          </div>
+        ) : null}
       </StyledState>
     );
   }
 }
 
 const StyledStateChart = styled.div`
-  display: inline-grid;
+  display: grid;
   grid-template-columns: 50% 50%;
   grid-template-rows: auto;
   font-family: sans-serif;
-  font-size: 12px;
+  font-size: 10px;
 `;
 
 export class StateChart extends React.Component {
@@ -270,25 +290,31 @@ export class StateChart extends React.Component {
     return (
       <section>
         <StyledStateChart>
-          <StateChartNode
-            stateNode={this.props.machine}
-            current={current}
-            preview={preview}
-            onEvent={this.interpreter.send.bind(this)}
-            onPreEvent={event =>
-              this.setState({ preview: this.interpreter.nextState(event) })
-            }
-            onExitPreEvent={() => this.setState({ preview: undefined })}
-            toggled={true}
-          />
-          <SyntaxHighlighter
-            language="json"
-            wrapLines={true}
-            useInlineStyles={false}
-            lineProps={line => ({ 'data-line': line })}
-          >
-            {JSON.stringify(machine.config, null, 2)}
-          </SyntaxHighlighter>
+          <div>
+            <StateChartNode
+              stateNode={this.props.machine}
+              current={current}
+              preview={preview}
+              onEvent={this.interpreter.send.bind(this)}
+              onPreEvent={event =>
+                this.setState({ preview: this.interpreter.nextState(event) })
+              }
+              onExitPreEvent={() => this.setState({ preview: undefined })}
+              toggled={true}
+            />
+          </div>
+          <div style={{ overflow: 'scroll' }}>
+            <pre
+              className="language-json"
+              style={{
+                position: 'absolute',
+                width: '100%',
+                background: 'transparent'
+              }}
+            >
+              {JSON.stringify(machine.config, null, 2)}
+            </pre>
+          </div>
         </StyledStateChart>
       </section>
     );

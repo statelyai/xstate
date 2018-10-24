@@ -108,6 +108,7 @@ describe('State', () => {
     assert.isTrue(changedState.changed, 'changed - different state');
   });
 
+  // TODO: add tests for next event forbidden in current state but allowed in parent state (should be forbidden)
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
       assert.deepEqual(machine.initialState.nextEvents, [
