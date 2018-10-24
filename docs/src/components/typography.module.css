@@ -1,6 +1,7 @@
 .heading {
   font-weight: 700;
   color: #2b3a42;
+  padding-top: 1rem;
 }
 
 .heading.h1 {
@@ -9,7 +10,7 @@
 
 .heading.h2 {
   font-size: 1.5rem;
-  margin-top: 2rem;
+  margin-top: 1rem;
 }
 
 .headingLink {

@@ -20,6 +20,7 @@ const StyledChildStatesToggle = styled.button`
 `;
 
 const StyledState = styled.div`
+  --color-shadow: rgba(0, 0, 0, 0.05);
   display: inline-block;
   border-radius: 0.25rem;
   text-align: left;
@@ -27,7 +28,7 @@ const StyledState = styled.div`
   margin: 0.5rem 1rem;
   flex-grow: 0;
   flex-shrink: 1;
-  box-shadow: 0 0.5rem 1rem rgba(0, 0, 0, 0.05);
+  box-shadow: 0 0.5rem 1rem var(--color-shadow);
   background: white;
   color: #313131;
 
@@ -59,6 +60,7 @@ const StyledState = styled.div`
 
   &[data-active] {
     border-color: #57b0ea;
+    --color-shadow: var(--color-primary-shadow);
     opacity: 1;
   }
 
@@ -164,6 +166,23 @@ const StyledEventButton = styled.button`
   }
 `;
 
+const StyledViewTabs = styled.ul`
+  display: flex;
+  width: 100%;
+  flex-direction: row;
+  justify-content: flex-start;
+  align-items: stretch;
+  margin: 0;
+  padding: 0;
+  height: 1rem;
+
+  > li {
+    padding: 0 0.5rem;
+    text-align: center;
+    list-style: none;
+  }
+`;
+
 function friendlyEventName(event) {
   let match = event.match(/^xstate\.after\((\d+)\)/);
 
@@ -175,6 +194,10 @@ function friendlyEventName(event) {
 
   if (match) {
     return `(done)`;
+  }
+
+  if (event === '') {
+    return '?';
   }
 
   return event;
@@ -279,16 +302,92 @@ const StyledStateChart = styled.div`
   font-size: 10px;
 `;
 
+const StyledField = styled.div`
+  > label {
+    text-transform: uppercase;
+    display: block;
+    margin-bottom: 0.5em;
+    font-weight: bold;
+  }
+`;
+
+function Field({ label, children, empty }) {
+  return (
+    <StyledField empty={empty}>
+      <label>{label}</label>
+      {children}
+    </StyledField>
+  );
+}
+
 export class StateChart extends React.Component {
   state = {
     current: this.props.machine.initialState,
-    preview: undefined
+    preview: undefined,
+    view: 'definition' // or 'state'
   };
   service = interpret(this.props.machine).onTransition(current => {
-    this.setState({ current });
+    this.setState({ current, preview: undefined });
   });
   componentDidMount() {
     this.service.start();
+  }
+  renderView() {
+    const { view, current } = this.state;
+    const { machine } = this.props;
+
+    switch (view) {
+      case 'definition':
+        return (
+          <pre
+            className="language-json"
+            style={{
+              position: 'absolute',
+              width: '100%',
+              background: 'transparent'
+            }}
+          >
+            {JSON.stringify(machine.config, null, 2)}
+          </pre>
+        );
+      case 'state':
+        return (
+          <div>
+            <pre
+              className="language-json"
+              style={{
+                position: 'absolute',
+                width: '100%',
+                background: 'transparent'
+              }}
+            >
+              <Field label="Value">
+                <pre>{JSON.stringify(current.value, null, 2)}</pre>
+              </Field>
+              <Field label="Actions">
+                {current.actions.length ? (
+                  <ul>
+                    {current.actions.map(action => {
+                      return <li key={action.type}>{action.type}</li>;
+                    })}
+                  </ul>
+                ) : (
+                  '-'
+                )}
+              </Field>
+              <Field label="Context">
+                {current.context !== undefined ? (
+                  <pre>{JSON.stringify(current.context, null, 2)}</pre>
+                ) : (
+                  '-'
+                )}
+              </Field>
+            </pre>
+          </div>
+        );
+      default:
+        return null;
+    }
   }
   render() {
     const { machine } = this.props;
@@ -328,16 +427,16 @@ export class StateChart extends React.Component {
             />
           </div>
           <div style={{ overflow: 'scroll' }}>
-            <pre
-              className="language-json"
-              style={{
-                position: 'absolute',
-                width: '100%',
-                background: 'transparent'
-              }}
-            >
-              {JSON.stringify(machine.config, null, 2)}
-            </pre>
+            <StyledViewTabs>
+              {['definition', 'state'].map(view => {
+                return (
+                  <li onClick={() => this.setState({ view })} key={view}>
+                    {view}
+                  </li>
+                );
+              })}
+            </StyledViewTabs>
+            {this.renderView()}
           </div>
         </StyledStateChart>
       </section>

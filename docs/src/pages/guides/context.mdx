@@ -1,4 +1,9 @@
+import { StateChart } from '../../components/stateChart';
+import {glassMachine} from '../../machines/glass';
+
 # Context (Extended State)
+
+<StateChart machine={glassMachine} />
 
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.
 
@@ -19,7 +24,7 @@ function glassIsFull(ctx, event) {
 }
 
 const glassMachine = Machine({
-  key: 'glass',
+  id: 'glass',
   // the initial context (extended state) of the statechart
   context: {
     amount: 0
@@ -39,7 +44,7 @@ const glassMachine = Machine({
         '': {
           target: 'full',
           cond: 'glassIsFull'
-        }
+        },
         FILL: {
           target: 'filling',
           actions: 'addWater'

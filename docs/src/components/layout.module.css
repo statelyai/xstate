@@ -17,7 +17,7 @@ body {
   --color-border: #555;
   --color-primary: rgba(87, 176, 234, 1);
   --color-primary-faded: rgba(87, 176, 234, 0.75);
-  --color-primary-shadow: rgba(87, 176, 234, 0.75);
+  --color-primary-shadow: rgba(87, 176, 234, 0.1);
 
   --radius: 0.2rem;
 }
@@ -61,7 +61,7 @@ body {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   overflow-y: auto;
-  --padding: 3rem;
+  --padding: 1rem 3rem;
   padding: var(--padding);
   color: #1b1b1b;
 }
