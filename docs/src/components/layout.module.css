@@ -54,13 +54,14 @@ body {
   grid-column: 1 / 2;
   grid-row: 2 / 3;
   border-right: 1px solid var(--color-border);
+  overflow-y: auto;
 }
 
 .content {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   overflow-y: auto;
-  --padding: 2rem;
+  --padding: 3rem;
   padding: var(--padding);
   color: #1b1b1b;
 }

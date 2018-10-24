@@ -12,6 +12,19 @@
   margin-top: 2rem;
 }
 
+.headingLink {
+  position: absolute;
+  display: inline-block;
+  height: 100%;
+  transform: translateX(calc(-100% - 0.5rem));
+  text-decoration: none;
+  color: #ddd;
+}
+
+.heading:not(:hover) > .headingLink {
+  opacity: 0;
+}
+
 .code {
   height: 2rem;
   background-color: #e1e4e8;

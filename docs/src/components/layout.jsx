@@ -8,6 +8,8 @@ import typeStyles from './typography.module.css';
 import 'prismjs/themes/prism.css';
 import cn from 'classnames';
 
+import { Heading } from './typography.jsx';
+
 // Highlight
 import hljs from 'highlight.js/lib/highlight';
 // import javascript from 'highlight.js/lib/languages/javascript';
@@ -62,22 +64,9 @@ class Layout extends React.Component {
 
             <MDXProvider
               components={{
-                h1: props => (
-                  <h1
-                    className={cn(typeStyles.heading, typeStyles.h1)}
-                    id={props.id}
-                  >
-                    {props.children}
-                  </h1>
-                ),
-                h2: props => (
-                  <h2
-                    className={cn(typeStyles.heading, typeStyles.h2)}
-                    id={props.id}
-                  >
-                    {props.children}
-                  </h2>
-                ),
+                h1: props => <Heading tag="h1" {...props} />,
+                h2: props => <Heading tag="h2" {...props} />,
+                h3: props => <Heading tag="h3" {...props} />,
                 inlineCode: props => (
                   <code className={typeStyles.code}>{props.children}</code>
                 )

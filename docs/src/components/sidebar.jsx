@@ -58,8 +58,8 @@ const sitemap = {
       }
     }
   },
-  examples: {
-    title: 'Examples',
+  recipes: {
+    title: 'Recipes',
     pages: {
       react: {
         title: 'React'
