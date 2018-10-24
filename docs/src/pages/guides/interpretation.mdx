@@ -1,6 +1,4 @@
-# Interpretation
-
-(since 4.0)
+# Interpreting machines
 
 While a "stateless" state machine/statechart is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
@@ -9,7 +7,45 @@ While a "stateless" state machine/statechart is useful for flexibility, purity, 
 - Handle delayed transitions and events
 - Communicate with external services
 
-The **interpreter** is responsible for _interpreting_ the statechart and doing all of the above - that is, parsing and executing it in a runtime environment. A simple interpreter might look like this:
+The **interpreter** is responsible for _interpreting_ the state machine/statechart and doing all of the above - that is, parsing and executing it in a runtime environment. An interpreted, running instance of a statechart is called a **service**. 
+
+## The xstate interpreter
+
+Since version 4.0, xstate provides an (optional) interpreter that you can use to run your statecharts. The interpreter handles:
+
+- State transitions
+- Executing actions (side-effects)
+- Delayed events with cancellation
+- Activities (ongoing actions)
+- Invoking/spawning child statechart services
+- Support for multiple listeners for state transitions, context changes, events, etc.
+- And more!
+
+```js
+import { Machine } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter';
+
+const machine = Machine(/* machine config */);
+
+// Interpret the machine, and add a listener for whenever a transition occurs.
+const service = interpret(machine)
+  .onTransition(nextState => {
+    console.log(nextState.value);
+  });
+
+// Start the service
+service.start();
+
+// Send events
+service.send('SOME_EVENT');
+
+// Stop the service when you are no longer using it.
+service.stop();
+```
+
+## Custom interpreters
+
+You may use any interpreter (or create your own) to run your state machine/statechart. Here's an example minimal implementation that demonstrates how flexible interpretation can be (despite the amount of boilerplate):
 
 ```js
 const machine = Machine(/* machine config */);
@@ -52,29 +88,4 @@ listen(state => {
 });
 
 send('SOME_EVENT');
-```
-
-This will work, and demonstrates how flexible interpretation can be - you can create your own interpreter. However, it is a lot of boilerplate.
-
-Thankfully, `xstate@4` ships with an optional interpreter:
-
-```js
-import { interpret } from 'xstate/lib/interpreter';
-
-const machine = Machine(/* machine config */);
-
-// Create an interpreter for the machine, and add a listener
-const interpreter = interpret(machine)
-  .onTransition(nextState => {
-    console.log(nextState.value);
-  });
-
-// Start the interpreter
-interpreter.start();
-
-// Send events
-interpreter.send('SOME_EVENT');
-
-// Stop the interpreter when you are no longer using it.
-interpreter.stop();
 ```

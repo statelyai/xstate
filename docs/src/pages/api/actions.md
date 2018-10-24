@@ -50,6 +50,7 @@ function showLoader(ctx, event) {
 }
 
 const fetchMachine = Machine({
+  id: 'fetch',
   initial: 'idle',
   states: {
     idle: {
@@ -87,6 +88,5 @@ console.log(fetchMachine.transition(fetchMachine.initialState, 'FETCH'));
 
 - Prefer `actions` defined on transitions. Avoid excessive usage of `onEntry` or `onExit` actions.
 - As a rule of thumb, if you are absolutely sure that every possible transition to or from a state will exhibit the same actions, only then should you use `onEntry` or `onExit` actions, respectively.
-- Prefer action objects (e.g., `{ type: 'SOME_EVENT' }`) over string events. In `4.0`, all actions in the `state.actions` array will be normalized as objects.
-- Avoid unnamed function actions, such as `() => { ... }`. This makes visualization less helpful.
-- Functions provided as actions will not be called by xstate, the function signature above is provided as a standard and will be used by future interpreters
+- Prefer action objects (e.g., `{ type: 'SOME_EVENT' }`) over string events.
+- Avoid unnamed function actions, such as `() => { ... }`. This makes visualization and debugging less useful.

@@ -31,7 +31,7 @@ const StyledState = styled.div`
   background: white;
   color: #313131;
 
-  &:not([data-type='machine']) {
+  &:not([data-type~='machine']) {
     // opacity: 0.75;
   }
 
@@ -64,6 +64,10 @@ const StyledState = styled.div`
 
   &[data-preview]:not([data-active]) {
     border-color: var(--color-primary-faded);
+  }
+
+  &[data-type~='parallel'] > .children > *:not(${StyledChildStatesToggle}) {
+    border-style: dashed;
   }
 
   > header {
@@ -160,6 +164,22 @@ const StyledEventButton = styled.button`
   }
 `;
 
+function friendlyEventName(event) {
+  let match = event.match(/^xstate\.after\((\d+)\)/);
+
+  if (match) {
+    return `after ${match[1]}ms`;
+  }
+
+  match = event.match(/^done\.state/);
+
+  if (match) {
+    return `(done)`;
+  }
+
+  return event;
+}
+
 class StateChartNode extends React.Component {
   state = {
     toggled: this.props.toggled
@@ -178,10 +198,14 @@ class StateChartNode extends React.Component {
       ? preview.matches(stateNode.path) || undefined
       : undefined;
 
+    const dataType = stateNode.parent
+      ? stateNode.type
+      : `machine ${stateNode.type}`;
+
     return (
       <StyledState
         key={stateNode.id}
-        data-type={stateNode.parent ? stateNode.type : 'machine'}
+        data-type={dataType}
         data-active={isActive && stateNode.parent}
         data-preview={isPreview && stateNode.parent}
         data-open={this.state.toggled || undefined}
@@ -197,7 +221,7 @@ class StateChartNode extends React.Component {
         </header>
         <StyledEvents>
           {stateNode.ownEvents.map(ownEvent => {
-            console.log(current.nextEvents);
+            console.log(friendlyEventName(ownEvent));
             const disabled = current.nextEvents.indexOf(ownEvent) === -1;
             return (
               <StyledEvent>
@@ -207,7 +231,7 @@ class StateChartNode extends React.Component {
                   onMouseOut={() => onExitPreEvent()}
                   disabled={disabled}
                 >
-                  {ownEvent}
+                  {friendlyEventName(ownEvent)}
                 </StyledEventButton>
               </StyledEvent>
             );
@@ -260,11 +284,11 @@ export class StateChart extends React.Component {
     current: this.props.machine.initialState,
     preview: undefined
   };
-  interpreter = interpret(this.props.machine).onTransition(current => {
+  service = interpret(this.props.machine).onTransition(current => {
     this.setState({ current });
   });
   componentDidMount() {
-    this.interpreter.start();
+    this.service.start();
   }
   render() {
     const { machine } = this.props;
@@ -295,9 +319,9 @@ export class StateChart extends React.Component {
               stateNode={this.props.machine}
               current={current}
               preview={preview}
-              onEvent={this.interpreter.send.bind(this)}
+              onEvent={this.service.send.bind(this)}
               onPreEvent={event =>
-                this.setState({ preview: this.interpreter.nextState(event) })
+                this.setState({ preview: this.service.nextState(event) })
               }
               onExitPreEvent={() => this.setState({ preview: undefined })}
               toggled={true}

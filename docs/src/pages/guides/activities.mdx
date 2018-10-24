@@ -78,7 +78,7 @@ const lightMachine = Machine({
 });
 ```
 
-In the above machine configuration, the `'activateCrosswalkLight'` will start when the `'light.red'` state is entered. It will also execute a special `'xstate.start'` action, letting the interpreter know that it should start the activity:
+In the above machine configuration, the `'activateCrosswalkLight'` will start when the `'light.red'` state is entered. It will also execute a special `'xstate.start'` action, letting the [service](./interpretation) know that it should start the activity:
 
 ```js
 const redState = lightMachine.transition('yellow', 'TIMER');
@@ -204,27 +204,27 @@ const toggleMachine = Machine({
 });
 ```
 
-Using xstate's `Interpreter`, every time an action occurs to start an activity, it will call that activity creator to start the activity, and use the returned "stopper" (if it is returned) to stop the activity:
+Using xstate's [interpreter](./interpretation), every time an action occurs to start an activity, it will call that activity creator to start the activity, and use the returned "stopper" (if it is returned) to stop the activity:
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';
 
 // ... (previous code)
 
-const interpreter = interpret(toggleMachine);
+const service = interpret(toggleMachine);
 
-interpreter.start();
+service.start();
 
 // nothing logged yet
 
-interpreter.send('TOGGLE');
+service.send('TOGGLE');
 
 // => 'BEEP!'
 // => 'BEEP!'
 // => 'BEEP!'
 // ...
 
-interpreter.send('TOGGLE');
+service.send('TOGGLE');
 
 // no more beeps!
 ```

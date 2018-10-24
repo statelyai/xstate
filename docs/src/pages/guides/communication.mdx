@@ -62,7 +62,7 @@ const parentMachine = Machine({
   }
 });
 
-const interpreter = interpret(parentMachine).start();
+const service = interpret(parentMachine).start();
 
 
 // => 'ping'

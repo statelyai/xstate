@@ -1,6 +1,9 @@
-# Delayed transitions
+import { StateChart } from '../../components/stateChart';
+import {lightDelayMachine} from '../../machines/light';
 
-(since 4.0)
+# Delayed events and transitions
+
+<StateChart machine={lightDelayMachine} />
 
 Transitions can automatically take place after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
 
@@ -92,7 +95,7 @@ states: {
 // ...
 ```
 
-## Delayed actions
+## Delayed events
 
 If you just want to send an event after a delay, you can specify the `delay` as an option in the second argument of the `send(...)` action creator:
 
@@ -138,15 +141,15 @@ const toggleMachine = Machine({
 
 ## Interpretation
 
-With the xstate interpreter, delayed actions will use the native`setTimeout` and `clearTimeout` functions:
+With the xstate [interpreter](./Interpretation), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';
 
-const interpreter = interpret(lightDelayMachine)
+const service = interpret(lightDelayMachine)
   .onTransition(state => console.log(state.value));
 
-interpreter.start();
+service.start();
 // => 'green'
 
 // (after 1 second)
@@ -159,15 +162,15 @@ For testing, the xstate interpreter provides a `SimulatedClock`:
 ```js
 import { interpret, SimulatedClock } from 'xstate/lib/interpreter';
 
-const interpreter = interpret(lightDelayMachine, {
+const service = interpret(lightDelayMachine, {
     clock: new SimulatedClock()
   }).onTransition(state => console.log(state.value));
 
-interpreter.start();
+service.start();
 // => 'green'
 
 // move the SimulatedClock forward by 1 second
-interpreter.clock.increment(1000);
+service.clock.increment(1000);
 // => 'yellow'
 ```
 

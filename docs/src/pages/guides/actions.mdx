@@ -98,7 +98,7 @@ const lazyStubbornMachine = Machine({
       on: {
         TOGGLE: {
           target: 'active',
-          // send the TOGGLE event again to the interpreter
+          // send the TOGGLE event again to the service
           actions: send('TOGGLE')
         }
       }
@@ -118,7 +118,7 @@ nextState.value;
 nextState.actions;
 // => [{ type: 'xstate.send', event: { type: 'TOGGLE' }}]
 
-// The interpreter will proceed to send itself the { type: 'TOGGLE' } event.
+// The service will proceed to send itself the { type: 'TOGGLE' } event.
 ```
 
 - The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
@@ -194,7 +194,7 @@ endState.actions;
 //   }
 // ]
 
-// The interpreter would log the action's evaulated expression
+// The interpreter would log the action's evaluated expression
 // based on the current state context and event.
 ```
 
