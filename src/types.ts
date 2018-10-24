@@ -6,6 +6,9 @@ export type EventType = string;
 export type ActionType = string;
 export type MetaObject = Record<string, any>;
 
+/**
+ * The full definition of an event, with a string `type`.
+ */
 export interface EventObject extends Record<string, any> {
   /**
    * The type of event that is sent.
@@ -17,6 +20,10 @@ export interface EventObject extends Record<string, any> {
   id?: string | number;
 }
 
+/**
+ * The full definition of an action, with a string `type` and an
+ * `exec` implementation function.
+ */
 export interface ActionObject<TContext> extends Record<string, any> {
   /**
    * The type of action that is executed.
@@ -30,7 +37,19 @@ export interface ActionObject<TContext> extends Record<string, any> {
 
 export type DefaultContext = Record<string, any> | undefined;
 
+/**
+ * The specified string event types or the specified event objects.
+ */
 export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
+
+/**
+ * Represents the specified event types or the full event objects,
+ * as well as the built in event types and/or objects.
+ */
+export type OmniEvent<TEvent extends EventObject> =
+  | TEvent['type']
+  | BuiltInEvent<TEvent>['type']
+  | OmniEventObject<TEvent>;
 
 export interface ActionFunction<TContext> {
   (context: TContext, event?: EventObject): any | void;
@@ -565,7 +584,10 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | { type: ActionTypes.Init }
   | ErrorExecutionEvent;
 
-export type AnyEventObject<TEvent extends EventObject> =
+/**
+ * Represents the specified events and the built-in internal events.
+ */
+export type OmniEventObject<TEvent extends EventObject> =
   | TEvent
   | BuiltInEvent<TEvent>;
 
@@ -662,13 +684,15 @@ export interface Segment<
   TEvent extends EventObject = EventObject
 > {
   /**
-   * From state
+   * From state.
    */
   state: StateValue;
-  /** */
+  /**
+   * The context of the from state.
+   */
   context?: TContext;
   /**
-   * Event from state
+   * Event from state.
    */
   event: Event<TEvent>;
 }

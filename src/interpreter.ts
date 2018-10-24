@@ -11,11 +11,12 @@ import {
   SpecialTargets,
   ActionTypes,
   InvokeDefinition,
-  AnyEventObject
+  OmniEventObject,
+  OmniEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke } from './actions';
+import { toEventObject, doneInvoke, error } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
@@ -181,12 +182,12 @@ export class Interpreter<
   }
   private update(
     state: State<TContext, TEvent>,
-    event: Event<TEvent> | AnyEventObject<TEvent>
+    event: Event<TEvent> | OmniEventObject<TEvent>
   ): void {
     this.state = state;
     const { context } = this.state;
-    const eventObject: AnyEventObject<TEvent> = toEventObject<
-      AnyEventObject<TEvent>
+    const eventObject: OmniEventObject<TEvent> = toEventObject<
+      OmniEventObject<TEvent>
     >(event);
 
     this.state.actions.forEach(action => {
@@ -315,8 +316,8 @@ export class Interpreter<
    *
    * @param event The event to send
    */
-  public send = (event: Event<TEvent>): State<TContext, TEvent> => {
-    const eventObject = toEventObject(event);
+  public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const nextState = this.nextState(eventObject);
 
     this.update(nextState, event);
@@ -360,8 +361,8 @@ export class Interpreter<
    *
    * @param event The event to determine the next state
    */
-  public nextState(event: Event<TEvent>): State<TContext, TEvent> {
-    const eventObject = toEventObject(event);
+  public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
 
     if (!this.initialized) {
       throw new Error(
@@ -381,7 +382,7 @@ export class Interpreter<
 
     return nextState;
   }
-  private forward(event: Event<TEvent>): void {
+  private forward(event: OmniEventObject<TEvent>): void {
     this.forwardTo.forEach(id => {
       const child = this.children.get(id);
 
@@ -412,7 +413,7 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: AnyEventObject<TEvent>
+    event?: OmniEventObject<TEvent>
   ): void {
     if (action.exec) {
       return action.exec(context, event);
@@ -479,8 +480,8 @@ export class Interpreter<
                 }
               })
               .catch(e => {
-                // tslint:disable-next-line:no-console
-                console.error(e);
+                // Send "error.execution" to this (parent).
+                this.send(error(e));
               });
 
             this.activitiesMap[activity.id] = () => {
