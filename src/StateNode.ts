@@ -42,10 +42,11 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  AnyEventObject,
+  OmniEventObject,
   RaisedEvent,
   FinalStateNodeConfig,
-  InvokeDefinition
+  InvokeDefinition,
+  OmniEvent
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -83,7 +84,7 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends AnyEventObject<EventObject> = AnyEventObject<EventObject>
+  TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -456,7 +457,7 @@ class StateNode<
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
-    eventObject: TEvent,
+    eventObject: OmniEventObject<TEvent>,
     context?: TContext
   ): StateTransition<TContext> {
     const stateNode = this.getStateNode(stateValue);
@@ -482,7 +483,7 @@ class StateNode<
   private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: TEvent,
+    eventObject: OmniEventObject<TEvent>,
     context?: TContext
   ): StateTransition<TContext> {
     const subStateKeys = keys(stateValue);
@@ -515,7 +516,7 @@ class StateNode<
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: TEvent,
+    eventObject: OmniEventObject<TEvent>,
     context?: TContext
   ): StateTransition<TContext> {
     const noTransitionKeys: string[] = [];
@@ -637,7 +638,7 @@ class StateNode<
   private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvent>,
-    event: TEvent,
+    event: OmniEventObject<TEvent>,
     context?: TContext
   ): StateTransition<TContext> {
     // leaf node
@@ -655,7 +656,7 @@ class StateNode<
   }
   private next(
     state: State<TContext, TEvent>,
-    eventObject: TEvent,
+    eventObject: OmniEventObject<TEvent>,
     context?: TContext
   ): StateTransition<TContext> {
     const eventType = eventObject.type;
@@ -816,10 +817,10 @@ class StateNode<
   private evaluateGuard(
     condition: Condition<TContext, TEvent>,
     context: TContext,
-    eventObject: TEvent,
+    eventObject: OmniEventObject<TEvent>,
     interimState: StateValue
   ): boolean {
-    let condFn: ConditionPredicate<TContext, TEvent>;
+    let condFn: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
     const { guards } = this.machine.options;
 
     if (typeof condition === 'string') {
@@ -953,7 +954,7 @@ class StateNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent>,
-    event: Event<TEvent>,
+    event: OmniEvent<TEvent>,
     context?: TContext
   ): State<TContext, TEvent> {
     const resolvedStateValue =
@@ -965,7 +966,7 @@ class StateNode<
     const resolvedContext =
       context ||
       ((state instanceof State ? state.context : undefined) as TContext);
-    const eventObject = toEventObject(event);
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const eventType = eventObject.type;
 
     if (this.strict) {
@@ -1002,7 +1003,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
     currentState: State<TContext, TEvent>,
-    event?: TEvent
+    event?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
     const resolvedStateValue = stateTransition.tree
       ? stateTransition.tree.value
@@ -1124,19 +1125,22 @@ class StateNode<
   }
   private static updateContext<TContext, TEvent extends EventObject>(
     context: TContext,
-    event: TEvent | undefined,
+    event: OmniEventObject<TEvent> | undefined,
     assignActions: Array<AssignAction<TContext, TEvent>>
   ): TContext {
     const updatedContext = context
       ? assignActions.reduce((acc, assignAction) => {
-          const { assignment } = assignAction;
+          const { assignment } = assignAction as AssignAction<
+            TContext,
+            OmniEventObject<TEvent>
+          >;
 
           let partialUpdate: Partial<TContext> = {};
 
           if (typeof assignment === 'function') {
             partialUpdate = assignment(
               acc,
-              event || ({ type: ActionTypes.Init } as TEvent)
+              event || { type: ActionTypes.Init }
             );
           } else {
             keys(assignment).forEach(key => {

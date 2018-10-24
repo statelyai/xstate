@@ -153,7 +153,7 @@ export function send<TContext, TEvent extends EventObject>(
   options?: SendActionOptions
 ): SendAction<TContext, TEvent> {
   return {
-    to: options ? options.target : undefined,
+    to: options ? options.to : undefined,
     type: actionTypes.send,
     event: toEventObject<TEvent>(event),
     delay: options ? options.delay : undefined,
@@ -176,7 +176,7 @@ export function sendParent<TContext, TEvent extends EventObject>(
 ): SendAction<TContext, TEvent> {
   return send<TContext, TEvent>(event, {
     ...options,
-    target: SpecialTargets.Parent
+    to: SpecialTargets.Parent
   });
 }
 

@@ -11,11 +11,12 @@ import {
   SpecialTargets,
   ActionTypes,
   InvokeDefinition,
-  AnyEventObject
+  OmniEventObject,
+  OmniEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke } from './actions';
+import { toEventObject, doneInvoke, error } from './actions';
 import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
@@ -203,7 +204,9 @@ export class Interpreter<
 
   // Actor
   public parent?: Interpreter<any>;
-  private children: Set<Interpreter<any>> = new Set();
+  private children: Map<string, Interpreter<any>> = new Map();
+  private forwardTo: Set<string> = new Set();
+  public id: string;
 
   /**
    * Creates a new Interpreter instance for the given machine with the provided options, if any.
@@ -223,6 +226,7 @@ export class Interpreter<
     this.clock = resolvedOptions.clock;
     this.logger = resolvedOptions.logger;
     this.parent = resolvedOptions.parent;
+    this.id = resolvedOptions.id || `${Math.round(Math.random() * 99999)}`;
   }
   public static interpret = interpret;
   /**
@@ -233,12 +237,12 @@ export class Interpreter<
   }
   private update(
     state: State<TContext, TEvent>,
-    event: Event<TEvent> | AnyEventObject<TEvent>
+    event: Event<TEvent> | OmniEventObject<TEvent>
   ): void {
     this.state = state;
     const { context } = this.state;
-    const eventObject: AnyEventObject<TEvent> = toEventObject<
-      AnyEventObject<TEvent>
+    const eventObject: OmniEventObject<TEvent> = toEventObject<
+      OmniEventObject<TEvent>
     >(event);
 
     this.state.actions.forEach(action => {
@@ -367,8 +371,8 @@ export class Interpreter<
    *
    * @param event The event to send
    */
-  public send = (event: Event<TEvent>): State<TContext, TEvent> => {
-    const eventObject = toEventObject(event);
+  public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const nextState = this.nextState(eventObject);
 
     this.update(nextState, event);
@@ -379,6 +383,7 @@ export class Interpreter<
     return nextState;
     // tslint:disable-next-line:semicolon
   };
+
   /**
    * Returns a send function bound to this interpreter instance.
    *
@@ -391,6 +396,19 @@ export class Interpreter<
 
     return sender.bind(this);
   }
+
+  public sendTo = (event: Event<TEvent>, to: string) => {
+    const child =
+      to === SpecialTargets.Parent ? this.parent : this.children.get(to);
+
+    if (!child) {
+      throw new Error(
+        `Unable to send event to child '${to}' from interpreter '${this.id}'.`
+      );
+    }
+
+    child.send(event);
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
@@ -398,8 +416,8 @@ export class Interpreter<
    *
    * @param event The event to determine the next state
    */
-  public nextState(event: Event<TEvent>): State<TContext, TEvent> {
-    const eventObject = toEventObject(event);
+  public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
 
     if (!this.initialized) {
       throw new Error(
@@ -419,14 +437,29 @@ export class Interpreter<
 
     return nextState;
   }
-  private forward(event: Event<TEvent>): void {
-    this.children.forEach(childInterpreter => childInterpreter.send(event));
+  private forward(event: OmniEventObject<TEvent>): void {
+    this.forwardTo.forEach(id => {
+      const child = this.children.get(id);
+
+      if (!child) {
+        throw new Error(
+          `Unable to forward event '${event}' from interpreter '${
+            this.id
+          }' to nonexistant child '${id}'.`
+        );
+      }
+
+      child.send(event);
+    });
   }
   private defer(sendAction: SendAction<TContext, TEvent>): number {
-    return this.clock.setTimeout(
-      this.sender(sendAction.event),
-      sendAction.delay || 0
-    );
+    return this.clock.setTimeout(() => {
+      if (sendAction.to) {
+        this.sendTo(sendAction.event, sendAction.to);
+      } else {
+        this.send(sendAction.event);
+      }
+    }, sendAction.delay || 0);
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -435,8 +468,8 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: AnyEventObject<TEvent>
-  ): Partial<TContext> | undefined {
+    event?: OmniEventObject<TEvent>
+  ): void {
     if (action.exec) {
       return action.exec(context, event);
     }
@@ -445,21 +478,17 @@ export class Interpreter<
       case actionTypes.send:
         const sendAction = action as SendAction<TContext, TEvent>;
 
-        switch (sendAction.to) {
-          case SpecialTargets.Parent:
-            if (this.parent) {
-              this.parent.send(sendAction.event);
-            }
-            break;
-          default:
-            if (!sendAction.delay) {
-              this.eventQueue.push(sendAction.event);
-            } else {
-              this.delayedEventsMap[sendAction.id] = this.defer(sendAction);
-            }
-
-            break;
+        if (sendAction.delay) {
+          this.delayedEventsMap[sendAction.id] = this.defer(sendAction);
+          return;
+        } else {
+          if (sendAction.to) {
+            this.sendTo(sendAction.event, sendAction.to);
+          } else {
+            this.eventQueue.push(sendAction.event);
+          }
         }
+        break;
 
       case actionTypes.cancel:
         this.cancel((action as CancelAction).sendId);
@@ -499,18 +528,15 @@ export class Interpreter<
 
             let canceled = false;
 
-            console.log('here');
-
             promise
               .then(data => {
-                console.log(data, canceled, activity.id);
                 if (!canceled) {
                   this.send(doneInvoke(activity.id, data));
                 }
               })
               .catch(e => {
-                // tslint:disable-next-line:no-console
-                console.error(e);
+                // Send "error.execution" to this (parent).
+                this.send(error(e));
               });
 
             this.activitiesMap[activity.id] = () => {
@@ -534,7 +560,8 @@ export class Interpreter<
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {
-              this.children.delete(interpreter);
+              this.children.delete(interpreter.id);
+              this.forwardTo.delete(interpreter.id);
               interpreter.stop();
             };
           }
@@ -601,8 +628,10 @@ export class Interpreter<
       id: options.id || machine.id
     });
 
+    this.children.set(childInterpreter.id, childInterpreter);
+
     if (options.autoForward) {
-      this.children.add(childInterpreter);
+      this.forwardTo.add(childInterpreter.id);
     }
 
     return childInterpreter;

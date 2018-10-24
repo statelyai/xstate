@@ -1,4 +1,4 @@
-import { Machine, actions } from '../src/index';
+import { Machine, actions, ActionTypes } from '../src/index';
 import { interpret } from '../src/interpreter';
 import { assign, invoke, sendParent, send, doneInvoke } from '../src/actions';
 import { assert } from 'chai';
@@ -159,21 +159,37 @@ describe('invoke', () => {
       id: 'invokePromise',
       initial: 'pending',
       context: {
-        id: 42
+        id: 42,
+        succeed: true
       },
       states: {
         pending: {
           invoke: {
-            src: ctx => new Promise(res => res(ctx.id * 2)),
+            src: ctx =>
+              new Promise(resolve => {
+                if (ctx.succeed) {
+                  resolve(ctx.id);
+                } else {
+                  throw new Error(`failed on purpose for: ${ctx.id}`);
+                }
+              }),
             onDone: {
               target: 'success',
-              cond: (_, e) => {
-                return e.data === 84;
+              cond: (ctx, e) => {
+                return e.data === ctx.id;
               }
+            }
+          },
+          on: {
+            [ActionTypes.ErrorExecution]: {
+              target: 'failure'
             }
           }
         },
         success: {
+          type: 'final'
+        },
+        failure: {
           type: 'final'
         }
       }
@@ -181,6 +197,12 @@ describe('invoke', () => {
 
     it('should be invoked with a promise factory and resolve through onDone', done => {
       interpret(invokePromiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should be invoked with a promise factory and reject with ErrorExecution', done => {
+      interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
         .onDone(() => done())
         .start();
     });
