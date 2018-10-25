@@ -110,28 +110,28 @@ const fetcherMachine = Machine({
 
 describe('invoke', () => {
   it('should start services (external machines)', () => {
-    const interpreter = interpret(parentMachine).start();
+    const service = interpret(parentMachine).start();
     // 1. The 'parent' machine will enter 'start' state
     // 2. The 'child' service will be run with ID 'someService'
     // 3. The 'child' machine will enter 'init' state
     // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
     // 5. The context will be updated to increment count to 2
 
-    assert.deepEqual(interpreter.state.context, { count: 2 });
+    assert.deepEqual(service.state.context, { count: 2 });
 
-    interpreter.send('STOP');
+    service.send('STOP');
   });
 
   it('should forward events to services if forward: true', () => {
-    const interpreter = interpret(parentMachine).start();
+    const service = interpret(parentMachine).start();
 
-    interpreter.send('FORWARD_DEC');
+    service.send('FORWARD_DEC');
     // 1. The 'parent' machine will not do anything (inert transition)
     // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (forward: true)
     // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
     // 4. The context of the 'parent' machine will be updated from 2 to -1
 
-    assert.deepEqual(interpreter.state.context, { count: -1 });
+    assert.deepEqual(service.state.context, { count: -1 });
   });
 
   it('should start services (explicit machine, invoke = config)', done => {

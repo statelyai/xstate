@@ -36,37 +36,35 @@ const lightMachine = Machine({
 
 describe('interpreter', () => {
   it('creates an interpreter', () => {
-    const interpreter = interpret(idMachine);
+    const service = interpret(idMachine);
 
-    assert.instanceOf(interpreter, Interpreter);
+    assert.instanceOf(service, Interpreter);
   });
 
   it('immediately notifies the listener with the initial state and event', done => {
-    const interpreter = interpret(idMachine).onTransition(
-      (initialState, event) => {
-        assert.instanceOf(initialState, State);
-        assert.deepEqual(initialState.value, idMachine.initialState.value);
-        assert.deepEqual(event.type, actionTypes.init);
-        done();
-      }
-    );
+    const service = interpret(idMachine).onTransition((initialState, event) => {
+      assert.instanceOf(initialState, State);
+      assert.deepEqual(initialState.value, idMachine.initialState.value);
+      assert.deepEqual(event.type, actionTypes.init);
+      done();
+    });
 
-    interpreter.start();
+    service.start();
   });
 
   it('.initialState returns the initial state', () => {
-    const interpreter = interpret(idMachine);
+    const service = interpret(idMachine);
 
-    assert.deepEqual(interpreter.initialState, idMachine.initialState);
+    assert.deepEqual(service.initialState, idMachine.initialState);
   });
 
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
-      const interpreter = interpret(lightMachine).start();
+      const service = interpret(lightMachine).start();
 
-      const nextState = interpreter.nextState('TIMER');
+      const nextState = service.nextState('TIMER');
       assert.equal(nextState.value, 'yellow');
-      assert.equal(interpreter.state.value, 'green');
+      assert.equal(service.state.value, 'green');
     });
   });
 
@@ -86,11 +84,11 @@ describe('interpreter', () => {
         }
       };
 
-      const interpreter = interpret(lightMachine, {
+      const service = interpret(lightMachine, {
         clock: new SimulatedClock()
       }).onTransition(listener);
-      const clock = interpreter.clock as SimulatedClock;
-      interpreter.start();
+      const clock = service.clock as SimulatedClock;
+      service.start();
 
       clock.increment(5);
       assert.equal(
@@ -157,21 +155,21 @@ describe('interpreter', () => {
     );
 
     it('should start activities', () => {
-      const interpreter = interpret(activityMachine);
+      const service = interpret(activityMachine);
 
-      interpreter.start();
+      service.start();
 
       assert.equal(activityState, 'on');
     });
 
     it('should stop activities', () => {
-      const interpreter = interpret(activityMachine);
+      const service = interpret(activityMachine);
 
-      interpreter.start();
+      service.start();
 
       assert.equal(activityState, 'on');
 
-      interpreter.send('TURN_OFF');
+      service.send('TURN_OFF');
 
       assert.equal(activityState, 'off');
     });
@@ -181,14 +179,14 @@ describe('interpreter', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);
 
-    const interpreter = interpret(lightMachine, {
+    const service = interpret(lightMachine, {
       clock: new SimulatedClock()
     }).onTransition(listener);
-    const clock = interpreter.clock as SimulatedClock;
-    interpreter.start();
+    const clock = service.clock as SimulatedClock;
+    service.start();
 
     clock.increment(5);
-    interpreter.send('KEEP_GOING');
+    service.send('KEEP_GOING');
 
     assert.deepEqual(currentState!.value, 'green');
     clock.increment(10);
@@ -200,25 +198,25 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const interpreter = interpret(lightMachine);
+    const service = interpret(lightMachine);
 
-    assert.throws(() => interpreter.send('SOME_EVENT'));
+    assert.throws(() => service.send('SOME_EVENT'));
 
-    interpreter.start();
+    service.start();
 
-    assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
   });
 
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
-    const interpreter = interpret(lightMachine).onTransition(s => (state = s));
+    const service = interpret(lightMachine).onTransition(s => (state = s));
 
-    interpreter.start();
-    interpreter.send('TIMER'); // yellow
+    service.start();
+    service.send('TIMER'); // yellow
     assert.deepEqual(state.value, 'yellow');
 
-    interpreter.stop();
-    interpreter.send('TIMER'); // red if interpreter is not stopped
+    service.stop();
+    service.send('TIMER'); // red if interpreter is not stopped
     assert.deepEqual(state.value, 'yellow');
   });
 
@@ -243,12 +241,12 @@ describe('interpreter', () => {
       }
     });
 
-    const interpreter = interpret(logMachine, {
+    const service = interpret(logMachine, {
       logger: msg => logs.push(msg)
     }).start();
 
-    interpreter.send('LOG');
-    interpreter.send('LOG');
+    service.send('LOG');
+    service.send('LOG');
 
     assert.lengthOf(logs, 2);
     assert.deepEqual(logs, [{ count: 1 }, { count: 2 }]);

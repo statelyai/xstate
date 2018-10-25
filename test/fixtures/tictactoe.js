@@ -116,7 +116,7 @@ const ticTacToeMachine = Machine(
   }
 );
 
-const interpreter = interpret(ticTacToeMachine, e => {
+const service = interpret(ticTacToeMachine, e => {
   // console.log(e.value);
   // console.log(e.ext);
   // console.log('\n');
