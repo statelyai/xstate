@@ -647,4 +647,39 @@ describe('parallel states', () => {
       });
     });
   });
+
+  // https://github.com/davidkpiano/xstate/issues/191
+  describe('nested flat parallel states', () => {
+    const machine = Machine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'to-B': 'B'
+          }
+        },
+        B: {
+          parallel: true,
+          states: {
+            C: {},
+            D: {}
+          }
+        }
+      },
+      on: {
+        'to-A': 'A'
+      }
+    });
+
+    it('should represent the flat nested parallel states in the state value', () => {
+      const result = machine.transition(machine.initialState, 'to-B');
+
+      assert.deepEqual(result.value, {
+        B: {
+          C: {},
+          D: {}
+        }
+      });
+    });
+  });
 });
