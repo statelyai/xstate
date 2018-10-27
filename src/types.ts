@@ -103,7 +103,7 @@ export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
 }
 
 export type ConditionalTransitionConfig<
-  TContext = DefaultContext,
+  TContext,
   TEvent extends EventObject = EventObject
 > = Array<TransitionConfig<TContext, TEvent>>;
 
@@ -165,7 +165,7 @@ export interface DelayedTransitionConfig<TContext, TEvent extends EventObject>
 
 export type DelayedTransitions<TContext, TEvent extends EventObject> =
   | Record<
-      string,
+      string | number,
       | string
       | TransitionConfig<TContext, TEvent>
       | Array<TransitionConfig<TContext, TEvent>>
