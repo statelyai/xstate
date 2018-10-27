@@ -1,6 +1,6 @@
 # Installation
 
-You can install `xstate` from NPM or Yarn:
+You can install XState from NPM or Yarn:
 
 ```bash
 npm install xstate@latest --save
@@ -8,7 +8,7 @@ npm install xstate@latest --save
 yarn add xstate@latest --save
 ```
 
-Or you can include `xstate` directly from the [unpkg CDN](https://unpkg.com):
+Or you can include XState directly from the [unpkg CDN](https://unpkg.com):
 
 - https://unpkg.com/xstate@4/dist/xstate.js
 

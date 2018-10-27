@@ -1,10 +1,11 @@
 # Machine
 
-A machine in `xstate` represents a hierarchical state machine, or statechart. The `Machine(...)` function creates these machines.
+A machine in XState represents a hierarchical state machine, or statechart. The `Machine(...)` function creates these machines.
 
 ## `Machine(config)`
 
 **Arguments:**
+
 - `config`: `MachineConfig | ParallelMachineConfig`
 
 **Returns:** `StandardMachine | ParallelMachine`
@@ -17,7 +18,7 @@ const standardMachine = Machine({
   states: {
     green: { on: { TIMER: 'yellow' } },
     yellow: { on: { TIMER: 'red' } },
-    red: { on: { TIMER: 'green' } },
+    red: { on: { TIMER: 'green' } }
   }
 });
 
@@ -82,6 +83,7 @@ Returns the next `State` given the current `state` and the received `event`.
 If [guard conditions](guides/guards#conditional-transitions-guards) are used, the `extendedState` is used to determine the correct transition to the next state.
 
 **Arguments:**
+
 - `state`: `StateValue | State`
   - e.g., `'green'` or `'red.walk'` or `{ red: 'walk' }`
   - can also be an instance of a `State` returned from a previous `machine.transition(...)` call.
@@ -91,7 +93,7 @@ If [guard conditions](guides/guards#conditional-transitions-guards) are used, th
 
 **Returns:** `State`
 
-**Usage:** This is the method you will use most frequently with `xstate`. Its main purpose is to answer the question, "What is the next state, given the current state and event?"
+**Usage:** This is the method you will use most frequently with XState. Its main purpose is to answer the question, "What is the next state, given the current state and event?"
 
 ```js
 // simple usage, with a string state key and event
@@ -120,10 +122,13 @@ console.log(greenState.value);
 // => 'green'
 
 // with an object state value (useful for parallel machines)
-const downloadingState = parallelMachine.transition({
-  upload: 'idle',
-  download: 'idle'
-}, 'INIT_DOWNLOAD');
+const downloadingState = parallelMachine.transition(
+  {
+    upload: 'idle',
+    download: 'idle'
+  },
+  'INIT_DOWNLOAD'
+);
 console.log(downloadingState.value);
 // => {
 //   upload: 'idle',
@@ -166,6 +171,7 @@ console.log(parallelMachine.events);
 Returns the `StateNode` specified by the string `relativeStateId`, if it exists.
 
 **Arguments:**
+
 - `relativeStateId`: `string`
   - e.g., `'green'` or `'download.pending'`
 
@@ -180,11 +186,13 @@ console.log(greenStateNode.id);
 ```
 
 ## `machine.handles`
+
 (`boolean`) Determines if the machine handles a given event.
 
 **Arguments:**
-  - `event`: `Event`
-  - e.g., 'TIMER' or { type: 'TIMER', elapsed: 2000 }
+
+- `event`: `Event`
+- e.g., 'TIMER' or { type: 'TIMER', elapsed: 2000 }
 
 **Usage:**
 

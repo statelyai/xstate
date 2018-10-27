@@ -19,11 +19,12 @@
   height: 100%;
   transform: translateX(calc(-100% - 0.5rem));
   text-decoration: none;
-  color: #ddd;
+  color: var(--color-link);
+  font-weight: normal;
 }
 
 .heading:not(:hover) > .headingLink {
-  opacity: 0;
+  color: #ddd;
 }
 
 .code {
@@ -43,4 +44,9 @@
 code[class*='language-'],
 pre[class*='language-'] {
   line-height: 1.1 !important;
+  font-size: 90%;
+}
+
+.link {
+  color: var(--color-link);
 }

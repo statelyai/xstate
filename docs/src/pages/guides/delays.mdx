@@ -141,7 +141,7 @@ const toggleMachine = Machine({
 
 ## Interpretation
 
-With the xstate [interpreter](./Interpretation), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
+With the XState [interpreter](./Interpretation), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';
@@ -157,7 +157,7 @@ service.start();
 // => 'yellow'
 ```
 
-For testing, the xstate interpreter provides a `SimulatedClock`:
+For testing, the XState interpreter provides a `SimulatedClock`:
 
 ```js
 import { interpret, SimulatedClock } from 'xstate/lib/interpreter';

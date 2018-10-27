@@ -4,7 +4,7 @@ A state is an abstract representation of a system (such as an application) at a 
 
 ## Configuration
 
-In `xstate`, a _state node_ specifies a state configuration, and are defined on the machine's `states` property. Substate nodes are recursively defined in the same way.
+In XState, a _state node_ specifies a state configuration, and are defined on the machine's `states` property. Substate nodes are recursively defined in the same way.
 
 The state determined from `machine.transition(state, event)` represents a combination of state nodes. For example, in the machine below, there's a `success` state node and an `items` substate node. The state value `{ success: 'items' }` represents the combination of those state nodes.
 
@@ -31,7 +31,7 @@ const fetchMachine = Machine({
     success: {
       // Initial substate
       initial: 'allItems',
-      
+
       // Substates
       states: {
         items: {
@@ -51,6 +51,7 @@ const fetchMachine = Machine({
 ```
 
 ## State node types
+
 (since 4.0.0)
 
 There are five different kinds of state nodes:

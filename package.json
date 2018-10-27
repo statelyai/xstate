@@ -27,7 +27,8 @@
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
     "publish:next": "npm version prerelease && npm publish --tag next",
-    "typedoc": "./node_modules/.bin/typedoc src/index.ts --excludePrivate --mode file --out ./docs/public/api --target es6"
+    "docs:typedoc": "./node_modules/.bin/typedoc src/index.ts --excludePrivate --mode file --out ./docs/public/api --target es6",
+    "docs:develop": "cd ./docs && gatsby develop"
   },
   "repository": {
     "type": "git",

@@ -34,7 +34,7 @@ const toggleMachine = Machine({
 });
 ```
 
-In `xstate`, activities are specified on the `activities` property of a state node. When a state node is entered, an interpreter should **start** its activities, and when it is exited, it should **stop** its activities.
+In XState, activities are specified on the `activities` property of a state node. When a state node is entered, an interpreter should **start** its activities, and when it is exited, it should **stop** its activities.
 
 To determine which activities are currently active, the `State` has an `activities` property, which is a mapping of activity names to `true` if the activity is started (active), and `false` if it is stopped.
 

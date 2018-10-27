@@ -5,7 +5,7 @@ import { StaticQuery, graphql } from 'gatsby';
 import { MDXProvider } from '@mdx-js/tag';
 import layoutStyles from './layout.module.css';
 import typeStyles from './typography.module.css';
-import 'prismjs/themes/prism.css';
+import 'prismjs/themes/prism-okaidia.css';
 import cn from 'classnames';
 
 import { Heading } from './typography.jsx';
@@ -25,8 +25,6 @@ class Layout extends React.Component {
   }
   render() {
     const { children } = this.props;
-
-    console.log(children);
 
     return (
       <StaticQuery

@@ -1,12 +1,13 @@
 # State
 
-A state in `xstate` represents the finite state of your application. It is immutable, and it is up to you to decide how you want to propagate these state values into your atomic application state.
+A state in XState represents the finite state of your application. It is immutable, and it is up to you to decide how you want to propagate these state values into your atomic application state.
 
 ## `new State(value, history?, actions?)`
 
 Instantiates a new `State` instance. Typically, you will seldom need to create a new `State` instance, except possibly when testing.
 
 **Arguments:**
+
 - `value`: `StateValue`
   - e.g., `'green'` or `{ red: 'walk' }`
 - `history?`: `State` (default: `undefined`)
@@ -59,6 +60,7 @@ console.log(parallelMachine.initialState.value);
 Creates a new `State` from the provided `stateValue`.
 
 **Arguments:**
+
 - `stateValue`: `StateValue | State`
   - e.g., `'green'` or `'red.walk'` or `{ red: 'walk' }`
 
@@ -81,11 +83,13 @@ console.log(greenState);
 Creates a new `State` from the provided `stateValue` with no `actions` (i.e., inert).
 
 **Arguments:**
+
 - `stateValue`: `StateValue | State`
 
 **Returns:** `State`
 
 **Usage:**
+
 ```js
 const stateWithActions = new State('green', undefined, ['enterGreen']);
 const stateWithoutActions = State.inert(stateWithActions);

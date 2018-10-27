@@ -56,7 +56,7 @@ send('TOGGLE'); // 'inactive'
 
 ## 3rd-Party Usage
 
-With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as `xstate`-compatible JSON!
+With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as XState-compatible JSON!
 
 1. Create your sketch (example: https://sketch.systems/anon/sketch/new)
 2. Click **Export to clipboard...**
