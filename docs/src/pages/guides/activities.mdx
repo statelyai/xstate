@@ -204,7 +204,7 @@ const toggleMachine = Machine({
 });
 ```
 
-Using xstate's [interpreter](./interpretation), every time an action occurs to start an activity, it will call that activity creator to start the activity, and use the returned "stopper" (if it is returned) to stop the activity:
+Using XState's [interpreter](./interpretation), every time an action occurs to start an activity, it will call that activity creator to start the activity, and use the returned "stopper" (if it is returned) to stop the activity:
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';

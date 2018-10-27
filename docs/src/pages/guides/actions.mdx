@@ -1,6 +1,6 @@
 # Actions and side-effects
 
-In order for a statechart to be useful in a real-world application, side-effects need to happen. In statecharts and xstate, side-effects are declaratively represented by **actions**. When `machine.transition(...)` is called, the `State` returned will provide an array of `actions` that an interpreter can then execute.
+For a statechart to be useful in a real-world application, side-effects need to happen. In statecharts and XState, side-effects are declaratively represented by **actions**. When `machine.transition(...)` is called, the `State` returned will provide an array of `actions` that an interpreter can then execute.
 
 There are three types of actions:
 - `onEntry` actions are executed upon entering a state
@@ -80,7 +80,7 @@ When interpreting statecharts, the order of actions should not necessarily matte
 
 ## Built-in actions
 
-There are a number of useful built-in actions in xstate:
+There are a number of useful built-in actions in XState:
 
 - The `send()` action creator queues an event to the statechart, in the external event queue. This means the event is sent on the next "step" of the interpreter.
 

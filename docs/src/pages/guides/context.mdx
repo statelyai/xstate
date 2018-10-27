@@ -7,7 +7,7 @@ import {glassMachine} from '../../machines/glass';
 
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.
 
-In xstate, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
+In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
 
 ```js
 import { Machine, actions } from 'xstate';
