@@ -62,7 +62,7 @@ body {
   grid-column: 2 / 3;
   grid-row: 2 / 3;
   overflow-y: auto;
-  --padding: 1rem 3rem;
+  --padding: 0 3rem;
   padding: var(--padding);
 }
 

@@ -46,7 +46,3 @@ pre[class*='language-'] {
   line-height: 1.1 !important;
   font-size: 90%;
 }
-
-.link {
-  color: var(--color-link);
-}

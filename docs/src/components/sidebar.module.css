@@ -1,0 +1,33 @@
+.nav {
+  font-size: 90%;
+  padding-left: 2rem;
+}
+
+.items {
+  padding: 0;
+  list-style: none;
+  margin: 0;
+  padding-left: 1rem;
+  overflow: hidden;
+}
+
+.item {
+  list-style: none;
+  line-height: 2;
+  padding-right: 2rem;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  overflow: hidden;
+}
+
+.item.topLevel > .link {
+  text-transform: uppercase;
+  font-size: 80%;
+  letter-spacing: 1px;
+  font-weight: bold;
+}
+
+.link {
+  color: var(--color-link);
+  text-decoration: none;
+}

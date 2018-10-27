@@ -1,24 +1,37 @@
 import React from 'react';
 import { Link, StaticQuery, graphql } from 'gatsby';
+import sidebarStyles from './sidebar.module.css';
+import cn from 'classnames';
+
+console.log(sidebarStyles);
 
 const sitemap = {
   guides: {
     title: 'Guides',
     pages: {
+      start: {
+        title: 'Getting Started'
+      },
+      installation: {
+        title: 'Installation'
+      },
+      transitions: {
+        title: 'Transitions'
+      },
       actions: {
-        title: 'Actions (Side Effects)'
+        title: 'Actions'
       },
       activities: {
         title: 'Activities'
       },
       communication: {
-        title: 'Communication (Invoking)'
+        title: 'Communication'
       },
       context: {
-        title: 'Context (Extended State)'
+        title: 'Context'
       },
       delays: {
-        title: 'Delayed Events & Transitions'
+        title: 'Delays'
       },
       // faqs: {
       //   title: 'FAQs'
@@ -27,10 +40,10 @@ const sitemap = {
         title: 'Final States'
       },
       guards: {
-        title: 'Guards (Conditional Transitions)'
+        title: 'Guards'
       },
       hierarchical: {
-        title: 'Hierarchical (Nested) State Nodes'
+        title: 'Hierarchical States'
       },
       history: {
         title: 'History State Nodes'
@@ -38,9 +51,7 @@ const sitemap = {
       ids: {
         title: 'Identifying States'
       },
-      installation: {
-        title: 'Installation'
-      },
+
       internal: {
         title: 'Internal Transitions'
       },
@@ -48,7 +59,7 @@ const sitemap = {
         title: 'Interpreting Machines'
       },
       parallel: {
-        title: 'Parallel State Nodes'
+        title: 'Parallel States'
       },
       states: {
         title: 'States'
@@ -70,20 +81,23 @@ const sitemap = {
     }
   },
   api: {
-    title: 'API Docs'
+    title: 'API Docs',
+    link: '/api/'
   }
 };
 
 export class Sidebar extends React.Component {
   renderPages(pages, parentKey) {
     return (
-      <ul>
+      <ul className={sidebarStyles.items}>
         {Object.keys(pages).map(key => {
           const page = pages[key];
 
           return (
-            <li>
-              <Link to={`${parentKey}/${key}`}>{page.title}</Link>
+            <li className={sidebarStyles.item}>
+              <Link to={`${parentKey}/${key}`} className={sidebarStyles.link}>
+                {page.title}
+              </Link>
             </li>
           );
         })}
@@ -92,14 +106,16 @@ export class Sidebar extends React.Component {
   }
   render() {
     return (
-      <nav>
-        <ul>
+      <nav className={sidebarStyles.nav}>
+        <ul className={sidebarStyles.items}>
           {Object.keys(sitemap).map(key => {
-            const { pages, title } = sitemap[key];
+            const { pages, title, link = `/${key}` } = sitemap[key];
 
             return (
-              <li>
-                <Link to={`/${key}`}>{title}</Link>
+              <li className={cn(sidebarStyles.item, sidebarStyles.topLevel)}>
+                <Link to={link} className={sidebarStyles.link}>
+                  {title}
+                </Link>
                 {pages && this.renderPages(pages, key)}
               </li>
             );
