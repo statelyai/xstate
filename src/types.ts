@@ -393,8 +393,8 @@ export interface StateNodeDefinition<
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionsDefinition<TContext, TEvent>;
-  onEntry: Array<Action<TContext>>;
-  onExit: Array<Action<TContext>>;
+  onEntry: Array<ActionObject<TContext>>;
+  onExit: Array<ActionObject<TContext>>;
   activities: Array<ActivityDefinition<TContext>>;
   meta: any;
   order: number;
@@ -479,8 +479,8 @@ export interface ParallelMachineConfig<
 }
 
 export interface EntryExitEffectMap<TContext> {
-  entry: Array<Action<TContext>>;
-  exit: Array<Action<TContext>>;
+  entry: Array<ActionObject<TContext>>;
+  exit: Array<ActionObject<TContext>>;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -525,7 +525,7 @@ export interface StateTransition<TContext> {
    */
   source: State<TContext> | undefined;
   reentryStates: Set<StateNode<TContext>> | undefined;
-  actions: Array<Action<TContext>>;
+  actions: Array<ActionObject<TContext>>;
 }
 
 export interface TransitionData<TContext> {
@@ -649,7 +649,7 @@ export interface AssignAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  actions: Array<Action<TContext>>;
+  actions: Array<ActionObject<TContext>>;
   event: string;
   delay?: number;
 }
@@ -739,7 +739,7 @@ export interface StateInterface<
   value: StateValue;
   tree?: StateTree;
   history?: State<TContext>;
-  actions: Array<Action<TContext>>;
+  actions: Array<ActionObject<TContext>>;
   activities: ActivityMap;
   meta: any;
   events: TEvent[];
