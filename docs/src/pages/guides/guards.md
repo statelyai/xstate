@@ -1,48 +1,14 @@
 # Guards (Conditional Transitions)
 
-Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a statechart for a search form:
-
-```js
-import { Machine } from 'xstate';
-
-const searchMachine = Machine({
-  id: 'search',
-  initial: 'idle',
-  context: {
-    canSearch: true
-  },
-  states: {
-    idle: {
-      on: {
-        SEARCH: 'searching'
-      }
-    },
-    searching: {
-      onEntry: 'executeSearch'
-      // ...
-    }
-  }
-});
-```
-
-The `'SEARCH'` event will be emitted in the form of an object with a search query, e.g.:
-
-```js
-const searchEvent = {
-  type: 'SEARCH',
-  query: 'goats'
-};
-```
-
-Now suppose you only want search to be allowed if:
+Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a statechart for a search form, and you only want search to be allowed if:
 
 - the user is allowed to search (`.canSearch` in this example)
 - the search event `query` is not empty.
 
-This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard condition** is a function that takes 2 arguments:
+This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard** is a function defined on the `cond` property that takes 2 arguments:
 
 - `context` - the [machine context](/guides/context)
-- `eventObject` - the event, represented as an object
+- `event` - the event, represented as an object
 
 and returns either `true` or `false`, which signifies whether the transition should be allowed to take place:
 
@@ -78,6 +44,8 @@ const searchMachine = Machine({
 });
 ```
 
+If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
+
 Example of usage with context:
 
 ```js
@@ -93,6 +61,8 @@ searchService.send({ type: 'SEARCH', query: '' });
 searchService.send({ type: 'SEARCH', query: 'something' });
 // => 'searching'
 ```
+
+## Multiple Guards
 
 If you want to have a single event transition to different states in certain situations you can supply an array of conditional transitions.
 
