@@ -28,6 +28,6 @@
 }
 
 .link {
-  color: var(--color-link);
+  color: inherit;
   text-decoration: none;
 }

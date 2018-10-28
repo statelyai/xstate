@@ -1,10 +1,73 @@
-# Communication and invoking statecharts
+# Communicating Between Machines
 
-(since 4.0)
+Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other machine "actors" and react to them.
 
-Expressing the entire app's behavior in a single statechart can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple statecharts that communicate with each other to express complex logic instead. This closely resembles the [actor model](https://en.wikipedia.org/wiki/Actor_model), where each statechart instance is considered an "actor" that can send and receive messages (events) to and from other statechart "actors" and react to them.
+For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](/guides/final), which will then cause the `onDone` transition to be taken:
 
-With actions, there are a few ways you can do this. For example, you can create your own "supervisor" function that dispatches events to their proper targets:
+```js
+import { Machine, actions } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter';
+const { send, sendParent } = actions;
+
+const minuteMachine = Machine({
+  id: 'timer',
+  initial: 'active',
+  states: {
+    active: {
+      after: {
+        60000: 'finished'
+      }
+    },
+    finished: { type: 'final' }
+  }
+});
+
+const parentMachine = Machine({
+  id: 'parent',
+  initial: 'pending',
+  states: {
+    pending: {
+      invoke: {
+        src: minuteMachine,
+        onDone: 'timesUp'
+      }
+    },
+    timesUp: {
+      type: 'final'
+    }
+  }
+});
+
+const service = interpret(parentMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+// => 'pending'
+// ... after 1 minute
+// => 'timesUp'
+```
+
+## The `invoke` Property
+
+An invocation is defined in a state node's configuration with the `invoke` property, whose value is an object that contains:
+
+- `src` - the source of the machine to invoke, which can be:
+  - a machine
+  - a string, which refers to a machine defined in this machine's `options.services`
+  - a function that returns a Promise
+- `id` - the unique identifier for the invoked service
+- `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
+- `params` - (optional) an object that maps properties of the child machine's [context](/guides/context) to a function that returns the corresponding value from the parent machine's `context`.
+- `onDone` - (optional) the [transition](/guides/transitions) to be taken when the child machine reaches its [final state](/guides/final)
+- `onError` - (optional) the transition to be taken when the child machine encounters an execution error.
+
+## Sending Events
+
+Statecharts communicate hierarchically:
+
+- Parent-to-child via the `send(EVENT, { target: 'someChildId' })` action
+- Child-to-parent via the `sendParent(EVENT)` action.
+
+Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other via a supervisor `parentMachine`, which **invokes** both child machines:
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -89,7 +152,8 @@ const northLightMachine = Machine({
       after: { 1000: 'red' }
     },
     red: {
-      onEntry: sendParent('SAFE_SIGNAL'),
+      // Notify parent that 'red' state was reached
+      onEntry: sendParent('NORTH_RED'),
       on: { SAFE_SIGNAL: 'green' }
     }
   }
@@ -106,7 +170,9 @@ const eastLightMachine = Machine({
       after: { 1000: 'red' }
     },
     red: {
-      onEntry: sendParent('SAFE_SIGNAL'),
+      // Notify parent that 'red' state was reached
+      onEntry: sendParent('EAST_RED'),
+      // Wait until it's safe to turn green
       on: { SAFE_SIGNAL: 'green' }
     }
   }
@@ -116,8 +182,8 @@ const superLightMachine = Machine({
   id: 'supervisor',
   initial: 'active',
   invoke: [
-    { id: 'north', src: northLightMachine },
-    { id: 'east', src: eastLightMachine },
+    { src: northLightMachine },
+    { src: eastLightMachine },
   ],
   states: {
     active: {

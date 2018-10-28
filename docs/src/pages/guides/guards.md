@@ -1,11 +1,16 @@
-# Conditional Transitions (Guards)
+# Guards (Conditional Transitions)
 
 Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a statechart for a search form:
 
 ```js
+import { Machine } from 'xstate';
+
 const searchMachine = Machine({
   id: 'search',
   initial: 'idle',
+  context: {
+    canSearch: true
+  },
   states: {
     idle: {
       on: {
@@ -13,7 +18,7 @@ const searchMachine = Machine({
       }
     },
     searching: {
-      onEntry: ['executeSearch']
+      onEntry: 'executeSearch'
       // ...
     }
   }
@@ -36,15 +41,20 @@ Now suppose you only want search to be allowed if:
 
 This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard condition** is a function that takes 2 arguments:
 
-- `context`: (any) which is specified as the 3rd argument to `machine.transition(...)`
-- `eventObject`: (EventObject) which is the event, represented as an object
+- `context` - the [machine context](/guides/context)
+- `eventObject` - the event, represented as an object
 
 and returns either `true` or `false`, which signifies whether the transition should be allowed to take place:
 
 ```js
+import { Machine } from 'xstate';
+
 const searchMachine = Machine({
   id: 'search',
   initial: 'idle',
+  context: {
+    canSearch: true
+  },
   states: {
     idle: {
       on: {
@@ -58,7 +68,7 @@ const searchMachine = Machine({
       }
     },
     searching: {
-      onEntry: ['executeSearch']
+      onEntry: 'executeSearch'
       // ...
     },
     searchError: {
@@ -68,64 +78,37 @@ const searchMachine = Machine({
 });
 ```
 
-Example of usage with extended state:
+Example of usage with context:
 
 ```js
-// Atomic full app state
-let fullState = {
-  // finite state
-  search: searchMachine.initialState,
+import { interpret } from 'xstate/lib/interpreter';
 
-  // extended state
-  canSearch: false
-};
+const searchService = interpret(searchMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
 
-const searchAttempt1 = searchMachine.transition(
-  fullState.search,
-  {
-    type: 'SEARCH',
-    query: 'goats'
-  },
-  fullState
-); // <= specify the full state as the 3rd argument
-console.log(searchAttempt1.value);
-// => 'idle' (no transition because canSearch == false)
+searchService.send({ type: 'SEARCH', query: '' });
+// => 'idle'
 
-fullState.canSearch = true;
-
-const searchAttempt2 = searchMachine.transition(
-  fullState.search,
-  {
-    type: 'SEARCH',
-    query: ''
-  },
-  fullState
-); // <= specify the full state as the 3rd argument
-console.log(searchAttempt1.value);
-// => 'idle' (no transition because event query is empty)
-
-const searchAttempt3 = searchMachine.transition(
-  fullState.search,
-  {
-    type: 'SEARCH',
-    query: 'goats'
-  },
-  fullState
-); // <= specify the full state as the 3rd argument
-console.log(searchAttempt3.value);
+searchService.send({ type: 'SEARCH', query: 'something' });
 // => 'searching'
-console.log(searchAttempt3.actions);
-// => ['executeSearch']
 ```
 
-If you want to have a single event transition to different states in certain situations you can supply an array of targets with conditions.
+If you want to have a single event transition to different states in certain situations you can supply an array of conditional transitions.
 
-For example you can model a door that listens for an `OPEN` event, and opens if you are an admin and errors if you are not:
+For example, you can model a door that listens for an `OPEN` event, and opens if you are an admin and errors if you are not:
 
 ```js
+import { Machine, actions } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter';
+const { assign } = actions;
+
 const doorMachine = Machine({
   id: 'door',
   initial: 'closed',
+  context: {
+    isAdmin: false
+  },
   states: {
     closed: {
       initial: 'idle',
@@ -134,6 +117,7 @@ const doorMachine = Machine({
         error: {}
       },
       on: {
+        SET_ADMIN: assign({ isAdmin: true }),
         OPEN: [
           { target: 'opened', cond: ctx => ctx.isAdmin },
           { target: 'closed.error' }
@@ -148,24 +132,24 @@ const doorMachine = Machine({
   }
 });
 
-const fullState = {
-  door: doorMachine.initialState,
-  isAdmin: true
-};
+const doorService = interpret(doorMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+// => { closed: 'idle' }
 
-const firstState = doorMachine.initialState;
-const secondState = doorMachine.transition(fullState.door, 'OPEN', fullState);
-console.log(secondState.value); // 'opened'
+doorService.send('OPEN');
+// => { closed: 'error' }
 
-const thirdState = doorMachine.transition(fullState.door, 'CLOSE', fullState);
-console.log(thirdState.value); // { closed: 'idle' }
+doorService.send('SET_ADMIN');
+// => { closed: 'error' }
+// (state does not change, but context changes)
 
-fullState.isAdmin = false;
-const fouthState = doorMachine.transition(fullState.door, 'OPEN', fullState);
-console.log(fouthState.value); // { closed: 'error' }
+doorService.send('OPEN');
+// => 'opened'
+// (since ctx.isAdmin === true)
 ```
 
 **Notes:**
 
 - The `cond` function must always be a pure function that only references the `context` and `event` arguments.
-- ⚠️ **Warning**: do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple events instead.
+- ⚠️ **Warning**: do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple types of events instead.

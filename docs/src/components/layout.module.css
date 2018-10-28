@@ -19,7 +19,7 @@ body {
   --color-primary: rgba(87, 176, 234, 1);
   --color-primary-faded: rgba(87, 176, 234, 0.75);
   --color-primary-shadow: rgba(87, 176, 234, 0.1);
-  --color-link: #2e465e;
+  --color-link: rgba(64, 164, 228, 1);
   --radius: 0.2rem;
 }
 
@@ -74,4 +74,8 @@ ul {
 
 .content a {
   color: var(--color-link);
+  text-decoration: none;
+}
+.content a:hover {
+  text-decoration: underline;
 }
