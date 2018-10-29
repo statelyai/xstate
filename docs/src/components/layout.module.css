@@ -63,6 +63,7 @@ body {
   padding: 1rem;
   overflow: hidden;
   overflow-y: auto;
+  --padding-x: 1rem;
 }
 
 .content > * {
@@ -75,14 +76,19 @@ body {
     grid-column: 1 / -1;
     grid-row: 2 / -1;
     padding: 1rem 2rem;
+    --padding-x: 2rem;
   }
   .sidebar {
-    display: none;
+    position: absolute;
+    top: 0;
+    left: 0;
+    height: 100%;
+    background: white;
+    z-index: 2;
+    transform: translateX(-100%);
+    border-right: 1px solid #ccc;
   }
-}
-
-.content pre,
-p,
-ul {
-  max-width: 40rem;
+  .sidebar[data-visible] {
+    transform: none;
+  }
 }

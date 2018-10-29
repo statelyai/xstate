@@ -7,6 +7,7 @@ import layoutStyles from './layout.module.css';
 import typeStyles from './typography.module.css';
 import 'prismjs/themes/prism-okaidia.css';
 import cn from 'classnames';
+import '@fortawesome/fontawesome-pro/css/brands.min.css';
 
 import { Heading, Anchor } from './typography.jsx';
 
@@ -20,8 +21,16 @@ import { Sidebar } from './sidebar';
 // hljs.registerLanguage('typescript', typescript);
 
 class Layout extends React.Component {
+  state = {
+    menuToggled: false
+  };
   componentDidMount() {
     hljs.initHighlighting();
+  }
+  toggleMenu() {
+    this.setState({
+      menuToggled: !this.state.menuToggled
+    });
   }
   render() {
     const { children } = this.props;
@@ -55,8 +64,12 @@ class Layout extends React.Component {
             <Header
               className={layoutStyles.header}
               siteTitle={data.site.siteMetadata.title}
+              onToggleMenu={this.toggleMenu.bind(this)}
             />
-            <div className={layoutStyles.sidebar}>
+            <div
+              className={layoutStyles.sidebar}
+              data-visible={this.state.menuToggled || undefined}
+            >
               <Sidebar />
             </div>
 
@@ -65,7 +78,7 @@ class Layout extends React.Component {
                 h1: props => <Heading tag="h1" {...props} />,
                 h2: props => <Heading tag="h2" {...props} />,
                 h3: props => <Heading tag="h3" {...props} />,
-                a: props => <Anchor>{props.children}</Anchor>,
+                a: props => <Anchor {...props} />,
                 inlineCode: props => (
                   <code className={typeStyles.code}>{props.children}</code>
                 )

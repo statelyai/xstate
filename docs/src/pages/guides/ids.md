@@ -1,4 +1,4 @@
-## State Node IDs
+# Identifying State Nodes
 
 State nodes can be targeted via unique identifiers, instead of by relative identifiers. This can simplify the creation of complex statecharts.
 
@@ -58,5 +58,6 @@ const lightMachine = Machine({
 
 **Notes:**
 
+- IDs are always recommended for the root state node.
 - IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.

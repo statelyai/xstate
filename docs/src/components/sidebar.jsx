@@ -15,20 +15,32 @@ const sitemap = {
       installation: {
         title: 'Installation'
       },
+      states: {
+        title: 'States'
+      },
       transitions: {
         title: 'Transitions'
       },
+      hierarchical: {
+        title: 'Hierarchical States'
+      },
+      parallel: {
+        title: 'Parallel States'
+      },
       actions: {
         title: 'Actions'
+      },
+      guards: {
+        title: 'Guards'
+      },
+      context: {
+        title: 'Context'
       },
       activities: {
         title: 'Activities'
       },
       communication: {
         title: 'Communication'
-      },
-      context: {
-        title: 'Context'
       },
       delays: {
         title: 'Delays'
@@ -38,12 +50,6 @@ const sitemap = {
       // },
       final: {
         title: 'Final States'
-      },
-      guards: {
-        title: 'Guards'
-      },
-      hierarchical: {
-        title: 'Hierarchical States'
       },
       history: {
         title: 'History State Nodes'
@@ -57,12 +63,6 @@ const sitemap = {
       },
       interpretation: {
         title: 'Interpreting Machines'
-      },
-      parallel: {
-        title: 'Parallel States'
-      },
-      states: {
-        title: 'States'
       },
       typescript: {
         title: 'TypeScript Usage'
@@ -105,6 +105,8 @@ export class Sidebar extends React.Component {
     );
   }
   render() {
+    const { visible } = this.props;
+
     return (
       <nav className={sidebarStyles.nav}>
         <ul className={sidebarStyles.items}>

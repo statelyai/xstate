@@ -52,6 +52,32 @@ pre[class*='language-'] {
   font-size: 90%;
 }
 
+pre[class*='language-'] {
+  margin-left: calc(var(--padding-x) * -1) !important;
+  margin-right: calc(var(--padding-x) * -1) !important;
+  border-radius: 0 !important;
+}
+
+pre[class*='language-']:before {
+  content: '';
+  position: absolute;
+  top: 0;
+  right: 0;
+  padding: 0.5rem;
+  text-transform: uppercase;
+  font-size: 80%;
+  color: rgba(255, 255, 255, 0.5);
+  letter-spacing: 1px;
+}
+
+pre[class='language-bash']:before {
+  content: 'terminal';
+}
+
+pre[class='language-js']:before {
+  content: 'JS';
+}
+
 .anchor {
   color: var(--color-link);
   text-decoration: none;
