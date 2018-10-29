@@ -1,12 +1,72 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
+  <style>
+    *,
+    *:before,
+    *:after {
+      box-sizing: border-box;
+      position: relative;
+    }
+
+    body,
+    html {
+      height: 100%;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      background-image: linear-gradient(to bottom right, #232435, #3a3c5a);
+      display: flex;
+      flex-direction: column;
+      justify-content: center;
+      align-items: center;
+    }
+
+    .logo {
+      width: 10rem;
+      margin-bottom: 2rem;
+    }
+
+    .links {
+      list-style: none;
+      margin: 0;
+      padding: 0;
+      display: flex;
+      flex-direction: row;
+    }
+
+    .link:not(:first-child) {
+      margin-left: 1rem;
+    }
+
+    .link > a {
+      text-decoration: none;
+      color: white;
+    }
+  </style>
 </head>
+
 <body>
-  
+  <a href="https://github.com/davidkpiano/xstate" class="logo"><img src="./logo-white.svg" alt="XState" /></a>
+  <ul class="links">
+    <li class="link">
+      <a href="https://github.com/davidkpiano/xstate">GitHub</a>
+    </li>
+    <li class="link">
+      <a href="https://xstate.js.org/docs">Docs</a>
+    </li>
+    <li class="link">
+      <a href="https://spectrum.chat/statecharts">Community</a>
+    </li>
+  </ul>
 </body>
+
 </html>
