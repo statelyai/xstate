@@ -5,7 +5,7 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
-  <title>Document</title>
+  <title>XState - JavaScript State Machines and Statecharts</title>
   <link
                 href="https://fonts.googleapis.com/css?family=Roboto:300,700"
                 rel="stylesheet"
@@ -29,11 +29,11 @@
     }
 
     body {
-      
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+      color: white;
     }
 
     body:before {
@@ -52,9 +52,27 @@
       to { opacity: 1;}
     }
 
+    @keyframes slide-up {
+      from {
+        opacity: 0;
+        transform: translateY(100%);
+      }
+      to {
+        opacity: 1;
+        transform: none;
+      }
+    }
+
     .logo {
       width: 10rem;
-      margin-bottom: 2rem;
+      margin-bottom: 1rem;
+      animation: slide-up .6s cubic-bezier(.2, 0, .2, 1);
+    }
+
+    p {
+      color: rgba(255, 255, 255, 0.5);
+      animation: slide-up .7s cubic-bezier(.2, 0, .2, 1);
+      margin: 1rem 0;
     }
 
     .links {
@@ -65,6 +83,21 @@
       flex-direction: row;
       text-transform: uppercase;
       letter-spacing: 1px;
+      
+    }
+
+    .link {
+      overflow: hidden;
+    }
+
+    * {
+      transition: all 0.3s cubic-bezier(.5, 0, .5, 1);
+      transition-property: opacity, transform;
+      animation-fill-mode: both;
+    }
+
+    .links:hover > .link:not(:hover) {
+      opacity: 0.5;
     }
 
     .link:not(:first-child) {
@@ -72,8 +105,12 @@
     }
 
     .link > a {
+      display: inline-block;
       text-decoration: none;
       color: white;
+      font-weight: bold;
+      animation: slide-up .8s calc(var(--i) * .1s) cubic-bezier(.2, 0, .2, 1);
+      animation-fill-mode: both;
     }
   </style>
 </head>
@@ -81,13 +118,13 @@
 <body>
   <a href="https://github.com/davidkpiano/xstate" class="logo"><img src="./logo-white.svg" alt="XState" /></a>
   <ul class="links">
-    <li class="link">
+    <li class="link" style="--i: 0">
       <a href="https://github.com/davidkpiano/xstate">GitHub</a>
     </li>
-    <li class="link">
+    <li class="link" style="--i: 1">
       <a href="/docs">Docs</a>
     </li>
-    <li class="link">
+    <li class="link" style="--i: 2">
       <a href="https://spectrum.chat/statecharts">Community</a>
     </li>
   </ul>
