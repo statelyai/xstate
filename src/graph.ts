@@ -1,5 +1,5 @@
 import { StateNode, State } from './index';
-import { toStateValue, getActionType, flatten } from './utils';
+import { toStateValue, getActionType, flatten, keys } from './utils';
 import {
   StateValue,
   Edge,
@@ -19,24 +19,21 @@ const EMPTY_MAP = {};
 
 export function getNodes(node: StateNode): StateNode[] {
   const { states } = node;
-  const nodes = Object.keys(states).reduce(
-    (accNodes: StateNode[], stateKey) => {
-      const subState = states[stateKey];
-      const subNodes = getNodes(states[stateKey]);
+  const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
+    const subState = states[stateKey];
+    const subNodes = getNodes(states[stateKey]);
 
-      accNodes.push(subState, ...subNodes);
-      return accNodes;
-    },
-    []
-  );
+    accNodes.push(subState, ...subNodes);
+    return accNodes;
+  }, []);
 
   return nodes;
 }
 
 export function getEventEdges<
   TContext = DefaultContext,
-  TEvents extends EventObject = EventObject
->(node: StateNode<TContext>, event: string): Array<Edge<TContext, TEvents>> {
+  TEvent extends EventObject = EventObject
+>(node: StateNode<TContext>, event: string): Array<Edge<TContext, TEvent>> {
   const transitions = node.definition.on[event];
 
   return flatten(
@@ -61,7 +58,7 @@ export function getEventEdges<
       }
 
       return targets
-        .map<Edge<TContext, TEvents> | undefined>(target => {
+        .map<Edge<TContext, TEvent> | undefined>(target => {
           try {
             const targetNode = target
               ? node.getRelativeStateNodes(target, undefined, false)[0]
@@ -84,7 +81,7 @@ export function getEventEdges<
           }
         })
         .filter(maybeEdge => maybeEdge !== undefined) as Array<
-        Edge<TContext, TEvents>
+        Edge<TContext, TEvent>
       >;
     })
   );
@@ -92,27 +89,27 @@ export function getEventEdges<
 
 export function getEdges<
   TContext = DefaultContext,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 >(
   node: StateNode<TContext>,
   options?: { depth: null | number }
-): Array<Edge<TContext, TEvents>> {
+): Array<Edge<TContext, TEvent>> {
   const { depth = null } = options || {};
-  const edges: Array<Edge<TContext, TEvents>> = [];
+  const edges: Array<Edge<TContext, TEvent>> = [];
 
   if (node.states && depth === null) {
-    Object.keys(node.states).forEach(stateKey => {
+    keys(node.states).forEach(stateKey => {
       edges.push(...getEdges<TContext>(node.states[stateKey]));
     });
   } else if (depth && depth > 0) {
-    Object.keys(node.states).forEach(stateKey => {
+    keys(node.states).forEach(stateKey => {
       edges.push(
         ...getEdges<TContext>(node.states[stateKey], { depth: depth - 1 })
       );
     });
   }
 
-  Object.keys(node.on).forEach(event => {
+  keys(node.on).forEach(event => {
     edges.push(...getEventEdges<TContext>(node, event));
   });
 
@@ -149,8 +146,8 @@ export function getAdjacencyMap<TContext = DefaultContext>(
   return adjacency;
 }
 
-function eventToString<TEvents extends EventObject = EventObject>(
-  event: Event<TEvents>
+function eventToString<TEvent extends EventObject = EventObject>(
+  event: Event<TEvent>
 ): string {
   if (typeof event === 'string' || typeof event === 'number') {
     return `${event}`;
@@ -173,26 +170,26 @@ export function deserializeStateString(
   };
 }
 
-function serializeState<TContext>(state: State<TContext>): string {
+export function serializeState<TContext>(state: State<TContext>): string {
   const { value, context } = state;
   return JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }
 
 export interface GetValueAdjacencyMapOptions<
   TContext,
-  TEvents extends EventObject
+  TEvent extends EventObject
 > {
-  // events: Record<string, Array<Event<TEvents>>>;
-  events: { [K in TEvents['type']]: Event<TEvents> };
+  // events: Record<string, Array<Event<TEvent>>>;
+  events: { [K in TEvent['type']]: Event<TEvent> };
   filter?: (state: State<TContext>) => boolean;
 }
 
 export function getValueAdjacencyMap<
   TContext = DefaultContext,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 >(
-  node: StateNode<TContext, any, TEvents>,
-  options: GetValueAdjacencyMapOptions<TContext, TEvents>
+  node: StateNode<TContext, any, TEvent>,
+  options: GetValueAdjacencyMapOptions<TContext, TEvent>
 ): ValueAdjacencyMap {
   const { events, filter } = options;
   const adjacency: ValueAdjacencyMap = {};
@@ -202,7 +199,7 @@ export function getValueAdjacencyMap<
     node.events.map(event => events[event] || [event])
   );
 
-  function findAdjacencies(state: State<TContext, TEvents>) {
+  function findAdjacencies(state: State<TContext, TEvent>) {
     const stateKey = serializeState(state);
 
     if (adjacency[stateKey]) {
@@ -232,10 +229,10 @@ export function getValueAdjacencyMap<
 
 export function getShortestValuePaths<
   TContext = DefaultContext,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 >(
   machine: StateNode<TContext>,
-  options: GetValueAdjacencyMapOptions<TContext, TEvents>
+  options: GetValueAdjacencyMapOptions<TContext, TEvent>
 ): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;
@@ -249,7 +246,7 @@ export function getShortestValuePaths<
     visited.add(stateKey);
     const eventMap = adjacency[stateKey];
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const { value, context } = eventMap[event];
 
       if (!value) {
@@ -270,7 +267,7 @@ export function getShortestValuePaths<
       }
     }
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const { value, context } = eventMap[event];
 
       if (!value) {
@@ -314,7 +311,7 @@ export function getShortestPaths<TContext = DefaultContext>(
     visited.add(stateId);
     const eventMap = adjacency[stateId];
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const nextStateValue = eventMap[event].state;
 
       if (!nextStateValue) {
@@ -336,7 +333,7 @@ export function getShortestPaths<TContext = DefaultContext>(
       }
     }
 
-    for (const event of Object.keys(eventMap)) {
+    for (const event of keys(eventMap)) {
       const nextStateValue = eventMap[event].state;
 
       if (!nextStateValue) {
@@ -365,7 +362,7 @@ export function getShortestPathsAsArray<TContext = DefaultContext>(
   context?: TContext
 ): PathItem[] {
   const result = getShortestPaths(machine, context);
-  return Object.keys(result).map(key => ({
+  return keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
   }));
@@ -391,7 +388,7 @@ export function getSimplePaths<TContext = DefaultContext>(
       paths[toPathId] = paths[toPathId] || [];
       paths[toPathId].push([...path]);
     } else {
-      for (const subEvent of Object.keys(adjacency[fromPathId])) {
+      for (const subEvent of keys(adjacency[fromPathId])) {
         const nextStateValue = adjacency[fromPathId][subEvent].state;
 
         if (!nextStateValue) {
@@ -413,7 +410,7 @@ export function getSimplePaths<TContext = DefaultContext>(
 
   const initialStateId = JSON.stringify(machine.initialState.value);
 
-  Object.keys(adjacency).forEach(nextStateId => {
+  keys(adjacency).forEach(nextStateId => {
     util(initialStateId, nextStateId);
   });
 
@@ -425,7 +422,7 @@ export function getSimplePathsAsArray<TContext = DefaultContext>(
   context?: TContext
 ): PathsItem[] {
   const result = getSimplePaths(machine, context);
-  return Object.keys(result).map(key => ({
+  return keys(result).map(key => ({
     state: JSON.parse(key),
     paths: result[key]
   }));

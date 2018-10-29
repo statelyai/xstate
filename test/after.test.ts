@@ -5,6 +5,9 @@ import { after, cancel, send } from '../src/actions';
 const lightMachine = Machine({
   id: 'light',
   initial: 'green',
+  context: {
+    canTurnGreen: true
+  },
   states: {
     green: {
       after: {
@@ -60,6 +63,16 @@ describe('delayed transitions', () => {
     assert.deepEqual(nextState.actions, [
       cancel(after(1000, 'light.green')),
       send(after(1000, 'light.yellow'), { delay: 1000 })
+    ]);
+  });
+
+  it('should format transitions properly', () => {
+    const greenNode = lightMachine.states.green;
+
+    const transitions = greenNode.transitions;
+
+    assert.deepEqual(transitions.map(t => t.event), [
+      after(1000, greenNode.id)
     ]);
   });
 });

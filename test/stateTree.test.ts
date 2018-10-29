@@ -80,27 +80,41 @@ const testMachine = Machine({
 });
 
 describe('StateTree', () => {
-  it('represents the full value (compound)', () => {
-    const st = new StateTree(testMachine, 'a');
+  describe('.resolved', () => {
+    it('represents the full value (compound)', () => {
+      const st = new StateTree(testMachine, 'a').resolved;
 
-    assert.deepEqual(st.stateValue, { a: 'one' });
+      assert.deepEqual(st.value, { a: 'one' });
+    });
+
+    it('represents the full value (parallel)', () => {
+      const st = new StateTree(testMachine, 'b').resolved;
+
+      assert.deepEqual(st.value, {
+        b: {
+          one: 'foo',
+          two: { foo: 'x' }
+        }
+      });
+    });
   });
 
-  it('represents the full value (parallel)', () => {
-    const st = new StateTree(testMachine, 'b');
+  describe('.combine', () => {
+    it('combines two state trees (compound)', () => {
+      const st_c = new StateTree(testMachine, 'c');
+      const st_c_two = new StateTree(testMachine, { c: 'two' });
 
-    assert.deepEqual(st.stateValue, {
-      b: {
-        one: 'foo',
-        two: { foo: 'x' }
-      }
+      const combined = st_c.combine(st_c_two);
+
+      assert.deepEqual(combined.value, { c: { two: {} } });
+      assert.deepEqual(combined.resolved.value, { c: { two: 'aa' } });
     });
   });
 
   xit('represents the full value (parallel deep)', () => {
     const st = new StateTree(testMachine, { b: 'two' });
 
-    assert.deepEqual(st.stateValue, {
+    assert.deepEqual(st.value, {
       b: {
         one: 'foo',
         two: { foo: 'x' }
@@ -109,11 +123,17 @@ describe('StateTree', () => {
   });
 
   it('getEntryExitStates() should show correct entry/exit state nodes', () => {
-    const st_A = new StateTree(testMachine, 'c'); // { c: { one: 'aa' }}
-    const st_B = new StateTree(testMachine, { c: { one: 'bb' } });
+    const st_A = new StateTree(testMachine, 'c').resolved; // { c: { one: 'aa' }}
+    const st_B = new StateTree(testMachine, { c: { one: 'bb' } }).resolved;
 
     const res = st_B.getEntryExitStates(st_A);
-    assert.deepEqual([...res.exit].map(n => n.id), ['test.c.one.aa']);
-    assert.deepEqual([...res.entry].map(n => n.id), ['test.c.one.bb']);
+    assert.deepEqual([...res.exit].map(n => n.id), [
+      'test.c.one.aa.foo',
+      'test.c.one.aa'
+    ]);
+    assert.deepEqual([...res.entry].map(n => n.id), [
+      'test.c.one.bb',
+      'test.c.one.bb.foo'
+    ]);
   });
 });

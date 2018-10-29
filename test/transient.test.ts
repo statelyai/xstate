@@ -2,37 +2,33 @@ import { Machine, matchesState } from '../src/index';
 import { assert } from 'chai';
 import { assign } from '../src/actions';
 
-const greetingMachine = Machine(
-  {
-    key: 'greeting',
-    initial: 'pending',
-    states: {
-      pending: {
-        on: {
-          '': [
-            { target: 'morning', cond: ctx => ctx.hour < 12 },
-            { target: 'afternoon', cond: ctx => ctx.hour < 18 },
-            { target: 'evening' }
-          ]
-        }
-      },
-      morning: {},
-      afternoon: {},
-      evening: {}
+const greetingMachine = Machine({
+  key: 'greeting',
+  initial: 'pending',
+  context: { hour: 10 },
+  states: {
+    pending: {
+      on: {
+        '': [
+          { target: 'morning', cond: ctx => ctx.hour < 12 },
+          { target: 'afternoon', cond: ctx => ctx.hour < 18 },
+          { target: 'evening' }
+        ]
+      }
     },
-    on: {
-      CHANGE: [{ actions: [assign({ hour: 20 })] }],
-      RECHECK: '#greeting'
-    }
+    morning: {},
+    afternoon: {},
+    evening: {}
   },
-  {},
-  { hour: 10 }
-);
+  on: {
+    CHANGE: { actions: assign({ hour: 20 }) },
+    RECHECK: '#greeting'
+  }
+});
 
 describe('transient states (eventless transitions)', () => {
   const updateMachine = Machine<{ data: boolean; status?: string }>({
     initial: 'G',
-    parallel: false,
     states: {
       G: {
         on: { UPDATE_BUTTON_CLICKED: 'E' }
@@ -121,7 +117,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should execute all internal events one after the other', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -189,7 +185,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should execute all eventless transitions in the same microstep', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -253,7 +249,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should check for automatic transitions even after microsteps are done', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',

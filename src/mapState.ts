@@ -1,4 +1,4 @@
-import { matchesState } from './matchesState';
+import { matchesState, keys } from './utils';
 
 export function mapState(
   stateMap: { [stateId: string]: any },
@@ -6,7 +6,7 @@ export function mapState(
 ) {
   let foundStateId;
 
-  Object.keys(stateMap).forEach(mappedStateId => {
+  keys(stateMap).forEach(mappedStateId => {
     if (
       matchesState(mappedStateId, stateId) &&
       (!foundStateId || stateId.length > foundStateId.length)

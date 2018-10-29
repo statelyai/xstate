@@ -92,7 +92,7 @@ describe('graph utilities', () => {
   });
 
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     key: 'p',
     states: {
       a: {

@@ -2,7 +2,7 @@ import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
 import { EventObject, ActionObject } from './types';
 // import * as xstate from './index';
 import { StateNode, Machine } from './index';
-import { mapValues, getActionType } from './utils';
+import { mapValues, getActionType, keys } from './utils';
 import * as actions from './actions';
 
 function getAttribute(
@@ -63,12 +63,12 @@ function stateNodeToSCXML(stateNode: StateNode) {
           };
         })
       },
-      ...Object.keys(stateNode.states).map(stateKey => {
+      ...keys(stateNode.states).map(stateKey => {
         const subStateNode = stateNode.states[stateKey];
 
         return stateNodeToSCXML(subStateNode);
       }),
-      ...Object.keys(stateNode.on)
+      ...keys(stateNode.on)
         .map(
           (event): XMLElement[] => {
             const transition = stateNode.on![event];
@@ -77,49 +77,21 @@ function stateNodeToSCXML(stateNode: StateNode) {
               return [];
             }
 
-            if (Array.isArray(transition)) {
-              return transition.map(targetTransition => {
-                const { target } = targetTransition;
-
-                return {
-                  type: 'element',
-                  name: 'transition',
-                  attributes: {
-                    ...(event ? { event } : undefined),
-                    ...(target
-                      ? {
-                          target: stateNode.parent!.getRelativeStateNodes(
-                            target
-                          )[0]!.id
-                        }
-                      : undefined), // TODO: fixme
-                    ...(targetTransition.cond
-                      ? { cond: targetTransition.cond.toString() }
-                      : undefined)
-                  },
-                  elements: targetTransition.actions
-                    ? targetTransition.actions.map(action => ({
-                        type: 'element',
-                        name: 'send',
-                        attributes: {
-                          event: getActionType(action)
-                        }
-                      }))
-                    : undefined
-                };
-              });
-            }
-
-            return Object.keys(transition).map(target => {
-              const targetTransition = transition[target];
+            return transition.map(targetTransition => {
+              const { target } = targetTransition;
 
               return {
                 type: 'element',
                 name: 'transition',
                 attributes: {
                   ...(event ? { event } : undefined),
-                  target: stateNode.parent!.getRelativeStateNodes(target)![0]
-                    .id, // TODO: fixme
+                  ...(target
+                    ? {
+                        target: stateNode.parent!.getRelativeStateNodes(
+                          target
+                        )[0]!.id
+                      }
+                    : undefined), // TODO: fixme
                   ...(targetTransition.cond
                     ? { cond: targetTransition.cond.toString() }
                     : undefined)
@@ -208,7 +180,7 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function mapActions<TContext>(
+function mapActions<TContext extends object>(
   elements: XMLElement[]
 ): Array<ActionObject<TContext>> {
   return elements.map(element => {
@@ -218,7 +190,7 @@ function mapActions<TContext>(
       case 'assign':
         return actions.assign(xs => {
           const literalKeyExprs = xs
-            ? Object.keys(xs)
+            ? keys(xs)
                 .map(key => `const ${key} = xs['${key}'];`)
                 .join('\n')
             : '';
@@ -355,7 +327,7 @@ function toConfig(
     return {
       id,
       ...(initial ? { initial } : undefined),
-      ...(parallel ? { parallel } : undefined),
+      ...(parallel ? { type: 'parallel' } : undefined),
       ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>

@@ -112,7 +112,7 @@ describe('guard conditions', () => {
 describe('guard conditions', () => {
   const machine = Machine({
     key: 'microsteps',
-    parallel: true,
+    type: 'parallel',
     states: {
       A: {
         initial: 'A0',

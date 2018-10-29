@@ -3,7 +3,7 @@ import { testAll } from '../utils';
 
 describe('Example 6.16', () => {
   const machine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       A: {
         initial: 'D',

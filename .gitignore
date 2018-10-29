@@ -35,4 +35,11 @@ es/
 editor/
 examples/
 _examples/
+
+# Documentation
+docs/.cache
 !docs/examples/
+
+public/
+.cache
+

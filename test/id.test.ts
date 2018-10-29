@@ -25,7 +25,8 @@ describe('State node IDs', () => {
       NEXT: 'B.foo'
     },
     'B.foo': {
-      'NEXT,NEXT': 'A.foo'
+      'NEXT,NEXT': 'A.foo',
+      NEXT_DOT: 'B.dot'
     },
     '#B_foo': {
       'NEXT,NEXT': 'A.foo'

@@ -6,15 +6,46 @@ const isValidMoveFor = player => (xs, e) => {
   return e.player === player && xs.board[e.value] === null;
 };
 
+const checkWin = player => (xs, e) => {
+  const { board } = xs;
+  const winningLines = [
+    [0, 1, 2],
+    [3, 4, 5],
+    [6, 7, 8],
+    [0, 3, 6],
+    [1, 4, 7],
+    [2, 5, 8],
+    [0, 4, 8],
+    [2, 4, 6]
+  ];
+
+  for (let line of winningLines) {
+    const playerWon = line.every(index => {
+      return board[index] === player;
+    });
+
+    if (playerWon) {
+      return true;
+    }
+  }
+};
+
 const ticTacToeMachine = Machine(
   {
     initial: 'x turn',
     states: {
       'x turn': {
         on: {
-          '': {
-            winner: { cond: checkWin }
-          },
+          '': [
+            {
+              target: 'winner x',
+              cond: checkWin('x')
+            },
+            {
+              target: 'winner o',
+              cond: checkWin('o')
+            }
+          ],
           PLAY: [
             {
               target: 'o turn',
@@ -37,9 +68,16 @@ const ticTacToeMachine = Machine(
       },
       'o turn': {
         on: {
-          '': {
-            winner: { cond: checkWin }
-          },
+          '': [
+            {
+              target: 'winner x',
+              cond: checkWin('x')
+            },
+            {
+              target: 'winner o',
+              cond: checkWin('o')
+            }
+          ],
           PLAY: [
             {
               target: 'x turn',
@@ -59,7 +97,12 @@ const ticTacToeMachine = Machine(
           ]
         }
       },
-      winner: {
+      'winner x': {
+        on: {
+          PLAY: undefined
+        }
+      },
+      'winner o': {
         on: {
           PLAY: undefined
         }
@@ -73,74 +116,44 @@ const ticTacToeMachine = Machine(
   }
 );
 
-const interpreter = interpret(ticTacToeMachine, e => {
+const service = interpret(ticTacToeMachine, e => {
   // console.log(e.value);
   // console.log(e.ext);
   // console.log('\n');
 });
 
-function checkWin(xs, e) {
-  const { board } = xs;
-  const winningLines = [
-    [0, 1, 2],
-    [3, 4, 5],
-    [6, 7, 8],
-    [0, 3, 6],
-    [1, 4, 7],
-    [2, 5, 8],
-    [0, 4, 8],
-    [2, 4, 6]
-  ];
-
-  for (let line of winningLines) {
-    const xWon = line.every(index => {
-      return board[index] === 'x';
-    });
-
-    if (xWon) {
-      return true;
-    }
-
-    const oWon = line.every(index => {
-      return board[index] === 'x';
-    });
-
-    if (oWon) {
-      return true;
-    }
-  }
-}
-
 // interpreter.init();
 
 const valueAdjacencyMap = getValueAdjacencyMap(ticTacToeMachine, {
-  PLAY: [
-    { type: 'PLAY', player: 'x', value: 0 },
-    { type: 'PLAY', player: 'x', value: 1 },
-    { type: 'PLAY', player: 'x', value: 2 },
-    { type: 'PLAY', player: 'x', value: 3 },
-    { type: 'PLAY', player: 'x', value: 4 },
-    { type: 'PLAY', player: 'x', value: 5 },
-    { type: 'PLAY', player: 'x', value: 6 },
-    { type: 'PLAY', player: 'x', value: 7 },
-    { type: 'PLAY', player: 'x', value: 8 },
-    { type: 'PLAY', player: 'o', value: 0 },
-    { type: 'PLAY', player: 'o', value: 1 },
-    { type: 'PLAY', player: 'o', value: 2 },
-    { type: 'PLAY', player: 'o', value: 3 },
-    { type: 'PLAY', player: 'o', value: 4 },
-    { type: 'PLAY', player: 'o', value: 5 },
-    { type: 'PLAY', player: 'o', value: 6 },
-    { type: 'PLAY', player: 'o', value: 7 },
-    { type: 'PLAY', player: 'o', value: 8 }
-  ]
+  events: {
+    PLAY: [
+      { type: 'PLAY', player: 'x', value: 0 },
+      { type: 'PLAY', player: 'x', value: 1 },
+      { type: 'PLAY', player: 'x', value: 2 },
+      { type: 'PLAY', player: 'x', value: 3 },
+      { type: 'PLAY', player: 'x', value: 4 },
+      { type: 'PLAY', player: 'x', value: 5 },
+      { type: 'PLAY', player: 'x', value: 6 },
+      { type: 'PLAY', player: 'x', value: 7 },
+      { type: 'PLAY', player: 'x', value: 8 },
+      { type: 'PLAY', player: 'o', value: 0 },
+      { type: 'PLAY', player: 'o', value: 1 },
+      { type: 'PLAY', player: 'o', value: 2 },
+      { type: 'PLAY', player: 'o', value: 3 },
+      { type: 'PLAY', player: 'o', value: 4 },
+      { type: 'PLAY', player: 'o', value: 5 },
+      { type: 'PLAY', player: 'o', value: 6 },
+      { type: 'PLAY', player: 'o', value: 7 },
+      { type: 'PLAY', player: 'o', value: 8 }
+    ]
+  }
 });
 
 Object.keys(valueAdjacencyMap)
   .filter(key => {
     const adjacencies = valueAdjacencyMap[key];
 
-    return key.includes('winner');
+    return key.includes('winner o');
   })
   .map(key => {
     const [state, ext] = key.split(' | ');

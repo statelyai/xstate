@@ -7,92 +7,89 @@ interface CounterContext {
   maybe?: string;
 }
 
-const counterMachine = Machine<CounterContext>(
-  {
-    initial: 'counting',
-    states: {
-      counting: {
-        on: {
-          INC: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>(xs => ({
-                  count: xs.count + 1
-                }))
-              ]
-            }
-          ],
-          DEC: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>({
-                  count: xs => xs.count - 1
-                })
-              ]
-            }
-          ],
-          WIN_PROP: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>({
-                  count: () => 100,
-                  foo: () => 'win'
-                })
-              ]
-            }
-          ],
-          WIN_STATIC: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>({
-                  count: 100,
-                  foo: 'win'
-                })
-              ]
-            }
-          ],
-          WIN_MIX: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>({
-                  count: () => 100,
-                  foo: 'win'
-                })
-              ]
-            }
-          ],
-          WIN: [
-            {
-              target: 'counting',
-              actions: [
-                actions.assign<CounterContext>(() => ({
-                  count: 100,
-                  foo: 'win'
-                }))
-              ]
-            }
-          ],
-          SET_MAYBE: [
-            {
-              actions: [
-                actions.assign<CounterContext>({
-                  maybe: 'defined'
-                })
-              ]
-            }
-          ]
-        }
+const counterMachine = Machine<CounterContext>({
+  initial: 'counting',
+  context: { count: 0, foo: 'bar' },
+  states: {
+    counting: {
+      on: {
+        INC: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>(xs => ({
+                count: xs.count + 1
+              }))
+            ]
+          }
+        ],
+        DEC: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>({
+                count: xs => xs.count - 1
+              })
+            ]
+          }
+        ],
+        WIN_PROP: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>({
+                count: () => 100,
+                foo: () => 'win'
+              })
+            ]
+          }
+        ],
+        WIN_STATIC: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>({
+                count: 100,
+                foo: 'win'
+              })
+            ]
+          }
+        ],
+        WIN_MIX: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>({
+                count: () => 100,
+                foo: 'win'
+              })
+            ]
+          }
+        ],
+        WIN: [
+          {
+            target: 'counting',
+            actions: [
+              actions.assign<CounterContext>(() => ({
+                count: 100,
+                foo: 'win'
+              }))
+            ]
+          }
+        ],
+        SET_MAYBE: [
+          {
+            actions: [
+              actions.assign<CounterContext>({
+                maybe: 'defined'
+              })
+            ]
+          }
+        ]
       }
     }
-  },
-  undefined,
-  { count: 0, foo: 'bar' }
-);
+  }
+});
 
 describe('assign', () => {
   it('applies the assignment to the external state (property assignment)', () => {

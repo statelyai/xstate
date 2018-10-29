@@ -1,13 +1,64 @@
-import { State } from './State';
-import { Event, StateValue, ActionType, Action, EventObject } from './types';
+import {
+  Event,
+  StateValue,
+  ActionType,
+  Action,
+  EventObject,
+  StateInterface,
+  PropertyMapper,
+  Mapper
+} from './types';
+import { STATE_DELIMITER } from './constants';
 
-export function getEventType<TEvents extends EventObject = EventObject>(
-  event: Event<TEvents>
-): TEvents['type'] {
+function isState(state: object | string): state is StateInterface {
+  if (typeof state === 'string') {
+    return false;
+  }
+
+  return 'value' in state && 'tree' in state && 'history' in state;
+}
+
+export function keys<T extends object>(value: T): Array<keyof T & string> {
+  return Object.keys(value) as Array<keyof T & string>;
+}
+
+export function matchesState(
+  parentStateId: StateValue,
+  childStateId: StateValue,
+  delimiter: string = STATE_DELIMITER
+): boolean {
+  const parentStateValue = toStateValue(parentStateId, delimiter);
+  const childStateValue = toStateValue(childStateId, delimiter);
+
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
+      return childStateValue === parentStateValue;
+    }
+
+    // Parent more specific than child
+    return false;
+  }
+
+  if (typeof parentStateValue === 'string') {
+    return parentStateValue in childStateValue;
+  }
+
+  return keys(parentStateValue).every(key => {
+    if (!(key in childStateValue)) {
+      return false;
+    }
+
+    return matchesState(parentStateValue[key], childStateValue[key]);
+  });
+}
+
+export function getEventType<TEvent extends EventObject = EventObject>(
+  event: Event<TEvent>
+): TEvent['type'] {
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`
-      : (event as TEvents).type;
+      : (event as TEvent).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'
@@ -44,15 +95,19 @@ export function toStatePath(
 }
 
 export function toStateValue(
-  stateValue: State<any> | StateValue,
+  stateValue: StateInterface<any> | StateValue | string[],
   delimiter: string
 ): StateValue {
-  if (stateValue instanceof State) {
+  if (isState(stateValue)) {
     return stateValue.value;
   }
 
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    return stateValue;
+  if (Array.isArray(stateValue)) {
+    return pathToStateValue(stateValue);
+  }
+
+  if (typeof stateValue !== 'string' && !isState(stateValue)) {
+    return stateValue as StateValue;
   }
 
   const statePath = toStatePath(stateValue as string, delimiter);
@@ -91,7 +146,7 @@ export function mapValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach((key, i) => {
+  keys(collection).forEach((key, i) => {
     result[key] = iteratee(collection[key], key, collection, i);
   });
 
@@ -105,7 +160,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
+  keys(collection).forEach(key => {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -153,13 +208,28 @@ export function nestedPath<T extends Record<string, any>>(
   };
 }
 
-export const toStatePaths = (stateValue: StateValue): string[][] => {
+export const toStatePaths = (
+  stateValue: StateValue | undefined
+): string[][] => {
+  if (!stateValue) {
+    return [[]];
+  }
+
   if (typeof stateValue === 'string') {
     return [[stateValue]];
   }
 
   const result = flatten(
-    Object.keys(stateValue).map(key => {
+    keys(stateValue).map(key => {
+      const subStateValue = stateValue[key];
+
+      if (
+        typeof subStateValue !== 'string' &&
+        !Object.keys(subStateValue).length
+      ) {
+        return [[key]];
+      }
+
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
       });
@@ -198,20 +268,6 @@ export function flatten<T>(array: T[][]): T[] {
   return ([] as T[]).concat(...array);
 }
 
-export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  const aKeys = Object.keys(a);
-  const bKeys = Object.keys(b);
-
-  return (
-    aKeys.length === bKeys.length &&
-    aKeys.every(key => stateValuesEqual(a[key], b[key]))
-  );
-}
-
 export function toArray<T>(value: T[] | T | undefined): T[] {
   if (Array.isArray(value)) {
     return value;
@@ -220,4 +276,29 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
     return [];
   }
   return [value];
+}
+
+export function mapContext<TContext, TEvent extends EventObject>(
+  mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
+  context: TContext,
+  event: TEvent
+): any {
+  if (typeof mapper === 'function') {
+    return (mapper as Mapper<TContext, TEvent>)(context, event);
+  }
+
+  return keys(mapper).reduce(
+    (acc, key) => {
+      const subMapper = mapper[key];
+
+      if (typeof subMapper === 'function') {
+        acc[key] = subMapper(context, event);
+      } else {
+        acc[key] = subMapper;
+      }
+
+      return acc;
+    },
+    {} as any
+  );
 }

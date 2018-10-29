@@ -13,3 +13,4 @@ export const after = ActionTypes.After;
 export const doneState = ActionTypes.DoneState;
 export const log = ActionTypes.Log;
 export const init = ActionTypes.Init;
+export const invoke = ActionTypes.Invoke;

@@ -3,7 +3,7 @@ import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
 import { State } from '../src/State';
-import { log, assign } from '../src/actions';
+import { log, assign, actionTypes } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',
@@ -34,28 +34,38 @@ const lightMachine = Machine({
   }
 });
 
-// tslint:disable-next-line:no-empty
-const noop = () => {};
-
 describe('interpreter', () => {
   it('creates an interpreter', () => {
-    const interpreter = interpret(idMachine, noop);
+    const service = interpret(idMachine);
 
-    assert.instanceOf(interpreter, Interpreter);
+    assert.instanceOf(service, Interpreter);
   });
 
-  it('immediately notifies the listener with the initial state', () => {
-    let result: State<any> | undefined;
+  it('immediately notifies the listener with the initial state and event', done => {
+    const service = interpret(idMachine).onTransition((initialState, event) => {
+      assert.instanceOf(initialState, State);
+      assert.deepEqual(initialState.value, idMachine.initialState.value);
+      assert.deepEqual(event.type, actionTypes.init);
+      done();
+    });
 
-    const interpreter = interpret(
-      idMachine,
-      initialState => (result = initialState)
-    );
+    service.start();
+  });
 
-    interpreter.init();
+  it('.initialState returns the initial state', () => {
+    const service = interpret(idMachine);
 
-    assert.instanceOf(result, State);
-    assert.deepEqual(result!.value, idMachine.initialState.value);
+    assert.deepEqual(service.initialState, idMachine.initialState);
+  });
+
+  describe('.nextState() method', () => {
+    it('returns the next state for the given event without changing the interpreter state', () => {
+      const service = interpret(lightMachine).start();
+
+      const nextState = service.nextState('TIMER');
+      assert.equal(nextState.value, 'yellow');
+      assert.equal(service.state.value, 'green');
+    });
   });
 
   describe('send with delay', () => {
@@ -74,11 +84,11 @@ describe('interpreter', () => {
         }
       };
 
-      const interpreter = interpret(lightMachine, listener, {
+      const service = interpret(lightMachine, {
         clock: new SimulatedClock()
-      });
-      const clock = interpreter.clock as SimulatedClock;
-      interpreter.init();
+      }).onTransition(listener);
+      const clock = service.clock as SimulatedClock;
+      service.start();
 
       clock.increment(5);
       assert.equal(
@@ -117,18 +127,66 @@ describe('interpreter', () => {
     });
   });
 
+  describe('activities', () => {
+    let activityState = 'off';
+
+    const activityMachine = Machine(
+      {
+        id: 'activity',
+        initial: 'on',
+        states: {
+          on: {
+            activities: 'myActivity',
+            on: {
+              TURN_OFF: 'off'
+            }
+          },
+          off: {}
+        }
+      },
+      {
+        activities: {
+          myActivity: () => {
+            activityState = 'on';
+            return () => (activityState = 'off');
+          }
+        }
+      }
+    );
+
+    it('should start activities', () => {
+      const service = interpret(activityMachine);
+
+      service.start();
+
+      assert.equal(activityState, 'on');
+    });
+
+    it('should stop activities', () => {
+      const service = interpret(activityMachine);
+
+      service.start();
+
+      assert.equal(activityState, 'on');
+
+      service.send('TURN_OFF');
+
+      assert.equal(activityState, 'off');
+    });
+  });
+
   it('can cancel a delayed event', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);
 
-    const interpreter = interpret(lightMachine, listener, {
+    const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    });
-    const clock = interpreter.clock as SimulatedClock;
-    interpreter.init();
+    }).onTransition(listener);
+    const clock = service.clock as SimulatedClock;
+    service.start();
 
     clock.increment(5);
-    interpreter.send('KEEP_GOING');
+    service.send('KEEP_GOING');
 
     assert.deepEqual(currentState!.value, 'green');
     clock.increment(10);
@@ -140,58 +198,55 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const interpreter = interpret(lightMachine, noop);
+    const service = interpret(lightMachine);
 
-    assert.throws(() => interpreter.send('SOME_EVENT'));
+    assert.throws(() => service.send('SOME_EVENT'));
 
-    interpreter.init();
+    service.start();
 
-    assert.doesNotThrow(() => interpreter.send('SOME_EVENT'));
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
   });
 
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
-    const interpreter = interpret(lightMachine).onTransition(s => (state = s));
+    const service = interpret(lightMachine).onTransition(s => (state = s));
 
-    interpreter.init();
-    interpreter.send('TIMER'); // yellow
+    service.start();
+    service.send('TIMER'); // yellow
     assert.deepEqual(state.value, 'yellow');
 
-    interpreter.stop();
-    interpreter.send('TIMER'); // red if interpreter is not stopped
+    service.stop();
+    service.send('TIMER'); // red if interpreter is not stopped
     assert.deepEqual(state.value, 'yellow');
   });
 
-  it('should be able to log', () => {
+  it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = Machine(
-      {
-        id: 'log',
-        initial: 'x',
-        states: {
-          x: {
-            on: {
-              LOG: {
-                actions: [
-                  assign({ count: ctx => ctx.count + 1 }),
-                  log(ctx => ctx)
-                ]
-              }
+    const logMachine = Machine({
+      id: 'log',
+      initial: 'x',
+      context: { count: 0 },
+      states: {
+        x: {
+          on: {
+            LOG: {
+              actions: [
+                assign({ count: ctx => ctx.count + 1 }),
+                log(ctx => ctx)
+              ]
             }
           }
         }
-      },
-      {},
-      { count: 0 }
-    );
+      }
+    });
 
-    const interpreter = interpret(logMachine, noop, {
+    const service = interpret(logMachine, {
       logger: msg => logs.push(msg)
     }).start();
 
-    interpreter.send('LOG');
-    interpreter.send('LOG');
+    service.send('LOG');
+    service.send('LOG');
 
     assert.lengthOf(logs, 2);
     assert.deepEqual(logs, [{ count: 1 }, { count: 2 }]);

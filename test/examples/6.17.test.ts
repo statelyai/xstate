@@ -15,7 +15,7 @@ describe('Example 6.17', () => {
         }
       },
       Y: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A: {
             initial: 'D',
@@ -80,7 +80,7 @@ describe('Jump to ID', () => {
         }
       },
       Y: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A: {
             initial: 'D',

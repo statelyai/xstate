@@ -11,15 +11,15 @@ import { StateNode } from './StateNode';
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvents extends EventObject = EventObject
+  TEvent extends EventObject = EventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvents>,
-  options?: MachineOptions<TContext, TEvents>,
-  initialContext?: TContext
-): Machine<TContext, TStateSchema, TEvents> {
-  return new StateNode<TContext, TStateSchema, TEvents>(
+  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  options?: MachineOptions<TContext, TEvent>,
+  initialContext: TContext | undefined = config.context
+): Machine<TContext, TStateSchema, TEvent> {
+  return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
     initialContext
-  ) as Machine<TContext, TStateSchema, TEvents>;
+  ) as Machine<TContext, TStateSchema, TEvent>;
 }

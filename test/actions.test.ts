@@ -61,7 +61,7 @@ describe('onEntry/onExit actions', () => {
   });
 
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       a: {
         initial: 'a1',
@@ -158,7 +158,7 @@ describe('onEntry/onExit actions', () => {
         }
       },
       B: {
-        parallel: true,
+        type: 'parallel',
         on: {
           'to-A': 'A'
         },
@@ -421,7 +421,8 @@ describe('actions option', () => {
     }
   );
   it('should reference actions defined in actions parameter of machine options', () => {
-    const nextState = simpleMachine.transition(simpleMachine.initialState, 'E');
+    const { initialState } = simpleMachine;
+    const nextState = simpleMachine.transition(initialState, 'E');
 
     assert.includeMembers(nextState.actions.map(a => a.type), [
       'definedAction',

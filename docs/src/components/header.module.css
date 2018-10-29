@@ -1,0 +1,38 @@
+.logo > img {
+  height: 2rem;
+}
+
+.header {
+  display: flex;
+  flex-direction: row;
+  justify-content: space-between;
+  align-items: center;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.header > * {
+  pointer-events: auto;
+}
+
+.github {
+  opacity: 0.5;
+}
+.github:hover {
+  opacity: 1;
+}
+
+.github > img {
+  height: 2rem;
+}
+
+.menu {
+  height: 2rem;
+  margin-left: 1rem;
+}
+
+@media (min-width: 50em) {
+  .menu {
+    display: none;
+  }
+}
