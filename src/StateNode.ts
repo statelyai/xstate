@@ -46,7 +46,8 @@ import {
   RaisedEvent,
   FinalStateNodeConfig,
   InvokeDefinition,
-  OmniEvent
+  OmniEvent,
+  ActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -63,7 +64,8 @@ import {
   raise,
   done,
   doneInvoke,
-  invoke
+  invoke,
+  toActionObject
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -137,11 +139,11 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<Action<TContext>>;
+  public onEntry: Array<ActionObject<TContext>>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<Action<TContext>>;
+  public onExit: Array<ActionObject<TContext>>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
@@ -252,8 +254,10 @@ class StateNode<
 
     this.transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
-    this.onEntry = toArray(_config.onEntry);
-    this.onExit = toArray(_config.onExit);
+    this.onEntry = toArray(_config.onEntry).map(action =>
+      toActionObject(action)
+    );
+    this.onExit = toArray(_config.onExit).map(action => toActionObject(action));
     this.meta = _config.meta;
     this.data =
       this.type === 'final'
@@ -367,7 +371,9 @@ class StateNode<
       return afterConfig.map(delayedTransition => ({
         event: after(delayedTransition.delay, this.id),
         ...delayedTransition,
-        actions: toArray(delayedTransition.actions)
+        actions: toArray(delayedTransition.actions).map(action =>
+          toActionObject(action)
+        )
       }));
     }
 
@@ -391,7 +397,9 @@ class StateNode<
           event,
           delay,
           ...transition,
-          actions: toArray(transition.actions)
+          actions: toArray(transition.actions).map(action =>
+            toActionObject(action)
+          )
         }));
       })
     );
@@ -661,7 +669,7 @@ class StateNode<
   ): StateTransition<TContext> {
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
-    const actions: Array<Action<TContext>> = this.transient
+    const actions: Array<ActionObject<TContext>> = this.transient
       ? [{ type: actionTypes.null }]
       : [];
 
@@ -1752,7 +1760,11 @@ class StateNode<
     if (target === undefined || target === TARGETLESS_KEY) {
       return {
         ...transitionConfig,
-        actions: transitionConfig ? toArray(transitionConfig.actions) : [],
+        actions: transitionConfig
+          ? toArray(transitionConfig.actions).map(action =>
+              toActionObject(action)
+            )
+          : [],
         target: undefined,
         internal: transitionConfig
           ? transitionConfig.internal === undefined
@@ -1782,7 +1794,11 @@ class StateNode<
 
     return {
       ...transitionConfig,
-      actions: transitionConfig ? toArray(transitionConfig.actions) : [],
+      actions: transitionConfig
+        ? toArray(transitionConfig.actions).map(action =>
+            toActionObject(action)
+          )
+        : [],
       target: formattedTargets,
       internal,
       event

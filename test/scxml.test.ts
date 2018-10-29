@@ -89,7 +89,7 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
     )
   );
   let nextState: State<any> = machine.getInitialState(resolvedStateValue);
-  const interpreter = interpret(machine, {
+  const service = interpret(machine, {
     clock: new SimulatedClock()
   })
     .onTransition(state => {
@@ -99,9 +99,9 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
 
   test.events.forEach(({ event, nextConfiguration, after }, i) => {
     if (after) {
-      (interpreter.clock as SimulatedClock).increment(after);
+      (service.clock as SimulatedClock).increment(after);
     }
-    interpreter.send(event.name);
+    service.send(event.name);
 
     const stateIds = machine
       .getStateNodes(nextState)

@@ -209,7 +209,7 @@ export class Interpreter<
   public id: string;
 
   /**
-   * Creates a new Interpreter instance for the given machine with the provided options, if any.
+   * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
    *
    * @param machine The machine to be interpreted
    * @param options Interpreter options

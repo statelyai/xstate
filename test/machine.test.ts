@@ -126,10 +126,10 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      const interpreter = interpret(differentMachine);
+      const service = interpret(differentMachine);
 
       assert.throws(
-        () => interpreter.start(),
+        () => service.start(),
         /new entry/,
         'different action should be used'
       );
