@@ -51,7 +51,11 @@ class Layout extends React.Component {
             <Helmet
               title={data.site.siteMetadata.title}
               meta={[
-                { name: 'description', content: 'Sample' },
+                {
+                  name: 'description',
+                  content:
+                    'XState is a library for creating state machines and statecharts in JavaScript.'
+                },
                 { name: 'keywords', content: 'sample, something' }
               ]}
             >

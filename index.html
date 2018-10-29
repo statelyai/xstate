@@ -6,6 +6,10 @@
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <meta http-equiv="X-UA-Compatible" content="ie=edge">
   <title>Document</title>
+  <link
+                href="https://fonts.googleapis.com/css?family=Roboto:300,700"
+                rel="stylesheet"
+              />
   <style>
     *,
     *:before,
@@ -20,14 +24,32 @@
       width: 100%;
       margin: 0;
       padding: 0;
+      font-family: Roboto, Arial, Helvetica, sans-serif;
+      font-size: 14px;
     }
 
     body {
-      background-image: linear-gradient(to bottom right, #232435, #3a3c5a);
+      
       display: flex;
       flex-direction: column;
       justify-content: center;
       align-items: center;
+    }
+
+    body:before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 0;
+      width: 100%;
+      height: 100%;
+      background-image: linear-gradient(to bottom right, #232435, #3a3c5a);
+      animation: fade-in 0.3s ease;
+    }
+
+    @keyframes fade-in {
+      from { opacity: 0;}
+      to { opacity: 1;}
     }
 
     .logo {
@@ -41,6 +63,8 @@
       padding: 0;
       display: flex;
       flex-direction: row;
+      text-transform: uppercase;
+      letter-spacing: 1px;
     }
 
     .link:not(:first-child) {
@@ -61,7 +85,7 @@
       <a href="https://github.com/davidkpiano/xstate">GitHub</a>
     </li>
     <li class="link">
-      <a href="https://xstate.js.org/docs">Docs</a>
+      <a href="/docs">Docs</a>
     </li>
     <li class="link">
       <a href="https://spectrum.chat/statecharts">Community</a>

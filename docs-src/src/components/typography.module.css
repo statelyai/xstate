@@ -1,12 +1,12 @@
 .heading {
   font-weight: 700;
-  color: #2b3a42;
+  color: #2c2d43;
   padding-top: 1rem;
 }
 
 .heading > a {
   text-decoration: none;
-  color: #2b3a42;
+  color: #2c2d43;
 }
 
 .heading.h1 {
@@ -18,7 +18,7 @@
   margin-top: 1rem;
 }
 
-.heading:before {
+.heading [aria-hidden]:before {
   content: '#';
   position: absolute;
   display: inline-block;
@@ -29,7 +29,7 @@
   opacity: 0.2;
 }
 
-.heading:hover:before {
+.heading [aria-hidden]:hover:before {
   opacity: 1;
 }
 

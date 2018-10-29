@@ -82,7 +82,16 @@ const sitemap = {
   },
   api: {
     title: 'API Docs',
-    link: '/api/'
+    pages: {
+      api: {
+        title: 'TypeScript',
+        link: '/docs/api'
+      },
+      v3: {
+        title: 'Version 3.x',
+        link: '/docs-v3'
+      }
+    }
   }
 };
 
@@ -92,10 +101,11 @@ export class Sidebar extends React.Component {
       <ul className={sidebarStyles.items}>
         {Object.keys(pages).map(key => {
           const page = pages[key];
+          const link = pages[key].link || `docs/${parentKey}/${key}`;
 
           return (
             <li className={sidebarStyles.item}>
-              <Link to={`${parentKey}/${key}`} className={sidebarStyles.link}>
+              <Link to={link} className={sidebarStyles.link}>
                 {page.title}
               </Link>
             </li>
@@ -111,7 +121,7 @@ export class Sidebar extends React.Component {
       <nav className={sidebarStyles.nav}>
         <ul className={sidebarStyles.items}>
           {Object.keys(sitemap).map(key => {
-            const { pages, title, link = `/${key}` } = sitemap[key];
+            const { pages, title, link = `docs/${key}` } = sitemap[key];
 
             return (
               <li className={cn(sidebarStyles.item, sidebarStyles.topLevel)}>

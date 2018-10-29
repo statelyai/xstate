@@ -37,7 +37,7 @@ examples/
 _examples/
 
 # Documentation
-docs/.cache
+docs-src/.cache
 !docs/examples/
 
 public/

@@ -1,7 +1,7 @@
 module.exports = {
   pathPrefix: '/xstate',
   siteMetadata: {
-    title: 'Xstate Docs'
+    title: 'XState Documentation'
   },
   plugins: [
     {

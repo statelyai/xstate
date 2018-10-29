@@ -8,9 +8,7 @@ export class Heading extends React.Component {
 
     return (
       <Tag className={cn(typeStyles.heading, typeStyles[Tag])} id={id}>
-        <a className={cn(typeStyles.headingLink)} href={`#${id}`}>
-          <span>{this.props.children}</span>
-        </a>
+        <span>{this.props.children}</span>
       </Tag>
     );
   }

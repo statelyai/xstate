@@ -27,9 +27,9 @@
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
     "publish:next": "npm version prerelease && npm publish --tag next",
-    "docs:typedoc": "./node_modules/.bin/typedoc src/index.ts --excludePrivate --mode file --out ./docs/public/api --target es6",
+    "docs:typedoc": "./node_modules/.bin/typedoc src/index.ts --excludePrivate --mode file --out ./docs-src/public/api --target es6",
     "docs:develop": "cd ./docs && gatsby develop",
-    "docs": "cd ./docs && gatsby build && cd ../ && rimraf ./docs/public/api && npm run docs:typedoc"
+    "docs": "rimraf /docs && cd ./docs-src && gatsby build && cd ../ && rimraf ./docs-src/public/api && npm run docs:typedoc && ncp ./docs-src/public ./docs"
   },
   "repository": {
     "type": "git",
@@ -52,6 +52,7 @@
     "chai": "^4.2.0",
     "docz": "^0.11.2",
     "mocha": "^3.5.3",
+    "ncp": "^2.0.0",
     "prettier": "^1.14.3",
     "puppeteer": "^1.8.0",
     "rimraf": "^2.6.2",
