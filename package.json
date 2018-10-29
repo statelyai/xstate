@@ -28,7 +28,8 @@
     "prepublish": "npm run build",
     "publish:next": "npm version prerelease && npm publish --tag next",
     "docs:typedoc": "./node_modules/.bin/typedoc src/index.ts --excludePrivate --mode file --out ./docs/public/api --target es6",
-    "docs:develop": "cd ./docs && gatsby develop"
+    "docs:develop": "cd ./docs && gatsby develop",
+    "docs": "cd ./docs && gatsby build && cd ../ && rimraf ./docs/public/api && npm run docs:typedoc"
   },
   "repository": {
     "type": "git",
@@ -53,6 +54,7 @@
     "mocha": "^3.5.3",
     "prettier": "^1.14.3",
     "puppeteer": "^1.8.0",
+    "rimraf": "^2.6.2",
     "rollup": "^0.64.1",
     "rollup-plugin-filesize": "^4.0.1",
     "rollup-plugin-replace": "^2.0.0",
