@@ -8,7 +8,7 @@ import typeStyles from './typography.module.css';
 import 'prismjs/themes/prism-okaidia.css';
 import cn from 'classnames';
 
-import { Heading } from './typography.jsx';
+import { Heading, Anchor } from './typography.jsx';
 
 // Highlight
 import hljs from 'highlight.js/lib/highlight';
@@ -48,7 +48,7 @@ class Layout extends React.Component {
             >
               <html lang="en" />
               <link
-                href="https://fonts.googleapis.com/css?family=Roboto:400,700|Source+Code+Pro"
+                href="https://fonts.googleapis.com/css?family=Roboto:300,700|Source+Code+Pro"
                 rel="stylesheet"
               />
             </Helmet>
@@ -65,6 +65,7 @@ class Layout extends React.Component {
                 h1: props => <Heading tag="h1" {...props} />,
                 h2: props => <Heading tag="h2" {...props} />,
                 h3: props => <Heading tag="h3" {...props} />,
+                a: props => <Anchor>{props.children}</Anchor>,
                 inlineCode: props => (
                   <code className={typeStyles.code}>{props.children}</code>
                 )

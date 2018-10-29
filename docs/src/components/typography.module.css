@@ -4,6 +4,11 @@
   padding-top: 1rem;
 }
 
+.heading > a {
+  text-decoration: none;
+  color: #2b3a42;
+}
+
 .heading.h1 {
   font-size: 2rem;
 }
@@ -13,24 +18,24 @@
   margin-top: 1rem;
 }
 
-.headingLink {
+.heading:before {
+  content: '#';
   position: absolute;
   display: inline-block;
   height: 100%;
   transform: translateX(calc(-100% - 0.5rem));
-  text-decoration: none;
   color: var(--color-link);
   font-weight: normal;
+  opacity: 0.2;
 }
 
-.heading:not(:hover) > .headingLink {
-  color: #ddd;
+.heading:hover:before {
+  opacity: 1;
 }
 
 .code {
-  height: 2rem;
-  background-color: #e1e4e8;
-  height: 1.5rem;
+  background-color: #f1f1f1;
+  font-size: 80%;
   padding: 0 0.5ch;
   display: inline-block;
   border-radius: var(--radius);
@@ -43,6 +48,14 @@
 
 code[class*='language-'],
 pre[class*='language-'] {
-  line-height: 1.1 !important;
+  line-height: 1.2 !important;
   font-size: 90%;
+}
+
+.anchor {
+  color: var(--color-link);
+  text-decoration: none;
+}
+.anchor:hover {
+  text-decoration: underline;
 }
