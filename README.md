@@ -1,7 +1,7 @@
 # XState
 
-[![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
-[![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
+[![Build Status](https://api.travis-ci.org/davidkpiano/xstate.svg?branch=master)](https://travis-ci.org/davidkpiano/xstate)
+[![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
