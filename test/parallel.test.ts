@@ -659,7 +659,7 @@ describe('parallel states', () => {
           }
         },
         B: {
-          parallel: true,
+          type: 'parallel',
           states: {
             C: {},
             D: {}

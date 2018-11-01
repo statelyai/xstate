@@ -174,8 +174,10 @@ class StateNode<
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   public order: number;
-
-  private invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  /**
+   * The services invoked by this state node.
+   */
+  public invoke: Array<InvokeDefinition<TContext, TEvent>>;
 
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,

@@ -416,7 +416,11 @@ export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
 export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvent> {
   type: 'final';
-  data?: any;
+  /**
+   * The data to be sent with the "done.state.<id>" event. The data can be
+   * static or dynamic (based on assigners).
+   */
+  data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
 }
 
 export interface CompoundStateNodeConfig<
