@@ -1,4 +1,13 @@
-# XState
+<p align="center">
+  <a href="https://xstate.js.org">
+  <br />
+  <img src="https://github.com/davidkpiano/xstate/blob/gh-pages/xstate-logo.png" alt="XState" width="100"/>
+  <br />
+  <sub>JavaScript state machines and statecharts</sub>
+  <br />
+  <br />
+  </a>
+</p>
 
 [![Build Status](https://api.travis-ci.org/davidkpiano/xstate.svg?branch=master)](https://travis-ci.org/davidkpiano/xstate)
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
@@ -7,7 +16,7 @@
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
-**Version 4.0 Preview:** `npm install xstate@next`
+[**Version 3.x to 4 Migration Guide**](./migration.md)
 
 ## Super quick start
 
@@ -17,7 +26,10 @@ npm i xstate -S
 
 ```js
 import { Machine } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter'; // or use your own interpreter!
 
+// Stateless machine definition
+// machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = Machine({
   initial: 'inactive',
   states: {
@@ -26,20 +38,20 @@ const toggleMachine = Machine({
   }
 });
 
-// Interpret the machine however you want.
-// Here's a simple (side-effectful) example:
-let currentState = toggleMachine.initialState;
+// Machine instance with internal state
+const toggleService = interpret(toggleMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+// => 'inactive'
 
-function send(event) {
-  currentState = toggleMachine.transition(currentState, event);
-  console.log(currentState.value);
-}
+toggleService.send('TOGGLE');
+// => 'active'
 
-send('TOGGLE'); // 'active'
-send('TOGGLE'); // 'inactive'
+toggleService.send('TOGGLE');
+// => 'inactive'
 ```
 
-📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
+📖 [Read the documentation](https://xstate.js.org/docs)
 
 - [Visualizer](#visualizer)
 - [3rd-Party Usage](#3rd-party-usage)
