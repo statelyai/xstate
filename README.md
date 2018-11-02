@@ -9,7 +9,7 @@
   </a>
 </p>
 
-[![Build Status](https://api.travis-ci.org/davidkpiano/xstate.svg?branch=master)](https://travis-ci.org/davidkpiano/xstate)
+[![Build Status](https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate)](https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1)
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
