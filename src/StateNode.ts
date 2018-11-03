@@ -1092,19 +1092,19 @@ class StateNode<
     }, {});
 
     const nextState = resolvedStateValue
-      ? new State<TContext, TEvent>(
-          resolvedStateValue,
-          updatedContext,
-          historyValue
+      ? new State<TContext, TEvent>({
+          value: resolvedStateValue,
+          context: updatedContext,
+          historyValue: historyValue
             ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
-          stateTransition.source ? currentState : undefined,
-          toActionObjects(nonEventActions, this.options.actions),
+          history: stateTransition.source ? currentState : undefined,
+          actions: toActionObjects(nonEventActions, this.options.actions),
           activities,
           meta,
-          raisedEvents as TEvent[],
-          stateTransition.tree
-        )
+          events: raisedEvents as TEvent[],
+          tree: stateTransition.tree
+        })
       : undefined;
 
     if (!nextState) {
@@ -1416,16 +1416,11 @@ class StateNode<
       assignActions
     );
 
-    const initialNextState = new State<TContext, TEvent>(
-      stateValue,
-      updatedContext,
-      undefined,
-      undefined,
-      undefined,
-      activityMap,
-      undefined,
-      []
-    );
+    const initialNextState = new State<TContext, TEvent>({
+      value: stateValue,
+      context: updatedContext,
+      activities: activityMap
+    });
 
     return initialNextState;
   }

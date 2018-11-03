@@ -751,6 +751,18 @@ export interface StateInterface<
   toStrings: () => string[];
 }
 
+export interface StateConfig<TContext, TEvent extends EventObject> {
+  value: StateValue;
+  context: TContext;
+  historyValue?: HistoryValue | undefined;
+  history?: State<TContext>;
+  actions?: Array<ActionObject<TContext>>;
+  activities?: ActivityMap;
+  meta?: any;
+  events?: TEvent[];
+  tree?: StateTree;
+}
+
 export interface StateSchema {
   meta?: any;
   states?: {
