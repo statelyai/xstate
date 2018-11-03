@@ -97,6 +97,17 @@ describe('StateTree', () => {
         }
       });
     });
+
+    it('represents the full value (parallel deep)', () => {
+      const st = new StateTree(testMachine, { b: 'two' }).resolved;
+
+      assert.deepEqual(st.value, {
+        b: {
+          one: 'foo',
+          two: { foo: 'x' }
+        }
+      });
+    });
   });
 
   describe('.combine', () => {
@@ -108,17 +119,6 @@ describe('StateTree', () => {
 
       assert.deepEqual(combined.value, { c: { two: {} } });
       assert.deepEqual(combined.resolved.value, { c: { two: 'aa' } });
-    });
-  });
-
-  xit('represents the full value (parallel deep)', () => {
-    const st = new StateTree(testMachine, { b: 'two' });
-
-    assert.deepEqual(st.value, {
-      b: {
-        one: 'foo',
-        two: { foo: 'x' }
-      }
     });
   });
 

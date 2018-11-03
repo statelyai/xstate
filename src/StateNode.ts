@@ -1287,7 +1287,7 @@ class StateNode<
 
     switch (this.type) {
       case 'parallel':
-        const r = mapValues(
+        return mapValues(
           this.initialStateValue as Record<string, StateValue>,
           (subStateValue, subStateKey) => {
             const sv = subStateValue
@@ -1299,8 +1299,6 @@ class StateNode<
             return sv;
           }
         );
-
-        return r;
 
       case 'compound':
         if (typeof stateValue === 'string') {
