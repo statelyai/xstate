@@ -1811,6 +1811,9 @@ class StateNode<
         if (singleInvokeConfig.onDone) {
           acc[doneInvoke(singleInvokeConfig.id)] = singleInvokeConfig.onDone;
         }
+        if (singleInvokeConfig.onError) {
+          acc[actionTypes.errorExecution] = singleInvokeConfig.onError;
+        }
         return acc;
       },
       {} as any

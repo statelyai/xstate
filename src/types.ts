@@ -269,6 +269,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
       onDone?:
         | string
         | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+      /**
+       * The transition to take upon the invoked child machine sending an error event.
+       */
+      onError?:
+        | string
+        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
     }
   | Machine<any, any, any>;
 
@@ -571,6 +577,7 @@ export interface DoneInvokeEvent<TData> extends EventObject {
 }
 
 export interface ErrorExecutionEvent extends EventObject {
+  src: string;
   type: ActionTypes.ErrorExecution;
   data: any;
 }

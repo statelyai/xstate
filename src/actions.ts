@@ -370,8 +370,9 @@ export function invoke<TContext, TEvent extends EventObject>(
   };
 }
 
-export function error(data: any): ErrorExecutionEvent {
+export function error(data: any, src: string): ErrorExecutionEvent {
   return {
+    src,
     type: ActionTypes.ErrorExecution,
     data
   };
