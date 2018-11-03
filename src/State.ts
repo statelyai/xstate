@@ -80,6 +80,15 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     });
   }
   /**
+   * Creates a new State instance for the given `config`.
+   * @param config The state config
+   */
+  public static create<TC, TE extends EventObject = EventObject>(
+    config: StateConfig<TC, TE>
+  ): State<TC, TE> {
+    return new State(config);
+  }
+  /**
    * Creates a new State instance for the given `stateValue` and `context` with no actions (side-effects).
    * @param stateValue
    * @param context
