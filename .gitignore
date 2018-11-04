@@ -35,6 +35,7 @@ es/
 editor/
 examples/
 _examples/
+__examples/ 
 
 # Documentation
 docs-src/.cache

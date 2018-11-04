@@ -1,4 +1,4 @@
-import { Machine, actions, ActionTypes } from '../src/index';
+import { Machine, actions } from '../src/index';
 import { interpret } from '../src/interpreter';
 import { assign, invoke, sendParent, send, doneInvoke } from '../src/actions';
 import { assert } from 'chai';
@@ -178,12 +178,8 @@ describe('invoke', () => {
               cond: (ctx, e) => {
                 return e.data === ctx.id;
               }
-            }
-          },
-          on: {
-            [ActionTypes.ErrorExecution]: {
-              target: 'failure'
-            }
+            },
+            onError: 'failure'
           }
         },
         success: {

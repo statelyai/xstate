@@ -536,7 +536,7 @@ export class Interpreter<
               })
               .catch(e => {
                 // Send "error.execution" to this (parent).
-                this.send(error(e));
+                this.send(error(e, id));
               });
 
             this.activitiesMap[activity.id] = () => {
@@ -556,7 +556,7 @@ export class Interpreter<
                 id,
                 autoForward
               }
-            ).onDone(this.sender(doneInvoke(activity.id)));
+            ).onDone(() => this.send(doneInvoke(activity.id)));
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {

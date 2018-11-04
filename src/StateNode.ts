@@ -174,8 +174,10 @@ class StateNode<
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   public order: number;
-
-  private invoke: Array<InvokeDefinition<TContext, TEvent>>;
+  /**
+   * The services invoked by this state node.
+   */
+  public invoke: Array<InvokeDefinition<TContext, TEvent>>;
 
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
@@ -670,7 +672,7 @@ class StateNode<
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
     const actions: Array<ActionObject<TContext>> = this.transient
-      ? [{ type: actionTypes.null }]
+      ? [{ type: actionTypes.nullEvent }]
       : [];
 
     if (!candidates || !candidates.length) {
@@ -1053,14 +1055,14 @@ class StateNode<
     const raisedEvents = actions.filter(
       action =>
         typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.Null }>;
+        (action.type === actionTypes.raise || action.type === actionTypes.nullEvent)
+    ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(
       action =>
         typeof action !== 'object' ||
         (action.type !== actionTypes.raise &&
-          action.type !== actionTypes.null &&
+          action.type !== actionTypes.nullEvent &&
           action.type !== actionTypes.assign)
     );
     const assignActions = actions.filter(
@@ -1079,7 +1081,7 @@ class StateNode<
 
     const isTransient = stateNodes.some(stateNode => stateNode.transient);
     if (isTransient) {
-      raisedEvents.push({ type: actionTypes.null });
+      raisedEvents.push({ type: actionTypes.nullEvent });
     }
 
     const meta = [this, ...stateNodes].reduce((acc, stateNode) => {
@@ -1090,19 +1092,19 @@ class StateNode<
     }, {});
 
     const nextState = resolvedStateValue
-      ? new State<TContext, TEvent>(
-          resolvedStateValue,
-          updatedContext,
-          historyValue
+      ? new State<TContext, TEvent>({
+          value: resolvedStateValue,
+          context: updatedContext,
+          historyValue: historyValue
             ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
-          stateTransition.source ? currentState : undefined,
-          toActionObjects(nonEventActions, this.options.actions),
+          history: stateTransition.source ? currentState : undefined,
+          actions: toActionObjects(nonEventActions, this.options.actions),
           activities,
           meta,
-          raisedEvents as TEvent[],
-          stateTransition.tree
-        )
+          events: raisedEvents as TEvent[],
+          tree: stateTransition.tree
+        })
       : undefined;
 
     if (!nextState) {
@@ -1121,7 +1123,7 @@ class StateNode<
       const raisedEvent = raisedEvents.shift()!;
       maybeNextState = this.transition(
         maybeNextState,
-        raisedEvent.type === actionTypes.null
+        raisedEvent.type === actionTypes.nullEvent
           ? NULL_EVENT
           : (raisedEvent as RaisedEvent<TEvent>).event,
         maybeNextState.context
@@ -1285,7 +1287,7 @@ class StateNode<
 
     switch (this.type) {
       case 'parallel':
-        const r = mapValues(
+        return mapValues(
           this.initialStateValue as Record<string, StateValue>,
           (subStateValue, subStateKey) => {
             const sv = subStateValue
@@ -1297,8 +1299,6 @@ class StateNode<
             return sv;
           }
         );
-
-        return r;
 
       case 'compound':
         if (typeof stateValue === 'string') {
@@ -1414,16 +1414,11 @@ class StateNode<
       assignActions
     );
 
-    const initialNextState = new State<TContext, TEvent>(
-      stateValue,
-      updatedContext,
-      undefined,
-      undefined,
-      undefined,
-      activityMap,
-      undefined,
-      []
-    );
+    const initialNextState = new State<TContext, TEvent>({
+      value: stateValue,
+      context: updatedContext,
+      activities: activityMap
+    });
 
     return initialNextState;
   }
@@ -1789,7 +1784,7 @@ class StateNode<
         return _target.slice(1);
       }
 
-      return internalTarget ? this.key + _target : _target;
+      return internalTarget ? this.key + _target : `${_target}`;
     });
 
     return {
@@ -1815,6 +1810,9 @@ class StateNode<
       (acc, singleInvokeConfig) => {
         if (singleInvokeConfig.onDone) {
           acc[doneInvoke(singleInvokeConfig.id)] = singleInvokeConfig.onDone;
+        }
+        if (singleInvokeConfig.onError) {
+          acc[actionTypes.errorExecution] = singleInvokeConfig.onError;
         }
         return acc;
       },

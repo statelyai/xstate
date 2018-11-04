@@ -6,7 +6,8 @@ import {
   HistoryValue,
   ActionObject,
   EventType,
-  StateValueMap
+  StateValueMap,
+  StateConfig
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys } from './utils';
@@ -28,6 +29,14 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
 
 export class State<TContext, TEvent extends EventObject = EventObject>
   implements StateInterface<TContext> {
+  public value: StateValue;
+  public context: TContext;
+  public historyValue?: HistoryValue | undefined;
+  public history?: State<TContext>;
+  public actions: Array<ActionObject<TContext>> = [];
+  public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
+  public meta: any = {};
+  public events: TEvent[] = [];
   /**
    * The state node tree representation of the state value.
    */
@@ -43,32 +52,41 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TC, TE>(
-          stateValue.value,
+        return new State<TC, TE>({
+          value: stateValue.value,
           context,
-          stateValue.historyValue,
-          stateValue.history,
-          [],
-          stateValue.activities,
-          {},
-          [],
-          stateValue.tree
-        );
+          historyValue: stateValue.historyValue,
+          history: stateValue.history,
+          actions: [],
+          activities: stateValue.activities,
+          meta: {},
+          events: [],
+          tree: stateValue.tree
+        });
       }
 
       return stateValue;
     }
 
-    return new State<TC, TE>(
-      stateValue,
+    return new State<TC, TE>({
+      value: stateValue,
       context,
-      undefined,
-      undefined,
-      [],
-      undefined,
-      undefined,
-      []
-    );
+      historyValue: undefined,
+      history: undefined,
+      actions: [],
+      activities: undefined,
+      meta: undefined,
+      events: []
+    });
+  }
+  /**
+   * Creates a new State instance for the given `config`.
+   * @param config The state config
+   */
+  public static create<TC, TE extends EventObject = EventObject>(
+    config: StateConfig<TC, TE>
+  ): State<TC, TE> {
+    return new State(config);
   }
   /**
    * Creates a new State instance for the given `stateValue` and `context` with no actions (side-effects).
@@ -83,17 +101,14 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       if (!stateValue.actions.length) {
         return stateValue as State<TC, TE>;
       }
-      return new State(
-        stateValue.value,
+      return new State({
+        value: stateValue.value,
         context,
-        stateValue.historyValue,
-        stateValue.history,
-        undefined,
-        stateValue.activities,
-        undefined,
-        undefined,
-        stateValue.tree
-      );
+        historyValue: stateValue.historyValue,
+        history: stateValue.history,
+        activities: stateValue.activities,
+        tree: stateValue.tree
+      });
     }
 
     return State.from<TC, TE>(stateValue, context);
@@ -111,19 +126,17 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    * @param events Internal event queue. Should be empty with run-to-completion semantics.
    * @param tree
    */
-  constructor(
-    public value: StateValue,
-    public context: TContext,
-    public historyValue?: HistoryValue | undefined,
-    public history?: State<TContext>,
-    public actions: Array<ActionObject<TContext>> = [],
-    public activities: ActivityMap = EMPTY_ACTIVITY_MAP,
-    public meta: any = {},
-    public events: TEvent[] = [],
-    tree?: StateTree
-  ) {
+  constructor(config: StateConfig<TContext, TEvent>) {
+    this.value = config.value;
+    this.context = config.context;
+    this.historyValue = config.historyValue;
+    this.history = config.history;
+    this.actions = config.actions || [];
+    this.activities = config.activities || EMPTY_ACTIVITY_MAP;
+    this.meta = config.meta || {};
+    this.events = config.events || [];
     Object.defineProperty(this, 'tree', {
-      value: tree,
+      value: config.tree,
       enumerable: false
     });
   }

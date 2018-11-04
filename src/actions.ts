@@ -284,9 +284,9 @@ export function after(delay: number, id?: string) {
 
 /**
  * Returns an event that represents that a final state node
- * has been reached.
+ * has been reached in the parent state node.
  *
- * @param id The final state node ID
+ * @param id The final state node's parent state node `id`
  * @param data The data to pass into the event
  */
 export function done(id: string, data?: any): DoneEvent {
@@ -370,8 +370,9 @@ export function invoke<TContext, TEvent extends EventObject>(
   };
 }
 
-export function error(data: any): ErrorExecutionEvent {
+export function error(data: any, src: string): ErrorExecutionEvent {
   return {
+    src,
     type: ActionTypes.ErrorExecution,
     data
   };

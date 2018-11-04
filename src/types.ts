@@ -269,6 +269,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
       onDone?:
         | string
         | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+      /**
+       * The transition to take upon the invoked child machine sending an error event.
+       */
+      onError?:
+        | string
+        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
     }
   | Machine<any, any, any>;
 
@@ -416,7 +422,11 @@ export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
 export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvent> {
   type: 'final';
-  data?: any;
+  /**
+   * The data to be sent with the "done.state.<id>" event. The data can be
+   * static or dynamic (based on assigners).
+   */
+  data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
 }
 
 export interface CompoundStateNodeConfig<
@@ -540,7 +550,7 @@ export enum ActionTypes {
   Raise = 'xstate.raise',
   Send = 'xstate.send',
   Cancel = 'xstate.cancel',
-  Null = '',
+  NullEvent = '',
   Assign = 'xstate.assign',
   After = 'xstate.after',
   DoneState = 'done.state',
@@ -567,6 +577,7 @@ export interface DoneInvokeEvent<TData> extends EventObject {
 }
 
 export interface ErrorExecutionEvent extends EventObject {
+  src: string;
   type: ActionTypes.ErrorExecution;
   data: any;
 }
@@ -579,7 +590,7 @@ export interface DoneEventObject extends EventObject {
 export type DoneEvent = DoneEventObject & string;
 
 export type BuiltInEvent<TEvent extends EventObject> =
-  | { type: ActionTypes.Null }
+  | { type: ActionTypes.NullEvent }
   | RaisedEvent<TEvent>
   | { type: ActionTypes.Init }
   | ErrorExecutionEvent;
@@ -745,6 +756,18 @@ export interface StateInterface<
   events: TEvent[];
   context: TContext;
   toStrings: () => string[];
+}
+
+export interface StateConfig<TContext, TEvent extends EventObject> {
+  value: StateValue;
+  context: TContext;
+  historyValue?: HistoryValue | undefined;
+  history?: State<TContext>;
+  actions?: Array<ActionObject<TContext>>;
+  activities?: ActivityMap;
+  meta?: any;
+  events?: TEvent[];
+  tree?: StateTree;
 }
 
 export interface StateSchema {

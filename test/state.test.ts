@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, State } from '../src/index';
 
 const machine = Machine({
   initial: 'one',
@@ -129,6 +129,19 @@ describe('State', () => {
         machine.transition(machine.initialState, 'TO_THREE').nextEvents,
         ['P31', 'P32', 'THREE_EVENT', 'MACHINE_EVENT']
       );
+    });
+  });
+
+  describe('.create()', () => {
+    it('should be able to create a state from a JSON config', () => {
+      const { initialState } = machine;
+      const jsonInitialState = JSON.parse(JSON.stringify(initialState));
+
+      const stateFromConfig = State.create(jsonInitialState);
+
+      assert.deepEqual(machine.transition(stateFromConfig, 'TO_TWO').value, {
+        two: { deep: 'foo' }
+      });
     });
   });
 });
