@@ -1784,7 +1784,7 @@ class StateNode<
         return _target.slice(1);
       }
 
-      return internalTarget ? this.key + _target : _target;
+      return internalTarget ? this.key + _target : `${_target}`;
     });
 
     return {
