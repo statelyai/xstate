@@ -550,7 +550,7 @@ export enum ActionTypes {
   Raise = 'xstate.raise',
   Send = 'xstate.send',
   Cancel = 'xstate.cancel',
-  Null = '',
+  NullEvent = '',
   Assign = 'xstate.assign',
   After = 'xstate.after',
   DoneState = 'done.state',
@@ -590,7 +590,7 @@ export interface DoneEventObject extends EventObject {
 export type DoneEvent = DoneEventObject & string;
 
 export type BuiltInEvent<TEvent extends EventObject> =
-  | { type: ActionTypes.Null }
+  | { type: ActionTypes.NullEvent }
   | RaisedEvent<TEvent>
   | { type: ActionTypes.Init }
   | ErrorExecutionEvent;

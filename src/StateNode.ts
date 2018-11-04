@@ -672,7 +672,7 @@ class StateNode<
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
     const actions: Array<ActionObject<TContext>> = this.transient
-      ? [{ type: actionTypes.null }]
+      ? [{ type: actionTypes.nullEvent }]
       : [];
 
     if (!candidates || !candidates.length) {
@@ -1055,14 +1055,14 @@ class StateNode<
     const raisedEvents = actions.filter(
       action =>
         typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.null)
-    ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.Null }>;
+        (action.type === actionTypes.raise || action.type === actionTypes.nullEvent)
+    ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(
       action =>
         typeof action !== 'object' ||
         (action.type !== actionTypes.raise &&
-          action.type !== actionTypes.null &&
+          action.type !== actionTypes.nullEvent &&
           action.type !== actionTypes.assign)
     );
     const assignActions = actions.filter(
@@ -1081,7 +1081,7 @@ class StateNode<
 
     const isTransient = stateNodes.some(stateNode => stateNode.transient);
     if (isTransient) {
-      raisedEvents.push({ type: actionTypes.null });
+      raisedEvents.push({ type: actionTypes.nullEvent });
     }
 
     const meta = [this, ...stateNodes].reduce((acc, stateNode) => {
@@ -1123,7 +1123,7 @@ class StateNode<
       const raisedEvent = raisedEvents.shift()!;
       maybeNextState = this.transition(
         maybeNextState,
-        raisedEvent.type === actionTypes.null
+        raisedEvent.type === actionTypes.nullEvent
           ? NULL_EVENT
           : (raisedEvent as RaisedEvent<TEvent>).event,
         maybeNextState.context
