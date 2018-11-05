@@ -38,9 +38,9 @@
   "license": "MIT",
   "scripts": {
     "start": "gatsby develop",
-    "build": "rimraf ../docs && gatsby build && mv public ../docs",
+    "build": "rimraf ../docs && gatsby build --prefix-paths && mv public ../docs",
     "develop": "gatsby develop",
-    "deploy": "gatsby build --prefix-paths && gh-pages -d public",
+    "deploy": "npm run build && gh-pages -d public",
     "format": "prettier --write '**/*.js'",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
