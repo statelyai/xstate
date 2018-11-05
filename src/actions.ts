@@ -66,7 +66,7 @@ function getActionFunction<TContext>(
 
 export function toActionObject<TContext>(
   action: Action<TContext>,
-  actionFunctionMap?: ActionFunctionMap<TContext>
+  actionFunctionMap: ActionFunctionMap<TContext>
 ): ActionObject<TContext> {
   let actionObject: ActionObject<TContext>;
 
@@ -99,9 +99,10 @@ export function toActionObject<TContext>(
 }
 
 export function toActivityDefinition<TContext>(
-  action: string | ActivityDefinition<TContext>
+  action: string | ActivityDefinition<TContext>,
+  actionFunctionMap: ActionFunctionMap<TContext>
 ): ActivityDefinition<TContext> {
-  const actionObject = toActionObject(action);
+  const actionObject = toActionObject(action, actionFunctionMap);
 
   return {
     id: typeof action === 'string' ? action : actionObject.id,
@@ -112,7 +113,7 @@ export function toActivityDefinition<TContext>(
 
 export const toActionObjects = <TContext>(
   action: Array<Action<TContext> | Action<TContext>> | undefined,
-  actionFunctionMap?: ActionFunctionMap<TContext>
+  actionFunctionMap: ActionFunctionMap<TContext>
 ): Array<ActionObject<TContext>> => {
   if (!action) {
     return [];
@@ -224,7 +225,7 @@ export const cancel = (sendId: string | number): CancelAction => {
 export function start<TContext>(
   activity: string | ActivityDefinition<TContext>
 ): ActivityActionObject<TContext> {
-  const activityDef = toActivityDefinition(activity);
+  const activityDef = toActivityDefinition(activity, {});
 
   return {
     type: ActionTypes.Start,
@@ -241,7 +242,7 @@ export function start<TContext>(
 export function stop<TContext>(
   activity: string | ActivityDefinition<TContext>
 ): ActivityActionObject<TContext> {
-  const activityDef = toActivityDefinition(activity);
+  const activityDef = toActivityDefinition(activity, {});
 
   return {
     type: ActionTypes.Stop,

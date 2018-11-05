@@ -257,9 +257,11 @@ class StateNode<
     this.transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
     this.onEntry = toArray(_config.onEntry).map(action =>
-      toActionObject(action)
+      toActionObject(action, this.options.actions || {})
     );
-    this.onExit = toArray(_config.onExit).map(action => toActionObject(action));
+    this.onExit = toArray(_config.onExit).map(action =>
+      toActionObject(action, this.options.actions || {})
+    );
     this.meta = _config.meta;
     this.data =
       this.type === 'final'
@@ -374,7 +376,7 @@ class StateNode<
         event: after(delayedTransition.delay, this.id),
         ...delayedTransition,
         actions: toArray(delayedTransition.actions).map(action =>
-          toActionObject(action)
+          toActionObject(action, this.options.actions || {})
         )
       }));
     }
@@ -400,7 +402,7 @@ class StateNode<
           delay,
           ...transition,
           actions: toArray(transition.actions).map(action =>
-            toActionObject(action)
+            toActionObject(action, this.options.actions || {})
           )
         }));
       })
@@ -926,7 +928,10 @@ class StateNode<
   private resolveActivity(
     activity: Activity<TContext>
   ): ActivityDefinition<TContext> {
-    const activityDefinition = toActivityDefinition(activity);
+    const activityDefinition = toActivityDefinition(
+      activity,
+      this.options.actions || {}
+    );
 
     return activityDefinition;
   }
@@ -1055,7 +1060,8 @@ class StateNode<
     const raisedEvents = actions.filter(
       action =>
         typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.nullEvent)
+        (action.type === actionTypes.raise ||
+          action.type === actionTypes.nullEvent)
     ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(
@@ -1099,7 +1105,7 @@ class StateNode<
             ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
           history: stateTransition.source ? currentState : undefined,
-          actions: toActionObjects(nonEventActions, this.options.actions),
+          actions: toActionObjects(nonEventActions, this.options.actions || {}),
           activities,
           meta,
           events: raisedEvents as TEvent[],
@@ -1757,7 +1763,7 @@ class StateNode<
         ...transitionConfig,
         actions: transitionConfig
           ? toArray(transitionConfig.actions).map(action =>
-              toActionObject(action)
+              toActionObject(action, this.options.actions || {})
             )
           : [],
         target: undefined,
@@ -1791,7 +1797,7 @@ class StateNode<
       ...transitionConfig,
       actions: transitionConfig
         ? toArray(transitionConfig.actions).map(action =>
-            toActionObject(action)
+            toActionObject(action, this.options.actions || {})
           )
         : [],
       target: formattedTargets,
