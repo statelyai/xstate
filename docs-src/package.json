@@ -38,7 +38,7 @@
   "license": "MIT",
   "scripts": {
     "start": "gatsby develop",
-    "build": "gatsby build",
+    "build": "rimraf ../docs && gatsby build && mv public ../docs",
     "develop": "gatsby develop",
     "deploy": "gatsby build --prefix-paths && gh-pages -d public",
     "format": "prettier --write '**/*.js'",
