@@ -29,7 +29,7 @@ export default [
     output: {
       file: 'dist/xstate.js',
       format: 'umd',
-      name: 'xstate'
+      name: 'XState'
     }
   }),
   createConfig({
@@ -37,7 +37,7 @@ export default [
     output: {
       file: 'dist/xstate.graph.js',
       format: 'umd',
-      name: 'xstateGraph'
+      name: 'XStateGraph'
     }
   }),
   createConfig({
@@ -45,7 +45,7 @@ export default [
     output: {
       file: 'dist/xstate.interpreter.js',
       format: 'umd',
-      name: 'xstateInterpreter'
+      name: 'XStateInterpreter'
     }
   })
 ];
