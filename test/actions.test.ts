@@ -1,5 +1,7 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, AssignAction } from '../src/index';
+import { assign } from '../lib/actions';
+import { actionTypes } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -405,10 +407,27 @@ describe('actions option', () => {
   const simpleMachine = Machine(
     {
       initial: 'a',
+      context: {
+        count: 0
+      },
       states: {
         a: {
-          onEntry: ['definedAction', 'undefinedAction']
-        }
+          onEntry: [
+            'definedAction',
+            { type: 'definedAction' },
+            'undefinedAction'
+          ],
+          on: {
+            EVENT: {
+              target: 'b',
+              actions: [
+                { type: 'definedAction' },
+                { type: 'updateContext', foo: 'bar' }
+              ]
+            }
+          }
+        },
+        b: {}
       },
       on: {
         E: 'a'
@@ -416,7 +435,8 @@ describe('actions option', () => {
     },
     {
       actions: {
-        definedAction
+        definedAction,
+        updateContext: assign({ count: ctx => ctx.count + 10 })
       }
     }
   );
@@ -431,6 +451,7 @@ describe('actions option', () => {
 
     assert.deepEqual(nextState.actions, [
       { type: 'definedAction', exec: definedAction },
+      { type: 'definedAction', exec: definedAction },
       { type: 'undefinedAction', exec: undefined }
     ]);
   });
@@ -441,6 +462,20 @@ describe('actions option', () => {
     assert.includeMembers(initialState.actions.map(a => a.type), [
       'definedAction',
       'undefinedAction'
+    ]);
+  });
+
+  it('should be able to reference action implementations from action objects', () => {
+    const state = simpleMachine.transition('a', 'EVENT');
+
+    assert.deepEqual(state.actions, [
+      { type: 'definedAction', exec: definedAction },
+      {
+        type: actionTypes.assign,
+        foo: 'bar', // from original action
+        assignment: (simpleMachine.options.actions!
+          .updateContext as AssignAction<any, any>).assignment
+      }
     ]);
   });
 });
