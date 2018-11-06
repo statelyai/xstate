@@ -86,7 +86,7 @@ console.log(lightMachine.transition({ red: 'stop' }, 'TIMER').value);
 // => 'green'
 ```
 
-If neither a state nor any of its ancestor (parent) states handle an event, no transition happens. In `strict` mode (specified in the [machine configuration](api/config.md)), this will throw an error.
+If neither a state nor any of its ancestor (parent) states handle an event, no transition happens. In `strict` mode (specified in the [machine configuration](../api/config.md)), this will throw an error.
 
 ```js
 console.log(lightMachine.transition('green', 'UNKNOWN').value);
