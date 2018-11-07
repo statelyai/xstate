@@ -872,7 +872,7 @@ class StateNode<
   private getActions(
     transition: StateTransition<TContext>,
     prevState: State<TContext>
-  ): Array<Action<TContext>> {
+  ): Array<ActionObject<TContext>> {
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
@@ -915,7 +915,7 @@ class StateNode<
 
     return actions;
   }
-  private resolveAction(action: Action<TContext>): Action<TContext> {
+  private resolveAction(action: Action<TContext>): ActionObject<TContext> {
     return toActionObject(action, this.machine.options.actions);
   }
   private resolveActivity(
@@ -1051,20 +1051,18 @@ class StateNode<
 
     const raisedEvents = actions.filter(
       action =>
-        typeof action === 'object' &&
-        (action.type === actionTypes.raise ||
-          action.type === actionTypes.nullEvent)
+        action.type === actionTypes.raise ||
+        action.type === actionTypes.nullEvent
     ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(
       action =>
-        typeof action !== 'object' ||
-        (action.type !== actionTypes.raise &&
-          action.type !== actionTypes.nullEvent &&
-          action.type !== actionTypes.assign)
+        action.type !== actionTypes.raise &&
+        action.type !== actionTypes.nullEvent &&
+        action.type !== actionTypes.assign
     );
     const assignActions = actions.filter(
-      action => typeof action === 'object' && action.type === actionTypes.assign
+      action => action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvent>>;
 
     const updatedContext = StateNode.updateContext(
@@ -1388,7 +1386,7 @@ class StateNode<
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const activityMap: ActivityMap = {};
-    const actions: Array<Action<TContext>> = [];
+    const actions: Array<ActionObject<TContext>> = [];
 
     this.getStateNodes(stateValue).forEach(stateNode => {
       if (stateNode.onEntry) {
