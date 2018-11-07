@@ -911,17 +911,12 @@ class StateNode<
     const actions = entryExitActions.exit
       .concat(transition.actions)
       .concat(entryExitActions.entry)
-      .map(
-        action =>
-          typeof action === 'string' ? this.resolveAction(action) : action
-      );
+      .map(action => this.resolveAction(action));
 
     return actions;
   }
-  private resolveAction(actionType: string): Action<TContext> {
-    const { actions } = this.machine.options;
-
-    return (actions ? actions[actionType] : actionType) || actionType;
+  private resolveAction(action: Action<TContext>): Action<TContext> {
+    return toActionObject(action, this.machine.options.actions);
   }
   private resolveActivity(
     activity: Activity<TContext>
@@ -973,9 +968,11 @@ class StateNode<
         : state instanceof State
           ? state
           : this.resolve(state);
-    const resolvedContext =
-      context ||
-      ((state instanceof State ? state.context : undefined) as TContext);
+    const resolvedContext = context
+      ? context
+      : state instanceof State
+        ? state.context
+        : this.machine.context!;
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const eventType = eventObject.type;
 
@@ -1055,7 +1052,8 @@ class StateNode<
     const raisedEvents = actions.filter(
       action =>
         typeof action === 'object' &&
-        (action.type === actionTypes.raise || action.type === actionTypes.nullEvent)
+        (action.type === actionTypes.raise ||
+          action.type === actionTypes.nullEvent)
     ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(

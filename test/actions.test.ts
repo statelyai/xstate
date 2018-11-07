@@ -1,7 +1,6 @@
 import { assert } from 'chai';
-import { Machine, AssignAction } from '../src/index';
+import { Machine } from '../src/index';
 import { assign } from '../lib/actions';
-import { actionTypes } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -420,10 +419,7 @@ describe('actions option', () => {
           on: {
             EVENT: {
               target: 'b',
-              actions: [
-                { type: 'definedAction' },
-                { type: 'updateContext', foo: 'bar' }
-              ]
+              actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
             }
           }
         },
@@ -436,7 +432,7 @@ describe('actions option', () => {
     {
       actions: {
         definedAction,
-        updateContext: assign({ count: ctx => ctx.count + 10 })
+        updateContext: assign({ count: 10 })
       }
     }
   );
@@ -469,13 +465,9 @@ describe('actions option', () => {
     const state = simpleMachine.transition('a', 'EVENT');
 
     assert.deepEqual(state.actions, [
-      { type: 'definedAction', exec: definedAction },
-      {
-        type: actionTypes.assign,
-        foo: 'bar', // from original action
-        assignment: (simpleMachine.options.actions!
-          .updateContext as AssignAction<any, any>).assignment
-      }
+      { type: 'definedAction', exec: definedAction }
     ]);
+
+    assert.deepEqual(state.context, { count: 10 });
   });
 });
