@@ -454,7 +454,7 @@ export class Interpreter<
                   ? this.machine.options.services[activity.src]
                   : undefined
             : undefined;
-          const { id, params } = activity;
+          const { id, data } = activity;
 
           const autoForward = !!activity.forward;
 
@@ -474,9 +474,9 @@ export class Interpreter<
             let canceled = false;
 
             promise
-              .then(data => {
+              .then(response => {
                 if (!canceled) {
-                  this.send(doneInvoke(activity.id, data));
+                  this.send(doneInvoke(activity.id, response));
                 }
               })
               .catch(e => {
@@ -492,9 +492,9 @@ export class Interpreter<
             const childMachine =
               service instanceof StateNode ? service : Machine(service);
             const interpreter = this.spawn(
-              params
+              data
                 ? childMachine.withContext(
-                    mapContext(params, context, event as TEvent)
+                    mapContext(data, context, event as TEvent)
                   )
                 : childMachine,
               {

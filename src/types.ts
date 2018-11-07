@@ -142,12 +142,12 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    */
   forward?: boolean;
   /**
-   * Parameters from the parent machine's context to set as the (partial or full) context
+   * Data from the parent machine's context to set as the (partial or full) context
    * for the invoked child machine.
    *
-   * Parameters should be mapped to match the child machine's context shape.
+   * Data should be mapped to match the child machine's context shape.
    */
-  params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
 }
 
 export interface Delay {
@@ -257,12 +257,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        */
       forward?: boolean;
       /**
-       * Parameters from the parent machine's context to set as the (partial or full) context
+       * Data from the parent machine's context to set as the (partial or full) context
        * for the invoked child machine.
        *
-       * Parameters should be mapped to match the child machine's context shape.
+       * Data should be mapped to match the child machine's context shape.
        */
-      params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+      data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
@@ -370,8 +370,11 @@ export interface StateNodeConfig<
   meta?: TStateSchema extends { meta: infer D } ? D : any;
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
+   *
+   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * of the event.
    */
-  data?: any;
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.

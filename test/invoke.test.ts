@@ -88,7 +88,7 @@ const fetcherMachine = Machine({
     waiting: {
       invoke: {
         src: fetchMachine,
-        params: {
+        data: {
           userId: ctx => ctx.selectedUserId
         }
       },
