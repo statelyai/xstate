@@ -347,8 +347,8 @@ export interface StateNodeConfig<
    */
   onDone?:
     | string
-    | TransitionConfig<TContext, { type: ActionTypes.DoneState }>
-    | Array<TransitionConfig<TContext, { type: ActionTypes.DoneState }>>;
+    | TransitionConfig<TContext, DoneEventObject>
+    | Array<TransitionConfig<TContext, DoneEventObject>>;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.

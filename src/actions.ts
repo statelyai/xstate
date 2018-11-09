@@ -21,7 +21,8 @@ import {
   Machine,
   DoneEvent,
   InvokeConfig,
-  ErrorExecutionEvent
+  ErrorExecutionEvent,
+  DoneEventObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -307,7 +308,7 @@ export function after(delay: number, id?: string) {
  * @param id The final state node's parent state node `id`
  * @param data The data to pass into the event
  */
-export function done(id: string, data?: any): DoneEvent {
+export function done(id: string, data?: any): DoneEventObject {
   const type = `${ActionTypes.DoneState}.${id}`;
   const eventObject = {
     type,

@@ -31,6 +31,7 @@ const finalMachine = Machine({
             }
           },
           onDone: {
+            cond: (_, e) => e.data === 'stop',
             actions: 'stopCrosswalk1'
           }
         },
@@ -51,7 +52,7 @@ const finalMachine = Machine({
             }
           },
           on: {
-            [done('final.red.crosswalk2')]: {
+            [done('final.red.crosswalk2') + '']: {
               actions: 'stopCrosswalk2'
             }
           }
