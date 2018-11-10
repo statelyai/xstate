@@ -6,7 +6,7 @@ import {
   StateValueMap,
   EventObject
 } from './types';
-import { mapValues, flatten, toStatePaths, keys } from './utils';
+import { mapValues, flatten, toStatePaths, keys, mapContext } from './utils';
 import { matchesState } from './utils';
 import { done } from './actions';
 
@@ -50,13 +50,32 @@ export class StateTree {
       case 'final':
         return true;
       case 'compound':
-        const childNode = this.nodes[keys(this.nodes)[0]];
-        return childNode.stateNode.type === 'final';
+        const childTree = this.nodes[keys(this.nodes)[0]];
+        return childTree.stateNode.type === 'final';
       case 'parallel':
         return keys(this.nodes).some(key => this.nodes[key].done);
       default:
         return false;
     }
+  }
+
+  public getDoneData<TContext>(context: TContext, event: EventObject): any {
+    if (!this.done) {
+      return undefined;
+    }
+
+    if (this.stateNode.type === 'compound') {
+      const childTree = this.nodes[keys(this.nodes)[0]];
+
+      if (!childTree.stateNode.data) {
+        return undefined;
+      }
+
+      // console.log(childTree.stateNode.id, (childTree.stateNode as any)._config);
+      return mapContext(childTree.stateNode.data, context, event);
+    }
+
+    return undefined;
   }
 
   public get atomicNodes(): StateNode[] {

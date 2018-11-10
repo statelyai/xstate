@@ -1,6 +1,6 @@
 import { Machine, actions } from '../src/index';
 import { interpret } from '../src/interpreter';
-import { assign, invoke, sendParent, send, doneInvoke } from '../src/actions';
+import { assign, sendParent, send } from '../src/actions';
 import { assert } from 'chai';
 
 const childMachine = Machine({
@@ -29,7 +29,11 @@ const parentMachine = Machine(
     initial: 'start',
     states: {
       start: {
-        activities: [invoke('child', { id: 'someService', forward: true })],
+        invoke: {
+          src: 'child',
+          id: 'someService',
+          forward: true
+        },
         on: {
           INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
           DEC: { actions: assign({ count: ctx => ctx.count - 1 }) },
@@ -47,6 +51,8 @@ const parentMachine = Machine(
   }
 );
 
+const user = { name: 'David' };
+
 const fetchMachine = Machine<{ userId: string | undefined }>({
   id: 'fetch',
   context: {
@@ -55,7 +61,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
   initial: 'pending',
   states: {
     pending: {
-      onEntry: send('RESOLVE'),
+      onEntry: send({ type: 'RESOLVE', user }),
       on: {
         RESOLVE: {
           target: 'success',
@@ -64,7 +70,8 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
       }
     },
     success: {
-      type: 'final'
+      type: 'final',
+      data: { user: (_, e) => e.user }
     },
     failure: {
       onEntry: sendParent('REJECT')
@@ -76,7 +83,8 @@ const fetcherMachine = Machine({
   id: 'fetcher',
   initial: 'idle',
   context: {
-    selectedUserId: '42'
+    selectedUserId: '42',
+    user: undefined
   },
   states: {
     idle: {
@@ -90,16 +98,20 @@ const fetcherMachine = Machine({
         src: fetchMachine,
         data: {
           userId: ctx => ctx.selectedUserId
+        },
+        onDone: {
+          target: 'received',
+          cond: (_, e) => {
+            // Should receive { user: { name: 'David' } } as event data
+            return e.data.user.name === 'David';
+          }
         }
-      },
-      on: {
-        [doneInvoke(fetchMachine.id)]: 'received'
       }
     },
     waitingInvokeMachine: {
-      invoke: fetchMachine.withContext({ userId: '55' }),
-      on: {
-        [doneInvoke(fetchMachine.id)]: 'received'
+      invoke: {
+        src: fetchMachine.withContext({ userId: '55' }),
+        onDone: 'received'
       }
     },
     received: {
@@ -118,8 +130,6 @@ describe('invoke', () => {
     // 5. The context will be updated to increment count to 2
 
     assert.deepEqual(service.state.context, { count: 2 });
-
-    service.send('STOP');
   });
 
   it('should forward events to services if forward: true', () => {
@@ -136,8 +146,7 @@ describe('invoke', () => {
 
   it('should start services (explicit machine, invoke = config)', done => {
     interpret(fetcherMachine)
-      .onDone(state => {
-        assert.deepEqual(state.value, 'received');
+      .onDone(() => {
         done();
       })
       .start()
@@ -146,8 +155,7 @@ describe('invoke', () => {
 
   it('should start services (explicit machine, invoke = machine)', done => {
     interpret(fetcherMachine)
-      .onDone(state => {
-        assert.deepEqual(state.value, 'received');
+      .onDone(_ => {
         done();
       })
       .start()

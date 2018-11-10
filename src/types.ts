@@ -51,8 +51,12 @@ export type OmniEvent<TEvent extends EventObject> =
   | BuiltInEvent<TEvent>['type']
   | OmniEventObject<TEvent>;
 
+export interface ExecMeta<TContext> {
+  action: ActionObject<TContext>;
+}
+
 export interface ActionFunction<TContext> {
-  (context: TContext, event?: EventObject): any | void;
+  (context: TContext, event: EventObject, meta: ExecMeta<TContext>): any | void;
   name: string;
 }
 // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
@@ -95,6 +99,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
+  delay?: number;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -158,19 +163,12 @@ export interface Delay {
   delay: number;
 }
 
-export interface DelayedTransitionConfig<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
-  delay: number;
-}
-
-export type DelayedTransitions<TContext, TEvent extends EventObject> =
-  | Record<
-      string | number,
-      | string
-      | TransitionConfig<TContext, TEvent>
-      | Array<TransitionConfig<TContext, TEvent>>
-    >
-  | Array<DelayedTransitionConfig<TContext, TEvent>>;
+export type DelayedTransitions<TContext, TEvent extends EventObject> = Record<
+  string | number,
+  | string
+  | TransitionConfig<TContext, TEvent>
+  | Array<TransitionConfig<TContext, TEvent>>
+>;
 
 export type StateTypes =
   | 'atomic'
@@ -407,6 +405,7 @@ export interface StateNodeDefinition<
   activities: Array<ActivityDefinition<TContext>>;
   meta: any;
   order: number;
+  data?: FinalStateNodeConfig<TContext, TEvent>['data'];
 }
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
   extends StateNodeConfig<TContext, never, TEvent> {

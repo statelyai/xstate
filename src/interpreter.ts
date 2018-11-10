@@ -141,7 +141,7 @@ export class Interpreter<
   private listeners: Set<StateListener> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
-  private doneListeners: Set<StateListener> = new Set();
+  private doneListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
   private logger: (...args: any[]) => void;
@@ -207,7 +207,14 @@ export class Interpreter<
     );
 
     if (this.state.tree && this.state.tree.done) {
-      this.doneListeners.forEach(listener => listener(state, eventObject));
+      // get donedata
+      const doneData = this.state.tree.getDoneData(
+        this.state.context,
+        toEventObject<OmniEventObject<TEvent>>(event)
+      );
+      this.doneListeners.forEach(listener =>
+        listener(doneInvoke(this.id, doneData))
+      );
       this.stop();
     }
 
@@ -259,7 +266,7 @@ export class Interpreter<
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
    */
-  public onDone(listener: StateListener): Interpreter<TContext> {
+  public onDone(listener: EventListener): Interpreter<TContext> {
     this.doneListeners.add(listener);
     return this;
   }
@@ -413,10 +420,10 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext>,
     context: TContext,
-    event?: OmniEventObject<TEvent>
+    event: OmniEventObject<TEvent>
   ): void {
     if (action.exec) {
-      return action.exec(context, event);
+      return action.exec(context, event, { action });
     }
 
     switch (action.type) {
@@ -469,7 +476,7 @@ export class Interpreter<
           }
 
           if (typeof service === 'function') {
-            const promise = service(context, event!);
+            const promise = service(context, event);
 
             let canceled = false;
 
@@ -501,7 +508,9 @@ export class Interpreter<
                 id,
                 autoForward
               }
-            ).onDone(() => this.send(doneInvoke(activity.id)));
+            ).onDone(doneEvent => {
+              this.send(doneEvent as OmniEvent<TEvent>); // todo: fix
+            });
             interpreter.start();
 
             this.activitiesMap[activity.id] = () => {

@@ -47,7 +47,9 @@ import {
   FinalStateNodeConfig,
   InvokeDefinition,
   OmniEvent,
-  ActionObject
+  ActionObject,
+  Mapper,
+  PropertyMapper
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -165,7 +167,7 @@ class StateNode<
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
    */
-  public data?: any;
+  public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -326,7 +328,8 @@ class StateNode<
       onExit: this.onExit,
       activities: this.activities || [],
       meta: this.meta,
-      order: this.order || -1
+      order: this.order || -1,
+      data: this.data
     };
   }
 
