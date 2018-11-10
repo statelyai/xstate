@@ -196,7 +196,7 @@ class StateNode {
           exit: new Set<StateNode>([
             stateNode,
             ...(entryExitStates
-              ? Array.from(entryExitStates.exit)
+              ? Array.from(entryExitStates.exit.values())
               : ([] as StateNode[]))
           ])
         },
@@ -236,11 +236,11 @@ class StateNode {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
           exit: new Set<StateNode>([
             ...(next.entryExitStates
-              ? Array.from(next.entryExitStates.exit)
+              ? Array.from(next.entryExitStates.exit.values())
               : []),
             stateNode,
             ...(entryExitStates
-              ? Array.from(entryExitStates.exit)
+              ? Array.from(entryExitStates.exit.values())
               : ([] as StateNode[]))
           ])
         },
@@ -298,7 +298,9 @@ class StateNode {
           entry: entryExitStates ? entryExitStates.entry : new Set(),
           exit: new Set([
             ...Object.keys(this.states).map(key => this.states[key]),
-            ...(entryExitStates ? Array.from(entryExitStates.exit) : [])
+            ...(entryExitStates
+              ? Array.from(entryExitStates.exit.values())
+              : [])
           ])
         },
         actions,
@@ -325,12 +327,12 @@ class StateNode {
 
               return {
                 entry: new Set([
-                  ...Array.from(allEntryExitStates!.entry),
-                  ...Array.from(entry)
+                  ...Array.from(allEntryExitStates!.entry.values()),
+                  ...Array.from(entry.values())
                 ]),
                 exit: new Set([
-                  ...Array.from(allEntryExitStates!.exit),
-                  ...Array.from(exit)
+                  ...Array.from(allEntryExitStates!.exit.values()),
+                  ...Array.from(exit.values())
                 ])
               };
             },
@@ -376,12 +378,12 @@ class StateNode {
 
           return {
             entry: new Set([
-              ...Array.from(allEntryExitStates.entry),
-              ...Array.from(entry)
+              ...Array.from(allEntryExitStates.entry.values()),
+              ...Array.from(entry.values())
             ]),
             exit: new Set([
-              ...Array.from(allEntryExitStates.exit),
-              ...Array.from(exit)
+              ...Array.from(allEntryExitStates.exit.values()),
+              ...Array.from(exit.values())
             ])
           };
         },
@@ -508,12 +510,12 @@ class StateNode {
 
         return {
           entry: new Set([
-            ...Array.from(allEntryExitStates.entry),
-            ...Array.from(entry)
+            ...Array.from(allEntryExitStates.entry.values()),
+            ...Array.from(entry.values())
           ]),
           exit: new Set([
-            ...Array.from(allEntryExitStates.exit),
-            ...Array.from(exit)
+            ...Array.from(allEntryExitStates.exit.values()),
+            ...Array.from(exit.values())
           ])
         };
       },
@@ -617,7 +619,7 @@ class StateNode {
     const entryExitActions = {
       entry: transition.entryExitStates
         ? flatMap(
-            Array.from(transition.entryExitStates.entry).map(n => [
+            Array.from(transition.entryExitStates.entry.values()).map(n => [
               ...n.onEntry,
               ...(n.activities
                 ? n.activities.map(activity => start(activity))
@@ -627,7 +629,7 @@ class StateNode {
         : [],
       exit: transition.entryExitStates
         ? flatMap(
-            Array.from(transition.entryExitStates.exit).map(n => [
+            Array.from(transition.entryExitStates.exit.values()).map(n => [
               ...n.onExit,
               ...(n.activities
                 ? n.activities.map(activity => stop(activity))
@@ -653,7 +655,7 @@ class StateNode {
 
     const activityMap = { ...state.activities };
 
-    Array.from(transition.entryExitStates.exit).forEach(stateNode => {
+    Array.from(transition.entryExitStates.exit.values()).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -663,7 +665,7 @@ class StateNode {
       });
     });
 
-    Array.from(transition.entryExitStates.entry).forEach(stateNode => {
+    Array.from(transition.entryExitStates.entry.values()).forEach(stateNode => {
       if (!stateNode.activities) {
         return; // TODO: fixme
       }
@@ -1263,7 +1265,7 @@ class StateNode {
       });
     }
 
-    return (this.__cache.events = Array.from(events));
+    return (this.__cache.events = Array.from(events.values()));
   }
   private formatTransition(
     targets: string[],
