@@ -8,13 +8,16 @@
     "strictNullChecks": true,
     "outDir": "./lib",
     "moduleResolution": "node",
+    "downlevelIteration": true,
+    "experimentalDecorators": true,
     "lib": [
       "es6",
       "dom"
     ],
     "types": [
       "mocha",
-      "node"
+      "node",
+      "core-js"
     ]
   },
   "include": [

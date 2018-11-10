@@ -36,27 +36,38 @@ const lightMachine = Machine({
 });
 
 describe('activities with guarded transitions', () => {
-  const machine = Machine({
-    initial: 'A',
-    states: {
-      A: {
-        on: {
-          E: 'B'
-        }
-      },
-      B: {
-        on: {
-          '': [{ cond: () => false, target: 'A' }]
+  const B_ACTIVITY = () => void 0;
+  const machine = Machine(
+    {
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            E: 'B'
+          }
         },
-        activities: ['B_ACTIVITY']
+        B: {
+          on: {
+            '': [{ cond: () => false, target: 'A' }]
+          },
+          activities: ['B_ACTIVITY']
+        }
       }
-    }
-  });
+    },
+    { activities: { B_ACTIVITY } }
+  );
 
   it('should activate even if there are subsequent automatic, but blocked transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'E');
     assert.deepEqual(state.activities, { B_ACTIVITY: true });
+    assert.deepEqual(state.actions, [
+      start({ type: 'B_ACTIVITY', id: 'B_ACTIVITY', exec: undefined })
+    ]);
+    // assert.isFunction(
+    //   state.actions[0].exec,
+    //   'Activity start function should be defined'
+    // );
   });
 });
 
@@ -137,6 +148,7 @@ describe('activities', () => {
       activateCrosswalkLight: false,
       blinkCrosswalkLight: false
     });
+
     assert.sameDeepMembers(nextState.actions, [
       start('fadeInGreen'),
       stop('activateCrosswalkLight')
@@ -146,7 +158,7 @@ describe('activities', () => {
 
 describe('transient activities', () => {
   const machine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       A: {
         activities: ['A'],
@@ -215,20 +227,20 @@ describe('transient activities', () => {
             }
           },
           C2: {
-            activities: ['C1'],
-          },
+            activities: ['C1']
+          }
         }
       }
     }
   });
 
   it('should have started initial activities', () => {
-    let state = machine.initialState;
+    const state = machine.initialState;
     assert.deepEqual(state.activities.A, true);
   });
 
   it('should have started deep initial activities', () => {
-    let state = machine.initialState;
+    const state = machine.initialState;
     assert.deepEqual(state.activities.A1, true);
   });
 

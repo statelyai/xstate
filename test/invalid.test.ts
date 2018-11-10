@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 const machine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     A: {
       initial: 'A1',
@@ -21,13 +21,16 @@ const machine = Machine({
   }
 });
 
-describe('invalid states', () => {
-  xit('should reject transitioning from a String state', () => {
-    assert.throws(() => machine.transition('A', 'E'));
+describe('invalid or resolved states', () => {
+  it('should resolve a String state', () => {
+    assert.deepEqual(machine.transition('A', 'E').value, { A: 'A1', B: 'B1' });
   });
 
-  xit('should reject transitioning from empty states', () => {
-    assert.throws(() => machine.transition({ A: {}, B: {} }, 'E'));
+  it('should resolve transitions from empty states', () => {
+    assert.deepEqual(machine.transition({ A: {}, B: {} }, 'E').value, {
+      A: 'A1',
+      B: 'B1'
+    });
   });
 
   it('should allow transitioning from valid states', () => {
@@ -38,11 +41,20 @@ describe('invalid states', () => {
     assert.throws(() => machine.transition({ A: 'A3', B: 'B3' }, 'E'));
   });
 
-  xit('should reject transitioning from partially valid states', () => {
-    assert.throws(() => machine.transition({ A: 'A1' }, 'E'));
+  it('should resolve transitioning from partially valid states', () => {
+    assert.deepEqual(machine.transition({ A: 'A1', B: {} }, 'E').value, {
+      A: 'A1',
+      B: 'B1'
+    });
   });
 
-  xit("should reject transitioning from regions that don't exist", () => {
-    assert.throws(() => machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E'));
+  it("should resolve transitioning from regions that don't exist (remove region)", () => {
+    assert.deepEqual(
+      machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value,
+      {
+        A: 'A1',
+        B: 'B1'
+      }
+    );
   });
 });

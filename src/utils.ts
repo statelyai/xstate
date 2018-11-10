@@ -1,18 +1,71 @@
-import { State } from './State';
-import { Event, StateValue, EventType, ActionType, Action } from './types';
+import {
+  Event,
+  StateValue,
+  ActionType,
+  Action,
+  EventObject,
+  StateInterface,
+  PropertyMapper,
+  Mapper
+} from './types';
+import { STATE_DELIMITER } from './constants';
 
-export function getEventType(event: Event): EventType {
+function isState(state: object | string): state is StateInterface {
+  if (typeof state === 'string') {
+    return false;
+  }
+
+  return 'value' in state && 'tree' in state && 'history' in state;
+}
+
+export function keys<T extends object>(value: T): Array<keyof T & string> {
+  return Object.keys(value) as Array<keyof T & string>;
+}
+
+export function matchesState(
+  parentStateId: StateValue,
+  childStateId: StateValue,
+  delimiter: string = STATE_DELIMITER
+): boolean {
+  const parentStateValue = toStateValue(parentStateId, delimiter);
+  const childStateValue = toStateValue(childStateId, delimiter);
+
+  if (typeof childStateValue === 'string') {
+    if (typeof parentStateValue === 'string') {
+      return childStateValue === parentStateValue;
+    }
+
+    // Parent more specific than child
+    return false;
+  }
+
+  if (typeof parentStateValue === 'string') {
+    return parentStateValue in childStateValue;
+  }
+
+  return keys(parentStateValue).every(key => {
+    if (!(key in childStateValue)) {
+      return false;
+    }
+
+    return matchesState(parentStateValue[key], childStateValue[key]);
+  });
+}
+
+export function getEventType<TEvent extends EventObject = EventObject>(
+  event: Event<TEvent>
+): TEvent['type'] {
   try {
     return typeof event === 'string' || typeof event === 'number'
       ? `${event}`
-      : event.type;
+      : (event as TEvent).type;
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'
     );
   }
 }
-export function getActionType(action: Action): ActionType {
+export function getActionType(action: Action<any>): ActionType {
   try {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
@@ -21,7 +74,7 @@ export function getActionType(action: Action): ActionType {
         : action.type;
   } catch (e) {
     throw new Error(
-      'Events must be strings or objects with a string event.type property.'
+      'Actions must be strings or objects with a string action.type property.'
     );
   }
 }
@@ -42,15 +95,19 @@ export function toStatePath(
 }
 
 export function toStateValue(
-  stateValue: State | StateValue,
+  stateValue: StateInterface<any> | StateValue | string[],
   delimiter: string
 ): StateValue {
-  if (stateValue instanceof State) {
+  if (isState(stateValue)) {
     return stateValue.value;
   }
 
-  if (typeof stateValue === 'object' && !(stateValue instanceof State)) {
-    return stateValue;
+  if (Array.isArray(stateValue)) {
+    return pathToStateValue(stateValue);
+  }
+
+  if (typeof stateValue !== 'string' && !isState(stateValue)) {
+    return stateValue as StateValue;
   }
 
   const statePath = toStatePath(stateValue as string, delimiter);
@@ -80,12 +137,17 @@ export function pathToStateValue(statePath: string[]): StateValue {
 
 export function mapValues<T, P>(
   collection: { [key: string]: T },
-  iteratee: (item: T, key: string, collection: { [key: string]: T }) => P
+  iteratee: (
+    item: T,
+    key: string,
+    collection: { [key: string]: T },
+    i: number
+  ) => P
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
-    result[key] = iteratee(collection[key], key, collection);
+  keys(collection).forEach((key, i) => {
+    result[key] = iteratee(collection[key], key, collection, i);
   });
 
   return result;
@@ -98,7 +160,7 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  Object.keys(collection).forEach(key => {
+  keys(collection).forEach(key => {
     const item = collection[key];
 
     if (!predicate(item)) {
@@ -146,13 +208,28 @@ export function nestedPath<T extends Record<string, any>>(
   };
 }
 
-export const toStatePaths = (stateValue: StateValue): string[][] => {
+export const toStatePaths = (
+  stateValue: StateValue | undefined
+): string[][] => {
+  if (!stateValue) {
+    return [[]];
+  }
+
   if (typeof stateValue === 'string') {
     return [[stateValue]];
   }
 
-  const result = flatMap(
-    Object.keys(stateValue).map(key => {
+  const result = flatten(
+    keys(stateValue).map(key => {
+      const subStateValue = stateValue[key];
+
+      if (
+        typeof subStateValue !== 'string' &&
+        !Object.keys(subStateValue).length
+      ) {
+        return [[key]];
+      }
+
       return toStatePaths(stateValue[key]).map(subPath => {
         return [key].concat(subPath);
       });
@@ -187,6 +264,41 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
   return result;
 };
 
-export const flatMap = <T>(array: T[][]): T[] => {
-  return array.reduce((a, b) => a.concat(b), []);
-};
+export function flatten<T>(array: T[][]): T[] {
+  return ([] as T[]).concat(...array);
+}
+
+export function toArray<T>(value: T[] | T | undefined): T[] {
+  if (Array.isArray(value)) {
+    return value;
+  }
+  if (value === undefined) {
+    return [];
+  }
+  return [value];
+}
+
+export function mapContext<TContext, TEvent extends EventObject>(
+  mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
+  context: TContext,
+  event: TEvent
+): any {
+  if (typeof mapper === 'function') {
+    return (mapper as Mapper<TContext, TEvent>)(context, event);
+  }
+
+  return keys(mapper).reduce(
+    (acc, key) => {
+      const subMapper = mapper[key];
+
+      if (typeof subMapper === 'function') {
+        acc[key] = subMapper(context, event);
+      } else {
+        acc[key] = subMapper;
+      }
+
+      return acc;
+    },
+    {} as any
+  );
+}

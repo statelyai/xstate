@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
+import { assign } from '../lib/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -20,8 +21,8 @@ describe('onEntry/onExit actions', () => {
         onExit: 'exit_wait'
       },
       stop: {
-        onEntry: 'enter_stop',
-        onExit: 'exit_stop'
+        onEntry: ['enter_stop'],
+        onExit: ['exit_stop']
       }
     }
   };
@@ -61,13 +62,15 @@ describe('onEntry/onExit actions', () => {
   });
 
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     states: {
       a: {
         initial: 'a1',
         states: {
           a1: {
-            on: { CHANGE: { a2: { actions: ['do_a2', 'another_do_a2'] } } },
+            on: {
+              CHANGE: { target: 'a2', actions: ['do_a2', 'another_do_a2'] }
+            },
             onEntry: 'enter_a1',
             onExit: 'exit_a1'
           },
@@ -80,7 +83,7 @@ describe('onEntry/onExit actions', () => {
         initial: 'b1',
         states: {
           b1: {
-            on: { CHANGE: { b2: { actions: ['do_b2'] } } },
+            on: { CHANGE: { target: 'b2', actions: 'do_b2' } },
             onEntry: 'enter_b1',
             onExit: 'exit_b1'
           },
@@ -113,13 +116,12 @@ describe('onEntry/onExit actions', () => {
           a3: {
             on: {
               NEXT: {
-                a2: {
-                  actions: [
-                    function do_a3_to_a2() {
-                      return;
-                    }
-                  ]
-                }
+                target: 'a2',
+                actions: [
+                  function do_a3_to_a2() {
+                    return;
+                  }
+                ]
               }
             },
             onEntry: function enter_a3_fn() {
@@ -148,78 +150,124 @@ describe('onEntry/onExit actions', () => {
     }
   });
 
+  const parallelMachine2 = Machine({
+    initial: 'A',
+    states: {
+      A: {
+        on: {
+          'to-B': 'B'
+        }
+      },
+      B: {
+        type: 'parallel',
+        on: {
+          'to-A': 'A'
+        },
+        states: {
+          C: {
+            initial: 'C1',
+            states: {
+              C1: {},
+              C2: {}
+            }
+          },
+          D: {
+            initial: 'D1',
+            states: {
+              D1: {
+                on: {
+                  'to-D2': 'D2'
+                }
+              },
+              D2: {
+                onEntry: ['D2 Entry'],
+                onExit: ['D2 Exit']
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
   describe('State.actions', () => {
     it('should return the entry actions of an initial state', () => {
-      assert.sameMembers(lightMachine.initialState.actions, ['enter_green']);
+      assert.sameMembers(lightMachine.initialState.actions.map(a => a.type), [
+        'enter_green'
+      ]);
     });
 
     it('should return the entry actions of an initial state (deep)', () => {
-      assert.sameMembers(deepMachine.initialState.actions, [
+      assert.sameMembers(deepMachine.initialState.actions.map(a => a.type), [
         'enter_a',
         'enter_a1'
       ]);
     });
 
     it('should return the entry actions of an initial state (parallel)', () => {
-      assert.sameMembers(parallelMachine.initialState.actions, [
-        'enter_a',
-        'enter_b',
-        'enter_a1',
-        'enter_b1'
-      ]);
+      assert.sameMembers(
+        parallelMachine.initialState.actions.map(a => a.type),
+        ['enter_a', 'enter_b', 'enter_a1', 'enter_b1']
+      );
     });
 
     it('should return the entry and exit actions of a transition', () => {
-      assert.deepEqual(lightMachine.transition('green', 'TIMER').actions, [
-        'exit_green',
-        'enter_yellow'
-      ]);
+      assert.deepEqual(
+        lightMachine.transition('green', 'TIMER').actions.map(a => a.type),
+        ['exit_green', 'enter_yellow']
+      );
     });
 
     it('should return the entry and exit actions of a deep transition', () => {
-      assert.deepEqual(lightMachine.transition('yellow', 'TIMER').actions, [
-        'exit_yellow',
-        'enter_red',
-        'enter_walk'
-      ]);
+      assert.deepEqual(
+        lightMachine.transition('yellow', 'TIMER').actions.map(a => a.type),
+        ['exit_yellow', 'enter_red', 'enter_walk']
+      );
     });
 
     it('should return the entry and exit actions of a nested transition', () => {
       assert.deepEqual(
-        lightMachine.transition('red.walk', 'PED_COUNTDOWN').actions,
+        lightMachine
+          .transition('red.walk', 'PED_COUNTDOWN')
+          .actions.map(a => a.type),
         ['exit_walk', 'enter_wait']
       );
     });
 
     it('should not have actions for unhandled events (shallow)', () => {
-      assert.deepEqual(lightMachine.transition('green', 'FAKE').actions, []);
+      assert.deepEqual(
+        lightMachine.transition('green', 'FAKE').actions.map(a => a.type),
+        []
+      );
     });
 
     it('should not have actions for unhandled events (deep)', () => {
-      assert.deepEqual(lightMachine.transition('red', 'FAKE').actions, []);
+      assert.deepEqual(
+        lightMachine.transition('red', 'FAKE').actions.map(a => a.type),
+        []
+      );
     });
 
     it('should exit and enter the state for self-transitions (shallow)', () => {
-      assert.deepEqual(lightMachine.transition('green', 'NOTHING').actions, [
-        'exit_green',
-        'enter_green'
-      ]);
+      assert.deepEqual(
+        lightMachine.transition('green', 'NOTHING').actions.map(a => a.type),
+        ['exit_green', 'enter_green']
+      );
     });
 
     it('should exit and enter the state for self-transitions (deep)', () => {
       // 'red' state resolves to 'red.walk'
-      assert.deepEqual(lightMachine.transition('red', 'NOTHING').actions, [
-        'exit_walk',
-        'exit_red',
-        'enter_red',
-        'enter_walk'
-      ]);
+      assert.deepEqual(
+        lightMachine.transition('red', 'NOTHING').actions.map(a => a.type),
+        ['exit_walk', 'exit_red', 'enter_red', 'enter_walk']
+      );
     });
 
     it('should return actions for parallel machines', () => {
       assert.deepEqual(
-        parallelMachine.transition(parallelMachine.initialState, 'CHANGE')
-          .actions,
+        parallelMachine
+          .transition(parallelMachine.initialState, 'CHANGE')
+          .actions.map(a => a.type),
         [
           'exit_a1',
           'exit_b1',
@@ -233,41 +281,51 @@ describe('onEntry/onExit actions', () => {
     });
 
     it('should return nested actions in the correct (child to parent) order', () => {
-      assert.deepEqual(deepMachine.transition('a.a1', 'CHANGE').actions, [
-        'exit_a1',
-        'exit_a',
-        'another_exit_a',
-        'enter_b',
-        'another_enter_b',
-        'enter_b1'
-      ]);
+      assert.deepEqual(
+        deepMachine.transition('a.a1', 'CHANGE').actions.map(a => a.type),
+        [
+          'exit_a1',
+          'exit_a',
+          'another_exit_a',
+          'enter_b',
+          'another_enter_b',
+          'enter_b1'
+        ]
+      );
     });
 
     it('should ignore parent state actions for same-parent substates', () => {
-      assert.deepEqual(deepMachine.transition('a.a1', 'NEXT').actions, [
-        'exit_a1',
-        'enter_a2'
-      ]);
+      assert.deepEqual(
+        deepMachine.transition('a.a1', 'NEXT').actions.map(a => a.type),
+        ['exit_a1', 'enter_a2']
+      );
     });
 
     it('should work with function actions', () => {
       assert.deepEqual(
         deepMachine
           .transition(deepMachine.initialState, 'NEXT_FN')
-          .actions.map(
-            action => (typeof action === 'function' ? action.name : action)
-          ),
+          .actions.map(action => action.type),
         ['exit_a1', 'enter_a3_fn']
       );
 
       assert.deepEqual(
         deepMachine
           .transition('a.a3', 'NEXT')
-          .actions.map(
-            action => (typeof action === 'function' ? action.name : action)
-          ),
+          .actions.map(action => action.type),
         ['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']
       );
+    });
+
+    it('should exit children of parallel state nodes', () => {
+      const stateB = parallelMachine2.transition(
+        parallelMachine2.initialState,
+        'to-B'
+      );
+      const stateD2 = parallelMachine2.transition(stateB, 'to-D2');
+      const stateA = parallelMachine2.transition(stateD2, 'to-A');
+
+      assert.deepEqual(stateA.actions.map(action => action.type), ['D2 Exit']);
     });
 
     describe('should ignore same-parent state actions (sparse)', () => {
@@ -327,9 +385,8 @@ describe('actions on invalid transition', () => {
       idle: {
         on: {
           STOP: {
-            stop: {
-              actions: ['action1']
-            }
+            target: 'stop',
+            actions: ['action1']
           }
         }
       },
@@ -340,5 +397,77 @@ describe('actions on invalid transition', () => {
   it('should not recall previous actions', () => {
     const nextState = stopMachine.transition('idle', 'STOP');
     assert.isEmpty(stopMachine.transition(nextState, 'INVALID').actions);
+  });
+});
+
+describe('actions option', () => {
+  // tslint:disable-next-line:no-empty
+  const definedAction = () => {};
+  const simpleMachine = Machine(
+    {
+      initial: 'a',
+      context: {
+        count: 0
+      },
+      states: {
+        a: {
+          onEntry: [
+            'definedAction',
+            { type: 'definedAction' },
+            'undefinedAction'
+          ],
+          on: {
+            EVENT: {
+              target: 'b',
+              actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+            }
+          }
+        },
+        b: {}
+      },
+      on: {
+        E: 'a'
+      }
+    },
+    {
+      actions: {
+        definedAction,
+        updateContext: assign({ count: 10 })
+      }
+    }
+  );
+  it('should reference actions defined in actions parameter of machine options', () => {
+    const { initialState } = simpleMachine;
+    const nextState = simpleMachine.transition(initialState, 'E');
+
+    assert.includeMembers(nextState.actions.map(a => a.type), [
+      'definedAction',
+      'undefinedAction'
+    ]);
+
+    assert.deepEqual(nextState.actions, [
+      { type: 'definedAction', exec: definedAction },
+      { type: 'definedAction', exec: definedAction },
+      { type: 'undefinedAction', exec: undefined }
+    ]);
+  });
+
+  it('should reference actions defined in actions parameter of machine options (initial state)', () => {
+    const { initialState } = simpleMachine;
+
+    assert.includeMembers(initialState.actions.map(a => a.type), [
+      'definedAction',
+      'undefinedAction'
+    ]);
+  });
+
+  it('should be able to reference action implementations from action objects', () => {
+    const state = simpleMachine.transition('a', 'EVENT');
+
+    assert.deepEqual(state.actions, [
+      { type: 'definedAction', exec: definedAction }
+    ]);
+
+    assert.deepEqual(state.context, { count: 10 });
   });
 });

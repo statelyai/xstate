@@ -23,12 +23,13 @@ describe('Example 6.8', () => {
           },
           E: {
             on: { 4: 'B', 5: 'D' }
-          }
+          },
+          hist: { history: true }
         }
       },
       F: {
         on: {
-          5: 'A.$history'
+          5: 'A.hist'
         }
       }
     }
@@ -68,10 +69,10 @@ describe('Example 6.8', () => {
   testAll(machine, expected);
 
   it('should respect the history mechanism', () => {
-    const stateC = machine.transition('A.B', 1);
-    const stateF = machine.transition(stateC, 6);
-    const stateActual = machine.transition(stateF, 5);
+    const stateC = machine.transition('A.B', '1');
+    const stateF = machine.transition(stateC, '6');
+    const stateActual = machine.transition(stateF, '5');
 
-    assert.equal(stateActual.toString(), 'A.C');
+    assert.deepEqual(stateActual.value, { A: 'C' });
   });
 });

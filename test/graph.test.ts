@@ -20,9 +20,8 @@ describe('graph utilities', () => {
       walk: {
         on: {
           PED_COUNTDOWN: {
-            wait: {
-              actions: ['startCountdown']
-            }
+            target: 'wait',
+            actions: ['startCountdown']
           }
         }
       },
@@ -43,7 +42,12 @@ describe('graph utilities', () => {
       green: {
         on: {
           TIMER: 'yellow',
-          POWER_OUTAGE: 'red.flashing'
+          POWER_OUTAGE: 'red.flashing',
+          PUSH_BUTTON: [
+            {
+              actions: ['doNothing'] // pushing the walk button never does anything
+            }
+          ]
         }
       },
       yellow: {
@@ -62,7 +66,11 @@ describe('graph utilities', () => {
     }
   });
 
-  const condMachine = Machine({
+  const condMachine = Machine<
+    { id: string },
+    any,
+    { type: 'EVENT'; id: string } | { type: 'STATE' }
+  >({
     key: 'cond',
     initial: 'pending',
     states: {
@@ -84,7 +92,7 @@ describe('graph utilities', () => {
   });
 
   const parallelMachine = Machine({
-    parallel: true,
+    type: 'parallel',
     key: 'p',
     states: {
       a: {
@@ -165,6 +173,12 @@ describe('graph utilities', () => {
           actions: edge.actions
         })),
         [
+          {
+            event: 'PUSH_BUTTON',
+            source: 'light.green',
+            target: 'light.green',
+            actions: ['doNothing'] // lol
+          },
           {
             event: 'TIMER',
             source: 'light.green',
@@ -254,32 +268,38 @@ describe('graph utilities', () => {
         '"green"': {
           TIMER: { state: 'yellow' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'green' }
+          PED_COUNTDOWN: { state: 'green' },
+          PUSH_BUTTON: { state: 'green' }
         },
         '"yellow"': {
           TIMER: { state: { red: 'walk' } },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'yellow' }
+          PED_COUNTDOWN: { state: 'yellow' },
+          PUSH_BUTTON: { state: 'yellow' }
         },
         '{"red":"walk"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'wait' } }
+          PED_COUNTDOWN: { state: { red: 'wait' } },
+          PUSH_BUTTON: { state: { red: 'walk' } }
         },
         '{"red":"flashing"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'flashing' } }
+          PED_COUNTDOWN: { state: { red: 'flashing' } },
+          PUSH_BUTTON: { state: { red: 'flashing' } }
         },
         '{"red":"wait"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } }
+          PED_COUNTDOWN: { state: { red: 'stop' } },
+          PUSH_BUTTON: { state: { red: 'wait' } }
         },
         '{"red":"stop"}': {
           TIMER: { state: 'green' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } }
+          PED_COUNTDOWN: { state: { red: 'stop' } },
+          PUSH_BUTTON: { state: { red: 'stop' } }
         }
       });
     });
@@ -366,7 +386,7 @@ describe('graph utilities', () => {
       assert.doesNotThrow(() => getShortestPaths(condMachine));
     });
 
-    it('should represent conditional paths based on extended state', () => {
+    it('should represent conditional paths based on context', () => {
       assert.deepEqual(getShortestPaths(condMachine, { id: 'foo' }), {
         '"bar"': [
           {

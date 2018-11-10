@@ -22,7 +22,7 @@ const config = {
 const deepMachine = Machine(config);
 
 const parallelDeepMachine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     foo: config,
     bar: config

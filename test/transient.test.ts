@@ -1,10 +1,34 @@
 import { Machine, matchesState } from '../src/index';
 import { assert } from 'chai';
+import { assign } from '../src/actions';
+
+const greetingMachine = Machine({
+  key: 'greeting',
+  initial: 'pending',
+  context: { hour: 10 },
+  states: {
+    pending: {
+      on: {
+        '': [
+          { target: 'morning', cond: ctx => ctx.hour < 12 },
+          { target: 'afternoon', cond: ctx => ctx.hour < 18 },
+          { target: 'evening' }
+        ]
+      }
+    },
+    morning: {},
+    afternoon: {},
+    evening: {}
+  },
+  on: {
+    CHANGE: { actions: assign({ hour: 20 }) },
+    RECHECK: '#greeting'
+  }
+});
 
 describe('transient states (eventless transitions)', () => {
-  const updateMachine = Machine({
+  const updateMachine = Machine<{ data: boolean; status?: string }>({
     initial: 'G',
-    parallel: false,
     states: {
       G: {
         on: { UPDATE_BUTTON_CLICKED: 'E' }
@@ -66,7 +90,8 @@ describe('transient states (eventless transitions)', () => {
           onExit: 'exit_A',
           on: {
             TIMER: {
-              T: { actions: ['timer'] }
+              target: 'T',
+              actions: ['timer']
             }
           }
         },
@@ -83,12 +108,16 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('A', 'TIMER');
 
-    assert.deepEqual(state.actions, ['exit_A', 'timer', 'enter_B']);
+    assert.deepEqual(state.actions.map(a => a.type), [
+      'exit_A',
+      'timer',
+      'enter_B'
+    ]);
   });
 
   it('should execute all internal events one after the other', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -156,7 +185,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should execute all eventless transitions in the same microstep', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -174,7 +203,8 @@ describe('transient states (eventless transitions)', () => {
             A3: {
               on: {
                 '': {
-                  A4: { in: 'B.B3' }
+                  target: 'A4',
+                  in: 'B.B3'
                 }
               }
             },
@@ -193,18 +223,16 @@ describe('transient states (eventless transitions)', () => {
             B2: {
               on: {
                 '': {
-                  B3: {
-                    in: 'A.A2'
-                  }
+                  target: 'B3',
+                  in: 'A.A2'
                 }
               }
             },
             B3: {
               on: {
                 '': {
-                  B4: {
-                    in: 'A.A3'
-                  }
+                  target: 'B4',
+                  in: 'A.A3'
                 }
               }
             },
@@ -221,7 +249,7 @@ describe('transient states (eventless transitions)', () => {
 
   it('should check for automatic transitions even after microsteps are done', () => {
     const machine = Machine({
-      parallel: true,
+      type: 'parallel',
       states: {
         A: {
           initial: 'A1',
@@ -240,7 +268,8 @@ describe('transient states (eventless transitions)', () => {
             B1: {
               on: {
                 '': {
-                  B2: { cond: (_xs, _e, cs) => matchesState('A.A2', cs) }
+                  target: 'B2',
+                  cond: (_xs, _e, cs) => matchesState('A.A2', cs)
                 }
               }
             },
@@ -253,7 +282,8 @@ describe('transient states (eventless transitions)', () => {
             C1: {
               on: {
                 '': {
-                  C2: { in: 'A.A2' }
+                  target: 'C2',
+                  in: 'A.A2'
                 }
               }
             },
@@ -266,5 +296,23 @@ describe('transient states (eventless transitions)', () => {
     let state = machine.initialState; // A1, B1, C1
     state = machine.transition(state, 'A'); // A2, B2, C2
     assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C2' });
+  });
+
+  it('should determine the resolved initial state from the transient state', () => {
+    assert.deepEqual(greetingMachine.initialState.value, 'morning');
+  });
+
+  it('should determine the resolved state from a root transient state', () => {
+    const morningState = greetingMachine.initialState;
+    const stillMorningState = greetingMachine.transition(
+      morningState,
+      'CHANGE'
+    );
+    assert.deepEqual(stillMorningState.value, 'morning');
+    const eveningState = greetingMachine.transition(
+      stillMorningState,
+      'RECHECK'
+    );
+    assert.deepEqual(eveningState.value, 'evening');
   });
 });

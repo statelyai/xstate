@@ -11,15 +11,15 @@ describe('Example 6.17', () => {
           1: 'Y',
           2: 'Y.A.C', // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
-          4: 'Y.A.$history'
+          4: 'Y.A.hist'
         }
       },
       Y: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A: {
             initial: 'D',
-            states: { C: {}, D: {}, E: {} }
+            states: { C: {}, D: {}, E: {}, hist: { history: true } }
           },
           B: {
             initial: 'G',
@@ -76,11 +76,11 @@ describe('Jump to ID', () => {
           1: 'Y',
           2: 'Y.A.C', // 6.18
           // 3: { Y: { A: 'C', B: 'F' } } // 6.19
-          4: 'Y.A.$history'
+          4: 'Y.A.hist'
         }
       },
       Y: {
-        parallel: true,
+        type: 'parallel',
         states: {
           A: {
             initial: 'D',
@@ -91,7 +91,8 @@ describe('Jump to ID', () => {
                 }
               },
               D: {},
-              E: {}
+              E: {},
+              hist: { history: true }
             }
           },
           B: {

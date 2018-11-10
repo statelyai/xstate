@@ -1,16 +1,25 @@
 import {
   Machine,
-  StandardMachine,
-  ParallelMachine,
+  MachineOptions,
+  DefaultContext,
   MachineConfig,
-  ParallelMachineConfig,
-  MachineOptions
+  StateSchema,
+  EventObject
 } from './types';
 import { StateNode } from './StateNode';
 
-export function Machine(
-  config: MachineConfig | ParallelMachineConfig,
-  options?: MachineOptions
-): StandardMachine | ParallelMachine {
-  return new StateNode(config, options) as StandardMachine | ParallelMachine;
+export function Machine<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any,
+  TEvent extends EventObject = EventObject
+>(
+  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  options?: MachineOptions<TContext, TEvent>,
+  initialContext: TContext | undefined = config.context
+): Machine<TContext, TStateSchema, TEvent> {
+  return new StateNode<TContext, TStateSchema, TEvent>(
+    config,
+    options,
+    initialContext
+  ) as Machine<TContext, TStateSchema, TEvent>;
 }

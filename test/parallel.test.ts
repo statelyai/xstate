@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { raise } from '../src/actions';
-import { Machine } from '../src/StateNode';
+import { Machine } from '../src/Machine';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
@@ -14,7 +14,7 @@ const composerMachine = Machine({
       states: {
         StructureEdit: {
           id: 'StructureEditRO',
-          parallel: true,
+          type: 'parallel',
           on: {
             switchToProjectManagement: [
               {
@@ -129,7 +129,7 @@ const composerMachine = Machine({
         },
         ProjectManagement: {
           id: 'ProjectManagementRO',
-          parallel: true,
+          type: 'parallel',
           on: {
             switchToStructureEdit: [
               {
@@ -191,7 +191,7 @@ const composerMachine = Machine({
 
 const wakMachine = Machine({
   id: 'wakMachine',
-  parallel: true,
+  type: 'parallel',
   strict: true,
   states: {
     wak1: {
@@ -234,7 +234,8 @@ const wakMachine = Machine({
 });
 
 const wordMachine = Machine({
-  parallel: true,
+  id: 'word',
+  type: 'parallel',
   states: {
     bold: {
       initial: 'off',
@@ -283,11 +284,14 @@ const wordMachine = Machine({
         }
       }
     }
+  },
+  on: {
+    RESET: '#word' // TODO: this should be 'word' or [{ internal: false }]
   }
 });
 
 const flatParallelMachine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     foo: {},
     bar: {},
@@ -303,7 +307,7 @@ const flatParallelMachine = Machine({
 
 const raisingParallelMachine = Machine({
   strict: true,
-  parallel: true,
+  type: 'parallel',
   states: {
     OUTER1: {
       initial: 'C',
@@ -332,7 +336,7 @@ const raisingParallelMachine = Machine({
       }
     },
     OUTER2: {
-      parallel: true,
+      type: 'parallel',
       states: {
         INNER1: {
           initial: 'ON',
@@ -370,7 +374,7 @@ const raisingParallelMachine = Machine({
 });
 
 const nestedParallelState = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     OUTER1: {
       initial: 'STATE_OFF',
@@ -382,7 +386,7 @@ const nestedParallelState = Machine({
           }
         },
         STATE_ON: {
-          parallel: true,
+          type: 'parallel',
           states: {
             STATE_NTJ0: {
               initial: 'STATE_IDLE_0',
@@ -429,7 +433,7 @@ const nestedParallelState = Machine({
         },
         STATE_ON_SIMPLE: {},
         STATE_ON_COMPLEX: {
-          parallel: true,
+          type: 'parallel',
           states: {
             STATE_INNER1: {
               initial: 'STATE_OFF',
@@ -492,6 +496,12 @@ describe('parallel states', () => {
         italics: 'on',
         underline: 'on',
         list: 'bullets'
+      },
+      RESET: {
+        bold: 'off',
+        italics: 'off',
+        underline: 'off',
+        list: 'none'
       }
     }
   };
@@ -633,6 +643,41 @@ describe('parallel states', () => {
             STATE_INNER1: 'STATE_OFF',
             STATE_INNER2: 'STATE_OFF'
           }
+        }
+      });
+    });
+  });
+
+  // https://github.com/davidkpiano/xstate/issues/191
+  describe('nested flat parallel states', () => {
+    const machine = Machine({
+      initial: 'A',
+      states: {
+        A: {
+          on: {
+            'to-B': 'B'
+          }
+        },
+        B: {
+          type: 'parallel',
+          states: {
+            C: {},
+            D: {}
+          }
+        }
+      },
+      on: {
+        'to-A': 'A'
+      }
+    });
+
+    it('should represent the flat nested parallel states in the state value', () => {
+      const result = machine.transition(machine.initialState, 'to-B');
+
+      assert.deepEqual(result.value, {
+        B: {
+          C: {},
+          D: {}
         }
       });
     });

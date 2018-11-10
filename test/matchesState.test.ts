@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { matchesState } from '../src/index';
+import { matchesState, Machine } from '../src/index';
 
 describe('matchesState()', () => {
   it('should return true if two states are equivalent', () => {
@@ -86,5 +86,30 @@ describe('matchesState()', () => {
 
   it('should mix/match string state values and object state values', () => {
     assert.ok(matchesState('a.b.c', { a: { b: 'c' } }));
+  });
+});
+
+describe('matches() method', () => {
+  it('should execute matchesState on a State given the parent state value', () => {
+    const machine = Machine({
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'bar',
+          states: {
+            bar: {
+              initial: 'baz',
+              states: {
+                baz: {}
+              }
+            }
+          }
+        }
+      }
+    });
+
+    assert.ok(machine.initialState.matches('foo'));
+    assert.ok(machine.initialState.matches({ foo: 'bar' }));
+    assert.notOk(machine.initialState.matches('fake'));
   });
 });

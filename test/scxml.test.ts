@@ -1,13 +1,16 @@
 import { assert } from 'chai';
+// import { Element as XMLElement } from 'xml-js';
+
 import * as fs from 'fs';
 import * as path from 'path';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
-import { Machine, State } from '../src';
+import { interpret, SimulatedClock } from '../src/interpreter';
+import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
-import { StateValue } from '../src/types';
+// import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
@@ -18,51 +21,87 @@ const testGroups = {
     'send3',
     'send4',
     'send7',
-    'send8' /* 'send9' */
+    'send8'
+    // 'send9' // - edge case, since initial transitions in xstate are not microstepped
   ],
+  'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
+  data: [], // 4.0
   'default-initial-state': ['initial1', 'initial2'],
+  delayedSend: ['send1', 'send2', 'send3'], // 4.0
   documentOrder: ['documentOrder0'],
+  error: [], // not implemented
+  forEach: [], // not implemented
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
   history: [
     'history0',
     'history1',
     'history2',
-    'history3'
-    // 'history4'
-    // 'history5'
-    // 'history6'
+    'history3',
+    // 'history4',
+    'history5',
+    'history6'
   ],
   misc: ['deep-initial'],
-  parallel: [
+  // 'more-parallel': [
+  //   'test0',
+  //   'test1',
+  //   'test2',
+  //   'test3',
+  //   'test4',
+  //   'test5',
+  //   'test6',
+  //   'test7',
+  //   'test8',
+  //   'test9',
+  //   'test10'
+  // ], // not well-formed tests
+  parallel: ['test0', 'test1', 'test2', 'test3'],
+  'targetless-transition': [
     'test0',
     'test1'
-
-    // TODO: add support for parallel states with leaf nodes,
-    // e.g.: { foo: { bar: undefined, baz: undefined } }
-    // 'test2',
-    // 'test3'
+    // ,'test2', // TODO: parallel states with leaf node support
+    // 'test3' // TODO: parallel states with leaf node support
   ]
+  // 'parallel+interrupt': ['test0']
+};
+
+const overrides = {
+  'assign-current-small-step': ['test0'],
+  'targetless-transition': ['test0']
 };
 
 interface SCIONTest {
   initialConfiguration: string[];
   events: Array<{
+    after?: number;
     event: { name: string };
     nextConfiguration: string[];
   }>;
 }
 
 function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
-  // let nextState: string | State = `#${test.initialConfiguration[0]}`;
-  let nextState: StateValue | State = pathsToStateValue(
-    test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+  const resolvedStateValue = machine.resolve(
+    pathsToStateValue(
+      test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+    )
   );
+  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
+  const service = interpret(machine, {
+    clock: new SimulatedClock()
+  })
+    .onTransition(state => {
+      nextState = state;
+    })
+    .start(nextState);
 
-  test.events.forEach(({ event, nextConfiguration }, i) => {
-    nextState = machine.transition(nextState, event.name);
+  test.events.forEach(({ event, nextConfiguration, after }, i) => {
+    if (after) {
+      (service.clock as SimulatedClock).increment(after);
+    }
+    service.send(event.name);
 
     const stateIds = machine
       .getStateNodes(nextState)
@@ -72,18 +111,33 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
   });
 }
 
-function evalCond(expr: string) {
-  return new Function(`return ${expr}`) as () => boolean;
+function evalCond(expr: string, context: object | undefined) {
+  const literalKeyExprs = context
+    ? Object.keys(context)
+        .map(key => `const ${key} = xs['${key}'];`)
+        .join('\n')
+    : '';
+
+  const fn = new Function(
+    `const xs = arguments[0]; ${literalKeyExprs} return ${expr}`
+  ) as () => boolean;
+
+  return fn;
 }
 
 describe('scxml', () => {
-  Object.keys(testGroups).forEach(testGroupName => {
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['parallel'];
+
+  testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
+      const scxmlSource =
+        overrides[testGroupName] &&
+        overrides[testGroupName].indexOf(testName) !== -1
+          ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
+          : `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.scxml`;
       const scxmlDefinition = fs.readFileSync(
-        path.resolve(
-          __dirname,
-          `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.scxml`
-        ),
+        path.resolve(__dirname, scxmlSource),
         { encoding: 'utf-8' }
       );
       const scxmlTest = JSON.parse(
@@ -101,8 +155,8 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
-        // console.dir(machine, { depth: null });
-        runTestToCompletion(Machine(machine), scxmlTest);
+        // console.dir(machine.config, { depth: null });
+        runTestToCompletion(machine, scxmlTest);
       });
     });
   });

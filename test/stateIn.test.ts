@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 const machine = Machine({
-  parallel: true,
+  type: 'parallel',
   states: {
     a: {
       initial: 'a1',
@@ -10,10 +10,16 @@ const machine = Machine({
         a1: {
           on: {
             EVENT1: {
-              a2: { in: 'b.b2' }
+              target: 'a2',
+              in: 'b.b2'
             },
             EVENT2: {
-              a2: { in: { b: 'b2' } }
+              target: 'a2',
+              in: { b: 'b2' }
+            },
+            EVENT3: {
+              target: 'a2',
+              in: '#b_b2'
             }
           }
         },
@@ -26,19 +32,21 @@ const machine = Machine({
         b1: {
           on: {
             EVENT: {
-              b2: { in: 'a.a2' }
+              target: 'b2',
+              in: 'a.a2'
             }
           }
         },
         b2: {
-          parallel: true,
+          id: 'b_b2',
+          type: 'parallel',
           states: {
             foo: {
               initial: 'foo1',
               states: {
                 foo1: {
                   on: {
-                    EVENT_DEEP: { foo2: { in: 'bar.bar1' } }
+                    EVENT_DEEP: { target: 'foo2', in: 'bar.bar1' }
                   }
                 },
                 foo2: {}
@@ -58,6 +66,31 @@ const machine = Machine({
   }
 });
 
+const lightMachine = Machine({
+  id: 'light',
+  initial: 'green',
+  states: {
+    green: { on: { TIMER: 'yellow' } },
+    yellow: { on: { TIMER: 'red' } },
+    red: {
+      initial: 'walk',
+      states: {
+        walk: {},
+        wait: {},
+        stop: {}
+      },
+      on: {
+        TIMER: [
+          {
+            target: 'green',
+            in: { red: 'stop' }
+          }
+        ]
+      }
+    }
+  }
+});
+
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
     assert.deepEqual(
@@ -72,6 +105,32 @@ describe('transition "in" check', () => {
           }
         },
         'EVENT1'
+      ).value,
+      {
+        a: 'a2',
+        b: {
+          b2: {
+            foo: 'foo2',
+            bar: 'bar1'
+          }
+        }
+      }
+    );
+  });
+
+  it('should transition if state node ID matches current state value', () => {
+    assert.deepEqual(
+      machine.transition(
+        {
+          a: 'a1',
+          b: {
+            b2: {
+              foo: 'foo2',
+              bar: 'bar1'
+            }
+          }
+        },
+        'EVENT3'
       ).value,
       {
         a: 'a2',
@@ -118,7 +177,7 @@ describe('transition "in" check', () => {
     );
   });
 
-  xit('matching should be relative to grandparent (match)', () => {
+  it('matching should be relative to grandparent (match)', () => {
     assert.deepEqual(
       machine.transition(
         { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
@@ -151,6 +210,24 @@ describe('transition "in" check', () => {
           }
         }
       }
+    );
+  });
+
+  it('should work to forbid events', () => {
+    const walkState = lightMachine.transition('red.walk', 'TIMER');
+
+    assert.deepEqual(walkState.value, { red: 'walk' });
+
+    const waitState = lightMachine.transition('red.wait', 'TIMER');
+
+    assert.deepEqual(waitState.value, { red: 'wait' });
+
+    const stopState = lightMachine.transition('red.stop', 'TIMER');
+
+    assert.deepEqual(
+      stopState.value,
+      'green',
+      'Transition allowed due to "in" clause'
     );
   });
 });
