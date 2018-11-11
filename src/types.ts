@@ -163,12 +163,14 @@ export interface Delay {
   delay: number;
 }
 
-export type DelayedTransitions<TContext, TEvent extends EventObject> = Record<
-  string | number,
-  | string
-  | TransitionConfig<TContext, TEvent>
-  | Array<TransitionConfig<TContext, TEvent>>
->;
+export type DelayedTransitions<TContext, TEvent extends EventObject> =
+  | Record<
+      string | number,
+      | string
+      | TransitionConfig<TContext, TEvent>
+      | Array<TransitionConfig<TContext, TEvent>>
+    >
+  | Array<TransitionConfig<TContext, TEvent> & { delay: number }>;
 
 export type StateTypes =
   | 'atomic'
