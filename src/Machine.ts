@@ -1,5 +1,5 @@
 import {
-  Machine,
+  StateMachine,
   MachineOptions,
   DefaultContext,
   MachineConfig,
@@ -16,10 +16,10 @@ export function Machine<
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: MachineOptions<TContext, TEvent>,
   initialContext: TContext | undefined = config.context
-): Machine<TContext, TStateSchema, TEvent> {
+): StateMachine<TContext, TStateSchema, TEvent> {
   return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
     initialContext
-  ) as Machine<TContext, TStateSchema, TEvent>;
+  ) as StateMachine<TContext, TStateSchema, TEvent>;
 }

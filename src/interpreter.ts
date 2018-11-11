@@ -1,5 +1,5 @@
 import {
-  Machine as XSMachine,
+  StateMachine,
   Event,
   EventObject,
   SendAction,
@@ -160,7 +160,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: XSMachine<TContext, TStateSchema, TEvent>,
+    public machine: StateMachine<TContext, TStateSchema, TEvent>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -574,7 +574,7 @@ export class Interpreter<
     TChildStateSchema,
     TChildEvents extends EventObject
   >(
-    machine: XSMachine<TChildContext, TChildStateSchema, TChildEvents>,
+    machine: StateMachine<TChildContext, TChildStateSchema, TChildEvents>,
     options: { id?: string; autoForward?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
     const childInterpreter = new Interpreter(machine, {
@@ -609,7 +609,7 @@ export function interpret<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject
 >(
-  machine: XSMachine<TContext, TStateSchema, TEvent>,
+  machine: StateMachine<TContext, TStateSchema, TEvent>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter(machine, options);

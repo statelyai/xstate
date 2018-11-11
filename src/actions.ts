@@ -18,7 +18,7 @@ import {
   SpecialTargets,
   InvokeDefinition,
   RaiseEvent,
-  Machine,
+  StateMachine,
   DoneEvent,
   InvokeConfig,
   ErrorExecutionEvent,
@@ -354,7 +354,7 @@ export function invoke<TContext, TEvent extends EventObject>(
   invokeConfig:
     | string
     | InvokeConfig<TContext, TEvent>
-    | Machine<any, any, any>,
+    | StateMachine<any, any, any>,
   options?: Partial<InvokeDefinition<TContext, TEvent>>
 ): InvokeDefinition<TContext, TEvent> {
   if (typeof invokeConfig === 'string') {
@@ -367,7 +367,7 @@ export function invoke<TContext, TEvent extends EventObject>(
   }
 
   if (!('src' in invokeConfig)) {
-    const machine = invokeConfig as Machine<any, any, any>;
+    const machine = invokeConfig as StateMachine<any, any, any>;
 
     return {
       type: ActionTypes.Invoke,

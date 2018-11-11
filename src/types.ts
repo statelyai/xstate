@@ -141,7 +141,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | Machine<any, any, any> | InvokeCreator<any, TContext>;
+  src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
   /**
    * Whether any events sent to the parent are forwarded to the invoked child machine.
    */
@@ -251,7 +251,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: string | Machine<any, any, any> | InvokeCreator<any, TContext>;
+      src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
       /**
        * Whether any events sent to the parent are forwarded to the invoked child machine.
        */
@@ -276,7 +276,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
         | string
         | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
     }
-  | Machine<any, any, any>;
+  | StateMachine<any, any, any>;
 
 export type InvokesConfig<TContext, TEvent extends EventObject> =
   | InvokeConfig<TContext, TEvent>
@@ -502,7 +502,7 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
-export interface Machine<
+export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
