@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../src/index';
+import { assign } from '../lib/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -405,10 +406,24 @@ describe('actions option', () => {
   const simpleMachine = Machine(
     {
       initial: 'a',
+      context: {
+        count: 0
+      },
       states: {
         a: {
-          onEntry: ['definedAction', 'undefinedAction']
-        }
+          onEntry: [
+            'definedAction',
+            { type: 'definedAction' },
+            'undefinedAction'
+          ],
+          on: {
+            EVENT: {
+              target: 'b',
+              actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+            }
+          }
+        },
+        b: {}
       },
       on: {
         E: 'a'
@@ -416,7 +431,8 @@ describe('actions option', () => {
     },
     {
       actions: {
-        definedAction
+        definedAction,
+        updateContext: assign({ count: 10 })
       }
     }
   );
@@ -431,6 +447,7 @@ describe('actions option', () => {
 
     assert.deepEqual(nextState.actions, [
       { type: 'definedAction', exec: definedAction },
+      { type: 'definedAction', exec: definedAction },
       { type: 'undefinedAction', exec: undefined }
     ]);
   });
@@ -442,5 +459,15 @@ describe('actions option', () => {
       'definedAction',
       'undefinedAction'
     ]);
+  });
+
+  it('should be able to reference action implementations from action objects', () => {
+    const state = simpleMachine.transition('a', 'EVENT');
+
+    assert.deepEqual(state.actions, [
+      { type: 'definedAction', exec: definedAction }
+    ]);
+
+    assert.deepEqual(state.context, { count: 10 });
   });
 });

@@ -51,8 +51,12 @@ export type OmniEvent<TEvent extends EventObject> =
   | BuiltInEvent<TEvent>['type']
   | OmniEventObject<TEvent>;
 
+export interface ExecMeta<TContext> {
+  action: ActionObject<TContext>;
+}
+
 export interface ActionFunction<TContext> {
-  (context: TContext, event?: EventObject): any | void;
+  (context: TContext, event: EventObject, meta: ExecMeta<TContext>): any | void;
   name: string;
 }
 // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
@@ -95,6 +99,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
+  delay?: number;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -142,12 +147,12 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    */
   forward?: boolean;
   /**
-   * Parameters from the parent machine's context to set as the (partial or full) context
+   * Data from the parent machine's context to set as the (partial or full) context
    * for the invoked child machine.
    *
-   * Parameters should be mapped to match the child machine's context shape.
+   * Data should be mapped to match the child machine's context shape.
    */
-  params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
 }
 
 export interface Delay {
@@ -158,11 +163,6 @@ export interface Delay {
   delay: number;
 }
 
-export interface DelayedTransitionConfig<TContext, TEvent extends EventObject>
-  extends TransitionConfig<TContext, TEvent> {
-  delay: number;
-}
-
 export type DelayedTransitions<TContext, TEvent extends EventObject> =
   | Record<
       string | number,
@@ -170,7 +170,7 @@ export type DelayedTransitions<TContext, TEvent extends EventObject> =
       | TransitionConfig<TContext, TEvent>
       | Array<TransitionConfig<TContext, TEvent>>
     >
-  | Array<DelayedTransitionConfig<TContext, TEvent>>;
+  | Array<TransitionConfig<TContext, TEvent> & { delay: number }>;
 
 export type StateTypes =
   | 'atomic'
@@ -257,12 +257,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        */
       forward?: boolean;
       /**
-       * Parameters from the parent machine's context to set as the (partial or full) context
+       * Data from the parent machine's context to set as the (partial or full) context
        * for the invoked child machine.
        *
-       * Parameters should be mapped to match the child machine's context shape.
+       * Data should be mapped to match the child machine's context shape.
        */
-      params?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+      data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
       /**
        * The transition to take upon the invoked child machine reaching its final top-level state.
        */
@@ -347,8 +347,8 @@ export interface StateNodeConfig<
    */
   onDone?:
     | string
-    | TransitionConfig<TContext, { type: ActionTypes.DoneState }>
-    | Array<TransitionConfig<TContext, { type: ActionTypes.DoneState }>>;
+    | TransitionConfig<TContext, DoneEventObject>
+    | Array<TransitionConfig<TContext, DoneEventObject>>;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
@@ -370,8 +370,11 @@ export interface StateNodeConfig<
   meta?: TStateSchema extends { meta: infer D } ? D : any;
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
+   *
+   * The data will be evaluated with the current `context` and placed on the `.data` property
+   * of the event.
    */
-  data?: any;
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -404,6 +407,7 @@ export interface StateNodeDefinition<
   activities: Array<ActivityDefinition<TContext>>;
   meta: any;
   order: number;
+  data?: FinalStateNodeConfig<TContext, TEvent>['data'];
 }
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
   extends StateNodeConfig<TContext, never, TEvent> {

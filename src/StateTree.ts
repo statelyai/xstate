@@ -6,7 +6,7 @@ import {
   StateValueMap,
   EventObject
 } from './types';
-import { mapValues, flatten, toStatePaths, keys } from './utils';
+import { mapValues, flatten, toStatePaths, keys, mapContext } from './utils';
 import { matchesState } from './utils';
 import { done } from './actions';
 
@@ -50,13 +50,32 @@ export class StateTree {
       case 'final':
         return true;
       case 'compound':
-        const childNode = this.nodes[keys(this.nodes)[0]];
-        return childNode.stateNode.type === 'final';
+        const childTree = this.nodes[keys(this.nodes)[0]];
+        return childTree.stateNode.type === 'final';
       case 'parallel':
         return keys(this.nodes).some(key => this.nodes[key].done);
       default:
         return false;
     }
+  }
+
+  public getDoneData<TContext>(context: TContext, event: EventObject): any {
+    if (!this.done) {
+      return undefined;
+    }
+
+    if (this.stateNode.type === 'compound') {
+      const childTree = this.nodes[keys(this.nodes)[0]];
+
+      if (!childTree.stateNode.data) {
+        return undefined;
+      }
+
+      // console.log(childTree.stateNode.id, (childTree.stateNode as any)._config);
+      return mapContext(childTree.stateNode.data, context, event);
+    }
+
+    return undefined;
   }
 
   public get atomicNodes(): StateNode[] {
@@ -81,7 +100,7 @@ export class StateTree {
       entryStateNodes.has(this.stateNode) &&
       this.stateNode.type === 'final'
     ) {
-      return [done(this.stateNode.id)];
+      return [done(this.stateNode.id, this.stateNode.data)];
     }
 
     const childDoneEvents = flatten(
@@ -96,7 +115,7 @@ export class StateTree {
       );
 
       if (childDoneEvents && allChildrenDone) {
-        return [done(this.stateNode.id) as EventObject].concat(childDoneEvents);
+        return [done(this.stateNode.id)].concat(childDoneEvents);
       } else {
         return childDoneEvents;
       }
@@ -106,7 +125,13 @@ export class StateTree {
       return childDoneEvents;
     }
 
-    return [done(this.stateNode.id) as EventObject].concat(childDoneEvents);
+    // TODO: handle merging strategy
+    // For compound state nodes with final child state, there should be only
+    // one done.state event (potentially with data).
+    const doneData =
+      childDoneEvents.length === 1 ? childDoneEvents[0].data : undefined;
+
+    return [done(this.stateNode.id, doneData)].concat(childDoneEvents);
   }
 
   public get resolved(): StateTree {

@@ -47,7 +47,9 @@ import {
   FinalStateNodeConfig,
   InvokeDefinition,
   OmniEvent,
-  ActionObject
+  ActionObject,
+  Mapper,
+  PropertyMapper
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -81,7 +83,8 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: EMPTY_OBJECT
 });
 
-const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_PRODUCTION =
+  typeof process !== 'undefined' ? process.env.NODE_ENV === 'production' : true;
 
 class StateNode<
   TContext = DefaultContext,
@@ -165,7 +168,7 @@ class StateNode<
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
    */
-  public data?: any;
+  public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -328,7 +331,8 @@ class StateNode<
       onExit: this.onExit,
       activities: this.activities || [],
       meta: this.meta,
-      order: this.order || -1
+      order: this.order || -1,
+      data: this.data
     };
   }
 
@@ -874,7 +878,7 @@ class StateNode<
   private getActions(
     transition: StateTransition<TContext>,
     prevState: State<TContext>
-  ): Array<Action<TContext>> {
+  ): Array<ActionObject<TContext>> {
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
@@ -913,17 +917,12 @@ class StateNode<
     const actions = entryExitActions.exit
       .concat(transition.actions)
       .concat(entryExitActions.entry)
-      .map(
-        action =>
-          typeof action === 'string' ? this.resolveAction(action) : action
-      );
+      .map(action => this.resolveAction(action));
 
     return actions;
   }
-  private resolveAction(actionType: string): Action<TContext> {
-    const { actions } = this.machine.options;
-
-    return (actions ? actions[actionType] : actionType) || actionType;
+  private resolveAction(action: Action<TContext>): ActionObject<TContext> {
+    return toActionObject(action, this.machine.options.actions!);
   }
   private resolveActivity(
     activity: Activity<TContext>
@@ -978,9 +977,11 @@ class StateNode<
         : state instanceof State
           ? state
           : this.resolve(state);
-    const resolvedContext =
-      context ||
-      ((state instanceof State ? state.context : undefined) as TContext);
+    const resolvedContext = context
+      ? context
+      : state instanceof State
+        ? state.context
+        : this.machine.context!;
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const eventType = eventObject.type;
 
@@ -1059,20 +1060,18 @@ class StateNode<
 
     const raisedEvents = actions.filter(
       action =>
-        typeof action === 'object' &&
-        (action.type === actionTypes.raise ||
-          action.type === actionTypes.nullEvent)
+        action.type === actionTypes.raise ||
+        action.type === actionTypes.nullEvent
     ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
 
     const nonEventActions = actions.filter(
       action =>
-        typeof action !== 'object' ||
-        (action.type !== actionTypes.raise &&
-          action.type !== actionTypes.nullEvent &&
-          action.type !== actionTypes.assign)
+        action.type !== actionTypes.raise &&
+        action.type !== actionTypes.nullEvent &&
+        action.type !== actionTypes.assign
     );
     const assignActions = actions.filter(
-      action => typeof action === 'object' && action.type === actionTypes.assign
+      action => action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvent>>;
 
     const updatedContext = StateNode.updateContext(
@@ -1396,7 +1395,7 @@ class StateNode<
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const activityMap: ActivityMap = {};
-    const actions: Array<Action<TContext>> = [];
+    const actions: Array<ActionObject<TContext>> = [];
 
     this.getStateNodes(stateValue).forEach(stateNode => {
       if (stateNode.onEntry) {

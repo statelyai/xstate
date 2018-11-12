@@ -21,7 +21,8 @@ import {
   Machine,
   DoneEvent,
   InvokeConfig,
-  ErrorExecutionEvent
+  ErrorExecutionEvent,
+  DoneEventObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -47,7 +48,7 @@ export function toEventObject<TEvent extends EventObject>(
 function getActionFunction<TContext>(
   actionType: ActionType,
   actionFunctionMap?: ActionFunctionMap<TContext>
-): ActionFunction<TContext> | undefined {
+): ActionObject<TContext> | ActionFunction<TContext> | undefined {
   if (!actionFunctionMap) {
     return undefined;
   }
@@ -61,7 +62,7 @@ function getActionFunction<TContext>(
     return actionReference;
   }
 
-  return actionReference.exec;
+  return actionReference;
 }
 
 export function toActionObject<TContext>(
@@ -71,10 +72,17 @@ export function toActionObject<TContext>(
   let actionObject: ActionObject<TContext>;
 
   if (typeof action === 'string' || typeof action === 'number') {
-    actionObject = {
-      type: action,
-      exec: getActionFunction(action, actionFunctionMap)
-    };
+    const exec = getActionFunction(action, actionFunctionMap);
+    if (typeof exec === 'function') {
+      actionObject = {
+        type: action,
+        exec
+      };
+    } else if (exec) {
+      actionObject = exec;
+    } else {
+      actionObject = { type: action, exec: undefined };
+    }
   } else if (typeof action === 'function') {
     actionObject = {
       type: action.name,
@@ -82,17 +90,28 @@ export function toActionObject<TContext>(
     };
   } else {
     const exec = getActionFunction(action.type, actionFunctionMap);
-    return exec
-      ? {
-          ...action,
-          exec
-        }
-      : action;
+    if (typeof exec === 'function') {
+      actionObject = {
+        ...action,
+        exec
+      };
+    } else if (exec) {
+      const { type, ...other } = action;
+
+      actionObject = {
+        type,
+        ...exec,
+        ...other
+      };
+    } else {
+      actionObject = action;
+    }
   }
 
   Object.defineProperty(actionObject, 'toString', {
     value: () => actionObject.type,
-    enumerable: false
+    enumerable: false,
+    configurable: true
   });
 
   return actionObject;
@@ -290,7 +309,7 @@ export function after(delay: number, id?: string) {
  * @param id The final state node's parent state node `id`
  * @param data The data to pass into the event
  */
-export function done(id: string, data?: any): DoneEvent {
+export function done(id: string, data?: any): DoneEventObject {
   const type = `${ActionTypes.DoneState}.${id}`;
   const eventObject = {
     type,
