@@ -2,7 +2,7 @@
 
 Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other machine "actors" and react to them.
 
-For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](/guides/final), which will then cause the `onDone` transition to be taken:
+For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](/guides/final), which will then cause the `onDone` transition to be taken.
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -56,7 +56,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a Promise
 - `id` - the unique identifier for the invoked service
 - `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
-- `params` - (optional) an object that maps properties of the child machine's [context](/guides/context) to a function that returns the corresponding value from the parent machine's `context`.
+- `data` - (optional) an object that maps properties of the child machine's [context](/guides/context) to a function that returns the corresponding value from the parent machine's `context`.
 - `onDone` - (optional) the [transition](/guides/transitions) to be taken when the child machine reaches its [final state](/guides/final)
 - `onError` - (optional) the transition to be taken when the child machine encounters an execution error.
 
@@ -67,7 +67,7 @@ Statecharts communicate hierarchically:
 - Parent-to-child via the `send(EVENT, { target: 'someChildId' })` action
 - Child-to-parent via the `sendParent(EVENT)` action.
 
-Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other via a supervisor `parentMachine`, which **invokes** both child machines:
+Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other:
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -79,10 +79,15 @@ const pingMachine = Machine({
   initial: 'active',
   states: {
     active: {
-      onEntry: sendParent('PING'),
+      invoke: {
+        src: pongMachine,
+        id: 'pong'
+      }
+      onEntry: send('PING', { to: 'pong' }),
       on: {
         PONG: {
-          actions: sendParent('PING', {
+          actions: send('PING', {
+            to: 'pong',
             delay: 1000
           })
         }
@@ -107,26 +112,7 @@ const pongMachine = Machine({
   }
 });
 
-const parentMachine = Machine({
-  id: 'parent',
-  initial: 'active',
-  states: {
-    active: {
-      invoke: [pingMachine, pongMachine],
-      on: {
-        PING: {
-          actions: send('PING', { to: pongMachine.id })
-        },
-        PONG: {
-          actions: send('PONG', { to: pingMachine.id })
-        }
-      }
-    }
-  }
-});
-
-const service = interpret(parentMachine).start();
-
+const service = interpret(pingMachine).start();
 
 // => 'ping'
 // ...
@@ -138,71 +124,51 @@ const service = interpret(parentMachine).start();
 // ...
 ```
 
-Let's make the classic traffic light example more real-life and model the behavior of two traffic lights at an intersection:
+## Invoking Promises
+
+Since every promise can be modeled as a state machine, XState can invoke promises as-is:
 
 ```js
-const northLightMachine = Machine({
-  id: 'north',
-  initial: 'green',
-  states: {
-    green: {
-      after: { 1000: 'yellow' }
-    },
-    yellow: {
-      after: { 1000: 'red' }
-    },
-    red: {
-      // Notify parent that 'red' state was reached
-      onEntry: sendParent('NORTH_RED'),
-      on: { SAFE_SIGNAL: 'green' }
-    }
-  }
-});
+// Function that returns a promise
+// This promise might resolve with, e.g.,
+// { name: 'David', location: 'Florida' }
+const fetchUser = userId =>
+  fetch(`url/to/user/${userId}`).then(response => response.json());
 
-const eastLightMachine = Machine({
-  id: 'east',
-  initial: 'red',
+const userMachine = Machine({
+  id: 'user',
+  initial: 'idle',
+  context: {
+    userId: 42,
+    user: undefined,
+    error: undefined
+  },
   states: {
-    green: {
-      after: { 1000: 'yellow' }
-    },
-    yellow: {
-      after: { 1000: 'red' }
-    },
-    red: {
-      // Notify parent that 'red' state was reached
-      onEntry: sendParent('EAST_RED'),
-      // Wait until it's safe to turn green
-      on: { SAFE_SIGNAL: 'green' }
-    }
-  }
-});
-
-const superLightMachine = Machine({
-  id: 'supervisor',
-  initial: 'active',
-  invoke: [
-    { src: northLightMachine },
-    { src: eastLightMachine },
-  ],
-  states: {
-    active: {
+    idle: {
       on: {
-        EAST_RED: {
-          // tell 'north' machine it is safe to turn green
-          actions: send('SAFE_SIGNAL', { to: 'north' })
+        FETCH: 'loading'
+      }
+    },
+    loading: {
+      invoke: {
+        src: (ctx, event) => fetchUser(ctx.userId),
+        onDone: {
+          target: 'success',
+          actions: assign({ user: (ctx, event) => event.data })
         },
-        NORTH_RED: {
-          // tell 'east' machine it is safe to turn green
-          actions: send('SAFE_SIGNAL', { to: 'east' })
+        onError: {
+          target: 'failure',
+          error: (ctx, event) => event.data
         }
+      }
+    },
+    failure: {
+      on: {
+        RETRY: 'loading'
       }
     }
   }
 });
-
-// parent supervisor machine
-const interpretedSuperLight = interpret(superLightMachine);
 ```
 
-
+The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` property.
