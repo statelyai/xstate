@@ -6,7 +6,7 @@
   "dependencies": {
     "@mdx-js/mdx": "^0.15.5",
     "@mdx-js/tag": "^0.15.0",
-    "@statecharts/xstate-viz": "0.0.2",
+    "@statecharts/xstate-viz": "^0.1.2",
     "classnames": "^2.2.6",
     "core-js": "^2.5.7",
     "gatsby": "^2.0.29",
@@ -23,12 +23,12 @@
     "gatsby-transformer-remark": "^2.1.8",
     "highlight.js": "^9.13.1",
     "prismjs": "^1.15.0",
-    "react": "^16.6.0",
-    "react-dom": "^16.6.0",
+    "react": "^16.6.1",
+    "react-dom": "^16.6.1",
     "react-helmet": "^5.2.0",
     "react-syntax-highlighter": "^9.0.1",
     "remark-toc": "^5.0.0",
-    "styled-components": "^3.4.10",
+    "styled-components": "4.1.1",
     "xstate": "^4.0.0-15"
   },
   "keywords": [

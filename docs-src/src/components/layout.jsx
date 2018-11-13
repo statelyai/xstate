@@ -7,7 +7,6 @@ import layoutStyles from './layout.module.css';
 import typeStyles from './typography.module.css';
 import 'prismjs/themes/prism-okaidia.css';
 import cn from 'classnames';
-import '@fortawesome/fontawesome-pro/css/brands.min.css';
 
 import { Heading, Anchor } from './typography.jsx';
 

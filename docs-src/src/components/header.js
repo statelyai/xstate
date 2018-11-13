@@ -19,7 +19,10 @@ const Header = ({ siteTitle, className, onToggleMenu }) => (
     >
       <img src={logo} width="auto" />
     </Link>
-    <div>
+    <div className={headerStyles.links}>
+      <Link to="viz" className={headerStyles.viz}>
+        viz
+      </Link>
       <a
         href="https://github.com/davidkpiano/xstate"
         alt="XState on GitHub"
@@ -27,12 +30,9 @@ const Header = ({ siteTitle, className, onToggleMenu }) => (
       >
         <img src={githubIcon} width="auto" />
       </a>
-      <img
-        src={menuIcon}
-        width="auto"
-        className={headerStyles.menu}
-        onClick={onToggleMenu}
-      />
+      <button className={headerStyles.menu} onClick={onToggleMenu}>
+        <img src={menuIcon} width="auto" />
+      </button>
     </div>
   </header>
 );

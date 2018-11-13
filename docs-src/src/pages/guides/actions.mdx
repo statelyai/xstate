@@ -3,6 +3,7 @@
 For a statechart to be useful in a real-world application, side-effects need to happen. In statecharts and XState, side-effects are declaratively represented by **actions**. When `machine.transition(...)` is called, the `State` returned will provide an array of `actions` that an interpreter can then execute.
 
 There are three types of actions:
+
 - `onEntry` actions are executed upon entering a state
 - `onExit` actions are executed upon exiting a state
 - transition actions are executed when a transition is taken.
@@ -10,38 +11,49 @@ There are three types of actions:
 These are represented in the StateNode definition:
 
 ```js
-const triggerMachine = Machine({
-  id: 'trigger',
-  initial: 'inactive',
-  states: {
-    inactive: {
-      on: {
-        TRIGGER: {
-          target: 'active',
-          // transition actions
-          actions: ['activate', 'sendTelemetry']
+const triggerMachine = Machine(
+  {
+    id: 'trigger',
+    initial: 'inactive',
+    states: {
+      inactive: {
+        on: {
+          TRIGGER: {
+            target: 'active',
+            // transition actions
+            actions: ['activate', 'sendTelemetry']
+          }
+        }
+      },
+      active: {
+        // entry actions
+        onEntry: ['notifyActive', 'sendTelemetry'],
+        // exit actions
+        onExit: ['notifyInactive', 'sendTelemetry'],
+        on: {
+          STOP: 'inactive'
         }
       }
-    },
-    active: {
-      // entry actions
-      onEntry: ['notifyActive', 'sendTelemetry'],
-      // exit actions
-      onExit: ['notifyInactive', 'sendTelemetry'],
-      on: {
-        STOP: 'inactive'
+    }
+  },
+  {
+    actions: {
+      // action implementations
+      activate: (ctx, event) => {
+        console.log('activating...');
+      },
+      notifyActive: (ctx, event) => {
+        console.log('active!');
+      },
+      notifyInactive: (ctx, event) => {
+        console.log('inactive!');
+      },
+      sendTelemetry: (ctx, event) => {
+        console.log('time:', Date.now());
       }
     }
   }
-}, {
-  actions: {
-    // action implementations
-    activate: (ctx, event) => { console.log('activating...') },
-    notifyActive: (ctx, event) => { console.log('active!') },
-    notifyInactive: (ctx, event) => { console.log('inactive!') },
-    sendTelemetry: (ctx, event) => { console.log('time:', Date.now()) }
-  }
-});
+);
 ```
 
 The `State` instance returned from a transition has an `actions` property, which is an array of action objects for the interpreter to execute:
@@ -171,9 +183,10 @@ const loggingMachine = Machine({
       on: {
         FINISH: {
           target: 'end',
-          actions: log((ctx, event) =>
-            `count: ${ctx.count}, event: ${event.type}`,
-            'Finish label')
+          actions: log(
+            (ctx, event) => `count: ${ctx.count}, event: ${event.type}`,
+            'Finish label'
+          )
         }
       }
     },
@@ -195,7 +208,6 @@ endState.actions;
 // The interpreter would log the action's evaluated expression
 // based on the current state context and event.
 ```
-
 
 ## Actions on self-transitions
 

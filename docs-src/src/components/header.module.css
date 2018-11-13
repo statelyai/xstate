@@ -17,6 +17,7 @@
 
 .github {
   opacity: 0.5;
+  height: 2rem;
 }
 .github:hover {
   opacity: 1;
@@ -26,8 +27,50 @@
   height: 2rem;
 }
 
-.menu {
+.viz {
+  --viz-color: #ff9800;
+  color: var(--viz-color);
+  background: transparent;
+  border: 2px solid var(--viz-color);
+  /* color: white; */
   height: 2rem;
+  border-radius: 2rem;
+  line-height: 2rem;
+  padding: 0 1rem;
+  font-size: 0.8rem;
+  font-weight: bold;
+  text-transform: uppercase;
+  text-decoration: none;
+  transition: all 0.3s ease-in-out;
+}
+
+.viz:before {
+  content: '';
+  display: block;
+  height: 0.05ex;
+}
+
+.viz:hover {
+  background: var(--viz-color);
+  color: white;
+}
+
+.links {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+}
+
+.links > * {
+  margin: 0 0.5rem;
+}
+
+.menu {
+  appearance: none;
+  background: none;
+  border: none;
+  height: 2rem;
+  width: 2.5rem;
   margin-left: 1rem;
 }
 
