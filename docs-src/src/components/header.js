@@ -20,9 +20,12 @@ const Header = ({ siteTitle, className, onToggleMenu }) => (
       <img src={logo} width="auto" />
     </Link>
     <div className={headerStyles.links}>
-      <Link to="viz" className={headerStyles.viz}>
+      <a
+        href="https://statecharts.github.io/xstate-viz"
+        className={headerStyles.viz}
+      >
         viz
-      </Link>
+      </a>
       <a
         href="https://github.com/davidkpiano/xstate"
         alt="XState on GitHub"
