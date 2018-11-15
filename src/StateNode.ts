@@ -284,7 +284,7 @@ class StateNode<
    */
   public withConfig(
     options: MachineOptions<TContext, TEvent>,
-    context?: TContext
+    context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
     const { actions, activities, guards } = this.options;
 

@@ -59,6 +59,9 @@ const configMachine = Machine(
   {
     id: 'config',
     initial: 'foo',
+    context: {
+      foo: 'bar'
+    },
     states: {
       foo: {
         onEntry: 'entryAction',
@@ -116,7 +119,7 @@ describe('machine', () => {
   });
 
   describe('machine.withConfig', () => {
-    it('should override guards', () => {
+    it('should override guards and actions', () => {
       const differentMachine = configMachine.withConfig({
         actions: {
           entryAction: () => {
@@ -125,6 +128,12 @@ describe('machine', () => {
         },
         guards: { someCondition: () => true }
       });
+
+      assert.deepEqual(
+        differentMachine.context,
+        { foo: 'bar' },
+        'context should be untouched'
+      );
 
       const service = interpret(differentMachine);
 
@@ -138,6 +147,26 @@ describe('machine', () => {
         differentMachine.transition('foo', 'EVENT').value,
         'bar'
       );
+    });
+
+    it('should not override context if not defined', () => {
+      const differentMachine = configMachine.withConfig({});
+
+      assert.deepEqual(
+        differentMachine.initialState.context,
+        configMachine.context
+      );
+    });
+
+    it('should override context (second argument)', () => {
+      const differentMachine = configMachine.withConfig(
+        {},
+        { foo: 'different' }
+      );
+
+      assert.deepEqual(differentMachine.initialState.context, {
+        foo: 'different'
+      });
     });
   });
 });
