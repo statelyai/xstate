@@ -7,7 +7,8 @@
   "types": "lib/index.d.ts",
   "files": [
     "dist",
-    "lib"
+    "lib",
+    "es"
   ],
   "keywords": [
     "statechart",
