@@ -226,7 +226,9 @@ export class Interpreter<
    *
    * @param listener The state listener
    */
-  public onTransition(listener: StateListener): Interpreter<TContext> {
+  public onTransition(
+    listener: StateListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.add(listener);
     return this;
   }
@@ -234,7 +236,9 @@ export class Interpreter<
    * Adds an event listener that is notified whenever an event is sent to the running interpreter.
    * @param listener The event listener
    */
-  public onEvent(listener: EventListener): Interpreter<TContext> {
+  public onEvent(
+    listener: EventListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.eventListeners.add(listener);
     return this;
   }
@@ -242,7 +246,9 @@ export class Interpreter<
    * Adds an event listener that is notified whenever a `send` event occurs.
    * @param listener The event listener
    */
-  public onSend(listener: EventListener): Interpreter<TContext> {
+  public onSend(
+    listener: EventListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.sendListeners.add(listener);
     return this;
   }
@@ -250,7 +256,9 @@ export class Interpreter<
    * Adds a context listener that is notified whenever the state context changes.
    * @param listener The context listener
    */
-  public onChange(listener: ContextListener<TContext>): Interpreter<TContext> {
+  public onChange(
+    listener: ContextListener<TContext>
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.contextListeners.add(listener);
     return this;
   }
@@ -258,7 +266,9 @@ export class Interpreter<
    * Adds a listener that is notified when the machine is stopped.
    * @param listener The listener
    */
-  public onStop(listener: Listener): Interpreter<TContext> {
+  public onStop(
+    listener: Listener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.stopListeners.add(listener);
     return this;
   }
@@ -266,7 +276,9 @@ export class Interpreter<
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
    */
-  public onDone(listener: EventListener): Interpreter<TContext> {
+  public onDone(
+    listener: EventListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.doneListeners.add(listener);
     return this;
   }
@@ -274,7 +286,9 @@ export class Interpreter<
    * Removes a listener.
    * @param listener The listener to remove
    */
-  public off(listener: StateListener): Interpreter<TContext> {
+  public off(
+    listener: StateListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.delete(listener);
     return this;
   }
@@ -291,7 +305,7 @@ export class Interpreter<
       TContext,
       TEvent
     >
-  ): Interpreter<TContext> {
+  ): Interpreter<TContext, TStateSchema, TEvent> {
     this.initialized = true;
     this.update(initialState, { type: actionTypes.init });
     return this;
@@ -301,7 +315,7 @@ export class Interpreter<
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext> {
+  public stop(): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.forEach(listener => this.off(listener));
     this.stopListeners.forEach(listener => {
       // call listener, then remove
@@ -612,7 +626,10 @@ export function interpret<
   machine: StateMachine<TContext, TStateSchema, TEvent>,
   options?: Partial<InterpreterOptions>
 ) {
-  const interpreter = new Interpreter(machine, options);
+  const interpreter = new Interpreter<TContext, TStateSchema, TEvent>(
+    machine,
+    options
+  );
 
   return interpreter;
 }
