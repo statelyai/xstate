@@ -20,9 +20,10 @@ describe('history states', () => {
           },
           third: {},
           H: {
-            history: true
+            type: 'history'
           },
           hist: {
+            type: 'history',
             history: 'shallow'
           }
         },

@@ -43,4 +43,6 @@ docs-src/.cache
 
 public/
 .cache
+
+# Docs
 .docz

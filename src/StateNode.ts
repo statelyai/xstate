@@ -286,7 +286,7 @@ class StateNode<
    */
   public withConfig(
     options: MachineOptions<TContext, TEvent>,
-    context?: TContext
+    context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
     const { actions, activities, guards } = this.options;
 
@@ -1341,7 +1341,7 @@ class StateNode<
         [key]: mapFilterValues<StateNode<TContext>, StateValue>(
           this.states,
           stateNode => stateNode.resolvedStateValue[stateNode.key],
-          stateNode => !stateNode.history
+          stateNode => !(stateNode.type === 'history')
         )
       };
     }
@@ -1379,7 +1379,7 @@ class StateNode<
       ? mapFilterValues(
           this.states as Record<string, StateNode<TContext>>,
           state => state.initialStateValue || EMPTY_OBJECT,
-          stateNode => !stateNode.history
+          stateNode => !(stateNode.type === 'history')
         )
       : typeof this.resolvedStateValue === 'string'
         ? undefined
@@ -1460,7 +1460,7 @@ class StateNode<
    */
   public get target(): StateValue | undefined {
     let target;
-    if (this.history) {
+    if (this.type === 'history') {
       const historyConfig = this.config as HistoryStateNodeConfig<
         TContext,
         TEvent
@@ -1511,7 +1511,7 @@ class StateNode<
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
       return resolve
-        ? unresolvedStateNode.history
+        ? unresolvedStateNode.type === 'history'
           ? unresolvedStateNode.resolveHistory(historyValue)
           : unresolvedStateNode.initialStateNodes
         : [unresolvedStateNode];
@@ -1579,7 +1579,7 @@ class StateNode<
 
     const childStateNode = this.getStateNode(x);
 
-    if (childStateNode.history) {
+    if (childStateNode.type === 'history') {
       return childStateNode.resolveHistory(historyValue);
     }
 
@@ -1658,7 +1658,7 @@ class StateNode<
   private resolveHistory(
     historyValue?: HistoryValue
   ): Array<StateNode<TContext>> {
-    if (!this.history) {
+    if (this.type !== 'history') {
       return [this];
     }
 

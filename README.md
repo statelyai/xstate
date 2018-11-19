@@ -65,16 +65,9 @@ toggleService.send('TOGGLE');
 
 ## Visualizer
 
-**[:new: Preview and simulate your statecharts in the xstate visualizer (beta)!](https://bit.ly/xstate-viz)**
+**[:new: Preview and simulate your statecharts in the XState visualizer (beta)!](https://statecharts.github.io/xstate-viz)**
 
-<a href="https://bit.ly/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/fOMJKDZ.png" alt="xstate visualizer" width="300" /></a>
-
-## 3rd-Party Usage
-
-With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as `xstate`-compatible JSON!
-1. Create your sketch (example: https://sketch.systems/anon/sketch/new)
-2. Click **Export to clipboard...**
-3. Select `XState JSON`
+<a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
 
 ## Why?
 Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the _behavior_ of your application, from the individual components to the overall application logic.
@@ -99,7 +92,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 import { Machine } from 'xstate';
 
 const lightMachine = Machine({
-  key: 'light',
+  id: 'light',
   initial: 'green',
   states: {
     green: {
@@ -154,7 +147,7 @@ const pedestrianStates = {
 };
 
 const lightMachine = Machine({
-  key: 'light',
+  id: 'light',
   initial: 'green',
   states: {
     green: {
@@ -222,7 +215,8 @@ lightMachine
 
 ```js
 const wordMachine = Machine({
-  parallel: true,
+  id: 'word',
+  type: 'parallel',
   states: {
     bold: {
       initial: 'off',
@@ -308,6 +302,7 @@ const nextState = wordMachine
 
 ```js
 const paymentMachine = Machine({
+  id: 'payment',
   initial: 'method',
   states: {
     method: {
@@ -315,7 +310,7 @@ const paymentMachine = Machine({
       states: {
         cash: { on: { SWITCH_CHECK: 'check' } },
         check: { on: { SWITCH_CASH: 'cash' } },
-        hist: { history: true }
+        hist: { type: 'history' }
       },
       on: { NEXT: 'review' }
     },
@@ -353,6 +348,3 @@ const previousState = paymentMachine
 Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
 
 <a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
-
-## Interpreters
-- [`xstateful` by @avaragado](https://www.npmjs.com/package/@avaragado/xstateful)
