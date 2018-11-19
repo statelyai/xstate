@@ -119,15 +119,8 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 					<li><a href="#interpreters">Interpreters</a></li>
 				</ul>
 				<h2 id="visualizer">Visualizer</h2>
-				<p><strong><a href="https://bit.ly/xstate-viz">:new: Preview and simulate your statecharts in the xstate visualizer (beta)!</a></strong></p>
-				<p><a href="https://bit.ly/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/fOMJKDZ.png" alt="xstate visualizer" width="300" /></a></p>
-				<h2 id="3rd-party-usage">3rd-Party Usage</h2>
-				<p>With <a href="https://sketch.systems">sketch.systems</a>, you can now copy-paste your state machine sketches as <code>xstate</code>-compatible JSON!</p>
-				<ol>
-					<li>Create your sketch (example: <a href="https://sketch.systems/anon/sketch/new">https://sketch.systems/anon/sketch/new</a>)</li>
-					<li>Click <strong>Export to clipboard...</strong></li>
-					<li>Select <code>XState JSON</code></li>
-				</ol>
+				<p><strong><a href="https://statecharts.github.io/xstate-viz">:new: Preview and simulate your statecharts in the XState visualizer (beta)!</a></strong></p>
+				<p><a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a></p>
 				<h2 id="why-">Why?</h2>
 				<p>Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the <em>behavior</em> of your application, from the individual components to the overall application logic.</p>
 				<p>Read <a href="http://slides.com/davidkhourshid/finite-state-machines">📽 the slides</a> (<a href="https://www.youtube.com/watch?v=VU1NKX6Qkxc">🎥 video</a>) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:</p>
@@ -148,7 +141,7 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
 
 <span class="hljs-keyword">const</span> lightMachine = Machine({
-  <span class="hljs-attr">key</span>: <span class="hljs-string">'light'</span>,
+  <span class="hljs-attr">id</span>: <span class="hljs-string">'light'</span>,
   <span class="hljs-attr">initial</span>: <span class="hljs-string">'green'</span>,
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">green</span>: {
@@ -198,7 +191,7 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 };
 
 <span class="hljs-keyword">const</span> lightMachine = Machine({
-  <span class="hljs-attr">key</span>: <span class="hljs-string">'light'</span>,
+  <span class="hljs-attr">id</span>: <span class="hljs-string">'light'</span>,
   <span class="hljs-attr">initial</span>: <span class="hljs-string">'green'</span>,
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">green</span>: {
@@ -257,7 +250,8 @@ lightMachine
 				<h2 id="parallel-state-machines">Parallel State Machines</h2>
 				<img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> wordMachine = Machine({
-  <span class="hljs-attr">parallel</span>: <span class="hljs-literal">true</span>,
+  <span class="hljs-attr">id</span>: <span class="hljs-string">'word'</span>,
+  <span class="hljs-attr">type</span>: <span class="hljs-string">'parallel'</span>,
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">bold</span>: {
       <span class="hljs-attr">initial</span>: <span class="hljs-string">'off'</span>,
@@ -338,6 +332,7 @@ lightMachine
 				<h2 id="history-states">History States</h2>
 				<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> paymentMachine = Machine({
+  <span class="hljs-attr">id</span>: <span class="hljs-string">'payment'</span>,
   <span class="hljs-attr">initial</span>: <span class="hljs-string">'method'</span>,
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">method</span>: {
@@ -345,7 +340,7 @@ lightMachine
       <span class="hljs-attr">states</span>: {
         <span class="hljs-attr">cash</span>: { <span class="hljs-attr">on</span>: { <span class="hljs-attr">SWITCH_CHECK</span>: <span class="hljs-string">'check'</span> } },
         <span class="hljs-attr">check</span>: { <span class="hljs-attr">on</span>: { <span class="hljs-attr">SWITCH_CASH</span>: <span class="hljs-string">'cash'</span> } },
-        <span class="hljs-attr">hist</span>: { <span class="hljs-attr">history</span>: <span class="hljs-literal">true</span> }
+        <span class="hljs-attr">hist</span>: { <span class="hljs-attr">type</span>: <span class="hljs-string">'history'</span> }
       },
       <span class="hljs-attr">on</span>: { <span class="hljs-attr">NEXT</span>: <span class="hljs-string">'review'</span> }
     },
@@ -379,10 +374,6 @@ lightMachine
 				<h2 id="sponsors">Sponsors</h2>
 				<p>Huge thanks to the following companies for sponsoring <code>xstate</code>. You can sponsor further <code>xstate</code> development <a href="https://opencollective.com/xstate">on OpenCollective</a>.</p>
 				<p><a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a></p>
-				<h2 id="interpreters">Interpreters</h2>
-				<ul>
-					<li><a href="https://www.npmjs.com/package/@avaragado/xstateful"><code>xstateful</code> by @avaragado</a></li>
-				</ul>
 			</div>
 		</div>
 		<div class="col-4 col-menu menu-sticky-wrap menu-highlight">
@@ -492,9 +483,6 @@ lightMachine
 						<a href="interfaces/invokedefinition.html" class="tsd-kind-icon">Invoke<wbr>Definition</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="interfaces/machine.html" class="tsd-kind-icon">Machine</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/machineconfig.html" class="tsd-kind-icon">Machine<wbr>Config</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
@@ -541,6 +529,9 @@ lightMachine
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/stateinterface.html" class="tsd-kind-icon">State<wbr>Interface</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+						<a href="interfaces/statemachine.html" class="tsd-kind-icon">State<wbr>Machine</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/statenodeconfig.html" class="tsd-kind-icon">State<wbr>Node<wbr>Config</a>
@@ -745,6 +736,9 @@ lightMachine
 					</li>
 					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#stop" class="tsd-kind-icon">stop</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#machine" class="tsd-kind-icon">Machine</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#assign" class="tsd-kind-icon">assign</a>

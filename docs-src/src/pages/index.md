@@ -1,10 +1,22 @@
-# xstate
+<p align="center">
+  <a href="https://xstate.js.org">
+  <br />
+  <img src="https://github.com/davidkpiano/xstate/blob/gh-pages/xstate-logo.png" alt="XState" width="100"/>
+  <br />
+  <sub>JavaScript state machines and statecharts</sub>
+  <br />
+  <br />
+  </a>
+</p>
 
-[![Travis](https://img.shields.io/travis/davidkpiano/xstate.svg?style=flat-square)]()
-[![npm](https://img.shields.io/npm/v/xstate.svg?style=flat-square)]()
+[![Build Status](https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate)](https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1)
+[![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+
+[**Version 3.x to 4 Migration Guide**](./migration.md)
 
 ## Super quick start
 
@@ -14,7 +26,10 @@ npm i xstate -S
 
 ```js
 import { Machine } from 'xstate';
+import { interpret } from 'xstate/lib/interpreter'; // or use your own interpreter!
 
+// Stateless machine definition
+// machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = Machine({
   initial: 'inactive',
   states: {
@@ -23,20 +38,20 @@ const toggleMachine = Machine({
   }
 });
 
-// Interpret the machine however you want.
-// Here's a simple (side-effectful) example:
-let currentState = toggleMachine.initialState;
+// Machine instance with internal state
+const toggleService = interpret(toggleMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+// => 'inactive'
 
-function send(event) {
-  currentState = toggleMachine.transition(currentState, event);
-  console.log(currentState.value);
-}
+toggleService.send('TOGGLE');
+// => 'active'
 
-send('TOGGLE'); // 'active'
-send('TOGGLE'); // 'inactive'
+toggleService.send('TOGGLE');
+// => 'inactive'
 ```
 
-📖 [Read the documentation!](http://davidkpiano.github.io/xstate/docs)
+📖 [Read the documentation](https://xstate.js.org/docs)
 
 - [Visualizer](#visualizer)
 - [3rd-Party Usage](#3rd-party-usage)
@@ -50,17 +65,9 @@ send('TOGGLE'); // 'inactive'
 
 ## Visualizer
 
-**[:new: Preview and simulate your statecharts in the xstate visualizer (beta)!](https://bit.ly/xstate-viz)**
+**[:new: Preview and simulate your statecharts in the XState visualizer (beta)!](https://statecharts.github.io/xstate-viz)**
 
-<a href="https://bit.ly/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/fOMJKDZ.png" alt="xstate visualizer" width="300" /></a>
-
-## 3rd-Party Usage
-
-With [sketch.systems](https://sketch.systems), you can now copy-paste your state machine sketches as XState-compatible JSON!
-
-1. Create your sketch (example: https://sketch.systems/anon/sketch/new)
-2. Click **Export to clipboard...**
-3. Select `XState JSON`
+<a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
 
 ## Why?
 
@@ -87,7 +94,7 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 import { Machine } from 'xstate';
 
 const lightMachine = Machine({
-  key: 'light',
+  id: 'light',
   initial: 'green',
   states: {
     green: {
@@ -140,7 +147,7 @@ const pedestrianStates = {
 };
 
 const lightMachine = Machine({
-  key: 'light',
+  id: 'light',
   initial: 'green',
   states: {
     green: {
@@ -198,7 +205,8 @@ lightMachine.transition({ red: 'stop' }, 'TIMER').value;
 
 ```js
 const wordMachine = Machine({
-  parallel: true,
+  id: 'word',
+  type: 'parallel',
   states: {
     bold: {
       initial: 'off',
@@ -283,6 +291,7 @@ const nextState = wordMachine.transition(
 
 ```js
 const paymentMachine = Machine({
+  id: 'payment',
   initial: 'method',
   states: {
     method: {
@@ -290,7 +299,7 @@ const paymentMachine = Machine({
       states: {
         cash: { on: { SWITCH_CHECK: 'check' } },
         check: { on: { SWITCH_CASH: 'cash' } },
-        hist: { history: true }
+        hist: { type: 'history' }
       },
       on: { NEXT: 'review' }
     },
@@ -319,6 +328,8 @@ const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 // => { method: 'check' }
 ```
 
-## Interpreters
+## Sponsors
 
-- [`xstateful` by @avaragado](https://www.npmjs.com/package/@avaragado/xstateful)
+Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
+
+<a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
