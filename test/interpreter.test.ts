@@ -207,6 +207,28 @@ describe('interpreter', () => {
     assert.doesNotThrow(() => service.send('SOME_EVENT'));
   });
 
+  it('should throw an error if initial state sent to interpreter is invalid', () => {
+    const invalidMachine = {
+      id: 'fetchMachine',
+      initial: 'create',
+      states: {
+        edit: {
+          initial: 'idle',
+          states: {
+            idle: {
+              on: {
+                FETCH: 'pending'
+              }
+            }
+          }
+        }
+      }
+    }
+
+    const service = interpret(Machine(invalidMachine))
+    assert.throws(() => service.start(), `Initial state 'create' not found on 'fetchMachine'`);
+  });
+
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
     const service = interpret(lightMachine).onTransition(s => (state = s));
