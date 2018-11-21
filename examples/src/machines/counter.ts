@@ -1,4 +1,4 @@
-import { Machine, actions, TransitionConfig } from 'xstate';
+import { Machine, actions } from 'xstate';
 const { assign } = actions;
 
 interface CounterContext {
