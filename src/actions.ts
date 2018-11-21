@@ -22,7 +22,8 @@ import {
   DoneEvent,
   InvokeConfig,
   ErrorExecutionEvent,
-  DoneEventObject
+  DoneEventObject,
+  SendExpr
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -168,18 +169,20 @@ export function raise<TContext, TEvent extends EventObject>(
  *  - `target` - The target of this event (by default, the machine the event was sent from).
  */
 export function send<TContext, TEvent extends EventObject>(
-  event: Event<TEvent>,
+  event: Event<TEvent> | SendExpr<TContext, TEvent>,
   options?: SendActionOptions
 ): SendAction<TContext, TEvent> {
   return {
     to: options ? options.to : undefined,
     type: actionTypes.send,
-    event: toEventObject<TEvent>(event),
+    event: typeof event === 'function' ? event : toEventObject<TEvent>(event),
     delay: options ? options.delay : undefined,
     id:
       options && options.id !== undefined
         ? options.id
-        : (getEventType<TEvent>(event) as string)
+        : typeof event === 'function'
+          ? event.name
+          : (getEventType<TEvent>(event) as string)
   };
 }
 

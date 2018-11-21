@@ -12,7 +12,8 @@ import {
   ActionTypes,
   InvokeDefinition,
   OmniEventObject,
-  OmniEvent
+  OmniEvent,
+  SendExpr
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -135,7 +136,7 @@ export class Interpreter<
    */
   public clock: Clock;
 
-  private eventQueue: TEvent[] = [];
+  private eventQueue: Array<OmniEventObject<TEvent>> = [];
   private delayedEventsMap: Record<string, number> = {};
   private activitiesMap: Record<string, any> = {};
   private listeners: Set<StateListener> = new Set();
@@ -363,7 +364,20 @@ export class Interpreter<
     return sender.bind(this);
   }
 
-  public sendTo = (event: Event<TEvent>, to: string) => {
+  private resolveEvent(
+    event: Event<TEvent> | SendExpr<TContext, TEvent>
+  ): OmniEventObject<TEvent> {
+    if (typeof event === 'function') {
+      return toEventObject(event(this.state.context) as TEvent);
+    }
+
+    return toEventObject(event);
+  }
+
+  public sendTo = (
+    event: Event<TEvent> | SendExpr<TContext, TEvent>,
+    to: string
+  ) => {
     const child =
       to === SpecialTargets.Parent ? this.parent : this.children.get(to);
 
@@ -373,7 +387,7 @@ export class Interpreter<
       );
     }
 
-    child.send(event);
+    child.send(this.resolveEvent(event));
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -423,7 +437,7 @@ export class Interpreter<
       if (sendAction.to) {
         this.sendTo(sendAction.event, sendAction.to);
       } else {
-        this.send(sendAction.event);
+        this.send(this.resolveEvent(sendAction.event));
       }
     }, sendAction.delay || 0);
   }
@@ -451,7 +465,7 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction.event, sendAction.to);
           } else {
-            this.eventQueue.push(sendAction.event);
+            this.eventQueue.push(this.resolveEvent(sendAction.event));
           }
         }
         break;

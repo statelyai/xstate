@@ -1346,10 +1346,8 @@ class StateNode<
       return key;
     }
 
-    if (!this.states[this.initial]){
-      throw new Error(
-        `Initial state '${this.initial}' not found on '${key}'`
-      );
+    if (!this.states[this.initial]) {
+      throw new Error(`Initial state '${this.initial}' not found on '${key}'`);
     }
 
     return {

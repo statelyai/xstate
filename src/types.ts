@@ -615,10 +615,14 @@ export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext> {
   to: string | undefined;
-  event: TEvent;
+  event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number;
   id: string | number;
 }
+
+export type SendExpr<TContext, TEvent extends EventObject> = (
+  context: TContext
+) => OmniEvent<TEvent>;
 
 export enum SpecialTargets {
   Parent = '#_parent',

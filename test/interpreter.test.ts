@@ -3,7 +3,7 @@ import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
 import { State } from '../src/State';
-import { log, assign, actionTypes } from '../src/actions';
+import { log, assign, actionTypes, send } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',
@@ -223,10 +223,13 @@ describe('interpreter', () => {
           }
         }
       }
-    }
+    };
 
-    const service = interpret(Machine(invalidMachine))
-    assert.throws(() => service.start(), `Initial state 'create' not found on 'fetchMachine'`);
+    const service = interpret(Machine(invalidMachine));
+    assert.throws(
+      () => service.start(),
+      `Initial state 'create' not found on 'fetchMachine'`
+    );
   });
 
   it('should not update when stopped', () => {
@@ -272,5 +275,38 @@ describe('interpreter', () => {
 
     assert.lengthOf(logs, 2);
     assert.deepEqual(logs, [{ count: 1 }, { count: 2 }]);
+  });
+
+  describe('send() event expressions', () => {
+    interface Ctx {
+      password: string;
+    }
+    const machine = Machine<Ctx>({
+      id: 'sendexpr',
+      initial: 'start',
+      context: {
+        password: 'foo'
+      },
+      states: {
+        start: {
+          onEntry: send(ctx => ({ type: 'NEXT', password: ctx.password })),
+          on: {
+            NEXT: {
+              target: 'finish',
+              cond: (_, e) => e.password === 'foo'
+            }
+          }
+        },
+        finish: {
+          type: 'final'
+        }
+      }
+    });
+
+    it('should resolve send event expressions', done => {
+      interpret(machine)
+        .onDone(() => done())
+        .start();
+    });
   });
 });
