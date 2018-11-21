@@ -3,7 +3,7 @@ import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import { Machine, actions } from '../src';
 import { State } from '../src/State';
-import { log, assign, actionTypes, send } from '../src/actions';
+import { log, assign, actionTypes, send, sendParent } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',
@@ -305,6 +305,54 @@ describe('interpreter', () => {
 
     it('should resolve send event expressions', done => {
       interpret(machine)
+        .onDone(() => done())
+        .start();
+    });
+  });
+
+  describe('sendParent() event expressions', () => {
+    interface Ctx {
+      password: string;
+    }
+    const childMachine = Machine<Ctx>({
+      id: 'child',
+      initial: 'start',
+      context: {
+        password: 'unknown'
+      },
+      states: {
+        start: {
+          onEntry: sendParent(ctx => ({ type: 'NEXT', password: ctx.password }))
+        }
+      }
+    });
+
+    const parentMachine = Machine<Ctx>({
+      id: 'parent',
+      initial: 'start',
+      states: {
+        start: {
+          invoke: {
+            src: childMachine,
+            data: {
+              password: 'foo'
+            }
+          },
+          on: {
+            NEXT: {
+              target: 'finish',
+              cond: (_, e) => e.password === 'foo'
+            }
+          }
+        },
+        finish: {
+          type: 'final'
+        }
+      }
+    });
+
+    it('should resolve sendParent event expressions', done => {
+      interpret(parentMachine)
         .onDone(() => done())
         .start();
     });

@@ -193,7 +193,7 @@ export function send<TContext, TEvent extends EventObject>(
  * @param options Options to pass into the send event.
  */
 export function sendParent<TContext, TEvent extends EventObject>(
-  event: Event<TEvent>,
+  event: Event<TEvent> | SendExpr<TContext, TEvent>,
   options?: SendActionOptions
 ): SendAction<TContext, TEvent> {
   return send<TContext, TEvent>(event, {
