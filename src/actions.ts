@@ -23,7 +23,9 @@ import {
   InvokeConfig,
   ErrorExecutionEvent,
   DoneEventObject,
-  SendExpr
+  SendExpr,
+  SendActionObject,
+  OmniEventObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
@@ -181,8 +183,26 @@ export function send<TContext, TEvent extends EventObject>(
       options && options.id !== undefined
         ? options.id
         : typeof event === 'function'
-          ? event.name
-          : (getEventType<TEvent>(event) as string)
+        ? event.name
+        : (getEventType<TEvent>(event) as string)
+  };
+}
+
+export function resolveSend<TContext, TEvent extends EventObject>(
+  action: SendAction<TContext, TEvent>,
+  ctx: TContext,
+  event: TEvent
+): SendActionObject<TContext, OmniEventObject<TEvent>> {
+  if (typeof action.event === 'function') {
+    return {
+      ...action,
+      event: toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
+    };
+  }
+
+  return {
+    ...action,
+    event: toEventObject(action.event)
   };
 }
 
@@ -387,8 +407,8 @@ export function invoke<TContext, TEvent extends EventObject>(
       (typeof invokeConfig.src === 'string'
         ? invokeConfig.src
         : typeof invokeConfig.src === 'function'
-          ? 'promise'
-          : invokeConfig.src.id)
+        ? 'promise'
+        : invokeConfig.src.id)
   };
 }
 

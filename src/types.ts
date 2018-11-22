@@ -620,8 +620,17 @@ export interface SendAction<TContext, TEvent extends EventObject>
   id: string | number;
 }
 
+export interface SendActionObject<TContext, TEvent extends EventObject>
+  extends SendAction<TContext, TEvent> {
+  to: string | undefined;
+  event: TEvent;
+  delay?: number;
+  id: string | number;
+}
+
 export type SendExpr<TContext, TEvent extends EventObject> = (
-  context: TContext
+  context: TContext,
+  event: TEvent
 ) => OmniEvent<TEvent>;
 
 export enum SpecialTargets {

@@ -2,7 +2,6 @@ import {
   StateMachine,
   Event,
   EventObject,
-  SendAction,
   CancelAction,
   DefaultContext,
   ActionObject,
@@ -13,7 +12,7 @@ import {
   InvokeDefinition,
   OmniEventObject,
   OmniEvent,
-  SendExpr
+  SendActionObject
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -364,20 +363,7 @@ export class Interpreter<
     return sender.bind(this);
   }
 
-  private resolveEvent(
-    event: Event<TEvent> | SendExpr<TContext, TEvent>
-  ): OmniEventObject<TEvent> {
-    if (typeof event === 'function') {
-      return toEventObject(event(this.state.context) as TEvent);
-    }
-
-    return toEventObject(event);
-  }
-
-  public sendTo = (
-    event: Event<TEvent> | SendExpr<TContext, TEvent>,
-    to: string
-  ) => {
+  public sendTo = (event: Event<TEvent>, to: string) => {
     const child =
       to === SpecialTargets.Parent ? this.parent : this.children.get(to);
 
@@ -387,7 +373,7 @@ export class Interpreter<
       );
     }
 
-    child.send(this.resolveEvent(event));
+    child.send(event);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -432,12 +418,12 @@ export class Interpreter<
       child.send(event);
     });
   }
-  private defer(sendAction: SendAction<TContext, TEvent>): number {
+  private defer(sendAction: SendActionObject<TContext, TEvent>): number {
     return this.clock.setTimeout(() => {
       if (sendAction.to) {
         this.sendTo(sendAction.event, sendAction.to);
       } else {
-        this.send(this.resolveEvent(sendAction.event));
+        this.send(sendAction.event);
       }
     }, sendAction.delay || 0);
   }
@@ -456,7 +442,7 @@ export class Interpreter<
 
     switch (action.type) {
       case actionTypes.send:
-        const sendAction = action as SendAction<TContext, TEvent>;
+        const sendAction = action as SendActionObject<TContext, TEvent>;
 
         if (sendAction.delay) {
           this.delayedEventsMap[sendAction.id] = this.defer(sendAction);
@@ -465,7 +451,7 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction.event, sendAction.to);
           } else {
-            this.eventQueue.push(this.resolveEvent(sendAction.event));
+            this.eventQueue.push(sendAction.event);
           }
         }
         break;
@@ -484,10 +470,10 @@ export class Interpreter<
             ? activity.src instanceof StateNode
               ? activity.src
               : typeof activity.src === 'function'
-                ? activity.src
-                : this.machine.options.services
-                  ? this.machine.options.services[activity.src]
-                  : undefined
+              ? activity.src
+              : this.machine.options.services
+              ? this.machine.options.services[activity.src]
+              : undefined
             : undefined;
           const { id, data } = activity;
 

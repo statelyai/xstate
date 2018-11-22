@@ -49,7 +49,8 @@ import {
   OmniEvent,
   ActionObject,
   Mapper,
-  PropertyMapper
+  PropertyMapper,
+  SendAction
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -58,7 +59,6 @@ import {
   start,
   stop,
   toEventObject,
-  toActionObjects,
   toActivityDefinition,
   send,
   cancel,
@@ -67,7 +67,8 @@ import {
   done,
   doneInvoke,
   invoke,
-  toActionObject
+  toActionObject,
+  resolveSend
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -217,10 +218,10 @@ class StateNode<
       (_config.parallel
         ? 'parallel'
         : _config.states && keys(_config.states).length
-          ? 'compound'
-          : _config.history
-            ? 'history'
-            : 'atomic');
+        ? 'compound'
+        : _config.history
+        ? 'history'
+        : 'atomic');
     if (!IS_PRODUCTION && 'parallel' in _config) {
       // tslint:disable-next-line:no-console
       console.warn(
@@ -970,13 +971,13 @@ class StateNode<
       typeof state === 'string'
         ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
         : state instanceof State
-          ? state
-          : this.resolve(state);
+        ? state
+        : this.resolve(state);
     const resolvedContext = context
       ? context
       : state instanceof State
-        ? state.context
-        : this.machine.context!;
+      ? state.context
+      : this.machine.context!;
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const eventType = eventObject.type;
 
@@ -1022,8 +1023,8 @@ class StateNode<
     const historyValue = currentState.historyValue
       ? currentState.historyValue
       : stateTransition.source
-        ? (this.machine.historyValue(currentState.value) as HistoryValue)
-        : undefined;
+      ? (this.machine.historyValue(currentState.value) as HistoryValue)
+      : undefined;
 
     if (!IS_PRODUCTION && stateTransition.tree) {
       try {
@@ -1075,6 +1076,19 @@ class StateNode<
       assignActions
     );
 
+    const resolvedActions = nonEventActions.map(action => {
+      const actionObject = toActionObject(action);
+      if (actionObject.type === actionTypes.send) {
+        return resolveSend(
+          actionObject as SendAction<TContext, TEvent>,
+          updatedContext,
+          event || { type: ActionTypes.Init }
+        ); // TODO: fix ActionTypes.Init
+      }
+
+      return toActionObject(actionObject, this.options.actions);
+    });
+
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)
       : [];
@@ -1099,7 +1113,7 @@ class StateNode<
             ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
           history: stateTransition.source ? currentState : undefined,
-          actions: toActionObjects(nonEventActions, this.options.actions),
+          actions: resolvedActions,
           activities,
           meta,
           events: raisedEvents as TEvent[],
@@ -1381,8 +1395,8 @@ class StateNode<
           stateNode => !(stateNode.type === 'history')
         )
       : typeof this.resolvedStateValue === 'string'
-        ? undefined
-        : this.resolvedStateValue[this.key]) as StateValue;
+      ? undefined
+      : this.resolvedStateValue[this.key]) as StateValue;
 
     this.__cache.initialState = initialStateValue;
 
