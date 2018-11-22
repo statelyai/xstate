@@ -410,7 +410,7 @@ export interface StateNodeDefinition<
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
 }
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
-  extends StateNodeConfig<TContext, never, TEvent> {
+  extends StateNodeConfig<TContext, StateSchema, TEvent> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
