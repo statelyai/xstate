@@ -46,4 +46,5 @@ docs/.cache
 .cache
 
 # Docs
-.docz
+./docs/.vuepress
+./docs/api
