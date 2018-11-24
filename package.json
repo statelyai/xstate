@@ -59,7 +59,6 @@
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
     "chai": "^4.2.0",
-    "docz": "^0.11.2",
     "mocha": "^3.5.3",
     "prettier": "^1.15.2",
     "rollup": "^0.64.1",
@@ -77,7 +76,5 @@
     "vuepress": "^0.14.5",
     "xml-js": "^1.6.8"
   },
-  "dependencies": {
-    "create-react-app": "^2.1.1"
-  }
+  "dependencies": {}
 }
