@@ -35,7 +35,10 @@ export function testAll(machine: StateNode, expected: {}): void {
           assert.isEmpty(resultState.actions);
           assert.isUndefined(resultState.history);
         } else if (typeof toState === 'string') {
-          assert.ok(matchesState(resultState.value, toState));
+          assert.ok(
+            matchesState(toState, resultState.value),
+            `${JSON.stringify(resultState.value)} does not match ${toState}`
+          );
         } else {
           assert.deepEqual(resultState.value, toState);
         }
