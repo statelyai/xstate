@@ -1,0 +1,115 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Using TypeScript | XState Docs</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.ee00321b.css" as="style"><link rel="preload" href="/assets/js/app.ca172a1d.js" as="script"><link rel="preload" href="/assets/js/23.53453c3c.js" as="script"><link rel="prefetch" href="/assets/js/12.4125d389.js"><link rel="prefetch" href="/assets/js/2.cda51ec0.js"><link rel="prefetch" href="/assets/js/3.2e33d629.js"><link rel="prefetch" href="/assets/js/4.c0bc1493.js"><link rel="prefetch" href="/assets/js/5.186deed2.js"><link rel="prefetch" href="/assets/js/6.89e513f4.js"><link rel="prefetch" href="/assets/js/7.267745c5.js"><link rel="prefetch" href="/assets/js/8.86dfd4a0.js"><link rel="prefetch" href="/assets/js/9.a3c17c04.js"><link rel="prefetch" href="/assets/js/10.791073bc.js"><link rel="prefetch" href="/assets/js/11.e94672cb.js"><link rel="prefetch" href="/assets/js/13.19393201.js"><link rel="prefetch" href="/assets/js/14.ea3c3c4f.js"><link rel="prefetch" href="/assets/js/15.ff213920.js"><link rel="prefetch" href="/assets/js/16.b92978a9.js"><link rel="prefetch" href="/assets/js/17.f50e2804.js"><link rel="prefetch" href="/assets/js/18.353138ca.js"><link rel="prefetch" href="/assets/js/19.9cd5bf3b.js"><link rel="prefetch" href="/assets/js/20.bc2d6359.js"><link rel="prefetch" href="/assets/js/21.7b158292.js"><link rel="prefetch" href="/assets/js/22.7a77c4e3.js"><link rel="prefetch" href="/assets/js/24.ed4d5c32.js"><link rel="prefetch" href="/assets/js/25.1e12dda4.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.ee00321b.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><img src="/logo.svg" alt="XState Docs" class="logo"> <span class="site-name can-hide">XState Docs</span></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/api/index.html" class="nav-link">API</a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/api/index.html" class="nav-link">API</a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/guides/states.html" class="sidebar-link">States</a></li><li><a href="/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/guides/hierarchical.html" class="sidebar-link">Hierarchical State Machines</a></li><li><a href="/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/guides/actions.html" class="sidebar-link">Actions and side-effects</a></li><li><a href="/guides/guards.html" class="sidebar-link">Guards (Conditional Transitions)</a></li><li><a href="/guides/context.html" class="sidebar-link">Context (Extended State)</a></li><li><a href="/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/guides/communication.html" class="sidebar-link">Communicating Between Machines</a></li><li><a href="/guides/delays.html" class="sidebar-link">Delayed events and transitions</a></li><li><a href="/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/guides/history.html" class="sidebar-link">History State Nodes</a></li><li><a href="/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/guides/internal.html" class="sidebar-link">Internal Transitions</a></li><li><a href="/guides/interpretation.html" class="sidebar-link">Interpreting machines</a></li><li><a href="/guides/typescript.html" class="active sidebar-link">Using TypeScript</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/guides/typescript.html#using-typescript" class="sidebar-link">Using TypeScript</a></li></ul></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h2 id="using-typescript"><a href="#using-typescript" aria-hidden="true" class="header-anchor">#</a> Using TypeScript</h2> <p>As XState is written in <a href="https://www.typescriptlang.org/" target="_blank" rel="noopener noreferrer">TypeScript<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>, strongly typing your statecharts is useful and encouraged. Consider this light machine example:</p> <div class="language-typescript extra-class"><pre class="language-typescript"><code><span class="token comment">// The hierarchical (recursive) schema for the states</span>
+<span class="token keyword">interface</span> <span class="token class-name">LightStateSchema</span> <span class="token punctuation">{</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        walk<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+        wait<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+        stop<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token comment">// The events that the machine handles</span>
+<span class="token keyword">type</span> LightEvent <span class="token operator">=</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token punctuation">:</span> <span class="token string">'TIMER'</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token punctuation">:</span> <span class="token string">'POWER_OUTAGE'</span> <span class="token punctuation">}</span>
+  <span class="token operator">|</span> <span class="token punctuation">{</span> <span class="token keyword">type</span><span class="token punctuation">:</span> <span class="token string">'PED_COUNTDOWN'</span><span class="token punctuation">;</span> duration<span class="token punctuation">:</span> <span class="token builtin">number</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+
+<span class="token comment">// The context (extended state) of the machine</span>
+<span class="token keyword">interface</span> <span class="token class-name">LightContext</span> <span class="token punctuation">{</span>
+  elapsed<span class="token punctuation">:</span> <span class="token builtin">number</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+
+<span class="token keyword">const</span> lightMachine <span class="token operator">=</span> Machine<span class="token operator">&lt;</span>LightContext<span class="token punctuation">,</span> LightStateSchema<span class="token punctuation">,</span> LightEvent<span class="token operator">&gt;</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  key<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+  context<span class="token punctuation">:</span> <span class="token punctuation">{</span> elapsed<span class="token punctuation">:</span> <span class="token number">0</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'yellow'</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token punctuation">:</span> <span class="token string">'red'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'red'</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token punctuation">:</span> <span class="token string">'red'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+        <span class="token constant">POWER_OUTAGE</span><span class="token punctuation">:</span> <span class="token string">'red'</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        walk<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">PED_COUNTDOWN</span><span class="token punctuation">:</span> <span class="token string">'wait'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">PED_COUNTDOWN</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              target<span class="token punctuation">:</span> <span class="token string">'stop'</span><span class="token punctuation">,</span>
+              cond<span class="token punctuation">:</span> <span class="token punctuation">(</span>ctx<span class="token punctuation">,</span> e<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+                <span class="token keyword">return</span> e<span class="token punctuation">.</span>duration <span class="token operator">===</span> <span class="token number">0</span> <span class="token operator">&amp;&amp;</span> ctx<span class="token punctuation">.</span>elapsed <span class="token operator">&gt;</span> <span class="token number">0</span><span class="token punctuation">;</span>
+              <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        stop<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token string">''</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> target<span class="token punctuation">:</span> <span class="token string">'green'</span> <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>Providing the context, state schema, and events as generic parameters for the <code>Machine()</code> function may seem tedious (and is completely optional), but gives many advantages:</p> <ul><li>The context type/interface (<code>TContext</code>) is passed on to action <code>exec</code> functions, guard <code>cond</code> functions, and more. It is also passed to deeply nested states.</li> <li>The state schema type/interface (<code>TStateSchema</code>) ensures that only state keys defined on the schema are allowed in the actual config object. Nested state schemas are recursively passed down to their representative child states.</li> <li>The event type (<code>TEvent</code>) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to action <code>exec</code> functions, guard <code>cond</code> functions, and more. This can prevent unnecessary <code>event.somePayload === undefined</code> checks.</li></ul></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/guides/interpretation.html" class="prev">
+          Interpreting machines
+        </a></span> <span class="next"><a href="/recipes/react.html">
+          Usage with React
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/assets/js/23.53453c3c.js" defer></script><script src="/assets/js/app.ca172a1d.js" defer></script>
+  </body>
+</html>

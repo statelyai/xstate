@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Final States | XState Docs</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.ee00321b.css" as="style"><link rel="preload" href="/assets/js/app.ca172a1d.js" as="script"><link rel="preload" href="/assets/js/11.e94672cb.js" as="script"><link rel="prefetch" href="/assets/js/12.4125d389.js"><link rel="prefetch" href="/assets/js/2.cda51ec0.js"><link rel="prefetch" href="/assets/js/3.2e33d629.js"><link rel="prefetch" href="/assets/js/4.c0bc1493.js"><link rel="prefetch" href="/assets/js/5.186deed2.js"><link rel="prefetch" href="/assets/js/6.89e513f4.js"><link rel="prefetch" href="/assets/js/7.267745c5.js"><link rel="prefetch" href="/assets/js/8.86dfd4a0.js"><link rel="prefetch" href="/assets/js/9.a3c17c04.js"><link rel="prefetch" href="/assets/js/10.791073bc.js"><link rel="prefetch" href="/assets/js/13.19393201.js"><link rel="prefetch" href="/assets/js/14.ea3c3c4f.js"><link rel="prefetch" href="/assets/js/15.ff213920.js"><link rel="prefetch" href="/assets/js/16.b92978a9.js"><link rel="prefetch" href="/assets/js/17.f50e2804.js"><link rel="prefetch" href="/assets/js/18.353138ca.js"><link rel="prefetch" href="/assets/js/19.9cd5bf3b.js"><link rel="prefetch" href="/assets/js/20.bc2d6359.js"><link rel="prefetch" href="/assets/js/21.7b158292.js"><link rel="prefetch" href="/assets/js/22.7a77c4e3.js"><link rel="prefetch" href="/assets/js/23.53453c3c.js"><link rel="prefetch" href="/assets/js/24.ed4d5c32.js"><link rel="prefetch" href="/assets/js/25.1e12dda4.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.ee00321b.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><img src="/logo.svg" alt="XState Docs" class="logo"> <span class="site-name can-hide">XState Docs</span></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="/api/index.html" class="nav-link">API</a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="/api/index.html" class="nav-link">API</a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/guides/states.html" class="sidebar-link">States</a></li><li><a href="/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/guides/hierarchical.html" class="sidebar-link">Hierarchical State Machines</a></li><li><a href="/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/guides/actions.html" class="sidebar-link">Actions and side-effects</a></li><li><a href="/guides/guards.html" class="sidebar-link">Guards (Conditional Transitions)</a></li><li><a href="/guides/context.html" class="sidebar-link">Context (Extended State)</a></li><li><a href="/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/guides/communication.html" class="sidebar-link">Communicating Between Machines</a></li><li><a href="/guides/delays.html" class="sidebar-link">Delayed events and transitions</a></li><li><a href="/guides/final.html" class="active sidebar-link">Final States</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/guides/final.html#parallel-states" class="sidebar-link">Parallel states</a></li><li class="sidebar-sub-header"><a href="/guides/final.html#scxml" class="sidebar-link">SCXML</a></li><li class="sidebar-sub-header"><a href="/guides/final.html#notes" class="sidebar-link">Notes</a></li></ul></li><li><a href="/guides/history.html" class="sidebar-link">History State Nodes</a></li><li><a href="/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/guides/internal.html" class="sidebar-link">Internal Transitions</a></li><li><a href="/guides/interpretation.html" class="sidebar-link">Interpreting machines</a></li><li><a href="/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h1 id="final-states"><a href="#final-states" aria-hidden="true" class="header-anchor">#</a> Final States</h1> <p>A final state node indicates the completion of a part of the statechart, or the entire statechart. Specifically, it indicates that its parent compound state node is &quot;done&quot;. If the parent is the root statechart, then the entire statechart is &quot;done&quot; and any further execution is stopped.</p> <p>This has many useful use-cases. To indicate that a state node is final, set its <code>type</code> property to <code>'final'</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'yellow'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      type<span class="token punctuation">:</span> <span class="token string">'parallel'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        crosswalkNorth<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          initial<span class="token punctuation">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+          states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            walk<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_WAIT</span><span class="token punctuation">:</span> <span class="token string">'wait'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_STOP</span><span class="token punctuation">:</span> <span class="token string">'stop'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            stop<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              <span class="token comment">// 'stop' is a final state node for 'crosswalkNorth'</span>
+              type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            actions<span class="token punctuation">:</span> <span class="token string">'stopCrosswalkNorth'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        crosswalkEast<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          initial<span class="token punctuation">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+          states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            walk<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_WAIT</span><span class="token punctuation">:</span> <span class="token string">'wait'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_STOP</span><span class="token punctuation">:</span> <span class="token string">'stop'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            stop<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span><span class="token punctuation">,</span>
+          onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token comment">// 'stop' is a final state node for 'crosswalkEast'</span>
+            actions<span class="token punctuation">:</span> <span class="token string">'stopCrosswalkEast'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      onDone<span class="token punctuation">:</span> <span class="token string">'green'</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>In a compound state, reaching a final child state node (with <code>{ type: 'final' }</code>) will interally raise a <code>done(...)</code> event for that compound state node (e.g., <code>&quot;done.state.light.crosswalkEast&quot;</code>). Using <code>onDone</code> is equivalent to defining a transition for this event.</p> <h2 id="parallel-states"><a href="#parallel-states" aria-hidden="true" class="header-anchor">#</a> Parallel states</h2> <p>When every child state node in a parallel state node is <em>done</em>, the parent parallel state node is also <em>done</em>. That is, when every final state node in every child compound node is reached, the <code>done(...)</code> event will be raised for the parallel state node.</p> <p>This is very useful in modeling parallel tasks. For example, suppose <code>user</code> and <code>items</code> are two parallel tasks:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> shoppingMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token punctuation">:</span> <span class="token string">'shopping'</span><span class="token punctuation">,</span>
+  type<span class="token punctuation">:</span> <span class="token string">'parallel'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    user<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          onEntry<span class="token punctuation">:</span> <span class="token string">'getUser'</span><span class="token punctuation">,</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">RESOLVE_USER</span><span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+            <span class="token constant">REJECT_USER</span><span class="token punctuation">:</span> <span class="token string">'failure'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        success<span class="token punctuation">:</span> <span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        failure<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    items<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          onEntry<span class="token punctuation">:</span> <span class="token string">'getItems'</span><span class="token punctuation">,</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">RESOLVE_ITEMS</span><span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+            <span class="token constant">REJECT_ITEMS</span><span class="token punctuation">:</span> <span class="token string">'failure'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        success<span class="token punctuation">:</span> <span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        failure<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    actions<span class="token punctuation">:</span> <span class="token string">'renderScreen'</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>Only when all of the child states (e.g., <code>'user'</code> and <code>'items'</code>) are in their final states will the <code>onDone</code> transition take place. In this case, once the <code>'shopping.user.success'</code> and <code>'shopping.items.success'</code> state nodes are reached, the <code>'renderScreen'</code> action will be executed.</p> <h2 id="scxml"><a href="#scxml" aria-hidden="true" class="header-anchor">#</a> SCXML</h2> <p>Final states correspond to the SCXML spec: https://www.w3.org/TR/scxml/#final</p> <h2 id="notes"><a href="#notes" aria-hidden="true" class="header-anchor">#</a> Notes</h2> <ul><li>A final state node only indicates that its immediate parent is <em>done</em>. It does not affect the <em>done</em> status of any higher parents, except with parallel state nodes, which are <em>done</em> when all of its child compound state nodes are <em>done</em>.</li> <li>Final state nodes cannot have any children. They are atomic state nodes.</li> <li>You can specify <code>onEntry</code> and <code>onExit</code> actions on final state nodes.</li></ul></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/guides/delays.html" class="prev">
+          Delayed events and transitions
+        </a></span> <span class="next"><a href="/guides/history.html">
+          History State Nodes
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/assets/js/11.e94672cb.js" defer></script><script src="/assets/js/app.ca172a1d.js" defer></script>
+  </body>
+</html>
