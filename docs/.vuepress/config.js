@@ -1,7 +1,8 @@
 module.exports = {
-  title: '',
+  title: 'XState Docs',
   description:
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
+  ga: 'UA-129726387-1',
   themeConfig: {
     logo: '/logo.svg',
     nav: [
