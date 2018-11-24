@@ -1762,7 +1762,7 @@ class StateNode<
     return Array.from(events);
   }
   private formatTransition(
-    target: string | string[] | undefined,
+    target: string | Array<string | StateNode> | undefined,
     transitionConfig: TransitionConfig<TContext, TEvent> | undefined,
     event: string
   ): TransitionDefinition<TContext, TEvent> {
@@ -1792,17 +1792,21 @@ class StateNode<
 
     // Format targets to their full string path
     const formattedTargets = targets.map(_target => {
-      const internalTarget =
+      if (_target instanceof StateNode) {
+        return `#${_target.id}`;
+      }
+
+      const isInternalTarget =
         typeof _target === 'string' && _target[0] === this.delimiter;
-      internal = internal || internalTarget;
+      internal = internal || isInternalTarget;
 
       // If internal target is defined on machine,
       // do not include machine key on target
-      if (internalTarget && !this.parent) {
+      if (isInternalTarget && !this.parent) {
         return _target.slice(1);
       }
 
-      return internalTarget ? this.key + _target : `${_target}`;
+      return isInternalTarget ? this.key + _target : `${_target}`;
     });
 
     return {
@@ -1858,7 +1862,7 @@ class StateNode<
           );
         }
 
-        if (typeof value === 'string') {
+        if (typeof value === 'string' || value instanceof StateNode) {
           return [this.formatTransition([value], undefined, event)];
         }
 

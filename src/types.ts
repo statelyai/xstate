@@ -220,6 +220,7 @@ export type StatesDefinition<
 export type TransitionsConfig<TContext, TEvent extends EventObject> = {
   [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?:
     | string
+    | StateNode<TContext>
     | TransitionConfig<
         TContext,
         TEvent extends { type: K } ? TEvent : EventObject

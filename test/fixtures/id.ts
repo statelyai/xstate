@@ -42,6 +42,28 @@ export const machine = Machine({
           id: 'B.dot'
         }
       }
+    },
+    getter: {
+      on: {
+        get NEXT() {
+          return machine.states.A;
+        },
+        get NEXT_DEEP() {
+          return machine.states.A.states.foo;
+        },
+        NEXT_TARGET: {
+          get target() {
+            return machine.states.B;
+          }
+        },
+        NEXT_TARGET_ARRAY: [
+          {
+            get target() {
+              return machine.states.B;
+            }
+          }
+        ]
+      }
     }
   }
 });
