@@ -66,7 +66,7 @@ searchService.send({ type: 'SEARCH', query: 'something' });
 
 If you want to have a single event transition to different states in certain situations you can supply an array of conditional transitions.
 
-For example, you can model a door that listens for an `OPEN` event, and opens if you are an admin and errors if you are not:
+For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, and goes to the `'closed.error'` state if you are not:
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -90,7 +90,7 @@ const doorMachine = Machine({
         SET_ADMIN: assign({ isAdmin: true }),
         OPEN: [
           { target: 'opened', cond: ctx => ctx.isAdmin },
-          { target: 'closed.error' }
+          { target: '.error' }
         ]
       }
     },
@@ -123,3 +123,76 @@ doorService.send('OPEN');
 
 - The `cond` function must always be a pure function that only references the `context` and `event` arguments.
 - ⚠️ **Warning**: do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple types of events instead.
+
+## "In State" Guards
+
+The `in` property takes a state ID as an argument and returns `true` if and only if that state node is active in the current state. For example, we can add a guard to the traffic light machine:
+
+```js
+const lightMachine = Machine({
+  id: 'light',
+  initial: 'green',
+  states: {
+    green: { on: { TIMER: 'yellow' } },
+    yellow: { on: { TIMER: 'red' } },
+    red: {
+      initial: 'walk',
+      states: {
+        walk: { /* ... */ },
+        wait: { /* ... */ },
+        stop: { /* ... */ }
+      },
+      on: {
+        TIMER: [
+          {
+            target: 'green',
+            in: '#light.red.stop'
+          }
+        ]
+      }
+    }
+  }
+});
+```
+
+When an `in`-state guard is present with other `cond` guards in the same transition, _all_ guards must evaluate to `true` for the transition to be taken.
+
+## SCXML
+
+The `cond` property is equivalent to the `cond` attribute on the `<transition>` element:
+
+```js
+{
+  on: {
+    e: {
+      target: 'foo',
+      cond: ctx => ctx.x === 1
+    }
+  }
+}
+```
+
+```xml
+<transition event="e" cond="x == 1" target="foo" />
+```
+
+Likewise, the `in` property is equivalent to the `In()` predicate:
+
+```js
+{
+  on: {
+    e: {
+      target: 'cooking',
+      in: '#closed'
+    }
+  }
+}
+```
+
+```xml
+<transition cond="In('closed')" target="cooking"/>
+```
+
+- https://www.w3.org/TR/scxml/#transition - the definition of the `cond` attribute
+- https://www.w3.org/TR/scxml/#ConditionalExpressions - conditional expressions and the requirement of supporting the `In()` predicate
+- https://www.w3.org/TR/scxml/#SelectingTransitions - how transitions are selected given an event
