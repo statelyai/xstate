@@ -1,11 +1,13 @@
 module.exports = {
   title: 'XState Docs',
+  base: '/docs/',
   description:
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   ga: 'UA-129726387-1',
   themeConfig: {
     logo: '/logo.svg',
     nav: [
+      { text: 'API', link: '/api/index.html' },
       { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
       { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
       { text: 'Community', link: 'https://spectrum.chat/statecharts' },
