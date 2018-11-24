@@ -42,7 +42,7 @@ netlify/
 docs/.cache
 !docs/examples/
 
-public/
+./public/
 .cache
 
 # Docs
