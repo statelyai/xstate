@@ -1,0 +1,151 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Parallel State Nodes</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.0ea28f52.css" as="style"><link rel="preload" href="/assets/js/app.878b916c.js" as="script"><link rel="preload" href="/assets/js/19.9cd5bf3b.js" as="script"><link rel="prefetch" href="/assets/js/12.4125d389.js"><link rel="prefetch" href="/assets/js/2.cda51ec0.js"><link rel="prefetch" href="/assets/js/3.2e33d629.js"><link rel="prefetch" href="/assets/js/4.5ba8a31a.js"><link rel="prefetch" href="/assets/js/5.186deed2.js"><link rel="prefetch" href="/assets/js/6.89e513f4.js"><link rel="prefetch" href="/assets/js/7.267745c5.js"><link rel="prefetch" href="/assets/js/8.86dfd4a0.js"><link rel="prefetch" href="/assets/js/9.a3c17c04.js"><link rel="prefetch" href="/assets/js/10.791073bc.js"><link rel="prefetch" href="/assets/js/11.e94672cb.js"><link rel="prefetch" href="/assets/js/13.19393201.js"><link rel="prefetch" href="/assets/js/14.ea3c3c4f.js"><link rel="prefetch" href="/assets/js/15.ff213920.js"><link rel="prefetch" href="/assets/js/16.b92978a9.js"><link rel="prefetch" href="/assets/js/17.f50e2804.js"><link rel="prefetch" href="/assets/js/18.353138ca.js"><link rel="prefetch" href="/assets/js/20.bc2d6359.js"><link rel="prefetch" href="/assets/js/21.7b158292.js"><link rel="prefetch" href="/assets/js/22.7a77c4e3.js"><link rel="prefetch" href="/assets/js/23.53453c3c.js"><link rel="prefetch" href="/assets/js/24.ed4d5c32.js"><link rel="prefetch" href="/assets/js/25.1e12dda4.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.0ea28f52.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><img src="/logo.svg" alt="" class="logo"> <!----></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/guides/states.html" class="sidebar-link">States</a></li><li><a href="/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/guides/hierarchical.html" class="sidebar-link">Hierarchical State Machines</a></li><li><a href="/guides/parallel.html" class="active sidebar-link">Parallel State Nodes</a></li><li><a href="/guides/actions.html" class="sidebar-link">Actions and side-effects</a></li><li><a href="/guides/guards.html" class="sidebar-link">Guards (Conditional Transitions)</a></li><li><a href="/guides/context.html" class="sidebar-link">Context (Extended State)</a></li><li><a href="/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/guides/communication.html" class="sidebar-link">Communicating Between Machines</a></li><li><a href="/guides/delays.html" class="sidebar-link">Delayed events and transitions</a></li><li><a href="/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/guides/history.html" class="sidebar-link">History State Nodes</a></li><li><a href="/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/guides/internal.html" class="sidebar-link">Internal Transitions</a></li><li><a href="/guides/interpretation.html" class="sidebar-link">Interpreting machines</a></li><li><a href="/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h1 id="parallel-state-nodes"><a href="#parallel-state-nodes" aria-hidden="true" class="header-anchor">#</a> Parallel State Nodes</h1> <p>A parallel state node represents multiple <em>orthogonal</em> child state nodes; that is, a parallel state is in <em>all</em> of its child states at the same time. The key word here is <strong>parallel</strong> (or orthogonal) - the states are not directly dependent on each other, and no transitions should exist between parallel state nodes.</p> <p>A parallel state node is specified on the machine and/or any nested compound state by setting <code>type: 'parallel'</code>.</p> <p>For example, the machine below allows the <code>upload</code> and <code>download</code> compound states to be simultaneously active. Imagine that this represents an application where you can download and upload files at the same time:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> fileMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token punctuation">:</span> <span class="token string">'file'</span><span class="token punctuation">,</span>
+  type<span class="token punctuation">:</span> <span class="token string">'parallel'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    upload<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        idle<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">INIT_UPLOAD</span><span class="token punctuation">:</span> <span class="token string">'pending'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">UPLOAD_COMPLETE</span><span class="token punctuation">:</span> <span class="token string">'success'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        success<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    download<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        idle<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">INIT_DOWNLOAD</span><span class="token punctuation">:</span> <span class="token string">'pending'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            <span class="token constant">DOWNLOAD_COMPLETE</span><span class="token punctuation">:</span> <span class="token string">'success'</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        success<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>fileMachine<span class="token punctuation">.</span>initialState<span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   upload: 'idle',</span>
+<span class="token comment">//   download: 'idle'</span>
+<span class="token comment">// }</span>
+</code></pre></div><p>A parallel state node's state value is represented as an object, since objects naturally represent orthogonality via separate keys and values. This object state value can be used to further transition to different states in a parallel state node:</p> <div class="language-js extra-class"><pre class="language-js"><code>console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>
+  fileMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span>
+    <span class="token punctuation">{</span>
+      upload<span class="token punctuation">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
+      download<span class="token punctuation">:</span> <span class="token string">'idle'</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token string">'UPLOAD_COMPLETE'</span>
+  <span class="token punctuation">)</span><span class="token punctuation">.</span>value
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   upload: 'success',</span>
+<span class="token comment">//   download: 'idle'</span>
+<span class="token comment">// }</span>
+</code></pre></div><p>A compound state node can contain parallel state nodes. The configuration is the same for nested state nodes:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token comment">// not a parallel machine</span>
+  id<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'yellow'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'red'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+    <span class="token comment">// nested parallel machine</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      type<span class="token punctuation">:</span> <span class="token string">'parallel'</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        walkSign<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          initial<span class="token punctuation">:</span> <span class="token string">'solid'</span><span class="token punctuation">,</span>
+          states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            solid<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">COUNTDOWN</span><span class="token punctuation">:</span> <span class="token string">'flashing'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            flashing<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">STOP_COUNTDOWN</span><span class="token punctuation">:</span> <span class="token string">'solid'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        pedestrian<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          initial<span class="token punctuation">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+          states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+            walk<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">COUNTDOWN</span><span class="token punctuation">:</span> <span class="token string">'wait'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">STOP_COUNTDOWN</span><span class="token punctuation">:</span> <span class="token string">'stop'</span> <span class="token punctuation">}</span>
+            <span class="token punctuation">}</span><span class="token punctuation">,</span>
+            stop<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+              type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+            <span class="token punctuation">}</span>
+          <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>lightMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span><span class="token string">'yellow'</span><span class="token punctuation">,</span> <span class="token string">'TIMER'</span><span class="token punctuation">)</span><span class="token punctuation">.</span>value<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token comment">// {</span>
+<span class="token comment">//   red: {</span>
+<span class="token comment">//     walkSign: 'solid',</span>
+<span class="token comment">//     pedestrian: 'walk'</span>
+<span class="token comment">//   }</span>
+<span class="token comment">// }</span>
+</code></pre></div></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/guides/hierarchical.html" class="prev">
+          Hierarchical State Machines
+        </a></span> <span class="next"><a href="/guides/actions.html">
+          Actions and side-effects
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/assets/js/19.9cd5bf3b.js" defer></script><script src="/assets/js/app.878b916c.js" defer></script>
+  </body>
+</html>

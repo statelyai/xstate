@@ -1,0 +1,206 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Activities</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/assets/css/0.styles.0ea28f52.css" as="style"><link rel="preload" href="/assets/js/app.878b916c.js" as="script"><link rel="preload" href="/assets/js/6.89e513f4.js" as="script"><link rel="prefetch" href="/assets/js/12.4125d389.js"><link rel="prefetch" href="/assets/js/2.cda51ec0.js"><link rel="prefetch" href="/assets/js/3.2e33d629.js"><link rel="prefetch" href="/assets/js/4.5ba8a31a.js"><link rel="prefetch" href="/assets/js/5.186deed2.js"><link rel="prefetch" href="/assets/js/7.267745c5.js"><link rel="prefetch" href="/assets/js/8.86dfd4a0.js"><link rel="prefetch" href="/assets/js/9.a3c17c04.js"><link rel="prefetch" href="/assets/js/10.791073bc.js"><link rel="prefetch" href="/assets/js/11.e94672cb.js"><link rel="prefetch" href="/assets/js/13.19393201.js"><link rel="prefetch" href="/assets/js/14.ea3c3c4f.js"><link rel="prefetch" href="/assets/js/15.ff213920.js"><link rel="prefetch" href="/assets/js/16.b92978a9.js"><link rel="prefetch" href="/assets/js/17.f50e2804.js"><link rel="prefetch" href="/assets/js/18.353138ca.js"><link rel="prefetch" href="/assets/js/19.9cd5bf3b.js"><link rel="prefetch" href="/assets/js/20.bc2d6359.js"><link rel="prefetch" href="/assets/js/21.7b158292.js"><link rel="prefetch" href="/assets/js/22.7a77c4e3.js"><link rel="prefetch" href="/assets/js/23.53453c3c.js"><link rel="prefetch" href="/assets/js/24.ed4d5c32.js"><link rel="prefetch" href="/assets/js/25.1e12dda4.js">
+    <link rel="stylesheet" href="/assets/css/0.styles.0ea28f52.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/" class="home-link router-link-active"><img src="/logo.svg" alt="" class="logo"> <!----></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/guides/states.html" class="sidebar-link">States</a></li><li><a href="/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/guides/hierarchical.html" class="sidebar-link">Hierarchical State Machines</a></li><li><a href="/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/guides/actions.html" class="sidebar-link">Actions and side-effects</a></li><li><a href="/guides/guards.html" class="sidebar-link">Guards (Conditional Transitions)</a></li><li><a href="/guides/context.html" class="sidebar-link">Context (Extended State)</a></li><li><a href="/guides/activities.html" class="active sidebar-link">Activities</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/guides/activities.html#interpretation" class="sidebar-link">Interpretation</a></li></ul></li><li><a href="/guides/communication.html" class="sidebar-link">Communicating Between Machines</a></li><li><a href="/guides/delays.html" class="sidebar-link">Delayed events and transitions</a></li><li><a href="/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/guides/history.html" class="sidebar-link">History State Nodes</a></li><li><a href="/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/guides/internal.html" class="sidebar-link">Internal Transitions</a></li><li><a href="/guides/interpretation.html" class="sidebar-link">Interpreting machines</a></li><li><a href="/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h1 id="activities"><a href="#activities" aria-hidden="true" class="header-anchor">#</a> Activities</h1> <p>An activity is an action that occurs over time, and can be started and stopped. According to Harel's original statecharts paper:</p> <blockquote><p>An activity always takes a nonzero amount of time, like beeping, displaying, or executing lengthy computations.</p></blockquote> <p>For example, a toggle that &quot;beeps&quot; when active can be represented by a <code>'beeping'</code> activity:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> toggleMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token punctuation">:</span> <span class="token string">'toggle'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'inactive'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    inactive<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'active'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">// The 'beeping' activity will take place as long as</span>
+      <span class="token comment">// the machine is in the 'active' state</span>
+      activities<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'beeping'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'inactive'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  activities<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    beeping<span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+      <span class="token comment">// Start the beeping activity</span>
+      <span class="token keyword">const</span> interval <span class="token operator">=</span> <span class="token function">setInterval</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">'BEEP!'</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">1000</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+      <span class="token comment">// Return a function that stops the beeping activity</span>
+      <span class="token keyword">return</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">clearInterval</span><span class="token punctuation">(</span>interval<span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>In XState, activities are specified on the <code>activities</code> property of a state node. When a state node is entered, an interpreter should <strong>start</strong> its activities, and when it is exited, it should <strong>stop</strong> its activities.</p> <p>To determine which activities are currently active, the <code>State</code> has an <code>activities</code> property, which is a mapping of activity names to <code>true</code> if the activity is started (active), and <code>false</code> if it is stopped.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  key<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'yellow'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'red'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      initial<span class="token punctuation">:</span> <span class="token string">'walk'</span><span class="token punctuation">,</span>
+      <span class="token comment">// the 'activateCrosswalkLight' activity is started upon entering</span>
+      <span class="token comment">// the 'light.red' state, and stopped upon exiting it.</span>
+      activities<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'activateCrosswalkLight'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TIMER</span><span class="token punctuation">:</span> <span class="token string">'green'</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        walk<span class="token punctuation">:</span> <span class="token punctuation">{</span> on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_WAIT</span><span class="token punctuation">:</span> <span class="token string">'wait'</span> <span class="token punctuation">}</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+          <span class="token comment">// the 'blinkCrosswalkLight' activity is started upon entering</span>
+          <span class="token comment">// the 'light.red.wait' state, and stopped upon exiting it</span>
+          <span class="token comment">// or its parent state.</span>
+          activities<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'blinkCrosswalkLight'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+          on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">PED_STOP</span><span class="token punctuation">:</span> <span class="token string">'stop'</span> <span class="token punctuation">}</span>
+        <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        stop<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>In the above machine configuration, the <code>'activateCrosswalkLight'</code> will start when the <code>'light.red'</code> state is entered. It will also execute a special <code>'xstate.start'</code> action, letting the <a href="./interpretation">service</a> know that it should start the activity:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> redState <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span><span class="token string">'yellow'</span><span class="token punctuation">,</span> <span class="token string">'TIMER'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+redState<span class="token punctuation">.</span>activities<span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   activateCrosswalkLight: true</span>
+<span class="token comment">// }</span>
+
+redState<span class="token punctuation">.</span>actions<span class="token punctuation">;</span>
+<span class="token comment">// The 'activateCrosswalkLight' activity is started</span>
+<span class="token comment">// =&gt; [</span>
+<span class="token comment">//   { type: 'xstate.start', activity: 'activateCrosswalkLight' }</span>
+<span class="token comment">// ]</span>
+</code></pre></div><p>Transitioning within the same parent state will <em>not</em> restart its activities, although it might start new activities:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> redWaitState <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span>redState<span class="token punctuation">,</span> <span class="token string">'PED_WAIT'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+redWaitState<span class="token punctuation">.</span>activities<span class="token punctuation">;</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   activateCrosswalkLight: true,</span>
+<span class="token comment">//   blinkCrosswalkLight: true</span>
+<span class="token comment">// }</span>
+
+redWaitState<span class="token punctuation">.</span>actions<span class="token punctuation">;</span>
+<span class="token comment">// The 'blinkCrosswalkLight' activity is started</span>
+<span class="token comment">// Note: the 'activateCrosswalkLight' activity is not restarted</span>
+<span class="token comment">// =&gt; [</span>
+<span class="token comment">//   { type: 'xstate.start', activity: 'blinkCrosswalkLight' }</span>
+<span class="token comment">// ]</span>
+</code></pre></div><p>Leaving a state will stop its activities:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> redStopState <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span>redWaitState<span class="token punctuation">,</span> <span class="token string">'PED_STOP'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+redStopState<span class="token punctuation">.</span>activities<span class="token punctuation">;</span>
+<span class="token comment">// The 'blinkCrosswalkLight' activity is stopped</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   activateCrosswalkLight: true,</span>
+<span class="token comment">//   blinkCrosswalkLight: false</span>
+<span class="token comment">// }</span>
+
+redStopState<span class="token punctuation">.</span>actions<span class="token punctuation">;</span>
+<span class="token comment">// The 'blinkCrosswalkLight' activity is stopped</span>
+<span class="token comment">// =&gt; [</span>
+<span class="token comment">//   { type: 'xstate.stop', activity: 'blinkCrosswalkLight' }</span>
+<span class="token comment">// ]</span>
+</code></pre></div><p>And any stopped activities will be stopped only once:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> greenState <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">transition</span><span class="token punctuation">(</span>redStopState<span class="token punctuation">,</span> <span class="token string">'PED_STOP'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+green<span class="token punctuation">.</span>activities<span class="token punctuation">;</span>
+<span class="token comment">// No active activities</span>
+<span class="token comment">// =&gt; {</span>
+<span class="token comment">//   activateCrosswalkLight: false,</span>
+<span class="token comment">//   blinkCrosswalkLight: false</span>
+<span class="token comment">// }</span>
+
+green<span class="token punctuation">.</span>actions<span class="token punctuation">;</span>
+<span class="token comment">// The 'activateCrosswalkLight' activity is stopped</span>
+<span class="token comment">// Note: the 'blinkCrosswalkLight' activity is not stopped again</span>
+<span class="token comment">// =&gt; [</span>
+<span class="token comment">//   { type: 'xstate.stop', activity: 'activateCrosswalkLight' }</span>
+<span class="token comment">// ]</span>
+</code></pre></div><h2 id="interpretation"><a href="#interpretation" aria-hidden="true" class="header-anchor">#</a> Interpretation</h2> <p>(since 4.0) In the machine options, the &quot;start&quot; and &quot;stop&quot; behavior of the activity can be defined in the <code>activities</code> property. This is done by:</p> <ul><li>Passing in a function that <strong>starts</strong> the activity (as a side-effect)</li> <li>From that function, returning another function that <strong>stops</strong> the activity (also as a side-effect).</li></ul> <p>For example, here's how a <code>'beeping'</code> activity that logs <code>'BEEP!'</code> to the console every <code>ctx.interval</code> would be implemented:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">function</span> <span class="token function">createBeepingActivity</span><span class="token punctuation">(</span>ctx<span class="token punctuation">,</span> activity<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+  <span class="token comment">// Start the beeping activity</span>
+  <span class="token keyword">const</span> interval <span class="token operator">=</span> <span class="token function">setInterval</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">'BEEP!'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span> ctx<span class="token punctuation">.</span>interval<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+  <span class="token comment">// Return a function that stops the beeping activity</span>
+  <span class="token keyword">return</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">clearInterval</span><span class="token punctuation">(</span>interval<span class="token punctuation">)</span><span class="token punctuation">;</span>
+<span class="token punctuation">}</span>
+</code></pre></div><p>The activity creator is always given two arguments:</p> <ul><li>the current <code>context</code></li> <li>the defined <code>activity</code> <ul><li>e.g., <code>{ type: 'beeping' }</code></li></ul></li></ul> <p>Then you would pass this into the machine options (second argument) under the <code>activities</code> property:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> toggleMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token punctuation">:</span> <span class="token string">'toggle'</span><span class="token punctuation">,</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'inactive'</span><span class="token punctuation">,</span>
+  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    interval<span class="token punctuation">:</span> <span class="token number">1000</span> <span class="token comment">// beep every second</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    inactive<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'active'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      activities<span class="token punctuation">:</span> <span class="token punctuation">[</span><span class="token string">'beeping'</span><span class="token punctuation">]</span><span class="token punctuation">,</span>
+      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'inactive'</span> <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+  activities<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    beeping<span class="token punctuation">:</span> createBeepingActivity
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>Using XState's <a href="./interpretation">interpreter</a>, every time an action occurs to start an activity, it will call that activity creator to start the activity, and use the returned &quot;stopper&quot; (if it is returned) to stop the activity:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate/lib/interpreter'</span><span class="token punctuation">;</span>
+
+<span class="token comment">// ... (previous code)</span>
+
+<span class="token keyword">const</span> service <span class="token operator">=</span> <span class="token function">interpret</span><span class="token punctuation">(</span>toggleMachine<span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+service<span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// nothing logged yet</span>
+
+service<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'TOGGLE'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// =&gt; 'BEEP!'</span>
+<span class="token comment">// =&gt; 'BEEP!'</span>
+<span class="token comment">// =&gt; 'BEEP!'</span>
+<span class="token comment">// ...</span>
+
+service<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'TOGGLE'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+<span class="token comment">// no more beeps!</span>
+</code></pre></div></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/guides/context.html" class="prev">
+          Context (Extended State)
+        </a></span> <span class="next"><a href="/guides/communication.html">
+          Communicating Between Machines
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/assets/js/6.89e513f4.js" defer></script><script src="/assets/js/app.878b916c.js" defer></script>
+  </body>
+</html>
