@@ -35,8 +35,10 @@
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
     "publish:next": "npm version prerelease && npm publish --tag next",
+    "typedoc": "typedoc src/index.ts --excludePrivate --mode file --out ./docs/.vuepress/dist/api --target es6",
     "docs:dev": "vuepress dev docs",
-    "docs:build": "vuepress build docs"
+    "docs:build": "vuepress build docs",
+    "docs:publish": "npm run docs:build && npm run typedoc && gh-pages --dist ./docs/.vuepress/dist --dest ./docs --no-push"
   },
   "repository": {
     "type": "git",
