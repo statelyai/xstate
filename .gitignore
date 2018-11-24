@@ -46,4 +46,4 @@ docs/.cache
 .cache
 
 # Docs
-./api/
+api/
