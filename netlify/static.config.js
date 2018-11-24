@@ -98,7 +98,6 @@ export default {
     const posts = await getPosts();
     const guides = await getGuides();
 
-    console.log(guides);
     return [
       {
         path: '/',
