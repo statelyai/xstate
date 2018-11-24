@@ -7,7 +7,7 @@ module.exports = {
   themeConfig: {
     logo: '/logo.svg',
     nav: [
-      { text: 'API', link: '/api/index.html' },
+      { text: 'API', link: 'https://xstate.js.org/api' },
       { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
       { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
       { text: 'Community', link: 'https://spectrum.chat/statecharts' },
