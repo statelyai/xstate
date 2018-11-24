@@ -4,6 +4,12 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   themeConfig: {
     logo: '/logo.svg',
+    nav: [
+      { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
+      { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
+      { text: 'Community', link: 'https://spectrum.chat/statecharts' },
+      { text: 'GitHub', link: 'https://github.com/davidkpiano/xstate' }
+    ],
     sidebar: [
       {
         title: 'Guides',
@@ -27,6 +33,10 @@ module.exports = {
           '/guides/interpretation',
           '/guides/typescript'
         ]
+      },
+      {
+        title: 'Recipes',
+        children: ['/recipes/react', '/recipes/rxjs']
       }
     ]
   }

@@ -34,7 +34,9 @@
     "version": "npm run build",
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
-    "publish:next": "npm version prerelease && npm publish --tag next"
+    "publish:next": "npm version prerelease && npm publish --tag next",
+    "docs:dev": "vuepress dev docs",
+    "docs:build": "vuepress build docs"
   },
   "repository": {
     "type": "git",
