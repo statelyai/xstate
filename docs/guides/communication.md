@@ -1,6 +1,6 @@
-# Communicating Between Machines
+# Invoking Services
 
-Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other machine "actors" and react to them.
+Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or machines) and react to them.
 
 For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](/guides/final), which will then cause the `onDone` transition to be taken.
 
@@ -29,6 +29,8 @@ const parentMachine = Machine({
     pending: {
       invoke: {
         src: minuteMachine,
+        // The onDone transition will be taken when the
+        // minuteMachine has reached its top-level final state.
         onDone: 'timesUp'
       }
     },
@@ -53,7 +55,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 - `src` - the source of the machine to invoke, which can be:
   - a machine
   - a string, which refers to a machine defined in this machine's `options.services`
-  - a function that returns a Promise
+  - a function that returns a `Promise`
 - `id` - the unique identifier for the invoked service
 - `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
 - `data` - (optional) an object that maps properties of the child machine's [context](/guides/context) to a function that returns the corresponding value from the parent machine's `context`.
@@ -151,6 +153,7 @@ const userMachine = Machine({
     },
     loading: {
       invoke: {
+        id: 'getUser',
         src: (ctx, event) => fetchUser(ctx.userId),
         onDone: {
           target: 'success',
@@ -162,6 +165,7 @@ const userMachine = Machine({
         }
       }
     },
+    success: {},
     failure: {
       on: {
         RETRY: 'loading'
@@ -171,4 +175,110 @@ const userMachine = Machine({
 });
 ```
 
-The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` property.
+The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` property, e.g.:
+
+```js
+{
+  type: 'done.invoke.getUser',
+  data: {
+    name: 'David',
+    location: 'Florida'
+  }
+}
+```
+
+## Configuring Services
+
+The invocation sources (services) can be configured similar to how actions, guards, etc. are configured -- by specifying the `src` as a string and defining them in the `services` property of the Machine options:
+
+```js
+const fetchUser = // (same as the above example)
+
+const userMachine = Machine({
+  id: 'user',
+  // ...
+  states: {
+    // ...
+    loading: {
+      invoke: {
+        src: 'getUser',
+        // ...
+      }
+    },
+    // ...
+  }
+}, {
+  services: {
+    getUser: (ctx, event) => fetchUser(user.id)
+  }
+});
+```
+
+## Testing
+
+By specifying services as strings above, "mocking" services can be done by specifying an alternative implementation with `.withConfig()`:
+
+```js
+import { interpret } from 'xstate/lib/interpreter';
+import { assert } from 'chai';
+import { userMachine } from '../path/to/userMachine';
+
+const mockFetchUser = async userId => {
+  // Mock however you want, but ensure that the same
+  // behavior and response format is used
+  return { name: 'Test', location: 'Anywhere' };
+};
+
+const testUserMachine = userMachine.withConfig({
+  services: {
+    getUser: (ctx, event) => mockFetchUser(ctx.id)
+  }
+});
+
+describe('userMachine', () => {
+  it('should go to the "success" state when a user is found', done => {
+    interpret(testUserMachine)
+      .onTransition(state => {
+        if (state.matches('success')) {
+          assert.deepEqual(state.context.user, {
+            name: 'Test',
+            location: 'Anywhere'
+          });
+
+          done();
+        }
+      })
+      .start();
+  });
+});
+```
+
+## SCXML
+
+The `invoke` property is synonymous to the SCXML `<invoke>` element:
+
+```js
+// XState
+{
+  loading: {
+    invoke: {
+      src: 'someSource',
+      id: 'someID',
+      forward: true,
+      onDone: 'success',
+      onError: 'failure'
+    }
+  }
+}
+```
+
+```xml
+<!-- SCXML -->
+<state id="loading">
+  <invoke id="someID" src="someSource" autoforward />
+  <transition event="done.invoke.someID" target="success" />
+  <transition event="error.execution" cond="_event.src === 'someID'" target="failure" />
+</state>
+```
+
+- [https://www.w3.org/TR/scxml/#invoke](https://www.w3.org/TR/scxml/#invoke) - the definition of `<invoke>`
