@@ -162,6 +162,24 @@ describe('invoke', () => {
       .send('GO_TO_WAITING_MACHINE');
   });
 
+  it('should use the service overwritten by withConfig', () => {
+    const service = interpret(parentMachine.withConfig({
+      services: {
+        child: Machine({
+          id: 'child',
+          initial: 'init',
+          states: {
+            init: {
+              onEntry: [actions.sendParent('STOP')]
+            }
+          }
+        })
+      }
+    })).start();
+
+    assert.deepEqual(service.state.value, 'stop');
+  });
+
   describe('with promises', () => {
     const invokePromiseMachine = Machine({
       id: 'invokePromise',

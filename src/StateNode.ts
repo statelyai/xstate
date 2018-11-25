@@ -287,14 +287,15 @@ class StateNode<
     options: MachineOptions<TContext, TEvent>,
     context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
-    const { actions, activities, guards } = this.options;
+    const { actions, activities, guards, services } = this.options;
 
     return new StateNode(
       this.definition,
       {
         actions: { ...actions, ...options.actions },
         activities: { ...activities, ...options.activities },
-        guards: { ...guards, ...options.guards }
+        guards: { ...guards, ...options.guards },
+        services: { ...services, ...options.services }
       },
       context
     );
