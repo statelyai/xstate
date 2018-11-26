@@ -1,0 +1,122 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Machines (Statecharts) | XState Docs</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/docs/assets/css/0.styles.c16736b4.css" as="style"><link rel="preload" href="/docs/assets/js/app.019ebd2e.js" as="script"><link rel="preload" href="/docs/assets/js/20.1752c1f1.js" as="script"><link rel="prefetch" href="/docs/assets/js/13.bdc5f3df.js"><link rel="prefetch" href="/docs/assets/js/2.cda51ec0.js"><link rel="prefetch" href="/docs/assets/js/3.1b40b0d6.js"><link rel="prefetch" href="/docs/assets/js/4.1ee96eb4.js"><link rel="prefetch" href="/docs/assets/js/5.9bd9a1fd.js"><link rel="prefetch" href="/docs/assets/js/6.f4536f5f.js"><link rel="prefetch" href="/docs/assets/js/7.b2fcfe5f.js"><link rel="prefetch" href="/docs/assets/js/8.ccc63b6d.js"><link rel="prefetch" href="/docs/assets/js/9.6cdb998a.js"><link rel="prefetch" href="/docs/assets/js/10.ef5deb7c.js"><link rel="prefetch" href="/docs/assets/js/11.a3eb5d28.js"><link rel="prefetch" href="/docs/assets/js/12.3d298150.js"><link rel="prefetch" href="/docs/assets/js/14.56c102d0.js"><link rel="prefetch" href="/docs/assets/js/15.a044b7b0.js"><link rel="prefetch" href="/docs/assets/js/16.eff7698e.js"><link rel="prefetch" href="/docs/assets/js/17.02d06795.js"><link rel="prefetch" href="/docs/assets/js/18.eb83e203.js"><link rel="prefetch" href="/docs/assets/js/19.f3255e5b.js"><link rel="prefetch" href="/docs/assets/js/21.af44b8c1.js"><link rel="prefetch" href="/docs/assets/js/22.aef05e33.js"><link rel="prefetch" href="/docs/assets/js/23.12a5c4f2.js"><link rel="prefetch" href="/docs/assets/js/24.d678fc5a.js"><link rel="prefetch" href="/docs/assets/js/25.919ec67a.js"><link rel="prefetch" href="/docs/assets/js/26.c8bfb977.js"><link rel="prefetch" href="/docs/assets/js/27.dbab4eff.js">
+    <link rel="stylesheet" href="/docs/assets/css/0.styles.c16736b4.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/docs/" class="home-link router-link-active"><img src="/docs/logo.svg" alt="XState Docs" class="logo"> <span class="site-name can-hide">XState Docs</span></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://xstate.js.org/api" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://xstate.js.org/api" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/docs/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/docs/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/docs/guides/machines.html" class="active sidebar-link">Machines (Statecharts)</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/docs/guides/machines.html#configuration" class="sidebar-link">Configuration</a></li><li class="sidebar-sub-header"><a href="/docs/guides/machines.html#options" class="sidebar-link">Options</a></li><li class="sidebar-sub-header"><a href="/docs/guides/machines.html#extending-machines" class="sidebar-link">Extending Machines</a></li><li class="sidebar-sub-header"><a href="/docs/guides/machines.html#initial-context" class="sidebar-link">Initial Context</a></li></ul></li><li><a href="/docs/guides/states.html" class="sidebar-link">States</a></li><li><a href="/docs/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/docs/guides/hierarchical.html" class="sidebar-link">Hierarchical State Machines</a></li><li><a href="/docs/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/docs/guides/actions.html" class="sidebar-link">Actions and side-effects</a></li><li><a href="/docs/guides/guards.html" class="sidebar-link">Guards (Conditional Transitions)</a></li><li><a href="/docs/guides/context.html" class="sidebar-link">Context (Extended State)</a></li><li><a href="/docs/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/docs/guides/communication.html" class="sidebar-link">Invoking Services</a></li><li><a href="/docs/guides/delays.html" class="sidebar-link">Delayed events and transitions</a></li><li><a href="/docs/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/docs/guides/history.html" class="sidebar-link">History State Nodes</a></li><li><a href="/docs/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/docs/guides/internal.html" class="sidebar-link">Internal Transitions</a></li><li><a href="/docs/guides/interpretation.html" class="sidebar-link">Interpreting machines</a></li><li><a href="/docs/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Examples</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h1 id="machines-statecharts"><a href="#machines-statecharts" aria-hidden="true" class="header-anchor">#</a> Machines (Statecharts)</h1> <p>A <strong>state machine</strong> is a finite set of <a href="/docs/guides/states.html">states</a> that can transition to each other deterministically due to events. A <strong>statechart</strong> is an extension of state machines; mainly, they can have:</p> <ul><li><a href="/docs/guides/hierarchical.html">Hierarchical</a> (or nested) states</li> <li><a href="/docs/guides/parallel.html">Orthogonal</a> (or parallel) states</li> <li><a href="/docs/guides/history.html">History</a> states</li> <li>And more, as described in <a href="http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf" target="_blank" rel="noopener noreferrer">Statecharts: a Visual Formalism for Complex Systems<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>.</li></ul> <h2 id="configuration"><a href="#configuration" aria-hidden="true" class="header-anchor">#</a> Configuration</h2> <p>State machines and statecharts alike are defined using the <code>Machine()</code> factory function:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+
+<span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token comment">// Machine identifier</span>
+  id<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+
+  <span class="token comment">// Initial state</span>
+  initial<span class="token punctuation">:</span> <span class="token string">'green'</span><span class="token punctuation">,</span>
+
+  <span class="token comment">// Local context for entire machine</span>
+  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    elapsed<span class="token punctuation">:</span> <span class="token number">0</span><span class="token punctuation">,</span>
+    direction<span class="token punctuation">:</span> <span class="token string">'east'</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+
+  <span class="token comment">// State definitions</span>
+  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    yellow<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    red<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>The machine config is the same as the <a href="/docs/guides/states.html">state config</a>, with the exception of <a href="/docs/guides/context.html"><code>context</code></a>. The machine's <code>context</code> represents the local &quot;extended state&quot; for all of the machine's nested states.</p> <h2 id="options"><a href="#options" aria-hidden="true" class="header-anchor">#</a> Options</h2> <p>Implementations for <a href="/docs/guides/actions.html">actions</a>, <a href="/docs/guides/activities.html">activities</a>, <a href="/docs/guides/guards.html">guards</a>, and <a href="/docs/guides/communication.html">services</a> can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to <code>Machine()</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span>
+  <span class="token punctuation">{</span>
+    id<span class="token punctuation">:</span> <span class="token string">'light'</span><span class="token punctuation">,</span>
+    initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+    states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      green<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        <span class="token comment">// action referenced via string</span>
+        onEntry<span class="token punctuation">:</span> <span class="token string">'alertGreen'</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span>
+    actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">// action implementation</span>
+      alertGreen<span class="token punctuation">:</span> <span class="token punctuation">(</span>ctx<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token function">alert</span><span class="token punctuation">(</span><span class="token string">'Green!'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    activities<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    guards<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    services<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">/* ... */</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>This object has 4 optional properties:</p> <ul><li><code>actions</code> - the mapping of action names to their implementation</li> <li><code>activities</code> - the mapping of activity names to their implementation</li> <li><code>guards</code> - the mapping of transition guard (<code>cond</code>) names to their implementation</li> <li><code>services</code> - the mapping of invoked service (<code>src</code>) names to their implementation</li></ul> <h2 id="extending-machines"><a href="#extending-machines" aria-hidden="true" class="header-anchor">#</a> Extending Machines</h2> <p>Existing machines can be extended using <code>.withConfig()</code>, which takes the same object structure as above:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token comment">// (same as above example)</span>
+
+<span class="token keyword">const</span> noAlertLightMachine <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">withConfig</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  actions<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+    alertGreen<span class="token punctuation">:</span> <span class="token punctuation">(</span>ctx<span class="token punctuation">,</span> event<span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+      console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span><span class="token string">'green'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="initial-context"><a href="#initial-context" aria-hidden="true" class="header-anchor">#</a> Initial Context</h2> <p>As shown in the first example, the <code>context</code> is defined directly in the configuration itself. If you want to extend an existing machine with a different initial <code>context</code>, you can use <code>.withContext()</code> and pass in the custom <code>context</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> lightMachine <span class="token operator">=</span> <span class="token comment">// (same as first example)</span>
+
+<span class="token keyword">const</span> testLightMachine <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">withContext</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  elapsed<span class="token punctuation">:</span> <span class="token number">1000</span><span class="token punctuation">,</span>
+  direction<span class="token punctuation">:</span> <span class="token string">'north'</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div><p>⚠️ Caution: this will <em>not</em> do a shallow merge of the original <code>context</code>, and will instead <em>replace</em> the original <code>context</code> with the <code>context</code> provided to <code>.withContext(...)</code>. You can still &quot;merge&quot; contexts manually, by referencing <code>machine.context</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> testLightMachine <span class="token operator">=</span> lightMachine<span class="token punctuation">.</span><span class="token function">withContext</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  <span class="token comment">// merge with original context</span>
+  <span class="token operator">...</span>lightMachine<span class="token punctuation">.</span>context<span class="token punctuation">,</span>
+  elapsed<span class="token punctuation">:</span> <span class="token number">1000</span>
+<span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+</code></pre></div></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/docs/guides/installation.html" class="prev">
+          Installation
+        </a></span> <span class="next"><a href="/docs/guides/states.html">
+          States
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/docs/assets/js/20.1752c1f1.js" defer></script><script src="/docs/assets/js/app.019ebd2e.js" defer></script>
+  </body>
+</html>
