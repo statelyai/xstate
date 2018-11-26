@@ -89,7 +89,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     return new State(config);
   }
   /**
-   * Creates a new State instance for the given `stateValue` and `context` with no actions (side-effects).
+   * Creates a new `State` instance for the given `stateValue` and `context` with no actions (side-effects).
    * @param stateValue
    * @param context
    */
@@ -112,6 +112,13 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     }
 
     return State.from<TC, TE>(stateValue, context);
+  }
+
+  /**
+   * Returns a new `State` instance that is equal to this state no actions (side-effects).
+   */
+  public get inert(): State<TContext, TEvent> {
+    return State.inert(this, this.context);
   }
 
   /**
@@ -199,8 +206,8 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       (typeof this.history.value !== typeof this.value
         ? true
         : typeof this.value === 'string'
-          ? this.value !== this.history.value
-          : stateValuesEqual(this.value, this.history.value))
+        ? this.value !== this.history.value
+        : stateValuesEqual(this.value, this.history.value))
     );
   }
 }
