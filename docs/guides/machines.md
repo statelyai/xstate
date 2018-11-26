@@ -1,6 +1,6 @@
 # Machines (Statecharts)
 
-A **state machine** is a finite set of [states](./states.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
+A **state machine** is a finite set of [states](./statenodes.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
 
 - [Hierarchical](./hierarchical.md) (or nested) states
 - [Orthogonal](./parallel.md) (or parallel) states
@@ -42,7 +42,7 @@ const lightMachine = Machine({
 });
 ```
 
-The machine config is the same as the [state config](./states.md), with the exception of [`context`](./context.md). The machine's `context` represents the local "extended state" for all of the machine's nested states.
+The machine config is the same as the [state node config](./statenodes.md), with the exception of [`context`](./context.md). The machine's `context` represents the local "extended state" for all of the machine's nested states.
 
 ## Options
 

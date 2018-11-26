@@ -131,7 +131,7 @@ describe('State', () => {
     });
   });
 
-  describe('.create()', () => {
+  describe('State.create()', () => {
     it('should be able to create a state from a JSON config', () => {
       const { initialState } = machine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
@@ -141,6 +141,30 @@ describe('State', () => {
       assert.deepEqual(machine.transition(stateFromConfig, 'TO_TWO').value, {
         two: { deep: 'foo' }
       });
+    });
+  });
+
+  describe('State.inert()', () => {
+    it('should create an inert instance of the given State', () => {
+      const { initialState } = machine;
+
+      assert.isEmpty(State.inert(initialState, undefined).actions);
+    });
+
+    it('should create an inert instance of the given stateValue and context', () => {
+      const { initialState } = machine;
+      const inertState = State.inert(initialState.value, { foo: 'bar' });
+
+      assert.isEmpty(inertState.actions);
+      assert.deepEqual(inertState.context, { foo: 'bar' });
+    });
+  });
+
+  describe('.inert', () => {
+    it('should create an inert instance of the current State', () => {
+      const { initialState } = machine;
+
+      assert.isEmpty(initialState.inert.actions);
     });
   });
 });
