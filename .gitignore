@@ -47,3 +47,4 @@ docs/.cache
 
 # Docs
 api/
+./docs/.vuepress/
