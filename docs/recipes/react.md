@@ -2,7 +2,7 @@
 
 The most straightforward way of using XState with React is through local component state. In general, given a machine definition:
 
-- The `machine` is [interpreted](../guides/interpretation) and its `service` instance is placed on the component instance.
+- The `machine` is [interpreted](../guides/interpretation.md) and its `service` instance is placed on the component instance.
 - For local state, `this.state.current` will hold the current machine state. You can use a property name other than `.current`.
 - When the component is mounted, the `service` is started via `this.service.start()`.
 - When the component will unmount, the `service` is stopped via `this.service.stop()`.

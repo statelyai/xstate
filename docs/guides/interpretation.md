@@ -1,13 +1,13 @@
 # Interpreting machines
 
-While a "stateless" state machine/statechart is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
+While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
 - Keep track of the current state, and persist it
 - Execute side-effects
 - Handle delayed transitions and events
 - Communicate with external services
 
-The **interpreter** is responsible for _interpreting_ the state machine/statechart and doing all of the above - that is, parsing and executing it in a runtime environment. An interpreted, running instance of a statechart is called a **service**. 
+The **interpreter** is responsible for _interpreting_ the state machine/statechart and doing all of the above - that is, parsing and executing it in a runtime environment. An interpreted, running instance of a statechart is called a **service**.
 
 ## The XState interpreter
 
@@ -28,10 +28,9 @@ import { interpret } from 'xstate/lib/interpreter';
 const machine = Machine(/* machine config */);
 
 // Interpret the machine, and add a listener for whenever a transition occurs.
-const service = interpret(machine)
-  .onTransition(nextState => {
-    console.log(nextState.value);
-  });
+const service = interpret(machine).onTransition(nextState => {
+  console.log(nextState.value);
+});
 
 // Start the service
 service.start();

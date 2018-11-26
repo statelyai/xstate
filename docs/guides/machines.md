@@ -2,7 +2,7 @@
 
 A **state machine** is a finite set of [states](./states.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
 
-- [Hierarchical](./hierarchichal.md) (or nested) states
+- [Hierarchical](./hierarchical.md) (or nested) states
 - [Orthogonal](./parallel.md) (or parallel) states
 - [History](./history.md) states
 - And more, as described in [Statecharts: a Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
@@ -46,7 +46,7 @@ The machine config is the same as the [state config](./states.md), with the exce
 
 ## Options
 
-Implementations for [actions](./actions.md), [activities](./activites.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `Machine()`:
+Implementations for [actions](./actions.md), [activities](./activities.md), [guards](./guards.md), and [services](./communication.md) can be referenced in the machine config as a string, and then specified as an object in the 2nd argument to `Machine()`:
 
 ```js
 const lightMachine = Machine(

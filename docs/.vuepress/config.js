@@ -19,6 +19,7 @@ module.exports = {
         children: [
           '/guides/start',
           '/guides/installation',
+          '/guides/machines',
           '/guides/states',
           '/guides/transitions',
           '/guides/hierarchical',
@@ -40,6 +41,10 @@ module.exports = {
       {
         title: 'Recipes',
         children: ['/recipes/react', '/recipes/rxjs']
+      },
+      {
+        title: 'Examples',
+        children: ['/examples/todomvc']
       }
     ]
   }

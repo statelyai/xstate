@@ -84,7 +84,7 @@ states: {
     after: [
       { delay: 1000, target: 'yellow', cond: 'trafficIsLight' },
       { delay: 2000, target: 'yellow' }
-    ]
+    ];
   }
 }
 // ...
@@ -136,13 +136,14 @@ const toggleMachine = Machine({
 
 ## Interpretation
 
-With the XState [interpreter](./Interpretation), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
+With the XState [interpreter](./interpretation.md), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
 
 ```js
 import { interpret } from 'xstate/lib/interpreter';
 
-const service = interpret(lightDelayMachine)
-  .onTransition(state => console.log(state.value));
+const service = interpret(lightDelayMachine).onTransition(state =>
+  console.log(state.value)
+);
 
 service.start();
 // => 'green'
@@ -158,8 +159,8 @@ For testing, the XState interpreter provides a `SimulatedClock`:
 import { interpret, SimulatedClock } from 'xstate/lib/interpreter';
 
 const service = interpret(lightDelayMachine, {
-    clock: new SimulatedClock()
-  }).onTransition(state => console.log(state.value));
+  clock: new SimulatedClock()
+}).onTransition(state => console.log(state.value));
 
 service.start();
 // => 'green'
@@ -173,7 +174,6 @@ You can create your own "clock" to provide to the interpreter. The clock interfa
 
 - `setTimeout` - same arguments as `window.setTimeout(fn, timeout)`
 - `clearTimeout` - same arguments as `window.clearTimeout(id)`
-
 
 ## Behind the scenes
 
@@ -208,4 +208,3 @@ states: {
 The interpreted statechart will `send(...)` the `after(...)` events after their `delay`, unless the state node is exited, which will `cancel(...)` those delayed `send(...)` events.
 
 ## Notes
-

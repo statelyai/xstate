@@ -2,7 +2,7 @@
 
 Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or machines) and react to them.
 
-For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](/guides/final), which will then cause the `onDone` transition to be taken.
+For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](./final.md), which will then cause the `onDone` transition to be taken.
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -58,8 +58,8 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a `Promise`
 - `id` - the unique identifier for the invoked service
 - `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
-- `data` - (optional) an object that maps properties of the child machine's [context](/guides/context) to a function that returns the corresponding value from the parent machine's `context`.
-- `onDone` - (optional) the [transition](/guides/transitions) to be taken when the child machine reaches its [final state](/guides/final)
+- `data` - (optional) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
+- `onDone` - (optional) the [transition](./transitions.md) to be taken when the child machine reaches its [final state](./final.md)
 - `onError` - (optional) the transition to be taken when the child machine encounters an execution error.
 
 ## Sending Events

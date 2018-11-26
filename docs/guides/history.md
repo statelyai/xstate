@@ -8,6 +8,7 @@ A history state node is a special kind of state node that, when reached, tells t
 ## History State Configuration
 
 The configuration for a history state is the same as an atomic state node, with some extra properties:
+
 - `type: 'history'` to specify that this is a history state node
 - `history` ('shallow' | 'deep') - whether the history is shallow or deep. Defaults to 'shallow'.
 - `target` (StateValue) - the default target if no history exists. Defaults to the initial state value of the parent node.
@@ -102,6 +103,6 @@ console.log(firstState.value);
 // }
 ```
 
-**Notes:**
+## Notes
 
 - History states can be directly accessed from `State` instances on `state.history`, but this is seldom necessary.

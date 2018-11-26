@@ -7,7 +7,7 @@ Many times, you'll want a transition between states to only take place if certai
 
 This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard** is a function defined on the `cond` property that takes 2 arguments:
 
-- `context` - the [machine context](/guides/context)
+- `context` - the [machine context](/guides/context.md)
 - `event` - the event, represented as an object
 
 and returns either `true` or `false`, which signifies whether the transition should be allowed to take place:
@@ -138,9 +138,15 @@ const lightMachine = Machine({
     red: {
       initial: 'walk',
       states: {
-        walk: { /* ... */ },
-        wait: { /* ... */ },
-        stop: { /* ... */ }
+        walk: {
+          /* ... */
+        },
+        wait: {
+          /* ... */
+        },
+        stop: {
+          /* ... */
+        }
       },
       on: {
         TIMER: [
@@ -193,6 +199,6 @@ Likewise, the `in` property is equivalent to the `In()` predicate:
 <transition cond="In('closed')" target="cooking"/>
 ```
 
-- https://www.w3.org/TR/scxml/#transition - the definition of the `cond` attribute
-- https://www.w3.org/TR/scxml/#ConditionalExpressions - conditional expressions and the requirement of supporting the `In()` predicate
-- https://www.w3.org/TR/scxml/#SelectingTransitions - how transitions are selected given an event
+- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of the `cond` attribute
+- [https://www.w3.org/TR/scxml/#ConditionalExpressions](https://www.w3.org/TR/scxml/#ConditionalExpressions) - conditional expressions and the requirement of supporting the `In()` predicate
+- [https://www.w3.org/TR/scxml/#SelectingTransitions](https://www.w3.org/TR/scxml/#SelectingTransitions) - how transitions are selected given an event

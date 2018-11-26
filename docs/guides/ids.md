@@ -123,5 +123,5 @@ IDs correspond to the definition of IDs in the SCXML spec:
 </state>
 ```
 
-- https://www.w3.org/TR/scxml/#IDs - specification that all `id` attributes _must_ be unique
-- https://www.w3.org/TR/scxml/#state - see the definition of the `id` attribute in `<state>`
+- [https://www.w3.org/TR/scxml/#IDs](https://www.w3.org/TR/scxml/#IDs) - specification that all `id` attributes _must_ be unique
+- [https://www.w3.org/TR/scxml/#state](https://www.w3.org/TR/scxml/#state) - see the definition of the `id` attribute in `<state>`

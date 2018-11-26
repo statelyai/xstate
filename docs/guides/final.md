@@ -113,7 +113,7 @@ Only when all of the child states (e.g., `'user'` and `'items'`) are in their fi
 
 ## SCXML
 
-Final states correspond to the SCXML spec: https://www.w3.org/TR/scxml/#final
+Final states correspond to the SCXML spec: [https://www.w3.org/TR/scxml/#final](https://www.w3.org/TR/scxml/#final)
 
 ## Notes
 
