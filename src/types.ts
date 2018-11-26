@@ -768,6 +768,7 @@ export interface StateInterface<
   value: StateValue;
   tree?: StateTree;
   history?: State<TContext>;
+  historyValue?: HistoryValue | undefined;
   actions: Array<ActionObject<TContext>>;
   activities: ActivityMap;
   meta: any;

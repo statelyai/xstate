@@ -1,134 +1,166 @@
 # States
 
-A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state.
-
-## Configuration
-
-In XState, a **state node** specifies a state configuration, and are defined on the machine's `states` property. Substate nodes are recursively defined in the same way.
-
-The state determined from `machine.transition(state, event)` represents a combination of state nodes. For example, in the machine below, there's a `success` state node and an `items` substate node. The state value `{ success: 'items' }` represents the combination of those state nodes.
+A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
 
 ```js
-const fetchMachine = Machine({
-  id: 'fetch',
-
-  // Initial state
-  initial: 'idle',
-
-  // States
+const lightMachine = Machine({
+  id: 'light',
+  initial: 'green',
   states: {
-    idle: {
-      on: {
-        FETCH: 'pending'
-      }
-    },
-    pending: {
-      on: {
-        FULFILL: 'success',
-        REJECT: 'failure'
-      }
-    },
-    success: {
-      // Initial substate
-      initial: 'items',
-
-      // Substates
-      states: {
-        items: {
-          on: {
-            'ITEM.CLICK': 'item'
-          }
-        },
-        item: {
-          on: {
-            BACK: 'items'
-          }
-        }
-      }
+    green: {
+      /* ... */
     }
+    // ...
   }
 });
+
+console.log(lightMachine.initialState);
+// State {
+//   value: 'green',
+//   actions: [],
+//   context: undefined,
+//   // ...
+// }
+
+console.log(lightMachine.transition('yellow', 'TIMER'));
+// State {
+//   value: { red: 'walk' },
+//   actions: [],
+//   context: undefined,
+//   // ...
+// }
 ```
 
-## State node types
+## State Definition
 
-There are five different kinds of state nodes:
+A `State` object instance is JSON-serializable and has the following properties:
 
-- An **atomic** state node has no child states. (I.e., it is a leaf node.)
-- A **compound** state node contains one or more child `states`, and has an `initial` state, which is the key of one of those child states.
-- A **parallel** state node contains two or more child `states`, and has no initial state, since it represents being in all of its child states at the same time.
-- A **final** state node is a leaf node that represents an abstract "terminal" state.
-- A **history** state node is an abstract node that represents resolving to its parent node's most recent shallow or deep history state.
+- `value` - the current state value (e.g., `{red: 'walk'}`)
+- `context` - the current [context](./context.md) of this state
+- `actions` - an array of [actions](./actions.md) to be executed
+- `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
+- `history` - the previous `State` instance
+- `meta` - any static meta data defined on the `meta` property of the [state node](./statenodes.md)
 
-The state node type can be explicitly defined on the state node:
+It contains other properties such as `historyValue`, `events`, `tree`, and others that are generally not relevant and are used internally.
+
+## State Methods and Getters
+
+There are some helpful methods and getters that you can use for a better development experience:
+
+### `state.matches(parentStateValue)`
+
+This method determines whether the current `state.value` is a subset of the given `parentStateValue`; that is, if it "matches" the state value. For example, assuming the current `state.value` is `{ red: 'stop' }`:
 
 ```js
-const machine = Machine({
-  id: 'fetch'
-  initial: 'idle',
-  states: {
-    idle: {
-      type: 'atomic',
-      on: {
-        FETCH: 'pending'
-      }
-    },
-    pending: {
-      type: 'parallel',
-      states: {
-        resource1: {
-          type: 'compound',
-          initial: 'pending',
-          states: {
-            pending: {
-              on: {
-                'FULFILL.resource1': 'success'
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          }
-        },
-        resource2: {
-          type: 'compound',
-          initial: 'pending',
-          states: {
-            pending: {
-              on: {
-                'FULFILL.resource2': 'success'
-              }
-            },
-            success: {
-              type: 'final'
-            }
-          }
-        }
-      },
-      onDone: 'success'
-    },
-    success: {
-      type: 'compound',
-      initial: 'allItems',
-      states: {
-        items: {
-          on: {
-            'ITEM.CLICK': 'item'
-          }
-        },
-        item: {
-          on: {
-            BACK: 'items'
-          }
-        },
-        hist: {
-          type: 'history',
-          history: 'shallow'
-        }
-      }
-    }
-  }
-});
+console.log(state.value);
+// => { red: 'stop' }
+
+console.log(state.matches('red'));
+// => true
+
+console.log(state.matches('red.stop'));
+// => true
+
+console.log(state.matches({ red: 'stop' }));
+// => true
+
+console.log(state.matches('green'));
+// => false
 ```
 
-Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'history'`, or `'final'` is helpful with regard to analysis and type-checking in TypeScript. However, it is only required for parallel, history, and final states.
+### `state.nextEvents`
+
+This getter specifies the next events that will cause a transition from the current state:
+
+```js
+const { initialState } = lightMachine;
+
+console.log(initialState.nextEvents);
+// => ['TIMER', 'EMERGENCY']
+```
+
+This is useful in determining which next events can be taken, and representing these potential events in the UI (such as enabling/disabling certain buttons).
+
+### `state.changed`
+
+This getter specifies if this `state` has changed from the previous state. A state is considered "changed" if:
+
+- Its value is not equal to its previous value, or:
+- It has any new actions (side-effects) to execute.
+
+An initial state (with no history) will return `undefined`.
+
+```js
+const { initialState } = lightMachine;
+
+console.log(initialState.changed);
+// => undefined
+
+const nextState = lightMachine.transition(initialState, 'TIMER');
+
+console.log(nextState.changed);
+// => true
+
+const unchangedState = lightMachine.transition(nextState, 'UNKNOWN_EVENT');
+
+console.log(unchangedState.changed);
+// => false
+```
+
+### `state.toStrings()`
+
+This method returns an array of strings that represent _all_ of the state value paths. For example, assuming the current `state.value` is `{ red: 'stop' }`:
+
+```js
+console.log(state.value);
+// => { red: 'stop' }
+
+console.log(state.toStrings());
+// => ['red', 'red.stop']
+```
+
+This is useful for representing the current state in string-based environments, such as in CSS classes or data-attributes.
+
+## Persisting State
+
+As mentioned, a `State` object can be persisted by serializing it to a string JSON format:
+
+```js
+const jsonState = JSON.stringify(currentState);
+
+// Example: persisting to localStorage
+try {
+  localStorage.set('app-state', jsonState);
+} catch (e) {
+  // unable to save to localStorage
+}
+```
+
+State can be rehydrated (i.e., restored) using the static `State.create(...)` method:
+
+```js
+import { interpret } from 'xstate/lib/interpreter';
+import { myMachine } from '../path/to/myMachine';
+
+// Retrieving state from localStorage
+const restoredStateDef = JSON.parse(localStorage.get('app-state'));
+
+// Use State.create() to restore state from a plain object
+const restoredState = State.create(restoredStateDef);
+```
+
+You can then interpret the machine from this restored state by passing the `State` into the `.start(...)` method of the interpreted service:
+
+```js
+// ...
+
+// This will start the service at the specified State
+const service = interpret(myMachine).start(restoredState);
+```
+
+## Notes
+
+- You should seldom (never) have to create a `State` instance manually. Treat `State` as a read-only object that comes from `machine.transition(...)` or `service.onTransition(...)` _only_.
+- To prevent memory leaks, `state.history` will not retain its history; that is, `state.history.history === undefined`. Otherwise, we're creating a huge linked list and reinventing blockchain, which I really don't care to do.
+  - This behavior may be configurable in future versions.
