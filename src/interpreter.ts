@@ -363,17 +363,25 @@ export class Interpreter<
     return sender.bind(this);
   }
 
-  public sendTo = (event: Event<TEvent>, to: string) => {
-    const child =
-      to === SpecialTargets.Parent ? this.parent : this.children.get(to);
+  public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
+    const isParent = to === SpecialTargets.Parent;
+    const target = isParent ? this.parent : this.children.get(to);
 
-    if (!child) {
-      throw new Error(
-        `Unable to send event to child '${to}' from interpreter '${this.id}'.`
+    if (!target) {
+      if (!isParent) {
+        throw new Error(
+          `Unable to send event to child '${to}' from service '${this.id}'.`
+        );
+      }
+
+      // tslint:disable-next-line:no-console
+      console.warn(
+        `Service '${this.id}' has no parent: unable to send event ${event.type}`
       );
+      return;
     }
 
-    child.send(event);
+    target.send(event);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.

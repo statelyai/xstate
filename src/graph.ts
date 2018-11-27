@@ -180,7 +180,7 @@ export interface GetValueAdjacencyMapOptions<
   TEvent extends EventObject
 > {
   // events: Record<string, Array<Event<TEvent>>>;
-  events: { [K in TEvent['type']]: Event<TEvent> };
+  events: { [K in TEvent['type']]: Array<Event<TEvent>> };
   filter?: (state: State<TContext>) => boolean;
 }
 
@@ -194,12 +194,13 @@ export function getValueAdjacencyMap<
   const { events, filter } = options;
   const adjacency: ValueAdjacencyMap = {};
 
-  const potentialEvents = flatten(
-    // @ts-ignore
-    node.events.map(event => events[event] || [event])
-  );
+  // const potentialEvents = flatten(
+  //   // @ts-ignore
+  //   node.events.map(event => events[event] || [event])
+  // );
 
   function findAdjacencies(state: State<TContext, TEvent>) {
+    const { nextEvents } = state;
     const stateKey = serializeState(state);
 
     if (adjacency[stateKey]) {
@@ -207,6 +208,12 @@ export function getValueAdjacencyMap<
     }
 
     adjacency[stateKey] = {};
+
+    const potentialEvents = flatten<TEvent>(
+      nextEvents.map(
+        nextEvent => ((events as any)[nextEvent] as TEvent[]) || []
+      )
+    );
 
     for (const event of potentialEvents) {
       const nextState = node.transition(state, event);
@@ -231,13 +238,13 @@ export function getShortestValuePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext>,
+  machine: StateNode<TContext, any, TEvent>,
   options: GetValueAdjacencyMapOptions<TContext, TEvent>
 ): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;
   }
-  const adjacency = getValueAdjacencyMap(machine, options);
+  const adjacency = getValueAdjacencyMap<TContext, TEvent>(machine, options);
   const pathMap: PathMap = {};
   const visited: Set<string> = new Set();
 

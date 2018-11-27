@@ -70,8 +70,8 @@ export function getActionType(action: Action<any>): ActionType {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
       : typeof action === 'function'
-        ? action.name
-        : action.type;
+      ? action.name
+      : action.type;
   } catch (e) {
     throw new Error(
       'Actions must be strings or objects with a string action.type property.'

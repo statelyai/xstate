@@ -410,6 +410,8 @@ export interface StateNodeDefinition<
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
 }
+
+export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
   extends StateNodeConfig<TContext, StateSchema, TEvent> {
   initial?: undefined;
