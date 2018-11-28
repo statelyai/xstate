@@ -498,24 +498,34 @@ export class Interpreter<
           }
 
           if (typeof service === 'function') {
-            const promise = service(context, event);
+            const promiseOrCallback = service(context, event);
 
-            let canceled = false;
+            if (promiseOrCallback instanceof Promise) {
+              let canceled = false;
 
-            promise
-              .then(response => {
-                if (!canceled) {
-                  this.send(doneInvoke(activity.id, response));
+              promiseOrCallback
+                .then(response => {
+                  if (!canceled) {
+                    this.send(doneInvoke(id, response));
+                  }
+                })
+                .catch(errorData => {
+                  // Send "error.execution" to this (parent).
+                  this.send(error(errorData, id));
+                });
+
+              this.activitiesMap[id] = () => {
+                canceled = true;
+              };
+            } else {
+              const dispose = promiseOrCallback(this.send.bind(this));
+
+              this.activitiesMap[id] = () => {
+                if (dispose) {
+                  dispose();
                 }
-              })
-              .catch(e => {
-                // Send "error.execution" to this (parent).
-                this.send(error(e, id));
-              });
-
-            this.activitiesMap[activity.id] = () => {
-              canceled = true;
-            };
+              };
+            }
           } else if (typeof service !== 'string') {
             // TODO: try/catch here
             const childMachine =

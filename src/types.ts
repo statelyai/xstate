@@ -131,10 +131,25 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
   type: string;
 }
 
+export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
+
+/**
+ * Returns either a Promises or a callback handler (for streams of events) given the
+ * machine's current `context` and `event` that invoked the service.
+ *
+ * For Promises, the only events emitted to the parent will be:
+ * - `done.invoke.<id>` with the `data` containing the resolved payload when the promise resolves, or:
+ * - `error.execution` with the `data` containing the caught error, and `src` containing the service `id`.
+ *
+ * For callback handlers, the `sender` will be provided, which will send events to the parent service.
+ *
+ * @param context The current machine `context`
+ * @param event The event that invoked the service
+ */
 export type InvokeCreator<TFinalContext, TContext> = (
-  ctx: TContext,
+  context: TContext,
   event: EventObject
-) => Promise<TFinalContext>;
+) => Promise<TFinalContext> | ((sender: Sender<any>) => void | (() => void));
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext> {
@@ -280,9 +295,9 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
     }
   | StateMachine<any, any, any>;
 
-export type InvokesConfig<TContext, TEvent extends EventObject> =
-  | InvokeConfig<TContext, TEvent>
-  | Array<InvokeConfig<TContext, TEvent>>;
+export type InvokesConfig<TContext, TEvent extends EventObject> = SingleOrArray<
+  InvokeConfig<TContext, TEvent>
+>;
 
 export interface StateNodeConfig<
   TContext,

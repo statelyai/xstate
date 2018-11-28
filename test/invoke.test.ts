@@ -120,6 +120,50 @@ const fetcherMachine = Machine({
   }
 });
 
+// @ts-ignore
+const intervalMachine = Machine({
+  id: 'interval',
+  initial: 'counting',
+  context: {
+    interval: 10,
+    count: 0
+  },
+  states: {
+    counting: {
+      invoke: {
+        id: 'intervalService',
+        src: ctx => cb => {
+          const interval = setInterval(() => {
+            cb('INC');
+          }, ctx.interval);
+
+          return () => clearInterval(interval);
+        }
+      },
+      on: {
+        '': {
+          target: 'finished',
+          cond: ctx => ctx.count === 3
+        },
+        INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+        SKIP: 'wait'
+      }
+    },
+    wait: {
+      on: {
+        // this should never be called if interval service is properly disposed
+        INC: { actions: assign({ count: ctx => ctx.count + 1 }) }
+      },
+      after: {
+        50: 'finished'
+      }
+    },
+    finished: {
+      type: 'final'
+    }
+  }
+});
+
 describe('invoke', () => {
   it('should start services (external machines)', () => {
     const service = interpret(parentMachine).start();
@@ -163,19 +207,21 @@ describe('invoke', () => {
   });
 
   it('should use the service overwritten by withConfig', () => {
-    const service = interpret(parentMachine.withConfig({
-      services: {
-        child: Machine({
-          id: 'child',
-          initial: 'init',
-          states: {
-            init: {
-              onEntry: [actions.sendParent('STOP')]
+    const service = interpret(
+      parentMachine.withConfig({
+        services: {
+          child: Machine({
+            id: 'child',
+            initial: 'init',
+            states: {
+              init: {
+                onEntry: [actions.sendParent('STOP')]
+              }
             }
-          }
-        })
-      }
-    })).start();
+          })
+        }
+      })
+    ).start();
 
     assert.deepEqual(service.state.value, 'stop');
   });
@@ -227,6 +273,32 @@ describe('invoke', () => {
       interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
         .onDone(() => done())
         .start();
+    });
+  });
+
+  describe('with callbacks', () => {
+    it('should treat a callback source as an event stream', done => {
+      interpret(intervalMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should dispose of the callback (if disposal function provided)', done => {
+      const service = interpret(intervalMachine)
+        .onDone(() => {
+          // if intervalService isn't disposed after skipping, 'INC' event will
+          // keep being sent
+          assert.equal(
+            service.state.context.count,
+            0,
+            'should exit interval service before the first event is sent'
+          );
+          done();
+        })
+        .start();
+
+      // waits 50 milliseconds before going to final state.
+      service.send('SKIP');
     });
   });
 });
