@@ -3,39 +3,33 @@ import {
   // getShortestValuePaths
   getValueAdjacencyMap
   // deserializeStateString
-} from '../../../lib/graph';
+} from 'xstate/lib/graph';
 
 import { todosMachine } from '../src/todosMachine';
 
-const ajdMap = getValueAdjacencyMap(todosMachine, {
-  events: {
-    'NEWTODO.COMMIT': [{ type: 'NEWTODO.COMMIT', value: 'something', id: 123 }],
-    'TODO.DELETE': [{ type: 'TODO.DELETE', id: 123 }],
-    'TODO.COMMIT': [
-      {
-        type: 'TODO.COMMIT',
-        todo: {
-          title: 'something else',
-          completed: false,
-          id: 123
+console.dir(
+  getValueAdjacencyMap(todosMachine, {
+    events: {
+      'NEWTODO.COMMIT': [
+        { type: 'NEWTODO.COMMIT', value: 'something', id: 123 }
+      ],
+      'TODO.DELETE': [{ type: 'TODO.DELETE', id: 123 }],
+      'TODO.COMMIT': [
+        {
+          type: 'TODO.COMMIT',
+          todo: {
+            title: 'something else',
+            completed: false,
+            id: 123
+          }
         }
-      },
-      {
-        type: 'TODO.COMMIT',
-        todo: {
-          title: 'something else',
-          completed: true,
-          id: 123
-        }
-      }
-    ],
-    CLEAR_COMPLETED: ['CLEAR_COMPLETED']
-  },
-  filter: state =>
-    !!state.context && (!state.context.todos || state.context.todos.length < 2)
-});
-
-console.dir(ajdMap, { depth: null });
+      ]
+    },
+    filter: state =>
+      state.context && state.context.todos && state.context.todos.length < 2
+  }),
+  { depth: null }
+);
 
 // const { ticTacToeMachine } = require('../src/ticTacToeMachine');
 

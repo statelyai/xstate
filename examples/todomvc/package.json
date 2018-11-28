@@ -8,7 +8,6 @@
     "react-dom": "^16.7.0-alpha.2",
     "react-scripts": "2.1.1",
     "todomvc-app-css": "^2.1.2",
-    "typescript": "^3.0.3",
     "uuid-v4": "^0.1.0",
     "xstate": "^4.1.2"
   },
