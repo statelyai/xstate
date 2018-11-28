@@ -23,6 +23,7 @@ describe('strict mode', () => {
         onExit: 'exit_wait'
       },
       stop: {
+        type: 'final',
         onEntry: 'enter_stop',
         onExit: 'exit_stop'
       }
@@ -30,6 +31,7 @@ describe('strict mode', () => {
   };
 
   const lightMachine = Machine({
+    strict: true,
     key: 'light',
     initial: 'green',
     states: {
@@ -60,8 +62,7 @@ describe('strict mode', () => {
         onExit: 'exit_red',
         ...pedestrianStates
       }
-    },
-    strict: true
+    }
   });
 
   // @ts-ignore
@@ -99,6 +100,14 @@ describe('strict mode', () => {
   });
 
   it('should throw for unacceptable events', () => {
-    assert.throws(() => lightMachine.transition('green', 'FOO'));
+    assert.throws(() => {
+      lightMachine.transition('green', 'FOO');
+    });
+  });
+
+  it('should not throw for built-in events', () => {
+    assert.doesNotThrow(() => {
+      lightMachine.transition('red.wait', 'PED_COUNTDOWN');
+    });
   });
 });

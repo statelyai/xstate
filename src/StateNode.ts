@@ -10,7 +10,8 @@ import {
   mapFilterValues,
   nestedPath,
   toArray,
-  keys
+  keys,
+  isBuiltInEvent
 } from './utils';
 import {
   Event,
@@ -983,7 +984,7 @@ class StateNode<
     const eventType = eventObject.type;
 
     if (this.strict) {
-      if (this.events.indexOf(eventType) === -1) {
+      if (this.events.indexOf(eventType) === -1 && !isBuiltInEvent(eventType)) {
         throw new Error(
           `Machine '${this.id}' does not accept event '${eventType}'`
         );

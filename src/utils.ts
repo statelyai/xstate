@@ -6,7 +6,9 @@ import {
   EventObject,
   StateInterface,
   PropertyMapper,
-  Mapper
+  Mapper,
+  EventType,
+  ActionTypes
 } from './types';
 import { STATE_DELIMITER } from './constants';
 
@@ -301,4 +303,24 @@ export function mapContext<TContext, TEvent extends EventObject>(
     },
     {} as any
   );
+}
+
+export function isBuiltInEvent(eventType: EventType): boolean {
+  // check if event is a "done" event
+  if (
+    eventType.indexOf(ActionTypes.DoneState) === 0 ||
+    eventType.indexOf(ActionTypes.DoneInvoke) === 0
+  ) {
+    return true;
+  }
+
+  // check if event is an "error" event
+  if (
+    eventType === ActionTypes.ErrorCommunication ||
+    eventType === ActionTypes.ErrorCommunication
+  ) {
+    return true;
+  }
+
+  return false;
 }

@@ -177,7 +177,8 @@ export type StateTypes =
   | 'compound'
   | 'parallel'
   | 'final'
-  | 'history';
+  | 'history'
+  | string; // TODO: figure out if TypeScript fixes this for unknown string types
 
 export type SingleOrArray<T> = T[] | T;
 
