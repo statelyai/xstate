@@ -1,0 +1,98 @@
+<!DOCTYPE html>
+<html lang="en-US">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width,initial-scale=1">
+    <title>Vue | XState Docs</title>
+    <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    
+    
+    <link rel="preload" href="/docs/assets/css/0.styles.80bc85b8.css" as="style"><link rel="preload" href="/docs/assets/js/app.9c026d84.js" as="script"><link rel="preload" href="/docs/assets/js/28.2f54cdaa.js" as="script"><link rel="prefetch" href="/docs/assets/js/10.265226eb.js"><link rel="prefetch" href="/docs/assets/js/11.a2d7d69b.js"><link rel="prefetch" href="/docs/assets/js/12.c8bcc86f.js"><link rel="prefetch" href="/docs/assets/js/13.df006c23.js"><link rel="prefetch" href="/docs/assets/js/14.66170c86.js"><link rel="prefetch" href="/docs/assets/js/15.ca6254a1.js"><link rel="prefetch" href="/docs/assets/js/16.3f0cc17d.js"><link rel="prefetch" href="/docs/assets/js/17.cc9e184f.js"><link rel="prefetch" href="/docs/assets/js/18.19cbbe97.js"><link rel="prefetch" href="/docs/assets/js/19.87ad3e98.js"><link rel="prefetch" href="/docs/assets/js/2.a3ae82a5.js"><link rel="prefetch" href="/docs/assets/js/20.80466152.js"><link rel="prefetch" href="/docs/assets/js/21.b7aa2462.js"><link rel="prefetch" href="/docs/assets/js/22.06bdf524.js"><link rel="prefetch" href="/docs/assets/js/23.224a9475.js"><link rel="prefetch" href="/docs/assets/js/24.3e0595ad.js"><link rel="prefetch" href="/docs/assets/js/25.e9a31345.js"><link rel="prefetch" href="/docs/assets/js/26.8faf5fd1.js"><link rel="prefetch" href="/docs/assets/js/27.784dc5f6.js"><link rel="prefetch" href="/docs/assets/js/29.7ae22357.js"><link rel="prefetch" href="/docs/assets/js/3.2f4cd1bc.js"><link rel="prefetch" href="/docs/assets/js/4.d10d58e7.js"><link rel="prefetch" href="/docs/assets/js/5.237ec7df.js"><link rel="prefetch" href="/docs/assets/js/6.89547b1a.js"><link rel="prefetch" href="/docs/assets/js/7.b1a5cd7a.js"><link rel="prefetch" href="/docs/assets/js/8.aa2b1f75.js"><link rel="prefetch" href="/docs/assets/js/9.f8de4818.js">
+    <link rel="stylesheet" href="/docs/assets/css/0.styles.80bc85b8.css">
+  </head>
+  <body>
+    <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/docs/" class="home-link router-link-active"><img src="/docs/logo.svg" alt="XState Docs" class="logo"> <span class="site-name can-hide">XState Docs</span></a> <div class="links" style="max-width:nullpx;"><div class="search-box"><input aria-label="Search" autocomplete="off" spellcheck="false" value=""> <!----></div> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://xstate.js.org/api" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav></div></header> <div class="sidebar-mask"></div> <div class="sidebar"><nav class="nav-links"><div class="nav-item"><a href="https://xstate.js.org/api" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  API
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://statecharts.github.io/xstate-viz" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Visualizer
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://gitter.im/statecharts/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Chat
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://spectrum.chat/statecharts" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  Community
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div><div class="nav-item"><a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="nav-link external">
+  GitHub
+  <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <!----></nav>  <ul class="sidebar-links"><li><div class="sidebar-group first collapsable"><p class="sidebar-heading"><span>Guides</span> <span class="arrow right"></span></p> <!----></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading open"><span>Recipes</span> <span class="arrow down"></span></p> <ul class="sidebar-group-items"><li><a href="/docs/recipes/react.html" class="sidebar-link">Usage with React</a></li><li><a href="/docs/recipes/vue.html" class="active sidebar-link">Vue</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/docs/recipes/vue.html#vue" class="sidebar-link">Vue</a></li></ul></li><li><a href="/docs/recipes/rxjs.html" class="sidebar-link">Usage with RxJS</a></li></ul></div></li><li><div class="sidebar-group collapsable"><p class="sidebar-heading"><span>Examples</span> <span class="arrow right"></span></p> <!----></div></li></ul> </div> <div class="page"> <div class="content"><h2 id="vue"><a href="#vue" aria-hidden="true" class="header-anchor">#</a> Vue</h2> <p>Vue follows a similar pattern to <a href="/docs/recipes/recipes/react.html">React</a>:</p> <ul><li>The machine can be defined externally</li> <li>The service is placed on the <code>data</code> object</li> <li>State changes are observed via <code>service.onTransition(state =&gt; ...)</code>, where you set some data property to the next <code>state</code></li> <li>The service is started (<code>service.start()</code>) when the component is <code>created()</code></li> <li>Events are sent to the service via <code>service.send(event)</code>.</li></ul> <div class="language-html extra-class"><pre class="language-html"><code><span class="token comment">&lt;!-- Toggle.vue --&gt;</span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>template</span><span class="token punctuation">&gt;</span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>div</span> <span class="token attr-name">class</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>toggle<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>h1</span><span class="token punctuation">&gt;</span></span>{{ value }}<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>h1</span><span class="token punctuation">&gt;</span></span>
+    <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>button</span> <span class="token attr-name"><span class="token namespace">v-on:</span>click</span><span class="token attr-value"><span class="token punctuation">=</span><span class="token punctuation">&quot;</span>send(<span class="token punctuation">'</span>TOGGLE<span class="token punctuation">'</span>);<span class="token punctuation">&quot;</span></span><span class="token punctuation">&gt;</span></span>Toggle<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>button</span><span class="token punctuation">&gt;</span></span>
+  <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>div</span><span class="token punctuation">&gt;</span></span>
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>template</span><span class="token punctuation">&gt;</span></span>
+
+<span class="token tag"><span class="token tag"><span class="token punctuation">&lt;</span>script</span><span class="token punctuation">&gt;</span></span><span class="token script language-javascript">
+  <span class="token keyword">import</span> <span class="token punctuation">{</span> Machine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+  <span class="token keyword">import</span> <span class="token punctuation">{</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate/lib/interpreter'</span><span class="token punctuation">;</span>
+
+  <span class="token comment">// Define machine externally</span>
+  <span class="token keyword">const</span> toggleMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+    id<span class="token punctuation">:</span> <span class="token string">'toggle'</span><span class="token punctuation">,</span>
+    initial<span class="token punctuation">:</span> <span class="token string">'inactive'</span><span class="token punctuation">,</span>
+    states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      inactive<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'active'</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span><span class="token punctuation">,</span>
+      active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+        on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">TOGGLE</span><span class="token punctuation">:</span> <span class="token string">'inactive'</span> <span class="token punctuation">}</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+
+  <span class="token keyword">export</span> <span class="token keyword">default</span> <span class="token punctuation">{</span>
+    name<span class="token punctuation">:</span> <span class="token string">'Toggle'</span><span class="token punctuation">,</span>
+    <span class="token function">created</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token comment">// Start service on component creation</span>
+      <span class="token keyword">this</span><span class="token punctuation">.</span>toggleService
+        <span class="token punctuation">.</span><span class="token function">onTransition</span><span class="token punctuation">(</span>state <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+          <span class="token keyword">this</span><span class="token punctuation">.</span>current <span class="token operator">=</span> state<span class="token punctuation">;</span>
+        <span class="token punctuation">}</span><span class="token punctuation">)</span>
+        <span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token function">data</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
+      <span class="token keyword">return</span> <span class="token punctuation">{</span>
+        <span class="token comment">// Interpret machine and store it in data</span>
+        toggleService<span class="token punctuation">:</span> <span class="token function">interpret</span><span class="token punctuation">(</span>toggleMachine<span class="token punctuation">)</span><span class="token punctuation">,</span>
+
+        <span class="token comment">// Start with machine's initial state</span>
+        current<span class="token punctuation">:</span> toggleMachine<span class="token punctuation">.</span>initialState
+      <span class="token punctuation">}</span><span class="token punctuation">;</span>
+    <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    methods<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+      <span class="token comment">// Send events to the service</span>
+      <span class="token function">send</span><span class="token punctuation">(</span>event<span class="token punctuation">)</span> <span class="token punctuation">{</span>
+        <span class="token keyword">this</span><span class="token punctuation">.</span>toggleService<span class="token punctuation">.</span><span class="token function">send</span><span class="token punctuation">(</span>event<span class="token punctuation">)</span><span class="token punctuation">;</span>
+      <span class="token punctuation">}</span>
+    <span class="token punctuation">}</span>
+  <span class="token punctuation">}</span><span class="token punctuation">;</span>
+</span><span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>script</span><span class="token punctuation">&gt;</span></span>
+</code></pre></div></div> <div class="page-edit"><!----> <!----></div> <div class="page-nav"><p class="inner"><span class="prev">
+        ←
+        <a href="/docs/recipes/react.html" class="prev">
+          Usage with React
+        </a></span> <span class="next"><a href="/docs/recipes/rxjs.html">
+          Usage with RxJS
+        </a>
+        →
+      </span></p></div> </div> <!----></div></div>
+    <script src="/docs/assets/js/28.2f54cdaa.js" defer></script><script src="/docs/assets/js/app.9c026d84.js" defer></script>
+  </body>
+</html>
