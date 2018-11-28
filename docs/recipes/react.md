@@ -46,7 +46,7 @@ class Toggle extends React.Component {
 
   render() {
     const { current } = this.state;
-    const { send }  this.service;
+    const { send } = this.service;
 
     return (
       <button onClick={() => send('TOGGLE')}>
