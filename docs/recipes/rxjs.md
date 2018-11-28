@@ -24,6 +24,6 @@ state$.subscribe(state => {
 
 const event$ = event$.subscribe(event => {
   // a stream of event objects
-  service.send('SOME_EVENT');
+  service.send(event);
 });
 ```

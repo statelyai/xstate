@@ -56,3 +56,53 @@ class Toggle extends React.Component {
   }
 }
 ```
+
+## Hooks
+
+Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with functional components. You can either use a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/) or implement your own hook to interpret and use XState machines:
+
+```js
+import { useState, useMemo, useEffect } from 'react';
+import { interpret } from 'xstate/lib/interpreter';
+
+export function useMachine(machine) {
+  // Keep track of the current machine state
+  const [current, setCurrent] = useState(machine.initialState);
+
+  // Start the service (only once!)
+  const service = useMemo(
+    () =>
+      interpret(machine)
+        .onTransition(state => {
+          // Update the current machine state when a transition occurs
+          setCurrent(state);
+        })
+        .start(),
+    []
+  );
+
+  // Stop the service when the component unmounts
+  useEffect(() => {
+    return () => service.stop();
+  }, []);
+
+  return [current, service.send];
+}
+```
+
+Then the above toggle, as a function component, becomes:
+
+```js
+import { useMachine } from '../path/to/useMachine';
+
+const toggleMachine = Machine(/* same as defined in first example */);
+
+function Toggle() {
+  const [current, send] = useMachine(toggleMachine);
+  return (
+    <button onClick={() => send('TOGGLE')}>
+      {current.matches('inactive') ? 'Off' : 'On'}
+    </button>
+  );
+}
+```

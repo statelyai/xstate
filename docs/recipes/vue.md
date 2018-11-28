@@ -21,6 +21,7 @@ Vue follows a similar pattern to [React](recipes/react.md):
   import { Machine } from 'xstate';
   import { interpret } from 'xstate/lib/interpreter';
 
+  // Define machine externally
   const toggleMachine = Machine({
     id: 'toggle',
     initial: 'inactive',
@@ -37,6 +38,7 @@ Vue follows a similar pattern to [React](recipes/react.md):
   export default {
     name: 'Toggle',
     created() {
+      // Start service on component creation
       this.toggleService
         .onTransition(state => {
           this.current = state;
@@ -45,11 +47,15 @@ Vue follows a similar pattern to [React](recipes/react.md):
     },
     data() {
       return {
+        // Interpret machine and store it in data
         toggleService: interpret(toggleMachine),
+
+        // Start with machine's initial state
         current: toggleMachine.initialState
       };
     },
     methods: {
+      // Send events to the service
       send(event) {
         this.toggleService.send(event);
       }
