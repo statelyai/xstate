@@ -14,7 +14,7 @@ import { Machine } from 'xstate';
 const promiseMachine = Machine(/* ... */);
 ```
 
-We'll pass the [machine configuration](guides/machine.md) inside of `Machine(...)`. Since this is a [hierarchical machine](guides/hierarchical.md), we need to provide the:
+We'll pass the [machine configuration](./machine.md) inside of `Machine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
 
 - `id` - to identify the machine and set the base string for its child state node IDs
 - `initial` - to specify the initial state node this machine should be in
@@ -34,7 +34,7 @@ const promiseMachine = Machine({
 });
 ```
 
-Then, we need to add [transitions](guides/transitions.md) to the state nodes and mark the `resolved` and `rejected` state nodes as [final state nodes](guides/final.md) since the promise machine terminates running once it reaches those states:
+Then, we need to add [transitions](./transitions.md) to the state nodes and mark the `resolved` and `rejected` state nodes as [final state nodes](./final.md) since the promise machine terminates running once it reaches those states:
 
 ```js
 import { Machine } from 'xstate';
@@ -59,7 +59,7 @@ const promiseMachine = Machine({
 });
 ```
 
-To [interpret](guides/interpretation.md) the machine and make it run, we need to add an interpreter. This creates a service:
+To [interpret](./interpretation.md) the machine and make it run, we need to add an interpreter. This creates a service:
 
 ```js
 import { Machine } from 'xstate';
