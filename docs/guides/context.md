@@ -18,47 +18,49 @@ function glassIsFull(ctx, event) {
   return ctx.amount >= 10;
 }
 
-const glassMachine = Machine({
-  id: 'glass',
-  // the initial context (extended state) of the statechart
-  context: {
-    amount: 0
+const glassMachine = Machine(
+  {
+    id: 'glass',
+    // the initial context (extended state) of the statechart
+    context: {
+      amount: 0
+    },
+    initial: 'empty',
+    states: {
+      empty: {
+        on: {
+          FILL: {
+            target: 'filling',
+            actions: 'addWater'
+          }
+        }
+      },
+      filling: {
+        on: {
+          '': {
+            target: 'full',
+            cond: 'glassIsFull'
+          },
+          FILL: {
+            target: 'filling',
+            actions: 'addWater'
+          }
+        }
+      },
+      full: {}
+    }
   },
-  initial: 'empty',
-  states: {
-    empty: {
-      on: {
-        FILL: {
-          target: 'filling',
-          actions: 'addWater'
-        }
-      }
-    },
-    filling: {
-      on: {
-        '': {
-          target: 'full',
-          cond: 'glassIsFull'
-        },
-        FILL: {
-          target: 'filling',
-          actions: 'addWater'
-        }
-      }
-    },
-    full: {}
+  {
+    actions: { addWater },
+    guards: { glassIsFull }
   }
-}, {
-  actions: { addWater },
-  guards: { glassIsFull }
-});
+);
 ```
 
 The current context is referenced on the `State` as `state.context`:
 
 ```js
-const nextState = glassMachine
-  .transition(glassMachine.initialState, 'FILL');
+const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
 
 nextState.context;
 // => { count: 1 }
@@ -70,7 +72,7 @@ The initial context is specified on the `context` property of the `Machine`:
 
 ```js
 const counterMachine = Machine({
-  id: 'counter', 
+  id: 'counter',
   // initial context
   context: {
     count: 0,
@@ -78,7 +80,7 @@ const counterMachine = Machine({
     user: {
       name: 'David'
     },
-    allowedToIncrement: true,
+    allowedToIncrement: true
     // ... etc.
   },
   states: {
@@ -93,25 +95,32 @@ For dynamic `context`, you can either provide the context in the third argument 
 // retrieved dynamically
 const dynamicContext = { count: 42 };
 
-const counterMachine = Machine({
-  id: 'counter',
-  // ...
-}, {
-  actions: { /* ... */ }
-  // ... machine options
-}, dynamicContext); // provide dynamic context as 3rd argument
+const counterMachine = Machine(
+  {
+    id: 'counter'
+    // ...
+  },
+  {
+    actions: {
+      /* ... */
+    }
+    // ... machine options
+  },
+  dynamicContext
+); // provide dynamic context as 3rd argument
 ```
 
 Or for existing machines, `machine.withContext(...)` should be used:
 
 ```js
-const counterMachine = Machine({ /* ... */ });
+const counterMachine = Machine({
+  /* ... */
+});
 
 // retrieved dynamically
 const dynamicContext = { count: 42 };
 
-const dynamicCounterMachine = counterMachine
-  .withContext(dynamicContext);
+const dynamicCounterMachine = counterMachine.withContext(dynamicContext);
 ```
 
 The initial context of a machine can be retrieved from its initial state:
@@ -163,6 +172,8 @@ Both the property updater and context updater function signatures above are give
 - `context` (TContext): the current context (extended state) of the machine
 - `event` (EventObject): the event that caused the `assign` action
 
+## Action order
+
 ## Notes
 
 - Never mutate the machine's `context` externally. Everything happens for a reason, and every context change should happen explicitly due to an event.
@@ -198,3 +209,4 @@ const countMachine = Machine({
 ```
 
 - Ideally, the `context` should be representable as a plain JavaScript object; i.e., it should be serializable as JSON.
+- Since `assign()` actions are _raised_, the context is updated before other actions are executed. This means that other actions within the same step will get the _updated_ `context` rather than what it was before the `assign()` action was executed. You shouldn't rely on action order for your states, but keep this in mind.
