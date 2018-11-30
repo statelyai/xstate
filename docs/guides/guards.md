@@ -7,7 +7,7 @@ Many times, you'll want a transition between states to only take place if certai
 
 This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard** is a function defined on the `cond` property that takes 2 arguments:
 
-- `context` - the [machine context](/guides/context.md)
+- `context` - the [machine context](./context.md)
 - `event` - the event, represented as an object
 
 and returns either `true` or `false`, which signifies whether the transition should be allowed to take place:
