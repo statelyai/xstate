@@ -36,4 +36,4 @@ In the above example, when the machine is in the `pending` state and it receives
 A state transition can be defined as:
 - a string, e.g., `RESOLVE: 'resolved'`, which is equivalent to...
 - an object with a `target` property, e.g., `RESOLVE: { target: 'resolved' }`,
-- an array of transition objects, which are used for conditional transitions (see [guards](/guides/guards))
+- an array of transition objects, which are used for conditional transitions (see [guards](./guards.md))
