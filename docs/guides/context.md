@@ -89,11 +89,11 @@ const counterMachine = Machine({
 });
 ```
 
-For dynamic `context`, you can either provide the context in the third argument of `Machine(...)` (for new machines):
+For dynamic `context` (that is, `context` whose initial value is retrieved or provided externally), you can either provide the context in the third argument of `Machine(...)` (for new machines):
 
 ```js
 // retrieved dynamically
-const dynamicContext = { count: 42 };
+const someContext = { count: 42, time: Date.now() };
 
 const counterMachine = Machine(
   {
@@ -106,7 +106,7 @@ const counterMachine = Machine(
     }
     // ... machine options
   },
-  dynamicContext
+  someContext
 ); // provide dynamic context as 3rd argument
 ```
 
@@ -118,9 +118,9 @@ const counterMachine = Machine({
 });
 
 // retrieved dynamically
-const dynamicContext = { count: 42 };
+const someContext = { count: 42, time: Date.now() };
 
-const dynamicCounterMachine = counterMachine.withContext(dynamicContext);
+const dynamicCounterMachine = counterMachine.withContext(someContext);
 ```
 
 The initial context of a machine can be retrieved from its initial state:

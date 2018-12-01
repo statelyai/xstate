@@ -1,4 +1,4 @@
-## Vue
+## Usage with Vue
 
 Vue follows a similar pattern to [React](recipes/react.md):
 
