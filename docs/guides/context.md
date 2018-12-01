@@ -127,7 +127,7 @@ The initial context of a machine can be retrieved from its initial state:
 
 ```js
 dynamicCounterMachine.initialState.context;
-// => { count: 42 }
+// => { count: 42, time: 1543687816981 }
 ```
 
 ## Updating context with `assign`
