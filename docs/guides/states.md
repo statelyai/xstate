@@ -140,6 +140,7 @@ try {
 State can be rehydrated (i.e., restored) using the static `State.create(...)` method:
 
 ```js
+import { State } from 'xstate';
 import { interpret } from 'xstate/lib/interpreter';
 import { myMachine } from '../path/to/myMachine';
 
@@ -158,6 +159,8 @@ You can then interpret the machine from this restored state by passing the `Stat
 // This will start the service at the specified State
 const service = interpret(myMachine).start(restoredState);
 ```
+
+This will also maintain and restore previous [history states](./history.md).
 
 ## Notes
 
