@@ -56,6 +56,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a machine
   - a string, which refers to a machine defined in this machine's `options.services`
   - a function that returns a `Promise`
+  - a function that returns a callback handler, which sends events to the parent via the callback (example below)
 - `id` - the unique identifier for the invoked service
 - `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
 - `data` - (optional) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
@@ -186,6 +187,32 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
   }
 }
 ```
+
+## Invoking Callbacks
+
+(since 4.2) Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in a `callback` argument that is called with the event to be sent:
+
+```js
+// ...
+counting: {
+  invoke: {
+    id: 'incInterval',
+    src: (ctx, event) => (callback) => {
+      // This will send the 'INC' event to the parent every second
+      const id = setInterval(() => callback('INC'), 1000);
+
+      // Perform cleanup
+      return () => clearInterval(id);
+    }
+  },
+  on: {
+    INC: { actions: assign({ counter: ctx => ctx.counter + 1 }) }
+  }
+}
+// ...
+```
+
+The (optional) return value is a function that is called to clean up the invoked service when the current state is exited.
 
 ## Configuring Services
 

@@ -67,7 +67,7 @@ const lightMachine = Machine({
 
 ## Avoiding strings
 
-Not a fan of using strings for identifying states? You can use [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) to directly reference the target state (since v4.2):
+Not a fan of using strings for identifying states? You can use [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) to directly reference the target state (since version 4.2):
 
 ```js
 const lightMachine = Machine({
@@ -103,7 +103,7 @@ const lightMachine = Machine({
 });
 ```
 
-⚠️ The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance.
+⚠️ The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful when if you want to avoid strings or have stricter typings.
 
 ## SCXML
 
