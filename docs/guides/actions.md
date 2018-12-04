@@ -148,13 +148,15 @@ const sendName = send((ctx, event) => ({
   name: ctx.user.name
 }));
 
-// ...
-on: {
-  TOGGLE: {
-    actions: sendName;
+const machine = Machine({
+  // ...
+  on: {
+    TOGGLE: {
+      actions: sendName
+    }
   }
-}
-// ...
+  //...
+});
 ```
 
 ### Raise Action
