@@ -90,11 +90,11 @@ When interpreting statecharts, the order of actions should not necessarily matte
 2. transition `actions` - all actions defined on the chosen transition
 3. `onEntry` actions - all the entry actions of the entered states, from the parent state down
 
-## Built-in actions
+## Built-in Actions
 
-There are a number of useful built-in actions in:
+### Send Action
 
-- The `send()` action creator queues an event to the statechart, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+The `send(event)` action creator queues an event to the machine, in the external event queue. This means the event is sent on the next "step" of the interpreter.
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -131,7 +131,35 @@ nextState.actions;
 // The service will proceed to send itself the { type: 'TOGGLE' } event.
 ```
 
-- The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
+The `event` argument passed to `send(event)` can be:
+
+- A string event, e.g., `send('TOGGLE')`
+- An event object, e.g., `send({ type: 'TOGGLE', payload: ... })`
+- An event expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns an event object:
+
+```js
+import { actions } from 'xstate';
+const { send } = actions;
+
+// contrived example - reads from the `ctx` and sends
+// the dynamically created event
+const sendName = send((ctx, event) => ({
+  type: 'NAME',
+  name: ctx.user.name
+}));
+
+// ...
+on: {
+  TOGGLE: {
+    actions: sendName;
+  }
+}
+// ...
+```
+
+### Raise Action
+
+The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -166,9 +194,12 @@ nextState.actions;
 // => []
 ```
 
-- The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two arguments:
-  - `expr` - a function that takes the `context` and `event` as arguments and returns a value to be logged
-  - `label` (optional) - a string to label the logged message
+### Log Action
+
+The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
+
+- `expr` (optional) - a function that takes the `context` and `event` as arguments and returns a value to be logged
+- `label` (optional) - a string to label the logged message
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -209,12 +240,14 @@ endState.actions;
 // based on the current state context and event.
 ```
 
+Without any arguments, `log()` is an action that logs an object with `context` and `event` properties, containing the current context and triggering event, respectively.
+
 ## Actions on self-transitions
 
 A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
 - An internal transition will _not_ exit and reenter itself, so the state node's `onEntry` and `onExit` actions will not be executed again.
-  - Internal transitions are indicated with `{ internal: true }`.
+  - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
   - Actions defined on the transition's `actions` property will be executed.
 - An external transition _will_ exit and reenter itself, so the state node's `onEntry` and `onExit` actions will be executed again.
   - All transitions are external by default. To be explicit, you can indicate them with `{ internal: false }`.
@@ -232,21 +265,25 @@ const counterMachine = Machine({
       onExit: 'exitCounting',
       on: {
         // self-transitions
-        INC: { actions: 'increment' }, // since 4.0
-        DEC: { actions: 'decrement' }, // since 4.0
-        DO_NOTHING: { internal: true, actions: 'logNothing' } // since 4.0
+        INC: { actions: 'increment' }, // internal (implicit)
+        DEC: { target: 'counting', actions: 'decrement' }, // external
+        DO_NOTHING: { internal: true, actions: 'logNothing' } // internal (explicit)
       }
     }
   }
 });
 
 // External transition (onExit + transition actions + onEntry)
-const stateA = counterMachine.transition('counting', 'INC');
+const stateA = counterMachine.transition('counting', 'DEC');
 stateA.actions;
-// ['exitCounting', 'increment', 'enterCounting']
+// ['exitCounting', 'decrement', 'enterCounting']
 
 // Internal transition (transition actions)
 const stateB = counterMachine.transition('counting', 'DO_NOTHING');
 stateB.actions;
 // ['logNothing']
+
+const stateC = counterMachine.transition('counting', 'INC');
+stateB.actions;
+// ['increment']
 ```
