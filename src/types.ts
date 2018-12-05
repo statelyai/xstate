@@ -614,8 +614,8 @@ export type DoneEvent = DoneEventObject & string;
 
 export type BuiltInEvent<TEvent extends EventObject> =
   | { type: ActionTypes.NullEvent }
-  | RaisedEvent<TEvent>
   | { type: ActionTypes.Init }
+  | RaisedEvent<TEvent>
   | ErrorExecutionEvent;
 
 /**
@@ -798,6 +798,7 @@ export interface StateInterface<
 export interface StateConfig<TContext, TEvent extends EventObject> {
   value: StateValue;
   context: TContext;
+  event: OmniEventObject<TEvent>;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext>;
   actions?: Array<ActionObject<TContext>>;

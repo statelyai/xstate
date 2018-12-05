@@ -32,6 +32,10 @@ import { getEventType } from './utils';
 
 export { actionTypes };
 
+export const initEvent = { type: actionTypes.init } as {
+  type: ActionTypes.Init;
+};
+
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
   // id?: TEvent['type']

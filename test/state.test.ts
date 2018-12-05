@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine, State } from '../src/index';
+import { initEvent } from '../src/actions';
 
 const machine = Machine({
   initial: 'one',
@@ -165,6 +166,33 @@ describe('State', () => {
       const { initialState } = machine;
 
       assert.isEmpty(initialState.inert.actions);
+    });
+  });
+
+  describe('.event', () => {
+    it('the .event prop should be the event (string) that caused the transition', () => {
+      const { initialState } = machine;
+
+      const nextState = machine.transition(initialState, 'TO_TWO');
+
+      assert.deepEqual(nextState.event, { type: 'TO_TWO' });
+    });
+
+    it('the .event prop should be the event (object) that caused the transition', () => {
+      const { initialState } = machine;
+
+      const nextState = machine.transition(initialState, {
+        type: 'TO_TWO',
+        foo: 'bar'
+      });
+
+      assert.deepEqual(nextState.event, { type: 'TO_TWO', foo: 'bar' });
+    });
+
+    it('the .event prop should be the initial event for the initial state', () => {
+      const { initialState } = machine;
+
+      assert.deepEqual(initialState.event, initEvent);
     });
   });
 });

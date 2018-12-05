@@ -69,7 +69,8 @@ import {
   doneInvoke,
   invoke,
   toActionObject,
-  resolveSend
+  resolveSend,
+  initEvent
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -1017,7 +1018,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
     currentState: State<TContext, TEvent>,
-    event?: OmniEventObject<TEvent>
+    eventObject?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
     const resolvedStateValue = stateTransition.tree
       ? stateTransition.tree.value
@@ -1034,7 +1035,7 @@ class StateNode<
       } catch (e) {
         throw new Error(
           `Event '${
-            event ? event.type : 'none'
+            eventObject ? eventObject.type : 'none'
           }' leads to an invalid configuration: ${e.message}`
         );
       }
@@ -1074,7 +1075,7 @@ class StateNode<
 
     const updatedContext = StateNode.updateContext(
       currentState.context,
-      event,
+      eventObject,
       assignActions
     );
 
@@ -1084,7 +1085,7 @@ class StateNode<
         return resolveSend(
           actionObject as SendAction<TContext, TEvent>,
           updatedContext,
-          event || { type: ActionTypes.Init }
+          eventObject || { type: ActionTypes.Init }
         ); // TODO: fix ActionTypes.Init
       }
 
@@ -1111,6 +1112,7 @@ class StateNode<
       ? new State<TContext, TEvent>({
           value: resolvedStateValue,
           context: updatedContext,
+          event: eventObject || initEvent,
           historyValue: historyValue
             ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
@@ -1437,6 +1439,7 @@ class StateNode<
     const initialNextState = new State<TContext, TEvent>({
       value: stateValue,
       context: updatedContext,
+      event: initEvent,
       activities: activityMap
     });
 

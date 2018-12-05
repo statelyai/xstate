@@ -7,7 +7,10 @@ import {
   ActionObject,
   EventType,
   StateValueMap,
-  StateConfig
+  StateConfig,
+  ActionTypes,
+  OmniEventObject,
+  BuiltInEvent
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys } from './utils';
@@ -37,6 +40,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];
+  public event: OmniEventObject<TEvent>;
   /**
    * The state node tree representation of the state value.
    */
@@ -55,6 +59,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
         return new State<TC, TE>({
           value: stateValue.value,
           context,
+          event: stateValue.event,
           historyValue: stateValue.historyValue,
           history: stateValue.history,
           actions: [],
@@ -68,9 +73,12 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       return stateValue;
     }
 
+    const event = { type: ActionTypes.Init } as BuiltInEvent<TE>;
+
     return new State<TC, TE>({
       value: stateValue,
       context,
+      event,
       historyValue: undefined,
       history: undefined,
       actions: [],
@@ -101,9 +109,12 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       if (!stateValue.actions.length) {
         return stateValue as State<TC, TE>;
       }
+      const event = { type: ActionTypes.Init } as BuiltInEvent<TE>;
+
       return new State({
         value: stateValue.value,
         context,
+        event,
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
@@ -136,6 +147,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;
     this.context = config.context;
+    this.event = config.event;
     this.historyValue = config.historyValue;
     this.history = config.history;
     this.actions = config.actions || [];
