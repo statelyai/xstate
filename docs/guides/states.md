@@ -1,6 +1,6 @@
 # States
 
-A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
+A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
 
 ```js
 const lightMachine = Machine({
@@ -37,6 +37,7 @@ A `State` object instance is JSON-serializable and has the following properties:
 
 - `value` - the current state value (e.g., `{red: 'walk'}`)
 - `context` - the current [context](./context.md) of this state
+- `event` - the event object that triggered the transition to this state (since 4.2.1)
 - `actions` - an array of [actions](./actions.md) to be executed
 - `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
 - `history` - the previous `State` instance
