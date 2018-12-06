@@ -71,7 +71,6 @@ export class StateTree {
         return undefined;
       }
 
-      // console.log(childTree.stateNode.id, (childTree.stateNode as any)._config);
       return mapContext(childTree.stateNode.data, context, event);
     }
 
@@ -269,7 +268,7 @@ export class StateTree {
 
     switch (this.stateNode.type) {
       case 'compound':
-        let r1: EntryExitStateArrays<any> = {
+        let compoundResult: EntryExitStateArrays<any> = {
           exit: [],
           entry: []
         };
@@ -278,20 +277,20 @@ export class StateTree {
         const prevChildKey = keys(prevTree.nodes)[0];
 
         if (currentChildKey !== prevChildKey) {
-          r1.exit = prevTree.nodes[prevChildKey!].getExitStates();
-          r1.entry = this.nodes[currentChildKey!].getEntryStates();
+          compoundResult.exit = prevTree.nodes[prevChildKey!].getExitStates();
+          compoundResult.entry = this.nodes[currentChildKey!].getEntryStates();
         } else {
-          r1 = this.nodes[currentChildKey!].getEntryExitStates(
+          compoundResult = this.nodes[currentChildKey!].getEntryExitStates(
             prevTree.nodes[prevChildKey!],
             externalNodes
           );
         }
 
         if (externalNodes && externalNodes.has(this.stateNode)) {
-          r1.exit.push(this.stateNode);
-          r1.entry.unshift(this.stateNode);
+          compoundResult.exit.push(this.stateNode);
+          compoundResult.entry.unshift(this.stateNode);
         }
-        return r1;
+        return compoundResult;
 
       case 'parallel':
         const all = keys(this.nodes).map(key => {
@@ -301,22 +300,22 @@ export class StateTree {
           );
         });
 
-        const result: EntryExitStateArrays<any> = {
+        const parallelResult: EntryExitStateArrays<any> = {
           exit: [],
           entry: []
         };
 
         all.forEach(ees => {
-          result.exit = [...result.exit, ...ees.exit];
-          result.entry = [...result.entry, ...ees.entry];
+          parallelResult.exit = [...parallelResult.exit, ...ees.exit];
+          parallelResult.entry = [...parallelResult.entry, ...ees.entry];
         });
 
         if (externalNodes && externalNodes.has(this.stateNode)) {
-          result.exit.push(this.stateNode);
-          result.entry.unshift(this.stateNode);
+          parallelResult.exit.push(this.stateNode);
+          parallelResult.entry.unshift(this.stateNode);
         }
 
-        return result;
+        return parallelResult;
 
       case 'atomic':
       default:

@@ -226,6 +226,75 @@ describe('invoke', () => {
     assert.deepEqual(service.state.value, 'stop');
   });
 
+  describe('parent to child', () => {
+    const subMachine = Machine({
+      id: 'child',
+      initial: 'one',
+      states: {
+        one: {
+          on: { NEXT: 'two' }
+        },
+        two: {
+          onEntry: sendParent('NEXT')
+        }
+      }
+    });
+
+    // console.dir(mainMachine.activities, { depth: null });
+
+    it('should communicate with the child machine (invoke on machine)', done => {
+      const mainMachine = Machine({
+        id: 'parent',
+        initial: 'one',
+        invoke: {
+          id: 'foo-child',
+          src: subMachine
+        },
+        states: {
+          one: {
+            onEntry: send('NEXT', { to: 'foo-child' }),
+            on: { NEXT: 'two' }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(mainMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('should communicate with the child machine (invoke on state)', done => {
+      const mainMachine = Machine({
+        id: 'parent',
+        initial: 'one',
+        states: {
+          one: {
+            invoke: {
+              id: 'foo-child',
+              src: subMachine
+            },
+            onEntry: send('NEXT', { to: 'foo-child' }),
+            on: { NEXT: 'two' }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(mainMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+  });
+
   describe('with promises', () => {
     const invokePromiseMachine = Machine({
       id: 'invokePromise',

@@ -893,14 +893,17 @@ class StateNode<
 
     if (!transition.source) {
       entryExitStates.exit = [];
+
+      // Ensure that root StateNode (machine) is entered
+      entryExitStates.entry.unshift(this);
     }
 
     const entryExitActions = {
       entry: flatten(
         Array.from(new Set(entryExitStates.entry)).map(stateNode => {
           return [
-            ...stateNode.onEntry,
             ...stateNode.activities.map(activity => start(activity)),
+            ...stateNode.onEntry,
             ...stateNode.delays.map(({ delay, id }) =>
               send(after(delay, id), { delay })
             )
