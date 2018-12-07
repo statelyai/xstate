@@ -16,6 +16,10 @@
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
 
+📖 [Read the documentation](https://xstate.js.org/docs)
+
+Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
+
 [**Version 3.x to 4 Migration Guide**](./migration.md)
 
 ## Super quick start
@@ -51,7 +55,7 @@ toggleService.send('TOGGLE');
 // => 'inactive'
 ```
 
-📖 [Read the documentation](https://xstate.js.org/docs)
+
 
 - [Visualizer](#visualizer)
 - [3rd-Party Usage](#3rd-party-usage)
@@ -61,7 +65,6 @@ toggleService.send('TOGGLE');
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
-- [Interpreters](#interpreters)
 
 ## Visualizer
 
