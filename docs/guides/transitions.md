@@ -49,7 +49,7 @@ A state transition can be defined as:
 - an object with a `target` property, e.g., `RESOLVE: { target: 'resolved' }`,
 - an array of transition objects, which are used for conditional transitions (see [guards](./guards.md))
 
-## `.transition` Method
+## Machine `.transition` Method
 
 As seen above, the `machine.transition(...)` method is a pure function that takes two arguments:
 

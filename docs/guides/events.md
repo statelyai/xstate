@@ -28,7 +28,7 @@ const keyDownEvent = {
 
 ## Sending Events
 
-As explained in the [transitions guide](./transitions.md), a transition defines what the next state will be given the current state and the event, defined on its `on: { ... }` property. This can be observed by passing an event into the [transition method](./transitions.md#TODO):
+As explained in the [transitions guide](./transitions.md), a transition defines what the next state will be given the current state and the event, defined on its `on: { ... }` property. This can be observed by passing an event into the [transition method](./transitions.md#machine-transition-method):
 
 ```js
 import { Machine } from 'xstate';
