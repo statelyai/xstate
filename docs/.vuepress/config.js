@@ -22,6 +22,7 @@ module.exports = {
           '/guides/machines',
           '/guides/states',
           '/guides/statenodes',
+          '/guides/events',
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
