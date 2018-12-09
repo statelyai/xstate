@@ -67,7 +67,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 
 Statecharts communicate hierarchically:
 
-- Parent-to-child via the `send(EVENT, { target: 'someChildId' })` action
+- Parent-to-child via the `send(EVENT, { to: 'someChildId' })` action
 - Child-to-parent via the `sendParent(EVENT)` action.
 
 Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other:
