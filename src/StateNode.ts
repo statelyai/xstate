@@ -472,6 +472,7 @@ class StateNode<
 
     return this.events.indexOf(eventType) !== -1;
   }
+
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
@@ -1578,8 +1579,7 @@ class StateNode<
       return [this];
     }
 
-    const { initialStateValue } = this;
-    const initialStateNodePaths = toStatePaths(initialStateValue!);
+    const initialStateNodePaths = toStatePaths(this.initialStateValue!);
     return flatten(
       initialStateNodePaths.map(initialPath =>
         this.getFromRelativePath(initialPath)
@@ -1600,55 +1600,60 @@ class StateNode<
       return [this];
     }
 
-    const [x, ...xs] = relativePath;
+    const [stateKey, ...childStatePath] = relativePath;
 
     if (!this.states) {
       throw new Error(
-        `Cannot retrieve subPath '${x}' from node with no states`
+        `Cannot retrieve subPath '${stateKey}' from node with no states`
       );
     }
 
-    const childStateNode = this.getStateNode(x);
+    const childStateNode = this.getStateNode(stateKey);
 
     if (childStateNode.type === 'history') {
       return childStateNode.resolveHistory(historyValue);
     }
 
-    if (!this.states[x]) {
-      throw new Error(`Child state '${x}' does not exist on '${this.id}'`);
+    if (!this.states[stateKey]) {
+      throw new Error(
+        `Child state '${stateKey}' does not exist on '${this.id}'`
+      );
     }
 
-    return this.states[x].getFromRelativePath(xs, historyValue);
+    return this.states[stateKey].getFromRelativePath(
+      childStatePath,
+      historyValue
+    );
+  }
+  private static updateHistoryStates(
+    hist: HistoryValue,
+    stateValue: StateValue
+  ): Record<string, HistoryValue | undefined> {
+    return mapValues(hist.states, (subHist, key) => {
+      if (!subHist) {
+        return undefined;
+      }
+      const subStateValue =
+        (typeof stateValue === 'string' ? undefined : stateValue[key]) ||
+        (subHist ? subHist.current : undefined);
+
+      if (!subStateValue) {
+        return undefined;
+      }
+
+      return {
+        current: subStateValue,
+        states: StateNode.updateHistoryStates(subHist, subStateValue)
+      };
+    });
   }
   private static updateHistoryValue(
     hist: HistoryValue,
     stateValue: StateValue
   ): HistoryValue {
-    function update(
-      _hist: HistoryValue,
-      _sv: StateValue
-    ): Record<string, HistoryValue | undefined> {
-      return mapValues(_hist.states, (subHist, key) => {
-        if (!subHist) {
-          return undefined;
-        }
-        const subStateValue =
-          (typeof _sv === 'string' ? undefined : _sv[key]) ||
-          (subHist ? subHist.current : undefined);
-
-        if (!subStateValue) {
-          return undefined;
-        }
-
-        return {
-          current: subStateValue,
-          states: update(subHist, subStateValue)
-        };
-      });
-    }
     return {
       current: stateValue,
-      states: update(hist, stateValue)
+      states: StateNode.updateHistoryStates(hist, stateValue)
     };
   }
   private historyValue(
@@ -1702,7 +1707,7 @@ class StateNode<
               parent.getFromRelativePath(relativeChildPath)
             )
           )
-        : this.parent!.initialStateNodes;
+        : parent.initialStateNodes;
     }
 
     const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
