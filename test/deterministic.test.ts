@@ -191,7 +191,8 @@ describe('deterministic machine', () => {
       );
       const nextState = lightMachine.transition(initialState, 'NOTHING');
 
-      assert.equal(initialState, nextState);
+      assert.equal(initialState.value, nextState.value);
+      assert.isFalse(nextState.changed);
     });
   });
 

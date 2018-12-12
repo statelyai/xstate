@@ -81,32 +81,49 @@ const machine = Machine({
 });
 
 describe('State', () => {
-  it('should indicate that it is not changed if initial state', () => {
-    assert.isUndefined(machine.initialState.changed);
-  });
+  describe('.changed', () => {
+    it('should indicate that it is not changed if initial state', () => {
+      assert.isUndefined(machine.initialState.changed);
+    });
 
-  it('states from external transitions with onEntry actions should be changed', () => {
-    const changedState = machine.transition(machine.initialState, 'EXTERNAL');
-    assert.isTrue(changedState.changed, 'changed due to onEntry action');
-  });
+    it('states from external transitions with onEntry actions should be changed', () => {
+      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
+      assert.isTrue(changedState.changed, 'changed due to onEntry action');
+    });
 
-  it('states from internal transitions with no actions should be unchanged', () => {
-    const changedState = machine.transition(machine.initialState, 'EXTERNAL');
-    const unchangedState = machine.transition(changedState, 'INERT');
-    assert.isFalse(
-      unchangedState.changed,
-      'unchanged - same state, no actions'
-    );
-  });
+    it('states from internal transitions with no actions should be unchanged', () => {
+      const changedState = machine.transition(machine.initialState, 'EXTERNAL');
+      const unchangedState = machine.transition(changedState, 'INERT');
+      assert.isFalse(
+        unchangedState.changed,
+        'unchanged - same state, no actions'
+      );
+    });
 
-  it('states from internal transitions with actions should be changed', () => {
-    const changedState = machine.transition(machine.initialState, 'INTERNAL');
-    assert.isTrue(changedState.changed, 'changed - transition actions');
-  });
+    it('states from internal transitions with actions should be changed', () => {
+      const changedState = machine.transition(machine.initialState, 'INTERNAL');
+      assert.isTrue(changedState.changed, 'changed - transition actions');
+    });
 
-  it('normal state transitions should be changed', () => {
-    const changedState = machine.transition(machine.initialState, 'TO_TWO');
-    assert.isTrue(changedState.changed, 'changed - different state');
+    it('normal state transitions should be changed (initial state)', () => {
+      const changedState = machine.transition(machine.initialState, 'TO_TWO');
+      assert.isTrue(
+        changedState.changed,
+        'changed - different state (from initial)'
+      );
+    });
+
+    it('normal state transitions should be changed', () => {
+      const twoState = machine.transition(machine.initialState, 'TO_TWO');
+      const changedState = machine.transition(twoState, 'FOO_EVENT');
+      assert.isTrue(changedState.changed, 'changed - different state');
+    });
+
+    it('normal state transitions with unknown event should be unchanged', () => {
+      const twoState = machine.transition(machine.initialState, 'TO_TWO');
+      const changedState = machine.transition(twoState, 'UNKNOWN_EVENT');
+      assert.isFalse(changedState.changed, 'not changed - unknown event');
+    });
   });
 
   describe('.nextEvents', () => {

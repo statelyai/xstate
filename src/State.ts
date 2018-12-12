@@ -21,6 +21,10 @@ export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
     return true;
   }
 
+  if (typeof a === 'string' || typeof b === 'string') {
+    return a === b;
+  }
+
   const aKeys = keys(a as StateValueMap);
   const bKeys = keys(b as StateValueMap);
 
@@ -215,11 +219,8 @@ export class State<TContext, TEvent extends EventObject = EventObject>
 
     return (
       !!this.actions.length ||
-      (typeof this.history.value !== typeof this.value
-        ? true
-        : typeof this.value === 'string'
-        ? this.value !== this.history.value
-        : stateValuesEqual(this.value, this.history.value))
+      typeof this.history.value !== typeof this.value ||
+      !stateValuesEqual(this.value, this.history.value)
     );
   }
 }

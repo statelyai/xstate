@@ -1021,7 +1021,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext>,
     currentState: State<TContext, TEvent>,
-    eventObject?: OmniEventObject<TEvent>
+    eventObject: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
     const resolvedStateValue = stateTransition.tree
       ? stateTransition.tree.value
@@ -1129,8 +1129,18 @@ class StateNode<
       : undefined;
 
     if (!nextState) {
-      // Unchanged state should be returned with no actions
-      return State.inert<TContext, TEvent>(currentState, updatedContext);
+      return new State({
+        value: currentState.value,
+        context: updatedContext,
+        event: eventObject,
+        historyValue: currentState.historyValue,
+        history: currentState,
+        actions: [],
+        activities: currentState.activities,
+        meta: currentState.meta,
+        events: [],
+        tree: currentState.tree
+      });
     }
 
     // Dispose of penultimate histories to prevent memory leaks
@@ -1471,7 +1481,7 @@ class StateNode<
         actions: []
       },
       state,
-      undefined
+      { type: ActionTypes.Init }
     );
   }
 

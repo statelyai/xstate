@@ -33,7 +33,7 @@ export function testAll(machine: StateNode, expected: {}): void {
         if (toState === undefined) {
           // undefined means that the state didn't transition
           assert.isEmpty(resultState.actions);
-          assert.isUndefined(resultState.history);
+          assert.isFalse(resultState.changed);
         } else if (typeof toState === 'string') {
           assert.ok(
             matchesState(toState, resultState.value),
