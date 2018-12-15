@@ -60,6 +60,7 @@
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
     "chai": "^4.2.0",
+    "markdown-it-codesandbox-embed": "^0.1.0",
     "mocha": "^3.5.3",
     "prettier": "^1.15.2",
     "rollup": "^0.64.1",
