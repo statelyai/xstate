@@ -12,8 +12,10 @@ import {
   DefaultContext,
   ValueAdjacencyMap,
   Event,
-  EventObject
+  EventObject,
+  StateMachine
 } from './types';
+import { toEventObject } from './actions';
 
 const EMPTY_MAP = {};
 
@@ -146,19 +148,6 @@ export function getAdjacencyMap<TContext = DefaultContext>(
   return adjacency;
 }
 
-function eventToString<TEvent extends EventObject = EventObject>(
-  event: Event<TEvent>
-): string {
-  if (typeof event === 'string' || typeof event === 'number') {
-    return `${event}`;
-  }
-
-  // @ts-ignore - TODO: fix?
-  const { type, ...rest } = event;
-
-  return `${type} | ${JSON.stringify(rest)}`;
-}
-
 export function deserializeStateString(
   valueContextString: string
 ): { value: StateValue; context: any } {
@@ -175,13 +164,46 @@ export function serializeState<TContext>(state: State<TContext>): string {
   return JSON.stringify(value) + ' | ' + JSON.stringify(context);
 }
 
-export interface GetValueAdjacencyMapOptions<
-  TContext,
-  TEvent extends EventObject
-> {
+export function serializeEvent<TEvent extends EventObject>(
+  event: TEvent
+): string {
+  // @ts-ignore
+  const { type, ...payload } = event;
+
+  return keys(payload).length ? `${type} | ${JSON.stringify(payload)}` : type;
+}
+
+export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   // events: Record<string, Array<Event<TEvent>>>;
-  events: { [K in TEvent['type']]: Array<Event<TEvent>> };
-  filter?: (state: State<TContext>) => boolean;
+  events: { [K in TEvent['type']]: Array<TEvent & { type: K }> };
+  filter: (state: State<TContext>) => boolean;
+  stateSerializer: (state: State<TContext>) => string;
+  eventSerializer: (event: TEvent) => string;
+}
+
+export class ValueAdjacency<TContext, TEvent extends EventObject> {
+  public map: ValueAdjacencyMap;
+  public options: ValueAdjMapOptions<TContext, TEvent>;
+
+  constructor(
+    public machine: StateMachine<TContext, any, TEvent>,
+    options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
+  ) {
+    this.options = {
+      events: {},
+      stateSerializer: serializeState,
+      eventSerializer: serializeEvent,
+      ...options
+    } as ValueAdjMapOptions<TContext, TEvent>;
+    this.map = getValueAdjacencyMap(machine, options);
+  }
+
+  public reaches(stateValue: StateValue, context: TContext): boolean {
+    const resolvedStateValue = this.machine.resolve(stateValue);
+    const state = State.from(resolvedStateValue, context);
+
+    return !!this.map[this.options.stateSerializer(state)];
+  }
 }
 
 export function getValueAdjacencyMap<
@@ -189,37 +211,45 @@ export function getValueAdjacencyMap<
   TEvent extends EventObject = EventObject
 >(
   node: StateNode<TContext, any, TEvent>,
-  options: GetValueAdjacencyMapOptions<TContext, TEvent>
+  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): ValueAdjacencyMap {
-  const { events, filter } = options;
-  const adjacency: ValueAdjacencyMap = {};
+  const optionsWithDefaults = {
+    events: {},
+    stateSerializer: serializeState,
+    eventSerializer: serializeEvent,
+    ...options
+  } as ValueAdjMapOptions<TContext, TEvent>;
+  const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
+  const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
+  node.events.forEach(event => {
+    events[event] = [event];
+  });
+  Object.assign(events, optionsWithDefaults.events);
 
-  // const potentialEvents = flatten(
-  //   // @ts-ignore
-  //   node.events.map(event => events[event] || [event])
-  // );
+  const adjacency: ValueAdjacencyMap = {};
 
   function findAdjacencies(state: State<TContext, TEvent>) {
     const { nextEvents } = state;
-    const stateKey = serializeState(state);
+    const stateHash = stateSerializer(state);
 
-    if (adjacency[stateKey]) {
+    if (adjacency[stateHash]) {
       return;
     }
 
-    adjacency[stateKey] = {};
+    adjacency[stateHash] = {};
 
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map(
-        nextEvent => ((events as any)[nextEvent] as TEvent[]) || []
-      )
-    );
+      nextEvents.map(nextEvent => events[nextEvent] || [])
+    ).map(event => toEventObject(event));
 
     for (const event of potentialEvents) {
       const nextState = node.transition(state, event);
 
-      if (!filter || filter(nextState)) {
-        adjacency[stateKey][eventToString(event)] = {
+      if (
+        (!filter || filter(nextState)) &&
+        stateHash !== stateSerializer(nextState)
+      ) {
+        adjacency[stateHash][eventSerializer(event)] = {
           value: nextState.value,
           context: nextState.context
         };
@@ -239,7 +269,7 @@ export function getShortestValuePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateNode<TContext, any, TEvent>,
-  options: GetValueAdjacencyMapOptions<TContext, TEvent>
+  options: ValueAdjMapOptions<TContext, TEvent>
 ): PathMap {
   if (!machine.states) {
     return EMPTY_MAP;

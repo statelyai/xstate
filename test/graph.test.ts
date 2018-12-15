@@ -7,9 +7,11 @@ import {
   getSimplePaths,
   getAdjacencyMap,
   getShortestPathsAsArray,
-  getSimplePathsAsArray
+  getSimplePathsAsArray,
+  ValueAdjacency
 } from '../src/graph';
 import { PathMap } from '../src/types';
+import { assign } from '../src/actions';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
 
@@ -644,6 +646,40 @@ describe('graph utilities', () => {
           ]
         }
       ]);
+    });
+  });
+
+  describe('valueAdjacencyMap', () => {
+    it('should map adjacencies', () => {
+      const counterMachine = Machine({
+        id: 'counter',
+        initial: 'empty',
+        context: { count: 0 },
+        states: {
+          empty: {
+            on: {
+              '': {
+                target: 'full',
+                cond: ctx => ctx.count === 5
+              },
+              INC: {
+                actions: assign({ count: (ctx, e) => ctx.count + e.value })
+              },
+              DEC: { actions: assign({ count: ctx => ctx.count - 1 }) }
+            }
+          },
+          full: {}
+        }
+      });
+
+      const adjacency = new ValueAdjacency(counterMachine, {
+        filter: state => state.context.count >= 0 && state.context.count <= 5,
+        events: {
+          INC: [{ type: 'INC', value: 1 }]
+        }
+      });
+
+      assert.ok(adjacency.reaches('full', { count: 5 }));
     });
   });
 });
