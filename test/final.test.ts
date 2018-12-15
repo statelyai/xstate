@@ -1,6 +1,5 @@
 import { Machine } from '../src/index';
 import { assert } from 'chai';
-import { done } from '../src/actions';
 
 // @ts-ignore
 const finalMachine = Machine({
@@ -27,11 +26,11 @@ const finalMachine = Machine({
             },
             stop: {
               type: 'final',
-              data: 'stop'
+              data: { signal: 'stop' }
             }
           },
           onDone: {
-            cond: (_, e) => e.data === 'stop',
+            cond: (_, e) => e.data.signal === 'stop',
             actions: 'stopCrosswalk1'
           }
         },
@@ -51,17 +50,14 @@ const finalMachine = Machine({
               type: 'final'
             }
           },
-          on: {
-            [done('final.red.crosswalk2') + '']: {
-              actions: 'stopCrosswalk2'
-            }
+          onDone: {
+            actions: 'stopCrosswalk2'
           }
         }
       },
-      on: {
-        [done('final.red') + '']: {
-          actions: 'prepareGreenLight'
-        }
+      onDone: {
+        target: 'green',
+        actions: 'prepareGreenLight'
       }
     }
   },
@@ -90,5 +86,42 @@ describe('final states', () => {
 
     const greenState = finalMachine.transition(stopState, 'TIMER');
     assert.isEmpty(greenState.actions);
+  });
+
+  it('should execute final child state actions first', () => {
+    const nestedFinalMachine = Machine({
+      id: 'nestedFinal',
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'bar',
+          onDone: { actions: 'fooAction' },
+          states: {
+            bar: {
+              initial: 'baz',
+              onDone: 'barFinal',
+              states: {
+                baz: {
+                  type: 'final',
+                  onEntry: 'bazAction'
+                }
+              }
+            },
+            barFinal: {
+              type: 'final',
+              onDone: { actions: 'barAction' }
+            }
+          }
+        }
+      }
+    });
+
+    const { initialState } = nestedFinalMachine;
+
+    assert.deepEqual(initialState.actions.map(a => a.type), [
+      'bazAction',
+      'barAction',
+      'fooAction'
+    ]);
   });
 });

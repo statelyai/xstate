@@ -114,7 +114,7 @@ export class StateTree {
       );
 
       if (childDoneEvents && allChildrenDone) {
-        return [done(this.stateNode.id)].concat(childDoneEvents);
+        return childDoneEvents.concat(done(this.stateNode.id));
       } else {
         return childDoneEvents;
       }
@@ -130,7 +130,7 @@ export class StateTree {
     const doneData =
       childDoneEvents.length === 1 ? childDoneEvents[0].data : undefined;
 
-    return [done(this.stateNode.id, doneData)].concat(childDoneEvents);
+    return childDoneEvents.concat(done(this.stateNode.id, doneData));
   }
 
   public get resolved(): StateTree {
