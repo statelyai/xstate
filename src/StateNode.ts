@@ -867,9 +867,7 @@ class StateNode<
       new Set(
         this.transitions
           .map(transition => transition.delay)
-          .filter<number>((delay => delay !== undefined) as (
-            delay: number | undefined
-          ) => delay is number)
+          .filter<number>((delay): delay is number => delay !== undefined)
       )
     );
 
@@ -947,13 +945,13 @@ class StateNode<
 
     const activityMap = { ...activities };
 
-    Array.from(entryExitStates.exit).forEach(stateNode => {
+    entryExitStates.exit.forEach(stateNode => {
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = false;
       });
     });
 
-    Array.from(entryExitStates.entry).forEach(stateNode => {
+    entryExitStates.entry.forEach(stateNode => {
       stateNode.activities.forEach(activity => {
         activityMap[activity.type] = true;
       });
