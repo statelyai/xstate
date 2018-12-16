@@ -236,6 +236,7 @@ export type StatesDefinition<
 export type TransitionsConfig<TContext, TEvent extends EventObject> = {
   [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?:
     | string
+    | number
     | StateNode<TContext>
     | TransitionConfig<
         TContext,
@@ -810,7 +811,5 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
 
 export interface StateSchema {
   meta?: any;
-  states?: {
-    [key: string]: StateSchema;
-  };
+  states?: Record<string | number, StateSchema>;
 }

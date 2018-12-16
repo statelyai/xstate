@@ -438,7 +438,7 @@ class StateNode<
     if (typeof stateValue === 'string') {
       const initialStateValue = this.getStateNode(stateValue).initial;
 
-      return initialStateValue
+      return initialStateValue !== undefined
         ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
         : [this.states[stateValue]];
     }
@@ -1371,7 +1371,7 @@ class StateNode<
       };
     }
 
-    if (!this.initial) {
+    if (this.initial === undefined) {
       // If leaf node, value is just the state node's key
       return key;
     }
