@@ -132,7 +132,7 @@ const jsonState = JSON.stringify(currentState);
 
 // Example: persisting to localStorage
 try {
-  localStorage.set('app-state', jsonState);
+  localStorage.setItem('app-state', jsonState);
 } catch (e) {
   // unable to save to localStorage
 }
@@ -146,7 +146,7 @@ import { interpret } from 'xstate/lib/interpreter';
 import { myMachine } from '../path/to/myMachine';
 
 // Retrieving state from localStorage
-const restoredStateDef = JSON.parse(localStorage.get('app-state'));
+const restoredStateDef = JSON.parse(localStorage.getItem('app-state'));
 
 // Use State.create() to restore state from a plain object
 const restoredState = State.create(restoredStateDef);
