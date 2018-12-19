@@ -521,7 +521,7 @@ export class Interpreter<
               const dispose = promiseOrCallback(this.send.bind(this));
 
               this.activitiesMap[id] = () => {
-                if (dispose) {
+                if (dispose && typeof dispose === 'function') {
                   dispose();
                 }
               };
