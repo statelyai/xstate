@@ -21,9 +21,9 @@ import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
 
-export type StateListener = <TContext, TEvent extends EventObject>(
+export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext>,
-  event: TEvent
+  event: OmniEvent<TEvent>
 ) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
@@ -138,7 +138,7 @@ export class Interpreter<
   private eventQueue: Array<OmniEventObject<TEvent>> = [];
   private delayedEventsMap: Record<string, number> = {};
   private activitiesMap: Record<string, any> = {};
-  private listeners: Set<StateListener> = new Set();
+  private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
@@ -227,7 +227,7 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onTransition(
-    listener: StateListener
+    listener: StateListener<TContext, TEvent>
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.add(listener);
     return this;
@@ -287,7 +287,7 @@ export class Interpreter<
    * @param listener The listener to remove
    */
   public off(
-    listener: StateListener
+    listener: StateListener<TContext, TEvent>
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.delete(listener);
     return this;
@@ -397,9 +397,11 @@ export class Interpreter<
       throw new Error(
         `Unable to send event "${
           eventObject.type
-        }" to an uninitialized interpreter (ID: ${
+        }" to an uninitialized service (ID: ${
           this.machine.id
-        }). Event: ${JSON.stringify(event)}`
+        }). Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+          event
+        )}`
       );
     }
 

@@ -244,7 +244,7 @@ class StateNode<
             const stateNode = new StateNode({
               ...stateConfig,
               key,
-              order: stateConfig.order === undefined ? stateConfig.order : i,
+              order: stateConfig.order === undefined ? i : stateConfig.order,
               parent: this
             });
             Object.assign(this.idMap, {
