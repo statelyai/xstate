@@ -205,7 +205,7 @@ The `log()` action creator is a declarative way of logging anything related to t
 
 ```js
 import { Machine, actions } from 'xstate';
-const { raise } = actions;
+const { log } = actions;
 
 const loggingMachine = Machine({
   id: 'logging',
