@@ -23,7 +23,7 @@ import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext>,
-  event: OmniEvent<TEvent>
+  event: OmniEventObject<TEvent>
 ) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
