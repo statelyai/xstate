@@ -475,16 +475,16 @@ export type ActionFunctionMap<TContext> = Record<
   ActionObject<TContext> | ActionFunction<TContext>
 >;
 
-export type ServiceConfig =
-  | string // URL
-  | StateNode
-  | StateNodeDefinition<any, any, any>;
+export type ServiceConfig<TContext> =
+  | string
+  | StateMachine<any, any, any>
+  | InvokeCreator<any, TContext>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions?: ActionFunctionMap<TContext>;
   activities?: Record<string, ActivityConfig<TContext>>;
-  services?: Record<string, ServiceConfig>;
+  services?: Record<string, ServiceConfig<TContext>>;
 }
 export interface MachineConfig<
   TContext,

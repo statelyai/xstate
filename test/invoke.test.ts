@@ -343,6 +343,89 @@ describe('invoke', () => {
         .onDone(() => done())
         .start();
     });
+
+    it('should be able to specify a Promise as a service', done => {
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              invoke: {
+                src: 'somePromise',
+                onDone: 'last'
+              }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: (ctx, e) => {
+              return new Promise((res, rej) => {
+                ctx.foo && e.payload ? res() : rej();
+              });
+            }
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(() => done())
+        .start()
+        .send({ type: 'BEGIN', payload: true });
+    });
+
+    it('should be able to specify a callback as a service', done => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: {
+                CALLBACK: {
+                  target: 'last',
+                  cond: (_, e) => e.data === 42
+                }
+              }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: (ctx, e) => cb => {
+              if (ctx.foo && e.payload) {
+                cb({ type: 'CALLBACK', data: 40 });
+                cb({ type: 'CALLBACK', data: 41 });
+                cb({ type: 'CALLBACK', data: 42 });
+              }
+            }
+          }
+        }
+      );
+
+      interpret(callbackMachine)
+        .onDone(() => done())
+        .start()
+        .send({ type: 'BEGIN', payload: true });
+    });
   });
 
   describe('with callbacks', () => {

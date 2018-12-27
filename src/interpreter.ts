@@ -12,7 +12,8 @@ import {
   InvokeDefinition,
   OmniEventObject,
   OmniEvent,
-  SendActionObject
+  SendActionObject,
+  ServiceConfig
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -476,7 +477,7 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const service = activity.src
+          const service: ServiceConfig<TContext> | undefined = activity.src
             ? activity.src instanceof StateNode
               ? activity.src
               : typeof activity.src === 'function'
@@ -485,6 +486,7 @@ export class Interpreter<
               ? this.machine.options.services[activity.src]
               : undefined
             : undefined;
+
           const { id, data } = activity;
 
           const autoForward = !!activity.forward;
