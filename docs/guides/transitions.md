@@ -78,7 +78,7 @@ An **enabled transition** is a transition that will be taken, given the current 
 
 - it is defined on a [state node](./statenodes.md) that matches the current state value
 - the transition [guard](./guards.md) (`cond` property) is satisfied (evaluates to `true`)
-- it is not supeseded by a more specific transition.
+- it is not superseded by a more specific transition.
 
 In a [hierarchical machine](./hierarchical.md), transitions are prioritized by how deep they are in the tree; deeper transitions are more specific and thus have higher priority. This works similar to how DOM events work: if you click a button, the click event handler directly on the button is more specific than a click event handler on the `window`.
 
