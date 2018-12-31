@@ -54,6 +54,10 @@ module.exports = {
         children: ['/recipes/react', '/recipes/vue', '/recipes/rxjs']
       },
       {
+        title: 'Patterns',
+        children: ['/patterns/sequence']
+      },
+      {
         title: 'Examples',
         children: ['/examples/todomvc']
       }

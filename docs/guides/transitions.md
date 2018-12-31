@@ -129,3 +129,116 @@ const closedState = wizardMachine.transition(initialState, 'CLOSE');
 console.log(closedState.value);
 // => 'closed'
 ```
+
+## Self Transitions
+
+A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
+
+- An **internal transition** will not exit nor re-enter itself, but may enter different child states.
+- An **external transition** will exit and re-enter itself, and may also exit/enter child states.
+
+By default, all transitions with a specified target are external.
+
+See [actions on self-transitions](./actions.md#actions-on-self-transitions) for more details on how entry/exit actions are executed on self-transitions.
+
+## Transient Transitions
+
+A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
+
+```js
+const gameMachine = Machine(
+  {
+    id: 'game',
+    initial: 'playing',
+    context: {
+      points: 0
+    },
+    states: {
+      playing: {
+        on: {
+          // Transient transition
+          // Will transition to either 'win' or 'lose' immediately upon
+          // (re)entering 'playing' state if the condition is met.
+          '': [
+            { target: 'win', cond: 'didPlayerWin' },
+            { target: 'lose', cond: 'didPlayerLose' }
+          ],
+          // Self-transition
+          AWARD_POINTS: {
+            actions: assign({
+              points: 100
+            })
+          }
+        }
+      },
+      win: { type: 'final' },
+      lose: { type: 'final' }
+    }
+  },
+  {
+    guards: {
+      didPlayerWin: (context, event) => {
+        // check if player won
+        return context.points > 99;
+      },
+      didPlayerLose: (context, event) => {
+        // check if player lost
+        return context.points < 0;
+      }
+    }
+  }
+);
+
+const gameService = interpret(gameMachine)
+  .onTransition(state => console.log(state.value))
+  .start();
+
+// Still in 'playing' state because no conditions of
+// transient transition were met
+// => 'playing'
+
+// When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
+// The transient transition to 'win' is taken because the 'didPlayerWin'
+// condition is satisfied.
+gameService.send('AWARD_POINTS');
+// => 'win'
+```
+
+Just like transitions, transient transitions can be specified as a single transition (e.g., `'': 'someTarget'`), or an array of conditional transitions. If no conditional transitions on a transient transition are met, the machine stays in the same state.
+
+Null events are always "sent" for every transition, internal or external.
+
+## SCXML
+
+The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
+
+```js
+{
+  green: {
+    on: {
+      TIMER: {
+        target: '#yellow',
+        cond: ctx => ctx.timeElapsed > 5000
+      },
+      POWER_OUTAGE: '#red.flashing'
+    }
+  },
+  // ...
+}
+```
+
+```xml
+<state id="green">
+  <transition
+    event="TIMER"
+    target="yellow"
+    cond="timeElapsed > 5000"
+  />
+  <transition
+    event="POWER_OUTAGE"
+    target="red.flashing"
+  />
+</state>
+```
+
+- [https://www.w3.org/TR/scxml/#transition](https://www.w3.org/TR/scxml/#transition) - the definition of `<transition>`

@@ -96,7 +96,7 @@ console.log(nextState.value);
 // => 'three'
 ```
 
-There are many use cases for null events, especially when defining [transient transitions](./transitions.md#TODO), where a transient state immediately determines what the next state should be based on [conditions](./guards.md):
+There are many use cases for null events, especially when defining [transient transitions](./transitions.md#transient-transitions), where a (potentially [transient](./states.md#transient-state)) state immediately determines what the next state should be based on [conditions](./guards.md):
 
 ```js
 const ageMachine = Machine({

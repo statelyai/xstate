@@ -246,7 +246,7 @@ Without any arguments, `log()` is an action that logs an object with `context` a
 
 ## Actions on self-transitions
 
-A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
+A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
 - An internal transition will _not_ exit and reenter itself, so the state node's `onEntry` and `onExit` actions will not be executed again.
   - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
