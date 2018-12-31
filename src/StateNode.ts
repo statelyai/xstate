@@ -1890,7 +1890,7 @@ class StateNode<
         if (!IS_PRODUCTION) {
           keys(value).forEach(key => {
             if (
-              ['target', 'actions', 'internal', 'in', 'cond'].indexOf(key) ===
+              ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(key) ===
               -1
             ) {
               throw new Error(
