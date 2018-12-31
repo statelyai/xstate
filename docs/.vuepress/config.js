@@ -1,4 +1,4 @@
-const mdCodesandboxPlugin = require('markdown-it-codesandbox-embed')
+const mdCodesandboxPlugin = require('markdown-it-codesandbox-embed');
 
 module.exports = {
   title: 'XState Docs',
@@ -7,11 +7,11 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   ga: 'UA-129726387-1',
   markdown: {
-    config: md => {
-      md.use(mdCodesandboxPlugin, {
-        directory: 'sandboxes',
-      })
-    }
+    // config: md => {
+    //   md.use(mdCodesandboxPlugin, {
+    //     directory: 'sandboxes',
+    //   })
+    // }
   },
   themeConfig: {
     logo: '/logo.svg',
