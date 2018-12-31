@@ -158,3 +158,45 @@ const machine = Machine({
 ```
 
 Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'history'`, or `'final'` is helpful with regard to analysis and type-checking in TypeScript. However, it is only required for parallel, history, and final states.
+
+## Transient State Nodes
+
+A transient state node is a "pass-through" state node that immediately transitions to another state node; that is, a machine does not stay in a transient state. Transient state nodes are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
+
+A transient state node only specifies transitions for the [null event](./events.md#null-events) (that is, a [transient transition](./transitions.md#transient-transitions)), which is always immediately raised in that state.
+
+For example, this machine's initial transient state resolves to `'morning'`, `'afternoon'`, or `'evening'`, depending on what time it is (implementation details hidden):
+
+```js
+const timeOfDayMachine = Machine({
+  id: 'timeOfDay',
+  initial: 'unknown',
+  context: {
+    time: undefined
+  },
+  states: {
+    // Transient state
+    unknown: {
+      on: {
+        '': [
+          { target: 'morning', cond: 'isBeforeNoon' },
+          { target: 'afternoon', cond: 'isBeforeSix' },
+          { target: 'evening' }
+        ]
+      }
+    }
+  }
+}, {
+  guards: {
+    isBeforeNoon: // ...
+    isBeforeSix: // ...
+  }
+});
+
+const timeOfDayService = interpret(timeOfDayMachine
+  .withContext({ time: Date.now() }))
+  .onTransition(state => console.log(state.value))
+  .start();
+
+// => 'morning' (assuming the time is before noon)
+```
