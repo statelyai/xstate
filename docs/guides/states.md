@@ -163,6 +163,48 @@ const service = interpret(myMachine).start(restoredState);
 
 This will also maintain and restore previous [history states](./history.md).
 
+## Transient States
+
+A transient state is a "pass-through" state that immediately transitions to another state; that is, a machine does not stay in a transient state. Transient states are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
+
+A transient state only specifies transitions for the [null event](./events.md#null-events) (that is, a [transient transition](./transitions.md#transient-transitions)), which is always immediately raised in that state.
+
+For example, this machine's initial transient state resolves to `'morning'`, `'afternoon'`, or `'evening'`, depending on what time it is (implementation details hidden):
+
+```js
+const timeOfDayMachine = Machine({
+  id: 'timeOfDay',
+  initial: 'unknown',
+  context: {
+    time: undefined
+  },
+  states: {
+    // Transient state
+    unknown: {
+      on: {
+        '': [
+          { target: 'morning', cond: 'isBeforeNoon' },
+          { target: 'afternoon', cond: 'isBeforeSix' },
+          { target: 'evening' }
+        ]
+      }
+    }
+  }
+}, {
+  guards: {
+    isBeforeNoon: // ...
+    isBeforeSix: // ...
+  }
+});
+
+const timeOfDayService = interpret(timeOfDayMachine
+  .withContext({ time: Date.now() }))
+  .onTransition(state => console.log(state.value))
+  .start();
+
+// => 'morning' (assuming the time is before noon)
+```
+
 ## Notes
 
 - You should seldom (never) have to create a `State` instance manually. Treat `State` as a read-only object that comes from `machine.transition(...)` or `service.onTransition(...)` _only_.
