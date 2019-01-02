@@ -173,6 +173,42 @@ describe('interpreter', () => {
 
       assert.equal(activityState, 'off');
     });
+
+    it('should stop activities upon stopping the service', () => {
+      let stopActivityState: string;
+
+      const stopActivityMachine = Machine(
+        {
+          id: 'stopActivity',
+          initial: 'on',
+          states: {
+            on: {
+              activities: 'myActivity',
+              on: {
+                TURN_OFF: 'off'
+              }
+            },
+            off: {}
+          }
+        },
+        {
+          activities: {
+            myActivity: () => {
+              stopActivityState = 'on';
+              return () => (stopActivityState = 'off');
+            }
+          }
+        }
+      );
+
+      const stopActivityService = interpret(stopActivityMachine).start();
+
+      assert.equal(stopActivityState!, 'on');
+
+      stopActivityService.stop();
+
+      assert.equal(stopActivityState!, 'off', 'activity should be disposed');
+    });
   });
 
   it('can cancel a delayed event', () => {

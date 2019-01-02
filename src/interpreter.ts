@@ -330,6 +330,11 @@ export class Interpreter<
       this.doneListeners.delete(doneListener)
     );
 
+    // Stop all activities
+    Object.keys(this.activitiesMap).forEach(activityId => {
+      this.stopActivity(activityId);
+    });
+
     return this;
   }
   /**
@@ -576,12 +581,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        const { activity } = action as ActivityActionObject<TContext>;
-        const dispose = this.activitiesMap[activity.id];
-
-        if (dispose) {
-          dispose();
-        }
+        this.stopActivity(action.activity.id);
 
         break;
       }
@@ -604,6 +604,13 @@ export class Interpreter<
     }
 
     return undefined;
+  }
+  private stopActivity(activityId: string): void {
+    const dispose = this.activitiesMap[activityId];
+
+    if (dispose && typeof dispose === 'function') {
+      dispose();
+    }
   }
   private spawn<
     TChildContext,
