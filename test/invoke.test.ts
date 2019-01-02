@@ -268,6 +268,39 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should communicate with the child machine (invoke on created machine)', done => {
+      interface MainMachineCtx {
+        machine: typeof subMachine;
+      }
+
+      const mainMachine = Machine<MainMachineCtx>({
+        id: 'parent',
+        initial: 'one',
+        context: {
+          machine: subMachine
+        },
+        invoke: {
+          id: 'foo-child',
+          src: ctx => ctx.machine
+        },
+        states: {
+          one: {
+            onEntry: send('NEXT', { to: 'foo-child' }),
+            on: { NEXT: 'two' }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(mainMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
     it('should communicate with the child machine (invoke on state)', done => {
       const mainMachine = Machine({
         id: 'parent',

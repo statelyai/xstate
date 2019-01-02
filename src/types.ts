@@ -132,6 +132,14 @@ export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
 }
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
+export type Receiver<TEvent extends EventObject> = (
+  listener: (event: TEvent) => void
+) => void;
+
+export type InvokeCallback = ((
+  sender: Sender<any>,
+  receiver?: Receiver<any>
+) => void | (() => void));
 
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
@@ -149,7 +157,10 @@ export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type InvokeCreator<TFinalContext, TContext> = (
   context: TContext,
   event: EventObject
-) => Promise<TFinalContext> | ((sender: Sender<any>) => void | (() => void));
+) =>
+  | Promise<TFinalContext>
+  | StateMachine<TFinalContext, any, any>
+  | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext> {

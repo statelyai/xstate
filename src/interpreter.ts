@@ -13,12 +13,14 @@ import {
   OmniEventObject,
   OmniEvent,
   SendActionObject,
-  ServiceConfig
+  ServiceConfig,
+  InvokeCallback,
+  Sender,
+  DisposeActivityFunction
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { Machine } from './Machine';
 import { StateNode } from './StateNode';
 import { mapContext } from './utils';
 
@@ -104,6 +106,11 @@ export class SimulatedClock implements SimulatedClock {
   }
 }
 
+export interface Actor {
+  send: Sender<any>;
+  stop: (() => void) | void;
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -138,7 +145,6 @@ export class Interpreter<
 
   private eventQueue: Array<OmniEventObject<TEvent>> = [];
   private delayedEventsMap: Record<string, number> = {};
-  private activitiesMap: Record<string, any> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -150,7 +156,7 @@ export class Interpreter<
 
   // Actor
   public parent?: Interpreter<any>;
-  private children: Map<string, Interpreter<any>> = new Map();
+  private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
   public id: string;
 
@@ -330,9 +336,11 @@ export class Interpreter<
       this.doneListeners.delete(doneListener)
     );
 
-    // Stop all activities
-    Object.keys(this.activitiesMap).forEach(activityId => {
-      this.stopActivity(activityId);
+    // Stop all children
+    this.children.forEach(child => {
+      if (typeof child.stop === 'function') {
+        child.stop();
+      }
     });
 
     return this;
@@ -482,7 +490,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const service: ServiceConfig<TContext> | undefined = activity.src
+          const serviceCreator:
+            | ServiceConfig<TContext>
+            | undefined = activity.src
             ? activity.src instanceof StateNode
               ? activity.src
               : typeof activity.src === 'function'
@@ -496,7 +506,7 @@ export class Interpreter<
 
           const autoForward = !!activity.forward;
 
-          if (!service) {
+          if (!serviceCreator) {
             // tslint:disable-next-line:no-console
             console.warn(
               `No service found for invocation '${activity.src}' in machine '${
@@ -506,59 +516,28 @@ export class Interpreter<
             return;
           }
 
-          if (typeof service === 'function') {
-            const promiseOrCallback = service(context, event);
+          const source =
+            typeof serviceCreator === 'function'
+              ? serviceCreator(context, event)
+              : serviceCreator;
 
-            if (promiseOrCallback instanceof Promise) {
-              let canceled = false;
-
-              promiseOrCallback
-                .then(response => {
-                  if (!canceled) {
-                    this.send(doneInvoke(id, response));
-                  }
-                })
-                .catch(errorData => {
-                  // Send "error.execution" to this (parent).
-                  this.send(error(errorData, id));
-                });
-
-              this.activitiesMap[id] = () => {
-                canceled = true;
-              };
-            } else {
-              const dispose = promiseOrCallback(this.send.bind(this));
-
-              this.activitiesMap[id] = () => {
-                if (dispose && typeof dispose === 'function') {
-                  dispose();
-                }
-              };
-            }
-          } else if (typeof service !== 'string') {
+          if (source instanceof Promise) {
+            this.spawnPromise(id, source);
+          } else if (typeof source === 'function') {
+            this.spawnCallback(id, source);
+          } else if (typeof source !== 'string') {
             // TODO: try/catch here
-            const childMachine =
-              service instanceof StateNode ? service : Machine(service);
-            const interpreter = this.spawn(
+            this.spawn(
               data
-                ? childMachine.withContext(
-                    mapContext(data, context, event as TEvent)
-                  )
-                : childMachine,
+                ? source.withContext(mapContext(data, context, event as TEvent))
+                : source,
               {
                 id,
                 autoForward
               }
-            ).onDone(doneEvent => {
-              this.send(doneEvent as OmniEvent<TEvent>); // todo: fix
-            });
-            interpreter.start();
-
-            this.activitiesMap[activity.id] = () => {
-              this.children.delete(interpreter.id);
-              this.forwardTo.delete(interpreter.id);
-              interpreter.stop();
-            };
+            );
+          } else {
+            // service is string
           }
         } else {
           const implementation =
@@ -575,13 +554,14 @@ export class Interpreter<
           }
 
           // Start implementation
-          this.activitiesMap[activity.id] = implementation(context, activity);
+          const dispose = implementation(context, activity);
+          this.spawnEffect(activity.id, dispose);
         }
 
         break;
       }
       case actionTypes.stop: {
-        this.stopActivity(action.activity.id);
+        this.stopChild(action.activity.id);
 
         break;
       }
@@ -605,11 +585,12 @@ export class Interpreter<
 
     return undefined;
   }
-  private stopActivity(activityId: string): void {
-    const dispose = this.activitiesMap[activityId];
-
-    if (dispose && typeof dispose === 'function') {
-      dispose();
+  private stopChild(childId: string): void {
+    const child = this.children.get(childId);
+    if (child && typeof child.stop === 'function') {
+      child.stop();
+      this.children.delete(childId);
+      this.forwardTo.delete(childId);
     }
   }
   private spawn<
@@ -620,18 +601,67 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvents>,
     options: { id?: string; autoForward?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
-    const childInterpreter = new Interpreter(machine, {
+    const childService = new Interpreter(machine, {
       parent: this,
       id: options.id || machine.id
     });
 
-    this.children.set(childInterpreter.id, childInterpreter);
+    childService
+      .onDone(doneEvent => {
+        this.send(doneEvent as OmniEvent<TEvent>); // todo: fix
+      })
+      .start();
+
+    this.children.set(childService.id, childService);
 
     if (options.autoForward) {
-      this.forwardTo.add(childInterpreter.id);
+      this.forwardTo.add(childService.id);
     }
 
-    return childInterpreter;
+    return childService;
+  }
+  private spawnPromise(id: string, promise: Promise<any>): void {
+    let canceled = false;
+
+    promise
+      .then(response => {
+        if (!canceled) {
+          this.send(doneInvoke(id, response));
+        }
+      })
+      .catch(errorData => {
+        // Send "error.execution" to this (parent).
+        this.send(error(errorData, id));
+      });
+
+    this.children.set(id, {
+      send: () => void 0,
+      stop: () => {
+        canceled = true;
+      }
+    });
+  }
+  private spawnCallback(id: string, callback: InvokeCallback): void {
+    const receive = (e: TEvent) => this.send(e);
+    let listener = (e: EventObject) => {
+      console.log(`Event '${e.type}' sent to callback '${id}' but no listener`);
+    };
+
+    const stop = callback(receive, l => (listener = l));
+
+    this.children.set(id, {
+      send: listener,
+      stop
+    });
+  }
+  private spawnEffect(
+    id: string,
+    dispose?: DisposeActivityFunction | void
+  ): void {
+    this.children.set(id, {
+      send: () => void 0,
+      stop: dispose
+    });
   }
   private flushEventQueue() {
     const flushedEvent = this.eventQueue.shift();
