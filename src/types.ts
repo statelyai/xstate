@@ -158,7 +158,9 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    */
   src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
   /**
-   * Whether any events sent to the parent are forwarded to the invoked child machine.
+   * If `true`, events sent to the parent service will be forwarded to the invoked service.
+   *
+   * Default: `false`
    */
   forward?: boolean;
   /**
@@ -271,7 +273,9 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        */
       src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
       /**
-       * Whether any events sent to the parent are forwarded to the invoked child machine.
+       * If `true`, events sent to the parent service will be forwarded to the invoked service.
+       *
+       * Default: `false`
        */
       forward?: boolean;
       /**
