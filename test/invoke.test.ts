@@ -485,5 +485,37 @@ describe('invoke', () => {
       // waits 50 milliseconds before going to final state.
       service.send('SKIP');
     });
+
+    it('callback should be able to receive messages from parent', done => {
+      const pingPongMachine = Machine({
+        id: 'ping-pong',
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'child',
+              src: () => (next, onEvent) => {
+                onEvent(e => {
+                  if (e.type === 'PING') {
+                    next('PONG');
+                  }
+                });
+              }
+            },
+            onEntry: send('PING', { to: 'child' }),
+            on: {
+              PONG: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(pingPongMachine)
+        .onDone(() => done())
+        .start();
+    });
   });
 });

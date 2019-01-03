@@ -647,7 +647,9 @@ export class Interpreter<
       console.log(`Event '${e.type}' sent to callback '${id}' but no listener`);
     };
 
-    const stop = callback(receive, l => (listener = l));
+    const stop = callback(receive, newListener => {
+      listener = newListener;
+    });
 
     this.children.set(id, {
       send: listener,

@@ -138,7 +138,7 @@ export type Receiver<TEvent extends EventObject> = (
 
 export type InvokeCallback = ((
   sender: Sender<any>,
-  receiver?: Receiver<any>
+  receiver?: Receiver<EventObject>
 ) => void | (() => void));
 
 /**
