@@ -70,7 +70,7 @@ describe('history states', () => {
     const offState = historyMachine.transition(onSecondState, 'H_POWER');
     const onState = historyMachine.transition(offState, 'H_POWER');
     const nextState = historyMachine.transition(onState, 'H_POWER');
-    assert.isUndefined(nextState.history!.history!.history);
+    assert.isUndefined(nextState.history!.history);
   });
 });
 
