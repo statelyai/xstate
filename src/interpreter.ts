@@ -288,7 +288,7 @@ export class Interpreter<
    * @param listener The listener to remove
    */
   public off(
-    listener: () => void
+    listener: (...args: any[]) => void
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.delete(listener);
     this.eventListeners.delete(listener);
@@ -322,7 +322,7 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): Interpreter<TContext, TStateSchema, TEvent> {
-    this.listeners.forEach(listener => this.off(listener));
+    this.listeners.forEach(listener => this.listeners.delete(listener));
     this.stopListeners.forEach(listener => {
       // call listener, then remove
       listener();
