@@ -118,6 +118,14 @@ describe('machine', () => {
     });
   });
 
+  describe('machine.history', () => {
+    it('should not retain previous history', () => {
+      const next = lightMachine.transition(lightMachine.initialState, 'TIMER');
+      const following = lightMachine.transition(next, 'TIMER');
+      assert.isUndefined(following!.history!.history);
+    });
+  });
+
   describe('machine.withConfig', () => {
     it('should override guards and actions', () => {
       const differentMachine = configMachine.withConfig({

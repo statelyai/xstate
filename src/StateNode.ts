@@ -1143,8 +1143,8 @@ class StateNode<
     }
 
     // Dispose of penultimate histories to prevent memory leaks
-    if (currentState.history) {
-      delete currentState.history.history;
+    if (nextState.history) {
+      delete nextState.history.history;
     }
 
     let maybeNextState = nextState;
