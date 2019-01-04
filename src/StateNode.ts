@@ -86,7 +86,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: EMPTY_OBJECT
 });
 
-const IS_PRODUCTION =
+export const IS_PRODUCTION =
   typeof process !== 'undefined' ? process.env.NODE_ENV === 'production' : true;
 
 class StateNode<
@@ -1850,12 +1850,12 @@ class StateNode<
         }
       : undefined;
     const invokeConfig = this.invoke.reduce(
-      (acc, singleInvokeConfig) => {
-        if (singleInvokeConfig.onDone) {
-          acc[doneInvoke(singleInvokeConfig.id)] = singleInvokeConfig.onDone;
+      (acc, invokeDef) => {
+        if (invokeDef.onDone) {
+          acc[doneInvoke(invokeDef.id)] = invokeDef.onDone;
         }
-        if (singleInvokeConfig.onError) {
-          acc[actionTypes.errorExecution] = singleInvokeConfig.onError;
+        if (invokeDef.onError) {
+          acc[actionTypes.errorExecution] = invokeDef.onError;
         }
         return acc;
       },
@@ -1890,8 +1890,9 @@ class StateNode<
         if (!IS_PRODUCTION) {
           keys(value).forEach(key => {
             if (
-              ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(key) ===
-              -1
+              ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
+                key
+              ) === -1
             ) {
               throw new Error(
                 `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${

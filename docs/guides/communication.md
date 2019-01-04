@@ -162,7 +162,7 @@ const userMachine = Machine({
         },
         onError: {
           target: 'failure',
-          error: (ctx, event) => event.data
+          actions: assign({ error: (ctx, event) => event.data })
         }
       }
     },

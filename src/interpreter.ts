@@ -21,7 +21,7 @@ import {
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { StateNode } from './StateNode';
+import { StateNode, IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -644,7 +644,13 @@ export class Interpreter<
   private spawnCallback(id: string, callback: InvokeCallback): void {
     const receive = (e: TEvent) => this.send(e);
     let listener = (e: EventObject) => {
-      console.log(`Event '${e.type}' sent to callback '${id}' but no listener`);
+      if (!IS_PRODUCTION) {
+        console.warn(
+          `Event '${
+            e.type
+          }' sent to callback '${id}' but was not handled by a listener.`
+        );
+      }
     };
 
     const stop = callback(receive, newListener => {
