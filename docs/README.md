@@ -1,6 +1,24 @@
-# XState
+<p align="center">
+  <a href="https://xstate.js.org">
+  <br />
+  <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
+  <br />
+  <sub>JavaScript state machines and statecharts</sub>
+  <br />
+  <br />
+  </a>
+</p>
+
+[![Build Status](https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate)](https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1)
+[![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
+[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
+<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+
+📖 [Read the documentation](https://xstate.js.org/docs)
+
+Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 
 [**Version 3.x to 4 Migration Guide**](./migration.md)
 
@@ -37,8 +55,6 @@ toggleService.send('TOGGLE');
 // => 'inactive'
 ```
 
-📖 [Read the documentation](https://xstate.js.org/docs)
-
 - [Visualizer](#visualizer)
 - [3rd-Party Usage](#3rd-party-usage)
 - [Why? (info about statecharts)](#why)
@@ -47,7 +63,6 @@ toggleService.send('TOGGLE');
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
-- [Interpreters](#interpreters)
 
 ## Visualizer
 
@@ -319,3 +334,4 @@ const previousState = paymentMachine.transition(reviewState, 'PREVIOUS').value;
 Huge thanks to the following companies for sponsoring `xstate`. You can sponsor further `xstate` development [on OpenCollective](https://opencollective.com/xstate).
 
 <a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
+<a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a>
