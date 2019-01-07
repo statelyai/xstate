@@ -191,16 +191,19 @@ export class Interpreter<
     state: State<TContext, TEvent>,
     event: Event<TEvent> | OmniEventObject<TEvent>
   ): void {
-    this.state = state;
-    const { context } = this.state;
-    const eventObject: OmniEventObject<TEvent> = toEventObject<
-      OmniEventObject<TEvent>
-    >(event);
+    // Reference context and event
+    const { context } = state;
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
 
+    // Update state
+    this.state = state;
+
+    // Execute actions
     this.state.actions.forEach(action => {
       this.exec(action, context, eventObject);
     }, context);
 
+    // Execute listeners
     if (eventObject) {
       this.eventListeners.forEach(listener => listener(eventObject));
     }

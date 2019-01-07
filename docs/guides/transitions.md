@@ -208,6 +208,52 @@ Just like transitions, transient transitions can be specified as a single transi
 
 Null events are always "sent" for every transition, internal or external.
 
+## Forbidden Transitions
+
+In XState, a "forbidden" transition is one that specifies that no state transition should occur with the specified event. That is, nothing should happen on a forbidden transition, and the event should not be handled by parent state nodes.
+
+A forbidden transition is made by specifying the `target` explicitly as `undefined`. This is the same as specifying it as an internal transition with no actions:
+
+```js
+on: {
+  // forbidden transition
+  LOG: undefined,
+  // same thing as...
+  LOG: {
+    actions: []
+  }
+}
+```
+
+For example, we can model that telemetry can be logged for all events except when the user is entering personal information:
+
+```js
+const formMachine = Machine({
+  id: 'form',
+  initial: 'firstPage',
+  states: {
+    firstPage: {
+      /* ... */
+    },
+    secondPage: {
+      /* ... */
+    },
+    userInfoPage: {
+      on: {
+        // explicitly forbid the LOG event from doing anything
+        // or taking any transitions to any other state
+        LOG: undefined
+      }
+    }
+  },
+  on: {
+    LOG: {
+      actions: 'logTelemetry'
+    }
+  }
+});
+```
+
 ## SCXML
 
 The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
