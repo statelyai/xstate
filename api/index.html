@@ -67,7 +67,7 @@
 				<p align="center">
 					<a href="https://xstate.js.org">
 						<br />
-						<img src="https://github.com/davidkpiano/xstate/blob/gh-pages/xstate-logo.png" alt="XState" width="100"/>
+						<img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
 						<br />
 						<sub>JavaScript state machines and statecharts</sub>
 						<br />
@@ -146,17 +146,17 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">green</span>: {
       <span class="hljs-attr">on</span>: {
-        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'yellow'</span>,
+        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'yellow'</span>
       }
     },
     <span class="hljs-attr">yellow</span>: {
       <span class="hljs-attr">on</span>: {
-        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'red'</span>,
+        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'red'</span>
       }
     },
     <span class="hljs-attr">red</span>: {
       <span class="hljs-attr">on</span>: {
-        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'green'</span>,
+        <span class="hljs-attr">TIMER</span>: <span class="hljs-string">'green'</span>
       }
     }
   }
@@ -164,9 +164,7 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 
 <span class="hljs-keyword">const</span> currentState = <span class="hljs-string">'green'</span>;
 
-<span class="hljs-keyword">const</span> nextState = lightMachine
-  .transition(currentState, <span class="hljs-string">'TIMER'</span>)
-  .value;
+<span class="hljs-keyword">const</span> nextState = lightMachine.transition(currentState, <span class="hljs-string">'TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; 'yellow'</span></code></pre>
 				<h2 id="hierarchical-nested-state-machines">Hierarchical (Nested) State Machines</h2>
@@ -215,36 +213,26 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 
 <span class="hljs-keyword">const</span> currentState = <span class="hljs-string">'yellow'</span>;
 
-<span class="hljs-keyword">const</span> nextState = lightMachine
-  .transition(currentState, <span class="hljs-string">'TIMER'</span>)
-  .value;
+<span class="hljs-keyword">const</span> nextState = lightMachine.transition(currentState, <span class="hljs-string">'TIMER'</span>).value;
 <span class="hljs-comment">// =&gt; {</span>
 <span class="hljs-comment">//   red: 'walk'</span>
 <span class="hljs-comment">// }</span>
 
-lightMachine
-  .transition(<span class="hljs-string">'red.walk'</span>, <span class="hljs-string">'PED_TIMER'</span>)
-  .value;
+lightMachine.transition(<span class="hljs-string">'red.walk'</span>, <span class="hljs-string">'PED_TIMER'</span>).value;
 <span class="hljs-comment">// =&gt; {</span>
 <span class="hljs-comment">//   red: 'wait'</span>
 <span class="hljs-comment">// }</span></code></pre>
 				<p><strong>Object notation for hierarchical states:</strong></p>
 				<pre><code class="language-js"><span class="hljs-comment">// ...</span>
-<span class="hljs-keyword">const</span> waitState = lightMachine
-  .transition({ <span class="hljs-attr">red</span>: <span class="hljs-string">'walk'</span> }, <span class="hljs-string">'PED_TIMER'</span>)
-  .value;
+<span class="hljs-keyword">const</span> waitState = lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-string">'walk'</span> }, <span class="hljs-string">'PED_TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; { red: 'wait' }</span>
 
-lightMachine
-  .transition(waitState, <span class="hljs-string">'PED_TIMER'</span>)
-  .value;
+lightMachine.transition(waitState, <span class="hljs-string">'PED_TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; { red: 'stop' }</span>
 
-lightMachine
-  .transition({ <span class="hljs-attr">red</span>: <span class="hljs-string">'stop'</span> }, <span class="hljs-string">'TIMER'</span>)
-  .value;
+lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-string">'stop'</span> }, <span class="hljs-string">'TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; 'green'</span></code></pre>
 				<h2 id="parallel-state-machines">Parallel State Machines</h2>
@@ -303,9 +291,7 @@ lightMachine
   }
 });
 
-<span class="hljs-keyword">const</span> boldState = wordMachine
-  .transition(<span class="hljs-string">'bold.off'</span>, <span class="hljs-string">'TOGGLE_BOLD'</span>)
-  .value;
+<span class="hljs-keyword">const</span> boldState = wordMachine.transition(<span class="hljs-string">'bold.off'</span>, <span class="hljs-string">'TOGGLE_BOLD'</span>).value;
 
 <span class="hljs-comment">// {</span>
 <span class="hljs-comment">//   bold: 'on',</span>
@@ -314,14 +300,15 @@ lightMachine
 <span class="hljs-comment">//   list: 'none'</span>
 <span class="hljs-comment">// }</span>
 
-<span class="hljs-keyword">const</span> nextState = wordMachine
-  .transition({
+<span class="hljs-keyword">const</span> nextState = wordMachine.transition(
+  {
     <span class="hljs-attr">bold</span>: <span class="hljs-string">'off'</span>,
     <span class="hljs-attr">italics</span>: <span class="hljs-string">'off'</span>,
     <span class="hljs-attr">underline</span>: <span class="hljs-string">'on'</span>,
     <span class="hljs-attr">list</span>: <span class="hljs-string">'bullets'</span>
-  }, <span class="hljs-string">'TOGGLE_ITALICS'</span>)
-  .value;
+  },
+  <span class="hljs-string">'TOGGLE_ITALICS'</span>
+).value;
 
 <span class="hljs-comment">// {</span>
 <span class="hljs-comment">//   bold: 'off',</span>
@@ -350,25 +337,21 @@ lightMachine
   }
 });
 
-<span class="hljs-keyword">const</span> checkState = paymentMachine
-  .transition(<span class="hljs-string">'method.cash'</span>, <span class="hljs-string">'SWITCH_CHECK'</span>);
+<span class="hljs-keyword">const</span> checkState = paymentMachine.transition(<span class="hljs-string">'method.cash'</span>, <span class="hljs-string">'SWITCH_CHECK'</span>);
 
 <span class="hljs-comment">// =&gt; State {</span>
 <span class="hljs-comment">//   value: { method: 'check' },</span>
 <span class="hljs-comment">//   history: State { ... }</span>
 <span class="hljs-comment">// }</span>
 
-<span class="hljs-keyword">const</span> reviewState = paymentMachine
-  .transition(checkState, <span class="hljs-string">'NEXT'</span>);
+<span class="hljs-keyword">const</span> reviewState = paymentMachine.transition(checkState, <span class="hljs-string">'NEXT'</span>);
 
 <span class="hljs-comment">// =&gt; State {</span>
 <span class="hljs-comment">//   value: 'review',</span>
 <span class="hljs-comment">//   history: State { ... }</span>
 <span class="hljs-comment">// }</span>
 
-<span class="hljs-keyword">const</span> previousState = paymentMachine
-  .transition(reviewState, <span class="hljs-string">'PREVIOUS'</span>)
-  .value;
+<span class="hljs-keyword">const</span> previousState = paymentMachine.transition(reviewState, <span class="hljs-string">'PREVIOUS'</span>).value;
 
 <span class="hljs-comment">// =&gt; { method: 'check' }</span></code></pre>
 				<h2 id="sponsors">Sponsors</h2>
