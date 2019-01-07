@@ -58,7 +58,6 @@ toggleService.send('TOGGLE');
 
 
 - [Visualizer](#visualizer)
-- [3rd-Party Usage](#3rd-party-usage)
 - [Why? (info about statecharts)](#why)
 - [Installation](#installation)
 - [Finite State Machines](#finite-state-machines)
