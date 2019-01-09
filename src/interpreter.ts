@@ -297,9 +297,14 @@ export class Interpreter<
    * @param listener The listener to remove
    */
   public off(
-    listener: StateListener<TContext, TEvent>
+    listener: (...args: any[]) => void
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.delete(listener);
+    this.eventListeners.delete(listener);
+    this.sendListeners.delete(listener);
+    this.stopListeners.delete(listener);
+    this.doneListeners.delete(listener);
+    this.contextListeners.delete(listener);
     return this;
   }
   /**
@@ -326,7 +331,7 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): Interpreter<TContext, TStateSchema, TEvent> {
-    this.listeners.forEach(listener => this.off(listener));
+    this.listeners.forEach(listener => this.listeners.delete(listener));
     this.stopListeners.forEach(listener => {
       // call listener, then remove
       listener();
@@ -378,7 +383,7 @@ export class Interpreter<
     }
 
     return sender.bind(this);
-  }
+  };
 
   public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
     const isParent = to === SpecialTargets.Parent;
@@ -399,7 +404,7 @@ export class Interpreter<
     }
 
     target.send(event);
-  }
+  };
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
