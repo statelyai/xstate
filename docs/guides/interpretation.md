@@ -42,6 +42,67 @@ service.send('SOME_EVENT');
 service.stop();
 ```
 
+## Transitions
+
+Listeners for state transitions are registered via the `.onTransition(...)` method, which takes a state listener. State listeners are called every time a state transition (including the initial state) happens, with the current [`state` instance](./states.md):
+
+```js
+// Interpret the machine
+const service = interpret(machine);
+
+// Add a state listener, which is called whenever a state transition occurs.
+service.onTransition(nextState => {
+  console.log(nextState.value);
+});
+
+service.start();
+```
+
+## Starting and stopping
+
+The service can be started and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.
+
+```js
+const service = interpret(machine);
+
+// Start the machine
+service.start();
+
+// Stop the machine
+service.stop();
+
+// Restart the machine
+service.start();
+```
+
+Services can be started from a specific [state](./states.md) by passing the `state` into `service.start(state)`. This is useful when rehydrating the service from a previously saved state.
+
+```js
+// Starts the service from the specified state,
+// instead of from the machine's initial state.
+service.start(previousState);
+```
+
+## Executing actions
+
+[Actions (side-effects)](./actions.md) are, by default, executed immediately when the state transitions. This is configurable by setting the `{ execute: false }` option (see example). Each action object specified on the `state` might have an `.exec` property, which is called with the state's `context` and `event` object.
+
+Actions can be executed manually by calling `service.execute(state)`. This is useful when you want to control when actions are executed:
+
+```js
+const service = interpret(machine, {
+  execute: false // do not execute actions on state transitions
+});
+
+service.onTransition(state => {
+  // execute actions on next animation frame
+  // instead of immediately
+  requestAnimationFrame(() => service.execute(state));
+});
+
+service.start();
+```
+
 ## Custom interpreters
 
 You may use any interpreter (or create your own) to run your state machine/statechart. Here's an example minimal implementation that demonstrates how flexible interpretation can be (despite the amount of boilerplate):

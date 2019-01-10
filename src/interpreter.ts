@@ -50,6 +50,10 @@ export interface SimulatedClock extends Clock {
 }
 
 interface InterpreterOptions {
+  /**
+   * Whether state actions should be executed. Defaults to `true`.
+   */
+  execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
@@ -124,6 +128,7 @@ export class Interpreter<
    * - `logger` uses the global `console.log()` method
    */
   public static defaultOptions: InterpreterOptions = (global => ({
+    execute: true,
     clock: {
       setTimeout: (fn, ms) => {
         return global.setTimeout.call(null, fn, ms);
@@ -142,6 +147,7 @@ export class Interpreter<
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
+  public options: InterpreterOptions;
 
   private eventQueue: Array<OmniEventObject<TEvent>> = [];
   private delayedEventsMap: Record<string, number> = {};
@@ -175,10 +181,16 @@ export class Interpreter<
       ...options
     };
 
-    this.clock = resolvedOptions.clock;
-    this.logger = resolvedOptions.logger;
-    this.parent = resolvedOptions.parent;
-    this.id = resolvedOptions.id || `${Math.round(Math.random() * 99999)}`;
+    const { clock, logger, parent, id } = resolvedOptions;
+
+    Object.assign(this, {
+      clock,
+      logger,
+      parent,
+      id: id || `${Math.round(Math.random() * 99999)}`
+    });
+
+    this.options = resolvedOptions;
   }
   public static interpret = interpret;
   /**
@@ -187,28 +199,34 @@ export class Interpreter<
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
   }
+  /**
+   * Executes the actions of the given state, with that state's `context` and `event`.
+   *
+   * @param state The state whose actions will be executed
+   */
+  public execute(state: State<TContext, TEvent>): void {
+    state.actions.forEach(action => {
+      this.exec(action, state.context, state.event);
+    });
+  }
   private update(
     state: State<TContext, TEvent>,
     event: Event<TEvent> | OmniEventObject<TEvent>
   ): void {
-    // Reference context and event
-    const { context } = state;
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-
     // Update state
     this.state = state;
 
     // Execute actions
-    this.state.actions.forEach(action => {
-      this.exec(action, context, eventObject);
-    }, context);
-
-    // Execute listeners
-    if (eventObject) {
-      this.eventListeners.forEach(listener => listener(eventObject));
+    if (this.options.execute) {
+      this.execute(this.state);
     }
 
-    this.listeners.forEach(listener => listener(state, eventObject));
+    // Execute listeners
+    if (state.event) {
+      this.eventListeners.forEach(listener => listener(state.event));
+    }
+
+    this.listeners.forEach(listener => listener(state, state.event));
     this.contextListeners.forEach(ctxListener =>
       ctxListener(
         this.state.context,
@@ -351,6 +369,8 @@ export class Interpreter<
       }
     });
 
+    this.initialized = false;
+
     return this;
   }
   /**
@@ -383,7 +403,7 @@ export class Interpreter<
     }
 
     return sender.bind(this);
-  };
+  }
 
   public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
     const isParent = to === SpecialTargets.Parent;
@@ -404,7 +424,7 @@ export class Interpreter<
     }
 
     target.send(event);
-  };
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *

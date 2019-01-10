@@ -277,8 +277,11 @@ describe('interpreter', () => {
     assert.deepEqual(state.value, 'yellow');
 
     service.stop();
-    service.send('TIMER'); // red if interpreter is not stopped
-    assert.deepEqual(state.value, 'yellow');
+    try {
+      service.send('TIMER'); // red if interpreter is not stopped
+    } catch (e) {
+      assert.deepEqual(state.value, 'yellow');
+    }
   });
 
   it('should be able to log (log action)', () => {
@@ -390,6 +393,89 @@ describe('interpreter', () => {
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
         .onDone(() => done())
+        .start();
+    });
+  });
+
+  describe('execute', () => {
+    it('should not execute actions if execute is false', done => {
+      let effect = false;
+
+      const machine = Machine({
+        id: 'noExecute',
+        initial: 'active',
+        states: {
+          active: {
+            type: 'final',
+            onEntry: () => {
+              effect = true;
+            }
+          }
+        }
+      });
+
+      interpret(machine, { execute: false })
+        .onDone(() => {
+          assert.isFalse(effect);
+          done();
+        })
+        .start();
+    });
+
+    it('should not execute actions if execute is true (default)', done => {
+      let effect = false;
+
+      const machine = Machine({
+        id: 'noExecute',
+        initial: 'active',
+        states: {
+          active: {
+            type: 'final',
+            onEntry: () => {
+              effect = true;
+            }
+          }
+        }
+      });
+
+      interpret(machine, { execute: true })
+        .onDone(() => {
+          assert.isTrue(effect);
+          done();
+        })
+        .start();
+    });
+
+    it('actions should be able to be executed manually with execute()', done => {
+      let effect = false;
+
+      const machine = Machine({
+        id: 'noExecute',
+        initial: 'active',
+        context: {
+          value: true
+        },
+        states: {
+          active: {
+            type: 'final',
+            onEntry: ctx => {
+              effect = ctx.value;
+            }
+          }
+        }
+      });
+
+      const service = interpret(machine, { execute: false })
+        .onTransition(state => {
+          setTimeout(() => {
+            service.execute(state);
+            assert.isTrue(effect);
+            done();
+          }, 10);
+        })
+        .onDone(() => {
+          assert.isFalse(effect);
+        })
         .start();
     });
   });
