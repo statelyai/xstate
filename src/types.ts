@@ -9,7 +9,7 @@ export type MetaObject = Record<string, any>;
 /**
  * The full definition of an event, with a string `type`.
  */
-export interface EventObject extends Record<string, any> {
+export interface EventObject {
   /**
    * The type of event that is sent.
    */
@@ -18,13 +18,14 @@ export interface EventObject extends Record<string, any> {
    * The unique ID that identifies this specific event instance.
    */
   id?: string | number;
+  [other: string]: any;
 }
 
 /**
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<TContext> extends Record<string, any> {
+export interface ActionObject<TContext> {
   /**
    * The type of action that is executed.
    */
@@ -33,6 +34,7 @@ export interface ActionObject<TContext> extends Record<string, any> {
    * The implementation for executing the action.
    */
   exec?: ActionFunction<TContext>;
+  [other: string]: any;
 }
 
 export type DefaultContext = Record<string, any> | undefined;

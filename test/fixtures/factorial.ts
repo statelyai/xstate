@@ -1,6 +1,7 @@
 import { Machine, actions } from '../../src';
 const { assign } = actions;
 
+// @ts-ignore
 const factorialMachine = Machine<{ n: number; fac: number }>(
   {
     initial: 'iteration',
@@ -31,6 +32,7 @@ const factorialMachine = Machine<{ n: number; fac: number }>(
   { n: 5, fac: 1 }
 );
 
+// @ts-ignore
 const testMachine = Machine<{ count: number }>(
   {
     initial: 'init',
