@@ -28,7 +28,7 @@ const nextState = fetchMachine.transition('pending', 'FULFILL');
 // }
 ```
 
-## State Nodes
+## State nodes
 
 In XState, a **state node** specifies a state configuration, and are defined on the machine's `states` property. Substate nodes are recursively defined in the same way.
 
@@ -159,7 +159,7 @@ const machine = Machine({
 
 Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'history'`, or `'final'` is helpful with regard to analysis and type-checking in TypeScript. However, it is only required for parallel, history, and final states.
 
-## Transient State Nodes
+## Transient state nodes
 
 A transient state node is a "pass-through" state node that immediately transitions to another state node; that is, a machine does not stay in a transient state. Transient state nodes are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
 
@@ -184,7 +184,10 @@ const timeOfDayMachine = Machine({
           { target: 'evening' }
         ]
       }
-    }
+    },
+    morning: {},
+    afternoon: {},
+    evening: {}
   }
 }, {
   guards: {

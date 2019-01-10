@@ -1,4 +1,4 @@
-# Actions and side-effects
+# Actions (Side-Effects)
 
 For a statechart to be useful in a real-world application, side-effects need to happen. In statecharts and XState, side-effects are declaratively represented by **actions**. When `machine.transition(...)` is called, the `State` returned will provide an array of `actions` that an interpreter can then execute.
 
