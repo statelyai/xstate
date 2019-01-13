@@ -470,4 +470,63 @@ describe('actions option', () => {
 
     assert.deepEqual(state.context, { count: 10 });
   });
+
+  it('should work with anonymous functions (with warning)', () => {
+    let onEntryCalled = false;
+    let actionCalled = false;
+    let onExitCalled = false;
+
+    const anonMachine = Machine({
+      id: 'anon',
+      initial: 'active',
+      states: {
+        active: {
+          onEntry: () => (onEntryCalled = true),
+          onExit: () => (onExitCalled = true),
+          on: {
+            EVENT: {
+              target: 'inactive',
+              actions: [() => (actionCalled = true)]
+            }
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const { initialState } = anonMachine;
+
+    initialState.actions.forEach(action => {
+      if (action.exec) {
+        action.exec(
+          initialState.context,
+          { type: 'any' },
+          {
+            action
+          }
+        );
+      }
+    });
+
+    assert.isTrue(onEntryCalled);
+
+    const inactiveState = anonMachine.transition(initialState, 'EVENT');
+
+    assert.lengthOf(inactiveState.actions, 2);
+
+    inactiveState.actions.forEach(action => {
+      if (action.exec) {
+        action.exec(
+          inactiveState.context,
+          { type: 'EVENT' },
+          {
+            action
+          }
+        );
+      }
+    });
+
+    assert.isTrue(onExitCalled, 'onExit should be called');
+    assert.isTrue(actionCalled, 'action should be called');
+  });
 });

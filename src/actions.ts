@@ -92,7 +92,8 @@ export function toActionObject<TContext>(
     }
   } else if (typeof action === 'function') {
     actionObject = {
-      type: action.name,
+      // Convert action to string if unnamed
+      type: action.name || action.toString(),
       exec: action
     };
   } else {
