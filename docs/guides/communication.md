@@ -197,7 +197,7 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 counting: {
   invoke: {
     id: 'incInterval',
-    src: (ctx, event) => (callback) => {
+    src: (ctx, event) => (callback, onEvent) => {
       // This will send the 'INC' event to the parent every second
       const id = setInterval(() => callback('INC'), 1000);
 
@@ -213,6 +213,46 @@ counting: {
 ```
 
 The (optional) return value is a function that is called to clean up the invoked service when the current state is exited.
+
+### Listening to Parent Events
+
+Invoked callback handlers are also given a second argument, `onEvent`, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.
+
+For example, the parent machine sends the child `'ponger'` service a `'PING'` event. The child service can listen for that event using `onEvent(listener)`, and send a `'PONG'` event back to the parent in response:
+
+```js
+const pingPongMachine = Machine({
+  id: 'pinger',
+  initial: 'active',
+  states: {
+    active: {
+      invoke: {
+        id: 'ponger',
+        src: (ctx, event) => (callback, onEvent) => {
+          // Whenever parent sends 'PING',
+          // send parent 'PONG' event
+          onEvent(e => {
+            if (e.type === 'PING') {
+              callback('PONG');
+            }
+          });
+        }
+      },
+      onEntry: send('PING', { to: 'ponger' }),
+      on: {
+        PONG: 'done'
+      }
+    },
+    done: {
+      type: 'final'
+    }
+  }
+});
+
+interpret(pingPongMachine)
+  .onDone(() => done())
+  .start();
+```
 
 ## Configuring Services
 
