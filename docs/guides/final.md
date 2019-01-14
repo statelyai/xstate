@@ -61,7 +61,7 @@ const lightMachine = Machine({
 });
 ```
 
-In a compound state, reaching a final child state node (with `{ type: 'final' }`) will interally raise a `done(...)` event for that compound state node (e.g., `"done.state.light.crosswalkEast"`). Using `onDone` is equivalent to defining a transition for this event.
+In a compound state, reaching a final child state node (with `{ type: 'final' }`) will internally raise a `done(...)` event for that compound state node (e.g., `"done.state.light.crosswalkEast"`). Using `onDone` is equivalent to defining a transition for this event.
 
 ## Parallel states
 
