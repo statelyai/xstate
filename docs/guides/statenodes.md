@@ -90,7 +90,7 @@ The state node type can be explicitly defined on the state node:
 
 ```js
 const machine = Machine({
-  id: 'fetch'
+  id: 'fetch',
   initial: 'idle',
   states: {
     idle: {
@@ -135,7 +135,7 @@ const machine = Machine({
     },
     success: {
       type: 'compound',
-      initial: 'allItems',
+      initial: 'items',
       states: {
         items: {
           on: {
