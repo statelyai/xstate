@@ -62,8 +62,7 @@ const promiseMachine = Machine({
 To [interpret](./interpretation.md) the machine and make it run, we need to add an interpreter. This creates a service:
 
 ```js
-import { Machine } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
+import { Machine, interpret } from 'xstate';
 
 const promiseMachine = Machine({
   /* ... */

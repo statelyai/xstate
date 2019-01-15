@@ -141,8 +141,7 @@ try {
 State can be rehydrated (i.e., restored) using the static `State.create(...)` method:
 
 ```js
-import { State } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
+import { State, interpret } from 'xstate';
 import { myMachine } from '../path/to/myMachine';
 
 // Retrieving state from localStorage

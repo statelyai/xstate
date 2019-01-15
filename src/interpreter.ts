@@ -676,7 +676,7 @@ export class Interpreter<
         console.warn(
           `Event '${
             e.type
-          }' sent to callback '${id}' but was not handled by a listener.`
+          }' sent to callback service '${id}' but was not handled by a listener.`
         );
       }
     };

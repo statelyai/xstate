@@ -1,5 +1,4 @@
-import { Machine, actions } from '../src/index';
-import { interpret } from '../src/interpreter';
+import { Machine, actions, interpret } from '../src/index';
 import { assign, sendParent, send } from '../src/actions';
 import { assert } from 'chai';
 

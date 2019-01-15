@@ -139,7 +139,7 @@ const toggleMachine = Machine({
 With the XState [interpreter](./interpretation.md), delayed actions will use the native`setTimeout` and `clearTimeout` functions:
 
 ```js
-import { interpret } from 'xstate/lib/interpreter';
+import { interpret } from 'xstate';
 
 const service = interpret(lightDelayMachine).onTransition(state =>
   console.log(state.value)

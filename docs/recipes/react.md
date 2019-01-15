@@ -12,8 +12,7 @@ The most straightforward way of using XState with React is through local compone
 
 ```jsx
 import React from 'react';
-import { Machine } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
+import { Machine, interpret } from 'xstate';
 
 const toggleMachine = Machine({
   id: 'toggle',
@@ -33,8 +32,9 @@ class Toggle extends React.Component {
     current: toggleMachine.initialState
   };
 
-  service = interpret(toggleMachine)
-    .onTransition(current => this.setState({ current }));
+  service = interpret(toggleMachine).onTransition(current =>
+    this.setState({ current })
+  );
 
   componentDidMount() {
     this.service.start();
@@ -52,7 +52,7 @@ class Toggle extends React.Component {
       <button onClick={() => send('TOGGLE')}>
         {current.matches('inactive') ? 'Off' : 'On'}
       </button>
-    )
+    );
   }
 }
 ```
@@ -63,7 +63,7 @@ Using [React hooks](https://reactjs.org/hooks) makes it easier to use state mach
 
 ```js
 import { useState, useMemo, useEffect } from 'react';
-import { interpret } from 'xstate/lib/interpreter';
+import { interpret } from 'xstate';
 
 export function useMachine(machine) {
   // Keep track of the current machine state

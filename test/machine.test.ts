@@ -1,7 +1,6 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, interpret } from '../src/index';
 import { State } from '../src/State';
-import { interpret } from '../src/interpreter';
 
 const pedestrianStates = {
   initial: 'walk',

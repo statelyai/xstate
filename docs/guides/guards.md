@@ -49,7 +49,7 @@ If the `cond` guard returns `false`, then the transition will not be selected, a
 Example of usage with context:
 
 ```js
-import { interpret } from 'xstate/lib/interpreter';
+import { interpret } from 'xstate';
 
 const searchService = interpret(searchMachine)
   .onTransition(state => console.log(state.value))
@@ -69,9 +69,7 @@ If you want to have a single event transition to different states in certain sit
 For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, and goes to the `'closed.error'` state if you are not:
 
 ```js
-import { Machine, actions } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
-const { assign } = actions;
+import { Machine, actions, interpret, assign } from 'xstate';
 
 const doorMachine = Machine({
   id: 'door',

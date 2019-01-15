@@ -22,8 +22,7 @@ Since version 4.0, XState provides an (optional) interpreter that you can use to
 - And more!
 
 ```js
-import { Machine } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
+import { Machine, interpret } from 'xstate';
 
 const machine = Machine(/* machine config */);
 

@@ -51,8 +51,7 @@ console.log(nextState.value);
 By specifying the event type on the `type` property, many native events, such as DOM events, are compatible and can be used directly with XState:
 
 ```js
-import { Machine } from 'xstate';
-import { interpret } from 'xstate/lib/interpreter';
+import { Machine, interpret } from 'xstate';
 
 const mouseMachine = Machine({
   /* ... */

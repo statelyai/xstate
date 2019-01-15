@@ -16,6 +16,7 @@ import {
   done,
   invoke
 } from './actions';
+import { interpret } from './interpreter';
 
 const actions = {
   raise,
@@ -31,6 +32,16 @@ const actions = {
   invoke
 };
 
-export { Machine, StateNode, State, matchesState, mapState, actions };
+export {
+  Machine,
+  StateNode,
+  State,
+  matchesState,
+  mapState,
+  actions,
+  assign,
+  send,
+  interpret
+};
 
 export * from './types';

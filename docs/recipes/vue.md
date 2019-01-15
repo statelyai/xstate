@@ -18,8 +18,7 @@ Vue follows a similar pattern to [React](./react.md):
 </template>
 
 <script>
-  import { Machine } from 'xstate';
-  import { interpret } from 'xstate/lib/interpreter';
+  import { Machine, interpret } from 'xstate';
 
   // Define machine externally
   const toggleMachine = Machine({

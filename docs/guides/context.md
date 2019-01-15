@@ -5,8 +5,7 @@ While _finite_ states are well-defined in finite state machines and statecharts,
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
 
 ```js
-import { Machine, actions } from 'xstate';
-const { assign } = actions;
+import { Machine, assign } from 'xstate';
 
 // Action to increment the context amount
 const addWater = assign({
@@ -138,8 +137,7 @@ The `assign()` action is used to update the machine's `context`. It takes the co
 The "updater" can be an object (recommended):
 
 ```js
-import { Machine, actions } from 'xstate';
-const { assign } = actions;
+import { Machine, assign } from 'xstate';
 // example: property updater
 
 // ...

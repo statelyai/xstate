@@ -1,30 +1,29 @@
-import { Machine, actions } from "xstate";
-const { assign } = actions;
+import { Machine, assign } from 'xstate';
 
 export const todoMachine = Machine({
-  id: "todo",
-  initial: "reading",
+  id: 'todo',
+  initial: 'reading',
   context: {
     id: undefined,
-    title: "",
-    prevTitle: ""
+    title: '',
+    prevTitle: ''
   },
   on: {
     TOGGLE_COMPLETE: {
-      target: ".reading.completed",
-      actions: [assign({ completed: true }), "notifyChanged"]
+      target: '.reading.completed',
+      actions: [assign({ completed: true }), 'notifyChanged']
     },
-    DELETE: "deleted"
+    DELETE: 'deleted'
   },
   states: {
     reading: {
-      initial: "unknown",
+      initial: 'unknown',
       states: {
         unknown: {
           on: {
-            "": [
-              { target: "completed", cond: ctx => ctx.completed },
-              { target: "pending" }
+            '': [
+              { target: 'completed', cond: ctx => ctx.completed },
+              { target: 'pending' }
             ]
           }
         },
@@ -32,19 +31,19 @@ export const todoMachine = Machine({
         completed: {
           on: {
             TOGGLE_COMPLETE: {
-              target: "pending",
-              actions: [assign({ completed: false }), "notifyChanged"]
+              target: 'pending',
+              actions: [assign({ completed: false }), 'notifyChanged']
             }
           }
         },
         hist: {
-          type: "history"
+          type: 'history'
         }
       },
       on: {
         EDIT: {
-          target: "editing",
-          actions: "focusInput"
+          target: 'editing',
+          actions: 'focusInput'
         }
       }
     },
@@ -58,24 +57,24 @@ export const todoMachine = Machine({
         },
         COMMIT: [
           {
-            target: "reading.hist",
-            actions: "notifyChanged",
+            target: 'reading.hist',
+            actions: 'notifyChanged',
             cond: ctx => ctx.title.trim().length > 0
           },
-          { target: "deleted" }
+          { target: 'deleted' }
         ],
         BLUR: {
-          target: "reading",
-          actions: "notifyChanged"
+          target: 'reading',
+          actions: 'notifyChanged'
         },
         CANCEL: {
-          target: "reading",
+          target: 'reading',
           actions: assign({ title: ctx => ctx.prevTitle })
         }
       }
     },
     deleted: {
-      onEntry: "notifyDeleted"
+      onEntry: 'notifyDeleted'
     }
   }
 });
