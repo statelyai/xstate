@@ -145,16 +145,16 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext>>;
+  public onEntry: Array<ActionObject<TContext, TEvent>>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext>>;
+  public onExit: Array<ActionObject<TContext, TEvent>>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    */
-  public activities: Array<ActivityDefinition<TContext>>;
+  public activities: Array<ActivityDefinition<TContext, TEvent>>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -478,7 +478,7 @@ class StateNode<
     state: State<TContext, TEvent>,
     eventObject: OmniEventObject<TEvent>,
     context?: TContext
-  ): StateTransition<TContext> {
+  ): StateTransition<TContext, TEvent> {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, eventObject, context);
 
@@ -504,7 +504,7 @@ class StateNode<
     state: State<TContext, TEvent>,
     eventObject: OmniEventObject<TEvent>,
     context?: TContext
-  ): StateTransition<TContext> {
+  ): StateTransition<TContext, TEvent> {
     const subStateKeys = keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
@@ -537,9 +537,9 @@ class StateNode<
     state: State<TContext, TEvent>,
     eventObject: OmniEventObject<TEvent>,
     context?: TContext
-  ): StateTransition<TContext> {
+  ): StateTransition<TContext, TEvent> {
     const noTransitionKeys: string[] = [];
-    const transitionMap: Record<string, StateTransition<TContext>> = {};
+    const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
     keys(stateValue).forEach(subStateKey => {
       const subStateValue = stateValue[subStateKey];
@@ -659,7 +659,7 @@ class StateNode<
     state: State<TContext, TEvent>,
     event: OmniEventObject<TEvent>,
     context?: TContext
-  ): StateTransition<TContext> {
+  ): StateTransition<TContext, TEvent> {
     // leaf node
     if (typeof stateValue === 'string') {
       return this.transitionLeafNode(stateValue, state, event, context);
@@ -677,10 +677,10 @@ class StateNode<
     state: State<TContext, TEvent>,
     eventObject: OmniEventObject<TEvent>,
     context?: TContext
-  ): StateTransition<TContext> {
+  ): StateTransition<TContext, TEvent> {
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
-    const actions: Array<ActionObject<TContext>> = this.transient
+    const actions: Array<ActionObject<TContext, TEvent>> = this.transient
       ? [{ type: actionTypes.nullEvent }]
       : [];
 
@@ -877,9 +877,9 @@ class StateNode<
     }));
   }
   private getActions(
-    transition: StateTransition<TContext>,
+    transition: StateTransition<TContext, TEvent>,
     prevState: State<TContext>
-  ): Array<ActionObject<TContext>> {
+  ): Array<ActionObject<TContext, TEvent>> {
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
@@ -925,12 +925,14 @@ class StateNode<
 
     return actions;
   }
-  private resolveAction(action: Action<TContext>): ActionObject<TContext> {
+  private resolveAction(
+    action: Action<TContext, TEvent>
+  ): ActionObject<TContext, TEvent> {
     return toActionObject(action, this.machine.options.actions);
   }
   private resolveActivity(
-    activity: Activity<TContext>
-  ): ActivityDefinition<TContext> {
+    activity: Activity<TContext, TEvent>
+  ): ActivityDefinition<TContext, TEvent> {
     const activityDefinition = toActivityDefinition(activity);
 
     return activityDefinition;
@@ -1006,7 +1008,7 @@ class StateNode<
       resolvedContext
     );
 
-    const resolvedStateTransition: StateTransition<TContext> = {
+    const resolvedStateTransition: StateTransition<TContext, TEvent> = {
       ...stateTransition,
       tree: stateTransition.tree ? stateTransition.tree.resolved : undefined
     };
@@ -1018,7 +1020,7 @@ class StateNode<
     );
   }
   private resolveTransition(
-    stateTransition: StateTransition<TContext>,
+    stateTransition: StateTransition<TContext, TEvent>,
     currentState: State<TContext, TEvent>,
     eventObject: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
@@ -1424,7 +1426,7 @@ class StateNode<
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const activityMap: ActivityMap = {};
-    const actions: Array<ActionObject<TContext>> = [];
+    const actions: Array<ActionObject<TContext, TEvent>> = [];
 
     this.getStateNodes(stateValue).forEach(stateNode => {
       if (stateNode.onEntry) {
