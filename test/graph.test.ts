@@ -331,22 +331,38 @@ describe('graph utilities', () => {
     it('should return a mapping of shortest paths to all states', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
         '"green"': [],
-        '"yellow"': [{ state: 'green', event: 'TIMER' }],
-        '{"red":"flashing"}': [{ state: 'green', event: 'POWER_OUTAGE' }],
+        '"yellow"': [
+          { state: { context: undefined, value: 'green' }, event: 'TIMER' }
+        ],
+        '{"red":"flashing"}': [
+          {
+            state: { context: undefined, value: 'green' },
+            event: 'POWER_OUTAGE'
+          }
+        ],
         '{"red":"walk"}': [
-          { state: 'green', event: 'TIMER' },
-          { state: 'yellow', event: 'TIMER' }
+          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' }
         ],
         '{"red":"wait"}': [
-          { state: 'green', event: 'TIMER' },
-          { state: 'yellow', event: 'TIMER' },
-          { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+          {
+            state: { context: undefined, value: { red: 'walk' } },
+            event: 'PED_COUNTDOWN'
+          }
         ],
         '{"red":"stop"}': [
-          { state: 'green', event: 'TIMER' },
-          { state: 'yellow', event: 'TIMER' },
-          { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-          { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+          {
+            state: { context: undefined, value: { red: 'walk' } },
+            event: 'PED_COUNTDOWN'
+          },
+          {
+            state: { context: undefined, value: { red: 'wait' } },
+            event: 'PED_COUNTDOWN'
+          }
         ]
       });
     });
@@ -358,8 +374,11 @@ describe('graph utilities', () => {
           {
             event: '2',
             state: {
-              a: 'a1',
-              b: 'b1'
+              context: undefined,
+              value: {
+                a: 'a1',
+                b: 'b1'
+              }
             }
           }
         ],
@@ -367,8 +386,11 @@ describe('graph utilities', () => {
           {
             event: '3',
             state: {
-              a: 'a1',
-              b: 'b1'
+              context: undefined,
+              value: {
+                a: 'a1',
+                b: 'b1'
+              }
             }
           }
         ]
@@ -393,13 +415,13 @@ describe('graph utilities', () => {
         '"bar"': [
           {
             event: 'EVENT',
-            state: 'pending'
+            state: { context: undefined, value: 'pending' }
           }
         ],
         '"foo"': [
           {
             event: 'STATE',
-            state: 'pending'
+            state: { context: undefined, value: 'pending' }
           }
         ],
         '"pending"': []
@@ -413,34 +435,50 @@ describe('graph utilities', () => {
         { state: 'green', path: [] },
         {
           state: 'yellow',
-          path: [{ state: 'green', event: 'TIMER' }]
+          path: [
+            { state: { context: undefined, value: 'green' }, event: 'TIMER' }
+          ]
         },
         {
           state: { red: 'flashing' },
-          path: [{ state: 'green', event: 'POWER_OUTAGE' }]
+          path: [
+            {
+              state: { context: undefined, value: 'green' },
+              event: 'POWER_OUTAGE'
+            }
+          ]
         },
         {
           state: { red: 'walk' },
           path: [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' }
+            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' }
           ]
         },
         {
           state: { red: 'wait' },
           path: [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+            {
+              state: { context: undefined, value: { red: 'walk' } },
+              event: 'PED_COUNTDOWN'
+            }
           ]
         },
         {
           state: { red: 'stop' },
           path: [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
+            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+            {
+              state: { context: undefined, value: { red: 'walk' } },
+              event: 'PED_COUNTDOWN'
+            },
+            {
+              state: { context: undefined, value: { red: 'wait' } },
+              event: 'PED_COUNTDOWN'
+            }
           ]
         }
       ]);
@@ -451,51 +489,88 @@ describe('graph utilities', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
       assert.deepEqual(getSimplePaths(lightMachine), {
         '"green"': [[]],
-        '"yellow"': [[{ state: 'green', event: 'TIMER' }]],
+        '"yellow"': [
+          [{ state: { value: 'green', context: undefined }, event: 'TIMER' }]
+        ],
         '{"red":"walk"}': [
           [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' }
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' }
           ]
-        ],
-        '{"red":"flashing"}': [
-          [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'POWER_OUTAGE' }
-          ],
-          [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-            { state: { red: 'wait' }, event: 'POWER_OUTAGE' }
-          ],
-          [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' },
-            { state: { red: 'stop' }, event: 'POWER_OUTAGE' }
-          ],
-          [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'POWER_OUTAGE' }
-          ],
-          [{ state: 'green', event: 'POWER_OUTAGE' }]
         ],
         '{"red":"wait"}': [
           [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            }
           ]
         ],
         '{"red":"stop"}': [
           [
-            { state: 'green', event: 'TIMER' },
-            { state: 'yellow', event: 'TIMER' },
-            { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-            { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            },
+            {
+              state: { value: { red: 'wait' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            }
+          ]
+        ],
+        '{"red":"flashing"}': [
+          [
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            },
+            {
+              state: { value: { red: 'wait' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            },
+            {
+              state: { value: { red: 'stop' }, context: undefined },
+              event: 'POWER_OUTAGE'
+            }
+          ],
+          [
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: 'PED_COUNTDOWN'
+            },
+            {
+              state: { value: { red: 'wait' }, context: undefined },
+              event: 'POWER_OUTAGE'
+            }
+          ],
+          [
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: 'POWER_OUTAGE'
+            }
+          ],
+          [
+            { state: { value: 'green', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: 'POWER_OUTAGE'
+            }
+          ],
+          [
+            {
+              state: { value: 'green', context: undefined },
+              event: 'POWER_OUTAGE'
+            }
           ]
         ]
       });
@@ -517,8 +592,11 @@ describe('graph utilities', () => {
             {
               event: '2',
               state: {
-                a: 'a1',
-                b: 'b1'
+                context: undefined,
+                value: {
+                  a: 'a1',
+                  b: 'b1'
+                }
               }
             }
           ]
@@ -528,15 +606,21 @@ describe('graph utilities', () => {
             {
               event: '2',
               state: {
-                a: 'a1',
-                b: 'b1'
+                context: undefined,
+                value: {
+                  a: 'a1',
+                  b: 'b1'
+                }
               }
             },
             {
               event: '3',
               state: {
-                a: 'a2',
-                b: 'b2'
+                context: undefined,
+                value: {
+                  a: 'a2',
+                  b: 'b2'
+                }
               }
             }
           ],
@@ -544,8 +628,11 @@ describe('graph utilities', () => {
             {
               event: '3',
               state: {
-                a: 'a1',
-                b: 'b1'
+                context: undefined,
+                value: {
+                  a: 'a1',
+                  b: 'b1'
+                }
               }
             }
           ]
@@ -560,13 +647,13 @@ describe('graph utilities', () => {
           [
             {
               event: 'FOO',
-              state: 'a'
+              state: { context: undefined, value: 'a' }
             }
           ],
           [
             {
               event: 'BAR',
-              state: 'a'
+              state: { context: undefined, value: 'a' }
             }
           ]
         ]
@@ -585,52 +672,32 @@ describe('graph utilities', () => {
         { state: 'green', paths: [[]] },
         {
           state: 'yellow',
-          paths: [[{ state: 'green', event: 'TIMER' }]]
+          paths: [
+            [{ state: { value: 'green', context: undefined }, event: 'TIMER' }]
+          ]
         },
         {
           state: { red: 'walk' },
           paths: [
             [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' }
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              { state: { value: 'yellow', context: undefined }, event: 'TIMER' }
             ]
-          ]
-        },
-        {
-          state: { red: 'flashing' },
-          paths: [
-            [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' },
-              { state: { red: 'walk' }, event: 'POWER_OUTAGE' }
-            ],
-            [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' },
-              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-              { state: { red: 'wait' }, event: 'POWER_OUTAGE' }
-            ],
-            [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' },
-              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-              { state: { red: 'wait' }, event: 'PED_COUNTDOWN' },
-              { state: { red: 'stop' }, event: 'POWER_OUTAGE' }
-            ],
-            [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'POWER_OUTAGE' }
-            ],
-            [{ state: 'green', event: 'POWER_OUTAGE' }]
           ]
         },
         {
           state: { red: 'wait' },
           paths: [
             [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' },
-              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' }
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'TIMER'
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              }
             ]
           ]
         },
@@ -638,10 +705,82 @@ describe('graph utilities', () => {
           state: { red: 'stop' },
           paths: [
             [
-              { state: 'green', event: 'TIMER' },
-              { state: 'yellow', event: 'TIMER' },
-              { state: { red: 'walk' }, event: 'PED_COUNTDOWN' },
-              { state: { red: 'wait' }, event: 'PED_COUNTDOWN' }
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'TIMER'
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              },
+              {
+                state: { value: { red: 'wait' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              }
+            ]
+          ]
+        },
+        {
+          state: { red: 'flashing' },
+          paths: [
+            [
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'TIMER'
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              },
+              {
+                state: { value: { red: 'wait' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              },
+              {
+                state: { value: { red: 'stop' }, context: undefined },
+                event: 'POWER_OUTAGE'
+              }
+            ],
+            [
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'TIMER'
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: 'PED_COUNTDOWN'
+              },
+              {
+                state: { value: { red: 'wait' }, context: undefined },
+                event: 'POWER_OUTAGE'
+              }
+            ],
+            [
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'TIMER'
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: 'POWER_OUTAGE'
+              }
+            ],
+            [
+              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: 'POWER_OUTAGE'
+              }
+            ],
+            [
+              {
+                state: { value: 'green', context: undefined },
+                event: 'POWER_OUTAGE'
+              }
             ]
           ]
         }

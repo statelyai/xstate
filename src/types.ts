@@ -759,11 +759,10 @@ export interface Segment<
   /**
    * From state.
    */
-  state: StateValue;
-  /**
-   * The context of the from state.
-   */
-  context?: TContext;
+  state: {
+    value: StateValue;
+    context: TContext;
+  };
   /**
    * Event from state.
    */
@@ -792,17 +791,12 @@ export interface TransitionMap {
   state: StateValue | undefined;
 }
 
-export interface ValueTransitionMap {
-  value: StateValue | undefined;
-  context: any;
-}
-
 export interface AdjacencyMap {
   [stateId: string]: Record<string, TransitionMap>;
 }
 
-export interface ValueAdjacencyMap {
-  [stateId: string]: Record<string, ValueTransitionMap>;
+export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
+  [stateId: string]: Record<string, State<TContext, TEvent>>;
 }
 
 export interface StateInterface<
