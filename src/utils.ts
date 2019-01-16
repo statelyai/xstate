@@ -67,7 +67,7 @@ export function getEventType<TEvent extends EventObject = EventObject>(
     );
   }
 }
-export function getActionType(action: Action<any>): ActionType {
+export function getActionType(action: Action<any, any>): ActionType {
   try {
     return typeof action === 'string' || typeof action === 'number'
       ? `${action}`
