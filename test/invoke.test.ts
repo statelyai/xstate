@@ -1,5 +1,4 @@
-import { Machine, actions, interpret } from '../src/index';
-import { assign, sendParent, send } from '../src/actions';
+import { Machine, interpret, assign, sendParent, send } from '../src/index';
 import { assert } from 'chai';
 
 const childMachine = Machine({
@@ -7,14 +6,10 @@ const childMachine = Machine({
   initial: 'init',
   states: {
     init: {
-      onEntry: [actions.sendParent('INC'), actions.sendParent('INC')],
+      onEntry: [sendParent('INC'), sendParent('INC')],
       on: {
         FORWARD_DEC: {
-          actions: [
-            actions.sendParent('DEC'),
-            actions.sendParent('DEC'),
-            actions.sendParent('DEC')
-          ]
+          actions: [sendParent('DEC'), sendParent('DEC'), sendParent('DEC')]
         }
       }
     }
@@ -214,7 +209,7 @@ describe('invoke', () => {
             initial: 'init',
             states: {
               init: {
-                onEntry: [actions.sendParent('STOP')]
+                onEntry: [sendParent('STOP')]
               }
             }
           })

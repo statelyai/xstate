@@ -41,6 +41,7 @@ export {
   actions,
   assign,
   send,
+  sendParent,
   interpret
 };
 

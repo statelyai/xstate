@@ -1,9 +1,9 @@
 import { interpret, Interpreter, SimulatedClock } from '../src/interpreter';
 import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
-import { Machine, actions } from '../src';
+import { Machine, actions, assign, send, sendParent } from '../src';
 import { State } from '../src/State';
-import { log, assign, actionTypes, send, sendParent } from '../src/actions';
+import { log, actionTypes } from '../src/actions';
 
 const lightMachine = Machine({
   id: 'light',

@@ -5,8 +5,7 @@ Expressing the entire app's behavior in a single machine can quickly become comp
 For machines to communicate, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](./final.md), which will then cause the `onDone` transition to be taken.
 
 ```js
-import { Machine, actions, interpret } from 'xstate';
-const { send, sendParent } = actions;
+import { Machine, interpret, send, sendParent } from 'xstate';
 
 const minuteMachine = Machine({
   id: 'timer',
@@ -72,8 +71,7 @@ Statecharts communicate hierarchically:
 Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other:
 
 ```js
-import { Machine, actions, interpret } from 'xstate';
-const { send, sendParent } = actions;
+import { Machine, interpret, send, sendParent } from 'xstate';
 
 const pingMachine = Machine({
   id: 'ping',
