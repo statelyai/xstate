@@ -766,7 +766,7 @@ export interface Segment<
   /**
    * Event from state.
    */
-  event: Event<TEvent>;
+  event: TEvent;
 }
 
 export interface PathMap {
