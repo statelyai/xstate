@@ -180,9 +180,10 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
-function mapActions<TContext extends object>(
-  elements: XMLElement[]
-): Array<ActionObject<TContext>> {
+function mapActions<
+  TContext extends object,
+  TEvent extends EventObject = EventObject
+>(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
@@ -211,8 +212,8 @@ function mapActions<TContext extends object>(
           ? typeof delay === 'number'
             ? delay
             : /(\d+)ms/.test(delay)
-              ? +/(\d+)ms/.exec(delay)![1]
-              : 0
+            ? +/(\d+)ms/.exec(delay)![1]
+            : 0
           : 0;
         return actions.send(element.attributes!.event! as string, {
           delay: numberDelay

@@ -25,7 +25,7 @@ export interface EventObject {
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
  */
-export interface ActionObject<TContext> {
+export interface ActionObject<TContext, TEvent extends EventObject> {
   /**
    * The type of action that is executed.
    */
@@ -33,7 +33,7 @@ export interface ActionObject<TContext> {
   /**
    * The implementation for executing the action.
    */
-  exec?: ActionFunction<TContext>;
+  exec?: ActionFunction<TContext, TEvent>;
   [other: string]: any;
 }
 
@@ -53,19 +53,23 @@ export type OmniEvent<TEvent extends EventObject> =
   | BuiltInEvent<TEvent>['type']
   | OmniEventObject<TEvent>;
 
-export interface ExecMeta<TContext> {
-  action: ActionObject<TContext>;
+export interface ExecMeta<TContext, TEvent extends EventObject> {
+  action: ActionObject<TContext, TEvent>;
 }
 
-export interface ActionFunction<TContext> {
-  (context: TContext, event: EventObject, meta: ExecMeta<TContext>): any | void;
+export interface ActionFunction<TContext, TEvent extends EventObject> {
+  (
+    context: TContext,
+    event: OmniEventObject<TEvent>,
+    meta: ExecMeta<TContext, TEvent>
+  ): any | void;
   name: string;
 }
 // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
-export type Action<TContext> =
+export type Action<TContext, TEvent extends EventObject> =
   | ActionType
-  | ActionObject<TContext>
-  | ActionFunction<TContext>;
+  | ActionObject<TContext, TEvent>
+  | ActionFunction<TContext, TEvent>;
 export type StateKey = string | State<any>;
 
 export interface StateValueMap {
@@ -97,7 +101,7 @@ export type Condition<TContext, TEvent extends EventObject> =
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
-  actions?: SingleOrArray<Action<TContext>>;
+  actions?: SingleOrArray<Action<TContext, TEvent>>;
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
@@ -121,14 +125,17 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
 
 export type DisposeActivityFunction = () => void;
 
-export type ActivityConfig<TContext> = (
+export type ActivityConfig<TContext, TEvent extends EventObject> = (
   ctx: TContext,
-  activity: ActivityDefinition<TContext>
+  activity: ActivityDefinition<TContext, TEvent>
 ) => DisposeActivityFunction | void;
 
-export type Activity<TContext> = string | ActivityDefinition<TContext>;
+export type Activity<TContext, TEvent extends EventObject> =
+  | string
+  | ActivityDefinition<TContext, TEvent>;
 
-export interface ActivityDefinition<TContext> extends ActionObject<TContext> {
+export interface ActivityDefinition<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
   id: string;
   type: string;
 }
@@ -165,7 +172,7 @@ export type InvokeCreator<TFinalContext, TContext> = (
   | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
-  extends ActivityDefinition<TContext> {
+  extends ActivityDefinition<TContext, TEvent> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -370,11 +377,11 @@ export interface StateNodeConfig<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  onEntry?: SingleOrArray<Action<TContext>>;
+  onEntry?: SingleOrArray<Action<TContext, TEvent>>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  onExit?: SingleOrArray<Action<TContext>>;
+  onExit?: SingleOrArray<Action<TContext, TEvent>>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -393,7 +400,7 @@ export interface StateNodeConfig<
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    */
-  activities?: SingleOrArray<Activity<TContext>>;
+  activities?: SingleOrArray<Activity<TContext, TEvent>>;
   /**
    * @private
    */
@@ -437,9 +444,9 @@ export interface StateNodeDefinition<
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionsDefinition<TContext, TEvent>;
-  onEntry: Array<ActionObject<TContext>>;
-  onExit: Array<ActionObject<TContext>>;
-  activities: Array<ActivityDefinition<TContext>>;
+  onEntry: Array<ActionObject<TContext, TEvent>>;
+  onExit: Array<ActionObject<TContext, TEvent>>;
+  activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
@@ -487,9 +494,9 @@ export type SimpleOrCompoundStateNodeConfig<
   | AtomicStateNodeConfig<TContext, TEvent>
   | CompoundStateNodeConfig<TContext, TStateSchema, TEvent>;
 
-export type ActionFunctionMap<TContext> = Record<
+export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
-  ActionObject<TContext> | ActionFunction<TContext>
+  ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent>
 >;
 
 export type ServiceConfig<TContext> =
@@ -499,8 +506,8 @@ export type ServiceConfig<TContext> =
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions?: ActionFunctionMap<TContext>;
-  activities?: Record<string, ActivityConfig<TContext>>;
+  actions?: ActionFunctionMap<TContext, TEvent>;
+  activities?: Record<string, ActivityConfig<TContext, TEvent>>;
   services?: Record<string, ServiceConfig<TContext>>;
 }
 export interface MachineConfig<
@@ -529,9 +536,9 @@ export interface ParallelMachineConfig<
   type?: 'parallel';
 }
 
-export interface EntryExitEffectMap<TContext> {
-  entry: Array<ActionObject<TContext>>;
-  exit: Array<ActionObject<TContext>>;
+export interface EntryExitEffectMap<TContext, TEvent extends EventObject> {
+  entry: Array<ActionObject<TContext, TEvent>>;
+  exit: Array<ActionObject<TContext, TEvent>>;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -548,10 +555,10 @@ export interface StateMachine<
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }
 
-export interface ActionMap<TContext> {
-  onEntry: Array<Action<TContext>>;
-  actions: Array<Action<TContext>>;
-  onExit: Array<Action<TContext>>;
+export interface ActionMap<TContext, TEvent extends EventObject> {
+  onEntry: Array<Action<TContext, TEvent>>;
+  actions: Array<Action<TContext, TEvent>>;
+  onExit: Array<Action<TContext, TEvent>>;
 }
 
 export interface EntryExitStates<TContext> {
@@ -569,19 +576,19 @@ export interface ActivityMap {
 }
 
 // tslint:disable-next-line:class-name
-export interface StateTransition<TContext> {
+export interface StateTransition<TContext, TEvent extends EventObject> {
   tree: StateTree | undefined;
   /**
    * The source state that preceded the transition.
    */
   source: State<TContext> | undefined;
   reentryStates: Set<StateNode<TContext>> | undefined;
-  actions: Array<ActionObject<TContext>>;
+  actions: Array<ActionObject<TContext, TEvent>>;
 }
 
-export interface TransitionData<TContext> {
+export interface TransitionData<TContext, TEvent extends EventObject> {
   value: StateValue | undefined;
-  actions: ActionMap<TContext>;
+  actions: ActionMap<TContext, TEvent>;
   activities?: ActivityMap;
 }
 
@@ -608,7 +615,7 @@ export interface RaisedEvent<TEvent extends EventObject> {
   event: TEvent;
 }
 export interface RaiseEvent<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext> {
+  extends ActionObject<TContext, TEvent> {
   event: Event<TEvent>;
 }
 
@@ -643,14 +650,15 @@ export type OmniEventObject<TEvent extends EventObject> =
   | TEvent
   | BuiltInEvent<TEvent>;
 
-export interface ActivityActionObject<TContext> extends ActionObject<TContext> {
+export interface ActivityActionObject<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext>;
-  exec: ActionFunction<TContext> | undefined;
+  activity: ActivityDefinition<TContext, TEvent>;
+  exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
 export interface SendAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext> {
+  extends ActionObject<TContext, TEvent> {
   to: string | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number;
@@ -681,7 +689,7 @@ export interface SendActionOptions {
   to?: string;
 }
 
-export interface CancelAction extends ActionObject<any> {
+export interface CancelAction extends ActionObject<any, any> {
   sendId: string | number;
 }
 
@@ -708,13 +716,13 @@ export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
 }>;
 
 export interface AssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext> {
+  extends ActionObject<TContext, TEvent> {
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  actions: Array<ActionObject<TContext>>;
+  actions: Array<ActionObject<TContext, TEvent>>;
   event: string;
   delay?: number;
 }
@@ -735,7 +743,7 @@ export interface Edge<
   source: StateNode<TContext>;
   target: StateNode<TContext>;
   cond?: Condition<TContext, TEvent & { type: TEventType }>;
-  actions: Array<Action<TContext>>;
+  actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
   transition: TransitionDefinition<TContext, TEvent>;
 }
@@ -805,7 +813,7 @@ export interface StateInterface<
   tree?: StateTree;
   history?: State<TContext>;
   historyValue?: HistoryValue | undefined;
-  actions: Array<ActionObject<TContext>>;
+  actions: Array<ActionObject<TContext, TEvent>>;
   activities: ActivityMap;
   meta: any;
   events: TEvent[];
@@ -819,7 +827,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   event: OmniEventObject<TEvent>;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext>;
-  actions?: Array<ActionObject<TContext>>;
+  actions?: Array<ActionObject<TContext, TEvent>>;
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];

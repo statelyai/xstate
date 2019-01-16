@@ -52,10 +52,13 @@ export function toEventObject<TEvent extends EventObject>(
   return event as TEvent;
 }
 
-function getActionFunction<TContext>(
+function getActionFunction<TContext, TEvent extends EventObject>(
   actionType: ActionType,
-  actionFunctionMap?: ActionFunctionMap<TContext>
-): ActionObject<TContext> | ActionFunction<TContext> | undefined {
+  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+):
+  | ActionObject<TContext, TEvent>
+  | ActionFunction<TContext, TEvent>
+  | undefined {
   if (!actionFunctionMap) {
     return undefined;
   }
@@ -72,11 +75,11 @@ function getActionFunction<TContext>(
   return actionReference;
 }
 
-export function toActionObject<TContext>(
-  action: Action<TContext>,
-  actionFunctionMap?: ActionFunctionMap<TContext>
-): ActionObject<TContext> {
-  let actionObject: ActionObject<TContext>;
+export function toActionObject<TContext, TEvent extends EventObject>(
+  action: Action<TContext, TEvent>,
+  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+): ActionObject<TContext, TEvent> {
+  let actionObject: ActionObject<TContext, TEvent>;
 
   if (typeof action === 'string' || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
@@ -125,9 +128,9 @@ export function toActionObject<TContext>(
   return actionObject;
 }
 
-export function toActivityDefinition<TContext>(
-  action: string | ActivityDefinition<TContext>
-): ActivityDefinition<TContext> {
+export function toActivityDefinition<TContext, TEvent extends EventObject>(
+  action: string | ActivityDefinition<TContext, TEvent>
+): ActivityDefinition<TContext, TEvent> {
   const actionObject = toActionObject(action);
 
   return {
@@ -137,10 +140,12 @@ export function toActivityDefinition<TContext>(
   };
 }
 
-export const toActionObjects = <TContext>(
-  action: Array<Action<TContext> | Action<TContext>> | undefined,
-  actionFunctionMap?: ActionFunctionMap<TContext>
-): Array<ActionObject<TContext>> => {
+export const toActionObjects = <TContext, TEvent extends EventObject>(
+  action:
+    | Array<Action<TContext, TEvent> | Action<TContext, TEvent>>
+    | undefined,
+  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+): Array<ActionObject<TContext, TEvent>> => {
   if (!action) {
     return [];
   }
@@ -268,9 +273,9 @@ export const cancel = (sendId: string | number): CancelAction => {
  *
  * @param activity The activity to start.
  */
-export function start<TContext>(
-  activity: string | ActivityDefinition<TContext>
-): ActivityActionObject<TContext> {
+export function start<TContext, TEvent extends EventObject>(
+  activity: string | ActivityDefinition<TContext, TEvent>
+): ActivityActionObject<TContext, TEvent> {
   const activityDef = toActivityDefinition(activity);
 
   return {
@@ -285,9 +290,9 @@ export function start<TContext>(
  *
  * @param activity The activity to stop.
  */
-export function stop<TContext>(
-  activity: string | ActivityDefinition<TContext>
-): ActivityActionObject<TContext> {
+export function stop<TContext, TEvent extends EventObject>(
+  activity: string | ActivityDefinition<TContext, TEvent>
+): ActivityActionObject<TContext, TEvent> {
   const activityDef = toActivityDefinition(activity);
 
   return {
@@ -311,9 +316,9 @@ export const assign = <TContext, TEvent extends EventObject = EventObject>(
   };
 };
 
-export function isActionObject<TContext>(
-  action: Action<TContext>
-): action is ActionObject<TContext> {
+export function isActionObject<TContext, TEvent extends EventObject>(
+  action: Action<TContext, TEvent>
+): action is ActionObject<TContext, TEvent> {
   return typeof action === 'object' && 'type' in action;
 }
 

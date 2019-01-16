@@ -40,7 +40,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
   public history?: State<TContext>;
-  public actions: Array<ActionObject<TContext>> = [];
+  public actions: Array<ActionObject<TContext, TEvent>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];

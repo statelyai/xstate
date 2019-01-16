@@ -401,9 +401,21 @@ describe('actions on invalid transition', () => {
 });
 
 describe('actions option', () => {
+
+  type EventType = { type: 'definedAction' } | { type: 'updateContext' } | { type: 'EVENT' } | { type: 'E' };
+  interface Context {
+    count: number;
+  }
+  interface State {
+    states: {
+      a: {};
+      b: {};
+    }
+  }
+
   // tslint:disable-next-line:no-empty
-  const definedAction = () => {};
-  const simpleMachine = Machine(
+  const definedAction = () => { };
+  const simpleMachine = Machine<Context, State, EventType>(
     {
       initial: 'a',
       context: {
