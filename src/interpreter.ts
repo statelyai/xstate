@@ -58,6 +58,7 @@ interface InterpreterOptions {
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
   id?: string;
+  devTools?: boolean;
 }
 
 interface SimulatedTimeout {
@@ -137,7 +138,8 @@ export class Interpreter<
         return global.clearTimeout.call(null, id);
       }
     },
-    logger: global.console.log.bind(console)
+    logger: global.console.log.bind(console),
+    devTools: true
   }))(typeof window === 'undefined' ? global : window);
   /**
    * The current state of the interpreted machine.
@@ -165,6 +167,9 @@ export class Interpreter<
   private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
   public id: string;
+
+  // Dev Tools
+  private devTools?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -219,6 +224,11 @@ export class Interpreter<
     // Execute actions
     if (this.options.execute) {
       this.execute(this.state);
+    }
+
+    // Dev tools
+    if (this.devTools) {
+      this.devTools.send(event, state);
     }
 
     // Execute listeners
@@ -340,6 +350,9 @@ export class Interpreter<
     >
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.initialized = true;
+    if (this.options.devTools) {
+      this.attachDev();
+    }
     this.update(initialState, { type: actionTypes.init });
     return this;
   }
@@ -403,7 +416,7 @@ export class Interpreter<
     }
 
     return sender.bind(this);
-  };
+  }
 
   public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
     const isParent = to === SpecialTargets.Parent;
@@ -424,7 +437,7 @@ export class Interpreter<
     }
 
     target.send(event);
-  };
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
@@ -703,6 +716,21 @@ export class Interpreter<
     const flushedEvent = this.eventQueue.shift();
     if (flushedEvent) {
       this.send(flushedEvent);
+    }
+  }
+  private attachDev() {
+    if (
+      this.options.devTools &&
+      typeof window !== 'undefined' &&
+      (window as any).__REDUX_DEVTOOLS_EXTENSION__
+    ) {
+      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
+        name: this.id
+      });
+      this.devTools.init(this.state);
+      this.devTools.subscribe(message => {
+        console.log(message);
+      });
     }
   }
 }
