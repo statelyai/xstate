@@ -1,6 +1,6 @@
 # State Nodes
 
-A state machine contains state nodes (explained below) that collectively describe the [overall state](./state.md) a machine can be in. In the `fetchMachine` described in the next section, there are **state nodes**, such as:
+A state machine contains state nodes (explained below) that collectively describe the [overall state](./states.md) a machine can be in. In the `fetchMachine` described in the next section, there are **state nodes**, such as:
 
 ```js
 // ...
