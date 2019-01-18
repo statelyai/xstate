@@ -182,7 +182,7 @@ export function raise<TContext, TEvent extends EventObject>(
  */
 export function send<TContext, TEvent extends EventObject>(
   event: Event<TEvent> | SendExpr<TContext, TEvent>,
-  options?: SendActionOptions
+  options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return {
     to: options ? options.to : undefined,
@@ -203,16 +203,20 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   ctx: TContext,
   event: TEvent
 ): SendActionObject<TContext, OmniEventObject<TEvent>> {
-  if (typeof action.event === 'function') {
-    return {
-      ...action,
-      event: toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
-    };
-  }
+  // TODO: helper function for resolving Expr
+  const resolvedEvent =
+    typeof action.event === 'function'
+      ? toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
+      : toEventObject(action.event);
+  const resolvedDelay =
+    typeof action.delay === 'function'
+      ? action.delay(ctx, event)
+      : action.delay;
 
   return {
     ...action,
-    event: toEventObject(action.event)
+    event: resolvedEvent,
+    delay: resolvedDelay
   };
 }
 
@@ -224,7 +228,7 @@ export function resolveSend<TContext, TEvent extends EventObject>(
  */
 export function sendParent<TContext, TEvent extends EventObject>(
   event: Event<TEvent> | SendExpr<TContext, TEvent>,
-  options?: SendActionOptions
+  options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return send<TContext, TEvent>(event, {
     ...options,

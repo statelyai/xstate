@@ -134,6 +134,50 @@ const toggleMachine = Machine({
 // if the CANCEL event is sent before 1 second, the TIMER event will be canceled.
 ```
 
+### Delay Expression
+
+(since 4.3)
+
+The `delay` option can also be evaluated as a delay expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns the resolved `delay` (in milliseconds):
+
+```js
+const dynamicDelayMachine = Machine({
+  id: 'dynamicDelay',
+  context: {
+    initialDelay: 1000
+  },
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        ACTIVATE: 'pending'
+      }
+    },
+    pending: {
+      onEntry: send('FINISH', {
+        delay: (ctx, event) => ctx.initialDelay + event.wait || 0
+      }),
+      on: {
+        FINISH: 'finished'
+      }
+    },
+    finished: { type: 'final' }
+  }
+});
+
+const dynamicDelayService = interpret(dynamicDelayMachine)
+  .onDone(() => console.log('done!'))
+  .start();
+
+dynamicDelayService.send({
+  type: 'ACTIVATE',
+  delay: 2000
+});
+
+// after 3000ms (1000 + 2000), console will log:
+// => 'done!'
+```
+
 ## Interpretation
 
 With the XState [interpreter](./interpretation.md), delayed actions will use the native`setTimeout` and `clearTimeout` functions:

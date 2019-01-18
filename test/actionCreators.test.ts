@@ -99,5 +99,22 @@ describe('action creators', () => {
         id: 'foo'
       });
     });
+
+    it('should accept a delay option (expression)', () => {
+      const action = actions.send<
+        { delay: number },
+        { type: 'EVENT'; value: number } | { type: 'RECEIVED' }
+      >('RECEIVED', {
+        delay: (ctx, e) => ctx.delay + ('value' in e ? e.value : 0)
+      });
+
+      const resolvedAction = actions.resolveSend(
+        action,
+        { delay: 100 },
+        { type: 'EVENT', value: 50 }
+      );
+
+      assert.equal(resolvedAction.delay, 150);
+    });
   });
 });

@@ -660,8 +660,8 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   to: string | undefined;
-  event: TEvent | SendExpr<TContext, TEvent>;
-  delay?: number;
+  event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
+  delay?: number | Expr<TContext, TEvent, number>;
   id: string | number;
 }
 
@@ -673,6 +673,11 @@ export interface SendActionObject<TContext, TEvent extends EventObject>
   id: string | number;
 }
 
+export type Expr<TContext, TEvent extends EventObject, T> = (
+  context: TContext,
+  event: TEvent
+) => T;
+
 export type SendExpr<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent
@@ -683,9 +688,9 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions {
+export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
-  delay?: number;
+  delay?: number | Expr<TContext, TEvent, number>;
   to?: string;
 }
 

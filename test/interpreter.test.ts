@@ -125,6 +125,61 @@ describe('interpreter', () => {
         'green'
       ]);
     });
+
+    it('can send an event after a delay (expression)', () => {
+      interface DelayExprMachineCtx {
+        initialDelay: number;
+      }
+
+      const delayExprMachine = Machine<DelayExprMachineCtx>({
+        id: 'delayExpr',
+        context: {
+          initialDelay: 100
+        },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              ACTIVATE: 'pending'
+            }
+          },
+          pending: {
+            onEntry: send('FINISH', {
+              delay: (ctx, e) => ctx.initialDelay + ('wait' in e ? e.wait : 0)
+            }),
+            on: {
+              FINISH: 'finished'
+            }
+          },
+          finished: { type: 'final' }
+        }
+      });
+
+      let stopped = false;
+
+      const clock = new SimulatedClock();
+
+      const delayExprService = interpret(delayExprMachine, {
+        clock
+      })
+        .onDone(() => {
+          stopped = true;
+        })
+        .start();
+
+      delayExprService.send({
+        type: 'ACTIVATE',
+        wait: 50
+      });
+
+      clock.increment(101);
+
+      assert.isFalse(stopped);
+
+      clock.increment(50);
+
+      assert.isTrue(stopped);
+    });
   });
 
   describe('activities', () => {

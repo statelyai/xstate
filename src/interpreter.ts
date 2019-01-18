@@ -403,7 +403,7 @@ export class Interpreter<
     }
 
     return sender.bind(this);
-  };
+  }
 
   public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
     const isParent = to === SpecialTargets.Parent;
@@ -424,7 +424,7 @@ export class Interpreter<
     }
 
     target.send(event);
-  };
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
