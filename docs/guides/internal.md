@@ -6,7 +6,7 @@ An internal transition is one that does not exit its state node. For example, co
 import { Machine } from 'xstate';
 
 const wordMachine = Machine({
-  key: 'word',
+  id: 'direction',
   initial: 'left',
   states: {
     left: {},
@@ -24,38 +24,15 @@ const wordMachine = Machine({
 });
 ```
 
-The above machine will start in the `'direction.left'` state, and based on what is clicked, will internally transition to its other child states. This is much less verbose than specifying the transitions on each child state:
-
-```js
-// ...
-states: {
-  left: {
-    on: {
-      LEFT_CLICK: 'left',
-      RIGHT_CLICK: 'right',
-      CENTER_CLICK: 'center',
-      JUSTIFY_CLICK: 'justify'
-    }
-  },
-  right: {
-    on: {
-      LEFT_CLICK: 'left',
-      RIGHT_CLICK: 'right',
-      CENTER_CLICK: 'center',
-      JUSTIFY_CLICK: 'justify'
-    }
-  },
-  // ... etc.
-},
-// ...
-```
-
-Also, since the transitions are internal, `onEntry` and `onExit` actions defined on the parent state node are not executed again.
+The above machine will start in the `'direction.left'` state, and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
 
 Alternatively, the internal transition can be made explicit using a transition config with the `internal` property set to `true`:
 
 ```js
 // ...
+states: {
+  // ...
+},
 on: {
   // internal transitions, equivalent to the first example
   LEFT_CLICK: { target: 'direction.left', internal: true },
@@ -73,6 +50,7 @@ By default, transitions are external, so a normal transition:
 on: {
   // external transition
   LEFT_CLICK: 'direction.left',
+  RIGHT_CLICK: 'right',
   // ...
 }
 // ...
