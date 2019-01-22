@@ -183,11 +183,13 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
+    const resolvedId = id !== undefined ? id : machine.id;
+
     Object.assign(this, {
       clock,
       logger,
       parent,
-      id: id || `${Math.round(Math.random() * 99999)}`
+      id: resolvedId
     });
 
     this.options = resolvedOptions;

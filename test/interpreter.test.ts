@@ -58,6 +58,20 @@ describe('interpreter', () => {
     assert.deepEqual(service.initialState, idMachine.initialState);
   });
 
+  describe('id', () => {
+    it('uses the ID specified in the options', () => {
+      const service = interpret(lightMachine, { id: 'custom-id' });
+
+      assert.equal(service.id, 'custom-id');
+    });
+
+    it('uses the machine ID if not specified', () => {
+      const service = interpret(lightMachine);
+
+      assert.equal(service.id, lightMachine.id);
+    });
+  });
+
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
       const service = interpret(lightMachine).start();
