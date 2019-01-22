@@ -85,3 +85,11 @@ Providing the context, state schema, and events as generic parameters for the `M
 - The context type/interface (`TContext`) is passed on to action `exec` functions, guard `cond` functions, and more. It is also passed to deeply nested states.
 - The state schema type/interface (`TStateSchema`) ensures that only state keys defined on the schema are allowed in the actual config object. Nested state schemas are recursively passed down to their representative child states.
 - The event type (`TEvent`) ensures that only specified events (and built-in XState-specific ones) are used in transition configs. The provided event object shapes are also passed on to action `exec` functions, guard `cond` functions, and more. This can prevent unnecessary `event.somePayload === undefined` checks.
+
+Note if you are seeing this error:
+
+```
+Type error: Type 'string | number' does not satisfy the constraint 'string'.
+  Type 'number' is not assignable to type 'string'.  TS2344
+```
+Ensure that your tsconfig file can does not include `"keyofStringsOnly": true,`.
