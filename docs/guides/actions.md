@@ -1,6 +1,8 @@
-# Actions (Side-Effects)
+# Actions
 
-For a statechart to be useful in a real-world application, side-effects need to happen. In statecharts and XState, side-effects are declaratively represented by **actions**. When `machine.transition(...)` is called, the `State` returned will provide an array of `actions` that an interpreter can then execute.
+In XState and statecharts, actions are fire-and-forget ["side-effects"](./effects.md). For a statechart to be useful in a real-world application, side-effects need to occur to make things happen in the real world, such as rendering to a screen or emitting external events.
+
+XState does _not_ immediately trigger actions. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
 
 There are three types of actions:
 
@@ -56,12 +58,14 @@ const triggerMachine = Machine(
 );
 ```
 
-The `State` instance returned from a transition has an `actions` property, which is an array of action objects for the interpreter to execute:
+## The `.actions` Property
+
+The `State` instance returned from `machine.transition(...)` has an `.actions` property, which is an array of action objects for the interpreter to execute:
 
 ```js
 const activeState = triggerMachine.transition('inactive', 'TRIGGER');
 
-activeState.actions;
+console.log(activeState.actions);
 // [
 //   { type: 'activate', exec: ... },
 //   { type: 'sendTelemetry', exec: ... },
@@ -80,7 +84,7 @@ The `exec` function takes two arguments:
 - `ctx` - the current machine context
 - `event` - the event that caused the transition
 
-An interpreter would call the `exec` function with the `currentState.context` and the `event`.
+The interpreter will call the `exec` function with the `currentState.context` and the `event`, and this behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
 
 ## Action order
 
@@ -94,11 +98,12 @@ When interpreting statecharts, the order of actions should not necessarily matte
 
 ### Send Action
 
-The `send(event)` action creator queues an event to the machine, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+
+⚠️ The `send(...)` function is a pure function that only returns an action object and does _not_ imperatively send an event.
 
 ```js
-import { Machine, actions } from 'xstate';
-const { send } = actions;
+import { Machine, send } from 'xstate';
 
 const lazyStubbornMachine = Machine({
   id: 'stubborn',
@@ -138,8 +143,7 @@ The `event` argument passed to `send(event)` can be:
 - An event expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns an event object:
 
 ```js
-import { actions } from 'xstate';
-const { send } = actions;
+import { send } from 'xstate';
 
 // contrived example - reads from the `ctx` and sends
 // the dynamically created event
