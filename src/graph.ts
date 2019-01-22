@@ -169,21 +169,13 @@ export function serializeState<TContext>(state: State<TContext>): string {
 export function serializeEvent<TEvent extends EventObject>(
   event: TEvent
 ): string {
-  // @ts-ignore
-  const { type, ...payload } = event;
-
-  return `${type} | ${JSON.stringify(payload)}`;
+  return JSON.stringify(event);
 }
 
 export function deserializeEventString<TEvent extends EventObject>(
   eventString: string
 ): TEvent {
-  const [eventType, eventPayload] = eventString.split(' | ');
-
-  return {
-    type: eventType,
-    ...(eventPayload ? JSON.parse(eventPayload) : undefined)
-  } as TEvent;
+  return JSON.parse(eventString) as TEvent;
 }
 
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
@@ -194,7 +186,7 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
 }
 
 export class ValueAdjacency<TContext, TEvent extends EventObject> {
-  public map: ValueAdjacencyMap<TContext, TEvent>;
+  public mapping: ValueAdjacencyMap<TContext, TEvent>;
   public options: ValueAdjMapOptions<TContext, TEvent>;
 
   constructor(
@@ -207,14 +199,14 @@ export class ValueAdjacency<TContext, TEvent extends EventObject> {
       eventSerializer: serializeEvent,
       ...options
     } as ValueAdjMapOptions<TContext, TEvent>;
-    this.map = getValueAdjacencyMap(machine, options);
+    this.mapping = getValueAdjacencyMap(machine, options);
   }
 
   public reaches(stateValue: StateValue, context: TContext): boolean {
     const resolvedStateValue = this.machine.resolve(stateValue);
     const state = State.from(resolvedStateValue, context);
 
-    return !!this.map[this.options.stateSerializer(state)];
+    return !!this.mapping[this.options.stateSerializer(state)];
   }
 }
 
