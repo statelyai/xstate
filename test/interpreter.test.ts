@@ -60,7 +60,7 @@ describe('interpreter', () => {
 
   describe('id', () => {
     it('uses the ID specified in the options', () => {
-      const service = interpret(lightMachine, { id: 'custom-id' });
+      const service = interpret(lightMachine, { id: 'custom-id'});
 
       assert.equal(service.id, 'custom-id');
     });
@@ -74,7 +74,7 @@ describe('interpreter', () => {
 
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
-      const service = interpret(lightMachine).start();
+      const service = interpret(lightMachine, {clock: new SimulatedClock()}).start();
 
       const nextState = service.nextState('TIMER');
       assert.equal(nextState.value, 'yellow');
@@ -303,7 +303,7 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const service = interpret(lightMachine);
+    const service = interpret(lightMachine, {clock: new SimulatedClock()});
 
     assert.throws(() => service.send('SOME_EVENT'));
 
@@ -339,7 +339,7 @@ describe('interpreter', () => {
 
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
-    const service = interpret(lightMachine).onTransition(s => (state = s));
+    const service = interpret(lightMachine, {clock: new SimulatedClock()}).onTransition(s => (state = s));
 
     service.start();
     service.send('TIMER'); // yellow
