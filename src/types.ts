@@ -148,7 +148,7 @@ export type Receiver<TEvent extends EventObject> = (
 export type InvokeCallback = ((
   sender: Sender<any>,
   onEvent: Receiver<EventObject>
-) => void | (() => void));
+) => any);
 
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
