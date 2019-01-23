@@ -562,22 +562,38 @@ describe('invoke', () => {
 
         const runCompletedStateTest = (parentFinal:boolean) => done => {
             let nTransitions = 0;
+            let finalStateValue;
             const service = interpret(makeParentMachine(parentFinal)).onTransition(state => {
+                finalStateValue = state.value;
+                //console.log(state.value);
+
                 switch(nTransitions++) {
                     case 0: assert.isTrue(state.matches("begin")); 
                             break;
                     case 1: assert.isTrue(state.matches("completed")); 
-                            done(); 
                             break;
                     default: break;
                 }
             }).start();
 
+            //Not ideal for a proper solution, but a good way to see the issue now 
+            setTimeout(() => {
+                //When `completed` is not {type: "final"} it transitions back to `begin`
+                //Thereby making the total number of transitions 3
+                //And the final state "begin"
+
+                assert.equal(2, nTransitions);
+                assert.equal("completed", finalStateValue); 
+                done();
+            }, 500);
             service.send("STOPCHILD");
         }
 
+        //passes
         it('should reach completed state in parent when both are final', runCompletedStateTest(true)); 
 
+        //FAILS!!!!!
+        //TODO: MAKE ME PASS!
         it('should reach completed state in parent when only child is final', runCompletedStateTest(false)); 
     })
 });
