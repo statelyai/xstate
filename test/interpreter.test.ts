@@ -60,7 +60,7 @@ describe('interpreter', () => {
 
   describe('id', () => {
     it('uses the ID specified in the options', () => {
-      const service = interpret(lightMachine, { id: 'custom-id'});
+      const service = interpret(lightMachine, { id: 'custom-id' });
 
       assert.equal(service.id, 'custom-id');
     });
