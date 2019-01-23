@@ -512,4 +512,72 @@ describe('invoke', () => {
         .start();
     });
   });
+
+    describe('with final states', () => {
+        const childMachine = Machine({
+          id: "child",
+          initial: "start",
+          
+          states: {
+            start: {
+              on: {
+                STOP: {
+                  target: "end"
+                }
+              }
+            },
+
+            end: {
+              type: "final"
+            }
+          }
+        });
+
+        const makeParentMachine = (withFinal:boolean) => Machine({
+          id: "parent",
+          initial: "begin",
+          states: {
+            begin: {
+              on: {
+                STOPCHILD: {
+                  actions: send('STOP', {to: "invoked.child"})
+                }
+              },
+              invoke: {
+                src: "childMachine",
+                id: "invoked.child",
+                onDone: {
+                  target: "completed"
+                },
+              }
+            },
+
+            completed: withFinal ? { type: "final" } : {}
+          }
+        }, {
+            services: {
+              childMachine
+            }
+        });
+
+        const runCompletedStateTest = (parentFinal:boolean) => done => {
+            let nTransitions = 0;
+            const service = interpret(makeParentMachine(parentFinal)).onTransition(state => {
+                switch(nTransitions++) {
+                    case 0: assert.isTrue(state.matches("begin")); 
+                            break;
+                    case 1: assert.isTrue(state.matches("completed")); 
+                            done(); 
+                            break;
+                    default: break;
+                }
+            }).start();
+
+            service.send("STOPCHILD");
+        }
+
+        it('should reach completed state in parent when both are final', runCompletedStateTest(true)); 
+
+        it('should reach completed state in parent when only child is final', runCompletedStateTest(false)); 
+    })
 });
