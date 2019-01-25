@@ -26,7 +26,7 @@ import { StateNode, IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
-  state: State<TContext>,
+  state: State<TContext, TEvent>,
   event: OmniEventObject<TEvent>
 ) => void;
 
