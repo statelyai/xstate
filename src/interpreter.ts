@@ -16,7 +16,8 @@ import {
   ServiceConfig,
   InvokeCallback,
   Sender,
-  DisposeActivityFunction
+  DisposeActivityFunction,
+  ErrorExecutionEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -449,6 +450,13 @@ export class Interpreter<
       );
     }
 
+    if (
+      eventObject.type === actionTypes.errorExecution &&
+      this.state.nextEvents.indexOf(actionTypes.errorExecution) === -1
+    ) {
+      throw (eventObject as ErrorExecutionEvent).data;
+    }
+
     const nextState = this.machine.transition(
       this.state,
       eventObject,
@@ -683,9 +691,19 @@ export class Interpreter<
       }
     };
 
-    const stop = callback(receive, newListener => {
-      listener = newListener;
-    });
+    let stop;
+
+    try {
+      stop = callback(receive, newListener => {
+        listener = newListener;
+      });
+
+      if (stop instanceof Promise) {
+        stop.catch(e => this.send(error(e, id)));
+      }
+    } catch (e) {
+      this.send(error(e, id));
+    }
 
     this.children.set(id, {
       send: listener,
