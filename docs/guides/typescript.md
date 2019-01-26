@@ -92,4 +92,27 @@ Note if you are seeing this error:
 Type error: Type 'string | number' does not satisfy the constraint 'string'.
   Type 'number' is not assignable to type 'string'.  TS2344
 ```
+
 Ensure that your tsconfig file can does not include `"keyofStringsOnly": true,`.
+
+## Config Objects
+
+The generic types for `MachineConfig<TContext, TSchema, TEvent>` are the same as those for `Machine<TContext, TSchema, TEvent>`. This is useful when you are defining a machine config object _outside_ of the `Machine(...)` function, and helps prevent [inference errors](https://github.com/davidkpiano/xstate/issues/310):
+
+```ts
+import { MachineConfig } from 'xstate';
+
+const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
+  id: 'controller',
+  initial: 'stopped',
+  states: {
+    stopped: {
+      /* ... */
+    },
+    started: {
+      /* ... */
+    }
+  }
+  // ...
+};
+```
