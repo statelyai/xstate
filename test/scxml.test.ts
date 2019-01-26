@@ -40,7 +40,7 @@ const testGroups = {
     'history1',
     'history2',
     'history3',
-    // 'history4',
+    // 'history4', // TODO: support history nodes on parallel states
     'history5',
     'history6'
   ],
@@ -93,6 +93,8 @@ function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
     clock: new SimulatedClock()
   })
     .onTransition(state => {
+      // @ts-ignore
+      // console.dir(state.historyValue, { depth: null });
       nextState = state;
     })
     .start(nextState);
@@ -127,7 +129,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['parallel'];
+  // const testGroupKeys = ['history'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
@@ -155,6 +157,7 @@ describe('scxml', () => {
           evalCond,
           delimiter: '$'
         });
+
         // console.dir(machine.config, { depth: null });
         runTestToCompletion(machine, scxmlTest);
       });

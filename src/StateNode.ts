@@ -1179,6 +1179,8 @@ class StateNode<
       delete nextState.history.history;
     }
 
+    const { history } = nextState;
+
     let maybeNextState = nextState;
     while (raisedEvents.length) {
       const currentActions = maybeNextState.actions;
@@ -1192,6 +1194,10 @@ class StateNode<
       );
       maybeNextState.actions.unshift(...currentActions);
     }
+
+    // Preserve original history after raised events
+    maybeNextState.historyValue = nextState.historyValue;
+    maybeNextState.history = history;
 
     return maybeNextState;
   }
@@ -1724,6 +1730,7 @@ class StateNode<
   private resolveHistory(
     historyValue?: HistoryValue
   ): Array<StateNode<TContext>> {
+    console.log('Resolving HV', historyValue);
     if (this.type !== 'history') {
       return [this];
     }
@@ -1748,13 +1755,16 @@ class StateNode<
       return [parent.getStateNode(subHistoryValue)];
     }
 
-    return flatten(
+    const r = flatten(
       toStatePaths(subHistoryValue!).map(subStatePath => {
         return this.history === 'deep'
           ? parent.getFromRelativePath(subStatePath)
           : [parent.states[subStatePath[0]]];
       })
     );
+
+    console.dir(toStatePaths(subHistoryValue!), { depth: null });
+    return r;
   }
 
   /**

@@ -124,6 +124,28 @@ describe('State', () => {
       const changedState = machine.transition(twoState, 'UNKNOWN_EVENT');
       assert.isFalse(changedState.changed, 'not changed - unknown event');
     });
+
+    it('should report entering a final state as changed', () => {
+      const finalMachine = Machine({
+        id: 'final',
+        initial: 'one',
+        states: {
+          one: {
+            on: {
+              DONE: 'two'
+            }
+          },
+
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      const twoState = finalMachine.transition('one', 'DONE');
+
+      assert.isTrue(twoState.changed);
+    });
   });
 
   describe('.nextEvents', () => {
