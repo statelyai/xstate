@@ -561,6 +561,19 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should be able to be stringified', () => {
+      const waitingState = fetcherMachine.transition(
+        fetcherMachine.initialState,
+        'GO_TO_WAITING'
+      );
+
+      assert.doesNotThrow(() => {
+        JSON.stringify(waitingState);
+      });
+
+      assert.isString(waitingState.actions[0].activity!.src);
+    });
+
     xit('should throw error if unhandled (sync)', done => {
       const errorMachine = Machine({
         id: 'asyncError',

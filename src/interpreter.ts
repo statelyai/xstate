@@ -22,7 +22,7 @@ import {
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { StateNode, IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -528,16 +528,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator:
-            | ServiceConfig<TContext>
-            | undefined = activity.src
-            ? activity.src instanceof StateNode
-              ? activity.src
-              : typeof activity.src === 'function'
-              ? activity.src
-              : this.machine.options.services
-              ? this.machine.options.services[activity.src]
-              : undefined
+          const serviceCreator: ServiceConfig<TContext> | undefined = this
+            .machine.options.services
+            ? this.machine.options.services[activity.src]
             : undefined;
 
           const { id, data } = activity;
