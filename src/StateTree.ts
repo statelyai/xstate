@@ -53,7 +53,7 @@ export class StateTree {
         const childTree = this.nodes[keys(this.nodes)[0]];
         return childTree.stateNode.type === 'final';
       case 'parallel':
-        return keys(this.nodes).some(key => this.nodes[key].done);
+        return keys(this.nodes).every(key => this.nodes[key].done);
       default:
         return false;
     }
