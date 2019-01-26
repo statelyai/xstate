@@ -85,7 +85,9 @@ const doorMachine = Machine({
         error: {}
       },
       on: {
-        SET_ADMIN: assign({ isAdmin: true }),
+        SET_ADMIN: {
+          actions: assign({ isAdmin: true })
+        },
         OPEN: [
           { target: 'opened', cond: ctx => ctx.isAdmin },
           { target: '.error' }

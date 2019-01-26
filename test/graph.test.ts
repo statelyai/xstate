@@ -332,36 +332,57 @@ describe('graph utilities', () => {
       assert.deepEqual(getShortestPaths(lightMachine), {
         '"green"': [],
         '"yellow"': [
-          { state: { context: undefined, value: 'green' }, event: 'TIMER' }
+          {
+            state: { context: undefined, value: 'green' },
+            event: { type: 'TIMER' }
+          }
         ],
         '{"red":"flashing"}': [
           {
             state: { context: undefined, value: 'green' },
-            event: 'POWER_OUTAGE'
+            event: { type: 'POWER_OUTAGE' }
           }
         ],
         '{"red":"walk"}': [
-          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' }
+          {
+            state: { context: undefined, value: 'green' },
+            event: { type: 'TIMER' }
+          },
+          {
+            state: { context: undefined, value: 'yellow' },
+            event: { type: 'TIMER' }
+          }
         ],
         '{"red":"wait"}': [
-          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+          {
+            state: { context: undefined, value: 'green' },
+            event: { type: 'TIMER' }
+          },
+          {
+            state: { context: undefined, value: 'yellow' },
+            event: { type: 'TIMER' }
+          },
           {
             state: { context: undefined, value: { red: 'walk' } },
-            event: 'PED_COUNTDOWN'
+            event: { type: 'PED_COUNTDOWN' }
           }
         ],
         '{"red":"stop"}': [
-          { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-          { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+          {
+            state: { context: undefined, value: 'green' },
+            event: { type: 'TIMER' }
+          },
+          {
+            state: { context: undefined, value: 'yellow' },
+            event: { type: 'TIMER' }
+          },
           {
             state: { context: undefined, value: { red: 'walk' } },
-            event: 'PED_COUNTDOWN'
+            event: { type: 'PED_COUNTDOWN' }
           },
           {
             state: { context: undefined, value: { red: 'wait' } },
-            event: 'PED_COUNTDOWN'
+            event: { type: 'PED_COUNTDOWN' }
           }
         ]
       });
@@ -372,7 +393,7 @@ describe('graph utilities', () => {
         '{"a":"a1","b":"b1"}': [],
         '{"a":"a2","b":"b2"}': [
           {
-            event: '2',
+            event: { type: '2' },
             state: {
               context: undefined,
               value: {
@@ -384,7 +405,7 @@ describe('graph utilities', () => {
         ],
         '{"a":"a3","b":"b3"}': [
           {
-            event: '3',
+            event: { type: '3' },
             state: {
               context: undefined,
               value: {
@@ -414,13 +435,13 @@ describe('graph utilities', () => {
       assert.deepEqual(getShortestPaths(condMachine, { id: 'foo' }), {
         '"bar"': [
           {
-            event: 'EVENT',
+            event: { type: 'EVENT' },
             state: { context: undefined, value: 'pending' }
           }
         ],
         '"foo"': [
           {
-            event: 'STATE',
+            event: { type: 'STATE' },
             state: { context: undefined, value: 'pending' }
           }
         ],
@@ -436,7 +457,10 @@ describe('graph utilities', () => {
         {
           state: 'yellow',
           path: [
-            { state: { context: undefined, value: 'green' }, event: 'TIMER' }
+            {
+              state: { context: undefined, value: 'green' },
+              event: { type: 'TIMER' }
+            }
           ]
         },
         {
@@ -444,40 +468,58 @@ describe('graph utilities', () => {
           path: [
             {
               state: { context: undefined, value: 'green' },
-              event: 'POWER_OUTAGE'
+              event: { type: 'POWER_OUTAGE' }
             }
           ]
         },
         {
           state: { red: 'walk' },
           path: [
-            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' }
+            {
+              state: { context: undefined, value: 'green' },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { context: undefined, value: 'yellow' },
+              event: { type: 'TIMER' }
+            }
           ]
         },
         {
           state: { red: 'wait' },
           path: [
-            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+            {
+              state: { context: undefined, value: 'green' },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { context: undefined, value: 'yellow' },
+              event: { type: 'TIMER' }
+            },
             {
               state: { context: undefined, value: { red: 'walk' } },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             }
           ]
         },
         {
           state: { red: 'stop' },
           path: [
-            { state: { context: undefined, value: 'green' }, event: 'TIMER' },
-            { state: { context: undefined, value: 'yellow' }, event: 'TIMER' },
+            {
+              state: { context: undefined, value: 'green' },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { context: undefined, value: 'yellow' },
+              event: { type: 'TIMER' }
+            },
             {
               state: { context: undefined, value: { red: 'walk' } },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             },
             {
               state: { context: undefined, value: { red: 'wait' } },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             }
           ]
         }
@@ -490,86 +532,130 @@ describe('graph utilities', () => {
       assert.deepEqual(getSimplePaths(lightMachine), {
         '"green"': [[]],
         '"yellow"': [
-          [{ state: { value: 'green', context: undefined }, event: 'TIMER' }]
+          [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            }
+          ]
         ],
         '{"red":"walk"}': [
           [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' }
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            }
           ]
         ],
         '{"red":"wait"}': [
           [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
             {
               state: { value: { red: 'walk' }, context: undefined },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             }
           ]
         ],
         '{"red":"stop"}': [
           [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
             {
               state: { value: { red: 'walk' }, context: undefined },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             },
             {
               state: { value: { red: 'wait' }, context: undefined },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             }
           ]
         ],
         '{"red":"flashing"}': [
           [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
             {
               state: { value: { red: 'walk' }, context: undefined },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             },
             {
               state: { value: { red: 'wait' }, context: undefined },
-              event: 'PED_COUNTDOWN'
+              event: { type: 'PED_COUNTDOWN' }
             },
             {
               state: { value: { red: 'stop' }, context: undefined },
-              event: 'POWER_OUTAGE'
-            }
-          ],
-          [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
-            {
-              state: { value: { red: 'walk' }, context: undefined },
-              event: 'PED_COUNTDOWN'
-            },
-            {
-              state: { value: { red: 'wait' }, context: undefined },
-              event: 'POWER_OUTAGE'
-            }
-          ],
-          [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            { state: { value: 'yellow', context: undefined }, event: 'TIMER' },
-            {
-              state: { value: { red: 'walk' }, context: undefined },
-              event: 'POWER_OUTAGE'
-            }
-          ],
-          [
-            { state: { value: 'green', context: undefined }, event: 'TIMER' },
-            {
-              state: { value: 'yellow', context: undefined },
-              event: 'POWER_OUTAGE'
+              event: { type: 'POWER_OUTAGE' }
             }
           ],
           [
             {
               state: { value: 'green', context: undefined },
-              event: 'POWER_OUTAGE'
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: { type: 'PED_COUNTDOWN' }
+            },
+            {
+              state: { value: { red: 'wait' }, context: undefined },
+              event: { type: 'POWER_OUTAGE' }
+            }
+          ],
+          [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: { type: 'POWER_OUTAGE' }
+            }
+          ],
+          [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'POWER_OUTAGE' }
+            }
+          ],
+          [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'POWER_OUTAGE' }
             }
           ]
         ]
@@ -590,7 +676,7 @@ describe('graph utilities', () => {
         '{"a":"a2","b":"b2"}': [
           [
             {
-              event: '2',
+              event: { type: '2' },
               state: {
                 context: undefined,
                 value: {
@@ -604,7 +690,7 @@ describe('graph utilities', () => {
         '{"a":"a3","b":"b3"}': [
           [
             {
-              event: '2',
+              event: { type: '2' },
               state: {
                 context: undefined,
                 value: {
@@ -614,7 +700,7 @@ describe('graph utilities', () => {
               }
             },
             {
-              event: '3',
+              event: { type: '3' },
               state: {
                 context: undefined,
                 value: {
@@ -626,7 +712,7 @@ describe('graph utilities', () => {
           ],
           [
             {
-              event: '3',
+              event: { type: '3' },
               state: {
                 context: undefined,
                 value: {
@@ -646,13 +732,13 @@ describe('graph utilities', () => {
         '"b"': [
           [
             {
-              event: 'FOO',
+              event: { type: 'FOO' },
               state: { context: undefined, value: 'a' }
             }
           ],
           [
             {
-              event: 'BAR',
+              event: { type: 'BAR' },
               state: { context: undefined, value: 'a' }
             }
           ]
@@ -673,15 +759,26 @@ describe('graph utilities', () => {
         {
           state: 'yellow',
           paths: [
-            [{ state: { value: 'green', context: undefined }, event: 'TIMER' }]
+            [
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              }
+            ]
           ]
         },
         {
           state: { red: 'walk' },
           paths: [
             [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
-              { state: { value: 'yellow', context: undefined }, event: 'TIMER' }
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: { type: 'TIMER' }
+              }
             ]
           ]
         },
@@ -689,14 +786,17 @@ describe('graph utilities', () => {
           state: { red: 'wait' },
           paths: [
             [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
               {
                 state: { value: 'yellow', context: undefined },
-                event: 'TIMER'
+                event: { type: 'TIMER' }
               },
               {
                 state: { value: { red: 'walk' }, context: undefined },
-                event: 'PED_COUNTDOWN'
+                event: { type: 'PED_COUNTDOWN' }
               }
             ]
           ]
@@ -705,18 +805,21 @@ describe('graph utilities', () => {
           state: { red: 'stop' },
           paths: [
             [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
               {
                 state: { value: 'yellow', context: undefined },
-                event: 'TIMER'
+                event: { type: 'TIMER' }
               },
               {
                 state: { value: { red: 'walk' }, context: undefined },
-                event: 'PED_COUNTDOWN'
+                event: { type: 'PED_COUNTDOWN' }
               },
               {
                 state: { value: { red: 'wait' }, context: undefined },
-                event: 'PED_COUNTDOWN'
+                event: { type: 'PED_COUNTDOWN' }
               }
             ]
           ]
@@ -725,61 +828,73 @@ describe('graph utilities', () => {
           state: { red: 'flashing' },
           paths: [
             [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
               {
                 state: { value: 'yellow', context: undefined },
-                event: 'TIMER'
+                event: { type: 'TIMER' }
               },
               {
                 state: { value: { red: 'walk' }, context: undefined },
-                event: 'PED_COUNTDOWN'
+                event: { type: 'PED_COUNTDOWN' }
               },
               {
                 state: { value: { red: 'wait' }, context: undefined },
-                event: 'PED_COUNTDOWN'
+                event: { type: 'PED_COUNTDOWN' }
               },
               {
                 state: { value: { red: 'stop' }, context: undefined },
-                event: 'POWER_OUTAGE'
-              }
-            ],
-            [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: 'TIMER'
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: 'PED_COUNTDOWN'
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: 'POWER_OUTAGE'
-              }
-            ],
-            [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: 'TIMER'
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: 'POWER_OUTAGE'
-              }
-            ],
-            [
-              { state: { value: 'green', context: undefined }, event: 'TIMER' },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: 'POWER_OUTAGE'
+                event: { type: 'POWER_OUTAGE' }
               }
             ],
             [
               {
                 state: { value: 'green', context: undefined },
-                event: 'POWER_OUTAGE'
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: { type: 'PED_COUNTDOWN' }
+              },
+              {
+                state: { value: { red: 'wait' }, context: undefined },
+                event: { type: 'POWER_OUTAGE' }
+              }
+            ],
+            [
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: { red: 'walk' }, context: undefined },
+                event: { type: 'POWER_OUTAGE' }
+              }
+            ],
+            [
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'TIMER' }
+              },
+              {
+                state: { value: 'yellow', context: undefined },
+                event: { type: 'POWER_OUTAGE' }
+              }
+            ],
+            [
+              {
+                state: { value: 'green', context: undefined },
+                event: { type: 'POWER_OUTAGE' }
               }
             ]
           ]

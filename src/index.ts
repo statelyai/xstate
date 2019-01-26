@@ -13,8 +13,7 @@ import {
   stop,
   assign,
   after,
-  done,
-  invoke
+  done
 } from './actions';
 import { interpret } from './interpreter';
 
@@ -28,8 +27,7 @@ const actions = {
   stop,
   assign,
   after,
-  done,
-  invoke
+  done
 };
 
 export {

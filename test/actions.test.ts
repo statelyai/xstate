@@ -1,6 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
-import { assign } from '../lib/actions';
+import { Machine, assign } from '../src/index';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -401,8 +400,11 @@ describe('actions on invalid transition', () => {
 });
 
 describe('actions option', () => {
-
-  type EventType = { type: 'definedAction' } | { type: 'updateContext' } | { type: 'EVENT' } | { type: 'E' };
+  type EventType =
+    | { type: 'definedAction' }
+    | { type: 'updateContext' }
+    | { type: 'EVENT' }
+    | { type: 'E' };
   interface Context {
     count: number;
   }
@@ -410,11 +412,11 @@ describe('actions option', () => {
     states: {
       a: {};
       b: {};
-    }
+    };
   }
 
   // tslint:disable-next-line:no-empty
-  const definedAction = () => { };
+  const definedAction = () => {};
   const simpleMachine = Machine<Context, State, EventType>(
     {
       initial: 'a',

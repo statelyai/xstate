@@ -136,4 +136,44 @@ describe('StateTree', () => {
       'test.c.one.bb.foo'
     ]);
   });
+
+  it('only marks a tree as done when all parallel child nodes are in final states', () => {
+    const myMachine = Machine({
+      id: 'myId',
+      type: 'parallel',
+      states: {
+        step1: {
+          initial: 'incomplete',
+          states: {
+            incomplete: { on: { FIRST_COMPLETE: 'complete' } },
+            complete: { type: 'final' }
+          }
+        },
+        step2: {
+          initial: 'incomplete',
+          states: {
+            incomplete: { on: { SECOND_COMPLETE: 'complete' } },
+            complete: { type: 'final' }
+          }
+        }
+      }
+    });
+
+    const firstCompleteState = myMachine.transition(
+      myMachine.initialState,
+      'FIRST_COMPLETE'
+    );
+
+    assert.isFalse(firstCompleteState.tree!.done);
+
+    const secondCompleteState = myMachine.transition(
+      firstCompleteState,
+      'SECOND_COMPLETE'
+    );
+
+    assert.isTrue(secondCompleteState.tree!.done);
+
+    // service.send('FIRST_COMPLETE')
+    // expect(handleOnDone).not.toHaveBeenCalled()
+  });
 });

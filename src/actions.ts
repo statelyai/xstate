@@ -16,11 +16,8 @@ import {
   ActionTypes,
   ActivityDefinition,
   SpecialTargets,
-  InvokeDefinition,
   RaiseEvent,
-  StateMachine,
   DoneEvent,
-  InvokeConfig,
   ErrorExecutionEvent,
   DoneEventObject,
   SendExpr,
@@ -182,7 +179,7 @@ export function raise<TContext, TEvent extends EventObject>(
  */
 export function send<TContext, TEvent extends EventObject>(
   event: Event<TEvent> | SendExpr<TContext, TEvent>,
-  options?: SendActionOptions
+  options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return {
     to: options ? options.to : undefined,
@@ -203,16 +200,20 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   ctx: TContext,
   event: TEvent
 ): SendActionObject<TContext, OmniEventObject<TEvent>> {
-  if (typeof action.event === 'function') {
-    return {
-      ...action,
-      event: toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
-    };
-  }
+  // TODO: helper function for resolving Expr
+  const resolvedEvent =
+    typeof action.event === 'function'
+      ? toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
+      : toEventObject(action.event);
+  const resolvedDelay =
+    typeof action.delay === 'function'
+      ? action.delay(ctx, event)
+      : action.delay;
 
   return {
     ...action,
-    event: toEventObject(action.event)
+    event: resolvedEvent,
+    delay: resolvedDelay
   };
 }
 
@@ -224,7 +225,7 @@ export function resolveSend<TContext, TEvent extends EventObject>(
  */
 export function sendParent<TContext, TEvent extends EventObject>(
   event: Event<TEvent> | SendExpr<TContext, TEvent>,
-  options?: SendActionOptions
+  options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return send<TContext, TEvent>(event, {
     ...options,
@@ -372,54 +373,6 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
   eventObject.toString = () => type;
 
   return eventObject as DoneEvent;
-}
-
-/**
- * Invokes (spawns) a child service, as a separate interpreted machine.
- *
- * @param invokeConfig The string service to invoke, or a config object:
- *  - `src` - The source (URL) of the machine definition to invoke
- *  - `forward` - Whether events sent to this machine are sent (forwarded) to the
- *    invoked machine.
- * @param options
- */
-export function invoke<TContext, TEvent extends EventObject>(
-  invokeConfig:
-    | string
-    | InvokeConfig<TContext, TEvent>
-    | StateMachine<any, any, any>,
-  options?: Partial<InvokeDefinition<TContext, TEvent>>
-): InvokeDefinition<TContext, TEvent> {
-  if (typeof invokeConfig === 'string') {
-    return {
-      id: invokeConfig,
-      src: invokeConfig,
-      type: ActionTypes.Invoke,
-      ...options
-    };
-  }
-
-  if (!('src' in invokeConfig)) {
-    const machine = invokeConfig as StateMachine<any, any, any>;
-
-    return {
-      type: ActionTypes.Invoke,
-      id: machine.id,
-      src: machine
-    };
-  }
-
-  return {
-    type: ActionTypes.Invoke,
-    ...invokeConfig,
-    id:
-      invokeConfig.id ||
-      (typeof invokeConfig.src === 'string'
-        ? invokeConfig.src
-        : typeof invokeConfig.src === 'function'
-        ? 'promise'
-        : invokeConfig.src.id)
-  };
 }
 
 export function error(data: any, src: string): ErrorExecutionEvent {

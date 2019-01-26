@@ -35,6 +35,7 @@ module.exports = {
           '/guides/transitions',
           '/guides/hierarchical',
           '/guides/parallel',
+          '/guides/effects',
           '/guides/actions',
           '/guides/guards',
           '/guides/context',

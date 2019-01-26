@@ -148,7 +148,7 @@ export type Receiver<TEvent extends EventObject> = (
 export type InvokeCallback = ((
   sender: Sender<any>,
   onEvent: Receiver<EventObject>
-) => void | (() => void));
+) => any);
 
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
@@ -176,7 +176,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
+  src: string;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -660,8 +660,8 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   to: string | undefined;
-  event: TEvent | SendExpr<TContext, TEvent>;
-  delay?: number;
+  event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
+  delay?: number | Expr<TContext, TEvent, number>;
   id: string | number;
 }
 
@@ -673,6 +673,11 @@ export interface SendActionObject<TContext, TEvent extends EventObject>
   id: string | number;
 }
 
+export type Expr<TContext, TEvent extends EventObject, T> = (
+  context: TContext,
+  event: TEvent
+) => T;
+
 export type SendExpr<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent
@@ -683,9 +688,9 @@ export enum SpecialTargets {
   Internal = '#_internal'
 }
 
-export interface SendActionOptions {
+export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
-  delay?: number;
+  delay?: number | Expr<TContext, TEvent, number>;
   to?: string;
 }
 
@@ -766,7 +771,7 @@ export interface Segment<
   /**
    * Event from state.
    */
-  event: Event<TEvent>;
+  event: TEvent;
 }
 
 export interface PathMap {

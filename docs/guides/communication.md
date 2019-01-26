@@ -68,6 +68,8 @@ Statecharts communicate hierarchically:
 - Parent-to-child via the `send(EVENT, { to: 'someChildId' })` action
 - Child-to-parent via the `sendParent(EVENT)` action.
 
+⚠️ The `send(...)` and `sendParent(...)` action creators do _not_ imperatively send events to machines. They are pure functions that return an action object describing what is to be sent, e.g., `{ type: 'xstate.send', event: ... }`. An [interpreter](./interpretation.md) will read these objects and then send them.
+
 Here is an example of two statecharts, `pingMachine` and `pongMachine`, communicating with each other:
 
 ```js

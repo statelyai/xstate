@@ -67,7 +67,6 @@ import {
   raise,
   done,
   doneInvoke,
-  invoke,
   toActionObject,
   resolveSend,
   initEvent
@@ -195,9 +194,9 @@ class StateNode<
 
   constructor(
     private _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    public options: Readonly<
-      MachineOptions<TContext, TEvent>
-    > = createDefaultOptions<TContext>(),
+    public options: MachineOptions<TContext, TEvent> = createDefaultOptions<
+      TContext
+    >(),
     /**
      * The initial extended state
      */
@@ -271,9 +270,40 @@ class StateNode<
       this.type === 'final'
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    this.invoke = toArray(_config.invoke).map(invokeConfig =>
-      invoke(invokeConfig)
-    );
+    this.invoke = toArray(_config.invoke).map((invokeConfig, i) => {
+      if (invokeConfig instanceof StateNode) {
+        (this.parent || this).options.services = {
+          [invokeConfig.id]: invokeConfig,
+          ...(this.parent || this).options.services
+        };
+
+        return {
+          type: actionTypes.invoke,
+          src: invokeConfig.id,
+          id: invokeConfig.id
+        };
+      } else if (typeof invokeConfig.src !== 'string') {
+        const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
+        (this.parent || this).options.services = {
+          [invokeSrc]: invokeConfig.src,
+          ...(this.parent || this).options.services
+        };
+
+        return {
+          type: actionTypes.invoke,
+          id: invokeSrc,
+          ...invokeConfig,
+          src: invokeSrc
+        };
+      } else {
+        return {
+          ...invokeConfig,
+          type: actionTypes.invoke,
+          id: invokeConfig.id || (invokeConfig.src as string),
+          src: invokeConfig.src as string
+        };
+      }
+    });
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
       .map(activity => this.resolveActivity(activity));
@@ -1149,6 +1179,8 @@ class StateNode<
       delete nextState.history.history;
     }
 
+    const { history } = nextState;
+
     let maybeNextState = nextState;
     while (raisedEvents.length) {
       const currentActions = maybeNextState.actions;
@@ -1162,6 +1194,10 @@ class StateNode<
       );
       maybeNextState.actions.unshift(...currentActions);
     }
+
+    // Preserve original history after raised events
+    maybeNextState.historyValue = nextState.historyValue;
+    maybeNextState.history = history;
 
     return maybeNextState;
   }

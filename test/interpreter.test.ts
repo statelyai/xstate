@@ -58,9 +58,23 @@ describe('interpreter', () => {
     assert.deepEqual(service.initialState, idMachine.initialState);
   });
 
+  describe('id', () => {
+    it('uses the ID specified in the options', () => {
+      const service = interpret(lightMachine, { id: 'custom-id' });
+
+      assert.equal(service.id, 'custom-id');
+    });
+
+    it('uses the machine ID if not specified', () => {
+      const service = interpret(lightMachine);
+
+      assert.equal(service.id, lightMachine.id);
+    });
+  });
+
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
-      const service = interpret(lightMachine).start();
+      const service = interpret(lightMachine, {clock: new SimulatedClock()}).start();
 
       const nextState = service.nextState('TIMER');
       assert.equal(nextState.value, 'yellow');
@@ -124,6 +138,61 @@ describe('interpreter', () => {
         'red',
         'green'
       ]);
+    });
+
+    it('can send an event after a delay (expression)', () => {
+      interface DelayExprMachineCtx {
+        initialDelay: number;
+      }
+
+      const delayExprMachine = Machine<DelayExprMachineCtx>({
+        id: 'delayExpr',
+        context: {
+          initialDelay: 100
+        },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              ACTIVATE: 'pending'
+            }
+          },
+          pending: {
+            onEntry: send('FINISH', {
+              delay: (ctx, e) => ctx.initialDelay + ('wait' in e ? e.wait : 0)
+            }),
+            on: {
+              FINISH: 'finished'
+            }
+          },
+          finished: { type: 'final' }
+        }
+      });
+
+      let stopped = false;
+
+      const clock = new SimulatedClock();
+
+      const delayExprService = interpret(delayExprMachine, {
+        clock
+      })
+        .onDone(() => {
+          stopped = true;
+        })
+        .start();
+
+      delayExprService.send({
+        type: 'ACTIVATE',
+        wait: 50
+      });
+
+      clock.increment(101);
+
+      assert.isFalse(stopped);
+
+      clock.increment(50);
+
+      assert.isTrue(stopped);
     });
   });
 
@@ -234,7 +303,7 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const service = interpret(lightMachine);
+    const service = interpret(lightMachine, {clock: new SimulatedClock()});
 
     assert.throws(() => service.send('SOME_EVENT'));
 
@@ -270,7 +339,7 @@ describe('interpreter', () => {
 
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
-    const service = interpret(lightMachine).onTransition(s => (state = s));
+    const service = interpret(lightMachine, {clock: new SimulatedClock()}).onTransition(s => (state = s));
 
     service.start();
     service.send('TIMER'); // yellow

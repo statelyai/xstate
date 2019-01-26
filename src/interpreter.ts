@@ -16,16 +16,17 @@ import {
   ServiceConfig,
   InvokeCallback,
   Sender,
-  DisposeActivityFunction
+  DisposeActivityFunction,
+  ErrorExecutionEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { StateNode, IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
-  state: State<TContext>,
+  state: State<TContext, TEvent>,
   event: OmniEventObject<TEvent>
 ) => void;
 
@@ -188,11 +189,13 @@ export class Interpreter<
 
     const { clock, logger, parent, id } = resolvedOptions;
 
+    const resolvedId = id !== undefined ? id : machine.id;
+
     Object.assign(this, {
       clock,
       logger,
       parent,
-      id: id || `${Math.round(Math.random() * 99999)}`
+      id: resolvedId
     });
 
     this.options = resolvedOptions;
@@ -460,6 +463,13 @@ export class Interpreter<
       );
     }
 
+    if (
+      eventObject.type === actionTypes.errorExecution &&
+      this.state.nextEvents.indexOf(actionTypes.errorExecution) === -1
+    ) {
+      throw (eventObject as ErrorExecutionEvent).data;
+    }
+
     const nextState = this.machine.transition(
       this.state,
       eventObject,
@@ -531,16 +541,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator:
-            | ServiceConfig<TContext>
-            | undefined = activity.src
-            ? activity.src instanceof StateNode
-              ? activity.src
-              : typeof activity.src === 'function'
-              ? activity.src
-              : this.machine.options.services
-              ? this.machine.options.services[activity.src]
-              : undefined
+          const serviceCreator: ServiceConfig<TContext> | undefined = this
+            .machine.options.services
+            ? this.machine.options.services[activity.src]
             : undefined;
 
           const { id, data } = activity;
@@ -694,9 +697,19 @@ export class Interpreter<
       }
     };
 
-    const stop = callback(receive, newListener => {
-      listener = newListener;
-    });
+    let stop;
+
+    try {
+      stop = callback(receive, newListener => {
+        listener = newListener;
+      });
+
+      if (stop instanceof Promise) {
+        stop.catch(e => this.send(error(e, id)));
+      }
+    } catch (e) {
+      this.send(error(e, id));
+    }
 
     this.children.set(id, {
       send: listener,
