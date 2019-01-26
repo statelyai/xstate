@@ -1730,7 +1730,6 @@ class StateNode<
   private resolveHistory(
     historyValue?: HistoryValue
   ): Array<StateNode<TContext>> {
-    console.log('Resolving HV', historyValue);
     if (this.type !== 'history') {
       return [this];
     }
@@ -1755,16 +1754,13 @@ class StateNode<
       return [parent.getStateNode(subHistoryValue)];
     }
 
-    const r = flatten(
+    return flatten(
       toStatePaths(subHistoryValue!).map(subStatePath => {
         return this.history === 'deep'
           ? parent.getFromRelativePath(subStatePath)
           : [parent.states[subStatePath[0]]];
       })
     );
-
-    console.dir(toStatePaths(subHistoryValue!), { depth: null });
-    return r;
   }
 
   /**
