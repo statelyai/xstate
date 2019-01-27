@@ -738,12 +738,13 @@ export class Interpreter<
       (window as any).__REDUX_DEVTOOLS_EXTENSION__
     ) {
       this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
-        name: this.id
+        name: this.id,
+        features: {
+          jump: false,
+          skip: false
+        }
       });
       this.devTools.init(this.state);
-      this.devTools.subscribe(message => {
-        console.log(message);
-      });
     }
   }
 }
