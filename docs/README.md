@@ -20,7 +20,7 @@ Functional, stateless JavaScript [finite state machines](https://en.wikipedia.or
 
 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 
-[**Version 3.x to 4 Migration Guide**](./migration.md)
+[**Version 3.x to 4 Migration Guide**](https://github.com/davidkpiano/xstate/blob/master/migration.md)
 
 ## Super quick start
 
