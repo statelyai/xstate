@@ -440,6 +440,22 @@ const service = interpret(pingMachine).start();
 // ...
 ```
 
+## Multiple Services
+
+You can invoke multiple services by specifying each in an array:
+
+```js
+// ...
+invoke: [
+  { id: 'service1', src: 'someService' },
+  { id: 'service2', src: 'someService' },
+  { id: 'logService', src: 'logService' }
+],
+// ...
+```
+
+Each invocation will create a _new_ instance of that service, so even if the `src` of multiple services are the same (e.g., `'someService'` above), multiple instances of `'someService'` will be invoked.
+
 ## Configuring Services
 
 The invocation sources (services) can be configured similar to how actions, guards, etc. are configured -- by specifying the `src` as a string and defining them in the `services` property of the Machine options:
