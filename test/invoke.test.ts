@@ -522,7 +522,12 @@ describe('invoke', () => {
               src: () => () => {
                 throw new Error('test');
               },
-              onError: 'failed'
+              onError: {
+                target: 'failed',
+                cond: (_, e) => {
+                  return e.data instanceof Error && e.data.message === 'test';
+                }
+              }
             }
           },
           failed: {
@@ -547,7 +552,12 @@ describe('invoke', () => {
                 await true;
                 throw new Error('test');
               },
-              onError: 'failed'
+              onError: {
+                target: 'failed',
+                cond: (_, e) => {
+                  return e.data instanceof Error && e.data.message === 'test';
+                }
+              }
             }
           },
           failed: {
