@@ -59,13 +59,24 @@
 					<a href="sendactionoptions.html">SendActionOptions</a>
 				</li>
 			</ul>
-			<h1>Interface SendActionOptions</h1>
+			<h1>Interface SendActionOptions&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>TContext</h4>
+					</li>
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -94,10 +105,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="delay" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> delay</h3>
-					<div class="tsd-signature tsd-kind-icon">delay<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
+					<div class="tsd-signature tsd-kind-icon">delay<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#expr" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L680">types.ts:680</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L693">types.ts:693</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -107,7 +118,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L679">types.ts:679</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L692">types.ts:692</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -117,7 +128,7 @@
 					<div class="tsd-signature tsd-kind-icon">to<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L681">types.ts:681</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L694">types.ts:694</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -135,7 +146,7 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-is-external">
+					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="sendactionoptions.html" class="tsd-kind-icon">Send<wbr>Action<wbr>Options</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">

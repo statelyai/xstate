@@ -59,7 +59,7 @@
 					<a href="activityactionobject.html">ActivityActionObject</a>
 				</li>
 			</ul>
-			<h1>Interface ActivityActionObject&lt;TContext&gt;</h1>
+			<h1>Interface ActivityActionObject&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -72,13 +72,16 @@
 					<li>
 						<h4>TContext</h4>
 					</li>
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">ActivityActionObject</span>
@@ -111,21 +114,21 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="activity" class="tsd-anchor"></a>
 					<h3>activity</h3>
-					<div class="tsd-signature tsd-kind-icon">activity<span class="tsd-signature-symbol">:</span> <a href="activitydefinition.html" class="tsd-signature-type">ActivityDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">activity<span class="tsd-signature-symbol">:</span> <a href="activitydefinition.html" class="tsd-signature-type">ActivityDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L648">types.ts:648</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L656">types.ts:656</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-external">
 					<a name="exec" class="tsd-anchor"></a>
 					<h3>exec</h3>
-					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="actionfunction.html" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="actionfunction.html" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<p>Overrides <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#exec">exec</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L649">types.ts:649</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L657">types.ts:657</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -136,7 +139,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L647">types.ts:647</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L655">types.ts:655</a></li>
 						</ul>
 					</aside>
 				</section>

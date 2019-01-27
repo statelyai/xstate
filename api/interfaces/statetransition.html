@@ -59,7 +59,7 @@
 					<a href="statetransition.html">StateTransition</a>
 				</li>
 			</ul>
-			<h1>Interface StateTransition&lt;TContext&gt;</h1>
+			<h1>Interface StateTransition&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -71,6 +71,9 @@
 				<ul class="tsd-type-parameters">
 					<li>
 						<h4>TContext</h4>
+					</li>
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
 				</ul>
 			</section>
@@ -103,10 +106,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="actions" class="tsd-anchor"></a>
 					<h3>actions</h3>
-					<div class="tsd-signature tsd-kind-icon">actions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">actions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L579">types.ts:579</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L586">types.ts:586</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -116,7 +119,7 @@
 					<div class="tsd-signature tsd-kind-icon">reentry<wbr>States<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L578">types.ts:578</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L585">types.ts:585</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -126,7 +129,7 @@
 					<div class="tsd-signature tsd-kind-icon">source<span class="tsd-signature-symbol">:</span> <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L577">types.ts:577</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L584">types.ts:584</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -141,7 +144,7 @@
 					<div class="tsd-signature tsd-kind-icon">tree<span class="tsd-signature-symbol">:</span> <a href="../classes/statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L573">types.ts:573</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L580">types.ts:580</a></li>
 						</ul>
 					</aside>
 				</section>

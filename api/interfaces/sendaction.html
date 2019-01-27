@@ -81,7 +81,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">SendAction</span>
@@ -122,10 +122,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="delay" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> delay</h3>
-					<div class="tsd-signature tsd-kind-icon">delay<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
+					<div class="tsd-signature tsd-kind-icon">delay<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#expr" class="tsd-signature-type">Expr</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L656">types.ts:656</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L664">types.ts:664</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -135,18 +135,18 @@
 					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#sendexpr" class="tsd-signature-type">SendExpr</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L655">types.ts:655</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L663">types.ts:663</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
 					<a name="exec" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> exec</h3>
-					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="actionfunction.html" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="actionfunction.html" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#exec">exec</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L36">types.ts:36</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L36">types.ts:36</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -161,7 +161,7 @@
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L657">types.ts:657</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L665">types.ts:665</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -171,7 +171,7 @@
 					<div class="tsd-signature tsd-kind-icon">to<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L654">types.ts:654</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L662">types.ts:662</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -182,7 +182,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L32">types.ts:32</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L32">types.ts:32</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">

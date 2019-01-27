@@ -59,7 +59,7 @@
 					<a href="actionfunction.html">ActionFunction</a>
 				</li>
 			</ul>
-			<h1>Interface ActionFunction&lt;TContext&gt;</h1>
+			<h1>Interface ActionFunction&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -71,6 +71,9 @@
 				<ul class="tsd-type-parameters">
 					<li>
 						<h4>TContext</h4>
+					</li>
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
 				</ul>
 			</section>
@@ -85,13 +88,13 @@
 			<section class="tsd-panel">
 				<h3 class="tsd-before-signature">Callable</h3>
 				<ul class="tsd-signatures tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-					<li class="tsd-signature tsd-kind-icon">__call<span class="tsd-signature-symbol">(</span>context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TContext</span>, event<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a>, meta<span class="tsd-signature-symbol">: </span><a href="execmeta.html" class="tsd-signature-type">ExecMeta</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">void</span></li>
+					<li class="tsd-signature tsd-kind-icon">__call<span class="tsd-signature-symbol">(</span>context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TContext</span>, event<span class="tsd-signature-symbol">: </span><a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, meta<span class="tsd-signature-symbol">: </span><a href="execmeta.html" class="tsd-signature-type">ExecMeta</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">void</span></li>
 				</ul>
 				<ul class="tsd-descriptions">
 					<li class="tsd-description">
 						<aside class="tsd-sources">
 							<ul>
-								<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L60">types.ts:60</a></li>
+								<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L60">types.ts:60</a></li>
 							</ul>
 						</aside>
 						<h4 class="tsd-parameters-title">Parameters</h4>
@@ -100,10 +103,10 @@
 								<h5>context: <span class="tsd-signature-type">TContext</span></h5>
 							</li>
 							<li>
-								<h5>event: <a href="eventobject.html" class="tsd-signature-type">EventObject</a></h5>
+								<h5>event: <a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h5>
 							</li>
 							<li>
-								<h5>meta: <a href="execmeta.html" class="tsd-signature-type">ExecMeta</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								<h5>meta: <a href="execmeta.html" class="tsd-signature-type">ExecMeta</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h5>
 							</li>
 						</ul>
 						<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">any</span>
@@ -134,7 +137,7 @@
 					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L62">types.ts:62</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/types.ts#L66">types.ts:66</a></li>
 						</ul>
 					</aside>
 				</section>

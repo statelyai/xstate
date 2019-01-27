@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>ValueTransitionMap | xstate</title>
+	<title>Actor | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,10 +56,10 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="valuetransitionmap.html">ValueTransitionMap</a>
+					<a href="actor.html">Actor</a>
 				</li>
 			</ul>
-			<h1>Interface ValueTransitionMap</h1>
+			<h1>Interface Actor</h1>
 		</div>
 	</div>
 </header>
@@ -70,7 +70,7 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">ValueTransitionMap</span>
+						<span class="target">Actor</span>
 					</li>
 				</ul>
 			</section>
@@ -81,8 +81,8 @@
 						<section class="tsd-index-section tsd-is-external">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="valuetransitionmap.html#context" class="tsd-kind-icon">context</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="valuetransitionmap.html#value" class="tsd-kind-icon">value</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="actor.html#send" class="tsd-kind-icon">send</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="actor.html#stop" class="tsd-kind-icon">stop</a></li>
 							</ul>
 						</section>
 					</div>
@@ -91,22 +91,22 @@
 			<section class="tsd-panel-group tsd-member-group tsd-is-external">
 				<h2>Properties</h2>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="context" class="tsd-anchor"></a>
-					<h3>context</h3>
-					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<a name="send" class="tsd-anchor"></a>
+					<h3>send</h3>
+					<div class="tsd-signature tsd-kind-icon">send<span class="tsd-signature-symbol">:</span> <a href="../globals.html#sender" class="tsd-signature-type">Sender</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L789">types.ts:789</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/interpreter.ts#L116">interpreter.ts:116</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="value" class="tsd-anchor"></a>
-					<h3>value</h3>
-					<div class="tsd-signature tsd-kind-icon">value<span class="tsd-signature-symbol">:</span> <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<a name="stop" class="tsd-anchor"></a>
+					<h3>stop</h3>
+					<div class="tsd-signature tsd-kind-icon">stop<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">void</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e1e4cf0/src/types.ts#L788">types.ts:788</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e952622/src/interpreter.ts#L117">interpreter.ts:117</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -125,13 +125,13 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-is-external">
-						<a href="valuetransitionmap.html" class="tsd-kind-icon">Value<wbr>Transition<wbr>Map</a>
+						<a href="actor.html" class="tsd-kind-icon">Actor</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="valuetransitionmap.html#context" class="tsd-kind-icon">context</a>
+								<a href="actor.html#send" class="tsd-kind-icon">send</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="valuetransitionmap.html#value" class="tsd-kind-icon">value</a>
+								<a href="actor.html#stop" class="tsd-kind-icon">stop</a>
 							</li>
 						</ul>
 					</li>
