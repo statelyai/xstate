@@ -1,49 +1,13 @@
-import { Machine, interpret, assign, sendParent, send } from '../src/index';
+import {
+  Machine,
+  interpret,
+  assign,
+  sendParent,
+  send,
+  EventObject
+} from '../src/index';
 import { assert } from 'chai';
-
-const childMachine = Machine({
-  id: 'child',
-  initial: 'init',
-  states: {
-    init: {
-      onEntry: [sendParent('INC'), sendParent('INC')],
-      on: {
-        FORWARD_DEC: {
-          actions: [sendParent('DEC'), sendParent('DEC'), sendParent('DEC')]
-        }
-      }
-    }
-  }
-});
-
-const parentMachine = Machine(
-  {
-    id: 'parent',
-    context: { count: 0 },
-    initial: 'start',
-    states: {
-      start: {
-        invoke: {
-          src: 'child',
-          id: 'someService',
-          forward: true
-        },
-        on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
-          DEC: { actions: assign({ count: ctx => ctx.count - 1 }) },
-          FORWARD_DEC: undefined,
-          STOP: 'stop'
-        }
-      },
-      stop: {}
-    }
-  },
-  {
-    services: {
-      child: childMachine
-    }
-  }
-);
+import { actionTypes, done as _done } from '../src/actions';
 
 const user = { name: 'David' };
 
@@ -159,27 +123,123 @@ const intervalMachine = Machine({
 });
 
 describe('invoke', () => {
-  it('should start services (external machines)', () => {
-    const service = interpret(parentMachine).start();
-    // 1. The 'parent' machine will enter 'start' state
-    // 2. The 'child' service will be run with ID 'someService'
-    // 3. The 'child' machine will enter 'init' state
-    // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
-    // 5. The context will be updated to increment count to 2
+  it('should start services (external machines)', done => {
+    const childMachine = Machine({
+      id: 'child',
+      initial: 'init',
+      states: {
+        init: {
+          onEntry: [sendParent('INC'), sendParent('INC')]
+        }
+      }
+    });
 
-    assert.deepEqual(service.state.context, { count: 2 });
+    const someParentMachine = Machine(
+      {
+        id: 'parent',
+        context: { count: 0 },
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              src: 'child',
+              id: 'someService',
+              forward: true
+            },
+            on: {
+              INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+              '': {
+                target: 'stop',
+                cond: ctx => ctx.count === 2
+              }
+            }
+          },
+          stop: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          child: childMachine
+        }
+      }
+    );
+
+    const service = interpret(someParentMachine)
+      .onDone(() => {
+        // 1. The 'parent' machine will enter 'start' state
+        // 2. The 'child' service will be run with ID 'someService'
+        // 3. The 'child' machine will enter 'init' state
+        // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
+        // 5. The context will be updated to increment count to 2
+
+        assert.deepEqual(service.state.context, { count: 2 });
+        done();
+      })
+      .start();
   });
 
   it('should forward events to services if forward: true', () => {
-    const service = interpret(parentMachine).start();
+    const childMachine = Machine({
+      id: 'child',
+      initial: 'init',
+      states: {
+        init: {
+          on: {
+            FORWARD_DEC: {
+              actions: [sendParent('DEC'), sendParent('DEC'), sendParent('DEC')]
+            }
+          }
+        }
+      }
+    });
+
+    const someParentMachine = Machine(
+      {
+        id: 'parent',
+        context: { count: 0 },
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              src: 'child',
+              id: 'someService',
+              forward: true
+            },
+            on: {
+              DEC: { actions: assign({ count: ctx => ctx.count - 1 }) },
+              FORWARD_DEC: undefined,
+              '': {
+                target: 'stop',
+                cond: ctx => ctx.count === -3
+              }
+            }
+          },
+          stop: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          child: childMachine
+        }
+      }
+    );
+
+    const service = interpret(someParentMachine)
+      .onDone(() => {
+        // 1. The 'parent' machine will not do anything (inert transition)
+        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (forward: true)
+        // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
+        // 4. The context of the 'parent' machine will be updated from 2 to -1
+
+        assert.deepEqual(service.state.context, { count: -3 });
+      })
+      .start();
 
     service.send('FORWARD_DEC');
-    // 1. The 'parent' machine will not do anything (inert transition)
-    // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (forward: true)
-    // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
-    // 4. The context of the 'parent' machine will be updated from 2 to -1
-
-    assert.deepEqual(service.state.context, { count: -1 });
   });
 
   it('should start services (explicit machine, invoke = config)', done => {
@@ -200,9 +260,45 @@ describe('invoke', () => {
       .send('GO_TO_WAITING_MACHINE');
   });
 
-  it('should use the service overwritten by withConfig', () => {
-    const service = interpret(
-      parentMachine.withConfig({
+  it('should use the service overwritten by withConfig', done => {
+    const childMachine = Machine({
+      id: 'child',
+      initial: 'init',
+      states: {
+        init: {}
+      }
+    });
+
+    const someParentMachine = Machine(
+      {
+        id: 'parent',
+        context: { count: 0 },
+        initial: 'start',
+        states: {
+          start: {
+            invoke: {
+              src: 'child',
+              id: 'someService',
+              forward: true
+            },
+            on: {
+              STOP: 'stop'
+            }
+          },
+          stop: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          child: childMachine
+        }
+      }
+    );
+
+    interpret(
+      someParentMachine.withConfig({
         services: {
           child: Machine({
             id: 'child',
@@ -215,9 +311,11 @@ describe('invoke', () => {
           })
         }
       })
-    ).start();
-
-    assert.deepEqual(service.state.value, 'stop');
+    )
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 
   describe('parent to child', () => {
@@ -629,6 +727,63 @@ describe('invoke', () => {
       interpret(errorMachine)
         .onDone(() => done())
         .start();
+    });
+
+    describe('sub invoke race condition', () => {
+      const anotherChildMachine = Machine({
+        id: 'child',
+        initial: 'start',
+        states: {
+          start: {
+            on: { STOP: 'end' }
+          },
+          end: {
+            type: 'final'
+          }
+        }
+      });
+
+      const anotherParentMachine = Machine({
+        id: 'parent',
+        initial: 'begin',
+        states: {
+          begin: {
+            invoke: {
+              src: anotherChildMachine,
+              id: 'invoked.child',
+              onDone: 'completed'
+            },
+            on: {
+              STOPCHILD: {
+                actions: send('STOP', { to: 'invoked.child' })
+              }
+            }
+          },
+          completed: {
+            type: 'final'
+          }
+        }
+      });
+
+      it('ends on the completed state', done => {
+        const events: EventObject[] = [];
+        const service = interpret(anotherParentMachine)
+          .onEvent(e => {
+            events.push(e);
+          })
+          .onDone(() => {
+            assert.deepEqual(events.map(e => e.type), [
+              actionTypes.init,
+              'STOPCHILD',
+              _done('parent').type
+            ]);
+            assert.equal(service.state.value, 'completed');
+            done();
+          })
+          .start();
+
+        service.send('STOPCHILD');
+      });
     });
   });
 });
