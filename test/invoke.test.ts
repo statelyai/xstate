@@ -701,8 +701,8 @@ describe('invoke', () => {
                 //Thereby making the total number of transitions 3
                 //And the final state "begin"
 
-                assert.equal(2, nTransitions);
                 assert.equal("completed", finalStateValue); 
+                assert.equal(2, nTransitions);
                 done();
             }, 500);
             service.send("STOPCHILD");
