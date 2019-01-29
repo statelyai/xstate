@@ -16,16 +16,17 @@ import {
   ServiceConfig,
   InvokeCallback,
   Sender,
-  DisposeActivityFunction
+  DisposeActivityFunction,
+  ErrorExecutionEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { StateNode, IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
-  state: State<TContext>,
+  state: State<TContext, TEvent>,
   event: OmniEventObject<TEvent>
 ) => void;
 
@@ -58,6 +59,7 @@ interface InterpreterOptions {
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
   id?: string;
+  devTools?: boolean;
 }
 
 interface SimulatedTimeout {
@@ -137,7 +139,8 @@ export class Interpreter<
         return global.clearTimeout.call(null, id);
       }
     },
-    logger: global.console.log.bind(console)
+    logger: global.console.log.bind(console),
+    devTools: true
   }))(typeof window === 'undefined' ? global : window);
   /**
    * The current state of the interpreted machine.
@@ -165,6 +168,9 @@ export class Interpreter<
   private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
   public id: string;
+
+  // Dev Tools
+  private devTools?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -221,6 +227,11 @@ export class Interpreter<
     // Execute actions
     if (this.options.execute) {
       this.execute(this.state);
+    }
+
+    // Dev tools
+    if (this.devTools) {
+      this.devTools.send(event, state);
     }
 
     // Execute listeners
@@ -342,6 +353,9 @@ export class Interpreter<
     >
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.initialized = true;
+    if (this.options.devTools) {
+      this.attachDev();
+    }
     this.update(initialState, { type: actionTypes.init });
     return this;
   }
@@ -449,6 +463,13 @@ export class Interpreter<
       );
     }
 
+    if (
+      eventObject.type === actionTypes.errorExecution &&
+      this.state.nextEvents.indexOf(actionTypes.errorExecution) === -1
+    ) {
+      throw (eventObject as ErrorExecutionEvent).data;
+    }
+
     const nextState = this.machine.transition(
       this.state,
       eventObject,
@@ -520,16 +541,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator:
-            | ServiceConfig<TContext>
-            | undefined = activity.src
-            ? activity.src instanceof StateNode
-              ? activity.src
-              : typeof activity.src === 'function'
-              ? activity.src
-              : this.machine.options.services
-              ? this.machine.options.services[activity.src]
-              : undefined
+          const serviceCreator: ServiceConfig<TContext> | undefined = this
+            .machine.options.services
+            ? this.machine.options.services[activity.src]
             : undefined;
 
           const { id, data } = activity;
@@ -683,9 +697,19 @@ export class Interpreter<
       }
     };
 
-    const stop = callback(receive, newListener => {
-      listener = newListener;
-    });
+    let stop;
+
+    try {
+      stop = callback(receive, newListener => {
+        listener = newListener;
+      });
+
+      if (stop instanceof Promise) {
+        stop.catch(e => this.send(error(e, id)));
+      }
+    } catch (e) {
+      this.send(error(e, id));
+    }
 
     this.children.set(id, {
       send: listener,
@@ -705,6 +729,22 @@ export class Interpreter<
     const flushedEvent = this.eventQueue.shift();
     if (flushedEvent) {
       this.send(flushedEvent);
+    }
+  }
+  private attachDev() {
+    if (
+      this.options.devTools &&
+      typeof window !== 'undefined' &&
+      (window as any).__REDUX_DEVTOOLS_EXTENSION__
+    ) {
+      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
+        name: this.id,
+        features: {
+          jump: false,
+          skip: false
+        }
+      });
+      this.devTools.init(this.state);
     }
   }
 }

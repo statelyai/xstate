@@ -511,6 +511,125 @@ describe('invoke', () => {
         .onDone(() => done())
         .start();
     });
+
+    it('should call onError upon error (sync)', done => {
+      const errorMachine = Machine({
+        id: 'error',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => () => {
+                throw new Error('test');
+              },
+              onError: {
+                target: 'failed',
+                cond: (_, e) => {
+                  return e.data instanceof Error && e.data.message === 'test';
+                }
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should call onError upon error (async)', done => {
+      const errorMachine = Machine({
+        id: 'asyncError',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => async () => {
+                await true;
+                throw new Error('test');
+              },
+              onError: {
+                target: 'failed',
+                cond: (_, e) => {
+                  return e.data instanceof Error && e.data.message === 'test';
+                }
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should be able to be stringified', () => {
+      const waitingState = fetcherMachine.transition(
+        fetcherMachine.initialState,
+        'GO_TO_WAITING'
+      );
+
+      assert.doesNotThrow(() => {
+        JSON.stringify(waitingState);
+      });
+
+      assert.isString(waitingState.actions[0].activity!.src);
+    });
+
+    xit('should throw error if unhandled (sync)', done => {
+      const errorMachine = Machine({
+        id: 'asyncError',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => () => {
+                throw new Error('test');
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    xit('should throw error if unhandled (async)', done => {
+      const errorMachine = Machine({
+        id: 'asyncError',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => async () => {
+                await true;
+                throw new Error('test');
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => done())
+        .start();
+    });
   });
 
     describe('with final states', () => {

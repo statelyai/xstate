@@ -148,7 +148,7 @@ export type Receiver<TEvent extends EventObject> = (
 export type InvokeCallback = ((
   sender: Sender<any>,
   onEvent: Receiver<EventObject>
-) => void | (() => void));
+) => any);
 
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
@@ -176,7 +176,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
+  src: string;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *

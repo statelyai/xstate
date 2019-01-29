@@ -324,6 +324,7 @@ describe('transient history', () => {
       C: {}
     }
   });
+
   it('should have history on transient transitions', () => {
     const nextState = transientMachine.transition('A', 'EVENT');
     assert.equal(nextState.value, 'C');

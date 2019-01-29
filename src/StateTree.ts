@@ -25,18 +25,18 @@ export class StateTree {
 
   constructor(
     public stateNode: StateNode,
-    public _stateValue: StateValue | undefined,
+    public stateValue: StateValue | undefined,
     options: StateTreeOptions = defaultStateTreeOptions
   ) {
-    this.nodes = _stateValue
-      ? typeof _stateValue === 'string'
+    this.nodes = stateValue
+      ? typeof stateValue === 'string'
         ? {
-            [_stateValue]: new StateTree(
-              stateNode.getStateNode(_stateValue),
+            [stateValue]: new StateTree(
+              stateNode.getStateNode(stateValue),
               undefined
             )
           }
-        : mapValues(_stateValue, (subValue, key) => {
+        : mapValues(stateValue, (subValue, key) => {
             return new StateTree(stateNode.getStateNode(key), subValue);
           })
       : {};
@@ -53,7 +53,7 @@ export class StateTree {
         const childTree = this.nodes[keys(this.nodes)[0]];
         return childTree.stateNode.type === 'final';
       case 'parallel':
-        return keys(this.nodes).some(key => this.nodes[key].done);
+        return keys(this.nodes).every(key => this.nodes[key].done);
       default:
         return false;
     }
@@ -144,7 +144,7 @@ export class StateTree {
   }
 
   public get absolute(): StateTree {
-    const { _stateValue } = this;
+    const { stateValue: _stateValue } = this;
     const absoluteStateValue = {};
     let marker: any = absoluteStateValue;
 
