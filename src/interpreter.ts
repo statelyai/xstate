@@ -58,7 +58,13 @@ interface InterpreterOptions {
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
+  /**
+   * The custom `id` for referencing this service.
+   */
   id?: string;
+  /**
+   * If `true`, states and events will be logged to Redux DevTools. Default: `true`
+   */
   devTools?: boolean;
 }
 
