@@ -59,7 +59,7 @@ class Toggle extends React.Component {
 
 ## Hooks
 
-Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with functional components. You can either use a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/) or implement your own hook to interpret and use XState machines:
+Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/) or implement your own hook to interpret and use XState machines:
 
 ```js
 import { useState, useMemo, useEffect } from 'react';
