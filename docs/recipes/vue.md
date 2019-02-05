@@ -11,10 +11,9 @@ Vue follows a similar pattern to [React](./react.md):
 ```html
 <!-- Toggle.vue -->
 <template>
-  <div class="toggle">
-    <h1>{{ value }}</h1>
-    <button v-on:click="send('TOGGLE');">Toggle</button>
-  </div>
+  <button v-on:click="send('TOGGLE');">
+    {{ current.matches("inactive") ? "Off" : "On" }}
+  </button>
 </template>
 
 <script>
