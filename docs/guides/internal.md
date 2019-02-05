@@ -35,10 +35,10 @@ states: {
 },
 on: {
   // internal transitions, equivalent to the first example
-  LEFT_CLICK: { target: 'left', internal: true },
-  RIGHT_CLICK: { target: 'right', internal: true },
-  CENTER_CLICK: { target: 'center', internal: true },
-  JUSTIFY_CLICK: { target: 'justify', internal: true }
+  LEFT_CLICK: { target: '.left', internal: true },
+  RIGHT_CLICK: { target: '.right', internal: true },
+  CENTER_CLICK: { target: '.center', internal: true },
+  JUSTIFY_CLICK: { target: '.justify', internal: true }
 }
 // ...
 ```
