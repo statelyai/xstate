@@ -24,7 +24,7 @@ const wordMachine = Machine({
 });
 ```
 
-The above machine will start in the `'direction.left'` state, and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+The above machine will start in the `'left'` state (for reference, the full path is `'#direction.left'`), and based on what is clicked, will internally transition to its other states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
 
 Alternatively, the internal transition can be made explicit using a transition config with the `internal` property set to `true`:
 
@@ -35,10 +35,10 @@ states: {
 },
 on: {
   // internal transitions, equivalent to the first example
-  LEFT_CLICK: { target: 'direction.left', internal: true },
-  RIGHT_CLICK: { target: 'direction.right', internal: true },
-  CENTER_CLICK: { target: 'direction.center', internal: true },
-  JUSTIFY_CLICK: { target: 'direction.justify', internal: true }
+  LEFT_CLICK: { target: '.left', internal: true },
+  RIGHT_CLICK: { target: '.right', internal: true },
+  CENTER_CLICK: { target: '.center', internal: true },
+  JUSTIFY_CLICK: { target: '.justify', internal: true }
 }
 // ...
 ```
@@ -49,7 +49,7 @@ By default, transitions are external, so a normal transition:
 // ...
 on: {
   // external transition
-  LEFT_CLICK: 'direction.left',
+  LEFT_CLICK: 'left',
   RIGHT_CLICK: 'right',
   // ...
 }
