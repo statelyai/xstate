@@ -200,7 +200,8 @@ service.start();
 For testing, the XState interpreter provides a `SimulatedClock`:
 
 ```js
-import { interpret, SimulatedClock } from 'xstate/lib/interpreter';
+import { interpret } from 'xstate';
+import { SimulatedClock } from 'xstate/lib/interpreter';
 
 const service = interpret(lightDelayMachine, {
   clock: new SimulatedClock()
