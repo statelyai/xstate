@@ -24,7 +24,7 @@ const wordMachine = Machine({
 });
 ```
 
-The above machine will start in the `'left'` state (for reference, the full path is `'#direction.left'`), and based on what is clicked, will internally transition to its other states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+The above machine will start in the `'left'` state (for reference, the full path is `'#direction.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
 
 Alternatively, the internal transition can be made explicit using a transition config with the `internal` property set to `true`:
 
