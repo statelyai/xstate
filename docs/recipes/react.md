@@ -75,7 +75,9 @@ export function useMachine(machine) {
       interpret(machine)
         .onTransition(state => {
           // Update the current machine state when a transition occurs
-          setCurrent(state);
+          if (state.changed) {
+            setCurrent(state);
+          }
         })
         .start(),
     []
