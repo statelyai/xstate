@@ -284,7 +284,7 @@ class StateNode<
         };
       } else if (typeof invokeConfig.src !== 'string') {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
-        (this.parent || this).options.services = {
+        this.machine.options.services = {
           [invokeSrc]: invokeConfig.src,
           ...(this.parent || this).options.services
         };

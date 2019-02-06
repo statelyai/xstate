@@ -786,4 +786,56 @@ describe('invoke', () => {
       });
     });
   });
+
+  describe('nested invoked machine', () => {
+    const pongMachine = Machine({
+      id: 'pong',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            PING: {
+              // Sends 'PONG' event to parent machine
+              actions: sendParent('PONG')
+            }
+          }
+        }
+      }
+    });
+
+    // Parent machine
+    const pingMachine = Machine({
+      id: 'ping',
+      initial: 'innerMachine',
+      states: {
+        innerMachine: {
+          initial: 'active',
+          states: {
+            active: {
+              invoke: {
+                id: 'pong',
+                src: pongMachine
+              },
+              // Sends 'PING' event to child machine with ID 'pong'
+              onEntry: send('PING', { to: 'pong' }),
+              on: {
+                PONG: 'innerSuccess'
+              }
+            },
+            innerSuccess: {
+              type: 'final'
+            }
+          },
+          onDone: 'success'
+        },
+        success: { type: 'final' }
+      }
+    });
+
+    it('should create invocations from machines in nested states', done => {
+      interpret(pingMachine)
+        .onDone(() => done())
+        .start();
+    });
+  });
 });
