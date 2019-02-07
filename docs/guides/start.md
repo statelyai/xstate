@@ -14,7 +14,7 @@ import { Machine } from 'xstate';
 const promiseMachine = Machine(/* ... */);
 ```
 
-We'll pass the [machine configuration](./machine.md) inside of `Machine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
+We'll pass the [machine configuration](./machines.md#configuration) inside of `Machine(...)`. Since this is a [hierarchical machine](./hierarchical.md), we need to provide the:
 
 - `id` - to identify the machine and set the base string for its child state node IDs
 - `initial` - to specify the initial state node this machine should be in
