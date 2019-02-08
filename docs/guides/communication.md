@@ -1,6 +1,6 @@
 # Invoking Services
 
-Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://en.wikipedia.org/wiki/Actor_model), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or other machines) and react to them.
+Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://www.brianstorti.com/the-actor-model/), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or other machines) and react to them.
 
 For machines to communicate with each other, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](./final.md), which will then cause the `onDone` transition to be taken.
 
