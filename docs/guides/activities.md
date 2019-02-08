@@ -138,7 +138,7 @@ redStopState.actions;
 And any stopped activities will be stopped only once:
 
 ```js
-const greenState = lightMachine.transition(redStopState, 'PED_STOP');
+const greenState = lightMachine.transition(redStopState, 'TIMER');
 
 green.activities;
 // No active activities
