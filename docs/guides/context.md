@@ -130,6 +130,13 @@ dynamicCounterMachine.initialState.context;
 // => { count: 42, time: 1543687816981 }
 ```
 
+Or directly from the machine:
+
+```js
+dynamicCounterMachine.context;
+// => { count: 42, time: 1543687816981 }
+```
+
 ## Updating context with `assign`
 
 The `assign()` action is used to update the machine's `context`. It takes the context "updater", which represents how the current context should be updated.
