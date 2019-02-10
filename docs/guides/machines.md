@@ -52,7 +52,7 @@ Implementations for [actions](./actions.md), [activities](./activities.md), [gua
 const lightMachine = Machine(
   {
     id: 'light',
-    initial: 'active',
+    initial: 'green',
     states: {
       green: {
         // action referenced via string
