@@ -16,6 +16,7 @@ import {
   done
 } from './actions';
 import { interpret } from './interpreter';
+import { matchState } from './match';
 
 const actions = {
   raise,
@@ -40,7 +41,8 @@ export {
   assign,
   send,
   sendParent,
-  interpret
+  interpret,
+  matchState
 };
 
 export * from './types';
