@@ -752,6 +752,70 @@ describe('graph utilities', () => {
       assert.deepEqual(getSimplePaths(lightMachine)['"green"'], [[]]);
       assert.deepEqual(getSimplePaths(equivMachine)['"a"'], [[]]);
     });
+
+    it('should return value-based paths', () => {
+      const countMachine = Machine({
+        id: 'count',
+        initial: 'start',
+        context: {
+          count: 0
+        },
+        states: {
+          start: {
+            on: {
+              '': {
+                target: 'finish',
+                cond: ctx => ctx.count === 3
+              },
+              INC: {
+                actions: assign({ count: ctx => ctx.count + 1 })
+              }
+            }
+          },
+          finish: {}
+        }
+      });
+
+      assert.deepEqual(getSimplePaths(countMachine), {
+        '"start" | {"count":0}': [[]],
+        '"start" | {"count":1}': [
+          [
+            {
+              state: { value: 'start', context: { count: 0 } },
+              event: { type: 'INC' }
+            }
+          ]
+        ],
+        '"start" | {"count":2}': [
+          [
+            {
+              state: { value: 'start', context: { count: 0 } },
+              event: { type: 'INC' }
+            },
+            {
+              state: { value: 'start', context: { count: 1 } },
+              event: { type: 'INC' }
+            }
+          ]
+        ],
+        '"finish" | {"count":3}': [
+          [
+            {
+              state: { value: 'start', context: { count: 0 } },
+              event: { type: 'INC' }
+            },
+            {
+              state: { value: 'start', context: { count: 1 } },
+              event: { type: 'INC' }
+            },
+            {
+              state: { value: 'start', context: { count: 2 } },
+              event: { type: 'INC' }
+            }
+          ]
+        ]
+      });
+    });
   });
 
   describe('getSimplePathsAsArray()', () => {
