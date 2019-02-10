@@ -757,10 +757,7 @@ export interface NodesAndEdges<TContext, TEvent extends EventObject> {
   edges: Array<Edge<TContext, TEvent, TEvent['type']>>;
 }
 
-export interface Segment<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
-> {
+export interface Segment<TContext, TEvent extends EventObject> {
   /**
    * From state.
    */
@@ -774,22 +771,22 @@ export interface Segment<
   event: TEvent;
 }
 
-export interface PathMap {
-  [key: string]: Segment[];
+export interface PathMap<TContext, TEvent extends EventObject> {
+  [key: string]: Array<Segment<TContext, TEvent>>;
 }
 
-export interface PathItem {
+export interface PathItem<TContext, TEvent extends EventObject> {
   state: StateValue;
-  path: Segment[];
+  path: Array<Segment<TContext, TEvent>>;
 }
 
-export interface PathsItem {
+export interface PathsItem<TContext, TEvent extends EventObject> {
   state: StateValue;
-  paths: Segment[][];
+  paths: Array<Array<Segment<TContext, TEvent>>>;
 }
 
-export interface PathsMap {
-  [key: string]: Segment[][];
+export interface PathsMap<TContext, TEvent extends EventObject> {
+  [key: string]: Array<Array<Segment<TContext, TEvent>>>;
 }
 
 export interface TransitionMap {

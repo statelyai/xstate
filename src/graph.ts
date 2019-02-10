@@ -1,5 +1,5 @@
 import { StateNode, State } from './index';
-import { toStateValue, getActionType, flatten, keys } from './utils';
+import { getActionType, flatten, keys } from './utils';
 import {
   StateValue,
   Edge,
@@ -185,6 +185,13 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   eventSerializer: (event: TEvent) => string;
 }
 
+const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
+  events: {},
+  filter: () => true,
+  stateSerializer: serializeState,
+  eventSerializer: serializeEvent
+};
+
 export class ValueAdjacency<TContext, TEvent extends EventObject> {
   public mapping: ValueAdjacencyMap<TContext, TEvent>;
   public options: ValueAdjMapOptions<TContext, TEvent>;
@@ -270,16 +277,16 @@ export function getShortestValuePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateNode<TContext, any, TEvent>,
-  options: ValueAdjMapOptions<TContext, TEvent>
-): PathMap {
+  options: ValueAdjMapOptions<TContext, TEvent> = defaultValueAdjMapOptions
+): PathMap<TContext, TEvent> {
   if (!machine.states) {
     return EMPTY_MAP;
   }
   const adjacency = getValueAdjacencyMap<TContext, TEvent>(machine, options);
-  const pathMap: PathMap = {};
+  const pathMap: PathMap<TContext, TEvent> = {};
   const visited: Set<string> = new Set();
 
-  function util(state: State<TContext>): PathMap {
+  function util(state: State<TContext>): PathMap<TContext, TEvent> {
     const stateKey = serializeState(state);
     visited.add(stateKey);
     const eventMap = adjacency[stateKey];
@@ -300,7 +307,10 @@ export function getShortestValuePaths<
       ) {
         pathMap[nextStateId] = [
           ...(pathMap[stateKey] || []),
-          { state: { value, context: undefined }, event: { type: eventType } }
+          {
+            state: { value, context: state.context },
+            event: deserializeEventString(eventType) as TEvent
+          }
         ];
       }
     }
@@ -330,79 +340,16 @@ export function getShortestValuePaths<
   return pathMap;
 }
 
-export function getShortestPaths<TContext = DefaultContext>(
-  machine: StateNode<TContext>,
-  context?: TContext
-): PathMap {
-  if (!machine.states) {
-    return EMPTY_MAP;
-  }
-  const adjacency = getAdjacencyMap(machine, context);
-  const initialStateId = JSON.stringify(machine.initialState.value);
-  const pathMap: PathMap = {
-    [initialStateId]: []
-  };
-  const visited: Set<string> = new Set();
-
-  function util(stateValue: StateValue): PathMap {
-    const stateId = JSON.stringify(stateValue);
-    visited.add(stateId);
-    const eventMap = adjacency[stateId];
-
-    for (const eventType of keys(eventMap)) {
-      const nextStateValue = eventMap[eventType].state;
-
-      if (!nextStateValue) {
-        continue;
-      }
-
-      const nextStateId = JSON.stringify(
-        toStateValue(nextStateValue, machine.delimiter)
-      );
-
-      if (
-        !pathMap[nextStateId] ||
-        pathMap[nextStateId].length > pathMap[stateId].length + 1
-      ) {
-        pathMap[nextStateId] = [
-          ...(pathMap[stateId] || []),
-          {
-            state: { value: stateValue, context: undefined },
-            event: { type: eventType }
-          }
-        ];
-      }
-    }
-
-    for (const event of keys(eventMap)) {
-      const nextStateValue = eventMap[event].state;
-
-      if (!nextStateValue) {
-        continue;
-      }
-
-      const nextStateId = JSON.stringify(nextStateValue);
-
-      if (visited.has(nextStateId)) {
-        continue;
-      }
-
-      util(nextStateValue);
-    }
-
-    return pathMap;
-  }
-
-  util(machine.initialState.value);
-
-  return pathMap;
-}
-
-export function getShortestPathsAsArray<TContext = DefaultContext>(
-  machine: StateNode<TContext>,
-  context?: TContext
-): PathItem[] {
-  const result = getShortestPaths(machine, context);
+export function getShortestPathsAsArray<
+  TContext = DefaultContext,
+  TEvent extends EventObject = EventObject
+>(
+  machine: StateNode<TContext, any, TEvent>
+): Array<PathItem<TContext, TEvent>> {
+  const result = getShortestValuePaths<TContext, TEvent>(
+    machine,
+    defaultValueAdjMapOptions
+  );
   return keys(result).map(key => ({
     state: JSON.parse(key),
     path: result[key]
@@ -415,15 +362,15 @@ export function getSimplePaths<
 >(
   machine: StateNode<TContext>,
   options?: ValueAdjMapOptions<TContext, TEvent>
-): PathsMap {
+): PathsMap<TContext, TEvent> {
   if (!machine.states) {
     return EMPTY_MAP;
   }
 
   const adjacency = getValueAdjacencyMap(machine, options);
   const visited = new Set();
-  const path: Segment[] = [];
-  const paths: PathsMap = {};
+  const path: Array<Segment<TContext, TEvent>> = [];
+  const paths: PathsMap<TContext, TEvent> = {};
 
   function util(fromStateSerial: string, toStateSerial: string) {
     visited.add(fromStateSerial);
@@ -470,7 +417,7 @@ export function getSimplePathsAsArray<
 >(
   machine: StateNode<TContext>,
   options?: ValueAdjMapOptions<TContext, TEvent>
-): PathsItem[] {
+): Array<PathsItem<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
   return keys(result).map(key => ({
     state: JSON.parse(key),
