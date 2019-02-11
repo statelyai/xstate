@@ -361,7 +361,7 @@ export function getSimplePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateNode<TContext>,
-  options?: ValueAdjMapOptions<TContext, TEvent>
+  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathsMap<TContext, TEvent> {
   if (!machine.states) {
     return EMPTY_MAP;
@@ -376,8 +376,13 @@ export function getSimplePaths<
     visited.add(fromStateSerial);
 
     if (fromStateSerial === toStateSerial) {
-      paths[toStateSerial] = paths[toStateSerial] || [];
-      paths[toStateSerial].push([...path]);
+      if (!paths[toStateSerial]) {
+        paths[toStateSerial] = {
+          ...deserializeStateString(toStateSerial),
+          paths: []
+        };
+      }
+      paths[toStateSerial].paths.push([...path]);
     } else {
       for (const subEvent of keys(adjacency[fromStateSerial])) {
         const nextState = adjacency[fromStateSerial][subEvent];
@@ -419,8 +424,5 @@ export function getSimplePathsAsArray<
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<PathsItem<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
-  return keys(result).map(key => ({
-    state: JSON.parse(key),
-    paths: result[key]
-  }));
+  return keys(result).map(key => result[key]);
 }

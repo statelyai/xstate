@@ -781,12 +781,13 @@ export interface PathItem<TContext, TEvent extends EventObject> {
 }
 
 export interface PathsItem<TContext, TEvent extends EventObject> {
-  state: StateValue;
+  value: StateValue;
+  context: TContext;
   paths: Array<Array<Segment<TContext, TEvent>>>;
 }
 
 export interface PathsMap<TContext, TEvent extends EventObject> {
-  [key: string]: Array<Array<Segment<TContext, TEvent>>>;
+  [key: string]: PathsItem<TContext, TEvent>;
 }
 
 export interface TransitionMap {
