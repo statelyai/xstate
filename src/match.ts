@@ -11,15 +11,20 @@ export type StatePatternTuple<T, TContext, TEvent extends EventObject> = [
 ];
 
 export function matchState<T, TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent>,
+  state: State<TContext, TEvent> | StateValue,
   patterns: Array<StatePatternTuple<T, TContext, TEvent>>,
   defaultValue: ValueFromStateGetter<T, TContext, TEvent>
 ): T {
+  const resolvedState = State.from(
+    state,
+    state instanceof State ? state.context : (undefined as any)
+  );
+
   for (const [stateValue, getValue] of patterns) {
-    if (state.matches(stateValue)) {
-      return getValue(state);
+    if (resolvedState.matches(stateValue)) {
+      return getValue(resolvedState);
     }
   }
 
-  return defaultValue(state);
+  return defaultValue(resolvedState);
 }

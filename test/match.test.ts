@@ -14,6 +14,16 @@ describe('matchState()', () => {
     );
   });
 
+  it('should match a value from a pattern with the state value', () => {
+    assert.ok(
+      matchState(
+        'a',
+        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
+        _ => false
+      )
+    );
+  });
+
   it('should match a value from a pattern with the state (compound)', () => {
     const simpleState = State.from({ a: 'b' }, undefined);
 
