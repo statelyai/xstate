@@ -125,7 +125,7 @@ const searchMachine = Machine({
           actions: assign({
             errorMessage: (ctx, event) => {
               // event is:
-              // { type: 'error.execution', data: 'No query specified' }
+              // { type: 'error.execution', data: { message: 'No query specified' } }
               return event.data.message;
             }
           })
