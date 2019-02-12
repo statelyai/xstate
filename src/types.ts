@@ -776,13 +776,18 @@ export interface PathMap<TContext, TEvent extends EventObject> {
 }
 
 export interface PathItem<TContext, TEvent extends EventObject> {
-  state: StateValue;
+  state: {
+    value: StateValue;
+    context: TContext;
+  };
   path: Array<Segment<TContext, TEvent>>;
 }
 
 export interface PathsItem<TContext, TEvent extends EventObject> {
-  value: StateValue;
-  context: TContext;
+  state: {
+    value: StateValue;
+    context: TContext;
+  };
   paths: Array<Array<Segment<TContext, TEvent>>>;
 }
 

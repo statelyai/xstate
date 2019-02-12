@@ -455,9 +455,9 @@ describe('graph utilities', () => {
   xdescribe('getShortestValuePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
       assert.deepEqual(getShortestPathsAsArray(lightMachine), [
-        { state: 'green', path: [] },
+        { state: { value: 'green', context: undefined }, path: [] },
         {
-          state: 'yellow',
+          state: { value: 'yellow', context: undefined },
           path: [
             {
               state: { context: undefined, value: 'green' },
@@ -466,7 +466,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          state: { red: 'flashing' },
+          state: { value: { red: 'flashing' }, context: undefined },
           path: [
             {
               state: { context: undefined, value: 'green' },
@@ -475,7 +475,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          state: { red: 'walk' },
+          state: { value: { red: 'walk' }, context: undefined },
           path: [
             {
               state: { context: undefined, value: 'green' },
@@ -488,7 +488,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          state: { red: 'wait' },
+          state: { value: { red: 'wait' }, context: undefined },
           path: [
             {
               state: { context: undefined, value: 'green' },
@@ -505,7 +505,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          state: { red: 'stop' },
+          state: { value: { red: 'stop' }, context: undefined },
           path: [
             {
               state: { context: undefined, value: 'green' },
@@ -532,10 +532,12 @@ describe('graph utilities', () => {
   describe('getSimplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
       assert.deepEqual(getSimplePaths(lightMachine), {
-        '"green"': { value: 'green', context: undefined, paths: [[]] },
+        '"green"': {
+          state: { value: 'green', context: undefined },
+          paths: [[]]
+        },
         '"yellow"': {
-          value: 'yellow',
-          context: undefined,
+          state: { value: 'yellow', context: undefined },
           paths: [
             [
               {
@@ -546,8 +548,7 @@ describe('graph utilities', () => {
           ]
         },
         '{"red":"walk"}': {
-          value: { red: 'walk' },
-          context: undefined,
+          state: { value: { red: 'walk' }, context: undefined },
           paths: [
             [
               {
@@ -562,8 +563,7 @@ describe('graph utilities', () => {
           ]
         },
         '{"red":"wait"}': {
-          value: { red: 'wait' },
-          context: undefined,
+          state: { value: { red: 'wait' }, context: undefined },
           paths: [
             [
               {
@@ -582,8 +582,7 @@ describe('graph utilities', () => {
           ]
         },
         '{"red":"stop"}': {
-          value: { red: 'stop' },
-          context: undefined,
+          state: { value: { red: 'stop' }, context: undefined },
           paths: [
             [
               {
@@ -606,8 +605,7 @@ describe('graph utilities', () => {
           ]
         },
         '{"red":"flashing"}': {
-          value: { red: 'flashing' },
-          context: undefined,
+          state: { value: { red: 'flashing' }, context: undefined },
           paths: [
             [
               {
@@ -695,13 +693,11 @@ describe('graph utilities', () => {
     it('should return a mapping of simple paths to all states (parallel)', () => {
       assert.deepEqual(getSimplePaths(parallelMachine), {
         '{"a":"a1","b":"b1"}': {
-          value: { a: 'a1', b: 'b1' },
-          context: undefined,
+          state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           paths: [[]]
         },
         '{"a":"a2","b":"b2"}': {
-          value: { a: 'a2', b: 'b2' },
-          context: undefined,
+          state: { value: { a: 'a2', b: 'b2' }, context: undefined },
           paths: [
             [
               {
@@ -712,8 +708,7 @@ describe('graph utilities', () => {
           ]
         },
         '{"a":"a3","b":"b3"}': {
-          value: { a: 'a3', b: 'b3' },
-          context: undefined,
+          state: { value: { a: 'a3', b: 'b3' }, context: undefined },
           paths: [
             [
               {
@@ -738,10 +733,9 @@ describe('graph utilities', () => {
 
     it('should return multiple paths for equivalent transitions', () => {
       assert.deepEqual(getSimplePaths(equivMachine), {
-        '"a"': { value: 'a', context: undefined, paths: [[]] },
+        '"a"': { state: { value: 'a', context: undefined }, paths: [[]] },
         '"b"': {
-          value: 'b',
-          context: undefined,
+          state: { value: 'b', context: undefined },
           paths: [
             [
               {
@@ -796,13 +790,11 @@ describe('graph utilities', () => {
         }),
         {
           '"start" | {"count":0}': {
-            value: 'start',
-            context: { count: 0 },
+            state: { value: 'start', context: { count: 0 } },
             paths: [[]]
           },
           '"start" | {"count":1}': {
-            value: 'start',
-            context: { count: 1 },
+            state: { value: 'start', context: { count: 1 } },
             paths: [
               [
                 {
@@ -813,8 +805,7 @@ describe('graph utilities', () => {
             ]
           },
           '"start" | {"count":2}': {
-            value: 'start',
-            context: { count: 2 },
+            state: { value: 'start', context: { count: 2 } },
             paths: [
               [
                 {
@@ -829,8 +820,7 @@ describe('graph utilities', () => {
             ]
           },
           '"finish" | {"count":3}': {
-            value: 'finish',
-            context: { count: 3 },
+            state: { value: 'finish', context: { count: 3 } },
             paths: [
               [
                 {
@@ -856,10 +846,9 @@ describe('graph utilities', () => {
   describe('getSimplePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
       assert.deepEqual(getSimplePathsAsArray(lightMachine), [
-        { value: 'green', context: undefined, paths: [[]] },
+        { state: { value: 'green', context: undefined }, paths: [[]] },
         {
-          value: 'yellow',
-          context: undefined,
+          state: { value: 'yellow', context: undefined },
           paths: [
             [
               {
@@ -870,8 +859,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          value: { red: 'walk' },
-          context: undefined,
+          state: { value: { red: 'walk' }, context: undefined },
           paths: [
             [
               {
@@ -886,8 +874,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          value: { red: 'wait' },
-          context: undefined,
+          state: { value: { red: 'wait' }, context: undefined },
           paths: [
             [
               {
@@ -906,8 +893,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          value: { red: 'stop' },
-          context: undefined,
+          state: { value: { red: 'stop' }, context: undefined },
           paths: [
             [
               {
@@ -930,8 +916,7 @@ describe('graph utilities', () => {
           ]
         },
         {
-          value: { red: 'flashing' },
-          context: undefined,
+          state: { value: { red: 'flashing' }, context: undefined },
           paths: [
             [
               {

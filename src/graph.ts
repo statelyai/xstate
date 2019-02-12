@@ -378,7 +378,7 @@ export function getSimplePaths<
     if (fromStateSerial === toStateSerial) {
       if (!paths[toStateSerial]) {
         paths[toStateSerial] = {
-          ...deserializeStateString(toStateSerial),
+          state: deserializeStateString(toStateSerial),
           paths: []
         };
       }
