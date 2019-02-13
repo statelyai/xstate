@@ -469,6 +469,212 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should be invoked with a promise factory and resolve through onDone for compound state nodes', done => {
+      const promiseMachine = Machine({
+        id: 'promise',
+        initial: 'parent',
+        states: {
+          parent: {
+            initial: 'pending',
+            states: {
+              pending: {
+                invoke: {
+                  src: () => Promise.resolve(),
+                  onDone: 'success'
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            },
+            onDone: 'success'
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should be invoked with a promise service and resolve through onDone for compound state nodes', done => {
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'parent',
+          states: {
+            parent: {
+              initial: 'pending',
+              states: {
+                pending: {
+                  invoke: {
+                    src: 'somePromise',
+                    onDone: 'success'
+                  }
+                },
+                success: {
+                  type: 'final'
+                }
+              },
+              onDone: 'success'
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve()
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should assign the resolved data when invoked with a promise factory', done => {
+      const promiseMachine = Machine({
+        id: 'promise',
+        context: { count: 0 },
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () => Promise.resolve({ count: 1 }),
+              onDone: {
+                target: 'success',
+                actions: assign({ count: (_, e) => e.data.count })
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(service.state.context.count, 1);
+          done();
+        })
+        .start();
+    });
+
+    it('should assign the resolved data when invoked with a promise service', done => {
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          context: { count: 0 },
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: 'somePromise',
+                onDone: {
+                  target: 'success',
+                  actions: assign({ count: (_, e) => e.data.count })
+                }
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve({ count: 1 })
+          }
+        }
+      );
+
+      const service = interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(service.state.context.count, 1);
+          done();
+        })
+        .start();
+    });
+
+    it('should provide the resolved data when invoked with a promise factory', done => {
+      let count = 0;
+
+      const promiseMachine = Machine({
+        id: 'promise',
+        context: { count: 0 },
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () => Promise.resolve({ count: 1 }),
+              onDone: {
+                target: 'success',
+                actions: (_, e) => {
+                  count = e.data.count;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(count, 1);
+          done();
+        })
+        .start();
+    });
+
+    it('should provide the resolved data when invoked with a promise service', done => {
+      let count = 0;
+
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: 'somePromise',
+                onDone: {
+                  target: 'success',
+                  actions: (_, e) => {
+                    count = e.data.count;
+                  }
+                }
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve({ count: 1 })
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(count, 1);
+          done();
+        })
+        .start();
+    });
+
     it('should be able to specify a Promise as a service', done => {
       const promiseMachine = Machine(
         {
