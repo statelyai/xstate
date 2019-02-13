@@ -58,11 +58,9 @@ export interface ExecMeta<TContext, TEvent extends EventObject> {
 }
 
 export interface ActionFunction<TContext, TEvent extends EventObject> {
-  (
-    context: TContext,
-    event: OmniEventObject<TEvent>,
-    meta: ExecMeta<TContext, TEvent>
-  ): any | void;
+  (context: TContext, event: TEvent, meta: ExecMeta<TContext, TEvent>):
+    | any
+    | void;
   name: string;
 }
 // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
@@ -620,7 +618,6 @@ export interface RaiseEvent<TContext, TEvent extends EventObject>
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
-  type: ActionTypes.DoneInvoke;
   data: TData;
 }
 

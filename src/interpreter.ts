@@ -516,7 +516,7 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, TEvent>,
+    action: ActionObject<TContext, OmniEventObject<TEvent>>,
     context: TContext,
     event: OmniEventObject<TEvent>
   ): void {
@@ -698,6 +698,7 @@ export class Interpreter<
     const receive = (e: TEvent) => this.send(e);
     let listener = (e: EventObject) => {
       if (!IS_PRODUCTION) {
+        // tslint:disable-next-line:no-console
         console.warn(
           `Event '${
             e.type
