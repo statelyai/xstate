@@ -538,7 +538,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should provide the resolved data when invoked with a promise factory', done => {
+    it('should assign the resolved data when invoked with a promise factory', done => {
       const promiseMachine = Machine({
         id: 'promise',
         context: { count: 0 },
@@ -567,7 +567,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should provide the resolved data when invoked with a promise service', done => {
+    it('should assign the resolved data when invoked with a promise service', done => {
       const promiseMachine = Machine(
         {
           id: 'promise',
@@ -598,6 +598,78 @@ describe('invoke', () => {
       const service = interpret(promiseMachine)
         .onDone(() => {
           assert.equal(service.state.context.count, 1);
+          done();
+        })
+        .start();
+    });
+
+    it('should provide the resolved data when invoked with a promise factory', done => {
+      let count = 0;
+
+      const promiseMachine = Machine({
+        id: 'promise',
+        context: { count: 0 },
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () => Promise.resolve({ count: 1 }),
+              onDone: {
+                target: 'success',
+                actions: (_, e) => {
+                  count = e.data.count;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(count, 1);
+          done();
+        })
+        .start();
+    });
+
+    it('should provide the resolved data when invoked with a promise service', done => {
+      let count = 0;
+
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: 'somePromise',
+                onDone: {
+                  target: 'success',
+                  actions: (_, e) => {
+                    count = e.data.count;
+                  }
+                }
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve({ count: 1 })
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(count, 1);
           done();
         })
         .start();
