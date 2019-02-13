@@ -480,13 +480,17 @@ describe('invoke', () => {
               pending: {
                 invoke: {
                   src: () => Promise.resolve(),
-                  onDone: 'done'
+                  onDone: 'success'
                 }
               },
-              done: {
+              success: {
                 type: 'final'
               }
-            }
+            },
+            onDone: 'success'
+          },
+          success: {
+            type: 'final'
           }
         }
       });
@@ -508,13 +512,17 @@ describe('invoke', () => {
                 pending: {
                   invoke: {
                     src: 'somePromise',
-                    onDone: 'done'
+                    onDone: 'success'
                   }
                 },
-                done: {
+                success: {
                   type: 'final'
                 }
-              }
+              },
+              onDone: 'success'
+            },
+            success: {
+              type: 'final'
             }
           }
         },
@@ -540,10 +548,10 @@ describe('invoke', () => {
           pending: {
             invoke: {
               src: () => Promise.resolve(resolvedData),
-              onDone: 'done'
+              onDone: 'success'
             }
           },
-          done: {
+          success: {
             type: 'final'
           }
         }
@@ -568,10 +576,10 @@ describe('invoke', () => {
             pending: {
               invoke: {
                 src: 'somePromise',
-                onDone: 'done'
+                onDone: 'success'
               }
             },
-            done: {
+            success: {
               type: 'final'
             }
           }
