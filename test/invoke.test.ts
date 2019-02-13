@@ -469,7 +469,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should be provide the resolved data when invoked with a promise factory', done => {
+    it('should provide the resolved data when invoked with a promise factory', done => {
       const resolvedData = { foo: true };
 
       const promiseMachine = Machine({
@@ -496,7 +496,7 @@ describe('invoke', () => {
         .start();
     });
 
-    it('should be provide the resolved data when invoked with a promise service', done => {
+    it('should provide the resolved data when invoked with a promise service', done => {
       const resolvedData = { foo: true };
 
       const promiseMachine = Machine(
