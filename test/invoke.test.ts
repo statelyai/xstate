@@ -469,6 +469,67 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should be provide the resolved data when invoked with a promise factory', done => {
+      const resolvedData = { foo: true };
+
+      const promiseMachine = Machine({
+        id: 'promise',
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () => Promise.resolve(resolvedData),
+              onDone: 'done'
+            }
+          },
+          done: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(event => {
+          assert.deepEqual(event.data, resolvedData);
+          done();
+        })
+        .start();
+    });
+
+    it('should be provide the resolved data when invoked with a promise service', done => {
+      const resolvedData = { foo: true };
+
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: 'somePromise',
+                onDone: 'done'
+              }
+            },
+            done: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve(resolvedData)
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(event => {
+          assert.deepEqual(event.data, resolvedData);
+          done();
+        })
+        .start();
+    });
+
     it('should be able to specify a Promise as a service', done => {
       const promiseMachine = Machine(
         {
