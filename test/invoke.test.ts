@@ -539,16 +539,18 @@ describe('invoke', () => {
     });
 
     it('should provide the resolved data when invoked with a promise factory', done => {
-      const resolvedData = { foo: true };
-
       const promiseMachine = Machine({
         id: 'promise',
+        context: { count: 0 },
         initial: 'pending',
         states: {
           pending: {
             invoke: {
-              src: () => Promise.resolve(resolvedData),
-              onDone: 'success'
+              src: () => Promise.resolve({ count: 1 }),
+              onDone: {
+                target: 'success',
+                actions: assign({ count: (_, e) => e.data.count })
+              }
             }
           },
           success: {
@@ -557,26 +559,28 @@ describe('invoke', () => {
         }
       });
 
-      interpret(promiseMachine)
-        .onDone(event => {
-          assert.deepEqual(event.data, resolvedData);
+      const service = interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(service.state.context.count, 1);
           done();
         })
         .start();
     });
 
     it('should provide the resolved data when invoked with a promise service', done => {
-      const resolvedData = { foo: true };
-
       const promiseMachine = Machine(
         {
           id: 'promise',
+          context: { count: 0 },
           initial: 'pending',
           states: {
             pending: {
               invoke: {
                 src: 'somePromise',
-                onDone: 'success'
+                onDone: {
+                  target: 'success',
+                  actions: assign({ count: (_, e) => e.data.count })
+                }
               }
             },
             success: {
@@ -586,14 +590,14 @@ describe('invoke', () => {
         },
         {
           services: {
-            somePromise: () => Promise.resolve(resolvedData)
+            somePromise: () => Promise.resolve({ count: 1 })
           }
         }
       );
 
-      interpret(promiseMachine)
-        .onDone(event => {
-          assert.deepEqual(event.data, resolvedData);
+      const service = interpret(promiseMachine)
+        .onDone(() => {
+          assert.equal(service.state.context.count, 1);
           done();
         })
         .start();
