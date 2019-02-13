@@ -7,7 +7,7 @@ import {
   EventObject
 } from '../src/index';
 import { assert } from 'chai';
-import { actionTypes, done as _done } from '../src/actions';
+import { actionTypes, done as _done, doneInvoke } from '../src/actions';
 
 const user = { name: 'David' };
 
@@ -675,6 +675,50 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should work with invocations defined in orthogonal state nodes', done => {
+      const pongMachine = Machine({
+        id: 'pong',
+        initial: 'active',
+        states: {
+          active: {
+            type: 'final',
+            data: { secret: 'pingpong' }
+          }
+        }
+      });
+
+      const pingMachine = Machine({
+        id: 'ping',
+        type: 'parallel',
+        states: {
+          one: {
+            initial: 'active',
+            states: {
+              active: {
+                invoke: {
+                  id: 'pong',
+                  src: pongMachine,
+                  onDone: {
+                    target: 'success',
+                    cond: (_, e) => e.data.secret === 'pingpong'
+                  }
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          }
+        }
+      });
+
+      interpret(pingMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
     it('should be able to specify a Promise as a service', done => {
       const promiseMachine = Machine(
         {
@@ -981,7 +1025,7 @@ describe('invoke', () => {
             assert.deepEqual(events.map(e => e.type), [
               actionTypes.init,
               'STOPCHILD',
-              _done('parent').type
+              doneInvoke('invoked.child').type
             ]);
             assert.equal(service.state.value, 'completed');
             done();

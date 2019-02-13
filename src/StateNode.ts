@@ -1192,6 +1192,8 @@ class StateNode<
           : (raisedEvent as RaisedEvent<TEvent>).event,
         maybeNextState.context
       );
+      // Save original event to state
+      maybeNextState.event = eventObject;
       maybeNextState.actions.unshift(...currentActions);
     }
 
