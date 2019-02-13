@@ -530,6 +530,67 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should be invoked with a promise factory and resolve through onDone for parallel state nodes', done => {
+      const promiseMachine = Machine({
+        id: 'promise',
+        initial: 'parent',
+        states: {
+          parent: {
+            type: 'parallel',
+            states: {
+              pending: {
+                invoke: {
+                  src: () => Promise.resolve(),
+                  onDone: 'done'
+                }
+              },
+              done: {
+                type: 'final'
+              }
+            }
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+
+    it('should be invoked with a promise service and resolve through onDone for parallel state nodes', done => {
+      const promiseMachine = Machine(
+        {
+          id: 'promise',
+          initial: 'parent',
+          states: {
+            parent: {
+              initial: 'pending',
+              states: {
+                pending: {
+                  invoke: {
+                    src: 'somePromise',
+                    onDone: 'done'
+                  }
+                },
+                done: {
+                  type: 'final'
+                }
+              }
+            }
+          }
+        },
+        {
+          services: {
+            somePromise: () => Promise.resolve()
+          }
+        }
+      );
+
+      interpret(promiseMachine)
+        .onDone(() => done())
+        .start();
+    });
+
     it('should provide the resolved data when invoked with a promise factory', done => {
       const resolvedData = { foo: true };
 
@@ -603,7 +664,7 @@ describe('invoke', () => {
             },
             first: {
               invoke: {
-                src: 'promise',
+                src: 'somePromise',
                 onDone: 'last'
               }
             },
@@ -614,7 +675,7 @@ describe('invoke', () => {
         },
         {
           services: {
-            promise: (ctx, e) => {
+            somePromise: (ctx, e) => {
               return new Promise((res, rej) => {
                 ctx.foo && e.payload ? res() : rej();
               });
