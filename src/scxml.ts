@@ -259,6 +259,12 @@ function toConfig(
         target: target ? `#${target}` : undefined
       };
     }
+    case 'final': {
+      return {
+        ...nodeJson.attributes,
+        type: 'final'
+      };
+    }
     default:
       break;
   }
@@ -268,6 +274,7 @@ function toConfig(
       element =>
         element.name === 'state' ||
         element.name === 'parallel' ||
+        element.name === 'final' ||
         element.name === 'history'
     );
 

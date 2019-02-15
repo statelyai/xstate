@@ -64,8 +64,9 @@ const testGroups = {
     'test1'
     // ,'test2', // TODO: parallel states with leaf node support
     // 'test3' // TODO: parallel states with leaf node support
-  ]
-  // 'parallel+interrupt': ['test0']
+  ],
+  // 'parallel+interrupt': ['test0'],
+  'w3c-ecma': ['test144.txml']
 };
 
 const overrides = {
@@ -82,7 +83,22 @@ interface SCIONTest {
   }>;
 }
 
-function runTestToCompletion(machine: StateNode, test: SCIONTest): void {
+async function runW3TestToCompletion(machine: StateNode): Promise<void> {
+  await new Promise(res => {
+    interpret(machine)
+      .onDone(res)
+      .start();
+  });
+}
+
+async function runTestToCompletion(
+  machine: StateNode,
+  test: SCIONTest
+): Promise<void> {
+  if (!test.events.length && test.initialConfiguration[0] === 'pass') {
+    await runW3TestToCompletion(machine);
+    return;
+  }
   const resolvedStateValue = machine.resolve(
     pathsToStateValue(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
@@ -129,7 +145,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['history'];
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
@@ -152,14 +168,14 @@ describe('scxml', () => {
         )
       ) as SCIONTest;
 
-      it(`${testGroupName}/${testName}`, () => {
+      it(`${testGroupName}/${testName}`, async () => {
         const machine = toMachine(scxmlDefinition, {
           evalCond,
           delimiter: '$'
         });
 
         // console.dir(machine.config, { depth: null });
-        runTestToCompletion(machine, scxmlTest);
+        await runTestToCompletion(machine, scxmlTest);
       });
     });
   });
