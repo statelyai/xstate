@@ -286,7 +286,7 @@ class StateNode<
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src,
-          ...(this.parent || this).options.services
+          ...(this.machine.options.services || {})
         };
 
         return {
