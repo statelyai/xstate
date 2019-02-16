@@ -1088,4 +1088,130 @@ describe('invoke', () => {
         .start();
     });
   });
+
+  describe('multiple simultaneous services', () => {
+    // @ts-ignore
+    const multiple = Machine({
+      id: 'machine',
+      initial: 'one',
+
+      context : {},
+      
+      on : {
+        ONE : {
+          actions : assign({
+            one : 'one'
+          }),
+        },
+
+        TWO : {
+          actions: assign({
+            two : 'two'
+          }),
+          target : '.three',
+        }
+      },
+
+      states: {
+        one: {
+          initial: 'two',
+          states: {
+            two: {
+              invoke: [
+                {
+                  id: 'child',
+                  src: () => (cb) => cb('ONE'),
+                },
+                {
+                  id: 'child2',
+                  src: () => (cb) => cb('TWO'),
+                },
+              ],
+            },
+
+          },
+          
+        },
+        three : {
+          type : 'final',
+        },
+      },
+    });
+
+    it('should start all services at once', done => {
+      const service = interpret(multiple)
+      .onDone(() => {
+        assert.deepEqual(
+          service.state.context,
+          { one : 'one', two : 'two' }
+        );
+        done();
+      });
+      
+      service.start();
+    });
+
+    const parallel = Machine({
+      id: 'machine',
+      initial: 'one',
+
+      context : {},
+      
+      on : {
+        ONE : {
+          actions : assign({
+            one : 'one'
+          }),
+        },
+
+        TWO : {
+          actions: assign({
+            two : 'two'
+          }),
+          target : '.three',
+        }
+      },
+    
+      states: {
+        one: {
+          initial: 'two',
+          states: {
+            two: {
+              type: 'parallel',
+              states: {
+                a: {
+                  invoke: {
+                    id: 'child',
+                    src: () => (cb) => cb('ONE'),
+                  },
+                },
+                b: {
+                  invoke: {
+                    id: 'child2',
+                    src: () => (cb) => cb('TWO'),
+                  },
+                },
+              },
+            },
+          },
+        },
+        three : {
+          type : 'final',
+        },
+      }
+    });
+
+    it('should run services in parallel', done => {
+      const service = interpret(parallel)
+      .onDone(() => {
+        assert.deepEqual(
+          service.state.context,
+          { one : 'one', two : 'two' }
+        );
+        done();
+      });
+      
+      service.start();
+    })
+  });
 });
