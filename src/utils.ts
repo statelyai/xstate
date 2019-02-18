@@ -324,3 +324,21 @@ export function isBuiltInEvent(eventType: EventType): boolean {
 
   return false;
 }
+
+export function partition<T, A extends T, B extends T>(
+  items: T[],
+  predicate: (item: T) => item is A
+): [A[], B[]] {
+  return items.reduce(
+    (acc, item) => {
+      if (predicate(item)) {
+        acc[0].push(item);
+      } else {
+        acc[1].push(item as B);
+      }
+
+      return acc;
+    },
+    [[], []] as [A[], B[]]
+  );
+}
