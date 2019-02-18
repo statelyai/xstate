@@ -493,7 +493,7 @@ class StateNode<
   }
 
   /**
-   * Whether this state node explicitly handles the given event.
+   * Returns `true` if this state node explicitly handles the given event.
    *
    * @param event The event in question
    */
@@ -501,6 +501,24 @@ class StateNode<
     const eventType = getEventType<TEvent>(event);
 
     return this.events.indexOf(eventType) !== -1;
+  }
+
+  public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
+    const tree = this.getStateTree(state.value);
+    const value = this.resolve(state.value);
+
+    return new State({
+      value,
+      context: state.context,
+      event: state.event,
+      historyValue: state.historyValue,
+      history: state.history,
+      actions: state.actions,
+      activities: state.activities,
+      meta: state.meta,
+      events: state.events,
+      tree
+    });
   }
 
   private transitionLeafNode(
