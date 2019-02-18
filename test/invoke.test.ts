@@ -1095,20 +1095,20 @@ describe('invoke', () => {
       id: 'machine',
       initial: 'one',
 
-      context : {},
-      
-      on : {
-        ONE : {
-          actions : assign({
-            one : 'one'
-          }),
+      context: {},
+
+      on: {
+        ONE: {
+          actions: assign({
+            one: 'one'
+          })
         },
 
-        TWO : {
+        TWO: {
           actions: assign({
-            two : 'two'
+            two: 'two'
           }),
-          target : '.three',
+          target: '.three'
         }
       },
 
@@ -1120,34 +1120,28 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: () => (cb) => cb('ONE'),
+                  src: () => cb => cb('ONE')
                 },
                 {
                   id: 'child2',
-                  src: () => (cb) => cb('TWO'),
-                },
-              ],
-            },
-
-          },
-          
+                  src: () => cb => cb('TWO')
+                }
+              ]
+            }
+          }
         },
-        three : {
-          type : 'final',
-        },
-      },
+        three: {
+          type: 'final'
+        }
+      }
     });
 
     it('should start all services at once', done => {
-      const service = interpret(multiple)
-      .onDone(() => {
-        assert.deepEqual(
-          service.state.context,
-          { one : 'one', two : 'two' }
-        );
+      const service = interpret(multiple).onDone(() => {
+        assert.deepEqual(service.state.context, { one: 'one', two: 'two' });
         done();
       });
-      
+
       service.start();
     });
 
@@ -1155,23 +1149,23 @@ describe('invoke', () => {
       id: 'machine',
       initial: 'one',
 
-      context : {},
-      
-      on : {
-        ONE : {
-          actions : assign({
-            one : 'one'
-          }),
+      context: {},
+
+      on: {
+        ONE: {
+          actions: assign({
+            one: 'one'
+          })
         },
 
-        TWO : {
+        TWO: {
           actions: assign({
-            two : 'two'
+            two: 'two'
           }),
-          target : '.three',
+          target: '.three'
         }
       },
-    
+
       states: {
         one: {
           initial: 'two',
@@ -1182,36 +1176,32 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: () => (cb) => cb('ONE'),
-                  },
+                    src: () => cb => cb('ONE')
+                  }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: () => (cb) => cb('TWO'),
-                  },
-                },
-              },
-            },
-          },
+                    src: () => cb => cb('TWO')
+                  }
+                }
+              }
+            }
+          }
         },
-        three : {
-          type : 'final',
-        },
+        three: {
+          type: 'final'
+        }
       }
     });
 
     it('should run services in parallel', done => {
-      const service = interpret(parallel)
-      .onDone(() => {
-        assert.deepEqual(
-          service.state.context,
-          { one : 'one', two : 'two' }
-        );
+      const service = interpret(parallel).onDone(() => {
+        assert.deepEqual(service.state.context, { one: 'one', two: 'two' });
         done();
       });
-      
+
       service.start();
-    })
+    });
   });
 });

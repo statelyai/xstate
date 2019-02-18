@@ -201,9 +201,7 @@ export interface Delay {
 export type DelayedTransitions<TContext, TEvent extends EventObject> =
   | Record<
       string | number,
-      | string
-      | TransitionConfig<TContext, TEvent>
-      | Array<TransitionConfig<TContext, TEvent>>
+      string | SingleOrArray<TransitionConfig<TContext, TEvent>>
     >
   | Array<TransitionConfig<TContext, TEvent> & { delay: number }>;
 
@@ -258,24 +256,12 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
     | string
     | number
     | StateNode<TContext>
-    | TransitionConfig<
-        TContext,
-        TEvent extends { type: K } ? TEvent : EventObject
-      >
-    | Array<
-        TransitionConfig<
-          TContext,
-          TEvent extends { type: K } ? TEvent : EventObject
-        >
-      >
+    | SingleOrArray<TransitionConfig<TContext, Extract<TEvent, { type: K }>>>
 };
 
 export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]: Array<
-    TransitionDefinition<
-      TContext,
-      TEvent extends { type: K } ? TEvent : EventObject
-    >
+    TransitionDefinition<TContext, Extract<TEvent, { type: K }>>
   >
 };
 
@@ -385,10 +371,7 @@ export interface StateNodeConfig<
    *
    * This is equivalent to defining a `[done(id)]` transition on this state node's `on` property.
    */
-  onDone?:
-    | string
-    | TransitionConfig<TContext, DoneEventObject>
-    | Array<TransitionConfig<TContext, DoneEventObject>>;
+  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
   /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
