@@ -1,7 +1,7 @@
 {
   "name": "xstate",
   "version": "4.3.2",
-  "description": "Simple JavaScript Finite State Machines and Statecharts",
+  "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "lib/index.js",
   "module": "es/index.js",
   "types": "lib/index.d.ts",
@@ -60,6 +60,7 @@
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
     "chai": "^4.2.0",
+    "lerna": "^3.10.7",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mocha": "^3.5.3",
     "prettier": "^1.15.2",
@@ -77,6 +78,5 @@
     "typescript": "3.0.3",
     "vuepress": "^0.14.5",
     "xml-js": "^1.6.8"
-  },
-  "dependencies": {}
+  }
 }

@@ -1,0 +1,14 @@
+{
+  "name": "@xstate/core",
+  "version": "4.3.2",
+  "description": "Finite State Machines and Statecharts for the Modern Web.",
+  "main": "index.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "author": "David Khourshid",
+  "license": "MIT",
+  "dependencies": {
+    "xstate": "4.3.2"
+  }
+}
