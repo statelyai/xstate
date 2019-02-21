@@ -1,13 +1,37 @@
 {
   "name": "@xstate/graph",
-  "description": "Finite State Machines and Statecharts for the Modern Web.",
-  "main": "index.js",
-  "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
-  },
-  "author": "David Khourshid",
+  "version": "0.0.1",
+  "description": "XState graph utilities",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
   "dependencies": {
-    "xstate": "4.3.2"
+    "xstate": "^4.3.2"
+  },
+  "devDependencies": {
+    "ts-node": "^8.0.2",
+    "typescript": "^3.3.3"
   }
 }
