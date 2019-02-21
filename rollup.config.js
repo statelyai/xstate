@@ -3,7 +3,7 @@ import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
 
-const createConfig = ({ input, output }) => ({
+const createConfig = ({ input, output, target }) => ({
   input,
   output,
   plugins: [
@@ -14,11 +14,14 @@ const createConfig = ({ input, output }) => ({
       clean: true,
       tsconfigOverride: {
         compilerOptions: {
-          declaration: false
+          declaration: false,
+          ...(target ? { target } : {})
         }
       }
     }),
-    terser(),
+    terser({
+      toplevel: true,
+    }),
     fileSize()
   ]
 });
@@ -47,5 +50,13 @@ export default [
       format: 'umd',
       name: 'XStateInterpreter'
     }
+  }),
+  createConfig({
+    input: 'src/index.ts',
+    output: {
+      file: 'dist/xstate.web.js',
+      format: 'esm'
+    },
+    target: 'ES2015'
   })
 ];
