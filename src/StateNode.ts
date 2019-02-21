@@ -11,7 +11,8 @@ import {
   nestedPath,
   toArray,
   keys,
-  isBuiltInEvent
+  isBuiltInEvent,
+  partition
 } from './utils';
 import {
   Event,
@@ -51,7 +52,8 @@ import {
   ActionObject,
   Mapper,
   PropertyMapper,
-  SendAction
+  SendAction,
+  BuiltInEvent
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -1109,21 +1111,18 @@ class StateNode<
         )
       : {};
 
-    const raisedEvents = actions.filter(
-      action =>
+    const [raisedEvents, otherActions] = partition(
+      actions,
+      (action): action is BuiltInEvent<TEvent> =>
         action.type === actionTypes.raise ||
         action.type === actionTypes.nullEvent
-    ) as Array<RaisedEvent<TEvent> | { type: ActionTypes.NullEvent }>;
-
-    const nonEventActions = actions.filter(
-      action =>
-        action.type !== actionTypes.raise &&
-        action.type !== actionTypes.nullEvent &&
-        action.type !== actionTypes.assign
     );
-    const assignActions = actions.filter(
-      action => action.type === actionTypes.assign
-    ) as Array<AssignAction<TContext, TEvent>>;
+
+    const [assignActions, nonEventActions] = partition(
+      otherActions,
+      (action): action is AssignAction<TContext, TEvent> =>
+        action.type === actionTypes.assign
+    );
 
     const updatedContext = StateNode.updateContext(
       currentState.context,
