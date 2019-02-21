@@ -1,6 +1,5 @@
 {
-  "name": "@xstate/core",
-  "version": "4.3.2",
+  "name": "@xstate/graph",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "index.js",
   "scripts": {
