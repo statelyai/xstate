@@ -12,7 +12,9 @@ import {
   toArray,
   keys,
   isBuiltInEvent,
-  partition
+  partition,
+  updateHistoryValue,
+  updateContext
 } from './utils';
 import {
   Event,
@@ -967,9 +969,7 @@ class StateNode<
   private resolveActivity(
     activity: Activity<TContext, TEvent>
   ): ActivityDefinition<TContext, TEvent> {
-    const activityDefinition = toActivityDefinition(activity);
-
-    return activityDefinition;
+    return toActivityDefinition(activity);
   }
   private getActivities(
     entryExitStates?: EntryExitStates<TContext>,
@@ -1107,7 +1107,7 @@ class StateNode<
         action.type === actionTypes.assign
     );
 
-    const updatedContext = StateNode.updateContext(
+    const updatedContext = updateContext(
       currentState.context,
       eventObject,
       assignActions
@@ -1148,7 +1148,7 @@ class StateNode<
           context: updatedContext,
           event: eventObject || initEvent,
           historyValue: historyValue
-            ? StateNode.updateHistoryValue(historyValue, resolvedStateValue)
+            ? updateHistoryValue(historyValue, resolvedStateValue)
             : undefined,
           history: stateTransition.source ? currentState : undefined,
           actions: resolvedActions,
@@ -1203,42 +1203,7 @@ class StateNode<
 
     return maybeNextState;
   }
-  private static updateContext<TContext, TEvent extends EventObject>(
-    context: TContext,
-    event: OmniEventObject<TEvent> | undefined,
-    assignActions: Array<AssignAction<TContext, TEvent>>
-  ): TContext {
-    const updatedContext = context
-      ? assignActions.reduce((acc, assignAction) => {
-          const { assignment } = assignAction as AssignAction<
-            TContext,
-            OmniEventObject<TEvent>
-          >;
 
-          let partialUpdate: Partial<TContext> = {};
-
-          if (typeof assignment === 'function') {
-            partialUpdate = assignment(
-              acc,
-              event || { type: ActionTypes.Init }
-            );
-          } else {
-            keys(assignment).forEach(key => {
-              const propAssignment = assignment[key];
-
-              partialUpdate[key] =
-                typeof propAssignment === 'function'
-                  ? propAssignment(acc, event)
-                  : propAssignment;
-            });
-          }
-
-          return Object.assign({}, acc, partialUpdate);
-        }, context)
-      : context;
-
-    return updatedContext;
-  }
   private ensureValidPaths(paths: string[][]): void {
     const visitedParents = new Map<
       StateNode<TContext>,
@@ -1360,13 +1325,11 @@ class StateNode<
         return mapValues(
           this.initialStateValue as Record<string, StateValue>,
           (subStateValue, subStateKey) => {
-            const sv = subStateValue
+            return subStateValue
               ? this.getStateNode(subStateKey).resolve(
                   stateValue[subStateKey] || subStateValue
                 )
               : EMPTY_OBJECT;
-
-            return sv;
           }
         );
 
@@ -1482,11 +1445,7 @@ class StateNode<
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvent>>;
 
-    const updatedContext = StateNode.updateContext(
-      context,
-      undefined,
-      assignActions
-    );
+    const updatedContext = updateContext(context, undefined, assignActions);
 
     const initialNextState = new State<TContext, TEvent>({
       value: stateValue,
@@ -1663,37 +1622,7 @@ class StateNode<
       historyValue
     );
   }
-  private static updateHistoryStates(
-    hist: HistoryValue,
-    stateValue: StateValue
-  ): Record<string, HistoryValue | undefined> {
-    return mapValues(hist.states, (subHist, key) => {
-      if (!subHist) {
-        return undefined;
-      }
-      const subStateValue =
-        (typeof stateValue === 'string' ? undefined : stateValue[key]) ||
-        (subHist ? subHist.current : undefined);
 
-      if (!subStateValue) {
-        return undefined;
-      }
-
-      return {
-        current: subStateValue,
-        states: StateNode.updateHistoryStates(subHist, subStateValue)
-      };
-    });
-  }
-  private static updateHistoryValue(
-    hist: HistoryValue,
-    stateValue: StateValue
-  ): HistoryValue {
-    return {
-      current: stateValue,
-      states: StateNode.updateHistoryStates(hist, stateValue)
-    };
-  }
   private historyValue(
     relativeStateValue?: StateValue | undefined
   ): HistoryValue | undefined {

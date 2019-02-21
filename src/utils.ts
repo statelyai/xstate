@@ -8,7 +8,10 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  ActionTypes
+  ActionTypes,
+  HistoryValue,
+  OmniEventObject,
+  AssignAction
 } from './types';
 import { STATE_DELIMITER } from './constants';
 
@@ -341,4 +344,71 @@ export function partition<T, A extends T, B extends T>(
     },
     [[], []] as [A[], B[]]
   );
+}
+
+export function updateHistoryStates(
+  hist: HistoryValue,
+  stateValue: StateValue
+): Record<string, HistoryValue | undefined> {
+  return mapValues(hist.states, (subHist, key) => {
+    if (!subHist) {
+      return undefined;
+    }
+    const subStateValue =
+      (typeof stateValue === 'string' ? undefined : stateValue[key]) ||
+      (subHist ? subHist.current : undefined);
+
+    if (!subStateValue) {
+      return undefined;
+    }
+
+    return {
+      current: subStateValue,
+      states: updateHistoryStates(subHist, subStateValue)
+    };
+  });
+}
+
+export function updateHistoryValue(
+  hist: HistoryValue,
+  stateValue: StateValue
+): HistoryValue {
+  return {
+    current: stateValue,
+    states: updateHistoryStates(hist, stateValue)
+  };
+}
+
+export function updateContext<TContext, TEvent extends EventObject>(
+  context: TContext,
+  event: OmniEventObject<TEvent> | undefined,
+  assignActions: Array<AssignAction<TContext, TEvent>>
+): TContext {
+  const updatedContext = context
+    ? assignActions.reduce((acc, assignAction) => {
+        const { assignment } = assignAction as AssignAction<
+          TContext,
+          OmniEventObject<TEvent>
+        >;
+
+        let partialUpdate: Partial<TContext> = {};
+
+        if (typeof assignment === 'function') {
+          partialUpdate = assignment(acc, event || { type: ActionTypes.Init });
+        } else {
+          keys(assignment).forEach(key => {
+            const propAssignment = assignment[key];
+
+            partialUpdate[key] =
+              typeof propAssignment === 'function'
+                ? propAssignment(acc, event)
+                : propAssignment;
+          });
+        }
+
+        return Object.assign({}, acc, partialUpdate);
+      }, context)
+    : context;
+
+  return updatedContext;
 }
