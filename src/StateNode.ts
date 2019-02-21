@@ -505,6 +505,13 @@ class StateNode<
     return this.events.indexOf(eventType) !== -1;
   }
 
+  /**
+   * Resolves the given `state` to a new `State` instance relative to this machine.
+   *
+   * This ensures that `.events` and `.nextEvents` represent the correct values.
+   *
+   * @param state The state to resolve
+   */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
     const tree = this.getStateTree(state.value);
     const value = this.resolve(state.value);
@@ -526,18 +533,13 @@ class StateNode<
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>,
-    context?: TContext
+    eventObject: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     const stateNode = this.getStateNode(stateValue);
-    const next = stateNode.next(state, eventObject, context);
+    const next = stateNode.next(state, eventObject);
 
     if (!next.tree) {
-      const { reentryStates, actions, tree } = this.next(
-        state,
-        eventObject,
-        context
-      );
+      const { reentryStates, actions, tree } = this.next(state, eventObject);
 
       return {
         tree,
@@ -552,8 +554,7 @@ class StateNode<
   private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>,
-    context?: TContext
+    eventObject: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     const subStateKeys = keys(stateValue);
 
@@ -561,16 +562,11 @@ class StateNode<
     const next = stateNode._transition(
       stateValue[subStateKeys[0]],
       state,
-      eventObject,
-      context
+      eventObject
     );
 
     if (!next.tree) {
-      const { reentryStates, actions, tree } = this.next(
-        state,
-        eventObject,
-        context
-      );
+      const { reentryStates, actions, tree } = this.next(state, eventObject);
 
       return {
         tree,
@@ -585,8 +581,7 @@ class StateNode<
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>,
-    context?: TContext
+    eventObject: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
@@ -600,12 +595,7 @@ class StateNode<
 
       const subStateNode = this.getStateNode(subStateKey);
 
-      const next = subStateNode._transition(
-        subStateValue,
-        state,
-        eventObject,
-        context
-      );
+      const next = subStateNode._transition(subStateValue, state, eventObject);
 
       if (!next.tree) {
         noTransitionKeys.push(subStateKey);
@@ -619,11 +609,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const { reentryStates, actions, tree } = this.next(
-        state,
-        eventObject,
-        context
-      );
+      const { reentryStates, actions, tree } = this.next(state, eventObject);
 
       return {
         tree,
@@ -707,26 +693,24 @@ class StateNode<
   private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvent>,
-    event: OmniEventObject<TEvent>,
-    context?: TContext
+    event: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     // leaf node
     if (typeof stateValue === 'string') {
-      return this.transitionLeafNode(stateValue, state, event, context);
+      return this.transitionLeafNode(stateValue, state, event);
     }
 
     // hierarchical node
     if (keys(stateValue).length === 1) {
-      return this.transitionCompoundNode(stateValue, state, event, context);
+      return this.transitionCompoundNode(stateValue, state, event);
     }
 
     // orthogonal node
-    return this.transitionParallelNode(stateValue, state, event, context);
+    return this.transitionParallelNode(stateValue, state, event);
   }
   private next(
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>,
-    context?: TContext
+    eventObject: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     const eventType = eventObject.type;
     const candidates = this.on[eventType];
@@ -751,7 +735,7 @@ class StateNode<
         TContext,
         TEvent
       >;
-      const resolvedContext = context || (EMPTY_OBJECT as TContext);
+      const resolvedContext = state.context;
 
       const isInState = stateIn
         ? typeof stateIn === 'string' && isStateId(stateIn)
@@ -1054,8 +1038,7 @@ class StateNode<
     const stateTransition = this._transition(
       currentState.value,
       currentState,
-      eventObject,
-      resolvedContext
+      eventObject
     );
 
     const resolvedStateTransition: StateTransition<TContext, TEvent> = {
