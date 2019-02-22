@@ -41,7 +41,7 @@ export function getEventEdges<
   return flatten(
     transitions.map(transition => {
       const targets = transition.target
-        ? ([] as string[]).concat(transition.target)
+        ? ([] as string[]).concat(transition.target as any)
         : undefined;
 
       if (!targets) {

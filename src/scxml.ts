@@ -88,7 +88,7 @@ function stateNodeToSCXML(stateNode: StateNode) {
                   ...(target
                     ? {
                         target: stateNode.parent!.getRelativeStateNodes(
-                          target
+                          target as any
                         )[0]!.id
                       }
                     : undefined), // TODO: fixme

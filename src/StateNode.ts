@@ -95,7 +95,8 @@ export const IS_PRODUCTION =
 class StateNode<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>
+  TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>,
+  TParentSchema extends StateSchema = any
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -197,7 +198,12 @@ class StateNode<
   private idMap: Record<string, StateNode<TContext>> = {};
 
   constructor(
-    private _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
+    private _config: StateNodeConfig<
+      TContext,
+      TStateSchema,
+      TEvent,
+      TParentSchema
+    >,
     public options: MachineOptions<TContext, TEvent> = createDefaultOptions<
       TContext
     >(),
@@ -344,14 +350,19 @@ class StateNode<
    */
   public withContext(
     context: TContext
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): StateNode<TContext, TStateSchema, TEvent, TParentSchema> {
     return new StateNode(this.definition, this.options, context);
   }
 
   /**
    * The well-structured state node definition.
    */
-  public get definition(): StateNodeDefinition<TContext, TStateSchema, TEvent> {
+  public get definition(): StateNodeDefinition<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TParentSchema
+  > {
     return {
       id: this.id,
       key: this.key,
@@ -1874,7 +1885,8 @@ class StateNode<
 
         return [
           this.formatTransition(
-            (value as TransitionConfig<TContext, TEvent>).target,
+            (value as TransitionConfig<TContext, TEvent, TParentSchema>)
+              .target as any,
             value,
             event
           )
