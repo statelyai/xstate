@@ -89,8 +89,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: EMPTY_OBJECT
 });
 
-export const IS_PRODUCTION =
-  typeof process !== 'undefined' ? process.env.NODE_ENV === 'production' : true;
+export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 class StateNode<
   TContext = DefaultContext,
