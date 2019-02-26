@@ -19,6 +19,10 @@ const wordMachine = Machine({
         // internal transitions
         LEFT_CLICK: '.left',
         RIGHT_CLICK: '.right',
+        RIGHT_CLICK_EXTERNAL: {
+          target: '.right',
+          internal: false
+        },
         CENTER_CLICK: '.center',
         JUSTIFY_CLICK: '.justify',
         RESET: 'direction', // explicit self-transition
@@ -57,10 +61,28 @@ describe('internal transitions', () => {
 
     assert.deepEqual(nextState.value, { direction: 'right' });
     assert.lengthOf(
-      nextState.actions.map(a => a.type),
+      nextState.actions,
       0,
       'should not have onEntry or onExit actions'
     );
+  });
+
+  it('parent state should re-enter self upon transitioning to child state if internal is false', () => {
+    const nextState = wordMachine.transition(
+      wordMachine.initialState,
+      'RIGHT_CLICK_EXTERNAL'
+    );
+
+    assert.deepEqual(nextState.value, { direction: 'right' });
+    assert.lengthOf(
+      nextState.actions,
+      2,
+      'should have onEntry and onExit actions'
+    );
+    assert.deepEqual(nextState.actions.map(a => a.type), [
+      'EXIT_DIRECTION',
+      'ENTER_DIRECTION'
+    ]);
   });
 
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {

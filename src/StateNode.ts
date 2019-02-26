@@ -1755,7 +1755,7 @@ class StateNode<
     transitionConfig: TransitionConfig<TContext, TEvent> | undefined,
     event: string
   ): TransitionDefinition<TContext, TEvent> {
-    let internal = transitionConfig ? transitionConfig.internal : false;
+    let internal = transitionConfig ? transitionConfig.internal : undefined;
 
     // Check if there is no target (targetless)
     // An undefined transition signals that the state node should not transition from that event.
@@ -1768,11 +1768,7 @@ class StateNode<
             )
           : [],
         target: undefined,
-        internal: transitionConfig
-          ? transitionConfig.internal === undefined
-            ? true
-            : transitionConfig.internal
-          : true,
+        internal: internal === undefined ? true : internal,
         event
       };
     }
@@ -1787,7 +1783,7 @@ class StateNode<
 
       const isInternalTarget =
         typeof _target === 'string' && _target[0] === this.delimiter;
-      internal = internal || isInternalTarget;
+      internal = internal === undefined ? isInternalTarget : internal;
 
       // If internal target is defined on machine,
       // do not include machine key on target
