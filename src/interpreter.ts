@@ -688,8 +688,10 @@ export class Interpreter<
         }
       })
       .catch(errorData => {
-        // Send "error.execution" to this (parent).
-        this.send(error(errorData, id));
+        if (!canceled) {
+          // Send "error.execution" to this (parent).
+          this.send(error(errorData, id));
+        }
       });
 
     this.children.set(id, {
