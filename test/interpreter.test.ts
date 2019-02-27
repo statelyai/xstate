@@ -74,7 +74,9 @@ describe('interpreter', () => {
 
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
-      const service = interpret(lightMachine, {clock: new SimulatedClock()}).start();
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).start();
 
       const nextState = service.nextState('TIMER');
       assert.equal(nextState.value, 'yellow');
@@ -303,7 +305,7 @@ describe('interpreter', () => {
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const service = interpret(lightMachine, {clock: new SimulatedClock()});
+    const service = interpret(lightMachine, { clock: new SimulatedClock() });
 
     assert.throws(() => service.send('SOME_EVENT'));
 
@@ -339,7 +341,9 @@ describe('interpreter', () => {
 
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
-    const service = interpret(lightMachine, {clock: new SimulatedClock()}).onTransition(s => (state = s));
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock()
+    }).onTransition(s => (state = s));
 
     service.start();
     service.send('TIMER'); // yellow
@@ -546,6 +550,31 @@ describe('interpreter', () => {
           assert.isFalse(effect);
         })
         .start();
+    });
+  });
+
+  describe('stop()', () => {
+    it('should cancel delayed events', done => {
+      const delayedMachine = Machine({
+        id: 'delayed',
+        initial: 'foo',
+        states: {
+          foo: {
+            after: {
+              50: 'bar'
+            }
+          },
+          bar: {}
+        }
+      });
+
+      const delayedService = interpret(delayedMachine).start();
+
+      delayedService.stop();
+      // Error will be thrown before this is called if delayed event is sent
+      setTimeout(() => {
+        done();
+      }, 100);
     });
   });
 });

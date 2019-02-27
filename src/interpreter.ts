@@ -391,6 +391,11 @@ export class Interpreter<
       }
     });
 
+    // Cancel all delayed events
+    Object.keys(this.delayedEventsMap).forEach(key => {
+      this.clock.clearTimeout(this.delayedEventsMap[key]);
+    });
+
     this.initialized = false;
 
     return this;
