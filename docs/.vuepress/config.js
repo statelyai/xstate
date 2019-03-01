@@ -60,7 +60,7 @@ module.exports = {
       },
       {
         title: 'Examples',
-        children: ['/examples/todomvc']
+        children: ['/examples/todomvc', '/examples/calculator']
       }
     ]
   }
