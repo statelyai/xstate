@@ -59,13 +59,24 @@
 					<a href="pathsitem.html">PathsItem</a>
 				</li>
 			</ul>
-			<h1>Interface PathsItem</h1>
+			<h1>Interface PathsItem&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>TContext</h4>
+					</li>
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -93,22 +104,33 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="paths" class="tsd-anchor"></a>
 					<h3>paths</h3>
-					<div class="tsd-signature tsd-kind-icon">paths<span class="tsd-signature-symbol">:</span> <a href="segment.html" class="tsd-signature-type">Segment</a><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">[]</span></div>
+					<div class="tsd-signature tsd-kind-icon">paths<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="segment.html" class="tsd-signature-type">Segment</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/a3e9787/src/types.ts#L788">types.ts:788</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/42debad/src/types.ts#L771">types.ts:771</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="state" class="tsd-anchor"></a>
 					<h3>state</h3>
-					<div class="tsd-signature tsd-kind-icon">state<span class="tsd-signature-symbol">:</span> <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></div>
+					<div class="tsd-signature tsd-kind-icon">state<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/a3e9787/src/types.ts#L787">types.ts:787</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/42debad/src/types.ts#L767">types.ts:767</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter">
+								<h5>context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TContext</span></h5>
+							</li>
+							<li class="tsd-parameter">
+								<h5>value<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h5>
+							</li>
+						</ul>
+					</div>
 				</section>
 			</section>
 		</div>
@@ -124,7 +146,7 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-is-external">
+					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="pathsitem.html" class="tsd-kind-icon">Paths<wbr>Item</a>
 						<ul>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">

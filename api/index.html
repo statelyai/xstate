@@ -84,12 +84,12 @@
 				<p><a href="./migration.md"><strong>Version 3.x to 4 Migration Guide</strong></a></p>
 				<h2 id="super-quick-start">Super quick start</h2>
 				<pre><code class="language-bash">npm i xstate -S</code></pre>
-				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
-<span class="hljs-keyword">import</span> { interpret } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate/lib/interpreter'</span>; <span class="hljs-comment">// or use your own interpreter!</span>
+				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine, interpret } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
 
 <span class="hljs-comment">// Stateless machine definition</span>
 <span class="hljs-comment">// machine.transition(...) is a pure function used by the interpreter.</span>
 <span class="hljs-keyword">const</span> toggleMachine = Machine({
+  <span class="hljs-attr">id</span>: <span class="hljs-string">'toggle'</span>,
   <span class="hljs-attr">initial</span>: <span class="hljs-string">'inactive'</span>,
   <span class="hljs-attr">states</span>: {
     <span class="hljs-attr">inactive</span>: { <span class="hljs-attr">on</span>: { <span class="hljs-attr">TOGGLE</span>: <span class="hljs-string">'active'</span> } },
@@ -492,16 +492,16 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/parallelmachineconfig.html" class="tsd-kind-icon">Parallel<wbr>Machine<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/pathitem.html" class="tsd-kind-icon">Path<wbr>Item</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/pathmap.html" class="tsd-kind-icon">Path<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/pathsitem.html" class="tsd-kind-icon">Paths<wbr>Item</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
 						<a href="interfaces/pathsmap.html" class="tsd-kind-icon">Paths<wbr>Map</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
@@ -693,6 +693,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#statenodesconfig" class="tsd-kind-icon">State<wbr>Nodes<wbr>Config</a>
 					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#statepatterntuple" class="tsd-kind-icon">State<wbr>Pattern<wbr>Tuple</a>
+					</li>
 					<li class=" tsd-kind-type-alias tsd-is-external">
 						<a href="globals.html#statetypes" class="tsd-kind-icon">State<wbr>Types</a>
 					</li>
@@ -713,6 +716,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#transitionsdefinition" class="tsd-kind-icon">Transitions<wbr>Definition</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#valuefromstategetter" class="tsd-kind-icon">Value<wbr>From<wbr>State<wbr>Getter</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-is-external">
 						<a href="globals.html#empty_activity_map" class="tsd-kind-icon">EMPTY_<wbr>ACTIVITY_<wbr>MAP</a>
@@ -834,11 +840,17 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#mapvalues" class="tsd-kind-icon">map<wbr>Values</a>
 					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#matchstate" class="tsd-kind-icon">match<wbr>State</a>
+					</li>
 					<li class=" tsd-kind-function tsd-is-external">
 						<a href="globals.html#matchesstate" class="tsd-kind-icon">matches<wbr>State</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#nestedpath" class="tsd-kind-icon">nested<wbr>Path</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#partition" class="tsd-kind-icon">partition</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
 						<a href="globals.html#path" class="tsd-kind-icon">path</a>
@@ -881,6 +893,15 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-function tsd-is-external">
 						<a href="globals.html#tostatevalue" class="tsd-kind-icon">to<wbr>State<wbr>Value</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+						<a href="globals.html#updatecontext" class="tsd-kind-icon">update<wbr>Context</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-external">
+						<a href="globals.html#updatehistorystates" class="tsd-kind-icon">update<wbr>History<wbr>States</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-external">
+						<a href="globals.html#updatehistoryvalue" class="tsd-kind-icon">update<wbr>History<wbr>Value</a>
 					</li>
 					<li class=" tsd-kind-object-literal tsd-is-not-exported">
 						<a href="globals.html#actions" class="tsd-kind-icon">actions</a>
