@@ -90,7 +90,7 @@ export interface HistoryValue {
 export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
-  microstepState: StateValue
+  meta: GuardMeta<TContext, TEvent>
 ) => boolean;
 
 export interface GuardPredicate<TContext, TEvent extends EventObject> {
@@ -100,10 +100,14 @@ export interface GuardPredicate<TContext, TEvent extends EventObject> {
 
 export type Guard<TContext, TEvent extends EventObject> =
   | GuardPredicate<TContext, TEvent>
-  | {
+  | Record<string, any> & {
       type: string;
-      [key: string]: string;
     };
+
+export interface GuardMeta<TContext, TEvent extends EventObject>
+  extends StateMeta<TContext, TEvent> {
+  cond: Guard<TContext, TEvent>;
+}
 
 export type Condition<TContext, TEvent extends EventObject> =
   | string
@@ -799,6 +803,10 @@ export interface AdjacencyMap {
 
 export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<string, State<TContext, TEvent>>;
+}
+
+export interface StateMeta<TContext, TEvent extends EventObject> {
+  state: State<TContext, TEvent>;
 }
 
 export interface StateInterface<

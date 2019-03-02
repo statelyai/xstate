@@ -1,4 +1,4 @@
-import { Machine, matchesState } from '../src/index';
+import { Machine } from '../src/index';
 import { assert } from 'chai';
 import { assign } from '../src/actions';
 
@@ -269,7 +269,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'B2',
-                  cond: (_xs, _e, cs) => matchesState('A.A2', cs)
+                  cond: (_xs, _e, { state: s }) => s.matches('A.A2')
                 }
               }
             },

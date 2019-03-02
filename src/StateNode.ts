@@ -57,7 +57,8 @@ import {
   SendAction,
   BuiltInEvent,
   Guard,
-  GuardPredicate
+  GuardPredicate,
+  GuardMeta
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -760,12 +761,7 @@ class StateNode<
 
       if (
         (!cond ||
-          this.evaluateGuard(
-            cond,
-            resolvedContext,
-            eventObject,
-            state.value
-          )) &&
+          this.evaluateGuard(cond, resolvedContext, eventObject, state)) &&
         isInState
       ) {
         nextStateStrings = toArray(candidate.target);
@@ -879,17 +875,21 @@ class StateNode<
     guard: Guard<TContext, TEvent>,
     context: TContext,
     eventObject: OmniEventObject<TEvent>,
-    interimState: StateValue
+    state: State<TContext, TEvent>
   ): boolean {
     let condFn: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
     const { guards } = this.machine.options;
+    const guardMeta: GuardMeta<TContext, TEvent> = {
+      state,
+      cond: guard
+    };
 
     // TODO: do not hardcode!
     if (guard.type === 'xstate.cond') {
       return (guard as GuardPredicate<TContext, TEvent>).predicate(
         context,
         eventObject,
-        interimState
+        guardMeta
       );
     }
 
@@ -903,7 +903,7 @@ class StateNode<
 
     condFn = guards[guard.type];
 
-    return condFn(context, eventObject, interimState);
+    return condFn(context, eventObject, guardMeta);
   }
 
   private toGuard(

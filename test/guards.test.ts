@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, matchesState } from '../src/index';
+import { Machine } from '../src/index';
 
 describe('guard conditions', () => {
   // type LightMachineEvents =
@@ -166,29 +166,25 @@ describe('guard conditions', () => {
               T1: [
                 {
                   target: 'B1',
-                  cond: (_state, _event, interim) =>
-                    matchesState('A.A1', interim)
+                  cond: (_state, _event, { state: s }) => s.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  cond: (_state, _event, interim) =>
-                    matchesState('A.A2', interim)
+                  cond: (_state, _event, { state: s }) => s.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  cond: (_state, _event, interim) =>
-                    matchesState('A.A3', interim)
+                  cond: (_state, _event, { state: s }) => s.matches('A.A3')
                 }
               ],
               '': [
                 {
                   target: 'B4',
-                  cond: (_state, _event, interim) =>
-                    matchesState('A.A4', interim)
+                  cond: (_state, _event, { state: s }) => s.matches('A.A4')
                 }
               ]
             }
@@ -221,5 +217,61 @@ describe('guard conditions', () => {
       A: 'A5',
       B: 'B4'
     });
+  });
+});
+
+describe('custom guards', () => {
+  const machine = Machine(
+    {
+      id: 'custom',
+      initial: 'inactive',
+      context: {
+        count: 0
+      },
+      states: {
+        inactive: {
+          on: {
+            EVENT: {
+              target: 'active',
+              cond: {
+                type: 'custom',
+                prop: 'count',
+                op: 'greaterThan',
+                compare: 3
+              }
+            }
+          }
+        },
+        active: {}
+      }
+    },
+    {
+      guards: {
+        custom: (ctx, e, meta) => {
+          const { prop, compare, op } = meta.cond as any;
+          if (op === 'greaterThan') {
+            return ctx[prop] + e.value > compare;
+          }
+
+          return false;
+        }
+      }
+    }
+  );
+
+  it('should evaluate custom guards', () => {
+    const passState = machine.transition(machine.initialState, {
+      type: 'EVENT',
+      value: 4
+    });
+
+    assert.equal(passState.value, 'active');
+
+    const failState = machine.transition(machine.initialState, {
+      type: 'EVENT',
+      value: 3
+    });
+
+    assert.equal(failState.value, 'inactive');
   });
 });
