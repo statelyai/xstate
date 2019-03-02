@@ -93,9 +93,22 @@ export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   microstepState: StateValue
 ) => boolean;
 
+export interface GuardPredicate<TContext, TEvent extends EventObject> {
+  type: 'xstate.cond';
+  predicate: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
+}
+
+export type Guard<TContext, TEvent extends EventObject> =
+  | GuardPredicate<TContext, TEvent>
+  | {
+      type: string;
+      [key: string]: string;
+    };
+
 export type Condition<TContext, TEvent extends EventObject> =
   | string
-  | ConditionPredicate<TContext, TEvent>;
+  | ConditionPredicate<TContext, TEvent>
+  | Guard<TContext, TEvent>;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
@@ -708,6 +721,7 @@ export interface AssignAction<TContext, TEvent extends EventObject>
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
   actions: Array<ActionObject<TContext, TEvent>>;
+  cond?: Guard<TContext, TEvent>;
   event: string;
   delay?: number;
 }

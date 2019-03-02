@@ -34,6 +34,12 @@ describe('guard conditions', () => {
             TIMER: {
               target: 'red',
               cond: 'minTimeElapsed'
+            },
+            TIMER_COND_OBJ: {
+              target: 'red',
+              cond: {
+                type: 'minTimeElapsed'
+              }
             }
           }
         },
@@ -92,6 +98,13 @@ describe('guard conditions', () => {
 
   it('should work with defined string transitions', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER', {
+      elapsed: 150
+    });
+    assert.equal(nextState.value, 'red');
+  });
+
+  it('should work with guard objects', () => {
+    const nextState = lightMachine.transition('yellow', 'TIMER_COND_OBJ', {
       elapsed: 150
     });
     assert.equal(nextState.value, 'red');

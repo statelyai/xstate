@@ -55,7 +55,9 @@ import {
   Mapper,
   PropertyMapper,
   SendAction,
-  BuiltInEvent
+  BuiltInEvent,
+  Guard,
+  GuardPredicate
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -414,13 +416,18 @@ class StateNode<
       return afterConfig.map(delayedTransition => ({
         event: after(delayedTransition.delay, this.id),
         ...delayedTransition,
+        cond: delayedTransition.cond
+          ? this.toGuard(delayedTransition.cond)
+          : undefined,
         actions: toArray(delayedTransition.actions).map(action =>
           toActionObject(action)
         )
       }));
     }
 
-    const allDelayedTransitions = flatten(
+    const allDelayedTransitions = flatten<
+      DelayedTransitionDefinition<TContext, TEvent>
+    >(
       keys(afterConfig).map(delayKey => {
         const delayedTransition = (afterConfig as Record<
           string,
@@ -440,6 +447,7 @@ class StateNode<
           event,
           delay,
           ...transition,
+          cond: transition.cond ? this.toGuard(transition.cond) : undefined,
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
           )
@@ -714,7 +722,9 @@ class StateNode<
     eventObject: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     const eventType = eventObject.type;
-    const candidates = this.on[eventType];
+    const candidates: Array<TransitionDefinition<TContext, TEvent>> = this.on[
+      eventType
+    ];
     const actions: Array<ActionObject<TContext, TEvent>> = this.transient
       ? [{ type: actionTypes.nullEvent }]
       : [];
@@ -732,10 +742,7 @@ class StateNode<
     let selectedTransition: unknown;
 
     for (const candidate of candidates) {
-      const { cond, in: stateIn } = candidate as TransitionConfig<
-        TContext,
-        TEvent
-      >;
+      const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
       const isInState = stateIn
@@ -869,7 +876,7 @@ class StateNode<
     return true;
   }
   private evaluateGuard(
-    condition: Condition<TContext, TEvent>,
+    guard: Guard<TContext, TEvent>,
     context: TContext,
     eventObject: OmniEventObject<TEvent>,
     interimState: StateValue
@@ -877,21 +884,45 @@ class StateNode<
     let condFn: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
     const { guards } = this.machine.options;
 
-    if (typeof condition === 'string') {
-      if (!guards || !guards[condition]) {
-        throw new Error(
-          `Condition '${condition}' is not implemented on machine '${
-            this.machine.id
-          }'.`
-        );
-      }
-
-      condFn = guards[condition];
-    } else {
-      condFn = condition;
+    // TODO: do not hardcode!
+    if (guard.type === 'xstate.cond') {
+      return (guard as GuardPredicate<TContext, TEvent>).predicate(
+        context,
+        eventObject,
+        interimState
+      );
     }
 
+    if (!guards || !guards[guard.type]) {
+      throw new Error(
+        `Guard (condition) '${guard.type}' is not implemented on machine '${
+          this.machine.id
+        }'.`
+      );
+    }
+
+    condFn = guards[guard.type];
+
     return condFn(context, eventObject, interimState);
+  }
+
+  private toGuard(
+    condition: Condition<TContext, TEvent>
+  ): Guard<TContext, TEvent> {
+    if (typeof condition === 'string') {
+      return {
+        type: condition
+      };
+    }
+
+    if (typeof condition === 'function') {
+      return {
+        type: 'xstate.cond',
+        predicate: condition
+      };
+    }
+
+    return condition;
   }
 
   /**
@@ -1767,6 +1798,11 @@ class StateNode<
               toActionObject(action)
             )
           : [],
+        cond: transitionConfig
+          ? transitionConfig.cond
+            ? this.toGuard(transitionConfig.cond)
+            : undefined
+          : undefined,
         target: undefined,
         internal: internal === undefined ? true : internal,
         event
@@ -1801,6 +1837,11 @@ class StateNode<
             toActionObject(action)
           )
         : [],
+      cond: transitionConfig
+        ? transitionConfig.cond
+          ? this.toGuard(transitionConfig.cond)
+          : undefined
+        : undefined,
       target: formattedTargets,
       internal,
       event
