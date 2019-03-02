@@ -248,7 +248,7 @@ describe('custom guards', () => {
     {
       guards: {
         custom: (ctx, e, meta) => {
-          const { prop, compare, op } = meta.cond as any;
+          const { prop, compare, op } = meta.cond as any; // TODO: fix
           if (op === 'greaterThan') {
             return ctx[prop] + e.value > compare;
           }
