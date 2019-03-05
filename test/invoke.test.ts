@@ -4,7 +4,8 @@ import {
   assign,
   sendParent,
   send,
-  EventObject
+  EventObject,
+  ActionTypes
 } from '../src/index';
 import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
@@ -1202,6 +1203,46 @@ describe('invoke', () => {
       });
 
       service.start();
+    });
+
+    it.only('should not invoke a service if transient', done => {
+      // Since an invocation will be canceled when the state machine leaves the
+      // invoking state, it does not make sense to start an invocation in a state
+      // that will be exited immediately
+      const transientMachine = Machine({
+        id: 'transient',
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'doNotInvoke',
+              src: async () => {
+                // do nothing
+              }
+            },
+            on: {
+              '': 'inactive'
+            }
+          },
+          inactive: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(transientMachine);
+
+      service
+        .onTransition(s => {
+          assert.isFalse(
+            !!s.actions.find(a => {
+              return a.type === ActionTypes.Start;
+            }),
+            'should not start invocation'
+          );
+        })
+        .onDone(() => done())
+        .start();
     });
   });
 });
