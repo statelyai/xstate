@@ -58,20 +58,6 @@ describe('interpreter', () => {
     assert.deepEqual(service.initialState, idMachine.initialState);
   });
 
-  describe('id', () => {
-    it('uses the ID specified in the options', () => {
-      const service = interpret(lightMachine, { id: 'custom-id' });
-
-      assert.equal(service.id, 'custom-id');
-    });
-
-    it('uses the machine ID if not specified', () => {
-      const service = interpret(lightMachine);
-
-      assert.equal(service.id, lightMachine.id);
-    });
-  });
-
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
       const service = interpret(lightMachine, {
@@ -470,89 +456,6 @@ describe('interpreter', () => {
     });
   });
 
-  describe('execute', () => {
-    it('should not execute actions if execute is false', done => {
-      let effect = false;
-
-      const machine = Machine({
-        id: 'noExecute',
-        initial: 'active',
-        states: {
-          active: {
-            type: 'final',
-            onEntry: () => {
-              effect = true;
-            }
-          }
-        }
-      });
-
-      interpret(machine, { execute: false })
-        .onDone(() => {
-          assert.isFalse(effect);
-          done();
-        })
-        .start();
-    });
-
-    it('should not execute actions if execute is true (default)', done => {
-      let effect = false;
-
-      const machine = Machine({
-        id: 'noExecute',
-        initial: 'active',
-        states: {
-          active: {
-            type: 'final',
-            onEntry: () => {
-              effect = true;
-            }
-          }
-        }
-      });
-
-      interpret(machine, { execute: true })
-        .onDone(() => {
-          assert.isTrue(effect);
-          done();
-        })
-        .start();
-    });
-
-    it('actions should be able to be executed manually with execute()', done => {
-      let effect = false;
-
-      const machine = Machine({
-        id: 'noExecute',
-        initial: 'active',
-        context: {
-          value: true
-        },
-        states: {
-          active: {
-            type: 'final',
-            onEntry: ctx => {
-              effect = ctx.value;
-            }
-          }
-        }
-      });
-
-      const service = interpret(machine, { execute: false })
-        .onTransition(state => {
-          setTimeout(() => {
-            service.execute(state);
-            assert.isTrue(effect);
-            done();
-          }, 10);
-        })
-        .onDone(() => {
-          assert.isFalse(effect);
-        })
-        .start();
-    });
-  });
-
   describe('stop()', () => {
     it('should cancel delayed events', done => {
       const delayedMachine = Machine({
@@ -575,6 +478,113 @@ describe('interpreter', () => {
       setTimeout(() => {
         done();
       }, 100);
+    });
+  });
+
+  describe('options', () => {
+    describe('execute', () => {
+      it('should not execute actions if execute is false', done => {
+        let effect = false;
+
+        const machine = Machine({
+          id: 'noExecute',
+          initial: 'active',
+          states: {
+            active: {
+              type: 'final',
+              onEntry: () => {
+                effect = true;
+              }
+            }
+          }
+        });
+
+        interpret(machine, { execute: false })
+          .onDone(() => {
+            assert.isFalse(effect);
+            done();
+          })
+          .start();
+      });
+
+      it('should not execute actions if execute is true (default)', done => {
+        let effect = false;
+
+        const machine = Machine({
+          id: 'noExecute',
+          initial: 'active',
+          states: {
+            active: {
+              type: 'final',
+              onEntry: () => {
+                effect = true;
+              }
+            }
+          }
+        });
+
+        interpret(machine, { execute: true })
+          .onDone(() => {
+            assert.isTrue(effect);
+            done();
+          })
+          .start();
+      });
+
+      it('actions should be able to be executed manually with execute()', done => {
+        let effect = false;
+
+        const machine = Machine({
+          id: 'noExecute',
+          initial: 'active',
+          context: {
+            value: true
+          },
+          states: {
+            active: {
+              type: 'final',
+              onEntry: ctx => {
+                effect = ctx.value;
+              }
+            }
+          }
+        });
+
+        const service = interpret(machine, { execute: false })
+          .onTransition(state => {
+            setTimeout(() => {
+              service.execute(state);
+              assert.isTrue(effect);
+              done();
+            }, 10);
+          })
+          .onDone(() => {
+            assert.isFalse(effect);
+          })
+          .start();
+      });
+    });
+
+    describe('id', () => {
+      it('uses the ID specified in the options', () => {
+        const service = interpret(lightMachine, { id: 'custom-id' });
+
+        assert.equal(service.id, 'custom-id');
+      });
+
+      it('uses the machine ID if not specified', () => {
+        const service = interpret(lightMachine);
+
+        assert.equal(service.id, lightMachine.id);
+      });
+    });
+
+    describe('devTools', () => {
+      it('devTools should not be connected by default', () => {
+        const service = interpret(lightMachine);
+
+        assert.isFalse(service.options.devTools);
+      });
     });
   });
 });

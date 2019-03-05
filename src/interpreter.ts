@@ -63,7 +63,7 @@ interface InterpreterOptions {
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools. Default: `true`
+   * If `true`, states and events will be logged to Redux DevTools. Default: `false`
    */
   devTools?: boolean;
 }
@@ -146,7 +146,7 @@ export class Interpreter<
       }
     },
     logger: global.console.log.bind(console),
-    devTools: true
+    devTools: false
   }))(typeof window === 'undefined' ? global : window);
   /**
    * The current state of the interpreted machine.
