@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>TargetTransitionConfig | xstate</title>
+	<title>GuardMeta | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,10 +56,10 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="targettransitionconfig.html">TargetTransitionConfig</a>
+					<a href="guardmeta.html">GuardMeta</a>
 				</li>
 			</ul>
-			<h1>Interface TargetTransitionConfig&lt;TContext, TEvent&gt;</h1>
+			<h1>Interface GuardMeta&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -81,10 +81,10 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="transitionconfig.html" class="tsd-signature-type">TransitionConfig</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="statemeta.html" class="tsd-signature-type">StateMeta</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">TargetTransitionConfig</span>
+								<span class="target">GuardMeta</span>
 							</li>
 						</ul>
 					</li>
@@ -97,12 +97,8 @@
 						<section class="tsd-index-section tsd-is-external">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="targettransitionconfig.html#actions" class="tsd-kind-icon">actions</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="targettransitionconfig.html#cond" class="tsd-kind-icon">cond</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="targettransitionconfig.html#delay" class="tsd-kind-icon">delay</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="targettransitionconfig.html#in" class="tsd-kind-icon">in</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="targettransitionconfig.html#internal" class="tsd-kind-icon">internal</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-external"><a href="targettransitionconfig.html#target" class="tsd-kind-icon">target</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="guardmeta.html#cond" class="tsd-kind-icon">cond</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="guardmeta.html#state" class="tsd-kind-icon">state</a></li>
 							</ul>
 						</section>
 					</div>
@@ -110,69 +106,24 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-external">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="actions" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> actions</h3>
-					<div class="tsd-signature tsd-kind-icon">actions<span class="tsd-signature-symbol">:</span> <a href="../globals.html#singleorarray" class="tsd-signature-type">SingleOrArray</a><span class="tsd-signature-symbol">&lt;</span><a href="../globals.html#action" class="tsd-signature-type">Action</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#actions">actions</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L119">types.ts:119</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="cond" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> cond</h3>
-					<div class="tsd-signature tsd-kind-icon">cond<span class="tsd-signature-symbol">:</span> <a href="../globals.html#condition" class="tsd-signature-type">Condition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<h3>cond</h3>
+					<div class="tsd-signature tsd-kind-icon">cond<span class="tsd-signature-symbol">:</span> <a href="../globals.html#guard" class="tsd-signature-type">Guard</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#cond">cond</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L118">types.ts:118</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L109">types.ts:109</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="delay" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> delay</h3>
-					<div class="tsd-signature tsd-kind-icon">delay<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span></div>
+					<a name="state" class="tsd-anchor"></a>
+					<h3>state</h3>
+					<div class="tsd-signature tsd-kind-icon">state<span class="tsd-signature-symbol">:</span> <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#delay">delay</a></p>
+						<p>Inherited from <a href="statemeta.html">StateMeta</a>.<a href="statemeta.html#state">state</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L123">types.ts:123</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="in" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> in</h3>
-					<div class="tsd-signature tsd-kind-icon">in<span class="tsd-signature-symbol">:</span> <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#in">in</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L120">types.ts:120</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="internal" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> internal</h3>
-					<div class="tsd-signature tsd-kind-icon">internal<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#internal">internal</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L121">types.ts:121</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-external">
-					<a name="target" class="tsd-anchor"></a>
-					<h3>target</h3>
-					<div class="tsd-signature tsd-kind-icon">target<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
-					<aside class="tsd-sources">
-						<p>Overrides <a href="transitionconfig.html">TransitionConfig</a>.<a href="transitionconfig.html#target">target</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L128">types.ts:128</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/types.ts#L809">types.ts:809</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -191,25 +142,13 @@
 				</ul>
 				<ul class="current">
 					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="targettransitionconfig.html" class="tsd-kind-icon">Target<wbr>Transition<wbr>Config</a>
+						<a href="guardmeta.html" class="tsd-kind-icon">Guard<wbr>Meta</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="targettransitionconfig.html#actions" class="tsd-kind-icon">actions</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="guardmeta.html#cond" class="tsd-kind-icon">cond</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="targettransitionconfig.html#cond" class="tsd-kind-icon">cond</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="targettransitionconfig.html#delay" class="tsd-kind-icon">delay</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="targettransitionconfig.html#in" class="tsd-kind-icon">in</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="targettransitionconfig.html#internal" class="tsd-kind-icon">internal</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-external">
-								<a href="targettransitionconfig.html#target" class="tsd-kind-icon">target</a>
+								<a href="guardmeta.html#state" class="tsd-kind-icon">state</a>
 							</li>
 						</ul>
 					</li>
