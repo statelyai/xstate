@@ -173,9 +173,81 @@ Both the property updater and context updater function signatures above are give
 
 ## Action order
 
+Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
+
+For example, in this counter machine, the custom actions will not work as expected:
+
+```js
+const counterMachine = Machine({
+  id: 'counter',
+  context: { count: 0 },
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        INC: {
+          actions: [
+            ctx => console.log(`Before: ${ctx.count}`),
+            assign({ count: ctx => ctx + 1 }), // count === 1
+            assign({ count: ctx => ctx + 1 }), // count === 2
+            ctx => console.log(`After: ${ctx.count}`)
+          ]
+        }
+      }
+    }
+  }
+});
+
+interpret(counterMachine).send('INC');
+// => "Before: 2"
+// => "After: 2"
+```
+
+This is because both `assign(...)` actions are batched in order, so the next state `context` is `{ count: 2 }`, which is passed to both custom actions. Another way of thinking about this transition is reading it like:
+
+> When in the `active` state and the `INC` event occurs, the next state is the `active` state with `context.count` updated, and these custom actions are executed on that state.
+
+A good way to refactor this to get the desired result is modeling the `context` with explicit _previous_ values, if those are needed:
+
+```js
+const counterMachine = Machine({
+  id: 'counter',
+  context: { count: 0, prevCount: undefined },
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        INC: {
+          actions: [
+            ctx => console.log(`Before: ${ctx.prevCount}`),
+            assign({
+              count: ctx => ctx + 1,
+              prevCount: ctx => ctx.count
+            }), // count === 1, prevCount === 0
+            assign({ count: ctx => ctx + 1 }), // count === 2
+            ctx => console.log(`After: ${ctx.count}`)
+          ]
+        }
+      }
+    }
+  }
+});
+
+interpret(counterMachine).send('INC');
+// => "Before: 0"
+// => "After: 2"
+```
+
+The benefits of this are:
+
+1. The extended state (context) is modeled more explicitly
+2. There are no implicit intermediate states, preventing hard-to-catch bugs
+3. The action order is more independent (the "Before" log can even go after the "After" log!)
+4. Testing and examining state is easier.
+
 ## Notes
 
-- Never mutate the machine's `context` externally. Everything happens for a reason, and every context change should happen explicitly due to an event.
+- 🚫 Never mutate the machine's `context` externally. Everything happens for a reason, and every context change should happen explicitly due to an event.
 - Prefer the object syntax of `assign({ ... })`. This makes it possible for future analysis tools to predict _how_ certain properties can change declaratively.
 - Assignments can be stacked, and will run sequentially:
 
