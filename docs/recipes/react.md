@@ -85,9 +85,11 @@ export function useMachine(machine) {
 
   // Stop the service when the component unmounts
   useEffect(() => {
-    return () => service.stop();
+    return () => {
+      service.stop();
+    }
   }, []);
-
+ 
   return [current, service.send];
 }
 ```
