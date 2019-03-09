@@ -219,7 +219,11 @@ export type DelayedTransitions<TContext, TEvent extends EventObject> =
       string | number,
       string | SingleOrArray<TransitionConfig<TContext, TEvent>>
     >
-  | Array<TransitionConfig<TContext, TEvent> & { delay: number }>;
+  | Array<
+      TransitionConfig<TContext, TEvent> & {
+        delay: number | string | Expr<TContext, TEvent, number>;
+      }
+    >;
 
 export type StateTypes =
   | 'atomic'
@@ -501,11 +505,16 @@ export type ServiceConfig<TContext> =
   | StateMachine<any, any, any>
   | InvokeCreator<any, TContext>;
 
+export type DelayConfig<TContext, TEvent extends EventObject> =
+  | number
+  | Expr<TContext, OmniEventObject<TEvent>, number>;
+
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions?: ActionFunctionMap<TContext, TEvent>;
   activities?: Record<string, ActivityConfig<TContext, TEvent>>;
   services?: Record<string, ServiceConfig<TContext>>;
+  delays?: Record<string, DelayConfig<TContext, TEvent>>;
 }
 export interface MachineConfig<
   TContext,
@@ -657,7 +666,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   to: string | undefined;
   event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
-  delay?: number | Expr<TContext, TEvent, number>;
+  delay?: number | string | Expr<TContext, TEvent, number>;
   id: string | number;
 }
 
@@ -665,7 +674,7 @@ export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
   to: string | undefined;
   event: TEvent;
-  delay?: number;
+  delay?: number | string;
   id: string | number;
 }
 
@@ -686,7 +695,7 @@ export enum SpecialTargets {
 
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
-  delay?: number | Expr<TContext, TEvent, number>;
+  delay?: number | string | Expr<TContext, TEvent, number>;
   to?: string;
 }
 
@@ -726,14 +735,13 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   event: string;
-  delay?: number;
 }
 
 export interface DelayedTransitionDefinition<
   TContext,
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
-  delay: number;
+  delay: number | string | Expr<TContext, TEvent, number>;
 }
 
 export interface Edge<

@@ -292,20 +292,19 @@ export function mapContext<TContext, TEvent extends EventObject>(
     return (mapper as Mapper<TContext, TEvent>)(context, event);
   }
 
-  return keys(mapper).reduce(
-    (acc, key) => {
-      const subMapper = mapper[key];
+  const result = {} as any;
 
-      if (typeof subMapper === 'function') {
-        acc[key] = subMapper(context, event);
-      } else {
-        acc[key] = subMapper;
-      }
+  for (const key of keys(mapper)) {
+    const subMapper = mapper[key];
 
-      return acc;
-    },
-    {} as any
-  );
+    if (typeof subMapper === 'function') {
+      result[key] = subMapper(context, event);
+    } else {
+      result[key] = subMapper;
+    }
+  }
+
+  return result;
 }
 
 export function isBuiltInEvent(eventType: EventType): boolean {

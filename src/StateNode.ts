@@ -36,7 +36,6 @@ import {
   AssignAction,
   DelayedTransitionDefinition,
   ActivityDefinition,
-  Delay,
   StateTypes,
   StateNodeConfig,
   Activity,
@@ -159,6 +158,10 @@ class StateNode<
    * and stopped upon exiting the state node.
    */
   public activities: Array<ActivityDefinition<TContext, TEvent>>;
+  /**
+   * The delayed transitions.
+   */
+  public after: Array<DelayedTransitionDefinition<TContext, TEvent>>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -312,6 +315,7 @@ class StateNode<
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
       .map(activity => this.resolveActivity(activity));
+    this.after = this.getDelayedTransitions();
   }
 
   /**
@@ -324,7 +328,7 @@ class StateNode<
     options: MachineOptions<TContext, TEvent>,
     context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
-    const { actions, activities, guards, services } = this.options;
+    const { actions, activities, guards, services, delays } = this.options;
 
     return new StateNode(
       this.definition,
@@ -332,7 +336,8 @@ class StateNode<
         actions: { ...actions, ...options.actions },
         activities: { ...activities, ...options.activities },
         guards: { ...guards, ...options.guards },
-        services: { ...services, ...options.services }
+        services: { ...services, ...options.services },
+        delays: { ...delays, ...options.delays }
       },
       context
     );
@@ -403,26 +408,48 @@ class StateNode<
   /**
    * All delayed transitions from the config.
    */
-  public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
-    const {
-      config: { after: afterConfig }
-    } = this;
+  private getDelayedTransitions(): Array<
+    DelayedTransitionDefinition<TContext, TEvent>
+  > {
+    if (this.after) {
+      return this.after;
+    }
+
+    const afterConfig = this.config.after;
 
     if (!afterConfig) {
       return [];
     }
 
     if (Array.isArray(afterConfig)) {
-      return afterConfig.map(delayedTransition => ({
-        event: after(delayedTransition.delay, this.id),
-        ...delayedTransition,
-        cond: delayedTransition.cond
-          ? this.toGuard(delayedTransition.cond)
-          : undefined,
-        actions: toArray(delayedTransition.actions).map(action =>
-          toActionObject(action)
-        )
-      }));
+      return afterConfig.map((delayedTransition, i) => {
+        const { delay } = delayedTransition;
+        let delayRef: string | number;
+
+        if (typeof delay === 'function') {
+          this.options.delays = this.options.delays || {};
+          delayRef = `${this.id}:delay[${i}]`;
+          this.options.delays[delayRef] = delay; // TODO: util function
+        } else {
+          delayRef = delay;
+        }
+
+        const event = after(delayRef, this.id);
+
+        this.onEntry.push(send(event, { delay }));
+        this.onExit.push(cancel(event));
+
+        return {
+          event,
+          ...delayedTransition,
+          cond: delayedTransition.cond
+            ? this.toGuard(delayedTransition.cond)
+            : undefined,
+          actions: toArray(delayedTransition.actions).map(action =>
+            toActionObject(action)
+          )
+        };
+      });
     }
 
     const allDelayedTransitions = flatten<
@@ -434,8 +461,11 @@ class StateNode<
           | TransitionConfig<TContext, TEvent>
           | Array<TransitionConfig<TContext, TEvent>>
         >)[delayKey];
-        const delay = +delayKey;
+        const delay = isNaN(+delayKey) ? delayKey : +delayKey;
         const event = after(delay, this.id);
+
+        this.onEntry.push(send(event, { delay }));
+        this.onExit.push(cancel(event));
 
         if (typeof delayedTransition === 'string') {
           return [{ target: delayedTransition, delay, event, actions: [] }];
@@ -455,7 +485,9 @@ class StateNode<
       })
     );
 
-    allDelayedTransitions.sort((a, b) => a.delay - b.delay);
+    allDelayedTransitions.sort((a, b) =>
+      typeof a === 'string' || typeof b === 'string' ? 0 : +a.delay - +b.delay
+    );
 
     return allDelayedTransitions;
   }
@@ -924,23 +956,6 @@ class StateNode<
     return condition;
   }
 
-  /**
-   * The array of all delayed transitions.
-   */
-  public get delays(): Delay[] {
-    const delays = Array.from(
-      new Set(
-        this.transitions
-          .map(transition => transition.delay)
-          .filter<number>((delay): delay is number => delay !== undefined)
-      )
-    );
-
-    return delays.map(delay => ({
-      id: this.id,
-      delay
-    }));
-  }
   private getActions(
     transition: StateTransition<TContext, TEvent>,
     prevState: State<TContext>
@@ -970,18 +985,14 @@ class StateNode<
         Array.from(entryStates).map(stateNode => {
           return [
             ...stateNode.activities.map(activity => start(activity)),
-            ...stateNode.onEntry,
-            ...stateNode.delays.map(({ delay, id }) =>
-              send(after(delay, id), { delay })
-            )
+            ...stateNode.onEntry
           ];
         })
       ).concat(doneEvents.map(raise)),
       flatten(
         Array.from(exitStates).map(stateNode => [
           ...stateNode.onExit,
-          ...stateNode.activities.map(activity => stop(activity)),
-          ...stateNode.delays.map(({ delay, id }) => cancel(after(delay, id)))
+          ...stateNode.activities.map(activity => stop(activity))
         ])
       )
     ];
@@ -1118,11 +1129,38 @@ class StateNode<
     const resolvedActions = nonEventActions.map(action => {
       const actionObject = toActionObject(action);
       if (actionObject.type === actionTypes.send) {
-        return resolveSend(
+        const sendAction = resolveSend(
           actionObject as SendAction<TContext, TEvent>,
           updatedContext,
           eventObject || { type: ActionTypes.Init }
         ); // TODO: fix ActionTypes.Init
+
+        if (typeof sendAction.delay === 'string') {
+          if (
+            !this.machine.options.delays ||
+            this.machine.options.delays[sendAction.delay] === undefined
+          ) {
+            console.warn(
+              `No delay reference for delay expression '${
+                sendAction.delay
+              }' was found on machine '${this.machine.id}'`
+            );
+
+            // Do not send anything
+            return sendAction;
+          }
+
+          const delayExpr = this.machine.options.delays[sendAction.delay];
+          sendAction.delay =
+            typeof delayExpr === 'number'
+              ? delayExpr
+              : delayExpr(
+                  updatedContext,
+                  eventObject || { type: ActionTypes.Init }
+                );
+        }
+
+        return sendAction;
       }
 
       return toActionObject(actionObject, this.options.actions);

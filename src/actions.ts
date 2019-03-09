@@ -327,12 +327,12 @@ export function isActionObject<TContext, TEvent extends EventObject>(
  * Returns an event type that represents an implicit event that
  * is sent after the specified `delay`.
  *
- * @param delay The delay in milliseconds
+ * @param delayRef The delay in milliseconds
  * @param id The state node ID where this event is handled
  */
-export function after(delay: number, id?: string) {
+export function after(delayRef: number | string, id?: string) {
   const idSuffix = id ? `#${id}` : '';
-  return `${ActionTypes.After}(${delay})${idSuffix}`;
+  return `${ActionTypes.After}(${delayRef})${idSuffix}`;
 }
 
 /**

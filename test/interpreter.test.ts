@@ -1,7 +1,14 @@
 import { interpret, Interpreter, SimulatedClock } from '../src/interpreter';
 import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
-import { Machine, actions, assign, send, sendParent } from '../src';
+import {
+  Machine,
+  actions,
+  assign,
+  send,
+  sendParent,
+  EventObject
+} from '../src';
 import { State } from '../src/State';
 import { log, actionTypes } from '../src/actions';
 
@@ -181,6 +188,86 @@ describe('interpreter', () => {
       clock.increment(50);
 
       assert.isTrue(stopped);
+    });
+
+    it('can send an event after a delay (delayed transitions)', done => {
+      const clock = new SimulatedClock();
+      const letterMachine = Machine(
+        {
+          id: 'letter',
+          context: {
+            delay: 100
+          },
+          initial: 'a',
+          states: {
+            a: {
+              after: [
+                {
+                  delay: ctx => ctx.delay,
+                  target: 'b'
+                }
+              ]
+            },
+            b: {
+              after: {
+                someDelay: 'c'
+              }
+            },
+            c: {
+              onEntry: send(
+                { type: 'FIRE_DELAY', value: 200 },
+                { delay: 20 }
+              ) as EventObject,
+              on: {
+                FIRE_DELAY: 'd'
+              }
+            },
+            d: {
+              after: [
+                {
+                  delay: (ctx, e) => ctx.delay + (e as any).value,
+                  target: 'e'
+                }
+              ]
+            },
+            e: {
+              after: [
+                {
+                  delay: 'someDelay',
+                  target: 'f'
+                }
+              ]
+            },
+            f: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          delays: {
+            someDelay: ctx => {
+              return ctx.delay + 50;
+            }
+          }
+        }
+      );
+
+      const service = interpret(letterMachine, { clock })
+        .onDone(() => {
+          done();
+        })
+        .start();
+
+      assert.equal(service.state.value, 'a');
+      clock.increment(100);
+      assert.equal(service.state.value, 'b');
+      clock.increment(100 + 50);
+      assert.equal(service.state.value, 'c');
+      clock.increment(20);
+      assert.equal(service.state.value, 'd');
+      clock.increment(100 + 200);
+      assert.equal(service.state.value, 'e');
+      clock.increment(100 + 50);
     });
   });
 
