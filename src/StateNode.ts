@@ -22,7 +22,6 @@ import {
   Action,
   TransitionConfig,
   ActivityMap,
-  EntryExitStates,
   StateTransition,
   StateValueMap,
   MachineOptions,
@@ -963,9 +962,12 @@ class StateNode<
       entryExitStates.entry.unshift(this);
     }
 
-    const entryExitActions = {
-      entry: flatten(
-        Array.from(new Set(entryExitStates.entry)).map(stateNode => {
+    const entryStates = new Set(entryExitStates.entry);
+    const exitStates = new Set(entryExitStates.exit);
+
+    const [entryActions, exitActions] = [
+      flatten(
+        Array.from(entryStates).map(stateNode => {
           return [
             ...stateNode.activities.map(activity => start(activity)),
             ...stateNode.onEntry,
@@ -975,18 +977,18 @@ class StateNode<
           ];
         })
       ).concat(doneEvents.map(raise)),
-      exit: flatten(
-        Array.from(new Set(entryExitStates.exit)).map(stateNode => [
+      flatten(
+        Array.from(exitStates).map(stateNode => [
           ...stateNode.onExit,
           ...stateNode.activities.map(activity => stop(activity)),
           ...stateNode.delays.map(({ delay, id }) => cancel(after(delay, id)))
         ])
       )
-    };
+    ];
 
-    const actions = entryExitActions.exit
+    const actions = exitActions
       .concat(transition.actions)
-      .concat(entryExitActions.entry)
+      .concat(entryActions)
       .map(action => this.resolveAction(action));
 
     return actions;
@@ -1000,30 +1002,6 @@ class StateNode<
     activity: Activity<TContext, TEvent>
   ): ActivityDefinition<TContext, TEvent> {
     return toActivityDefinition(activity);
-  }
-  private getActivities(
-    entryExitStates?: EntryExitStates<TContext>,
-    activities?: ActivityMap
-  ): ActivityMap {
-    if (!entryExitStates) {
-      return EMPTY_OBJECT;
-    }
-
-    const activityMap = { ...activities };
-
-    entryExitStates.exit.forEach(stateNode => {
-      stateNode.activities.forEach(activity => {
-        activityMap[activity.type] = false;
-      });
-    });
-
-    entryExitStates.entry.forEach(stateNode => {
-      stateNode.activities.forEach(activity => {
-        activityMap[activity.type] = true;
-      });
-    });
-
-    return activityMap;
   }
 
   /**
@@ -1109,20 +1087,14 @@ class StateNode<
     }
 
     const actions = this.getActions(stateTransition, currentState);
-    const entryExitStates = stateTransition.tree
-      ? stateTransition.tree.getEntryExitStates(
-          this.getStateTree(currentState.value)
-        )
-      : { entry: [], exit: [] };
-    const activities = stateTransition.tree
-      ? this.getActivities(
-          {
-            entry: new Set(entryExitStates.entry),
-            exit: new Set(entryExitStates.exit)
-          },
-          currentState.activities
-        )
-      : {};
+    const activities = { ...currentState.activities };
+    actions.forEach(action => {
+      if (action.type === actionTypes.start) {
+        activities[action.activity!.type] = true;
+      } else if (action.type === actionTypes.stop) {
+        activities[action.activity!.type] = false;
+      }
+    });
 
     const [raisedEvents, otherActions] = partition(
       actions,

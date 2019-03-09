@@ -4,8 +4,7 @@ import {
   assign,
   sendParent,
   send,
-  EventObject,
-  ActionTypes
+  EventObject
 } from '../src/index';
 import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
@@ -332,8 +331,6 @@ describe('invoke', () => {
         }
       }
     });
-
-    // console.dir(mainMachine.activities, { depth: null });
 
     it('should communicate with the child machine (invoke on machine)', done => {
       const mainMachine = Machine({
@@ -1205,10 +1202,11 @@ describe('invoke', () => {
       service.start();
     });
 
-    it.only('should not invoke a service if transient', done => {
+    it('should not invoke a service if transient', done => {
       // Since an invocation will be canceled when the state machine leaves the
       // invoking state, it does not make sense to start an invocation in a state
       // that will be exited immediately
+      let serviceCalled = false;
       const transientMachine = Machine({
         id: 'transient',
         initial: 'active',
@@ -1217,7 +1215,7 @@ describe('invoke', () => {
             invoke: {
               id: 'doNotInvoke',
               src: async () => {
-                // do nothing
+                serviceCalled = true;
               }
             },
             on: {
@@ -1225,6 +1223,9 @@ describe('invoke', () => {
             }
           },
           inactive: {
+            after: { 10: 'complete' }
+          },
+          complete: {
             type: 'final'
           }
         }
@@ -1233,15 +1234,10 @@ describe('invoke', () => {
       const service = interpret(transientMachine);
 
       service
-        .onTransition(s => {
-          assert.isFalse(
-            !!s.actions.find(a => {
-              return a.type === ActionTypes.Start;
-            }),
-            'should not start invocation'
-          );
+        .onDone(() => {
+          assert.isFalse(serviceCalled, 'service should not be called');
+          done();
         })
-        .onDone(() => done())
         .start();
     });
   });

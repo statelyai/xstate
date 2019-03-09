@@ -553,6 +553,13 @@ export class Interpreter<
         const activity = (action as ActivityActionObject<TContext, TEvent>)
           .activity as InvokeDefinition<TContext, TEvent>;
 
+        // If the activity will be stopped right after it's started
+        // (such as in transient states)
+        // don't bother starting the activity.
+        if (!this.state.activities[activity.type]) {
+          break;
+        }
+
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
           const serviceCreator: ServiceConfig<TContext> | undefined = this
