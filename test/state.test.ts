@@ -170,7 +170,7 @@ describe('State', () => {
       );
     });
 
-    xit('returns events when transitioned from StateValue', () => {
+    it('returns events when transitioned from StateValue', () => {
       const A = machine.transition(machine.initialState, 'TO_THREE');
       const B = machine.transition(A.value, 'TO_THREE');
 

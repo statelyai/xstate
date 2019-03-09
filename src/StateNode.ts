@@ -680,12 +680,18 @@ class StateNode<
         source: state,
         reentryStates: keys(transitionMap)
           .map(key => transitionMap[key].reentryStates)
-          .reduce((allReentryStates, reentryStates) => {
-            return new Set([
-              ...Array.from(allReentryStates || []),
-              ...Array.from(reentryStates || [])
-            ]);
-          }, new Set<StateNode<TContext>>()),
+          .reduce<Set<StateNode<TContext>>>(
+            (allReentryStates, reentryStates) => {
+              if (!reentryStates) {
+                return allReentryStates;
+              }
+              for (const reentryState of reentryStates) {
+                allReentryStates.add(reentryState);
+              }
+              return allReentryStates;
+            },
+            new Set()
+          ),
         actions: flatten(
           keys(transitionMap).map(key => {
             return transitionMap[key].actions;
@@ -1027,17 +1033,25 @@ class StateNode<
     event: OmniEvent<TEvent>,
     context?: TContext
   ): State<TContext, TEvent> {
-    const resolvedStateValue =
-      typeof state === 'string'
-        ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
-        : state instanceof State
-        ? state
-        : this.resolve(state);
-    const resolvedContext = context
-      ? context
-      : state instanceof State
-      ? state.context
-      : this.machine.context!;
+    let currentState: State<TContext, TEvent>;
+
+    if (state instanceof State) {
+      currentState =
+        context === undefined
+          ? state
+          : this.resolveState(State.from(state, context));
+    } else {
+      const resolvedStateValue =
+        typeof state === 'string'
+          ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
+          : this.resolve(state);
+      const resolvedContext = context ? context : this.machine.context!;
+
+      currentState = this.resolveState(
+        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+      );
+    }
+
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     const eventType = eventObject.type;
 
@@ -1048,11 +1062,6 @@ class StateNode<
         );
       }
     }
-
-    const currentState = State.from<TContext, TEvent>(
-      resolvedStateValue,
-      resolvedContext
-    );
 
     const stateTransition = this._transition(
       currentState.value,
