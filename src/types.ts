@@ -120,7 +120,6 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
-  delay?: number;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
