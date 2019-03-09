@@ -162,8 +162,112 @@ const service = interpret(myMachine).start(restoredState);
 
 This will also maintain and restore previous [history states](./history.md).
 
+## State Meta Data
+
+Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
+
+```js
+const fetchMachine = Machine({
+  id: 'fetch',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { FETCH: 'loading' }
+    },
+    loading: {
+      after: {
+        3000: 'failure.timeout'
+      },
+      on: {
+        RESOLVE: 'success',
+        REJECT: 'failure',
+        TIMEOUT: 'failure.timeout' // manual timeout
+      },
+      meta: {
+        message: 'Loading...'
+      }
+    },
+    success: {
+      meta: {
+        message: 'The request succeeded!'
+      }
+    },
+    failure: {
+      initial: 'rejection',
+      states: {
+        rejection: {
+          meta: {
+            message: 'The request failed.'
+          }
+        },
+        timeout: {
+          meta: {
+            message: 'The request timed out.'
+          }
+        }
+      },
+      meta: {
+        alert: 'Uh oh.'
+      }
+    }
+  }
+});
+```
+
+The current state of the machine collects the `.meta` data of all of the state nodes represented by the state value, and places them on an object where:
+
+- The keys are the state node IDs
+- The values are the state node `.meta` values
+
+For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
+
+```js
+const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+
+console.log(failureTimeoutState.meta);
+// => {
+//   failure: {
+//     alert: 'Uh oh.'
+//   },
+//   'failure.timeout': {
+//     message: 'The request timed out.'
+//   }
+// }
+```
+
+It's up to you for what you want to do with this meta data. Ideally, it should contain JSON-serializable values _only_. You might want to merge/aggregate the meta data differently; for instance, this function discards the state node ID keys (if they are irrelevant) and merges the meta data:
+
+```js
+function mergeMeta(meta) {
+  return Object.keys(meta).reduce((acc, key) => {
+    const value = meta[key];
+
+    // Assuming each meta value is an object
+    Object.assign(acc, value);
+
+    return acc;
+  }, {});
+}
+
+const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
+
+console.log(mergeMeta(meta));
+// => {
+//   alert: 'Uh oh.',
+//   message: 'The request timed out.'
+// }
+```
+
 ## Notes
 
 - You should seldom (never) have to create a `State` instance manually. Treat `State` as a read-only object that comes from `machine.transition(...)` or `service.onTransition(...)` _only_.
 - To prevent memory leaks, `state.history` will not retain its history; that is, `state.history.history === undefined`. Otherwise, we're creating a huge linked list and reinventing blockchain, which I really don't care to do.
   - This behavior may be configurable in future versions.
+
+```
+
+```
+
+```
+
+```
