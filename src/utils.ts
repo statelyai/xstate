@@ -332,18 +332,17 @@ export function partition<T, A extends T, B extends T>(
   items: T[],
   predicate: (item: T) => item is A
 ): [A[], B[]] {
-  return items.reduce(
-    (acc, item) => {
-      if (predicate(item)) {
-        acc[0].push(item);
-      } else {
-        acc[1].push(item as B);
-      }
+  const [truthy, falsy] = [[], []] as [A[], B[]];
 
-      return acc;
-    },
-    [[], []] as [A[], B[]]
-  );
+  for (const item of items) {
+    if (predicate(item)) {
+      truthy.push(item);
+    } else {
+      falsy.push(item as B);
+    }
+  }
+
+  return [truthy, falsy];
 }
 
 export function updateHistoryStates(
