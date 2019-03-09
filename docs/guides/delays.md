@@ -1,4 +1,8 @@
-# Delayed events and transitions
+# Delayed Events and Transitions
+
+The concept of time and delays in statecharts is declarative - time is an event, just like any other. XState abstracts this notion in two ways: delayed transitions and delayed events. Under the hood, both work the same way.
+
+## Delayed Transitions
 
 Transitions can automatically take place after a delay. This is represented in a state definition in the `after` property, which maps millisecond delays to their transitions:
 
@@ -29,7 +33,7 @@ const lightDelayMachine = Machine({
 });
 ```
 
-You can specify delayed transitions in the same way that you specify them on the `on: ...` property. They can be explicit:
+Delayed transitions can be specified in the same way that you specify them on the `on: ...` property. They can be explicit:
 
 ```js
 // ...
@@ -43,7 +47,7 @@ states: {
 // ...
 ```
 
-They can be also be conditional for a single delay:
+They can be also be conditional with regard to a single delay value:
 
 ```js
 // ...
@@ -90,7 +94,78 @@ states: {
 // ...
 ```
 
-## Delayed events
+### Delay Expressions on Transitions
+
+Delayed transitions specified on the `after: { ... }` property can have dynamic delays, specified either by a string delay reference:
+
+```js
+const lightDelayMachine = Machine(
+  {
+    id: 'lightDelay',
+    initial: 'green',
+    context: {
+      trafficLevel: 'low'
+    },
+    states: {
+      green: {
+        after: {
+          // after 1 second, transition to yellow
+          LIGHT_DELAY: 'yellow'
+        }
+      },
+      yellow: {
+        after: {
+          YELLOW_LIGHT_DELAY: 'red'
+        }
+      }
+      // ...
+    }
+  },
+  {
+    // String delays configured here
+    delays: {
+      LIGHT_DELAY: (ctx, e) => {
+        return ctx.trafficLevel === 'low' ? 1000 : 3000;
+      },
+      YELLOW_LIGHT_DELAY: 500 // static value
+    }
+  }
+);
+```
+
+Or directly by a function, just like conditional delayed transitions:
+
+```js
+// ...
+green: {
+  after: [
+    {
+      delay: (ctx, e) => {
+        return ctx.trafficLevel === 'low' ? 1000 : 3000;
+      },
+      target: 'yellow'
+    }
+  ]
+},
+// ...
+```
+
+However, prefer using string delay references, just like the first example, or in the `delay` property:
+
+```js
+// ...
+green: {
+  after: [
+    {
+      delay: 'LIGHT_DELAY',
+      target: 'yellow'
+    }
+  ]
+},
+// ...
+```
+
+## Delayed Events
 
 If you just want to send an event after a delay, you can specify the `delay` as an option in the second argument of the `send(...)` action creator:
 
@@ -134,7 +209,7 @@ const toggleMachine = Machine({
 // if the CANCEL event is sent before 1 second, the TIMER event will be canceled.
 ```
 
-### Delay Expression
+## Delay Expressions
 
 (since 4.3)
 
