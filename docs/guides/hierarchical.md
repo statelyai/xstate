@@ -94,3 +94,7 @@ If neither a state nor any of its ancestor (parent) states handle an event, no t
 console.log(lightMachine.transition('green', 'UNKNOWN').value);
 // => 'green'
 ```
+
+## Notes
+
+- Transitions to children states exit and re-enter parent state by default (triggering parent's `onExit`/`onEntry` actions and restarting parent's `activities`). To avoid that behaviour use [Internal Transitions](./internal.md).
