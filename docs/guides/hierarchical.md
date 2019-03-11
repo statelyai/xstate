@@ -97,4 +97,4 @@ console.log(lightMachine.transition('green', 'UNKNOWN').value);
 
 ## Notes
 
-- Transitions to children states exit and re-enter parent state by default (triggering parent's `onExit`/`onEntry` actions and restarting parent's `activities`). To avoid that behaviour use [Internal Transitions](./internal.md).
+- Transitions from parent state to its children will exit and re-enter parent state by default (triggering parent's `onExit`/`onEntry` actions and restarting parent's `activities`). To avoid that behaviour use [Internal Transitions](./internal.md).
