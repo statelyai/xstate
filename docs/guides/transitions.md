@@ -254,6 +254,44 @@ const formMachine = Machine({
 });
 ```
 
+## Multiple Targets
+
+A transition based on a single event can have multiple target state nodes. This is uncommon, and only valid if the state nodes are legal; e.g., a transition to two sibling state nodes in a compound state node is illegal, since a (non-parallel) state machine can only be in one state at any given time.
+
+Multiple targets are specified as an array in `target: [...]`, where each target in the array is a relative key or an ID to a state node, just like single targets.
+
+```js
+const settingsMachine = Machine({
+  id: 'settings',
+  type: 'parallel',
+  states: {
+    mode: {
+      initial: 'active',
+      states: {
+        inactive: {},
+        pending: {},
+        active: {}
+      }
+    },
+    status: {
+      initial: 'enabled',
+      states: {
+        disabled: {},
+        enabled: {}
+      }
+    }
+  },
+  on: {
+    // Multiple targets
+    DEACTIVATE: ['.mode.inactive', '.status.disabled']
+    // Can also be coded as...
+    // DEACTIVATE: {
+    //   target: ['.mode.inactive', '.status.disabled']
+    // }
+  }
+});
+```
+
 ## SCXML
 
 The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
