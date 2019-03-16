@@ -799,6 +799,86 @@ describe('invoke', () => {
         .start()
         .send({ type: 'BEGIN', payload: true });
     });
+
+    it('should transition correctly if callback function sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'intermediate' }
+            },
+            intermediate: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValue = 'intermediate';
+      let currentState;
+      interpret(callbackMachine)
+        .onTransition(current => currentState = current)
+        .start()
+        .send('BEGIN');
+      assert.equal(currentState.value, expectedStateValue);
+    });
+
+    it('should transition correctly if callback function invoked from start and sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'idle',
+          context: { foo: true },
+          states: {
+            idle: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'intermediate' }
+            },
+            intermediate: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValue = 'intermediate';
+      let currentState;
+      interpret(callbackMachine)
+        .onTransition(current => currentState = current)
+        .start();
+      assert.equal(currentState.value, expectedStateValue);
+    });
   });
 
   describe('with callbacks', () => {
@@ -887,6 +967,33 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should transition correctly upon error (sync)', () => {
+      const errorMachine = Machine({
+        id: 'error',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => () => {
+                throw new Error('test');
+              },
+              onError: 'failed'
+            }
+          },
+          failed: {
+            on: { RETRY: 'safe' }
+          }
+        }
+      });
+
+      const expectedStateValue = 'failed';
+      let currentState;
+      interpret(errorMachine)
+        .onTransition(current => currentState = current)
+        .start();
+      assert.equal(currentState.value, expectedStateValue);
+    });
+
     it('should call onError upon error (async)', done => {
       const errorMachine = Machine({
         id: 'asyncError',
@@ -930,7 +1037,7 @@ describe('invoke', () => {
       assert.isString(waitingState.actions[0].activity!.src);
     });
 
-    xit('should throw error if unhandled (sync)', done => {
+    it('should throw error if unhandled (sync)', () => {
       const errorMachine = Machine({
         id: 'asyncError',
         initial: 'safe',
@@ -948,9 +1055,8 @@ describe('invoke', () => {
         }
       });
 
-      interpret(errorMachine)
-        .onDone(() => done())
-        .start();
+      var service = interpret(errorMachine);
+      assert.throws(() => service.start(), "test");
     });
 
     xit('should throw error if unhandled (async)', done => {

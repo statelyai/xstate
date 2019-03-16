@@ -733,7 +733,18 @@ export class Interpreter<
     });
   }
   private spawnCallback(id: string, callback: InvokeCallback): void {
-    const receive = (e: TEvent) => this.send(e);
+    let canSendDirectly = true;
+    const receive = (e: TEvent) => {
+      if (canSendDirectly) {
+        this.send(e);
+      } else {
+        // current event is still being processed, handle event after
+        // current event is fully processed otherwise transition
+        // callbacks will be called in wrong order and may also cause
+        // other hidden errors
+        this.eventQueue.push(e);
+      }
+    }
     let listener = (e: EventObject) => {
       if (!IS_PRODUCTION) {
         // tslint:disable-next-line:no-console
@@ -747,6 +758,7 @@ export class Interpreter<
 
     let stop;
 
+    canSendDirectly = false;
     try {
       stop = callback(receive, newListener => {
         listener = newListener;
@@ -756,8 +768,12 @@ export class Interpreter<
         stop.catch(e => this.send(error(e, id)));
       }
     } catch (e) {
-      this.send(error(e, id));
+      // handle error only after current event has been processed
+      // otherwise transition callbacks will be called in wrong order
+      // and may also cause other hidden errors
+      this.eventQueue.push(error(e, id));
     }
+    canSendDirectly = true;
 
     this.children.set(id, {
       send: listener,
