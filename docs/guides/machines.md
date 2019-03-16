@@ -116,7 +116,8 @@ const testLightMachine = lightMachine.withContext({
 });
 ```
 
-⚠️ Caution: this will _not_ do a shallow merge of the original `context`, and will instead _replace_ the original `context` with the `context` provided to `.withContext(...)`. You can still "merge" contexts manually, by referencing `machine.context`:
+::: warning
+This will _not_ do a shallow merge of the original `context`, and will instead _replace_ the original `context` with the `context` provided to `.withContext(...)`. You can still "merge" contexts manually, by referencing `machine.context`:
 
 ```js
 const testLightMachine = lightMachine.withContext({
@@ -125,3 +126,5 @@ const testLightMachine = lightMachine.withContext({
   elapsed: 1000
 });
 ```
+
+:::

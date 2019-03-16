@@ -103,7 +103,9 @@ const lightMachine = Machine({
 });
 ```
 
-⚠️ The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings.
+::: warning
+The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings.
+:::
 
 ## SCXML
 

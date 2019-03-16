@@ -2,7 +2,7 @@
 
 A state is an abstract representation of a system (such as an application) at a specific point in time. As an application is interacted with, events cause it to change state. A finite state machine can be in only one of a finite number of states at any given time. The current state of a machine is represented by a `State` instance:
 
-```js
+```js {13-18,21-26}
 const lightMachine = Machine({
   id: 'light',
   initial: 'green',
@@ -166,7 +166,7 @@ This will also maintain and restore previous [history states](./history.md).
 
 Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
 
-```js
+```js {17-19,22-24,30-32,35-37,40-42}
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
@@ -221,7 +221,7 @@ The current state of the machine collects the `.meta` data of all of the state n
 
 For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
 
-```js
+```js {4-11}
 const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
 
 console.log(failureTimeoutState.meta);
@@ -235,6 +235,7 @@ console.log(failureTimeoutState.meta);
 // }
 ```
 
+::: tip TIP: Aggregating Meta Data
 It's up to you for what you want to do with this meta data. Ideally, it should contain JSON-serializable values _only_. You might want to merge/aggregate the meta data differently; for instance, this function discards the state node ID keys (if they are irrelevant) and merges the meta data:
 
 ```js
@@ -257,6 +258,8 @@ console.log(mergeMeta(meta));
 //   message: 'The request timed out.'
 // }
 ```
+
+:::
 
 ## Notes
 

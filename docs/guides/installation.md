@@ -15,20 +15,17 @@ yarn add xstate@latest --save
 You can include XState directly from the [unpkg CDN](https://unpkg.com/xstate@4/dist):
 
 - XState core: [https://unpkg.com/xstate@4/dist/xstate.js](https://unpkg.com/xstate@4/dist/xstate.js)
-- XState interpreter: [https://unpkg.com/xstate@4/dist/xstate.interpreter.js](https://unpkg.com/xstate@4/dist/xstate.interpreter.js)
+- XState web: [https://unpkg.com/xstate@4/dist/xstate.web.js](https://unpkg.com/xstate@4/dist/xstate.web.js)
+  - Browser-friendly, ES module build
 
 ```html
 <script src="https://unpkg.com/xstate@4/dist/xstate.js"></script>
-
-<!-- Optional: XState interpreter -->
-<script src="https://unpkg.com/xstate@4/dist/xstate.interpreter.js"></script>
 ```
 
-The variable `XState` will be available globally, which will give you access to the top-level exports. If you included the interpreter, the variable `XStateInterpreter` will be available globally as well.
+The variable `XState` will be available globally, which will give you access to the top-level exports.
 
 ```js
-const { Machine, actions } = XState; // global variable: window.XState
-const { interpret } = XStateInterpreter; // global variable: window.XStateInterpreter
+const { Machine, actions, interpret } = XState; // global variable: window.XState
 
 const lightMachine = Machine({
   // ...
