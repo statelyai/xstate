@@ -765,7 +765,26 @@ export class Interpreter<
       });
 
       if (stop instanceof Promise) {
-        stop.catch(e => this.send(error(e, id)));
+        stop.catch(e => {
+          const errorEvent = error(e, id);
+          try {
+            this.send(errorEvent);
+          } catch (error) {
+            if (!IS_PRODUCTION) {
+              this.reportUnhandledExceptionOnInvocation(e, error, id)
+            }
+            if (this.devTools) {
+              this.devTools.send(errorEvent, this.state);
+            }
+            if (this.machine.strict) {
+              // it would be better to always stop the state machine if unhandled
+              // exception/promise rejection happens but because we don't want to
+              // break existing code so enforce it on strict mode only especially so
+              // because documentation says that onError is optional
+              this.stop();
+            }
+          }
+        });
       }
     } catch (e) {
       // handle error only after current event has been processed
@@ -788,6 +807,26 @@ export class Interpreter<
       send: () => void 0,
       stop: dispose
     });
+  }
+  private reportUnhandledExceptionOnInvocation(originalError: any, currentError: any, id: string) {
+    const originalStackTrace = originalError.stack ? ` Stacktrace was '${originalError.stack}'` : "";
+    if (originalError === currentError) {
+      console.error(
+        `Missing onError handler for invocation '${
+          id
+        }', error was '${originalError}'.${originalStackTrace}`);
+    } else {
+      const stackTrace = currentError.stack
+        ? ` Stacktrace was '${currentError.stack}'`
+        : "";
+      console.error(
+        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${
+          id
+        }', original error was '${originalError}'.${
+          originalStackTrace
+        } Current error is '${currentError}'.${stackTrace}`);
+    }
+
   }
   private flushEventQueue() {
     const flushedEvent = this.eventQueue.shift();

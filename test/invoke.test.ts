@@ -1059,10 +1059,13 @@ describe('invoke', () => {
       assert.throws(() => service.start(), "test");
     });
 
-    xit('should throw error if unhandled (async)', done => {
+    it('should stop machine if unhandled error and on strict mode (async)', done => {
       const errorMachine = Machine({
         id: 'asyncError',
         initial: 'safe',
+        // if not in strict mode we have no way to know if there
+        // was an error with processing rejected promise
+        strict: true,
         states: {
           safe: {
             invoke: {
@@ -1079,8 +1082,38 @@ describe('invoke', () => {
       });
 
       interpret(errorMachine)
-        .onDone(() => done())
+        .onStop(() => done())
         .start();
+    });
+
+    it('should ignore error if unhandled error and not on strict mode (async)', done => {
+      const errorMachine = Machine({
+        id: 'asyncError',
+        initial: 'safe',
+        // if not in strict mode we have no way to know if there
+        // was an error with processing rejected promise
+        strict: false,
+        states: {
+          safe: {
+            invoke: {
+              src: () => async () => {
+                await true;
+                throw new Error('test');
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => assert.fail("should not be called"))
+        .start();
+      // assumes that error was ignored before the timeout is processed
+      setTimeout(() => done(), 20);
     });
 
     describe('sub invoke race condition', () => {
