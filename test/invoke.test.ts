@@ -417,6 +417,52 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should transition correctly if child invocation causes it to directly go to final state', done => {
+      let doneSubMachine = Machine({
+        id: 'child',
+        initial: 'one',
+        states: {
+          one: {
+            on: { NEXT: 'two' }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      const mainMachine = Machine({
+        id: 'parent',
+        initial: 'one',
+        states: {
+          one: {
+            invoke: {
+              id: 'foo-child',
+              src: doneSubMachine,
+              onDone: 'two'
+            },
+            onEntry: send('NEXT', { to: 'foo-child' }),
+          },
+          two: {
+            on: { NEXT: 'three'}
+          },
+          three: {
+            type: 'final'
+          }
+        }
+      });
+
+      let expectedStateValue = 'two';
+      let currentState;
+      interpret(mainMachine)
+        .onTransition(current => currentState = current)
+        .start();
+      setTimeout(() => {
+        assert.equal(currentState.value, expectedStateValue);
+        done();
+      }, 30);
+    })
   });
 
   describe('with promises', () => {
