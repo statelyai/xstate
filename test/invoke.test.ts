@@ -467,6 +467,61 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should be invoked with a promise factory and ignore unhandled onError target', done => {
+      const promiseMachine = Machine({
+        id: 'invokePromise',
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () =>
+                new Promise(() => {
+                  throw new Error("test");
+                }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => assert.fail("should not be called"))
+        .start();
+      // assumes that error was ignored before the timeout is processed
+      setTimeout(() => done(), 30);
+    });
+
+    it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
+      const promiseMachine = Machine({
+        id: 'invokePromise',
+        initial: 'pending',
+        strict: true,
+        states: {
+          pending: {
+            invoke: {
+              src: () =>
+                new Promise(() => {
+                  throw new Error("test");
+                }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => done())
+        .start();
+    });
+
     it('should be invoked with a promise factory and resolve through onDone for compound state nodes', done => {
       const promiseMachine = Machine({
         id: 'promise',

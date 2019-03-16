@@ -720,8 +720,25 @@ export class Interpreter<
       })
       .catch(errorData => {
         if (!canceled) {
-          // Send "error.execution" to this (parent).
-          this.send(error(errorData, id));
+          const errorEvent = error(errorData, id);
+          try {
+            // Send "error.execution" to this (parent).
+            this.send(errorEvent);
+          } catch (error) {
+            if (!IS_PRODUCTION) {
+              this.reportUnhandledExceptionOnInvocation(errorData, error, id)
+            }
+            if (this.devTools) {
+              this.devTools.send(errorEvent, this.state);
+            }
+            if (this.machine.strict) {
+              // it would be better to always stop the state machine if unhandled
+              // exception/promise rejection happens but because we don't want to
+              // break existing code so enforce it on strict mode only especially so
+              // because documentation says that onError is optional
+              this.stop();
+            }
+          }
         }
       });
 
