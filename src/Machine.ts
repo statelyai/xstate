@@ -14,7 +14,7 @@ export function Machine<
   TEvent extends EventObject = EventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: MachineOptions<TContext, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext: TContext | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
   return new StateNode<TContext, TStateSchema, TEvent>(

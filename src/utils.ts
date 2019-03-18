@@ -379,7 +379,7 @@ export function updateHistoryValue(
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
-  event: OmniEventObject<TEvent> | undefined,
+  event: OmniEventObject<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>
 ): TContext {
   const updatedContext = context
