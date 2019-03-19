@@ -334,7 +334,7 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: MachineOptions<TContext, TEvent>,
+    options: Partial<MachineOptions<TContext, TEvent>>,
     context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
     const { actions, activities, guards, services, delays } = this.options;
