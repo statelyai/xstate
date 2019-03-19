@@ -75,7 +75,7 @@
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
     "typedoc": "^0.12.0",
-    "typescript": "3.0.3",
+    "typescript": "3.3.3333",
     "vuepress": "^0.14.5",
     "xml-js": "^1.6.8"
   }
