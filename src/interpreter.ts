@@ -52,18 +52,28 @@ export interface SimulatedClock extends Clock {
 
 interface InterpreterOptions {
   /**
-   * Whether state actions should be executed. Defaults to `true`.
+   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
   /**
+   * If `true`, defers processing of sent events until the service
+   * is initialized (`.start()`). Otherwise, an error will be thrown
+   * for events sent to an uninitialized service.
+   *
+   * Default: `true`
+   */
+  deferEvents: boolean;
+  /**
    * The custom `id` for referencing this service.
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools. Default: `false`
+   * If `true`, states and events will be logged to Redux DevTools.
+   *
+   * Default: `false`
    */
   devTools?: boolean;
 }
@@ -137,6 +147,7 @@ export class Interpreter<
    */
   public static defaultOptions: InterpreterOptions = (global => ({
     execute: true,
+    deferEvents: true,
     clock: {
       setTimeout: (fn, ms) => {
         return global.setTimeout.call(null, fn, ms);
@@ -158,7 +169,6 @@ export class Interpreter<
   public clock: Clock;
   public options: InterpreterOptions;
 
-  private eventQueue: Array<OmniEventObject<TEvent>> = [];
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
@@ -171,9 +181,13 @@ export class Interpreter<
 
   // Actor
   public parent?: Interpreter<any>;
+  public id: string;
   private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
-  public id: string;
+
+  // Scheduler
+  private eventQueue: Array<OmniEventObject<TEvent>> = [];
+  private isFlushing: boolean;
 
   // Dev Tools
   private devTools?: any;
@@ -264,8 +278,7 @@ export class Interpreter<
       );
       this.stop();
     }
-
-    this.flushEventQueue();
+    // this.flushEventQueue();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -363,6 +376,7 @@ export class Interpreter<
       this.attachDev();
     }
     this.update(initialState, { type: actionTypes.init });
+    this.flush();
     return this;
   }
   /**
@@ -408,16 +422,53 @@ export class Interpreter<
    */
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-    const nextState = this.nextState(eventObject);
+    this.eventQueue.push(eventObject);
 
-    this.update(nextState, event);
+    if (!this.initialized) {
+      if (this.options.deferEvents) {
+        console.warn(
+          `Event "${eventObject.type}" was sent to uninitialized service "${
+            this.machine.id
+          }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+            event
+          )}`
+        );
+      } else {
+        throw new Error(
+          `Event "${eventObject.type}" was sent to uninitialized service "${
+            this.machine.id
+            // tslint:disable-next-line:max-line-length
+          }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
+            eventObject
+          )}`
+        );
+      }
+    } else {
+      this.flush();
+    }
 
-    // Forward copy of event to child interpreters
-    this.forward(eventObject);
-
-    return nextState;
+    return this.state; // TODO: deprecate (should return void)
     // tslint:disable-next-line:semicolon
   };
+
+  /**
+   * Flushes all pending events in the event queue.
+   */
+  private flush() {
+    if (!this.isFlushing) {
+      this.isFlushing = true;
+      while (this.eventQueue.length) {
+        const nextEvent = this.eventQueue.shift()!;
+        const nextState = this.nextState(nextEvent);
+
+        this.update(nextState, nextEvent);
+
+        // Forward copy of event to child interpreters
+        this.forward(nextEvent);
+      }
+      this.isFlushing = false;
+    }
+  }
 
   /**
    * Returns a send function bound to this interpreter instance.
@@ -464,18 +515,6 @@ export class Interpreter<
    */
   public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-
-    if (!this.initialized) {
-      throw new Error(
-        `Unable to send event "${
-          eventObject.type
-        }" to an uninitialized service (ID: ${
-          this.machine.id
-        }). Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
-    }
 
     if (
       eventObject.type === actionTypes.errorExecution &&
@@ -564,7 +603,7 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction.event, sendAction.to);
           } else {
-            this.eventQueue.push(sendAction.event);
+            this.send(sendAction.event);
           }
         }
         break;
@@ -773,12 +812,12 @@ export class Interpreter<
       stop: dispose
     });
   }
-  private flushEventQueue() {
-    const flushedEvent = this.eventQueue.shift();
-    if (flushedEvent) {
-      this.send(flushedEvent);
-    }
-  }
+  // private flushEventQueue() {
+  //   const flushedEvent = this.eventQueue.shift();
+  //   if (flushedEvent) {
+  //     this.send(flushedEvent);
+  //   }
+  // }
   private attachDev() {
     if (
       this.options.devTools &&
