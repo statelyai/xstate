@@ -440,6 +440,7 @@ export interface StateNodeDefinition<
   TEvent extends EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   id: string;
+  version: string | undefined;
   key: string;
   type: StateTypes;
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
@@ -527,6 +528,10 @@ export interface MachineConfig<
    * The initial context (extended state)
    */
   context?: TContext;
+  /**
+   * The machine's own version.
+   */
+  version?: string;
 }
 
 export interface StandardMachineConfig<

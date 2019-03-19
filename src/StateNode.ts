@@ -56,7 +56,8 @@ import {
   BuiltInEvent,
   Guard,
   GuardPredicate,
-  GuardMeta
+  GuardMeta,
+  MachineConfig
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -110,6 +111,10 @@ class StateNode<
    * The unique ID of the state node.
    */
   public id: string;
+  /**
+   * The machine's own version.
+   */
+  public version?: string;
   /**
    * The type of this state node:
    *
@@ -231,6 +236,9 @@ class StateNode<
       (this.machine
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
+    this.version = this.parent
+      ? this.parent.version
+      : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
     this.type =
       _config.type ||
       (_config.parallel
@@ -370,6 +378,7 @@ class StateNode<
     return {
       id: this.id,
       key: this.key,
+      version: this.version,
       type: this.type,
       initial: this.initial,
       history: this.history,

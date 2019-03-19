@@ -235,6 +235,34 @@ describe('machine', () => {
       assert.deepEqual(resolvedState.nextEvents, ['TO_BAR']);
     });
   });
+
+  describe('versioning', () => {
+    it('should allow a version to be specified', () => {
+      const versionMachine = Machine({
+        id: 'version',
+        version: '1.0.4',
+        states: {}
+      });
+
+      assert.equal(versionMachine.version, '1.0.4');
+    });
+
+    it('should show the version on state nodes', () => {
+      const versionMachine = Machine({
+        id: 'version',
+        version: '1.0.4',
+        states: {
+          foo: {
+            id: 'foo'
+          }
+        }
+      });
+
+      const fooStateNode = versionMachine.getStateNodeById('foo');
+
+      assert.equal(fooStateNode.version, '1.0.4');
+    });
+  });
 });
 
 describe('StateNode', () => {
