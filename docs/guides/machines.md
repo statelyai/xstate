@@ -42,7 +42,10 @@ const lightMachine = Machine({
 });
 ```
 
-The machine config is the same as the [state node config](./statenodes.md), with the exception of [`context`](./context.md). The machine's `context` represents the local "extended state" for all of the machine's nested states.
+The machine config is the same as the [state node config](./statenodes.md), with the addition of the following properties:
+
+- `context` - represents the local "extended state" for all of the machine's nested states. See [the docs for context](./context.md) for more details.
+- `strict` - if `true`, any events that are sent to the machine but not accepted (i.e., there doesn't exist any transitions in any state for the given event), an error will be thrown. Defaults to `false`.
 
 ## Options
 
