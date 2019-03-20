@@ -1,6 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { StateTree } from './StateTree';
+import { Interpreter, Clock } from './interpreter';
 
 export type EventType = string;
 export type ActionType = string;
@@ -861,4 +862,32 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
 export interface StateSchema {
   meta?: any;
   states?: Record<string | number, StateSchema>;
+}
+
+export interface InterpreterOptions {
+  /**
+   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
+   */
+  execute: boolean;
+  clock: Clock;
+  logger: (...args: any[]) => void;
+  parent?: Interpreter<any, any, any>;
+  /**
+   * If `true`, defers processing of sent events until the service
+   * is initialized (`.start()`). Otherwise, an error will be thrown
+   * for events sent to an uninitialized service.
+   *
+   * Default: `true`
+   */
+  deferEvents: boolean;
+  /**
+   * The custom `id` for referencing this service.
+   */
+  id?: string;
+  /**
+   * If `true`, states and events will be logged to Redux DevTools.
+   *
+   * Default: `false`
+   */
+  devTools: boolean;
 }

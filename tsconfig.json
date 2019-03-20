@@ -10,22 +10,10 @@
     "moduleResolution": "node",
     "downlevelIteration": true,
     "experimentalDecorators": true,
-    "lib": [
-      "es6",
-      "dom"
-    ],
-    "types": [
-      "mocha",
-      "node",
-      "core-js"
-    ]
+    "jsx": "react",
+    "lib": ["es6", "dom"],
+    "types": ["mocha", "node", "core-js"]
   },
-  "include": [
-    "src/**/*"
-  ],
-  "exclude": [
-    "test/**/*",
-    "examples/**/*",
-    "editor/node_modules/**/*"
-  ]
+  "include": ["src/**/*"],
+  "exclude": ["test/**/*", "examples/**/*", "editor/node_modules/**/*"]
 }

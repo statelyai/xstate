@@ -1,19 +1,25 @@
 {
-  "name": "@xstate/graph",
+  "name": "xstate-react",
   "version": "0.0.1",
-  "description": "XState graph utilities",
+  "description": "XState tools for React",
   "keywords": [
     "state",
     "machine",
     "statechart",
     "scxml",
     "state",
-    "graph"
+    "graph",
+    "react",
+    "hook"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
   "files": [
     "lib"
   ],
@@ -22,10 +28,13 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
+    "test": "jest"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "peerDependencies": {
+    "react": "^16.8.0"
   },
   "dependencies": {
     "xstate": "4.3.3"
@@ -42,8 +51,6 @@
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "react-testing-library": "^6.0.1",
-    "ts-jest": "^24.0.0",
-    "ts-node": "^8.0.2",
-    "typescript": "^3.3.3"
+    "ts-jest": "^24.0.0"
   }
 }
