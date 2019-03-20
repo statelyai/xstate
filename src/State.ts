@@ -56,13 +56,13 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    */
   public static from<TC, TE extends EventObject = EventObject>(
     stateValue: State<TC, TE> | StateValue,
-    context: TC
+    context?: TC | undefined
   ): State<TC, TE> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
         return new State<TC, TE>({
           value: stateValue.value,
-          context,
+          context: context as TC,
           event: stateValue.event,
           historyValue: stateValue.historyValue,
           history: stateValue.history,
@@ -81,7 +81,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
 
     return new State<TC, TE>({
       value: stateValue,
-      context,
+      context: context as TC,
       event,
       historyValue: undefined,
       history: undefined,
