@@ -28,7 +28,8 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "prepublish": "tsc"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
