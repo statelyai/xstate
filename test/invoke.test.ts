@@ -4,7 +4,8 @@ import {
   assign,
   sendParent,
   send,
-  EventObject
+  EventObject,
+  StateValue
 } from '../src/index';
 import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
@@ -888,13 +889,15 @@ describe('invoke', () => {
         }
       );
 
-      const expectedStateValue = 'intermediate';
-      let currentState;
+      const expectedStateValues = [ 'pending', 'first', 'intermediate' ];
+      let stateValues : StateValue[] = [];
       interpret(callbackMachine)
-        .onTransition(current => currentState = current)
+        .onTransition(current => stateValues.push(current.value))
         .start()
         .send('BEGIN');
-      assert.equal(currentState.value, expectedStateValue);
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
     });
 
     it('should transition correctly if callback function invoked from start and sends an event', () => {
@@ -927,12 +930,62 @@ describe('invoke', () => {
         }
       );
 
-      const expectedStateValue = 'intermediate';
-      let currentState;
+      const expectedStateValues = [ 'idle', 'intermediate' ];
+      let stateValues : StateValue[] = [];
       interpret(callbackMachine)
-        .onTransition(current => currentState = current)
-        .start();
-      assert.equal(currentState.value, expectedStateValue);
+        .onTransition(current => stateValues.push(current.value))
+        .start()
+        .send('BEGIN');
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
+    });
+
+    it('should transition correctly if transient transition happens before current state invokes callback function and sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              on: { '': 'second' }
+            },
+            second: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'third' }
+            },
+            third: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValues = [ 'pending', 'second', 'third' ];
+      let stateValues : StateValue[] = [];
+      interpret(callbackMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start()
+        .send('BEGIN');
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
     });
   });
 

@@ -24,6 +24,7 @@ import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
+import { EventProcessor } from './eventprocessor';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -158,7 +159,7 @@ export class Interpreter<
   public clock: Clock;
   public options: InterpreterOptions;
 
-  private eventQueue: Array<OmniEventObject<TEvent>> = [];
+  private eventHandler: EventProcessor = new EventProcessor();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
@@ -264,8 +265,6 @@ export class Interpreter<
       );
       this.stop();
     }
-
-    this.flushEventQueue();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -362,7 +361,9 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDev();
     }
-    this.update(initialState, { type: actionTypes.init });
+    this.eventHandler.processEvent(() => {
+      this.update(initialState, { type: actionTypes.init });
+    });
     return this;
   }
   /**
@@ -407,15 +408,17 @@ export class Interpreter<
    * @param event The event to send
    */
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-    const nextState = this.nextState(eventObject);
+    this.eventHandler.processEvent(() => {
+      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+      const nextState = this.nextState(eventObject);
 
-    this.update(nextState, event);
+      this.update(nextState, event);
 
-    // Forward copy of event to child interpreters
-    this.forward(eventObject);
+      // Forward copy of event to child interpreters
+      this.forward(eventObject);
+    });
 
-    return nextState;
+    return this.state;
     // tslint:disable-next-line:semicolon
   };
 
@@ -564,7 +567,7 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction.event, sendAction.to);
           } else {
-            this.eventQueue.push(sendAction.event);
+            this.send(sendAction.event);
           }
         }
         break;
@@ -750,18 +753,7 @@ export class Interpreter<
     });
   }
   private spawnCallback(id: string, callback: InvokeCallback): void {
-    let canSendDirectly = true;
-    const receive = (e: TEvent) => {
-      if (canSendDirectly) {
-        this.send(e);
-      } else {
-        // current event is still being processed, handle event after
-        // current event is fully processed otherwise transition
-        // callbacks will be called in wrong order and may also cause
-        // other hidden errors
-        this.eventQueue.push(e);
-      }
-    }
+    const receive = (e: TEvent) => this.send(e);
     let listener = (e: EventObject) => {
       if (!IS_PRODUCTION) {
         // tslint:disable-next-line:no-console
@@ -775,7 +767,6 @@ export class Interpreter<
 
     let stop;
 
-    canSendDirectly = false;
     try {
       stop = callback(receive, newListener => {
         listener = newListener;
@@ -804,12 +795,8 @@ export class Interpreter<
         });
       }
     } catch (e) {
-      // handle error only after current event has been processed
-      // otherwise transition callbacks will be called in wrong order
-      // and may also cause other hidden errors
-      this.eventQueue.push(error(e, id));
+      this.send(error(e, id));
     }
-    canSendDirectly = true;
 
     this.children.set(id, {
       send: listener,
@@ -844,12 +831,6 @@ export class Interpreter<
         } Current error is '${currentError}'.${stackTrace}`);
     }
 
-  }
-  private flushEventQueue() {
-    const flushedEvent = this.eventQueue.shift();
-    if (flushedEvent) {
-      this.send(flushedEvent);
-    }
   }
   private attachDev() {
     if (
