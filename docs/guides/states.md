@@ -138,17 +138,17 @@ try {
 }
 ```
 
-State can be rehydrated (i.e., restored) using the static `State.create(...)` method:
+State can be rehydrated (i.e., restored) using the public `machine.resolveState(...)` method:
 
 ```js
 import { State, interpret } from 'xstate';
 import { myMachine } from '../path/to/myMachine';
 
-// Retrieving state from localStorage
+// Retrieving the state definition from localStorage
 const restoredStateDef = JSON.parse(localStorage.getItem('app-state'));
 
-// Use State.create() to restore state from a plain object
-const restoredState = State.create(restoredStateDef);
+// Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
+const restoredState = myMachine.resolveState(restoredStateDef);
 ```
 
 You can then interpret the machine from this restored state by passing the `State` into the `.start(...)` method of the interpreted service:
@@ -160,7 +160,7 @@ You can then interpret the machine from this restored state by passing the `Stat
 const service = interpret(myMachine).start(restoredState);
 ```
 
-This will also maintain and restore previous [history states](./history.md).
+This will also maintain and restore previous [history states](./history.md) and ensures that `.events` and `.nextEvents` represent the correct values.
 
 ## State Meta Data
 
