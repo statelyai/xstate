@@ -31,15 +31,18 @@ describe('useMachine hook', () => {
           }
         }
       },
-      success: {}
+      success: {
+        type: 'final'
+      }
     }
   });
 
   const Fetcher = () => {
     const [current, send] = useMachine(
-      fetchMachine.withConfig({
+      Fetcher.machine.withConfig({
         services: {
-          fetchData: () => new Promise(res => res('some data'))
+          fetchData: () => new Promise(res => res('some data')),
+          ...Fetcher.machine.options.services
         }
       })
     );
@@ -60,15 +63,23 @@ describe('useMachine hook', () => {
     }
   };
 
+  Fetcher.machine = fetchMachine;
+
   afterEach(cleanup);
 
   it('should work with the useMachine hook', async () => {
+    Fetcher.machine = fetchMachine.withConfig({
+      services: {
+        fetchData: () => new Promise(res => res('fake data'))
+      }
+    });
+
     const { getByText, getByTestId } = render(<Fetcher />);
     const button = getByText('Fetch');
     fireEvent.click(button);
     getByText('Loading...');
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
-    assert.equal(dataEl.textContent, 'some data');
+    assert.equal(dataEl.textContent, 'fake data');
   });
 });

@@ -1,5 +1,6 @@
 import { useState, useMemo, useEffect } from 'react';
 import { interpret, EventObject, StateMachine, State } from 'xstate';
+import { Interpreter } from 'xstate/lib/interpreter';
 
 interface InterpreterOptions {
   /**
@@ -26,7 +27,7 @@ interface InterpreterOptions {
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<InterpreterOptions>
-): [State<TContext, TEvent>, any] {
+): [State<TContext, TEvent>, Interpreter<TContext, any, TEvent>['send']] {
   // Keep track of the current machine state
   const [current, setCurrent] = useState(machine.initialState);
 
