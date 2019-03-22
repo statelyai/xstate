@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { Machine, State } from '../src/index';
-import { initEvent } from '../src/actions';
+import { initEvent, assign } from '../src/actions';
 
 const machine = Machine({
   initial: 'one',
@@ -145,6 +145,30 @@ describe('State', () => {
       const twoState = finalMachine.transition('one', 'DONE');
 
       assert.isTrue(twoState.changed);
+    });
+
+    it.only('should report any internal transition assignments as changed', () => {
+      const assignMachine = Machine({
+        id: 'assign',
+        initial: 'same',
+        context: {
+          count: 0
+        },
+        states: {
+          same: {
+            on: {
+              EVENT: {
+                actions: assign({ count: ctx => ctx.count + 1 })
+              }
+            }
+          }
+        }
+      });
+
+      const { initialState } = assignMachine;
+      const changedState = assignMachine.transition(initialState, 'EVENT');
+      assert.isTrue(changedState.changed);
+      assert.deepEqual(initialState.value, changedState.value);
     });
   });
 
