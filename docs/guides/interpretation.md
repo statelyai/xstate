@@ -1,4 +1,4 @@
-# Interpreting machines
+# Interpreting Machines
 
 While a state machine/statechart with a pure `.transition()` function is useful for flexibility, purity, and testability, in order for it to have any use in a real-life application, something needs to:
 
@@ -9,7 +9,7 @@ While a state machine/statechart with a pure `.transition()` function is useful 
 
 The **interpreter** is responsible for _interpreting_ the state machine/statechart and doing all of the above - that is, parsing and executing it in a runtime environment. An interpreted, running instance of a statechart is called a **service**.
 
-## The XState interpreter
+## Interpreter
 
 Since version 4.0, XState provides an (optional) interpreter that you can use to run your statecharts. The interpreter handles:
 
@@ -57,9 +57,9 @@ service.onTransition(nextState => {
 service.start();
 ```
 
-## Starting and stopping
+## Starting and Stopping
 
-The service can be started and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.
+The service can be initialized (i.e., started) and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.
 
 ```js
 const service = interpret(machine);
@@ -82,7 +82,7 @@ Services can be started from a specific [state](./states.md) by passing the `sta
 service.start(previousState);
 ```
 
-## Executing actions
+## Executing Actions
 
 [Actions (side-effects)](./actions.md) are, by default, executed immediately when the state transitions. This is configurable by setting the `{ execute: false }` option (see example). Each action object specified on the `state` might have an `.exec` property, which is called with the state's `context` and `event` object.
 
@@ -102,7 +102,19 @@ service.onTransition(state => {
 service.start();
 ```
 
-## Custom interpreters
+## Options
+
+The following options can be passed into the interpreter as the 2nd argument (`interpret(machine, options)`):
+
+- `execute` (boolean) - Signifies whether state actions should be executed upon transition. Defaults to `true`.
+  - See [Executing Actions](#executing-actions) for customizing this behavior.
+- `deferEvents` (boolean) - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
+  - If `false`, events sent to an uninitialized service will throw an error.
+  - Since 4.3.4
+- `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
+- `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
+
+## Custom Interpreters
 
 You may use any interpreter (or create your own) to run your state machine/statechart. Here's an example minimal implementation that demonstrates how flexible interpretation can be (despite the amount of boilerplate):
 

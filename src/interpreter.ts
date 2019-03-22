@@ -53,18 +53,28 @@ export interface SimulatedClock extends Clock {
 
 interface InterpreterOptions {
   /**
-   * Whether state actions should be executed. Defaults to `true`.
+   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;
   /**
+   * If `true`, defers processing of sent events until the service
+   * is initialized (`.start()`). Otherwise, an error will be thrown
+   * for events sent to an uninitialized service.
+   *
+   * Default: `true`
+   */
+  deferEvents: boolean;
+  /**
    * The custom `id` for referencing this service.
    */
   id?: string;
   /**
-   * If `true`, states and events will be logged to Redux DevTools. Default: `false`
+   * If `true`, states and events will be logged to Redux DevTools.
+   *
+   * Default: `false`
    */
   devTools?: boolean;
 }
@@ -138,6 +148,7 @@ export class Interpreter<
    */
   public static defaultOptions: InterpreterOptions = (global => ({
     execute: true,
+    deferEvents: true,
     clock: {
       setTimeout: (fn, ms) => {
         return global.setTimeout.call(null, fn, ms);
@@ -172,9 +183,9 @@ export class Interpreter<
 
   // Actor
   public parent?: Interpreter<any>;
+  public id: string;
   private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
-  public id: string;
 
   // Dev Tools
   private devTools?: any;
@@ -206,6 +217,8 @@ export class Interpreter<
     });
 
     this.options = resolvedOptions;
+
+    this.eventHandler.setDeferredStartup(this.options.deferEvents);
   }
   public static interpret = interpret;
   /**
@@ -361,7 +374,7 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDev();
     }
-    this.eventHandler.processEvent(() => {
+    this.eventHandler.Initialize(() => {
       this.update(initialState, { type: actionTypes.init });
     });
     return this;
@@ -408,6 +421,17 @@ export class Interpreter<
    * @param event The event to send
    */
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
+    if (!this.initialized && this.options.deferEvents) {
+      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+      console.warn(
+        `Event "${eventObject.type}" was sent to uninitialized service "${
+          this.machine.id
+        }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+          event
+        )}`
+      );
+    }
+
     this.eventHandler.processEvent(() => {
       const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
       const nextState = this.nextState(eventObject);
@@ -418,7 +442,7 @@ export class Interpreter<
       this.forward(eventObject);
     });
 
-    return this.state;
+    return this.state; // TODO: deprecate (should return void)
     // tslint:disable-next-line:semicolon
   };
 
@@ -470,12 +494,11 @@ export class Interpreter<
 
     if (!this.initialized) {
       throw new Error(
-        `Unable to send event "${
-          eventObject.type
-        }" to an uninitialized service (ID: ${
+        `Event "${eventObject.type}" was sent to uninitialized service "${
           this.machine.id
-        }). Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-          event
+          // tslint:disable-next-line:max-line-length
+        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
+          eventObject
         )}`
       );
     }

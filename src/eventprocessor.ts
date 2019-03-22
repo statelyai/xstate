@@ -2,16 +2,50 @@ export class EventProcessor {
     private processingEvent: boolean = false;
     private queue: (() => void)[] = [];
 
-    public processEvent(callback: () => void): any {
-        if (this.processingEvent) {
+    // deferred feature
+    private deferredStartupCalled: boolean = false;
+    private deferredStartup: boolean = false;
+    private initCalled: boolean = false;
+
+    public Initialize(callback: () => void): void {
+        this.initCalled = true;
+        if (!this.deferredStartup) {
+            this.processEvent(callback);
+            return;
+        }
+        this.deferredStartup = false;
+        this.ProcessSingleEvent(callback);
+        this.ProcessQueue();
+    }
+
+    public setDeferredStartup(useDeferredStartup: boolean): void {
+        if (this.deferredStartupCalled) {
+            throw new Error("Can only be called once during the lifetime of the EventProcessor");
+        }
+        if (this.initCalled) {
+            throw new Error("Events can be deferred only before .start() method has not been called");
+        }
+        this.deferredStartup = useDeferredStartup;
+    }
+
+    public processEvent(callback: () => void): void {
+        if (this.processingEvent || this.deferredStartup) {
             this.queue.push(callback);
             return;
         }
 
+        if (this.queue.length !== 0) {
+            throw new Error("Event queue should be empty when it is not processing events");
+        }
+
         this.ProcessSingleEvent(callback);
 
-        let nextCallback : (() => void) | undefined;
-        while(nextCallback = this.queue.shift()) {
+        this.ProcessQueue();
+    }
+
+    private ProcessQueue() {
+        let nextCallback: (() => void) | undefined;
+        while (nextCallback = this.queue.shift()) {
             this.ProcessSingleEvent(nextCallback);
         }
     }

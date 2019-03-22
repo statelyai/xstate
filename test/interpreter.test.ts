@@ -378,14 +378,71 @@ describe('interpreter', () => {
     );
   });
 
-  it('should throw an error if an event is sent to an uninitialized interpreter', () => {
-    const service = interpret(lightMachine, { clock: new SimulatedClock() });
+  it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock(),
+      deferEvents: false
+    });
 
-    assert.throws(() => service.send('SOME_EVENT'));
+    assert.throws(() => service.send('SOME_EVENT'), /uninitialized/);
 
     service.start();
 
     assert.doesNotThrow(() => service.send('SOME_EVENT'));
+  });
+
+  it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock(),
+      deferEvents: true
+    });
+
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+
+    service.start();
+
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+  });
+
+  it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock()
+    });
+
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+
+    service.start();
+
+    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+  });
+
+  it('should defer events sent to an uninitialized service', done => {
+    const deferMachine = Machine({
+      id: 'defer',
+      initial: 'a',
+      states: {
+        a: {
+          on: { NEXT_A: 'b' }
+        },
+        b: {
+          on: { NEXT_B: 'c' }
+        },
+        c: {
+          type: 'final'
+        }
+      }
+    });
+
+    const deferService = interpret(deferMachine).onDone(() => done());
+
+    // uninitialized
+    deferService.send('NEXT_A');
+    deferService.send('NEXT_B');
+
+    assert.isUndefined(deferService.state);
+
+    // initialized
+    deferService.start();
   });
 
   it('should throw an error if initial state sent to interpreter is invalid', () => {
