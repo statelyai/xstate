@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, State } from '../src/index';
+import { Machine, State, assign } from '../src/index';
 import { initEvent } from '../src/actions';
 
 const machine = Machine({
@@ -103,6 +103,34 @@ describe('State', () => {
     it('states from internal transitions with actions should be changed', () => {
       const changedState = machine.transition(machine.initialState, 'INTERNAL');
       assert.isTrue(changedState.changed, 'changed - transition actions');
+    });
+
+    it('states from internal transitions with assign() should be changed', () => {
+      interface CounterContext {
+        count: number;
+      }
+      const counterMachine = Machine<CounterContext>({
+        id: 'counting',
+        initial: 'counting',
+        context: { count: 0 },
+        states: {
+          counting: {
+            on: {
+              INC: {
+                internal: true,
+                actions: [
+                  assign<CounterContext>(xs => ({
+                    count: xs.count + 1
+                  }))
+                ]
+              }
+            }
+          }
+        }
+      });
+
+      const changedState = counterMachine.transition(counterMachine.initialState, 'INC')
+      assert.isTrue(changedState.changed, 'changed - transition assign()');
     });
 
     it('normal state transitions should be changed (initial state)', () => {

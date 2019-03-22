@@ -220,7 +220,8 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     return (
       !!this.actions.length ||
       typeof this.history.value !== typeof this.value ||
-      !stateValuesEqual(this.value, this.history.value)
+      !stateValuesEqual(this.value, this.history.value) ||
+      this.context !== this.history.context
     );
   }
 }
