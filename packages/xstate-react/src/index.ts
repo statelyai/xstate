@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { interpret, EventObject, StateMachine, State } from 'xstate';
 import { Interpreter } from 'xstate/lib/interpreter';
 
@@ -32,14 +32,13 @@ export function useMachine<TContext, TEvent extends EventObject>(
   const [current, setCurrent] = useState(machine.initialState);
 
   // Start the service (only once!)
-  const service = useMemo(
-    () =>
-      interpret(machine, options).onTransition(state => {
-        // Update the current machine state when a transition occurs
-        if (state.changed) {
-          setCurrent(state);
-        }
-      }),
+  const service = useRef(
+    interpret(machine, options).onTransition(state => {
+      // Update the current machine state when a transition occurs
+      if (state.changed) {
+        setCurrent(state);
+      }
+    }),
     []
   );
 

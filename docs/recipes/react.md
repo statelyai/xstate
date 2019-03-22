@@ -25,7 +25,7 @@ export const toggleMachine = Machine({
 Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
 
 ```js
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { interpret } from 'xstate';
 
 export function useMachine(machine) {
@@ -33,14 +33,13 @@ export function useMachine(machine) {
   const [current, setCurrent] = useState(machine.initialState);
 
   // Define the service (only once!)
-  const service = useMemo(
-    () =>
-      interpret(machine).onTransition(state => {
-        // Update the current machine state when a transition occurs
-        if (state.changed) {
-          setCurrent(state);
-        }
-      }),
+  const service = useRef(
+    interpret(machine).onTransition(state => {
+      // Update the current machine state when a transition occurs
+      if (state.changed) {
+        setCurrent(state);
+      }
+    }),
     []
   );
 
