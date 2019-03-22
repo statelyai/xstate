@@ -1,17 +1,16 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import { interpret } from 'xstate';
 
 export function useMachine(machine, options = {}) {
   const [current, setCurrent] = useState(machine.initialState);
-  const service = useMemo(
-    () =>
-      interpret(machine)
-        .onTransition(state => {
-          options.log && console.log('CONTEXT:', state.context);
-          setCurrent(state);
-        })
-        .onEvent(e => options.log && console.log('EVENT:', e))
-        .start(),
+  const service = useRef(
+    interpret(machine)
+      .onTransition(state => {
+        options.log && console.log('CONTEXT:', state.context);
+        setCurrent(state);
+      })
+      .onEvent(e => options.log && console.log('EVENT:', e))
+      .start(),
     []
   );
 
