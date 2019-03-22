@@ -553,7 +553,7 @@ export class Interpreter<
     event: OmniEventObject<TEvent>
   ): void {
     if (action.exec) {
-      return action.exec(context, event, { action });
+      return action.exec(context, event, { action, state: this.state });
     }
 
     switch (action.type) {

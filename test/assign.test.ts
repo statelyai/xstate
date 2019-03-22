@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, actions } from '../src/index';
+import { Machine, assign } from '../src/index';
 
 interface CounterContext {
   count: number;
@@ -17,7 +17,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>(xs => ({
+              assign<CounterContext>(xs => ({
                 count: xs.count + 1
               }))
             ]
@@ -27,7 +27,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>({
+              assign<CounterContext>({
                 count: xs => xs.count - 1
               })
             ]
@@ -37,7 +37,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>({
+              assign<CounterContext>({
                 count: () => 100,
                 foo: () => 'win'
               })
@@ -48,7 +48,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>({
+              assign<CounterContext>({
                 count: 100,
                 foo: 'win'
               })
@@ -59,7 +59,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>({
+              assign<CounterContext>({
                 count: () => 100,
                 foo: 'win'
               })
@@ -70,7 +70,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              actions.assign<CounterContext>(() => ({
+              assign<CounterContext>(() => ({
                 count: 100,
                 foo: 'win'
               }))
@@ -80,7 +80,7 @@ const counterMachine = Machine<CounterContext>({
         SET_MAYBE: [
           {
             actions: [
-              actions.assign<CounterContext>({
+              assign<CounterContext>({
                 maybe: 'defined'
               })
             ]
@@ -226,5 +226,61 @@ describe('assign', () => {
       foo: 'bar',
       maybe: 'defined'
     });
+  });
+});
+
+describe('custom updater', () => {
+  const updates: number[] = [];
+  interface UpdaterContext {
+    count: number;
+  }
+  const updaterMachine = Machine<UpdaterContext>(
+    {
+      id: 'updater',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            EVENT: {
+              actions: [
+                assign<UpdaterContext>({
+                  count: ctx => ctx.count + 2
+                }),
+                assign<UpdaterContext>({
+                  count: ctx => ctx.count * 2
+                })
+              ]
+            }
+          }
+        }
+      }
+    },
+    {
+      updater: (ctx, _, actions) => {
+        const newCtx = { ...ctx };
+        actions.forEach(action => {
+          Object.keys(action.assignment).forEach(key => {
+            newCtx[key] = (action.assignment[key] as (
+              _ctx: typeof ctx
+            ) => number)(newCtx);
+
+            // Custom functionality
+            updates.push(newCtx[key]);
+          });
+        });
+
+        return newCtx;
+      }
+    }
+  );
+
+  it('should allow a custom updater to update state context', () => {
+    const newState = updaterMachine.transition(
+      updaterMachine.initialState,
+      'EVENT'
+    );
+    assert.deepEqual(newState.context, { count: 4 });
+    assert.deepEqual(updates, [2, 4]);
   });
 });

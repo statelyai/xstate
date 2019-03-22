@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, assign } from '../src/index';
+import { Machine, assign, interpret } from '../src/index';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -399,7 +399,7 @@ describe('actions on invalid transition', () => {
   });
 });
 
-describe('actions option', () => {
+describe('actions config', () => {
   type EventType =
     | { type: 'definedAction' }
     | { type: 'updateContext' }
@@ -516,7 +516,8 @@ describe('actions option', () => {
           initialState.context,
           { type: 'any' },
           {
-            action
+            action,
+            state: initialState
           }
         );
       }
@@ -534,7 +535,8 @@ describe('actions option', () => {
           inactiveState.context,
           { type: 'EVENT' },
           {
-            action
+            action,
+            state: initialState
           }
         );
       }
@@ -542,5 +544,36 @@ describe('actions option', () => {
 
     assert.isTrue(onExitCalled, 'onExit should be called');
     assert.isTrue(actionCalled, 'action should be called');
+  });
+});
+
+describe('action meta', () => {
+  it('should provide the original action and state to the exec function', done => {
+    const testMachine = Machine(
+      {
+        id: 'test',
+        initial: 'foo',
+        states: {
+          foo: {
+            onEntry: {
+              type: 'entryAction',
+              value: 'something'
+            }
+          }
+        }
+      },
+      {
+        actions: {
+          entryAction: (_, __, meta) => {
+            assert.equal(meta.state.value, 'foo');
+            assert.equal(meta.action.type, 'entryAction');
+            assert.equal(meta.action.value, 'something');
+            done();
+          }
+        }
+      }
+    );
+
+    interpret(testMachine).start();
   });
 });

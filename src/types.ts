@@ -53,7 +53,8 @@ export type OmniEvent<TEvent extends EventObject> =
   | BuiltInEvent<TEvent>['type']
   | OmniEventObject<TEvent>;
 
-export interface ExecMeta<TContext, TEvent extends EventObject> {
+export interface ExecMeta<TContext, TEvent extends EventObject>
+  extends StateMeta<TContext, TEvent> {
   action: ActionObject<TContext, TEvent>;
 }
 
@@ -439,6 +440,7 @@ export interface StateNodeDefinition<
   TEvent extends EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   id: string;
+  version: string | undefined;
   key: string;
   type: StateTypes;
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
@@ -510,11 +512,12 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | Expr<TContext, OmniEventObject<TEvent>, number>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
-  guards?: Record<string, ConditionPredicate<TContext, TEvent>>;
-  actions?: ActionFunctionMap<TContext, TEvent>;
-  activities?: Record<string, ActivityConfig<TContext, TEvent>>;
-  services?: Record<string, ServiceConfig<TContext>>;
-  delays?: Record<string, DelayConfig<TContext, TEvent>>;
+  guards: Record<string, ConditionPredicate<TContext, TEvent>>;
+  actions: ActionFunctionMap<TContext, TEvent>;
+  activities: Record<string, ActivityConfig<TContext, TEvent>>;
+  services: Record<string, ServiceConfig<TContext>>;
+  delays: Record<string, DelayConfig<TContext, TEvent>>;
+  updater: Updater<TContext, TEvent>;
 }
 export interface MachineConfig<
   TContext,
@@ -525,6 +528,10 @@ export interface MachineConfig<
    * The initial context (extended state)
    */
   context?: TContext;
+  /**
+   * The machine's own version.
+   */
+  version?: string;
 }
 
 export interface StandardMachineConfig<
@@ -724,6 +731,12 @@ export type Mapper<TContext, TEvent extends EventObject> = (
 export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
   [key: string]: ((extState: TContext, event: TEvent) => any) | any;
 }>;
+
+export type Updater<TContext, TEvent extends EventObject> = (
+  context: TContext,
+  event: OmniEventObject<TEvent>,
+  assignActions: Array<AssignAction<TContext, TEvent>>
+) => TContext;
 
 export interface AssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

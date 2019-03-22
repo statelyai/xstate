@@ -56,7 +56,8 @@ import {
   BuiltInEvent,
   Guard,
   GuardPredicate,
-  GuardMeta
+  GuardMeta,
+  MachineConfig
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -87,7 +88,12 @@ const EMPTY_OBJECT = {};
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
-  guards: EMPTY_OBJECT
+  actions: {},
+  guards: {},
+  services: {},
+  activities: {},
+  delays: {},
+  updater: updateContext
 });
 
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
@@ -105,6 +111,10 @@ class StateNode<
    * The unique ID of the state node.
    */
   public id: string;
+  /**
+   * The machine's own version.
+   */
+  public version?: string;
   /**
    * The type of this state node:
    *
@@ -192,6 +202,8 @@ class StateNode<
    */
   public invoke: Array<InvokeDefinition<TContext, TEvent>>;
 
+  public options: MachineOptions<TContext, TEvent>;
+
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
@@ -202,14 +214,16 @@ class StateNode<
 
   constructor(
     private _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    public options: MachineOptions<TContext, TEvent> = createDefaultOptions<
-      TContext
-    >(),
+    options?: Partial<MachineOptions<TContext, TEvent>>,
     /**
      * The initial extended state
      */
     public context?: Readonly<TContext>
   ) {
+    this.options = {
+      ...createDefaultOptions<TContext>(),
+      ...options
+    };
     this.key = _config.key || _config.id || '(machine)';
     this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
@@ -222,6 +236,9 @@ class StateNode<
       (this.machine
         ? [this.machine.key, ...this.path].join(this.delimiter)
         : this.key);
+    this.version = this.parent
+      ? this.parent.version
+      : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
     this.type =
       _config.type ||
       (_config.parallel
@@ -294,7 +311,7 @@ class StateNode<
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src,
-          ...(this.machine.options.services || {})
+          ...this.machine.options.services
         };
 
         return {
@@ -325,7 +342,7 @@ class StateNode<
    * @param context Custom context (will override predefined context)
    */
   public withConfig(
-    options: MachineOptions<TContext, TEvent>,
+    options: Partial<MachineOptions<TContext, TEvent>>,
     context: TContext | undefined = this.context
   ): StateNode<TContext, TStateSchema, TEvent> {
     const { actions, activities, guards, services, delays } = this.options;
@@ -361,6 +378,7 @@ class StateNode<
     return {
       id: this.id,
       key: this.key,
+      version: this.version,
       type: this.type,
       initial: this.initial,
       history: this.history,
@@ -427,7 +445,6 @@ class StateNode<
         let delayRef: string | number;
 
         if (typeof delay === 'function') {
-          this.options.delays = this.options.delays || {};
           delayRef = `${this.id}:delay[${i}]`;
           this.options.delays[delayRef] = delay; // TODO: util function
         } else {
@@ -930,7 +947,7 @@ class StateNode<
       );
     }
 
-    if (!guards || !guards[guard.type]) {
+    if (!guards[guard.type]) {
       throw new Error(
         `Guard (condition) '${guard.type}' is not implemented on machine '${
           this.machine.id
@@ -1129,7 +1146,7 @@ class StateNode<
         action.type === actionTypes.assign
     );
 
-    const updatedContext = updateContext(
+    const updatedContext = this.options.updater(
       currentState.context,
       eventObject,
       assignActions
@@ -1494,7 +1511,11 @@ class StateNode<
       action => typeof action === 'object' && action.type === actionTypes.assign
     ) as Array<AssignAction<TContext, TEvent>>;
 
-    const updatedContext = updateContext(context, undefined, assignActions);
+    const updatedContext = this.options.updater(
+      context,
+      { type: ActionTypes.Init },
+      assignActions
+    );
 
     const initialNextState = new State<TContext, TEvent>({
       value: stateValue,

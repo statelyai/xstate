@@ -1,8 +1,8 @@
 # Actions
 
-In XState and statecharts, actions are fire-and-forget ["side-effects"](./effects.md). For a statechart to be useful in a real-world application, side-effects need to occur to make things happen in the real world, such as rendering to a screen or emitting external events.
+Actions are fire-and-forget ["side effects"](./effects.md). For a machine to be useful in a real-world application, side effects need to occur to make things happen in the real world, such as rendering to a screen.
 
-XState does _not_ immediately trigger actions. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
+Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
 
 There are three types of actions:
 
@@ -12,7 +12,7 @@ There are three types of actions:
 
 These are represented in the StateNode definition:
 
-```js
+```js {10-11,16-19,27-41}
 const triggerMachine = Machine(
   {
     id: 'trigger',
@@ -58,11 +58,26 @@ const triggerMachine = Machine(
 );
 ```
 
-## The `.actions` Property
+::: tip
+Action implementations can be quickly prototyped by specifying the action function directly in the machine config:
+
+```js {4}
+// ...
+TRIGGER: {
+  target: 'active',
+  actions: (ctx, event) => { console.log('activating...'); }
+}
+// ...
+```
+
+It is _not recommended_ to keep the machine config like this in production code, as this makes it difficult to debug, serialize, test, and accurately visualize actions. Always prefer refactoring inline action implementations in the `actions` property of the machine options, like the previous example.
+:::
+
+## Declarative Actions
 
 The `State` instance returned from `machine.transition(...)` has an `.actions` property, which is an array of action objects for the interpreter to execute:
 
-```js
+```js {4-9}
 const activeState = triggerMachine.transition('inactive', 'TRIGGER');
 
 console.log(activeState.actions);
@@ -74,17 +89,20 @@ console.log(activeState.actions);
 // ]
 ```
 
-Each action object has two properties (and possibly others):
+Each action object has two properties (and others, that you can specify):
 
 - `type` - the action type
 - `exec` - the action implementation function
 
-The `exec` function takes two arguments:
+The `exec` function takes three arguments:
 
 - `ctx` - the current machine context
 - `event` - the event that caused the transition
+- `actionMeta` - (since 4.4) an object containing meta data about the action, including:
+  - `action` - the original action object
+  - `state` - the resolved machine state, after transition
 
-The interpreter will call the `exec` function with the `currentState.context` and the `event`, and this behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
+The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. This behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
 
 ## Action order
 
@@ -100,7 +118,9 @@ When interpreting statecharts, the order of actions should not necessarily matte
 
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
 
-⚠️ The `send(...)` function is a pure function that only returns an action object and does _not_ imperatively send an event.
+::: warning
+The `send(...)` function is a pure function that only returns an action object and does _not_ imperatively send an event.
+:::
 
 ```js
 import { Machine, send } from 'xstate';
@@ -207,7 +227,7 @@ The `log()` action creator is a declarative way of logging anything related to t
 - `expr` (optional) - a function that takes the `context` and `event` as arguments and returns a value to be logged
 - `label` (optional) - a string to label the logged message
 
-```js
+```js {13-16,27-33}
 import { Machine, actions } from 'xstate';
 const { log } = actions;
 
@@ -261,7 +281,7 @@ A [self-transition](./transitions.md#self-transitions) is when a state transitio
 
 For example, this counter machine has one `'counting'` state with internal and external transitions:
 
-```js
+```js {9-12}
 const counterMachine = Machine({
   id: 'counter',
   initial: 'counting',
@@ -293,3 +313,41 @@ const stateC = counterMachine.transition('counting', 'INC');
 stateB.actions;
 // ['increment']
 ```
+
+## SCXML
+
+Executable actions in transitions are equivalent to the `<script>` element. The `onEntry` and `onExit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
+
+```js
+{
+  start: {
+    onEntry: 'showStartScreen',
+    onExit: 'logScreenChange',
+    on: {
+      STOP: {
+        target: 'stop',
+        actions: ['logStop', 'stopEverything']
+      }
+    }
+  }
+}
+```
+
+```xml
+<state id="start">
+  <onentry>
+    <script>showStartScreen();</script>
+  </onentry>
+  <onexit>
+    <script>logScreenChange();</script>
+  </onexit>
+  <transition event="STOP" target="stop">
+    <script>logStop();</script>
+    <script>stopEverything();</script>
+  </transition>
+</state>
+```
+
+- [https://www.w3.org/TR/scxml/#script](https://www.w3.org/TR/scxml/#script) - the definition of the `<script>` element
+- [https://www.w3.org/TR/scxml/#onentry](https://www.w3.org/TR/scxml/#onentry) - the definition of the `<onentry>` element
+- [https://www.w3.org/TR/scxml/#onexit](https://www.w3.org/TR/scxml/#onexit) - the definition of the `<onexit>` element
