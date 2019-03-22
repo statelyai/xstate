@@ -601,6 +601,61 @@ describe('interpreter', () => {
     });
   });
 
+  describe('start()', () => {
+    const startMachine = Machine({
+      id: 'start',
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'one',
+          states: {
+            one: {}
+          }
+        },
+        bar: {}
+      }
+    });
+
+    it('should initialize the service', done => {
+      const startService = interpret(startMachine).onTransition(state => {
+        assert.isDefined(state);
+        assert.deepEqual(state, startMachine.initialState);
+        done();
+      });
+
+      assert.isUndefined(startService.state);
+
+      startService.start();
+    });
+
+    it('should be able to be initialized at a custom state', done => {
+      const startService = interpret(startMachine).onTransition(state => {
+        assert.ok(state.matches('bar'));
+        done();
+      });
+
+      startService.start(State.from('bar'));
+    });
+
+    it('should be able to be initialized at a custom state value', done => {
+      const startService = interpret(startMachine).onTransition(state => {
+        assert.ok(state.matches('bar'));
+        done();
+      });
+
+      startService.start('bar');
+    });
+
+    it('should be able to resolve a custom initialized state', done => {
+      const startService = interpret(startMachine).onTransition(state => {
+        assert.ok(state.matches({ foo: 'one' }));
+        done();
+      });
+
+      startService.start(State.from('foo'));
+    });
+  });
+
   describe('stop()', () => {
     it('should cancel delayed events', done => {
       const delayedMachine = Machine({

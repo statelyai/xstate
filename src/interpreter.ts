@@ -17,7 +17,8 @@ import {
   InvokeCallback,
   Sender,
   DisposeActivityFunction,
-  ErrorExecutionEvent
+  ErrorExecutionEvent,
+  StateValue
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -365,17 +366,20 @@ export class Interpreter<
    * @param initialState The state to start the statechart from
    */
   public start(
-    initialState: State<TContext, TEvent> = this.machine.initialState as State<
-      TContext,
-      TEvent
-    >
+    initialState?: State<TContext, TEvent> | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent> {
+    const resolvedState =
+      initialState === undefined
+        ? this.machine.initialState
+        : initialState instanceof State
+        ? this.machine.resolveState(initialState)
+        : this.machine.resolveState(State.from(initialState));
     this.initialized = true;
     if (this.options.devTools) {
       this.attachDev();
     }
     this.eventHandler.Initialize(() => {
-      this.update(initialState, { type: actionTypes.init });
+      this.update(resolvedState, { type: actionTypes.init });
     });
     return this;
   }
