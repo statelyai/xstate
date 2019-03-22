@@ -138,7 +138,7 @@ try {
 }
 ```
 
-State can be restored (i.e., rehydrated) using the static `State.create(...)` method and resolved using the public `machine.resolveState(...)` method:
+State can be restored using the static `State.create(...)` method and resolved using the public `machine.resolveState(...)` method:
 
 ```js
 import { State, interpret } from 'xstate';
@@ -154,7 +154,7 @@ const restoredState = State.create(stateDefinition);
 const resolvedState = myMachine.resolveState(restoredStateDef);
 ```
 
-You can then interpret the machine from this restored state by passing the `State` into the `.start(...)` method of the interpreted service:
+You can then interpret the machine from this resolved state by passing the `State` into the `.start(...)` method of the interpreted service:
 
 ```js
 // ...
