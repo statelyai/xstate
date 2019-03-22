@@ -122,6 +122,7 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   in?: StateValue;
   internal?: boolean;
   target?: string | string[];
+  meta?: Record<string, any>;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
@@ -232,8 +233,7 @@ export type StateTypes =
   | 'compound'
   | 'parallel'
   | 'final'
-  | 'history'
-  | string; // TODO: figure out if TypeScript fixes this for unknown string types
+  | 'history';
 
 export type SingleOrArray<T> = T[] | T;
 
