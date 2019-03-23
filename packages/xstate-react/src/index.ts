@@ -38,18 +38,17 @@ export function useMachine<TContext, TEvent extends EventObject>(
       if (state.changed) {
         setCurrent(state);
       }
-    }),
-    []
+    })
   );
 
   // Stop the service when the component unmounts
   useEffect(() => {
-    service.start();
+    service.current.start();
 
     return () => {
-      service.stop();
+      service.current.stop();
     };
   }, []);
 
-  return [current, service.send];
+  return [current, service.current.send];
 }
