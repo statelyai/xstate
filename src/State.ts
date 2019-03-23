@@ -16,9 +16,16 @@ import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys } from './utils';
 import { StateTree } from './StateTree';
 
-export function stateValuesEqual(a: StateValue, b: StateValue): boolean {
+export function stateValuesEqual(
+  a: StateValue | undefined,
+  b: StateValue | undefined
+): boolean {
   if (a === b) {
     return true;
+  }
+
+  if (a === undefined || b === undefined) {
+    return false;
   }
 
   if (typeof a === 'string' || typeof b === 'string') {
@@ -45,6 +52,15 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   public meta: any = {};
   public events: TEvent[] = [];
   public event: OmniEventObject<TEvent>;
+  /**
+   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
+   *
+   * - Its value is not equal to its previous value, or:
+   * - It has any new actions (side-effects) to execute.
+   *
+   * An initial state (with no history) will return `undefined`.
+   */
+  public changed: boolean | undefined;
   /**
    * The state node tree representation of the state value.
    */
@@ -202,25 +218,5 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    */
   public matches(parentStateValue: StateValue): boolean {
     return matchesState(parentStateValue, this.value);
-  }
-
-  /**
-   * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
-   *
-   * - Its value is not equal to its previous value, or:
-   * - It has any new actions (side-effects) to execute.
-   *
-   * An initial state (with no history) will return `undefined`.
-   */
-  public get changed(): boolean | undefined {
-    if (!this.history) {
-      return undefined;
-    }
-
-    return (
-      !!this.actions.length ||
-      typeof this.history.value !== typeof this.value ||
-      !stateValuesEqual(this.value, this.history.value)
-    );
   }
 }

@@ -147,7 +147,7 @@ describe('State', () => {
       assert.isTrue(twoState.changed);
     });
 
-    it.only('should report any internal transition assignments as changed', () => {
+    it('should report any internal transition assignments as changed', () => {
       const assignMachine = Machine({
         id: 'assign',
         initial: 'same',

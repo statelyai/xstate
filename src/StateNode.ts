@@ -60,7 +60,7 @@ import {
   MachineConfig
 } from './types';
 import { matchesState } from './utils';
-import { State } from './State';
+import { State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
   start,
@@ -1146,11 +1146,9 @@ class StateNode<
         action.type === actionTypes.assign
     );
 
-    const updatedContext = this.options.updater(
-      currentState.context,
-      eventObject,
-      assignActions
-    );
+    const updatedContext = assignActions.length
+      ? this.options.updater(currentState.context, eventObject, assignActions)
+      : currentState.context;
 
     const resolvedActions = nonEventActions.map(action => {
       const actionObject = toActionObject(action);
@@ -1208,7 +1206,7 @@ class StateNode<
       return acc;
     }, {});
 
-    const nextState = resolvedStateValue
+    let nextState = resolvedStateValue
       ? new State<TContext, TEvent>({
           value: resolvedStateValue,
           context: updatedContext,
@@ -1226,7 +1224,7 @@ class StateNode<
       : undefined;
 
     if (!nextState) {
-      return new State({
+      nextState = new State({
         value: currentState.value,
         context: updatedContext,
         event: eventObject,
@@ -1238,14 +1236,18 @@ class StateNode<
         events: [],
         tree: currentState.tree
       });
+
+      // Unchanged state is changed if its context is changed
+      nextState.changed = !!assignActions.length;
+
+      return nextState;
     }
 
     // Dispose of penultimate histories to prevent memory leaks
-    if (nextState.history) {
-      delete nextState.history.history;
-    }
-
     const { history } = nextState;
+    if (history) {
+      delete history.history;
+    }
 
     let maybeNextState = nextState;
     while (raisedEvents.length) {
@@ -1262,6 +1264,16 @@ class StateNode<
       maybeNextState.event = eventObject;
       maybeNextState.actions.unshift(...currentActions);
     }
+
+    // Detect if state changed
+    const changed = history
+      ? !!maybeNextState.actions.length ||
+        !!assignActions.length ||
+        typeof history.value !== typeof maybeNextState.value ||
+        !stateValuesEqual(maybeNextState.value, history.value)
+      : undefined;
+
+    maybeNextState.changed = changed;
 
     // Preserve original history after raised events
     maybeNextState.historyValue = nextState.historyValue;
