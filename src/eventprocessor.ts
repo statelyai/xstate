@@ -25,6 +25,7 @@ export class EventProcessor {
         if (this.initCalled) {
             throw new Error("Events can be deferred only before .start() method has not been called");
         }
+        this.deferredStartupCalled = true;
         this.deferredStartup = useDeferredStartup;
     }
 

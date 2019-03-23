@@ -123,4 +123,71 @@ describe('event processor', () => {
         const expectedCount = 3;
         assert.equal(calledCount, expectedCount);
     });
+
+    describe('deferred events', () => {
+        it('should be able to defer events', () => {
+            let calledCount = 0;
+            const handler = new EventProcessor();
+            handler.setDeferredStartup(true);
+            handler.processEvent(() => {
+                calledCount++;
+            });
+
+            const expectedCount = 0;
+            assert.equal(calledCount, expectedCount);
+            handler.Initialize(() => {});
+            const expectedFinalCount = 1;
+            assert.equal(calledCount, expectedFinalCount);
+        });
+
+        it('should process initialization before other events', () => {
+            let callOrder: number[] = [];
+            const handler = new EventProcessor();
+            handler.setDeferredStartup(true);
+            handler.processEvent(() => {
+                callOrder.push(2);
+            });
+            handler.processEvent(() => {
+                callOrder.push(3);
+            });
+            handler.Initialize(() => {
+                callOrder.push(1);
+            });
+
+            const expectedOrder = [ 1, 2, 3 ];
+            assert.equal(callOrder.length, expectedOrder.length);
+            for(let i = 0; i < expectedOrder.length; i++) {
+                assert.equal(callOrder[i], expectedOrder[i]);
+            }
+         });
+
+        it('should not be able call event deferring twice', () => {
+            const handler = new EventProcessor();
+            handler.setDeferredStartup(true);
+
+            assert.throws(() => handler.setDeferredStartup(true), Error,
+                /Can only be called once during the lifetime of the EventProcessor/);
+        });
+
+        it('should not be able call event deferring after initialization call', () => {
+            const handler = new EventProcessor();
+            handler.Initialize(() => {});
+
+            assert.throws(() => handler.setDeferredStartup(true), Error,
+                /Events can be deferred only before .start\(\) method has not been called/);
+        });
+
+        it('should not defer events after initialization', () => {
+            const handler = new EventProcessor();
+            handler.setDeferredStartup(true);
+            handler.Initialize(() => {});
+            let calledCount = 0;
+            handler.processEvent(() => {
+                calledCount++;
+            });
+
+            const expectedCount = 1;
+            assert.equal(calledCount, expectedCount);
+        });
+    });
 });
