@@ -18,7 +18,8 @@ import {
   Sender,
   DisposeActivityFunction,
   ErrorExecutionEvent,
-  StateValue
+  StateValue,
+  InterpreterOptions
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -52,40 +53,11 @@ export interface SimulatedClock extends Clock {
   set(ms: number): void;
 }
 
-interface InterpreterOptions {
-  /**
-   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
-   */
-  execute: boolean;
-  clock: Clock;
-  logger: (...args: any[]) => void;
-  parent?: Interpreter<any, any, any>;
-  /**
-   * If `true`, defers processing of sent events until the service
-   * is initialized (`.start()`). Otherwise, an error will be thrown
-   * for events sent to an uninitialized service.
-   *
-   * Default: `true`
-   */
-  deferEvents: boolean;
-  /**
-   * The custom `id` for referencing this service.
-   */
-  id?: string;
-  /**
-   * If `true`, states and events will be logged to Redux DevTools.
-   *
-   * Default: `false`
-   */
-  devTools?: boolean;
-}
-
 interface SimulatedTimeout {
   start: number;
   timeout: number;
   fn: (...args: any[]) => void;
 }
-
 export class SimulatedClock implements SimulatedClock {
   private timeouts: Map<number, SimulatedTimeout> = new Map();
   private _now: number = 0;

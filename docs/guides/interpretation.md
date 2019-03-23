@@ -110,7 +110,7 @@ The following options can be passed into the interpreter as the 2nd argument (`i
   - See [Executing Actions](#executing-actions) for customizing this behavior.
 - `deferEvents` (boolean) - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
   - If `false`, events sent to an uninitialized service will throw an error.
-  - Since 4.3.4
+  - Since 4.4
 - `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
 - `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
 
