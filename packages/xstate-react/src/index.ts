@@ -31,24 +31,30 @@ export function useMachine<TContext, TEvent extends EventObject>(
   // Keep track of the current machine state
   const [current, setCurrent] = useState(machine.initialState);
 
-  // Start the service (only once!)
-  const service = useRef(
-    interpret(machine, options).onTransition(state => {
+  // Reference the service
+  const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
+
+  // Create the service only once
+  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
+  const service =
+    serviceRef.current ||
+    ((serviceRef.current = interpret(machine, options).onTransition(state => {
       // Update the current machine state when a transition occurs
       if (state.changed) {
         setCurrent(state);
       }
-    })
-  );
+    })),
+    serviceRef.current);
 
-  // Stop the service when the component unmounts
   useEffect(() => {
-    service.current.start();
+    // Start the service when the component mounts
+    service.start();
 
     return () => {
-      service.current.stop();
+      // Stop the service when the component unmounts
+      service.stop();
     };
   }, []);
 
-  return [current, service.current.send];
+  return [current, service.send];
 }
