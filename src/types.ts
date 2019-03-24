@@ -233,7 +233,8 @@ export type StateTypes =
   | 'compound'
   | 'parallel'
   | 'final'
-  | 'history';
+  | 'history'
+  | string; // TODO: remove once TS fixes this type-widening issue
 
 export type SingleOrArray<T> = T[] | T;
 
