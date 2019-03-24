@@ -32,16 +32,20 @@ export function useMachine(machine) {
   // Keep track of the current machine state
   const [current, setCurrent] = useState(machine.initialState);
 
-  // Define the service (only once!)
-  const service = useRef(
-    interpret(machine).onTransition(state => {
+  // Reference the service
+  const serviceRef = useRef(null);
+
+  // Create the service only once
+  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
+  const service =
+    serviceRef.current ||
+    ((serviceRef.current = interpret(machine, options).onTransition(state => {
       // Update the current machine state when a transition occurs
       if (state.changed) {
         setCurrent(state);
       }
-    }),
-    []
-  );
+    })),
+    serviceRef.current);
 
   useEffect(() => {
     // Start the service when the component mounts
