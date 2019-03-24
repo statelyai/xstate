@@ -142,9 +142,7 @@ const searchMachine = Machine({
 });
 ```
 
-Please note that if onError transition is missing the promise reject will
-be ignored unless you have specified strict mode for the machine in which
-case the machine is stopped if this situation is observed.
+Please note that if onError transition is missing the promise reject will be ignored unless you have specified strict mode for the machine in which case the machine is stopped if this situation is observed.
 
 ## Invoking Callbacks
 
@@ -175,9 +173,7 @@ counting: {
 // ...
 ```
 
-If the returned value is a promise then the note about missing onError
-handler mentioned in [Promise Rejection](#promise-rejection) is applicable
-also for callback invocations.
+If the returned value is a promise then the note about missing onError handler mentioned in [Promise Rejection](#promise-rejection) is applicable also for callback invocations.
 
 ### Listening to Parent Events
 
