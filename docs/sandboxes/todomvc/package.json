@@ -2,7 +2,7 @@
   "main": "index.js",
   "private": true,
   "dependencies": {
-    "@xstate/react": "^0.0.3",
+    "@xstate/react": "^0.1.0",
     "classnames": "latest",
     "react": "next",
     "react-dom": "next",
