@@ -453,7 +453,10 @@ export class Interpreter<
       return;
     }
 
-    // Process on next tick to avoid conflict with in-process event on parent
+    // This was previously needed to keep child and parent in consistent state.
+    // With the current implementation this is not strictly needed but to keep
+    // the already exposed contract intact (would break applications relying
+    // on this feature) this setTimeout call should be left as is.
     setTimeout(() => {
       target.send(event);
     });
