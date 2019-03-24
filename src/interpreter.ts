@@ -453,10 +453,7 @@ export class Interpreter<
       return;
     }
 
-    // Process on next tick to avoid conflict with in-process event on parent
-    setTimeout(() => {
-      target.send(event);
-    });
+    target.send(event);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
