@@ -1,5 +1,5 @@
 import React, { useEffect, useRef } from "react";
-import { useMachine } from "./useMachine";
+import { useMachine } from "@xstate/react";
 import { todoMachine } from "./todoMachine";
 import cn from "classnames";
 

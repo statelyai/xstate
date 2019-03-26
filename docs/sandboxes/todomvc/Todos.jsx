@@ -1,7 +1,7 @@
 import React, { useEffect } from "react";
 import cn from "classnames";
 import "todomvc-app-css/index.css";
-import { useMachine } from "./useMachine";
+import { useMachine } from "@xstate/react";
 import { useHashChange } from "./useHashChange";
 import { Todo } from "./Todo";
 import { todosMachine } from "./todosMachine";
