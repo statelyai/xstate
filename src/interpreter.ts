@@ -141,7 +141,7 @@ export class Interpreter<
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
   public clock: Clock;
-  public options: InterpreterOptions;
+  public options: Readonly<InterpreterOptions>;
 
   private eventHandler: EventProcessor = new EventProcessor();
   private delayedEventsMap: Record<string, number> = {};
@@ -399,6 +399,7 @@ export class Interpreter<
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
     if (!this.initialized && this.options.deferEvents) {
       const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+      // tslint:disable-next-line:no-console
       console.warn(
         `Event "${eventObject.type}" was sent to uninitialized service "${
           this.machine.id
@@ -520,6 +521,7 @@ export class Interpreter<
         !this.machine.options.delays ||
         this.machine.options.delays[delay] === undefined
       ) {
+        // tslint:disable-next-line:no-console
         console.warn(
           `No delay reference for delay expression '${delay}' was found on machine '${
             this.machine.id
@@ -731,7 +733,7 @@ export class Interpreter<
             this.send(errorEvent);
           } catch (error) {
             if (!IS_PRODUCTION) {
-              this.reportUnhandledExceptionOnInvocation(errorData, error, id)
+              this.reportUnhandledExceptionOnInvocation(errorData, error, id);
             }
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
@@ -781,7 +783,7 @@ export class Interpreter<
             this.send(errorEvent);
           } catch (error) {
             if (!IS_PRODUCTION) {
-              this.reportUnhandledExceptionOnInvocation(e, error, id)
+              this.reportUnhandledExceptionOnInvocation(e, error, id);
             }
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
@@ -814,25 +816,29 @@ export class Interpreter<
       stop: dispose
     });
   }
-  private reportUnhandledExceptionOnInvocation(originalError: any, currentError: any, id: string) {
-    const originalStackTrace = originalError.stack ? ` Stacktrace was '${originalError.stack}'` : "";
+  private reportUnhandledExceptionOnInvocation(
+    originalError: any,
+    currentError: any,
+    id: string
+  ) {
+    const originalStackTrace = originalError.stack
+      ? ` Stacktrace was '${originalError.stack}'`
+      : '';
     if (originalError === currentError) {
+      // tslint:disable-next-line:no-console
       console.error(
-        `Missing onError handler for invocation '${
-          id
-        }', error was '${originalError}'.${originalStackTrace}`);
+        `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
+      );
     } else {
       const stackTrace = currentError.stack
         ? ` Stacktrace was '${currentError.stack}'`
-        : "";
+        : '';
+      // tslint:disable-next-line:no-console
       console.error(
-        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${
-          id
-        }', original error was '${originalError}'.${
-          originalStackTrace
-        } Current error is '${currentError}'.${stackTrace}`);
+        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
+          `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
+      );
     }
-
   }
   private attachDev() {
     if (
