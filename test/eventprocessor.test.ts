@@ -5,7 +5,7 @@ describe('event processor', () => {
   it('should process event only once', () => {
     let calledCount = 0;
     new EventProcessor().processEvent(() => {
-        calledCount++;
+      calledCount++;
     });
 
     const expectedCount = 1;
@@ -14,7 +14,7 @@ describe('event processor', () => {
 
   it('should process more than one event', () => {
     let calledCount = 0;
-    let handler = new EventProcessor();
+    const handler = new EventProcessor();
     handler.processEvent(() => {
       calledCount++;
       handler.processEvent(() => {
@@ -27,8 +27,8 @@ describe('event processor', () => {
   });
 
   it('should process events in the same order they were hit', () => {
-    let order : number[] = [];
-    let handler = new EventProcessor();
+    const order: number[] = [];
+    const handler = new EventProcessor();
     handler.processEvent(() => {
       order.push(1);
       handler.processEvent(() => {
@@ -45,20 +45,24 @@ describe('event processor', () => {
       });
     });
 
-    const expectedOrder = [ 1, 2, 3, 4, 5 ];
+    const expectedOrder = [1, 2, 3, 4, 5];
     assert.equal(order.length, expectedOrder.length);
-    for(let i = 0; i < expectedOrder.length; i++) {
+    for (let i = 0; i < expectedOrder.length; i++) {
       assert.equal(order[i], expectedOrder[i]);
     }
   });
 
   it('should recover if error is thrown while processing event', () => {
     let calledCount = 0;
-    let handler = new EventProcessor();
-    assert.throws(() => handler.processEvent(() => {
-      calledCount++;
-      throw Error("Test");
-    }), "Test");
+    const handler = new EventProcessor();
+    assert.throws(
+      () =>
+        handler.processEvent(() => {
+          calledCount++;
+          throw Error('Test');
+        }),
+      'Test'
+    );
     handler.processEvent(() => {
       calledCount++;
     });
@@ -69,14 +73,18 @@ describe('event processor', () => {
 
   it('should recover if error is thrown while processing the queue', () => {
     let calledCount = 0;
-    let handler = new EventProcessor();
-    assert.throws(() => handler.processEvent(() => {
-      calledCount++;
-      handler.processEvent(() => {
-        calledCount++;
-        throw Error("Test");
-      });
-    }), "Test");
+    const handler = new EventProcessor();
+    assert.throws(
+      () =>
+        handler.processEvent(() => {
+          calledCount++;
+          handler.processEvent(() => {
+            calledCount++;
+            throw Error('Test');
+          });
+        }),
+      'Test'
+    );
     handler.processEvent(() => {
       calledCount++;
     });
@@ -87,17 +95,21 @@ describe('event processor', () => {
 
   it('should stop processing events if error condition is met', () => {
     let calledCount = 0;
-    let handler = new EventProcessor();
-    assert.throws(() => handler.processEvent(() => {
-      calledCount++;
-      handler.processEvent(() => {
-        calledCount++;
-        throw Error('Test');
-      });
-      handler.processEvent(() => {
-        calledCount++;
-      });
-    }), "Test");
+    const handler = new EventProcessor();
+    assert.throws(
+      () =>
+        handler.processEvent(() => {
+          calledCount++;
+          handler.processEvent(() => {
+            calledCount++;
+            throw Error('Test');
+          });
+          handler.processEvent(() => {
+            calledCount++;
+          });
+        }),
+      'Test'
+    );
 
     const expectedCount = 2;
     assert.equal(calledCount, expectedCount);
@@ -105,17 +117,21 @@ describe('event processor', () => {
 
   it('should discard not processed events in the case of error condition', () => {
     let calledCount = 0;
-    let handler = new EventProcessor();
-    assert.throws(() => handler.processEvent(() => {
-      calledCount++;
-      handler.processEvent(() => {
-        calledCount++;
-        throw Error('Test');
-      });
-      handler.processEvent(() => {
-        calledCount++;
-      });
-    }), "Test");
+    const handler = new EventProcessor();
+    assert.throws(
+      () =>
+        handler.processEvent(() => {
+          calledCount++;
+          handler.processEvent(() => {
+            calledCount++;
+            throw Error('Test');
+          });
+          handler.processEvent(() => {
+            calledCount++;
+          });
+        }),
+      'Test'
+    );
     handler.processEvent(() => {
       calledCount++;
     });
@@ -135,13 +151,13 @@ describe('event processor', () => {
 
       const expectedCount = 0;
       assert.equal(calledCount, expectedCount);
-      handler.Initialize(() => {});
+      handler.initialize(() => {});
       const expectedFinalCount = 1;
       assert.equal(calledCount, expectedFinalCount);
     });
 
     it('should process initialization before other events', () => {
-      let callOrder: number[] = [];
+      const callOrder: number[] = [];
       const handler = new EventProcessor();
       handler.setDeferredStartup(true);
       handler.processEvent(() => {
@@ -150,13 +166,13 @@ describe('event processor', () => {
       handler.processEvent(() => {
         callOrder.push(3);
       });
-      handler.Initialize(() => {
+      handler.initialize(() => {
         callOrder.push(1);
       });
 
-      const expectedOrder = [ 1, 2, 3 ];
+      const expectedOrder = [1, 2, 3];
       assert.equal(callOrder.length, expectedOrder.length);
-      for(let i = 0; i < expectedOrder.length; i++) {
+      for (let i = 0; i < expectedOrder.length; i++) {
         assert.equal(callOrder[i], expectedOrder[i]);
       }
     });
@@ -165,22 +181,28 @@ describe('event processor', () => {
       const handler = new EventProcessor();
       handler.setDeferredStartup(true);
 
-      assert.throws(() => handler.setDeferredStartup(true), Error,
-        /Can only be called once during the lifetime of the EventProcessor/);
+      assert.throws(
+        () => handler.setDeferredStartup(true),
+        Error,
+        /Can only be called once during the lifetime of the EventProcessor/
+      );
     });
 
     it('should not be able call event deferring after initialization call', () => {
       const handler = new EventProcessor();
-      handler.Initialize(() => {});
+      handler.initialize(() => {});
 
-      assert.throws(() => handler.setDeferredStartup(true), Error,
-        /Events can be deferred only before .start\(\) method has not been called/);
+      assert.throws(
+        () => handler.setDeferredStartup(true),
+        Error,
+        /Events can be deferred only before .start\(\) method has not been called/
+      );
     });
 
     it('should not defer events after initialization', () => {
       const handler = new EventProcessor();
       handler.setDeferredStartup(true);
-      handler.Initialize(() => {});
+      handler.initialize(() => {});
       let calledCount = 0;
       handler.processEvent(() => {
         calledCount++;

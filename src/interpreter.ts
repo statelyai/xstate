@@ -350,7 +350,7 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDev();
     }
-    this.eventHandler.Initialize(() => {
+    this.eventHandler.initialize(() => {
       this.update(resolvedState, { type: actionTypes.init });
     });
     return this;

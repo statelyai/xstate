@@ -1,13 +1,13 @@
 export class EventProcessor {
   private processingEvent: boolean = false;
-  private queue: (() => void)[] = [];
+  private queue: Array<() => void> = [];
 
   // deferred feature
   private deferredStartupCalled: boolean = false;
   private deferredStartup: boolean = false;
   private initCalled: boolean = false;
 
-  public Initialize(callback: () => void): void {
+  public initialize(callback: () => void): void {
     this.initCalled = true;
 
     if (!this.deferredStartup) {
@@ -16,16 +16,20 @@ export class EventProcessor {
     }
 
     this.deferredStartup = false;
-    this.ProcessSingleEvent(callback);
-    this.ProcessQueue();
+    this.process(callback);
+    this.flushEvents();
   }
 
   public setDeferredStartup(useDeferredStartup: boolean): void {
     if (this.deferredStartupCalled) {
-      throw new Error("Can only be called once during the lifetime of the EventProcessor");
+      throw new Error(
+        'Can only be called once during the lifetime of the EventProcessor'
+      );
     }
     if (this.initCalled) {
-      throw new Error("Events can be deferred only before .start() method has not been called");
+      throw new Error(
+        'Events can be deferred only before .start() method has not been called'
+      );
     }
 
     this.deferredStartupCalled = true;
@@ -39,21 +43,24 @@ export class EventProcessor {
     }
 
     if (this.queue.length !== 0) {
-      throw new Error("Event queue should be empty when it is not processing events");
+      throw new Error(
+        'Event queue should be empty when it is not processing events'
+      );
     }
 
-    this.ProcessSingleEvent(callback);
-    this.ProcessQueue();
+    this.process(callback);
+    this.flushEvents();
   }
 
-  private ProcessQueue() {
-    let nextCallback: (() => void) | undefined;
-    while (nextCallback = this.queue.shift()) {
-      this.ProcessSingleEvent(nextCallback);
+  private flushEvents() {
+    let nextCallback: (() => void) | undefined = this.queue.shift();
+    while (nextCallback) {
+      this.process(nextCallback);
+      nextCallback = this.queue.shift();
     }
   }
 
-  private ProcessSingleEvent(callback: () => void) {
+  private process(callback: () => void) {
     this.processingEvent = true;
     try {
       callback();
@@ -62,8 +69,7 @@ export class EventProcessor {
       // as the situation is not anymore the same
       this.queue = [];
       throw e;
-    }
-    finally {
+    } finally {
       this.processingEvent = false;
     }
   }
