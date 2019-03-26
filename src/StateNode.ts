@@ -1164,6 +1164,7 @@ class StateNode<
             !this.machine.options.delays ||
             this.machine.options.delays[sendAction.delay] === undefined
           ) {
+            // tslint:disable-next-line:no-console
             console.warn(
               `No delay reference for delay expression '${
                 sendAction.delay
