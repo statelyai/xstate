@@ -142,7 +142,11 @@ const searchMachine = Machine({
 });
 ```
 
-Please note that if onError transition is missing the promise reject will be ignored unless you have specified strict mode for the machine in which case the machine is stopped if this situation is observed.
+::: warning
+
+If the `onError` transition is missing and the Promise is rejected, the error will be ignored unless you have specified [strict mode](./machines.md#configuration) for the machine. Strict mode will stop the machine and throw an error in this case.
+
+:::
 
 ## Invoking Callbacks
 
@@ -172,8 +176,6 @@ counting: {
 }
 // ...
 ```
-
-If the returned value is a promise then the note about missing onError handler mentioned in [Promise Rejection](#promise-rejection) is applicable also for callback invocations.
 
 ### Listening to Parent Events
 
