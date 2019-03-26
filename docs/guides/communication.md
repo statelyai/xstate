@@ -142,6 +142,8 @@ const searchMachine = Machine({
 });
 ```
 
+Please note that if onError transition is missing the promise reject will be ignored unless you have specified strict mode for the machine in which case the machine is stopped if this situation is observed.
+
 ## Invoking Callbacks
 
 (since 4.2) Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
@@ -170,6 +172,8 @@ counting: {
 }
 // ...
 ```
+
+If the returned value is a promise then the note about missing onError handler mentioned in [Promise Rejection](#promise-rejection) is applicable also for callback invocations.
 
 ### Listening to Parent Events
 

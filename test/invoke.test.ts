@@ -4,7 +4,8 @@ import {
   assign,
   sendParent,
   send,
-  EventObject
+  EventObject,
+  StateValue
 } from '../src/index';
 import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
@@ -416,6 +417,52 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should transition correctly if child invocation causes it to directly go to final state', done => {
+      let doneSubMachine = Machine({
+        id: 'child',
+        initial: 'one',
+        states: {
+          one: {
+            on: { NEXT: 'two' }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      const mainMachine = Machine({
+        id: 'parent',
+        initial: 'one',
+        states: {
+          one: {
+            invoke: {
+              id: 'foo-child',
+              src: doneSubMachine,
+              onDone: 'two'
+            },
+            onEntry: send('NEXT', { to: 'foo-child' }),
+          },
+          two: {
+            on: { NEXT: 'three'}
+          },
+          three: {
+            type: 'final'
+          }
+        }
+      });
+
+      let expectedStateValue = 'two';
+      let currentState;
+      interpret(mainMachine)
+        .onTransition(current => currentState = current)
+        .start();
+      setTimeout(() => {
+        assert.equal(currentState.value, expectedStateValue);
+        done();
+      }, 30);
+    })
   });
 
   describe('with promises', () => {
@@ -464,6 +511,61 @@ describe('invoke', () => {
     it('should be invoked with a promise factory and reject with ErrorExecution', done => {
       interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
         .onDone(() => done())
+        .start();
+    });
+
+    it('should be invoked with a promise factory and ignore unhandled onError target', done => {
+      const promiseMachine = Machine({
+        id: 'invokePromise',
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: () =>
+                new Promise(() => {
+                  throw new Error("test");
+                }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => assert.fail("should not be called"))
+        .start();
+      // assumes that error was ignored before the timeout is processed
+      setTimeout(() => done(), 30);
+    });
+
+    it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
+      const promiseMachine = Machine({
+        id: 'invokePromise',
+        initial: 'pending',
+        strict: true,
+        states: {
+          pending: {
+            invoke: {
+              src: () =>
+                new Promise(() => {
+                  throw new Error("test");
+                }),
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(promiseMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => done())
         .start();
     });
 
@@ -799,6 +901,138 @@ describe('invoke', () => {
         .start()
         .send({ type: 'BEGIN', payload: true });
     });
+
+    it('should transition correctly if callback function sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'intermediate' }
+            },
+            intermediate: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValues = [ 'pending', 'first', 'intermediate' ];
+      let stateValues : StateValue[] = [];
+      interpret(callbackMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start()
+        .send('BEGIN');
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
+    });
+
+    it('should transition correctly if callback function invoked from start and sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'idle',
+          context: { foo: true },
+          states: {
+            idle: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'intermediate' }
+            },
+            intermediate: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValues = [ 'idle', 'intermediate' ];
+      let stateValues : StateValue[] = [];
+      interpret(callbackMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start()
+        .send('BEGIN');
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
+    });
+
+    it('should transition correctly if transient transition happens before current state invokes callback function and sends an event', () => {
+      const callbackMachine = Machine(
+        {
+          id: 'callback',
+          initial: 'pending',
+          context: { foo: true },
+          states: {
+            pending: {
+              on: { BEGIN: 'first' }
+            },
+            first: {
+              on: { '': 'second' }
+            },
+            second: {
+              invoke: {
+                src: 'someCallback'
+              },
+              on: { CALLBACK: 'third' }
+            },
+            third: {
+              on: { NEXT: 'last' }
+            },
+            last: {
+              type: 'final'
+            }
+          }
+        },
+        {
+          services: {
+            someCallback: () => cb => {
+                cb('CALLBACK');
+            }
+          }
+        }
+      );
+
+      const expectedStateValues = [ 'pending', 'second', 'third' ];
+      let stateValues : StateValue[] = [];
+      interpret(callbackMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start()
+        .send('BEGIN');
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
+    });
   });
 
   describe('with callbacks', () => {
@@ -887,6 +1121,33 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should transition correctly upon error (sync)', () => {
+      const errorMachine = Machine({
+        id: 'error',
+        initial: 'safe',
+        states: {
+          safe: {
+            invoke: {
+              src: () => () => {
+                throw new Error('test');
+              },
+              onError: 'failed'
+            }
+          },
+          failed: {
+            on: { RETRY: 'safe' }
+          }
+        }
+      });
+
+      const expectedStateValue = 'failed';
+      let currentState;
+      interpret(errorMachine)
+        .onTransition(current => currentState = current)
+        .start();
+      assert.equal(currentState.value, expectedStateValue);
+    });
+
     it('should call onError upon error (async)', done => {
       const errorMachine = Machine({
         id: 'asyncError',
@@ -930,7 +1191,7 @@ describe('invoke', () => {
       assert.isString(waitingState.actions[0].activity!.src);
     });
 
-    xit('should throw error if unhandled (sync)', done => {
+    it('should throw error if unhandled (sync)', () => {
       const errorMachine = Machine({
         id: 'asyncError',
         initial: 'safe',
@@ -948,15 +1209,17 @@ describe('invoke', () => {
         }
       });
 
-      interpret(errorMachine)
-        .onDone(() => done())
-        .start();
+      var service = interpret(errorMachine);
+      assert.throws(() => service.start(), "test");
     });
 
-    xit('should throw error if unhandled (async)', done => {
+    it('should stop machine if unhandled error and on strict mode (async)', done => {
       const errorMachine = Machine({
         id: 'asyncError',
         initial: 'safe',
+        // if not in strict mode we have no way to know if there
+        // was an error with processing rejected promise
+        strict: true,
         states: {
           safe: {
             invoke: {
@@ -973,8 +1236,38 @@ describe('invoke', () => {
       });
 
       interpret(errorMachine)
-        .onDone(() => done())
+        .onStop(() => done())
         .start();
+    });
+
+    it('should ignore error if unhandled error and not on strict mode (async)', done => {
+      const errorMachine = Machine({
+        id: 'asyncError',
+        initial: 'safe',
+        // if not in strict mode we have no way to know if there
+        // was an error with processing rejected promise
+        strict: false,
+        states: {
+          safe: {
+            invoke: {
+              src: () => async () => {
+                await true;
+                throw new Error('test');
+              }
+            }
+          },
+          failed: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(errorMachine)
+        .onDone(() => assert.fail("should not be called"))
+        .onStop(() => assert.fail("should not be called"))
+        .start();
+      // assumes that error was ignored before the timeout is processed
+      setTimeout(() => done(), 20);
     });
 
     describe('sub invoke race condition', () => {

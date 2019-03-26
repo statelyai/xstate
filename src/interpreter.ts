@@ -26,6 +26,7 @@ import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
+import { EventProcessor } from './eventprocessor';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -142,6 +143,7 @@ export class Interpreter<
   public clock: Clock;
   public options: InterpreterOptions;
 
+  private eventHandler: EventProcessor = new EventProcessor();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
@@ -157,10 +159,6 @@ export class Interpreter<
   public id: string;
   private children: Map<string, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
-
-  // Scheduler
-  private eventQueue: Array<OmniEventObject<TEvent>> = [];
-  private isFlushing: boolean;
 
   // Dev Tools
   private devTools?: any;
@@ -192,6 +190,8 @@ export class Interpreter<
     });
 
     this.options = resolvedOptions;
+
+    this.eventHandler.setDeferredStartup(this.options.deferEvents);
   }
   public static interpret = interpret;
   /**
@@ -251,7 +251,6 @@ export class Interpreter<
       );
       this.stop();
     }
-    // this.flushEventQueue();
   }
   /*
    * Adds a listener that is notified whenever a state transition happens. The listener is called with
@@ -351,10 +350,9 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDev();
     }
-    this.update(resolvedState, {
-      type: actionTypes.init
+    this.eventHandler.Initialize(() => {
+      this.update(resolvedState, { type: actionTypes.init });
     });
-    this.flush();
     return this;
   }
   /**
@@ -399,54 +397,30 @@ export class Interpreter<
    * @param event The event to send
    */
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-    this.eventQueue.push(eventObject);
-
-    if (!this.initialized) {
-      if (this.options.deferEvents) {
-        console.warn(
-          `Event "${eventObject.type}" was sent to uninitialized service "${
-            this.machine.id
-          }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-            event
-          )}`
-        );
-      } else {
-        throw new Error(
-          `Event "${eventObject.type}" was sent to uninitialized service "${
-            this.machine.id
-            // tslint:disable-next-line:max-line-length
-          }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
-            eventObject
-          )}`
-        );
-      }
-    } else {
-      this.flush();
+    if (!this.initialized && this.options.deferEvents) {
+      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+      console.warn(
+        `Event "${eventObject.type}" was sent to uninitialized service "${
+          this.machine.id
+        }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+          event
+        )}`
+      );
     }
+
+    this.eventHandler.processEvent(() => {
+      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+      const nextState = this.nextState(eventObject);
+
+      this.update(nextState, event);
+
+      // Forward copy of event to child interpreters
+      this.forward(eventObject);
+    });
 
     return this.state; // TODO: deprecate (should return void)
     // tslint:disable-next-line:semicolon
   };
-
-  /**
-   * Flushes all pending events in the event queue.
-   */
-  private flush() {
-    if (!this.isFlushing) {
-      this.isFlushing = true;
-      while (this.eventQueue.length) {
-        const nextEvent = this.eventQueue.shift()!;
-        const nextState = this.nextState(nextEvent);
-
-        this.update(nextState, nextEvent);
-
-        // Forward copy of event to child interpreters
-        this.forward(nextEvent);
-      }
-      this.isFlushing = false;
-    }
-  }
 
   /**
    * Returns a send function bound to this interpreter instance.
@@ -479,7 +453,10 @@ export class Interpreter<
       return;
     }
 
-    // Process on next tick to avoid conflict with in-process event on parent
+    // This was previously needed to keep child and parent in consistent state.
+    // With the current implementation this is not strictly needed but to keep
+    // the already exposed contract intact (would break applications relying
+    // on this feature) this setTimeout call should be left as is.
     setTimeout(() => {
       target.send(event);
     });
@@ -493,6 +470,17 @@ export class Interpreter<
    */
   public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+
+    if (!this.initialized) {
+      throw new Error(
+        `Event "${eventObject.type}" was sent to uninitialized service "${
+          this.machine.id
+          // tslint:disable-next-line:max-line-length
+        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
+          eventObject
+        )}`
+      );
+    }
 
     if (
       eventObject.type === actionTypes.errorExecution &&
@@ -737,8 +725,25 @@ export class Interpreter<
       })
       .catch(errorData => {
         if (!canceled) {
-          // Send "error.execution" to this (parent).
-          this.send(error(errorData, id));
+          const errorEvent = error(errorData, id);
+          try {
+            // Send "error.execution" to this (parent).
+            this.send(errorEvent);
+          } catch (error) {
+            if (!IS_PRODUCTION) {
+              this.reportUnhandledExceptionOnInvocation(errorData, error, id)
+            }
+            if (this.devTools) {
+              this.devTools.send(errorEvent, this.state);
+            }
+            if (this.machine.strict) {
+              // it would be better to always stop the state machine if unhandled
+              // exception/promise rejection happens but because we don't want to
+              // break existing code so enforce it on strict mode only especially so
+              // because documentation says that onError is optional
+              this.stop();
+            }
+          }
         }
       });
 
@@ -770,7 +775,26 @@ export class Interpreter<
       });
 
       if (stop instanceof Promise) {
-        stop.catch(e => this.send(error(e, id)));
+        stop.catch(e => {
+          const errorEvent = error(e, id);
+          try {
+            this.send(errorEvent);
+          } catch (error) {
+            if (!IS_PRODUCTION) {
+              this.reportUnhandledExceptionOnInvocation(e, error, id)
+            }
+            if (this.devTools) {
+              this.devTools.send(errorEvent, this.state);
+            }
+            if (this.machine.strict) {
+              // it would be better to always stop the state machine if unhandled
+              // exception/promise rejection happens but because we don't want to
+              // break existing code so enforce it on strict mode only especially so
+              // because documentation says that onError is optional
+              this.stop();
+            }
+          }
+        });
       }
     } catch (e) {
       this.send(error(e, id));
@@ -790,12 +814,26 @@ export class Interpreter<
       stop: dispose
     });
   }
-  // private flushEventQueue() {
-  //   const flushedEvent = this.eventQueue.shift();
-  //   if (flushedEvent) {
-  //     this.send(flushedEvent);
-  //   }
-  // }
+  private reportUnhandledExceptionOnInvocation(originalError: any, currentError: any, id: string) {
+    const originalStackTrace = originalError.stack ? ` Stacktrace was '${originalError.stack}'` : "";
+    if (originalError === currentError) {
+      console.error(
+        `Missing onError handler for invocation '${
+          id
+        }', error was '${originalError}'.${originalStackTrace}`);
+    } else {
+      const stackTrace = currentError.stack
+        ? ` Stacktrace was '${currentError.stack}'`
+        : "";
+      console.error(
+        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${
+          id
+        }', original error was '${originalError}'.${
+          originalStackTrace
+        } Current error is '${currentError}'.${stackTrace}`);
+    }
+
+  }
   private attachDev() {
     if (
       this.options.devTools &&

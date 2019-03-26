@@ -7,7 +7,8 @@ import {
   assign,
   send,
   sendParent,
-  EventObject
+  EventObject,
+  StateValue
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes } from '../src/actions';
@@ -784,6 +785,70 @@ describe('interpreter', () => {
 
         assert.isFalse(service.options.devTools);
       });
+    });
+  });
+
+  describe("transient states", () => {
+    it('should transition in correct order', () => {
+      const stateMachine = Machine({
+        id: 'transient',
+        initial: 'idle',
+        states: {
+          idle: { on: { START: 'transient' } },
+          transient: { on: { '': 'next' } },
+          next: { on: { FINISH: 'end' } },
+          end: { type: 'final' }
+        }
+      });
+
+      let stateValues : StateValue[] = [];
+      let service = interpret(stateMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start();
+      service.send('START');
+
+      let expectedStateValues = ['idle', 'next'];
+      assert.equal(stateValues.length, expectedStateValues.length);
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
+    });
+
+    it('should transition in correct order when there is a condition', () => {
+      const stateMachine = Machine({
+        id: 'transient',
+        initial: 'idle',
+        states: {
+          idle: { on: { START: 'transient' } },
+          transient: {
+            on: {
+              '': [
+                { target: 'end', cond: 'alwaysFalse' },
+                { target: 'next' }
+              ]
+            }
+          },
+          next: { on: { FINISH: 'end' } },
+          end: { type: 'final' }
+        }
+      }, {
+        guards: {
+          alwaysFalse: () => false
+        }
+      });
+
+      let stateValues : StateValue[] = [];
+      let service = interpret(stateMachine)
+        .onTransition(current => stateValues.push(current.value))
+        .start();
+      service.send('START');
+
+
+      let expectedStateValues = ['idle', 'next'];
+      assert.equal(stateValues.length, expectedStateValues.length);
+      for(let i = 0; i < expectedStateValues.length; i++) {
+        assert.equal(stateValues[i], expectedStateValues[i]);
+      }
     });
   });
 });
