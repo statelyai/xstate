@@ -1,43 +1,35 @@
+interface EventProcessorOptions {
+  deferEvents: boolean;
+}
+
+const defaultOptions: EventProcessorOptions = {
+  deferEvents: false
+};
+
 export class EventProcessor {
   private processingEvent: boolean = false;
   private queue: Array<() => void> = [];
 
   // deferred feature
-  private deferredStartupCalled: boolean = false;
-  private deferredStartup: boolean = false;
-  private initCalled: boolean = false;
+  private options: EventProcessorOptions;
+
+  constructor(options?: Partial<EventProcessorOptions>) {
+    this.options = { ...defaultOptions, ...options };
+  }
 
   public initialize(callback: () => void): void {
-    this.initCalled = true;
-
-    if (!this.deferredStartup) {
+    if (!this.options.deferEvents) {
       this.processEvent(callback);
       return;
     }
 
-    this.deferredStartup = false;
+    this.options.deferEvents = false;
     this.process(callback);
     this.flushEvents();
   }
 
-  public setDeferredStartup(useDeferredStartup: boolean): void {
-    if (this.deferredStartupCalled) {
-      throw new Error(
-        'Can only be called once during the lifetime of the EventProcessor'
-      );
-    }
-    if (this.initCalled) {
-      throw new Error(
-        'Events can be deferred only before .start() method has not been called'
-      );
-    }
-
-    this.deferredStartupCalled = true;
-    this.deferredStartup = useDeferredStartup;
-  }
-
   public processEvent(callback: () => void): void {
-    if (this.processingEvent || this.deferredStartup) {
+    if (this.processingEvent || this.options.deferEvents) {
       this.queue.push(callback);
       return;
     }

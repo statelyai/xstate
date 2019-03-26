@@ -191,7 +191,9 @@ export class Interpreter<
 
     this.options = resolvedOptions;
 
-    this.eventHandler.setDeferredStartup(this.options.deferEvents);
+    this.eventHandler = new EventProcessor({
+      deferEvents: this.options.deferEvents
+    });
   }
   public static interpret = interpret;
   /**
