@@ -26,7 +26,7 @@ import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
-import { EventProcessor } from './eventprocessor';
+import { EventProcessor } from './processor';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,

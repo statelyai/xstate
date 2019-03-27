@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { EventProcessor } from '../src/eventprocessor';
+import { EventProcessor } from '../src/processor';
 
 describe('event processor', () => {
   it('should process event only once', () => {
