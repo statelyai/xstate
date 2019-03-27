@@ -9,6 +9,7 @@ const defaultOptions: EventProcessorOptions = {
 export class EventProcessor {
   private processingEvent: boolean = false;
   private queue: Array<() => void> = [];
+  private initialized = false;
 
   // deferred feature
   private options: EventProcessorOptions;
@@ -18,18 +19,18 @@ export class EventProcessor {
   }
 
   public initialize(callback: () => void): void {
+    this.initialized = true;
     if (!this.options.deferEvents) {
       this.processEvent(callback);
       return;
     }
 
-    this.options.deferEvents = false;
     this.process(callback);
     this.flushEvents();
   }
 
   public processEvent(callback: () => void): void {
-    if (this.processingEvent || this.options.deferEvents) {
+    if (!this.initialized || this.processingEvent) {
       this.queue.push(callback);
       return;
     }

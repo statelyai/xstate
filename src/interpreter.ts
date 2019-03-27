@@ -399,8 +399,8 @@ export class Interpreter<
    * @param event The event to send
    */
   public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     if (!this.initialized && this.options.deferEvents) {
-      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
       // tslint:disable-next-line:no-console
       console.warn(
         `Event "${eventObject.type}" was sent to uninitialized service "${
@@ -409,10 +409,18 @@ export class Interpreter<
           event
         )}`
       );
+    } else if (!this.initialized) {
+      throw new Error(
+        `Event "${eventObject.type}" was sent to uninitialized service "${
+          this.machine.id
+          // tslint:disable-next-line:max-line-length
+        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
+          eventObject
+        )}`
+      );
     }
 
     this.eventHandler.processEvent(() => {
-      const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
       const nextState = this.nextState(eventObject);
 
       this.update(nextState, event);
@@ -473,17 +481,6 @@ export class Interpreter<
    */
   public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-
-    if (!this.initialized) {
-      throw new Error(
-        `Event "${eventObject.type}" was sent to uninitialized service "${
-          this.machine.id
-          // tslint:disable-next-line:max-line-length
-        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
-          eventObject
-        )}`
-      );
-    }
 
     if (
       eventObject.type === actionTypes.errorExecution &&

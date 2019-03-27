@@ -788,7 +788,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe("transient states", () => {
+  describe('transient states', () => {
     it('should transition in correct order', () => {
       const stateMachine = Machine({
         id: 'transient',
@@ -801,52 +801,51 @@ describe('interpreter', () => {
         }
       });
 
-      let stateValues : StateValue[] = [];
-      let service = interpret(stateMachine)
+      const stateValues: StateValue[] = [];
+      const service = interpret(stateMachine)
         .onTransition(current => stateValues.push(current.value))
         .start();
       service.send('START');
 
-      let expectedStateValues = ['idle', 'next'];
+      const expectedStateValues = ['idle', 'next'];
       assert.equal(stateValues.length, expectedStateValues.length);
-      for(let i = 0; i < expectedStateValues.length; i++) {
+      for (let i = 0; i < expectedStateValues.length; i++) {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
 
     it('should transition in correct order when there is a condition', () => {
-      const stateMachine = Machine({
-        id: 'transient',
-        initial: 'idle',
-        states: {
-          idle: { on: { START: 'transient' } },
-          transient: {
-            on: {
-              '': [
-                { target: 'end', cond: 'alwaysFalse' },
-                { target: 'next' }
-              ]
-            }
-          },
-          next: { on: { FINISH: 'end' } },
-          end: { type: 'final' }
+      const stateMachine = Machine(
+        {
+          id: 'transient',
+          initial: 'idle',
+          states: {
+            idle: { on: { START: 'transient' } },
+            transient: {
+              on: {
+                '': [{ target: 'end', cond: 'alwaysFalse' }, { target: 'next' }]
+              }
+            },
+            next: { on: { FINISH: 'end' } },
+            end: { type: 'final' }
+          }
+        },
+        {
+          guards: {
+            alwaysFalse: () => false
+          }
         }
-      }, {
-        guards: {
-          alwaysFalse: () => false
-        }
-      });
+      );
 
-      let stateValues : StateValue[] = [];
-      let service = interpret(stateMachine)
+      const stateValues: StateValue[] = [];
+      const service = interpret(stateMachine)
         .onTransition(current => stateValues.push(current.value))
         .start();
       service.send('START');
 
-
-      let expectedStateValues = ['idle', 'next'];
+      const expectedStateValues = ['idle', 'next'];
       assert.equal(stateValues.length, expectedStateValues.length);
-      for(let i = 0; i < expectedStateValues.length; i++) {
+      for (let i = 0; i < expectedStateValues.length; i++) {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
