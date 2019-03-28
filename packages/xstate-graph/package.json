@@ -28,7 +28,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "dependencies": {
-    "xstate": "4.3.3"
+    "xstate": "^4.4.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.3.3",
