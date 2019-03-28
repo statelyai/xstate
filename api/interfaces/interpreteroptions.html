@@ -78,69 +78,89 @@
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external tsd-is-not-exported">
+						<section class="tsd-index-section tsd-is-external">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#clock" class="tsd-kind-icon">clock</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#devtools" class="tsd-kind-icon">dev<wbr>Tools</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#execute" class="tsd-kind-icon">execute</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#id" class="tsd-kind-icon">id</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#logger" class="tsd-kind-icon">logger</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported"><a href="interpreteroptions.html#parent" class="tsd-kind-icon">parent</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#clock" class="tsd-kind-icon">clock</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#deferevents" class="tsd-kind-icon">defer<wbr>Events</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#devtools" class="tsd-kind-icon">dev<wbr>Tools</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#execute" class="tsd-kind-icon">execute</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#id" class="tsd-kind-icon">id</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#logger" class="tsd-kind-icon">logger</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="interpreteroptions.html#parent" class="tsd-kind-icon">parent</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external tsd-is-not-exported">
+			<section class="tsd-panel-group tsd-member-group tsd-is-external">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="clock" class="tsd-anchor"></a>
 					<h3>clock</h3>
 					<div class="tsd-signature tsd-kind-icon">clock<span class="tsd-signature-symbol">:</span> <a href="clock.html" class="tsd-signature-type">Clock</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L58">interpreter.ts:58</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L873">types.ts:873</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
-					<a name="devtools" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> dev<wbr>Tools</h3>
-					<div class="tsd-signature tsd-kind-icon">dev<wbr>Tools<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="deferevents" class="tsd-anchor"></a>
+					<h3>defer<wbr>Events</h3>
+					<div class="tsd-signature tsd-kind-icon">defer<wbr>Events<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L68">interpreter.ts:68</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L883">types.ts:883</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>If <code>true</code>, states and events will be logged to Redux DevTools. Default: <code>false</code></p>
+							<p>If <code>true</code>, defers processing of sent events until the service
+								is initialized (<code>.start()</code>). Otherwise, an error will be thrown
+							for events sent to an uninitialized service.</p>
 						</div>
+						<p>Default: <code>true</code></p>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="devtools" class="tsd-anchor"></a>
+					<h3>dev<wbr>Tools</h3>
+					<div class="tsd-signature tsd-kind-icon">dev<wbr>Tools<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L893">types.ts:893</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>If <code>true</code>, states and events will be logged to Redux DevTools.</p>
+						</div>
+						<p>Default: <code>false</code></p>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="execute" class="tsd-anchor"></a>
 					<h3>execute</h3>
 					<div class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L57">interpreter.ts:57</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L872">types.ts:872</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>Whether state actions should be executed. Defaults to <code>true</code>.</p>
+							<p>Whether state actions should be executed immediately upon transition. Defaults to <code>true</code>.</p>
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="id" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> id</h3>
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L64">interpreter.ts:64</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L887">types.ts:887</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -149,13 +169,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="logger" class="tsd-anchor"></a>
 					<h3>logger</h3>
 					<div class="tsd-signature tsd-kind-icon">logger<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">function</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L59">interpreter.ts:59</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L874">types.ts:874</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-type-declaration">
@@ -180,13 +200,13 @@
 						</ul>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="parent" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> parent</h3>
 					<div class="tsd-signature tsd-kind-icon">parent<span class="tsd-signature-symbol">:</span> <a href="../classes/interpreter.html" class="tsd-signature-type">Interpreter</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/559ec32/src/interpreter.ts#L60">interpreter.ts:60</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/553fcb6/src/types.ts#L875">types.ts:875</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -204,25 +224,28 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-is-external tsd-is-not-exported">
+					<li class="current tsd-kind-interface tsd-is-external">
 						<a href="interpreteroptions.html" class="tsd-kind-icon">Interpreter<wbr>Options</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#clock" class="tsd-kind-icon">clock</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="interpreteroptions.html#deferevents" class="tsd-kind-icon">defer<wbr>Events</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#devtools" class="tsd-kind-icon">dev<wbr>Tools</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#execute" class="tsd-kind-icon">execute</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#id" class="tsd-kind-icon">id</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#logger" class="tsd-kind-icon">logger</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external tsd-is-not-exported">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 								<a href="interpreteroptions.html#parent" class="tsd-kind-icon">parent</a>
 							</li>
 						</ul>
