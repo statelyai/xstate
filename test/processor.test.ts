@@ -5,7 +5,7 @@ describe('event processor', () => {
   it('should process event only once', () => {
     let calledCount = 0;
     const eventProcessor = new EventProcessor();
-    eventProcessor.initialize(() => {}); // TODO: refactor (use .start())
+    eventProcessor.initialize(); // TODO: refactor (use .start())
     eventProcessor.processEvent(() => {
       calledCount++;
     });
@@ -17,7 +17,7 @@ describe('event processor', () => {
   it('should process more than one event', () => {
     let calledCount = 0;
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     handler.processEvent(() => {
       calledCount++;
       handler.processEvent(() => {
@@ -32,7 +32,7 @@ describe('event processor', () => {
   it('should process events in the same order they were hit', () => {
     const order: number[] = [];
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     handler.processEvent(() => {
       order.push(1);
       handler.processEvent(() => {
@@ -59,7 +59,7 @@ describe('event processor', () => {
   it('should recover if error is thrown while processing event', () => {
     let calledCount = 0;
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
         handler.processEvent(() => {
@@ -79,7 +79,7 @@ describe('event processor', () => {
   it('should recover if error is thrown while processing the queue', () => {
     let calledCount = 0;
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
         handler.processEvent(() => {
@@ -102,7 +102,7 @@ describe('event processor', () => {
   it('should stop processing events if error condition is met', () => {
     let calledCount = 0;
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
         handler.processEvent(() => {
@@ -125,7 +125,7 @@ describe('event processor', () => {
   it('should discard not processed events in the case of error condition', () => {
     let calledCount = 0;
     const handler = new EventProcessor();
-    handler.initialize(() => {}); // TODO: refactor (use .start())
+    handler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
         handler.processEvent(() => {
@@ -160,7 +160,7 @@ describe('event processor', () => {
 
       const expectedCount = 0;
       assert.equal(calledCount, expectedCount);
-      handler.initialize(() => {}); // TODO: refactor (use .start())
+      handler.initialize(); // TODO: refactor (use .start())
       const expectedFinalCount = 1;
       assert.equal(calledCount, expectedFinalCount);
     });
@@ -191,7 +191,7 @@ describe('event processor', () => {
       const handler = new EventProcessor({
         deferEvents: true
       });
-      handler.initialize(() => {}); // TODO: refactor (use .start())
+      handler.initialize(); // TODO: refactor (use .start())
       let calledCount = 0;
       handler.processEvent(() => {
         calledCount++;

@@ -18,14 +18,18 @@ export class EventProcessor {
     this.options = { ...defaultOptions, ...options };
   }
 
-  public initialize(callback: () => void): void {
+  public initialize(callback?: () => void): void {
     this.initialized = true;
-    if (!this.options.deferEvents) {
-      this.processEvent(callback);
-      return;
+
+    if (callback) {
+      if (!this.options.deferEvents) {
+        this.processEvent(callback);
+        return;
+      }
+
+      this.process(callback);
     }
 
-    this.process(callback);
     this.flushEvents();
   }
 
