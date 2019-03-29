@@ -657,13 +657,19 @@ describe('interpreter', () => {
 
   describe('stop()', () => {
     it('should cancel delayed events', done => {
+      let called = false;
       const delayedMachine = Machine({
         id: 'delayed',
         initial: 'foo',
         states: {
           foo: {
             after: {
-              50: 'bar'
+              50: {
+                target: 'bar',
+                actions: () => {
+                  called = true;
+                }
+              }
             }
           },
           bar: {}
@@ -673,10 +679,11 @@ describe('interpreter', () => {
       const delayedService = interpret(delayedMachine).start();
 
       delayedService.stop();
-      // Error will be thrown before this is called if delayed event is sent
+
       setTimeout(() => {
+        assert.isFalse(called);
         done();
-      }, 100);
+      }, 60);
     });
   });
 
