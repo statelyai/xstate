@@ -96,6 +96,8 @@ states: {
 
 ### Delay Expressions on Transitions
 
+(since 4.4)
+
 Delayed transitions specified on the `after: { ... }` property can have dynamic delays, specified either by a string delay reference:
 
 ```js
