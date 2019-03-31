@@ -45,7 +45,6 @@ module.exports = {
           '/guides/final',
           '/guides/history',
           '/guides/ids',
-          '/guides/internal',
           '/guides/interpretation',
           '/guides/typescript'
         ]

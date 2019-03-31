@@ -141,6 +141,68 @@ By default, all transitions with a specified target are external.
 
 See [actions on self-transitions](./actions.md#actions-on-self-transitions) for more details on how entry/exit actions are executed on self-transitions.
 
+## Internal Transitions
+
+An internal transition is one that does not exit its state node. For example, consider a machine that sets a paragraph of text to align `'left'`, `'right'`, `'center'`, or `'justify'`:
+
+```js
+import { Machine } from 'xstate';
+
+const wordMachine = Machine({
+  id: 'word',
+  initial: 'left',
+  states: {
+    left: {},
+    right: {},
+    center: {},
+    justify: {}
+  },
+  on: {
+    // internal transitions
+    LEFT_CLICK: '.left',
+    RIGHT_CLICK: '.right',
+    CENTER_CLICK: '.center',
+    JUSTIFY_CLICK: '.justify'
+  }
+});
+```
+
+The above machine will start in the `'left'` state (for reference, the full path is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+
+Alternatively, the internal transition can be made **explicit** by setting `{ internal: false }:
+
+```js
+// ...
+states: {
+  // ...
+},
+on: {
+  // external transitions
+  LEFT_CLICK: { target: '.left', internal: false },
+  RIGHT_CLICK: { target: '.right', internal: false },
+  CENTER_CLICK: { target: '.center', internal: false },
+  JUSTIFY_CLICK: { target: '.justify', internal: false }
+}
+// ...
+```
+
+External transitions _will_ exit and reenter the state node in which the transition is defined. In the above example, the parent `word` state node (the root state node) will have its `onExit` and `onEntry` actions executed on its transitions.
+
+By default, transitions are external, so a normal transition:
+
+```js
+// ...
+on: {
+  // external transition
+  LEFT_CLICK: 'left',
+  RIGHT_CLICK: 'right',
+  // ...
+}
+// ...
+```
+
+will have its `onExit` and `onEntry` actions of the parent state executed as well.
+
 ## Transient Transitions
 
 A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
