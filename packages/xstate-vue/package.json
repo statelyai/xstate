@@ -1,0 +1,44 @@
+{
+  "name": "@xstate/vue",
+  "version": "0.0.1",
+  "description": "XState Vue Plugin",
+  "keywords": [
+    "xstate",
+    "vue",
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "graph",
+    "vuex"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "dependencies": {
+    "@vue/cli": "^3.5.4",
+    "g": "^2.0.1",
+    "xstate": "^4.4.0"
+  },
+  "devDependencies": {
+    "@types/vue": "^2.0.0"
+  }
+}
