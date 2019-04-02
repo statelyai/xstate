@@ -21,6 +21,29 @@ const lightMachine = Machine({
 });
 ```
 
+## Relative Targets
+
+Child state nodes can be targeted relative to their parent by specifying a dot (`'.'`) followed by their key:
+
+```js {10-12}
+const optionsMachine = Machine({
+  id: 'options',
+  initial: 'first',
+  states: {
+    first: {},
+    second: {},
+    third: {}
+  },
+  on: {
+    SELECT_FIRST: '.first', // resolves to 'options.first'
+    SELECT_SECOND: '.second', // 'options.second'
+    SELECT_THIRD: '.third' // 'options.third'
+  }
+});
+```
+
+By default, relative targets are [internal transitions](./transitions.md#internal-transitions).
+
 ## Custom IDs
 
 State nodes can be targeted via unique identifiers, instead of by relative identifiers. This can simplify the creation of complex statecharts.

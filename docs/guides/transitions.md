@@ -2,7 +2,7 @@
 
 A state transition defines what the **next state** is, given the **current state** and [**event**](./events.md). State transitions are defined on state nodes, in the `on` property:
 
-```js
+```js {11,14-16}
 import { Machine } from 'xstate';
 
 const promiseMachine = Machine({
@@ -58,7 +58,7 @@ As seen above, the `machine.transition(...)` method is a pure function that take
 
 It returns a new [`State` instance](./states.md#state-definition), which is the result of taking all the transitions enabled by the current state and event.
 
-```js
+```js {8}
 const lightMachine = Machine({
   /* ... */
 });
@@ -82,7 +82,7 @@ An **enabled transition** is a transition that will be taken, given the current 
 
 In a [hierarchical machine](./hierarchical.md), transitions are prioritized by how deep they are in the tree; deeper transitions are more specific and thus have higher priority. This works similar to how DOM events work: if you click a button, the click event handler directly on the button is more specific than a click event handler on the `window`.
 
-```js
+```js {9,19,20,24}
 const wizardMachine = Machine({
   id: 'wizard',
   initial: 'open',
@@ -143,9 +143,9 @@ See [actions on self-transitions](./actions.md#actions-on-self-transitions) for 
 
 ## Internal Transitions
 
-An internal transition is one that does not exit its state node. For example, consider a machine that sets a paragraph of text to align `'left'`, `'right'`, `'center'`, or `'justify'`:
+An internal transition is one that does not exit its state node. Internal transitions are created by specifying a [relative target](./ids.md#relative-targets) (e.g., `'.left'`) or by explicitly setting `{ internal: true }` on the transition. For example, consider a machine that sets a paragraph of text to align `'left'`, `'right'`, `'center'`, or `'justify'`:
 
-```js
+```js {14-17}
 import { Machine } from 'xstate';
 
 const wordMachine = Machine({
@@ -161,53 +161,39 @@ const wordMachine = Machine({
     // internal transitions
     LEFT_CLICK: '.left',
     RIGHT_CLICK: '.right',
-    CENTER_CLICK: '.center',
-    JUSTIFY_CLICK: '.justify'
+    CENTER_CLICK: { target: '.center', internal: true }, // same as '.center'
+    JUSTIFY_CLICK: { target: 'word.justify', internal: true } // same as '.justify'
   }
 });
 ```
 
-The above machine will start in the `'left'` state (for reference, the full path is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+The above machine will start in the `'left'` state (for reference, the full path and default ID is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
 
-Alternatively, the internal transition can be made **explicit** by setting `{ internal: false }:
-
-```js
-// ...
-states: {
-  // ...
-},
-on: {
-  // external transitions
-  LEFT_CLICK: { target: '.left', internal: false },
-  RIGHT_CLICK: { target: '.right', internal: false },
-  CENTER_CLICK: { target: '.center', internal: false },
-  JUSTIFY_CLICK: { target: '.justify', internal: false }
-}
-// ...
-```
+## External Transitions
 
 External transitions _will_ exit and reenter the state node in which the transition is defined. In the above example, the parent `word` state node (the root state node) will have its `onExit` and `onEntry` actions executed on its transitions.
 
-By default, transitions are external, so a normal transition:
+By default, transitions are external, but any transition can be made external by explicitly setting `{ internal: false }` on the transition.
 
-```js
+```js {4-7}
 // ...
 on: {
-  // external transition
-  LEFT_CLICK: 'left',
-  RIGHT_CLICK: 'right',
-  // ...
+  // external transitions
+  LEFT_CLICK: 'word.left',
+  RIGHT_CLICK: 'word.right',
+  CENTER_CLICK: { target: '.center', internal: false }, // same as 'word.center'
+  JUSTIFY_CLICK: { target: 'word.justify', internal: false } // same as '.justify'
 }
 // ...
 ```
 
-will have its `onExit` and `onEntry` actions of the parent state executed as well.
+Every transition above is explicit and will have its `onExit` and `onEntry` actions of the parent state executed.
 
 ## Transient Transitions
 
 A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
 
-```js
+```js {14-17}
 const gameMachine = Machine(
   {
     id: 'game',
@@ -276,7 +262,7 @@ In XState, a "forbidden" transition is one that specifies that no state transiti
 
 A forbidden transition is made by specifying the `target` explicitly as `undefined`. This is the same as specifying it as an internal transition with no actions:
 
-```js
+```js {3}
 on: {
   // forbidden transition
   LOG: undefined,
@@ -289,7 +275,7 @@ on: {
 
 For example, we can model that telemetry can be logged for all events except when the user is entering personal information:
 
-```js
+```js {15}
 const formMachine = Machine({
   id: 'form',
   initial: 'firstPage',
@@ -322,7 +308,7 @@ A transition based on a single event can have multiple target state nodes. This 
 
 Multiple targets are specified as an array in `target: [...]`, where each target in the array is a relative key or an ID to a state node, just like single targets.
 
-```js
+```js {23}
 const settingsMachine = Machine({
   id: 'settings',
   type: 'parallel',
