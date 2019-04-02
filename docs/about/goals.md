@@ -19,7 +19,7 @@ If you're deciding if you should use XState, [John Yanarella](https://github.com
 >
 > Many of the other libraries I reviewed along the way are projects that stop at the point of implementing simple finite state machines. (If that's all you need - and it might be - David's been quick to point out how few lines it takes to just roll your own.) Their reach is shortened, since they don't address the subsequent limitations that can be overcome via a statechart.
 >
-> XState stands on the shoulders of giants by embracing [the SCXML spec]([W3C's SCXML](https://www.w3.org/TR/scxml/)) - it gets the benefit of that working group's research into edge cases.
+> XState stands on the shoulders of giants by embracing [W3C's SCXML spec](https://www.w3.org/TR/scxml/) - it gets the benefit of that working group's research into edge cases.
 >
 > 2. It's a **refuge from the "shiny object syndrome"** of embracing the latest flavor-of-the-month "state management library". It faithfully implements a 30+ year old formalism. You end up putting your most important logic into something you can take with you to any UI framework (and potentially to other statechart implementions in other languages). It's a zero-dependency library.
 >
