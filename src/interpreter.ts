@@ -19,11 +19,12 @@ import {
   DisposeActivityFunction,
   ErrorExecutionEvent,
   StateValue,
-  InterpreterOptions
+  InterpreterOptions,
+  ActivityDefinition
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke, error } from './actions';
+import { toEventObject, doneInvoke, error, start } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 import { Scheduler } from './scheduler';
@@ -214,7 +215,7 @@ export class Interpreter<
   }
   private update(
     state: State<TContext, TEvent>,
-    event: Event<TEvent> | OmniEventObject<TEvent>
+    event: OmniEventObject<TEvent>
   ): void {
     // Update state
     this.state = state;
@@ -222,6 +223,21 @@ export class Interpreter<
     // Execute actions
     if (this.options.execute) {
       this.execute(this.state);
+    }
+
+    // Restart activities
+    if (event.type === actionTypes.init) {
+      Object.keys(state.activities).forEach(activityId => {
+        if (
+          !state.activities[activityId] ||
+          this.children.has(activityId) ||
+          activityId === actionTypes.invoke // TODO: make this work for invocations
+        ) {
+          return;
+        }
+
+        this.spawnActivity(start(activityId).activity);
+      });
     }
 
     // Dev tools
@@ -423,7 +439,7 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       const nextState = this.nextState(eventObject);
 
-      this.update(nextState, event);
+      this.update(nextState, eventObject);
 
       // Forward copy of event to child interpreters
       this.forward(eventObject);
@@ -629,22 +645,7 @@ export class Interpreter<
             // service is string
           }
         } else {
-          const implementation =
-            this.machine.options && this.machine.options.activities
-              ? this.machine.options.activities[activity.type]
-              : undefined;
-
-          if (!implementation) {
-            // tslint:disable-next-line:no-console
-            console.warn(
-              `No implementation found for activity '${activity.type}'`
-            );
-            return;
-          }
-
-          // Start implementation
-          const dispose = implementation(context, activity);
-          this.spawnEffect(activity.id, dispose);
+          this.spawnActivity(activity);
         }
 
         break;
@@ -799,6 +800,22 @@ export class Interpreter<
       send: listener,
       stop
     });
+  }
+  private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
+    const implementation =
+      this.machine.options && this.machine.options.activities
+        ? this.machine.options.activities[activity.type]
+        : undefined;
+
+    if (!implementation) {
+      // tslint:disable-next-line:no-console
+      console.warn(`No implementation found for activity '${activity.type}'`);
+      return;
+    }
+
+    // Start implementation
+    const dispose = implementation(this.state.context, activity);
+    this.spawnEffect(activity.id, dispose);
   }
   private spawnEffect(
     id: string,

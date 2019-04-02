@@ -354,6 +354,52 @@ describe('interpreter', () => {
 
       assert.equal(stopActivityState!, 'off', 'activity should be disposed');
     });
+
+    it('should restart activities from a compound state', () => {
+      let activityActive = false;
+
+      const toggleMachine = Machine(
+        {
+          id: 'toggle',
+          initial: 'inactive',
+          states: {
+            inactive: {
+              on: { TOGGLE: 'active' }
+            },
+            active: {
+              activities: 'blink',
+              on: { TOGGLE: 'inactive' },
+              initial: 'A',
+              states: {
+                A: { on: { SWITCH: 'B' } },
+                B: { on: { SWITCH: 'A' } }
+              }
+            }
+          }
+        },
+        {
+          activities: {
+            blink: () => {
+              activityActive = true;
+
+              return () => {
+                activityActive = false;
+              };
+            }
+          }
+        }
+      );
+
+      const activeState = toggleMachine.transition(
+        toggleMachine.initialState,
+        'TOGGLE'
+      );
+      const bState = toggleMachine.transition(activeState, 'SWITCH');
+      const service = interpret(toggleMachine).start(bState);
+
+      assert.isTrue(service.state.activities.blink);
+      assert.isTrue(activityActive);
+    });
   });
 
   it('can cancel a delayed event', () => {
