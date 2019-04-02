@@ -1,20 +1,20 @@
-interface EventProcessorOptions {
+interface SchedulerOptions {
   deferEvents: boolean;
 }
 
-const defaultOptions: EventProcessorOptions = {
+const defaultOptions: SchedulerOptions = {
   deferEvents: false
 };
 
-export class EventProcessor {
+export class Scheduler {
   private processingEvent: boolean = false;
   private queue: Array<() => void> = [];
   private initialized = false;
 
   // deferred feature
-  private options: EventProcessorOptions;
+  private options: SchedulerOptions;
 
-  constructor(options?: Partial<EventProcessorOptions>) {
+  constructor(options?: Partial<SchedulerOptions>) {
     this.options = { ...defaultOptions, ...options };
   }
 
@@ -23,7 +23,7 @@ export class EventProcessor {
 
     if (callback) {
       if (!this.options.deferEvents) {
-        this.processEvent(callback);
+        this.schedule(callback);
         return;
       }
 
@@ -33,9 +33,9 @@ export class EventProcessor {
     this.flushEvents();
   }
 
-  public processEvent(callback: () => void): void {
+  public schedule(task: () => void): void {
     if (!this.initialized || this.processingEvent) {
-      this.queue.push(callback);
+      this.queue.push(task);
       return;
     }
 
@@ -45,7 +45,7 @@ export class EventProcessor {
       );
     }
 
-    this.process(callback);
+    this.process(task);
     this.flushEvents();
   }
 

@@ -26,7 +26,7 @@ import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
-import { EventProcessor } from './processor';
+import { Scheduler } from './scheduler';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -143,7 +143,7 @@ export class Interpreter<
   public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
-  private eventHandler: EventProcessor = new EventProcessor();
+  private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
@@ -191,7 +191,7 @@ export class Interpreter<
 
     this.options = resolvedOptions;
 
-    this.eventHandler = new EventProcessor({
+    this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
   }
@@ -352,7 +352,7 @@ export class Interpreter<
     if (this.options.devTools) {
       this.attachDev();
     }
-    this.eventHandler.initialize(() => {
+    this.scheduler.initialize(() => {
       this.update(resolvedState, { type: actionTypes.init });
     });
     return this;
@@ -420,7 +420,7 @@ export class Interpreter<
       );
     }
 
-    this.eventHandler.processEvent(() => {
+    this.scheduler.schedule(() => {
       const nextState = this.nextState(eventObject);
 
       this.update(nextState, event);

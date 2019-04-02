@@ -992,6 +992,7 @@ describe('invoke', () => {
       }
     });
 
+    // tslint:disable-next-line:max-line-length
     it('should transition correctly if transient transition happens before current state invokes callback function and sends an event', () => {
       const callbackMachine = Machine(
         {

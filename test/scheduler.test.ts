@@ -1,12 +1,12 @@
 import { assert } from 'chai';
-import { EventProcessor } from '../src/processor';
+import { Scheduler } from '../src/scheduler';
 
-describe('event processor', () => {
+describe('scheduler', () => {
   it('should process event only once', () => {
     let calledCount = 0;
-    const eventProcessor = new EventProcessor();
-    eventProcessor.initialize(); // TODO: refactor (use .start())
-    eventProcessor.processEvent(() => {
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
+    scheduler.schedule(() => {
       calledCount++;
     });
 
@@ -16,11 +16,11 @@ describe('event processor', () => {
 
   it('should process more than one event', () => {
     let calledCount = 0;
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
-    handler.processEvent(() => {
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
+    scheduler.schedule(() => {
       calledCount++;
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         calledCount++;
       });
     });
@@ -31,20 +31,20 @@ describe('event processor', () => {
 
   it('should process events in the same order they were hit', () => {
     const order: number[] = [];
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
-    handler.processEvent(() => {
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
+    scheduler.schedule(() => {
       order.push(1);
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         order.push(2);
       });
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         order.push(3);
-        handler.processEvent(() => {
+        scheduler.schedule(() => {
           order.push(5);
         });
       });
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         order.push(4);
       });
     });
@@ -58,17 +58,17 @@ describe('event processor', () => {
 
   it('should recover if error is thrown while processing event', () => {
     let calledCount = 0;
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
-        handler.processEvent(() => {
+        scheduler.schedule(() => {
           calledCount++;
           throw Error('Test');
         }),
       'Test'
     );
-    handler.processEvent(() => {
+    scheduler.schedule(() => {
       calledCount++;
     });
 
@@ -78,20 +78,20 @@ describe('event processor', () => {
 
   it('should recover if error is thrown while processing the queue', () => {
     let calledCount = 0;
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
-        handler.processEvent(() => {
+        scheduler.schedule(() => {
           calledCount++;
-          handler.processEvent(() => {
+          scheduler.schedule(() => {
             calledCount++;
             throw Error('Test');
           });
         }),
       'Test'
     );
-    handler.processEvent(() => {
+    scheduler.schedule(() => {
       calledCount++;
     });
 
@@ -101,17 +101,17 @@ describe('event processor', () => {
 
   it('should stop processing events if error condition is met', () => {
     let calledCount = 0;
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
-        handler.processEvent(() => {
+        scheduler.schedule(() => {
           calledCount++;
-          handler.processEvent(() => {
+          scheduler.schedule(() => {
             calledCount++;
             throw Error('Test');
           });
-          handler.processEvent(() => {
+          scheduler.schedule(() => {
             calledCount++;
           });
         }),
@@ -124,23 +124,23 @@ describe('event processor', () => {
 
   it('should discard not processed events in the case of error condition', () => {
     let calledCount = 0;
-    const handler = new EventProcessor();
-    handler.initialize(); // TODO: refactor (use .start())
+    const scheduler = new Scheduler();
+    scheduler.initialize(); // TODO: refactor (use .start())
     assert.throws(
       () =>
-        handler.processEvent(() => {
+        scheduler.schedule(() => {
           calledCount++;
-          handler.processEvent(() => {
+          scheduler.schedule(() => {
             calledCount++;
             throw Error('Test');
           });
-          handler.processEvent(() => {
+          scheduler.schedule(() => {
             calledCount++;
           });
         }),
       'Test'
     );
-    handler.processEvent(() => {
+    scheduler.schedule(() => {
       calledCount++;
     });
 
@@ -151,32 +151,32 @@ describe('event processor', () => {
   describe('deferred events', () => {
     it('should be able to defer events', () => {
       let calledCount = 0;
-      const handler = new EventProcessor({
+      const scheduler = new Scheduler({
         deferEvents: true
       });
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         calledCount++;
       });
 
       const expectedCount = 0;
       assert.equal(calledCount, expectedCount);
-      handler.initialize(); // TODO: refactor (use .start())
+      scheduler.initialize(); // TODO: refactor (use .start())
       const expectedFinalCount = 1;
       assert.equal(calledCount, expectedFinalCount);
     });
 
     it('should process initialization before other events', () => {
       const callOrder: number[] = [];
-      const handler = new EventProcessor({
+      const scheduler = new Scheduler({
         deferEvents: true
       });
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         callOrder.push(2);
       });
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         callOrder.push(3);
       });
-      handler.initialize(() => {
+      scheduler.initialize(() => {
         callOrder.push(1);
       });
 
@@ -188,12 +188,12 @@ describe('event processor', () => {
     });
 
     it('should not defer events after initialization', () => {
-      const handler = new EventProcessor({
+      const scheduler = new Scheduler({
         deferEvents: true
       });
-      handler.initialize(); // TODO: refactor (use .start())
+      scheduler.initialize(); // TODO: refactor (use .start())
       let calledCount = 0;
-      handler.processEvent(() => {
+      scheduler.schedule(() => {
         calledCount++;
       });
 
