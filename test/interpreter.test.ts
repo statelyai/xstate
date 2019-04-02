@@ -647,6 +647,53 @@ describe('interpreter', () => {
     });
   });
 
+  describe('send() batch events', () => {
+    const countMachine = Machine({
+      id: 'count',
+      initial: 'even',
+      context: { count: 0 },
+      states: {
+        even: {
+          onExit: [assign({ count: ctx => ctx.count + 1 }), 'evenAction'],
+          on: { INC: 'odd' }
+        },
+        odd: {
+          onExit: [assign({ count: ctx => ctx.count + 1 }), 'oddAction'],
+          on: { INC: 'even' }
+        }
+      }
+    });
+
+    it('should batch send events', done => {
+      let transitions = 0;
+      const countService = interpret(countMachine)
+        .onTransition(state => {
+          transitions++;
+
+          switch (transitions) {
+            // initial state
+            case 1:
+              assert.deepEqual(state.context, { count: 0 });
+              break;
+            // transition with batched events
+            case 2:
+              assert.equal(state.value, 'odd');
+              assert.deepEqual(state.context, { count: 3 });
+              assert.deepEqual(state.actions.map(a => a.type), [
+                'evenAction',
+                'oddAction',
+                'evenAction'
+              ]);
+              done();
+              break;
+          }
+        })
+        .start();
+
+      countService.send(['INC', 'INC', { type: 'INC' }]);
+    });
+  });
+
   describe('start()', () => {
     const startMachine = Machine({
       id: 'start',

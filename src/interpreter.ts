@@ -20,7 +20,8 @@ import {
   ErrorExecutionEvent,
   StateValue,
   InterpreterOptions,
-  ActivityDefinition
+  ActivityDefinition,
+  SingleOrArray
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -394,12 +395,22 @@ export class Interpreter<
     return this;
   }
   /**
-   * Sends an event to the running interpreter to trigger a transition,
-   * and returns the immediate next state.
+   * Sends an event to the running interpreter to trigger a transition.
    *
-   * @param event The event to send
+   * An array of events (batched) can be sent as well, which will send all
+   * batched events to the running interpreter. The listeners will be
+   * notified only **once** when all events are processed.
+   *
+   * @param event The event(s) to send
    */
-  public send = (event: OmniEvent<TEvent>): State<TContext, TEvent> => {
+  public send = (
+    event: SingleOrArray<OmniEvent<TEvent>>
+  ): State<TContext, TEvent> => {
+    if (Array.isArray(event)) {
+      this.batch(event);
+      return this.state;
+    }
+
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
@@ -433,6 +444,42 @@ export class Interpreter<
     return this.state; // TODO: deprecate (should return void)
     // tslint:disable-next-line:semicolon
   };
+
+  private batch(events: Array<OmniEvent<TEvent>>): void {
+    if (!this.initialized && this.options.deferEvents) {
+      // tslint:disable-next-line:no-console
+      console.warn(
+        `${events.length} event(s) were sent to uninitialized service "${
+          this.machine.id
+        }" and are deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+          event
+        )}`
+      );
+    } else if (!this.initialized) {
+      throw new Error(
+        `${events.length} event(s) were sent to uninitialized service "${
+          this.machine.id
+        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+      );
+    }
+
+    this.scheduler.schedule(() => {
+      let nextState = this.state;
+      for (const event of events) {
+        const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+        const { actions } = nextState;
+        nextState = this.machine.transition(nextState, eventObject);
+        nextState.actions.unshift(...actions);
+
+        this.forward(eventObject);
+      }
+
+      this.update(
+        nextState,
+        toEventObject<OmniEventObject<TEvent>>(events[events.length - 1])
+      );
+    });
+  }
 
   /**
    * Returns a send function bound to this interpreter instance.
