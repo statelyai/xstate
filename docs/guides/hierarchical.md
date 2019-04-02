@@ -1,4 +1,4 @@
-# Hierarchical State Machines
+# Hierarchical State Nodes
 
 Statecharts, by definition, are hierarchical - that is to say, they:
 
