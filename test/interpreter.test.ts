@@ -355,7 +355,7 @@ describe('interpreter', () => {
       assert.equal(stopActivityState!, 'off', 'activity should be disposed');
     });
 
-    it('should restart activities from a compound state', () => {
+    it('should not restart activities from a compound state', () => {
       let activityActive = false;
 
       const toggleMachine = Machine(
@@ -398,7 +398,7 @@ describe('interpreter', () => {
       const service = interpret(toggleMachine).start(bState);
 
       assert.isTrue(service.state.activities.blink);
-      assert.isTrue(activityActive);
+      assert.isFalse(activityActive);
     });
   });
 

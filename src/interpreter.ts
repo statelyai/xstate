@@ -24,7 +24,7 @@ import {
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke, error, start } from './actions';
+import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import { mapContext } from './utils';
 import { Scheduler } from './scheduler';
@@ -223,21 +223,6 @@ export class Interpreter<
     // Execute actions
     if (this.options.execute) {
       this.execute(this.state);
-    }
-
-    // Restart activities
-    if (event.type === actionTypes.init) {
-      Object.keys(state.activities).forEach(activityId => {
-        if (
-          !state.activities[activityId] ||
-          this.children.has(activityId) ||
-          activityId === actionTypes.invoke // TODO: make this work for invocations
-        ) {
-          return;
-        }
-
-        this.spawnActivity(start(activityId).activity);
-      });
     }
 
     // Dev tools
