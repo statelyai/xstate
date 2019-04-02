@@ -167,7 +167,12 @@ describe('invoke', () => {
       }
     );
 
-    const service = interpret(someParentMachine)
+    let count: number;
+
+    interpret(someParentMachine)
+      .onTransition(state => {
+        count = state.context.count;
+      })
       .onDone(() => {
         // 1. The 'parent' machine will enter 'start' state
         // 2. The 'child' service will be run with ID 'someService'
@@ -175,7 +180,7 @@ describe('invoke', () => {
         // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
         // 5. The context will be updated to increment count to 2
 
-        assert.deepEqual(service.state.context, { count: 2 });
+        assert.equal(count, 2);
         done();
       })
       .start();
@@ -419,7 +424,7 @@ describe('invoke', () => {
     });
 
     it('should transition correctly if child invocation causes it to directly go to final state', done => {
-      let doneSubMachine = Machine({
+      const doneSubMachine = Machine({
         id: 'child',
         initial: 'one',
         states: {
@@ -442,10 +447,10 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            onEntry: send('NEXT', { to: 'foo-child' })
           },
           two: {
-            on: { NEXT: 'three'}
+            on: { NEXT: 'three' }
           },
           three: {
             type: 'final'
@@ -453,16 +458,16 @@ describe('invoke', () => {
         }
       });
 
-      let expectedStateValue = 'two';
+      const expectedStateValue = 'two';
       let currentState;
       interpret(mainMachine)
-        .onTransition(current => currentState = current)
+        .onTransition(current => (currentState = current))
         .start();
       setTimeout(() => {
         assert.equal(currentState.value, expectedStateValue);
         done();
       }, 30);
-    })
+    });
   });
 
   describe('with promises', () => {
@@ -523,7 +528,7 @@ describe('invoke', () => {
             invoke: {
               src: () =>
                 new Promise(() => {
-                  throw new Error("test");
+                  throw new Error('test');
                 }),
               onDone: 'success'
             }
@@ -535,8 +540,8 @@ describe('invoke', () => {
       });
 
       interpret(promiseMachine)
-        .onDone(() => assert.fail("should not be called"))
-        .onStop(() => assert.fail("should not be called"))
+        .onDone(() => assert.fail('should not be called'))
+        .onStop(() => assert.fail('should not be called'))
         .start();
       // assumes that error was ignored before the timeout is processed
       setTimeout(() => done(), 30);
@@ -552,7 +557,7 @@ describe('invoke', () => {
             invoke: {
               src: () =>
                 new Promise(() => {
-                  throw new Error("test");
+                  throw new Error('test');
                 }),
               onDone: 'success'
             }
@@ -564,7 +569,7 @@ describe('invoke', () => {
       });
 
       interpret(promiseMachine)
-        .onDone(() => assert.fail("should not be called"))
+        .onDone(() => assert.fail('should not be called'))
         .onStop(() => done())
         .start();
     });
@@ -929,19 +934,19 @@ describe('invoke', () => {
         {
           services: {
             someCallback: () => cb => {
-                cb('CALLBACK');
+              cb('CALLBACK');
             }
           }
         }
       );
 
-      const expectedStateValues = [ 'pending', 'first', 'intermediate' ];
-      let stateValues : StateValue[] = [];
+      const expectedStateValues = ['pending', 'first', 'intermediate'];
+      const stateValues: StateValue[] = [];
       interpret(callbackMachine)
         .onTransition(current => stateValues.push(current.value))
         .start()
         .send('BEGIN');
-      for(let i = 0; i < expectedStateValues.length; i++) {
+      for (let i = 0; i < expectedStateValues.length; i++) {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
@@ -970,19 +975,19 @@ describe('invoke', () => {
         {
           services: {
             someCallback: () => cb => {
-                cb('CALLBACK');
+              cb('CALLBACK');
             }
           }
         }
       );
 
-      const expectedStateValues = [ 'idle', 'intermediate' ];
-      let stateValues : StateValue[] = [];
+      const expectedStateValues = ['idle', 'intermediate'];
+      const stateValues: StateValue[] = [];
       interpret(callbackMachine)
         .onTransition(current => stateValues.push(current.value))
         .start()
         .send('BEGIN');
-      for(let i = 0; i < expectedStateValues.length; i++) {
+      for (let i = 0; i < expectedStateValues.length; i++) {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
@@ -1017,19 +1022,19 @@ describe('invoke', () => {
         {
           services: {
             someCallback: () => cb => {
-                cb('CALLBACK');
+              cb('CALLBACK');
             }
           }
         }
       );
 
-      const expectedStateValues = [ 'pending', 'second', 'third' ];
-      let stateValues : StateValue[] = [];
+      const expectedStateValues = ['pending', 'second', 'third'];
+      const stateValues: StateValue[] = [];
       interpret(callbackMachine)
         .onTransition(current => stateValues.push(current.value))
         .start()
         .send('BEGIN');
-      for(let i = 0; i < expectedStateValues.length; i++) {
+      for (let i = 0; i < expectedStateValues.length; i++) {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
@@ -1143,7 +1148,7 @@ describe('invoke', () => {
       const expectedStateValue = 'failed';
       let currentState;
       interpret(errorMachine)
-        .onTransition(current => currentState = current)
+        .onTransition(current => (currentState = current))
         .start();
       assert.equal(currentState.value, expectedStateValue);
     });
@@ -1209,8 +1214,8 @@ describe('invoke', () => {
         }
       });
 
-      var service = interpret(errorMachine);
-      assert.throws(() => service.start(), "test");
+      const service = interpret(errorMachine);
+      assert.throws(() => service.start(), 'test');
     });
 
     it('should stop machine if unhandled error and on strict mode (async)', done => {
@@ -1263,8 +1268,8 @@ describe('invoke', () => {
       });
 
       interpret(errorMachine)
-        .onDone(() => assert.fail("should not be called"))
-        .onStop(() => assert.fail("should not be called"))
+        .onDone(() => assert.fail('should not be called'))
+        .onStop(() => assert.fail('should not be called'))
         .start();
       // assumes that error was ignored before the timeout is processed
       setTimeout(() => done(), 20);

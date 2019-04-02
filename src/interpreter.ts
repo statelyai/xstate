@@ -464,13 +464,7 @@ export class Interpreter<
       return;
     }
 
-    // This was previously needed to keep child and parent in consistent state.
-    // With the current implementation this is not strictly needed but to keep
-    // the already exposed contract intact (would break applications relying
-    // on this feature) this setTimeout call should be left as is.
-    setTimeout(() => {
-      target.send(event);
-    });
+    target.send(event);
   }
   /**
    * Returns the next state given the interpreter's current state and the event.
