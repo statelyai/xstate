@@ -1,7 +1,7 @@
 <template>
   <div class="hello">
     <button v-on:click="$send('TOGGLE')">Increment</button>
-    <h2>{{ $state.value }} {{ $state.context.count }}</h2>
+    <h2>{{ $service.state.value }} {{ $service.state.context.count }}</h2>
   </div>
 </template>
 

@@ -11,14 +11,12 @@ const plugin: Vue.PluginObject<any> = {
           return;
         }
 
-        this.$state = machine.initialState;
-
-        (Vue as any).util.defineReactive(this, '$state');
         this.$service = interpret(machine.withConfig({ actions }))
           .onTransition(state => {
             this.$state = state;
           })
           .start();
+        (Vue as any).util.defineReactive(this.$service, 'state');
 
         this.$send = this.$service.send;
       }
