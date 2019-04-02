@@ -219,7 +219,7 @@ const fetchMachine = Machine({
 
 The current state of the machine collects the `.meta` data of all of the state nodes represented by the state value, and places them on an object where:
 
-- The keys are the state node IDs
+- The keys are the [state node IDs](./ids.md)
 - The values are the state node `.meta` values
 
 For instance, if the above machine is in the `failure.timeout` state (which is represented by two state nodes with IDs `"failure"` and `"failure.timeout"`), the `.meta` property will combine all `.meta` values and look like this:
