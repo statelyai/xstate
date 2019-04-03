@@ -41,6 +41,40 @@ service.send('SOME_EVENT');
 service.stop();
 ```
 
+## Sending Events
+
+Events are sent to a running service by calling `service.send(event)`. There are 3 ways an event can be sent:
+
+```js {5,8,12}
+service.start();
+
+// As a string:
+// (same as service.send({ type: 'CLICK' }))
+service.send('CLICK');
+
+// As an object:
+service.send({ type: 'CLICK', x: 40, y: 21 });
+
+// As a string with an object payload:
+// (same as service.send({ type: 'CLICK', x: 40, y: 21 }))
+service.send('CLICK', { x: 40, y: 21 });
+```
+
+- As a string (e.g., `.send('CLICK')`, which resolves to sending `{ type: 'CLICK' }`)
+  - The string represents the event type.
+- As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
+  - The event object must have a `type: ...` string property.
+- As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`)
+  - The string represents the event type.
+  - The second argument must be an object without a `type: ...` property.
+  - Since 4.5
+
+::: warning
+If the service is not initialized (that is, if `service.start()` wasn't called yet), events will be **deferred** until the service is started. This means that the events won't be processed until `service.start()` is called, and then they will all be sequentially processed.
+
+This behavior can be changed by setting `{ deferEvents: false }` in the [service options](#options). When `deferEvents` is `false`, sending an event to an uninitialized service will throw an error.
+:::
+
 ## Transitions
 
 Listeners for state transitions are registered via the `.onTransition(...)` method, which takes a state listener. State listeners are called every time a state transition (including the initial state) happens, with the current [`state` instance](./states.md):

@@ -719,6 +719,62 @@ describe('interpreter', () => {
     });
   });
 
+  describe('send()', () => {
+    const sendMachine = Machine({
+      id: 'send',
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            EVENT: {
+              target: 'active',
+              cond: (_, e) => e.id === 42
+            },
+            ACTIVATE: 'active'
+          }
+        },
+        active: {
+          type: 'final'
+        }
+      }
+    });
+
+    it('can send events with a string', done => {
+      const service = interpret(sendMachine)
+        .onDone(() => done())
+        .start();
+
+      service.send('ACTIVATE');
+    });
+
+    it('can send events with an object', done => {
+      const service = interpret(sendMachine)
+        .onDone(() => done())
+        .start();
+
+      service.send({ type: 'ACTIVATE' });
+    });
+
+    it('can send events with an object with payload', done => {
+      const service = interpret(sendMachine)
+        .onDone(() => done())
+        .start();
+
+      service.send({ type: 'EVENT', id: 42 });
+    });
+
+    it('can send events with a string and object payload', done => {
+      const service = interpret(sendMachine)
+        .onDone(() => {
+          assert.deepEqual(service.state.event, { type: 'EVENT', id: 42 });
+          done();
+        })
+        .start();
+
+      service.send('EVENT', { id: 42 });
+    });
+  });
+
   describe('start()', () => {
     const startMachine = Machine({
       id: 'start',

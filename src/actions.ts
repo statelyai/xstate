@@ -34,14 +34,16 @@ export const initEvent = { type: actionTypes.init } as {
 };
 
 export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>
+  event: Event<TEvent>,
+  payload?: Record<string, any> & { type?: never }
   // id?: TEvent['type']
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
     const eventObject = { type: event };
-    // if (id !== undefined) {
-    //   eventObject.id = id;
-    // }
+
+    if (payload) {
+      Object.assign(eventObject, payload);
+    }
 
     return eventObject as TEvent;
   }

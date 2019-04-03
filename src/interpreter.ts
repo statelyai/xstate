@@ -404,14 +404,15 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send = (
-    event: SingleOrArray<OmniEvent<TEvent>>
+    event: SingleOrArray<OmniEvent<TEvent>>,
+    payload?: Record<string, any> & { type?: never }
   ): State<TContext, TEvent> => {
     if (Array.isArray(event)) {
       this.batch(event);
       return this.state;
     }
 
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+    const eventObject = toEventObject<OmniEventObject<TEvent>>(event, payload);
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
       console.warn(
