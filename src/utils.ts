@@ -11,9 +11,11 @@ import {
   ActionTypes,
   HistoryValue,
   OmniEventObject,
-  AssignAction
+  AssignAction,
+  ActionObject
 } from './types';
 import { STATE_DELIMITER } from './constants';
+import { State } from './State';
 
 function isState(state: object | string): state is StateInterface {
   if (typeof state === 'string') {
@@ -409,4 +411,24 @@ export function updateContext<TContext, TEvent extends EventObject>(
     : context;
 
   return updatedContext;
+}
+
+export function bindActionToState<TC, TE extends EventObject>(
+  action: ActionObject<TC, TE>,
+  state: State<TC, TE>
+): ActionObject<TC, TE> {
+  const { exec } = action;
+  const boundAction: ActionObject<TC, TE> = {
+    ...action,
+    exec:
+      exec !== undefined
+        ? () =>
+            exec(state.context, state.event as TE, {
+              action,
+              state
+            })
+        : undefined
+  };
+
+  return boundAction;
 }

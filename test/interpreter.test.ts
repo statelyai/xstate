@@ -666,7 +666,20 @@ describe('interpreter', () => {
 
     it('should batch send events', done => {
       let transitions = 0;
-      const countService = interpret(countMachine)
+      const evenCounts: number[] = [];
+      const oddCounts: number[] = [];
+      const countService = interpret(
+        countMachine.withConfig({
+          actions: {
+            evenAction: ctx => {
+              evenCounts.push(ctx.count);
+            },
+            oddAction: ctx => {
+              oddCounts.push(ctx.count);
+            }
+          }
+        })
+      )
         .onTransition(state => {
           transitions++;
 
@@ -677,20 +690,32 @@ describe('interpreter', () => {
               break;
             // transition with batched events
             case 2:
-              assert.equal(state.value, 'odd');
-              assert.deepEqual(state.context, { count: 3 });
+              assert.equal(state.value, 'even');
+              assert.deepEqual(state.context, { count: 4 });
               assert.deepEqual(state.actions.map(a => a.type), [
                 'evenAction',
                 'oddAction',
-                'evenAction'
+                'evenAction',
+                'oddAction'
               ]);
+
+              assert.deepEqual(
+                evenCounts,
+                [1, 3],
+                'even actions should be bound to their state at time of creation'
+              );
+              assert.deepEqual(
+                oddCounts,
+                [2, 4],
+                'odd actions should be bound to their state at time of creation'
+              );
               done();
               break;
           }
         })
         .start();
 
-      countService.send(['INC', 'INC', { type: 'INC' }]);
+      countService.send(['INC', 'INC', { type: 'INC' }, 'INC']);
     });
   });
 

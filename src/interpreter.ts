@@ -27,7 +27,7 @@ import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
-import { mapContext } from './utils';
+import { mapContext, bindActionToState } from './utils';
 import { Scheduler } from './scheduler';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -467,7 +467,9 @@ export class Interpreter<
       let nextState = this.state;
       for (const event of events) {
         const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
-        const { actions } = nextState;
+        const actions = nextState.actions.map(a =>
+          bindActionToState(a, nextState)
+        );
         nextState = this.machine.transition(nextState, eventObject);
         nextState.actions.unshift(...actions);
 
