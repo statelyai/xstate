@@ -60,6 +60,64 @@ describe('onEntry/onExit actions', () => {
     }
   });
 
+  const newPedestrianStates = {
+    initial: 'walk',
+    states: {
+      walk: {
+        on: {
+          PED_COUNTDOWN: 'wait'
+        },
+        entry: 'enter_walk',
+        exit: 'exit_walk'
+      },
+      wait: {
+        on: {
+          PED_COUNTDOWN: 'stop'
+        },
+        entry: 'enter_wait',
+        exit: 'exit_wait'
+      },
+      stop: {
+        entry: ['enter_stop'],
+        exit: ['exit_stop']
+      }
+    }
+  };
+
+  const newLightMachine = Machine({
+    key: 'light',
+    initial: 'green',
+    states: {
+      green: {
+        on: {
+          TIMER: 'yellow',
+          POWER_OUTAGE: 'red',
+          NOTHING: 'green'
+        },
+        entry: 'enter_green',
+        exit: 'exit_green'
+      },
+      yellow: {
+        on: {
+          TIMER: 'red',
+          POWER_OUTAGE: 'red'
+        },
+        entry: 'enter_yellow',
+        exit: 'exit_yellow'
+      },
+      red: {
+        on: {
+          TIMER: 'green',
+          POWER_OUTAGE: 'red',
+          NOTHING: 'red'
+        },
+        entry: 'enter_red',
+        exit: 'exit_red',
+        ...newPedestrianStates
+      }
+    }
+  });
+
   const parallelMachine = Machine({
     type: 'parallel',
     states: {
@@ -373,6 +431,67 @@ describe('onEntry/onExit actions', () => {
           pingPong.transition('ping.foo', 'ABSOLUTE_TACK').actions
         );
       });
+    });
+  });
+
+  describe('State.actions (with entry/exit instead of onEntry/onExit)', () => {
+    it('should return the entry actions of an initial state', () => {
+      assert.sameMembers(
+        newLightMachine.initialState.actions.map(a => a.type),
+        ['enter_green']
+      );
+    });
+
+    it('should return the entry and exit actions of a transition', () => {
+      assert.deepEqual(
+        newLightMachine.transition('green', 'TIMER').actions.map(a => a.type),
+        ['exit_green', 'enter_yellow']
+      );
+    });
+
+    it('should return the entry and exit actions of a deep transition', () => {
+      assert.deepEqual(
+        newLightMachine.transition('yellow', 'TIMER').actions.map(a => a.type),
+        ['exit_yellow', 'enter_red', 'enter_walk']
+      );
+    });
+
+    it('should return the entry and exit actions of a nested transition', () => {
+      assert.deepEqual(
+        newLightMachine
+          .transition('red.walk', 'PED_COUNTDOWN')
+          .actions.map(a => a.type),
+        ['exit_walk', 'enter_wait']
+      );
+    });
+
+    it('should not have actions for unhandled events (shallow)', () => {
+      assert.deepEqual(
+        newLightMachine.transition('green', 'FAKE').actions.map(a => a.type),
+        []
+      );
+    });
+
+    it('should not have actions for unhandled events (deep)', () => {
+      assert.deepEqual(
+        newLightMachine.transition('red', 'FAKE').actions.map(a => a.type),
+        []
+      );
+    });
+
+    it('should exit and enter the state for self-transitions (shallow)', () => {
+      assert.deepEqual(
+        newLightMachine.transition('green', 'NOTHING').actions.map(a => a.type),
+        ['exit_green', 'enter_green']
+      );
+    });
+
+    it('should exit and enter the state for self-transitions (deep)', () => {
+      // 'red' state resolves to 'red.walk'
+      assert.deepEqual(
+        newLightMachine.transition('red', 'NOTHING').actions.map(a => a.type),
+        ['exit_walk', 'exit_red', 'enter_red', 'enter_walk']
+      );
     });
   });
 });

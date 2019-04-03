@@ -383,12 +383,24 @@ export interface StateNodeConfig<
   on?: TransitionsConfig<TContext, TEvent>;
   /**
    * The action(s) to be executed upon entering the state node.
+   *
+   * @deprecated Use `entry` instead.
    */
-  onEntry?: SingleOrArray<Action<TContext, TEvent>>;
+  onEntry?: SingleOrArray<Action<TContext, TEvent>>; // TODO: deprecate
+  /**
+   * The action(s) to be executed upon entering the state node.
+   */
+  entry?: SingleOrArray<Action<TContext, TEvent>>;
+  /**
+   * The action(s) to be executed upon exiting the state node.
+   *
+   * @deprecated Use `exit` instead.
+   */
+  onExit?: SingleOrArray<Action<TContext, TEvent>>; // TODO: deprecate
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  onExit?: SingleOrArray<Action<TContext, TEvent>>;
+  exit?: SingleOrArray<Action<TContext, TEvent>>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *

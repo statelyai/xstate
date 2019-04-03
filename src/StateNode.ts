@@ -158,11 +158,11 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext, TEvent>>;
+  public onEntry: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (entry)
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext, TEvent>>;
+  public onExit: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (exit)
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
@@ -286,10 +286,15 @@ class StateNode<
 
     this.transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
-    this.onEntry = toArray(_config.onEntry).map(action =>
+
+    // TODO: deprecate (entry)
+    this.onEntry = toArray(_config.entry || _config.onEntry).map(action =>
       toActionObject(action)
     );
-    this.onExit = toArray(_config.onExit).map(action => toActionObject(action));
+    // TODO: deprecate (exit)
+    this.onExit = toArray(_config.exit || _config.onExit).map(action =>
+      toActionObject(action)
+    );
     this.meta = _config.meta;
     this.data =
       this.type === 'final'
