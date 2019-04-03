@@ -1,11 +1,15 @@
-# Guards (Conditional Transitions)
+# Guards
 
 Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a machine for a search form, and you only want search to be allowed if:
 
 - the user is allowed to search (`.canSearch` in this example)
 - the search event `query` is not empty.
 
-This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A **guard** is a function that takes 2 arguments:
+This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A transition with guards is called a **conditional transition**.
+
+## Guard Functions
+
+A **guard** is a function that takes 2 arguments:
 
 - `context` - the [machine context](./context.md)
 - `event` - the event, represented as an object
@@ -171,41 +175,51 @@ const searchMachine = Machine(
 
 If you want to have a single event transition to different states in certain situations you can supply an array of conditional transitions.
 
-For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, and goes to the `'closed.error'` state if you are not:
+For example, you can model a door that listens for an `OPEN` event, goes to the `'opened'` state if you are an admin, or goes to the `'closed.error'` state if `alert`-ing is true, or goes to the `'closed.idle'` state otherwise.
 
-```js {20-23}
+```js {23-25}
 import { Machine, actions, interpret, assign } from 'xstate';
 
-const doorMachine = Machine({
-  id: 'door',
-  initial: 'closed',
-  context: {
-    isAdmin: false
-  },
-  states: {
-    closed: {
-      initial: 'idle',
-      states: {
-        idle: {},
-        error: {}
-      },
-      on: {
-        SET_ADMIN: {
-          actions: assign({ isAdmin: true })
-        },
-        OPEN: [
-          { target: 'opened', cond: ctx => ctx.isAdmin },
-          { target: '.error' }
-        ]
-      }
+const doorMachine = Machine(
+  {
+    id: 'door',
+    initial: 'closed',
+    context: {
+      level: 'admin',
+      alert: false // alert when intrusions happen
     },
-    opened: {
-      on: {
-        CLOSE: 'closed'
+    states: {
+      closed: {
+        initial: 'idle',
+        states: {
+          idle: {},
+          error: {}
+        },
+        on: {
+          SET_ADMIN: {
+            actions: assign({ level: 'admin' })
+          },
+          OPEN: [
+            { target: 'opened', cond: 'isAdmin' },
+            { target: '.error', cond: 'shouldAlert' },
+            { target: '.idle' }
+          ]
+        }
+      },
+      opened: {
+        on: {
+          CLOSE: 'closed'
+        }
       }
     }
+  },
+  {
+    guards: {
+      isAdmin: ctx => ctx.level === 'admin',
+      shouldAlert: ctx => ctx.alert === true
+    }
   }
-});
+);
 
 const doorService = interpret(doorMachine)
   .onTransition(state => console.log(state.value))
@@ -224,11 +238,11 @@ doorService.send('OPEN');
 // (since ctx.isAdmin === true)
 ```
 
-**Notes:**
-
-- The `cond` function must always be a pure function that only references the `context` and `event` arguments.
-
 ::: warning
+The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.
+:::
+
+::: tip
 Do _not_ overuse guard conditions. If something can be represented discretely as two or more separate events instead of multiple `conds` on a single event, it is preferable to avoid `cond` and use multiple types of events instead.
 :::
 
