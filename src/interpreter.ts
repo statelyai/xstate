@@ -27,7 +27,7 @@ import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
-import { mapContext, bindActionToState } from './utils';
+import { mapContext, bindActionToState, warn } from './utils';
 import { Scheduler } from './scheduler';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -415,7 +415,8 @@ export class Interpreter<
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event, payload);
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
-      console.warn(
+      warn(
+        false,
         `Event "${eventObject.type}" was sent to uninitialized service "${
           this.machine.id
         }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
@@ -449,7 +450,8 @@ export class Interpreter<
   private batch(events: Array<OmniEvent<TEvent>>): void {
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
-      console.warn(
+      warn(
+        false,
         `${events.length} event(s) were sent to uninitialized service "${
           this.machine.id
         }" and are deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
@@ -509,7 +511,8 @@ export class Interpreter<
       }
 
       // tslint:disable-next-line:no-console
-      console.warn(
+      warn(
+        false,
         `Service '${this.id}' has no parent: unable to send event ${event.type}`
       );
       return;
@@ -566,7 +569,8 @@ export class Interpreter<
         this.machine.options.delays[delay] === undefined
       ) {
         // tslint:disable-next-line:no-console
-        console.warn(
+        warn(
+          false,
           `No delay reference for delay expression '${delay}' was found on machine '${
             this.machine.id
           }' on service '${this.id}'.`
@@ -648,7 +652,8 @@ export class Interpreter<
 
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
-            console.warn(
+            warn(
+              false,
               `No service found for invocation '${activity.src}' in machine '${
                 this.machine.id
               }'.`
@@ -701,10 +706,7 @@ export class Interpreter<
         }
         break;
       default:
-        // tslint:disable-next-line:no-console
-        console.warn(
-          `No implementation found for action type '${action.type}'`
-        );
+        warn(false, `No implementation found for action type '${action.type}'`);
         break;
     }
 
@@ -788,14 +790,12 @@ export class Interpreter<
   private spawnCallback(id: string, callback: InvokeCallback): void {
     const receive = (e: TEvent) => this.send(e);
     let listener = (e: EventObject) => {
-      if (!IS_PRODUCTION) {
-        // tslint:disable-next-line:no-console
-        console.warn(
-          `Event '${
-            e.type
-          }' sent to callback service '${id}' but was not handled by a listener.`
-        );
-      }
+      warn(
+        false,
+        `Event '${
+          e.type
+        }' sent to callback service '${id}' but was not handled by a listener.`
+      );
     };
 
     let stop;
@@ -844,7 +844,7 @@ export class Interpreter<
 
     if (!implementation) {
       // tslint:disable-next-line:no-console
-      console.warn(`No implementation found for activity '${activity.type}'`);
+      warn(false, `No implementation found for activity '${activity.type}'`);
       return;
     }
 

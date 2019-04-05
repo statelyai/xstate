@@ -1,5 +1,5 @@
 import { StateNode, State } from './index';
-import { getActionType, flatten, keys } from './utils';
+import { getActionType, flatten, keys, warn } from './utils';
 import {
   StateValue,
   Edge,
@@ -78,7 +78,7 @@ export function getEventEdges<
             };
           } catch (e) {
             // tslint:disable-next-line:no-console
-            console.warn(`Target '${target}' not found on '${node.id}'`);
+            warn(e, `Target '${target}' not found on '${node.id}'`);
             return undefined;
           }
         })

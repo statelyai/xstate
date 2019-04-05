@@ -14,7 +14,8 @@ import {
   isBuiltInEvent,
   partition,
   updateHistoryValue,
-  updateContext
+  updateContext,
+  warn
 } from './utils';
 import {
   Event,
@@ -248,16 +249,15 @@ class StateNode<
         : _config.history
         ? 'history'
         : 'atomic');
-    if (!IS_PRODUCTION && 'parallel' in _config) {
-      // tslint:disable-next-line:no-console
-      console.warn(
-        `The "parallel" property is deprecated and will be removed in version 4.1. ${
-          _config.parallel
-            ? `Replace with \`type: 'parallel'\``
-            : `Use \`type: '${this.type}'\``
-        } in the config for state node '${this.id}' instead.`
-      );
-    }
+
+    warn(
+      !('parallel' in _config),
+      `The "parallel" property is deprecated and will be removed in version 4.1. ${
+        _config.parallel
+          ? `Replace with \`type: 'parallel'\``
+          : `Use \`type: '${this.type}'\``
+      } in the config for state node '${this.id}' instead.`
+    );
     this.initial = _config.initial;
     this.order = _config.order || -1;
 
@@ -1169,8 +1169,8 @@ class StateNode<
             !this.machine.options.delays ||
             this.machine.options.delays[sendAction.delay] === undefined
           ) {
-            // tslint:disable-next-line:no-console
-            console.warn(
+            warn(
+              false,
               `No delay reference for delay expression '${
                 sendAction.delay
               }' was found on machine '${this.machine.id}'`
@@ -1657,10 +1657,7 @@ class StateNode<
 
     // Case when state node is compound but no initial state is defined
     if (this.type === 'compound' && !this.initial) {
-      if (!IS_PRODUCTION) {
-        // tslint:disable-next-line:no-console
-        console.warn(`Compound state node '${this.id}' has no initial state.`);
-      }
+      warn(false, `Compound state node '${this.id}' has no initial state.`);
       return [this];
     }
 
