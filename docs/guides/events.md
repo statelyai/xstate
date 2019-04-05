@@ -108,8 +108,8 @@ const ageMachine = Machine({
         // immediately take transition that satisfies conditional guard.
         // otherwise, no transition occurs
         '': [
-          { target: 'adult', cond: ctx => ctx && ctx.age >= 18 },
-          { target: 'child', cond: ctx => ctx && ctx.age < 18 }
+          { target: 'adult', cond: context => context && context.age >= 18 },
+          { target: 'child', cond: context => context && context.age < 18 }
         ]
       }
     },

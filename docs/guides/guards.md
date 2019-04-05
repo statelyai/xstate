@@ -49,8 +49,8 @@ const searchMachine = Machine(
   },
   {
     guards: {
-      searchValid: (ctx, event) => {
-        return ctx.canSearch && event.query && event.query.length > 0;
+      searchValid: (context, event) => {
+        return context.canSearch && event.query && event.query.length > 0;
       }
     }
   }
@@ -82,7 +82,7 @@ Guard implementations can be quickly prototyped by specifying the guard `cond` f
 // ...
 SEARCH: {
   target: 'searching',
-  cond: (ctx, event) => ctx.canSearch && event.query && event.query.length > 0
+  cond: (context, event) => context.canSearch && event.query && event.query.length > 0
 }
 // ...
 ```
@@ -94,7 +94,7 @@ It is _not recommended_ to keep the machine config like this in production code,
 
 Guards can (and should) be serialized as a string or an object with the `{ type: '...' }` property. The implementation details of the guard are specified on the `guards` property of the machine options, where the `key` is the guard `type` (specified as a string or object) and the value is a function that takes three arguments:
 
-- `ctx` - the current machine context
+- `context` - the current machine context
 - `event` - the event that triggered the (potential) transition
 - `guardMeta` - (since 4.4) an object containing meta data about the guard and transition, including:
   - `cond` - the original `cond` object
@@ -122,8 +122,8 @@ const searchMachine = Machine(
   },
   {
     guards: {
-      searchValid: (ctx, event) => {
-        return ctx.canSearch && event.query && event.query.length > 0;
+      searchValid: (context, event) => {
+        return context.canSearch && event.query && event.query.length > 0;
       }
     }
   }
@@ -158,10 +158,10 @@ const searchMachine = Machine(
   },
   {
     guards: {
-      searchValid: (ctx, event, { cond }) => {
+      searchValid: (context, event, { cond }) => {
         // cond === { type: 'searchValid', minQueryLength: 3 }
         return (
-          ctx.canSearch &&
+          context.canSearch &&
           event.query &&
           event.query.length > cond.minQueryLength
         );
@@ -215,8 +215,8 @@ const doorMachine = Machine(
   },
   {
     guards: {
-      isAdmin: ctx => ctx.level === 'admin',
-      shouldAlert: ctx => ctx.alert === true
+      isAdmin: context => context.level === 'admin',
+      shouldAlert: context => context.alert === true
     }
   }
 );
@@ -235,7 +235,7 @@ doorService.send('SET_ADMIN');
 
 doorService.send('OPEN');
 // => 'opened'
-// (since ctx.isAdmin === true)
+// (since context.isAdmin === true)
 ```
 
 ::: warning
@@ -298,7 +298,7 @@ The `cond` property is equivalent to the `cond` attribute on the `<transition>` 
   on: {
     e: {
       target: 'foo',
-      cond: ctx => ctx.x === 1
+      cond: context => context.x === 1
     }
   }
 }

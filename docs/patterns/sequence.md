@@ -39,17 +39,19 @@ Sometimes, many async (e.g., Promise-based) operations need to occur in sequence
 //   name: 'David',
 //   friends: [2, 3, 5, 7, 9] // friend IDs
 // }
-function getUserInfo(ctx) {
-  return fetch('/api/users/#{ctx.userId}').then(response => response.json());
+function getUserInfo(context) {
+  return fetch('/api/users/#{context.userId}').then(response =>
+    response.json()
+  );
 }
 
 // Returns a Promise
-function getUserFriends(ctx) {
-  const { friends } = ctx.user;
+function getUserFriends(context) {
+  const { friends } = context.user;
 
   return Promise.all(
     friends.map(friendId =>
-      fetch('/api/users/#{ctx.userId}/').then(response => response.json())
+      fetch('/api/users/#{context.userId}/').then(response => response.json())
     )
   );
 }
@@ -64,7 +66,9 @@ const friendsMachine = Machine({
         src: getUserInfo,
         onDone: {
           target: 'gettingFriends',
-          actions: assign({ user: (ctx, e) => e.data })
+          actions: assign({
+            user: (context, event) => event.data
+          })
         }
       }
     },
@@ -73,7 +77,9 @@ const friendsMachine = Machine({
         src: getUserFriends,
         onDone: {
           target: 'success',
-          actions: assign({ friends: (ctx, e) => e.data })
+          actions: assign({
+            friends: (context, event) => event.data
+          })
         }
       }
     },

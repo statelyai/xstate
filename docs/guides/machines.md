@@ -68,7 +68,7 @@ const lightMachine = Machine(
   {
     actions: {
       // action implementation
-      alertGreen: (ctx, event) => {
+      alertGreen: (context, event) => {
         alert('Green!');
       }
     },
@@ -101,7 +101,7 @@ const lightMachine = // (same as above example)
 
 const noAlertLightMachine = lightMachine.withConfig({
   actions: {
-    alertGreen: (ctx, event) => {
+    alertGreen: (context, event) => {
       console.log('green');
     }
   }

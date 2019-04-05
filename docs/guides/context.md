@@ -9,12 +9,12 @@ import { Machine, assign } from 'xstate';
 
 // Action to increment the context amount
 const addWater = assign({
-  amount: (ctx, event) => ctx.amount + 1
+  amount: (context, event) => context.amount + 1
 });
 
 // Guard to check if the glass is full
-function glassIsFull(ctx, event) {
-  return ctx.amount >= 10;
+function glassIsFull(context, event) {
+  return context.amount >= 10;
 }
 
 const glassMachine = Machine(
@@ -143,7 +143,7 @@ import { Machine, assign } from 'xstate';
 // ...
   actions: assign({
     // increment the current count by the event value
-    count: (ctx, event) => ctx.count + event.value,
+    count: (context, event) => context.count + event.value,
 
     // update the message statically (no function needed)
     message: 'Count changed'
@@ -159,8 +159,8 @@ Or it can be a function that returns the updated state:
 // ...
 
   // return a partial (or full) updated context
-  actions: assign((ctx, event) => ({
-    count: ctx.count + event.value,
+  actions: assign((context, event) => ({
+    count: context.count + event.value,
     message: 'Count changed'
   })),
 // ...
@@ -187,10 +187,10 @@ const counterMachine = Machine({
       on: {
         INC: {
           actions: [
-            ctx => console.log(`Before: ${ctx.count}`),
-            assign({ count: ctx => ctx + 1 }), // count === 1
-            assign({ count: ctx => ctx + 1 }), // count === 2
-            ctx => console.log(`After: ${ctx.count}`)
+            context => console.log(`Before: ${context.count}`),
+            assign({ count: context => context + 1 }), // count === 1
+            assign({ count: context => context + 1 }), // count === 2
+            context => console.log(`After: ${context.count}`)
           ]
         }
       }
@@ -219,13 +219,13 @@ const counterMachine = Machine({
       on: {
         INC: {
           actions: [
-            ctx => console.log(`Before: ${ctx.prevCount}`),
+            context => console.log(`Before: ${context.prevCount}`),
             assign({
-              count: ctx => ctx + 1,
-              prevCount: ctx => ctx.count
+              count: context => context + 1,
+              prevCount: context => context.count
             }), // count === 1, prevCount === 0
-            assign({ count: ctx => ctx + 1 }), // count === 2
-            ctx => console.log(`After: ${ctx.count}`)
+            assign({ count: context => context + 1 }), // count === 2
+            context => console.log(`After: ${context.count}`)
           ]
         }
       }
@@ -254,8 +254,8 @@ The benefits of this are:
 ```js
 // ...
   actions: [
-    assign({ count: 3 }), // ctx.count === 3
-    assign({ count: ctx => ctx.count * 2 }) // ctx.count === 6
+    assign({ count: 3 }), // context.count === 3
+    assign({ count: context => context.count * 2 }) // context.count === 6
   ],
 // ...
 ```
@@ -273,8 +273,8 @@ const countMachine = Machine({
   }
 }, {
   actions: {
-    increment: assign({ count: ctx => ctx.count + 1 }),
-    decrement: assign({ count: ctx => ctx.count - 1 })
+    increment: assign({ count: context => context.count + 1 }),
+    decrement: assign({ count: context => context.count - 1 })
   }
 });
 ```

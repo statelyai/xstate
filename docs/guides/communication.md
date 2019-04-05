@@ -56,14 +56,14 @@ const userMachine = Machine({
     loading: {
       invoke: {
         id: 'getUser',
-        src: (ctx, event) => fetchUser(ctx.userId),
+        src: (context, event) => fetchUser(context.userId),
         onDone: {
           target: 'success',
-          actions: assign({ user: (ctx, event) => event.data })
+          actions: assign({ user: (context, event) => event.data })
         },
         onError: {
           target: 'failure',
-          actions: assign({ error: (ctx, event) => event.data })
+          actions: assign({ error: (context, event) => event.data })
         }
       }
     },
@@ -94,7 +94,7 @@ The resolved data is placed into a `'done.invoke.<id>'` event, under the `data` 
 If a Promise rejects, the `onError` transition will be taken with a `{ type: 'error.execution' }` event. The error data is available on the event's `data` property:
 
 ```js
-const search = (ctx, event) => new Promise((resolve, reject) => {
+const search = (context, event) => new Promise((resolve, reject) => {
   if (!event.query.length) {
     return reject('No query specified');
     // or:
@@ -123,7 +123,7 @@ const searchMachine = Machine({
         onError: {
           target: 'failure',
           actions: assign({
-            errorMessage: (ctx, event) => {
+            errorMessage: (context, event) => {
               // event is:
               // { type: 'error.execution', data: 'No query specified' }
               return event.data.message;
@@ -162,7 +162,7 @@ The (optional) return value should be a function that performs cleanup (i.e., un
 counting: {
   invoke: {
     id: 'incInterval',
-    src: (ctx, event) => (callback, onEvent) => {
+    src: (context, event) => (callback, onEvent) => {
       // This will send the 'INC' event to the parent every second
       const id = setInterval(() => callback('INC'), 1000);
 
@@ -171,7 +171,7 @@ counting: {
     }
   },
   on: {
-    INC: { actions: assign({ counter: ctx => ctx.counter + 1 }) }
+    INC: { actions: assign({ counter: context => context.counter + 1 }) }
   }
 }
 // ...
@@ -191,7 +191,7 @@ const pingPongMachine = Machine({
     active: {
       invoke: {
         id: 'ponger',
-        src: (ctx, event) => (callback, onEvent) => {
+        src: (context, event) => (callback, onEvent) => {
           // Whenever parent sends 'PING',
           // send parent 'PONG' event
           onEvent(e => {
@@ -293,7 +293,7 @@ const parentMachine = Machine({
         src: timerMachine,
         // Deriving child context from parent context
         data: {
-          duration: (ctx, event) => ctx.customDuration
+          duration: (context, event) => context.customDuration
         }
       }
     }
@@ -306,14 +306,14 @@ Just like [`assign(...)`](./context.md), child context can be mapped as an objec
 ```js
 // Object (per-property):
 data: {
-  duration: (ctx, event) => ctx.customDuration,
-  foo: (ctx, event) => event.value,
+  duration: (context, event) => context.customDuration,
+  foo: (context, event) => event.value,
   bar: 'static value'
 }
 
 // Function (aggregate), equivalent to above:
-data: (ctx, event) => ({
-  duration: ctx.customDuration,
+data: (context, event) => ({
+  duration: context.customDuration,
   foo: event.value,
   bar: 'static value'
 })
@@ -339,7 +339,7 @@ const secretMachine = Machine({
     reveal: {
       type: 'final',
       data: {
-        secret: (ctx, event) => ctx.secret
+        secret: (context, event) => context.secret
       }
     }
   }
@@ -359,7 +359,7 @@ const parentMachine = Machine({
         onDone: {
           target: 'success',
           actions: assign({
-            revealedSecret: (ctx, event) => {
+            revealedSecret: (context, event) => {
               // event is:
               // { type: 'done.invoke.secret', data: { secret: '42' } }
               return event.data.secret;
@@ -486,7 +486,7 @@ const userMachine = Machine({
   }
 }, {
   services: {
-    getUser: (ctx, event) => fetchUser(user.id)
+    getUser: (context, event) => fetchUser(user.id)
   }
 });
 ```
@@ -508,7 +508,7 @@ const mockFetchUser = async userId => {
 
 const testUserMachine = userMachine.withConfig({
   services: {
-    getUser: (ctx, event) => mockFetchUser(ctx.id)
+    getUser: (context, event) => mockFetchUser(context.id)
   }
 });
 

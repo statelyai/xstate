@@ -62,8 +62,8 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
           on: {
             PED_COUNTDOWN: {
               target: 'stop',
-              cond: (ctx, e) => {
-                return e.duration === 0 && ctx.elapsed > 0;
+              cond: (context, event) => {
+                return event.duration === 0 && context.elapsed > 0;
               }
             }
           }

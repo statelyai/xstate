@@ -162,14 +162,14 @@ green.actions;
 - Passing in a function that **starts** the activity (as a side-effect)
 - From that function, returning another function that **stops** the activity (also as a side-effect).
 
-For example, here's how a `'beeping'` activity that logs `'BEEP!'` to the console every `ctx.interval` would be implemented:
+For example, here's how a `'beeping'` activity that logs `'BEEP!'` to the console every `context.interval` would be implemented:
 
 ```js
-function createBeepingActivity(ctx, activity) {
+function createBeepingActivity(context, activity) {
   // Start the beeping activity
   const interval = setInterval(() => {
     console.log('BEEP!');
-  }, ctx.interval);
+  }, context.interval);
 
   // Return a function that stops the beeping activity
   return () => clearInterval(interval);

@@ -126,8 +126,8 @@ const lightDelayMachine = Machine(
   {
     // String delays configured here
     delays: {
-      LIGHT_DELAY: (ctx, e) => {
-        return ctx.trafficLevel === 'low' ? 1000 : 3000;
+      LIGHT_DELAY: (context, event) => {
+        return context.trafficLevel === 'low' ? 1000 : 3000;
       },
       YELLOW_LIGHT_DELAY: 500 // static value
     }
@@ -142,8 +142,8 @@ Or directly by a function, just like conditional delayed transitions:
 green: {
   after: [
     {
-      delay: (ctx, e) => {
-        return ctx.trafficLevel === 'low' ? 1000 : 3000;
+      delay: (context, event) => {
+        return context.trafficLevel === 'low' ? 1000 : 3000;
       },
       target: 'yellow'
     }
@@ -232,7 +232,7 @@ const dynamicDelayMachine = Machine({
     },
     pending: {
       onEntry: send('FINISH', {
-        delay: (ctx, event) => ctx.initialDelay + event.wait || 0
+        delay: (context, event) => context.initialDelay + event.wait || 0
       }),
       on: {
         FINISH: 'finished'

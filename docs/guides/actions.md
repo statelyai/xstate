@@ -41,16 +41,16 @@ const triggerMachine = Machine(
   {
     actions: {
       // action implementations
-      activate: (ctx, event) => {
+      activate: (context, event) => {
         console.log('activating...');
       },
-      notifyActive: (ctx, event) => {
+      notifyActive: (context, event) => {
         console.log('active!');
       },
-      notifyInactive: (ctx, event) => {
+      notifyInactive: (context, event) => {
         console.log('inactive!');
       },
-      sendTelemetry: (ctx, event) => {
+      sendTelemetry: (context, event) => {
         console.log('time:', Date.now());
       }
     }
@@ -65,7 +65,7 @@ Action implementations can be quickly prototyped by specifying the action functi
 // ...
 TRIGGER: {
   target: 'active',
-  actions: (ctx, event) => { console.log('activating...'); }
+  actions: (context, event) => { console.log('activating...'); }
 }
 // ...
 ```
@@ -96,7 +96,7 @@ Each action object has two properties (and others, that you can specify):
 
 The `exec` function takes three arguments:
 
-- `ctx` - the current machine context
+- `context` - the current machine context
 - `event` - the event that caused the transition
 - `actionMeta` - (since 4.4) an object containing meta data about the action, including:
   - `action` - the original action object
@@ -165,11 +165,11 @@ The `event` argument passed to `send(event)` can be:
 ```js
 import { send } from 'xstate';
 
-// contrived example - reads from the `ctx` and sends
+// contrived example - reads from the `context` and sends
 // the dynamically created event
-const sendName = send((ctx, event) => ({
+const sendName = send((context, event) => ({
   type: 'NAME',
-  name: ctx.user.name
+  name: context.user.name
 }));
 
 const machine = Machine({
@@ -241,7 +241,7 @@ const loggingMachine = Machine({
         FINISH: {
           target: 'end',
           actions: log(
-            (ctx, event) => `count: ${ctx.count}, event: ${event.type}`,
+            (context, event) => `count: ${context.count}, event: ${event.type}`,
             'Finish label'
           )
         }
@@ -258,7 +258,7 @@ endState.actions;
 //   {
 //     type: 'xstate.log',
 //     label: 'Finish label',
-//     expr: (ctx, event) => ...
+//     expr: (context, event) => ...
 //   }
 // ]
 

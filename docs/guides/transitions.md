@@ -350,7 +350,7 @@ The event-target mappings defined on the `on: { ... }` property of state nodes i
     on: {
       TIMER: {
         target: '#yellow',
-        cond: ctx => ctx.timeElapsed > 5000
+        cond: context => context.timeElapsed > 5000
       },
       POWER_OUTAGE: '#red.flashing'
     }
