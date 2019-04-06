@@ -28,7 +28,7 @@ Using [React hooks](https://reactjs.org/hooks) makes it easier to use state mach
 import { useState, useRef, useEffect } from 'react';
 import { interpret } from 'xstate';
 
-export function useMachine(machine) {
+export function useMachine(machine, options) {
   // Keep track of the current machine state
   const [current, setCurrent] = useState(machine.initialState);
 
@@ -43,7 +43,7 @@ export function useMachine(machine) {
       if (state.changed) {
         setCurrent(state);
       }
-    })
+    });
   }
 
   const service = serviceRef.current;

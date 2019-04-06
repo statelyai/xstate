@@ -42,7 +42,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
       if (state.changed) {
         setCurrent(state);
       }
-    })
+    });
   }
 
   const service = serviceRef.current;
