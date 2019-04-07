@@ -599,7 +599,7 @@ export interface EntryExitStateArrays<TContext> {
 }
 
 export interface ActivityMap {
-  [activityKey: string]: boolean;
+  [activityKey: string]: ActivityDefinition<any, any> | false;
 }
 
 // tslint:disable-next-line:class-name

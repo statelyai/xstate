@@ -20,7 +20,6 @@ import {
 import {
   Event,
   StateValue,
-  Action,
   TransitionConfig,
   ActivityMap,
   StateTransition,
@@ -39,7 +38,6 @@ import {
   ActivityDefinition,
   StateTypes,
   StateNodeConfig,
-  Activity,
   StateSchema,
   TransitionsDefinition,
   StatesDefinition,
@@ -336,7 +334,7 @@ class StateNode<
     });
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
-      .map(activity => this.resolveActivity(activity));
+      .map(activity => toActivityDefinition(activity));
     this.after = this.getDelayedTransitions();
   }
 
@@ -1028,19 +1026,9 @@ class StateNode<
     const actions = exitActions
       .concat(transition.actions)
       .concat(entryActions)
-      .map(action => this.resolveAction(action));
+      .map(action => toActionObject(action, this.machine.options.actions));
 
     return actions;
-  }
-  private resolveAction(
-    action: Action<TContext, TEvent>
-  ): ActionObject<TContext, TEvent> {
-    return toActionObject(action, this.machine.options.actions);
-  }
-  private resolveActivity(
-    activity: Activity<TContext, TEvent>
-  ): ActivityDefinition<TContext, TEvent> {
-    return toActivityDefinition(activity);
   }
 
   /**
@@ -1132,7 +1120,10 @@ class StateNode<
     const activities = { ...currentState.activities };
     actions.forEach(action => {
       if (action.type === actionTypes.start) {
-        activities[action.activity!.type] = true;
+        activities[action.activity!.type] = action as ActivityDefinition<
+          TContext,
+          TEvent
+        >;
       } else if (action.type === actionTypes.stop) {
         activities[action.activity!.type] = false;
       }
@@ -1519,7 +1510,7 @@ class StateNode<
       }
       if (stateNode.activities) {
         stateNode.activities.forEach(activity => {
-          activityMap[getEventType(activity)] = true;
+          activityMap[getEventType(activity)] = activity;
           actions.push(start(activity));
         });
       }

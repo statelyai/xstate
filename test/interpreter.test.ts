@@ -397,7 +397,7 @@ describe('interpreter', () => {
       const bState = toggleMachine.transition(activeState, 'SWITCH');
       const service = interpret(toggleMachine).start(bState);
 
-      assert.isTrue(service.state.activities.blink);
+      assert.ok(service.state.activities.blink);
       assert.isFalse(activityActive);
     });
   });
