@@ -184,7 +184,7 @@ export type InvokeCreator<TFinalContext, TContext> = (
   context: TContext,
   event: EventObject
 ) =>
-  | Promise<TFinalContext>
+  | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
   | InvokeCallback;
 

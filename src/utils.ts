@@ -330,6 +330,21 @@ export function isBuiltInEvent(eventType: EventType): boolean {
   return false;
 }
 
+export function isPromiseLike(value: any): value is PromiseLike<any> {
+  if (value instanceof Promise) {
+    return true;
+  }
+  // Check if shape matches the Promise/A+ specification for a "thenable".
+  if (
+    value !== null &&
+    (typeof value === 'function' || typeof value === 'object') &&
+    typeof value.then === 'function'
+  ) {
+    return true;
+  }
+  return false;
+}
+
 export function partition<T, A extends T, B extends T>(
   items: T[],
   predicate: (item: T) => item is A
