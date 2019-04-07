@@ -38,6 +38,7 @@
     "react": "^16.8.0"
   },
   "dependencies": {
+    "immer": "^2.1.5",
     "xstate": "^4.4.0"
   },
   "devDependencies": {

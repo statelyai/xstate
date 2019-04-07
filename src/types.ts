@@ -725,32 +725,44 @@ export interface CancelAction extends ActionObject<any, any> {
 }
 
 export type Assigner<TContext, TEvent extends EventObject> = (
-  extState: TContext,
+  context: TContext,
   event: TEvent
 ) => Partial<TContext>;
 
 export type PropertyAssigner<TContext, TEvent extends EventObject> = Partial<
   {
     [K in keyof TContext]:
-      | ((extState: TContext, event: TEvent) => TContext[K])
+      | ((context: TContext, event: TEvent) => TContext[K])
       | TContext[K]
   }
 >;
 
 export type Mapper<TContext, TEvent extends EventObject> = (
-  extState: TContext,
+  context: TContext,
   event: TEvent
 ) => any;
 
 export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
-  [key: string]: ((extState: TContext, event: TEvent) => any) | any;
+  [key: string]: ((context: TContext, event: TEvent) => any) | any;
 }>;
 
-export type Updater<TContext, TEvent extends EventObject> = (
+export type Updater<
+  TContext,
+  TEvent extends EventObject,
+  TAssignAction extends AnyAssignAction<TContext, TEvent> = AnyAssignAction<
+    TContext,
+    TEvent
+  >
+> = (
   context: TContext,
   event: OmniEventObject<TEvent>,
-  assignActions: Array<AssignAction<TContext, TEvent>>
+  assignActions: TAssignAction[]
 ) => TContext;
+
+export interface AnyAssignAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  assignment: any;
+}
 
 export interface AssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

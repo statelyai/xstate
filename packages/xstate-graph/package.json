@@ -28,6 +28,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "dependencies": {
+    "immer": "^2.1.5",
     "xstate": "^4.4.0"
   },
   "devDependencies": {

@@ -1,0 +1,37 @@
+{
+  "name": "@xstate/immer",
+  "version": "0.0.1",
+  "description": "XState with Immer",
+  "keywords": [
+    "immer",
+    "state",
+    "state",
+    "machine",
+    "statechart"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "dependencies": {
+    "immer": "^2.1.5",
+    "xstate": "^4.4.0"
+  }
+}
