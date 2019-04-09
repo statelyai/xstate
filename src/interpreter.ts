@@ -27,7 +27,13 @@ import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
-import { mapContext, bindActionToState, warn, keys } from './utils';
+import {
+  isPromiseLike,
+  mapContext,
+  bindActionToState,
+  warn,
+  keys
+} from './utils';
 import { Scheduler } from './scheduler';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -673,8 +679,8 @@ export class Interpreter<
               ? serviceCreator(context, event)
               : serviceCreator;
 
-          if (source instanceof Promise) {
-            this.spawnPromise(id, source);
+          if (isPromiseLike(source)) {
+            this.spawnPromise(id, Promise.resolve(source));
           } else if (typeof source === 'function') {
             this.spawnCallback(id, source);
           } else if (typeof source !== 'string') {
@@ -812,8 +818,8 @@ export class Interpreter<
         listener = newListener;
       });
 
-      if (stop instanceof Promise) {
-        stop.catch(e => {
+      if (isPromiseLike(stop)) {
+        Promise.resolve(stop).catch(e => {
           const errorEvent = error(e, id);
           try {
             this.send(errorEvent);
