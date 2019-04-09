@@ -468,6 +468,50 @@ describe('invoke', () => {
         done();
       }, 30);
     });
+
+    it('should work with invocations defined in orthogonal state nodes', done => {
+      const pongMachine = Machine({
+        id: 'pong',
+        initial: 'active',
+        states: {
+          active: {
+            type: 'final',
+            data: { secret: 'pingpong' }
+          }
+        }
+      });
+
+      const pingMachine = Machine({
+        id: 'ping',
+        type: 'parallel',
+        states: {
+          one: {
+            initial: 'active',
+            states: {
+              active: {
+                invoke: {
+                  id: 'pong',
+                  src: pongMachine,
+                  onDone: {
+                    target: 'success',
+                    cond: (_, e) => e.data.secret === 'pingpong'
+                  }
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          }
+        }
+      });
+
+      interpret(pingMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
   });
 
   type PromiseExecutor = (
@@ -800,50 +844,6 @@ describe('invoke', () => {
         interpret(promiseMachine)
           .onDone(() => {
             assert.equal(count, 1);
-            done();
-          })
-          .start();
-      });
-
-      it('should work with invocations defined in orthogonal state nodes', done => {
-        const pongMachine = Machine({
-          id: 'pong',
-          initial: 'active',
-          states: {
-            active: {
-              type: 'final',
-              data: { secret: 'pingpong' }
-            }
-          }
-        });
-
-        const pingMachine = Machine({
-          id: 'ping',
-          type: 'parallel',
-          states: {
-            one: {
-              initial: 'active',
-              states: {
-                active: {
-                  invoke: {
-                    id: 'pong',
-                    src: pongMachine,
-                    onDone: {
-                      target: 'success',
-                      cond: (_, e) => e.data.secret === 'pingpong'
-                    }
-                  }
-                },
-                success: {
-                  type: 'final'
-                }
-              }
-            }
-          }
-        });
-
-        interpret(pingMachine)
-          .onDone(() => {
             done();
           })
           .start();
