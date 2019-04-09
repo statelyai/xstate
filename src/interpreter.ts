@@ -27,7 +27,7 @@ import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
-import { mapContext, bindActionToState, warn } from './utils';
+import { mapContext, bindActionToState, warn, keys } from './utils';
 import { Scheduler } from './scheduler';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
@@ -210,9 +210,9 @@ export class Interpreter<
    * @param state The state whose actions will be executed
    */
   public execute(state: State<TContext, TEvent>): void {
-    state.actions.forEach(action => {
+    for (const action of state.actions) {
       this.exec(action, state.context, state.event);
-    });
+    }
   }
   private update(
     state: State<TContext, TEvent>,
@@ -233,16 +233,21 @@ export class Interpreter<
 
     // Execute listeners
     if (state.event) {
-      this.eventListeners.forEach(listener => listener(state.event));
+      for (const listener of this.eventListeners) {
+        listener(state.event);
+      }
     }
 
-    this.listeners.forEach(listener => listener(state, state.event));
-    this.contextListeners.forEach(ctxListener =>
-      ctxListener(
+    for (const listener of this.listeners) {
+      listener(state, state.event);
+    }
+
+    for (const contextListener of this.contextListeners) {
+      contextListener(
         this.state.context,
         this.state.history ? this.state.history.context : undefined
-      )
-    );
+      );
+    }
 
     if (this.state.tree && this.state.tree.done) {
       // get donedata
@@ -250,9 +255,9 @@ export class Interpreter<
         this.state.context,
         toEventObject<OmniEventObject<TEvent>>(event)
       );
-      this.doneListeners.forEach(listener =>
-        listener(doneInvoke(this.id, doneData))
-      );
+      for (const listener of this.doneListeners) {
+        listener(doneInvoke(this.id, doneData));
+      }
       this.stop();
     }
   }
@@ -365,18 +370,20 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): Interpreter<TContext, TStateSchema, TEvent> {
-    this.listeners.forEach(listener => this.listeners.delete(listener));
-    this.stopListeners.forEach(listener => {
+    for (const listener of this.listeners) {
+      this.listeners.delete(listener);
+    }
+    for (const listener of this.stopListeners) {
       // call listener, then remove
       listener();
       this.stopListeners.delete(listener);
-    });
-    this.contextListeners.forEach(ctxListener =>
-      this.contextListeners.delete(ctxListener)
-    );
-    this.doneListeners.forEach(doneListener =>
-      this.doneListeners.delete(doneListener)
-    );
+    }
+    for (const listener of this.contextListeners) {
+      this.contextListeners.delete(listener);
+    }
+    for (const listener of this.doneListeners) {
+      this.doneListeners.delete(listener);
+    }
 
     // Stop all children
     this.children.forEach(child => {
@@ -386,9 +393,9 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    Object.keys(this.delayedEventsMap).forEach(key => {
+    for (const key of keys(this.delayedEventsMap)) {
       this.clock.clearTimeout(this.delayedEventsMap[key]);
-    });
+    }
 
     this.initialized = false;
 
@@ -546,7 +553,7 @@ export class Interpreter<
     return nextState;
   }
   private forward(event: OmniEventObject<TEvent>): void {
-    this.forwardTo.forEach(id => {
+    for (const id of this.forwardTo) {
       const child = this.children.get(id);
 
       if (!child) {
@@ -558,7 +565,7 @@ export class Interpreter<
       }
 
       child.send(event);
-    });
+    }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
     let { delay } = sendAction;

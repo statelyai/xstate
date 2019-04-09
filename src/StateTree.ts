@@ -148,14 +148,16 @@ export class StateTree {
     const absoluteStateValue = {};
     let marker: any = absoluteStateValue;
 
-    this.stateNode.path.forEach((key, i) => {
+    for (let i = 0; i < this.stateNode.path.length; i++) {
+      const key = this.stateNode.path[i];
+
       if (i === this.stateNode.path.length - 1) {
         marker[key] = _stateValue;
       } else {
         marker[key] = {};
         marker = marker[key];
       }
-    });
+    }
 
     return new StateTree(this.stateNode.machine, absoluteStateValue);
   }
@@ -211,13 +213,13 @@ export class StateTree {
 
       const newValue: Record<string, StateTree> = {};
 
-      valueKeys.forEach(key => {
+      for (const key of valueKeys) {
         if (!this.nodes[key] || !tree.nodes[key]) {
           newValue[key] = this.nodes[key] || tree.nodes[key];
         } else {
           newValue[key] = this.nodes[key]!.combine(tree.nodes[key]!);
         }
-      });
+      }
 
       const newTree = this.clone();
       newTree.nodes = newValue;
@@ -305,10 +307,10 @@ export class StateTree {
           entry: []
         };
 
-        all.forEach(ees => {
+        for (const ees of all) {
           parallelResult.exit = [...parallelResult.exit, ...ees.exit];
           parallelResult.entry = [...parallelResult.entry, ...ees.entry];
-        });
+        }
 
         if (externalNodes && externalNodes.has(this.stateNode)) {
           parallelResult.exit.push(this.stateNode);

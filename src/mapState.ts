@@ -6,14 +6,14 @@ export function mapState(
 ) {
   let foundStateId;
 
-  keys(stateMap).forEach(mappedStateId => {
+  for (const mappedStateId of keys(stateMap)) {
     if (
       matchesState(mappedStateId, stateId) &&
       (!foundStateId || stateId.length > foundStateId.length)
     ) {
       foundStateId = mappedStateId;
     }
-  });
+  }
 
   return stateMap[foundStateId];
 }

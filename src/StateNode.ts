@@ -647,11 +647,11 @@ class StateNode<
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
-    keys(stateValue).forEach(subStateKey => {
+    for (const subStateKey of keys(stateValue)) {
       const subStateValue = stateValue[subStateKey];
 
       if (!subStateValue) {
-        return;
+        continue;
       }
 
       const subStateNode = this.getStateNode(subStateKey);
@@ -663,7 +663,7 @@ class StateNode<
       }
 
       transitionMap[subStateKey] = next;
-    });
+    }
 
     const willTransition = keys(transitionMap).some(
       key => transitionMap[key].tree !== undefined
@@ -1118,7 +1118,7 @@ class StateNode<
 
     const actions = this.getActions(stateTransition, currentState);
     const activities = { ...currentState.activities };
-    actions.forEach(action => {
+    for (const action of actions) {
       if (action.type === actionTypes.start) {
         activities[action.activity!.type] = action as ActivityDefinition<
           TContext,
@@ -1127,7 +1127,7 @@ class StateNode<
       } else if (action.type === actionTypes.stop) {
         activities[action.activity!.type] = false;
       }
-    });
+    }
 
     const [raisedEvents, otherActions] = partition(
       actions,
@@ -1504,17 +1504,17 @@ class StateNode<
     const activityMap: ActivityMap = {};
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-    this.getStateNodes(stateValue).forEach(stateNode => {
+    for (const stateNode of this.getStateNodes(stateValue)) {
       if (stateNode.onEntry) {
         actions.push(...stateNode.onEntry);
       }
       if (stateNode.activities) {
-        stateNode.activities.forEach(activity => {
+        for (const activity of stateNode.activities) {
           activityMap[getEventType(activity)] = activity;
           actions.push(start(activity));
-        });
+        }
       }
-    });
+    }
 
     const assignActions = actions.filter(
       action => typeof action === 'object' && action.type === actionTypes.assign
@@ -1596,9 +1596,9 @@ class StateNode<
 
     const stateNodes: Array<StateNode<TContext>> = [];
 
-    keys(stateValue).forEach(key => {
+    for (const key of keys(stateValue)) {
       stateNodes.push(...this.states[key].getStates(stateValue[key]));
-    });
+    }
 
     return stateNodes;
   }
@@ -1793,14 +1793,14 @@ class StateNode<
     const events = new Set(this.ownEvents);
 
     if (states) {
-      keys(states).forEach(stateId => {
+      for (const stateId of keys(states)) {
         const state = states[stateId];
         if (state.states) {
           for (const event of state.events) {
             events.add(`${event}`);
           }
         }
-      });
+      }
     }
 
     return (this.__cache.events = Array.from(events));
@@ -1939,7 +1939,7 @@ class StateNode<
         }
 
         if (!IS_PRODUCTION) {
-          keys(value).forEach(key => {
+          for (const key of keys(value)) {
             if (
               ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
                 key
@@ -1951,7 +1951,7 @@ class StateNode<
                 }'.`
               );
             }
-          });
+          }
         }
 
         return [
@@ -1964,7 +1964,7 @@ class StateNode<
       }
     ) as TransitionsDefinition<TContext, TEvent>;
 
-    delayedTransitions.forEach(delayedTransition => {
+    for (const delayedTransition of delayedTransitions) {
       formattedTransitions[delayedTransition.event] =
         formattedTransitions[delayedTransition.event] || [];
       formattedTransitions[delayedTransition.event].push(
@@ -1973,7 +1973,7 @@ class StateNode<
           TEvent | EventObject
         >
       );
-    });
+    }
 
     return formattedTransitions;
   }

@@ -154,9 +154,11 @@ export function mapValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  keys(collection).forEach((key, i) => {
+  const collectionKeys = keys(collection);
+  for (let i = 0; i < collectionKeys.length; i++) {
+    const key = collectionKeys[i];
     result[key] = iteratee(collection[key], key, collection, i);
-  });
+  }
 
   return result;
 }
@@ -168,15 +170,15 @@ export function mapFilterValues<T, P>(
 ): { [key: string]: P } {
   const result = {};
 
-  keys(collection).forEach(key => {
+  for (const key of keys(collection)) {
     const item = collection[key];
 
     if (!predicate(item)) {
-      return;
+      continue;
     }
 
     result[key] = iteratee(item, key, collection);
-  });
+  }
 
   return result;
 }
@@ -397,14 +399,14 @@ export function updateContext<TContext, TEvent extends EventObject>(
         if (typeof assignment === 'function') {
           partialUpdate = assignment(acc, event || { type: ActionTypes.Init });
         } else {
-          keys(assignment).forEach(key => {
+          for (const key of keys(assignment)) {
             const propAssignment = assignment[key];
 
             partialUpdate[key] =
               typeof propAssignment === 'function'
                 ? propAssignment(acc, event)
                 : propAssignment;
-          });
+          }
         }
 
         return Object.assign({}, acc, partialUpdate);

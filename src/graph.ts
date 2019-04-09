@@ -100,20 +100,20 @@ export function getEdges<
   const edges: Array<Edge<TContext, TEvent>> = [];
 
   if (node.states && depth === null) {
-    keys(node.states).forEach(stateKey => {
+    for (const stateKey of keys(node.states)) {
       edges.push(...getEdges<TContext>(node.states[stateKey]));
-    });
+    }
   } else if (depth && depth > 0) {
-    keys(node.states).forEach(stateKey => {
+    for (const stateKey of keys(node.states)) {
       edges.push(
         ...getEdges<TContext>(node.states[stateKey], { depth: depth - 1 })
       );
-    });
+    }
   }
 
-  keys(node.on).forEach(event => {
+  for (const event of keys(node.on)) {
     edges.push(...getEventEdges<TContext>(node, event));
-  });
+  }
 
   return edges;
 }
@@ -232,9 +232,9 @@ export function getValueAdjacencyMap<
   } as ValueAdjMapOptions<TContext, TEvent>;
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
   const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
-  node.events.forEach(event => {
+  for (const event of node.events) {
     events[event] = [event];
-  });
+  }
   Object.assign(events, optionsWithDefaults.events);
 
   const adjacency: ValueAdjacencyMap<TContext, TEvent> = {};
@@ -409,9 +409,9 @@ export function getSimplePaths<
 
   const initialStateSerial = serializeState(machine.initialState);
 
-  keys(adjacency).forEach(nextStateSerial => {
+  for (const nextStateSerial of keys(adjacency)) {
     util(initialStateSerial, nextStateSerial);
-  });
+  }
 
   return paths;
 }
