@@ -530,10 +530,14 @@ describe('invoke', () => {
       type: 'PromiseLike',
       createPromise(executor: PromiseExecutor): PromiseLike<any> {
         // Simulate a Promise/A+ thenable / polyfilled Promise.
-        const promise = new Promise(executor);
-        return {
-          then: promise.then.bind(promise)
-        };
+        function createThenable(promise: Promise<any>): PromiseLike<any> {
+          return {
+            then(onfulfilled, onrejected) {
+              return createThenable(promise.then(onfulfilled, onrejected))
+            }
+          }
+        }
+        return createThenable(new Promise(executor));
       }
     }
   ];
