@@ -470,144 +470,137 @@ describe('invoke', () => {
     });
   });
 
-  describe('with promises', () => {
-    const invokePromiseMachine = Machine({
-      id: 'invokePromise',
-      initial: 'pending',
-      context: {
-        id: 42,
-        succeed: true
-      },
-      states: {
-        pending: {
-          invoke: {
-            src: ctx =>
-              new Promise(resolve => {
-                if (ctx.succeed) {
-                  resolve(ctx.id);
-                } else {
-                  throw new Error(`failed on purpose for: ${ctx.id}`);
-                }
-              }),
-            onDone: {
-              target: 'success',
-              cond: (ctx, e) => {
-                return e.data === ctx.id;
-              }
-            },
-            onError: 'failure'
-          }
-        },
-        success: {
-          type: 'final'
-        },
-        failure: {
-          type: 'final'
-        }
+  type PromiseExecutor = (
+    resolve: (value?: any) => void,
+    reject: (reason?: any) => void
+  ) => void;
+
+  const promiseTypes = [
+    {
+      type: 'Promise',
+      createPromise(executor: PromiseExecutor): Promise<any> {
+        return new Promise(executor);
       }
-    });
+    },
+    {
+      type: 'PromiseLike',
+      createPromise(executor: PromiseExecutor): PromiseLike<any> {
+        // Simulate a Promise/A+ thenable / polyfilled Promise.
+        const promise = new Promise(executor);
+        return {
+          then: promise.then.bind(promise)
+        };
+      }
+    }
+  ];
 
-    it('should be invoked with a promise factory and resolve through onDone', done => {
-      interpret(invokePromiseMachine)
-        .onDone(() => done())
-        .start();
-    });
-
-    it('should be invoked with a promise factory and reject with ErrorExecution', done => {
-      interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
-        .onDone(() => done())
-        .start();
-    });
-
-    it('should be invoked with a promise factory and ignore unhandled onError target', done => {
-      const promiseMachine = Machine({
+  promiseTypes.forEach(({ type, createPromise }) => {
+    describe(`with ${type}`, () => {
+      const invokePromiseMachine = Machine({
         id: 'invokePromise',
         initial: 'pending',
+        context: {
+          id: 42,
+          succeed: true
+        },
         states: {
           pending: {
             invoke: {
-              src: () =>
-                new Promise(() => {
-                  throw new Error('test');
+              src: ctx =>
+                createPromise(resolve => {
+                  if (ctx.succeed) {
+                    resolve(ctx.id);
+                  } else {
+                    throw new Error(`failed on purpose for: ${ctx.id}`);
+                  }
                 }),
-              onDone: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(promiseMachine)
-        .onDone(() => assert.fail('should not be called'))
-        .onStop(() => assert.fail('should not be called'))
-        .start();
-      // assumes that error was ignored before the timeout is processed
-      setTimeout(() => done(), 30);
-    });
-
-    it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
-      const promiseMachine = Machine({
-        id: 'invokePromise',
-        initial: 'pending',
-        strict: true,
-        states: {
-          pending: {
-            invoke: {
-              src: () =>
-                new Promise(() => {
-                  throw new Error('test');
-                }),
-              onDone: 'success'
-            }
-          },
-          success: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(promiseMachine)
-        .onDone(() => assert.fail('should not be called'))
-        .onStop(() => done())
-        .start();
-    });
-
-    it('should be invoked with a promise factory and resolve through onDone for compound state nodes', done => {
-      const promiseMachine = Machine({
-        id: 'promise',
-        initial: 'parent',
-        states: {
-          parent: {
-            initial: 'pending',
-            states: {
-              pending: {
-                invoke: {
-                  src: () => Promise.resolve(),
-                  onDone: 'success'
+              onDone: {
+                target: 'success',
+                cond: (ctx, e) => {
+                  return e.data === ctx.id;
                 }
               },
-              success: {
-                type: 'final'
-              }
-            },
-            onDone: 'success'
+              onError: 'failure'
+            }
           },
           success: {
+            type: 'final'
+          },
+          failure: {
             type: 'final'
           }
         }
       });
 
-      interpret(promiseMachine)
-        .onDone(() => done())
-        .start();
-    });
+      it('should be invoked with a promise factory and resolve through onDone', done => {
+        interpret(invokePromiseMachine)
+          .onDone(() => done())
+          .start();
+      });
 
-    it('should be invoked with a promise service and resolve through onDone for compound state nodes', done => {
-      const promiseMachine = Machine(
-        {
+      it('should be invoked with a promise factory and reject with ErrorExecution', done => {
+        interpret(invokePromiseMachine.withContext({ id: 31, succeed: false }))
+          .onDone(() => done())
+          .start();
+      });
+
+      it('should be invoked with a promise factory and ignore unhandled onError target', done => {
+        const promiseMachine = Machine({
+          id: 'invokePromise',
+          initial: 'pending',
+          states: {
+            pending: {
+              invoke: {
+                src: () =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  }),
+                onDone: 'success'
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+
+        interpret(promiseMachine)
+          .onDone(() => assert.fail('should not be called'))
+          .onStop(() => assert.fail('should not be called'))
+          .start();
+        // assumes that error was ignored before the timeout is processed
+        setTimeout(() => done(), 30);
+      });
+
+      it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
+        const promiseMachine = Machine({
+          id: 'invokePromise',
+          initial: 'pending',
+          strict: true,
+          states: {
+            pending: {
+              invoke: {
+                src: () =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  }),
+                onDone: 'success'
+              }
+            },
+            success: {
+              type: 'final'
+            }
+          }
+        });
+
+        interpret(promiseMachine)
+          .onDone(() => assert.fail('should not be called'))
+          .onStop(() => done())
+          .start();
+      });
+
+      it('should be invoked with a promise factory and resolve through onDone for compound state nodes', done => {
+        const promiseMachine = Machine({
           id: 'promise',
           initial: 'parent',
           states: {
@@ -616,7 +609,7 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: 'somePromise',
+                    src: () => createPromise(resolve => resolve()),
                     onDone: 'success'
                   }
                 },
@@ -630,58 +623,60 @@ describe('invoke', () => {
               type: 'final'
             }
           }
-        },
-        {
-          services: {
-            somePromise: () => Promise.resolve()
-          }
-        }
-      );
+        });
 
-      interpret(promiseMachine)
-        .onDone(() => done())
-        .start();
-    });
+        interpret(promiseMachine)
+          .onDone(() => done())
+          .start();
+      });
 
-    it('should assign the resolved data when invoked with a promise factory', done => {
-      const promiseMachine = Machine({
-        id: 'promise',
-        context: { count: 0 },
-        initial: 'pending',
-        states: {
-          pending: {
-            invoke: {
-              src: () => Promise.resolve({ count: 1 }),
-              onDone: {
-                target: 'success',
-                actions: assign({ count: (_, e) => e.data.count })
+      it('should be invoked with a promise service and resolve through onDone for compound state nodes', done => {
+        const promiseMachine = Machine(
+          {
+            id: 'promise',
+            initial: 'parent',
+            states: {
+              parent: {
+                initial: 'pending',
+                states: {
+                  pending: {
+                    invoke: {
+                      src: 'somePromise',
+                      onDone: 'success'
+                    }
+                  },
+                  success: {
+                    type: 'final'
+                  }
+                },
+                onDone: 'success'
+              },
+              success: {
+                type: 'final'
               }
             }
           },
-          success: {
-            type: 'final'
+          {
+            services: {
+              somePromise: () => createPromise(resolve => resolve())
+            }
           }
-        }
+        );
+
+        interpret(promiseMachine)
+          .onDone(() => done())
+          .start();
       });
 
-      const service = interpret(promiseMachine)
-        .onDone(() => {
-          assert.equal(service.state.context.count, 1);
-          done();
-        })
-        .start();
-    });
-
-    it('should assign the resolved data when invoked with a promise service', done => {
-      const promiseMachine = Machine(
-        {
+      it('should assign the resolved data when invoked with a promise factory', done => {
+        const promiseMachine = Machine({
           id: 'promise',
           context: { count: 0 },
           initial: 'pending',
           states: {
             pending: {
               invoke: {
-                src: 'somePromise',
+                src: () => createPromise(resolve => resolve({ count: 1 })),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -692,66 +687,63 @@ describe('invoke', () => {
               type: 'final'
             }
           }
-        },
-        {
-          services: {
-            somePromise: () => Promise.resolve({ count: 1 })
-          }
-        }
-      );
+        });
 
-      const service = interpret(promiseMachine)
-        .onDone(() => {
-          assert.equal(service.state.context.count, 1);
-          done();
-        })
-        .start();
-    });
+        const service = interpret(promiseMachine)
+          .onDone(() => {
+            assert.equal(service.state.context.count, 1);
+            done();
+          })
+          .start();
+      });
 
-    it('should provide the resolved data when invoked with a promise factory', done => {
-      let count = 0;
-
-      const promiseMachine = Machine({
-        id: 'promise',
-        context: { count: 0 },
-        initial: 'pending',
-        states: {
-          pending: {
-            invoke: {
-              src: () => Promise.resolve({ count: 1 }),
-              onDone: {
-                target: 'success',
-                actions: (_, e) => {
-                  count = e.data.count;
+      it('should assign the resolved data when invoked with a promise service', done => {
+        const promiseMachine = Machine(
+          {
+            id: 'promise',
+            context: { count: 0 },
+            initial: 'pending',
+            states: {
+              pending: {
+                invoke: {
+                  src: 'somePromise',
+                  onDone: {
+                    target: 'success',
+                    actions: assign({ count: (_, e) => e.data.count })
+                  }
                 }
+              },
+              success: {
+                type: 'final'
               }
             }
           },
-          success: {
-            type: 'final'
+          {
+            services: {
+              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
+            }
           }
-        }
+        );
+
+        const service = interpret(promiseMachine)
+          .onDone(() => {
+            assert.equal(service.state.context.count, 1);
+            done();
+          })
+          .start();
       });
 
-      interpret(promiseMachine)
-        .onDone(() => {
-          assert.equal(count, 1);
-          done();
-        })
-        .start();
-    });
+      it('should provide the resolved data when invoked with a promise factory', done => {
+        let count = 0;
 
-    it('should provide the resolved data when invoked with a promise service', done => {
-      let count = 0;
-
-      const promiseMachine = Machine(
-        {
+        const promiseMachine = Machine({
           id: 'promise',
+          context: { count: 0 },
           initial: 'pending',
           states: {
             pending: {
               invoke: {
-                src: 'somePromise',
+                src: () => createPromise(resolve => resolve({ count: 1 })),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -764,48 +756,32 @@ describe('invoke', () => {
               type: 'final'
             }
           }
-        },
-        {
-          services: {
-            somePromise: () => Promise.resolve({ count: 1 })
-          }
-        }
-      );
+        });
 
-      interpret(promiseMachine)
-        .onDone(() => {
-          assert.equal(count, 1);
-          done();
-        })
-        .start();
-    });
-
-    it('should work with invocations defined in orthogonal state nodes', done => {
-      const pongMachine = Machine({
-        id: 'pong',
-        initial: 'active',
-        states: {
-          active: {
-            type: 'final',
-            data: { secret: 'pingpong' }
-          }
-        }
+        interpret(promiseMachine)
+          .onDone(() => {
+            assert.equal(count, 1);
+            done();
+          })
+          .start();
       });
 
-      const pingMachine = Machine({
-        id: 'ping',
-        type: 'parallel',
-        states: {
-          one: {
-            initial: 'active',
+      it('should provide the resolved data when invoked with a promise service', done => {
+        let count = 0;
+
+        const promiseMachine = Machine(
+          {
+            id: 'promise',
+            initial: 'pending',
             states: {
-              active: {
+              pending: {
                 invoke: {
-                  id: 'pong',
-                  src: pongMachine,
+                  src: 'somePromise',
                   onDone: {
                     target: 'success',
-                    cond: (_, e) => e.data.secret === 'pingpong'
+                    actions: (_, e) => {
+                      count = e.data.count;
+                    }
                   }
                 }
               },
@@ -813,55 +789,107 @@ describe('invoke', () => {
                 type: 'final'
               }
             }
+          },
+          {
+            services: {
+              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
+            }
           }
-        }
+        );
+
+        interpret(promiseMachine)
+          .onDone(() => {
+            assert.equal(count, 1);
+            done();
+          })
+          .start();
       });
 
-      interpret(pingMachine)
-        .onDone(() => {
-          done();
-        })
-        .start();
-    });
-
-    it('should be able to specify a Promise as a service', done => {
-      const promiseMachine = Machine(
-        {
-          id: 'promise',
-          initial: 'pending',
-          context: { foo: true },
+      it('should work with invocations defined in orthogonal state nodes', done => {
+        const pongMachine = Machine({
+          id: 'pong',
+          initial: 'active',
           states: {
-            pending: {
-              on: { BEGIN: 'first' }
-            },
-            first: {
-              invoke: {
-                src: 'somePromise',
-                onDone: 'last'
+            active: {
+              type: 'final',
+              data: { secret: 'pingpong' }
+            }
+          }
+        });
+
+        const pingMachine = Machine({
+          id: 'ping',
+          type: 'parallel',
+          states: {
+            one: {
+              initial: 'active',
+              states: {
+                active: {
+                  invoke: {
+                    id: 'pong',
+                    src: pongMachine,
+                    onDone: {
+                      target: 'success',
+                      cond: (_, e) => e.data.secret === 'pingpong'
+                    }
+                  }
+                },
+                success: {
+                  type: 'final'
+                }
               }
-            },
-            last: {
-              type: 'final'
             }
           }
-        },
-        {
-          services: {
-            somePromise: (ctx, e) => {
-              return new Promise((res, rej) => {
-                ctx.foo && e.payload ? res() : rej();
-              });
-            }
-          }
-        }
-      );
+        });
 
-      interpret(promiseMachine)
-        .onDone(() => done())
-        .start()
-        .send({ type: 'BEGIN', payload: true });
+        interpret(pingMachine)
+          .onDone(() => {
+            done();
+          })
+          .start();
+      });
+
+      it('should be able to specify a Promise as a service', done => {
+        const promiseMachine = Machine(
+          {
+            id: 'promise',
+            initial: 'pending',
+            context: { foo: true },
+            states: {
+              pending: {
+                on: { BEGIN: 'first' }
+              },
+              first: {
+                invoke: {
+                  src: 'somePromise',
+                  onDone: 'last'
+                }
+              },
+              last: {
+                type: 'final'
+              }
+            }
+          },
+          {
+            services: {
+              somePromise: (ctx, e) => {
+                return createPromise((resolve, reject) => {
+                  ctx.foo && e.payload ? resolve() : reject();
+                });
+              }
+            }
+          }
+        );
+
+        interpret(promiseMachine)
+          .onDone(() => done())
+          .start()
+          .send({ type: 'BEGIN', payload: true });
+      });
     });
+  });
 
+  describe('with callbacks', () => {
     it('should be able to specify a callback as a service', done => {
       const callbackMachine = Machine(
         {
@@ -1039,9 +1067,7 @@ describe('invoke', () => {
         assert.equal(stateValues[i], expectedStateValues[i]);
       }
     });
-  });
 
-  describe('with callbacks', () => {
     it('should treat a callback source as an event stream', done => {
       interpret(intervalMachine)
         .onDone(() => done())
