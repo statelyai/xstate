@@ -93,7 +93,7 @@ Type error: Type 'string | number' does not satisfy the constraint 'string'.
   Type 'number' is not assignable to type 'string'.  TS2344
 ```
 
-Ensure that your tsconfig file can does not include `"keyofStringsOnly": true,`.
+Ensure that your tsconfig file does not include `"keyofStringsOnly": true,`.
 
 ## Config Objects
 
