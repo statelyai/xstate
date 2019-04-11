@@ -160,7 +160,7 @@ const wordMachine = Machine({
   on: {
     // internal transitions
     LEFT_CLICK: '.left',
-    RIGHT_CLICK: '.right',
+    RIGHT_CLICK: { target: '.right' }, // same as '.right'
     CENTER_CLICK: { target: '.center', internal: true }, // same as '.center'
     JUSTIFY_CLICK: { target: 'word.justify', internal: true } // same as '.justify'
   }
@@ -168,6 +168,39 @@ const wordMachine = Machine({
 ```
 
 The above machine will start in the `'left'` state (for reference, the full path and default ID is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+
+Transitions that have `{ target: undefined }` (or no `target`) are also internal transitions:
+
+```js {11-13}
+const buttonMachine = Machine({
+  id: 'button',
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: { PUSH: 'active' }
+    },
+    active: {
+      on: {
+        // No target - internal transition
+        PUSH: {
+          actions: 'logPushed'
+        }
+      }
+    }
+  }
+});
+```
+
+**Summary of internal transitions:**
+
+- `EVENT: '.foo'` - internal transition to child
+- `EVENT: { target: '.foo' }` - internal transition to child (starts with `'.'`)
+- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to child
+  - This would otherwise be an external transition
+- `EVENT: undefined` - forbidden transition
+- `EVENT: { actions: [ ... ] }` - internal self-transition
+- `EVENT: { actions: [ ... ], internal: true }` - internal self-transition, same as above
+- `EVENT: { target: undefined, actions: [ ... ] }` - internal self-transition, same as above
 
 ## External Transitions
 
@@ -188,6 +221,16 @@ on: {
 ```
 
 Every transition above is explicit and will have its `onExit` and `onEntry` actions of the parent state executed.
+
+**Summary of external transitions:**
+
+- `{ EVENT: 'foo' }` - all transitions to siblings are external transitions
+- `{ EVENT: '#someTarget' }` - all transitions to other nodes are external transitions
+- `{ EVENT: 'same.foo' }` - external transition to child node with reference to self (parent node)
+- `{ EVENT: '.foo', internal: false }` - external transition to child node
+  - This would otherwise be an internal transition
+- `{ actions: [ ... ], internal: false }` - external self-transition
+- `{ target: undefined, actions: [ ... ], internal: false }` - external self-transition, same as above
 
 ## Transient Transitions
 
