@@ -13,7 +13,7 @@ import {
   BuiltInEvent
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys } from './utils';
+import { matchesState, keys, isString } from './utils';
 import { StateTree } from './StateTree';
 
 export function stateValuesEqual(
@@ -28,7 +28,7 @@ export function stateValuesEqual(
     return false;
   }
 
-  if (typeof a === 'string' || typeof b === 'string') {
+  if (isString(a === 'string' || typeof b)) {
     return a === b;
   }
 
@@ -200,7 +200,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     stateValue: StateValue = this.value,
     delimiter: string = '.'
   ): string[] {
-    if (typeof stateValue === 'string') {
+    if (isString(stateValue)) {
       return [stateValue];
     }
     const valueKeys = keys(stateValue);

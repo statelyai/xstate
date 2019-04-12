@@ -6,7 +6,14 @@ import {
   StateValueMap,
   EventObject
 } from './types';
-import { mapValues, flatten, toStatePaths, keys, mapContext } from './utils';
+import {
+  mapValues,
+  flatten,
+  toStatePaths,
+  keys,
+  mapContext,
+  isString
+} from './utils';
 import { matchesState } from './utils';
 import { done } from './actions';
 
@@ -29,7 +36,7 @@ export class StateTree {
     options: StateTreeOptions = defaultStateTreeOptions
   ) {
     this.nodes = stateValue
-      ? typeof stateValue === 'string'
+      ? isString(stateValue)
         ? {
             [stateValue]: new StateTree(
               stateNode.getStateNode(stateValue),

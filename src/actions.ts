@@ -25,7 +25,7 @@ import {
   OmniEventObject
 } from './types';
 import * as actionTypes from './actionTypes';
-import { getEventType } from './utils';
+import { getEventType, isFunction, isString } from './utils';
 import { isArray } from './utils';
 
 export { actionTypes };
@@ -39,7 +39,7 @@ export function toEventObject<TEvent extends EventObject>(
   payload?: Record<string, any> & { type?: never }
   // id?: TEvent['type']
 ): TEvent {
-  if (typeof event === 'string' || typeof event === 'number') {
+  if (isString(event) || typeof event === 'number') {
     const eventObject = { type: event };
 
     if (payload) {
@@ -68,7 +68,7 @@ function getActionFunction<TContext, TEvent extends EventObject>(
     return undefined;
   }
 
-  if (typeof actionReference === 'function') {
+  if (isFunction(actionReference)) {
     return actionReference;
   }
 
@@ -81,9 +81,9 @@ export function toActionObject<TContext, TEvent extends EventObject>(
 ): ActionObject<TContext, TEvent> {
   let actionObject: ActionObject<TContext, TEvent>;
 
-  if (typeof action === 'string' || typeof action === 'number') {
+  if (isString(action) || typeof action === 'number') {
     const exec = getActionFunction(action, actionFunctionMap);
-    if (typeof exec === 'function') {
+    if (isFunction(exec)) {
       actionObject = {
         type: action,
         exec
@@ -93,7 +93,7 @@ export function toActionObject<TContext, TEvent extends EventObject>(
     } else {
       actionObject = { type: action, exec: undefined };
     }
-  } else if (typeof action === 'function') {
+  } else if (isFunction(action)) {
     actionObject = {
       // Convert action to string if unnamed
       type: action.name || action.toString(),
@@ -101,7 +101,7 @@ export function toActionObject<TContext, TEvent extends EventObject>(
     };
   } else {
     const exec = getActionFunction(action.type, actionFunctionMap);
-    if (typeof exec === 'function') {
+    if (isFunction(exec)) {
       actionObject = {
         ...action,
         exec
@@ -134,7 +134,7 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
   const actionObject = toActionObject(action);
 
   return {
-    id: typeof action === 'string' ? action : actionObject.id,
+    id: isString(action) ? action : actionObject.id,
     ...actionObject,
     type: actionObject.type
   };
@@ -187,12 +187,12 @@ export function send<TContext, TEvent extends EventObject>(
   return {
     to: options ? options.to : undefined,
     type: actionTypes.send,
-    event: typeof event === 'function' ? event : toEventObject<TEvent>(event),
+    event: isFunction(event) ? event : toEventObject<TEvent>(event),
     delay: options ? options.delay : undefined,
     id:
       options && options.id !== undefined
         ? options.id
-        : typeof event === 'function'
+        : isFunction(event)
         ? event.name
         : (getEventType<TEvent>(event) as string)
   };
@@ -204,14 +204,12 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   event: TEvent
 ): SendActionObject<TContext, OmniEventObject<TEvent>> {
   // TODO: helper function for resolving Expr
-  const resolvedEvent =
-    typeof action.event === 'function'
-      ? toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
-      : toEventObject(action.event);
-  const resolvedDelay =
-    typeof action.delay === 'function'
-      ? action.delay(ctx, event)
-      : action.delay;
+  const resolvedEvent = isFunction(action.event)
+    ? toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
+    : toEventObject(action.event);
+  const resolvedDelay = isFunction(action.delay)
+    ? action.delay(ctx, event)
+    : action.delay;
 
   return {
     ...action,

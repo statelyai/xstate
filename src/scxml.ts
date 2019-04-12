@@ -2,7 +2,7 @@ import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
 import { EventObject, ActionObject } from './types';
 // import * as xstate from './index';
 import { StateNode, Machine } from './index';
-import { mapValues, getActionType, keys } from './utils';
+import { mapValues, getActionType, keys, isString } from './utils';
 import * as actions from './actions';
 
 function getAttribute(
@@ -142,8 +142,9 @@ function indexedRecord<T extends {}>(
 ): Record<string, T> {
   const record: Record<string, T> = {};
 
-  const identifierFn =
-    typeof identifier === 'string' ? item => item[identifier] : identifier;
+  const identifierFn = isString(identifier)
+    ? item => item[identifier]
+    : identifier;
 
   items.forEach(item => {
     const key = identifierFn(item);
@@ -160,8 +161,9 @@ function indexedAggregateRecord<T extends {}>(
 ): Record<string, T[]> {
   const record: Record<string, T[]> = {};
 
-  const identifierFn =
-    typeof identifier === 'string' ? item => item[identifier] : identifier;
+  const identifierFn = isString(identifier)
+    ? item => item[identifier]
+    : identifier;
 
   items.forEach(item => {
     const key = identifierFn(item);

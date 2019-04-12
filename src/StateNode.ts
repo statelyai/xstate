@@ -16,7 +16,9 @@ import {
   updateHistoryValue,
   updateContext,
   warn,
-  isArray
+  isArray,
+  isFunction,
+  isString
 } from './utils';
 import {
   Event,
@@ -448,7 +450,7 @@ class StateNode<
         const { delay } = delayedTransition;
         let delayRef: string | number;
 
-        if (typeof delay === 'function') {
+        if (isFunction(delay)) {
           delayRef = `${this.id}:delay[${i}]`;
           this.options.delays[delayRef] = delay; // TODO: util function
         } else {
@@ -488,7 +490,7 @@ class StateNode<
         this.onEntry.push(send(event, { delay }));
         this.onExit.push(cancel(event));
 
-        if (typeof delayedTransition === 'string') {
+        if (isString(delayedTransition)) {
           return [{ target: delayedTransition, delay, event, actions: [] }];
         }
 
@@ -507,7 +509,7 @@ class StateNode<
     );
 
     allDelayedTransitions.sort((a, b) =>
-      typeof a === 'string' || typeof b === 'string' ? 0 : +a.delay - +b.delay
+      isString(a) || isString(b) ? 0 : +a.delay - +b.delay
     );
 
     return allDelayedTransitions;
@@ -529,7 +531,7 @@ class StateNode<
         ? state.value
         : toStateValue(state, this.delimiter);
 
-    if (typeof stateValue === 'string') {
+    if (isString(stateValue)) {
       const initialStateValue = this.getStateNode(stateValue).initial;
 
       return initialStateValue !== undefined
@@ -764,7 +766,7 @@ class StateNode<
     event: OmniEventObject<TEvent>
   ): StateTransition<TContext, TEvent> {
     // leaf node
-    if (typeof stateValue === 'string') {
+    if (isString(stateValue)) {
       return this.transitionLeafNode(stateValue, state, event);
     }
 
@@ -805,7 +807,7 @@ class StateNode<
       const resolvedContext = state.context;
 
       const isInState = stateIn
-        ? typeof stateIn === 'string' && isStateId(stateIn)
+        ? isString(stateIn) && isStateId(stateIn)
           ? // Check if in state by ID
             state.matches(
               toStateValue(this.getStateNodeById(stateIn).path, this.delimiter)
@@ -967,13 +969,13 @@ class StateNode<
   private toGuard(
     condition: Condition<TContext, TEvent>
   ): Guard<TContext, TEvent> {
-    if (typeof condition === 'string') {
+    if (isString(condition)) {
       return {
         type: condition
       };
     }
 
-    if (typeof condition === 'function') {
+    if (isFunction(condition)) {
       return {
         type: 'xstate.cond',
         predicate: condition
@@ -1052,10 +1054,9 @@ class StateNode<
           ? state
           : this.resolveState(State.from(state, context));
     } else {
-      const resolvedStateValue =
-        typeof state === 'string'
-          ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
-          : this.resolve(state);
+      const resolvedStateValue = isString(state)
+        ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
+        : this.resolve(state);
       const resolvedContext = context ? context : this.machine.context!;
 
       currentState = this.resolveState(
@@ -1156,7 +1157,7 @@ class StateNode<
           eventObject || { type: ActionTypes.Init }
         ); // TODO: fix ActionTypes.Init
 
-        if (typeof sendAction.delay === 'string') {
+        if (isString(sendAction.delay)) {
           if (
             !this.machine.options.delays ||
             this.machine.options.delays[sendAction.delay] === undefined
@@ -1410,7 +1411,7 @@ class StateNode<
         );
 
       case 'compound':
-        if (typeof stateValue === 'string') {
+        if (isString(stateValue)) {
           const subStateNode = this.getStateNode(stateValue);
 
           if (
@@ -1489,7 +1490,7 @@ class StateNode<
           state => state.initialStateValue || EMPTY_OBJECT,
           stateNode => !(stateNode.type === 'history')
         )
-      : typeof this.resolvedStateValue === 'string'
+      : isString(this.resolvedStateValue)
       ? undefined
       : this.resolvedStateValue[this.key]) as StateValue;
 
@@ -1574,7 +1575,7 @@ class StateNode<
         TContext,
         TEvent
       >;
-      if (historyConfig.target && typeof historyConfig.target === 'string') {
+      if (historyConfig.target && isString(historyConfig.target)) {
         target = isStateId(historyConfig.target)
           ? pathToStateValue(
               this.machine
@@ -1591,7 +1592,7 @@ class StateNode<
   }
 
   public getStates(stateValue: StateValue): Array<StateNode<TContext>> {
-    if (typeof stateValue === 'string') {
+    if (isString(stateValue)) {
       return [this.states[stateValue]];
     }
 
@@ -1616,7 +1617,7 @@ class StateNode<
     historyValue?: HistoryValue,
     resolve: boolean = true
   ): Array<StateNode<TContext>> {
-    if (typeof relativeStateId === 'string' && isStateId(relativeStateId)) {
+    if (isString(relativeStateId) && isStateId(relativeStateId)) {
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
       return resolve
@@ -1716,10 +1717,9 @@ class StateNode<
             return stateNode.historyValue();
           }
 
-          const subStateValue =
-            typeof relativeStateValue === 'string'
-              ? undefined
-              : relativeStateValue[key];
+          const subStateValue = isString(relativeStateValue)
+            ? undefined
+            : relativeStateValue[key];
 
           return stateNode.historyValue(
             subStateValue || stateNode.initialStateValue
@@ -1758,7 +1758,7 @@ class StateNode<
       historyValue
     ).current;
 
-    if (typeof subHistoryValue === 'string') {
+    if (isString(subHistoryValue)) {
       return [parent.getStateNode(subHistoryValue)];
     }
 
@@ -1865,7 +1865,7 @@ class StateNode<
       }
 
       const isInternalTarget =
-        typeof _target === 'string' && _target[0] === this.delimiter;
+        isString(_target) && _target[0] === this.delimiter;
       internal = internal === undefined ? isInternalTarget : internal;
 
       // If internal target is defined on machine,
@@ -1935,7 +1935,7 @@ class StateNode<
           );
         }
 
-        if (typeof value === 'string' || value instanceof StateNode) {
+        if (isString(value) || value instanceof StateNode) {
           return [this.formatTransition([value], undefined, event)];
         }
 

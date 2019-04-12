@@ -33,7 +33,9 @@ import {
   bindActionToState,
   warn,
   keys,
-  isArray
+  isArray,
+  isFunction,
+  isString
 } from './utils';
 import { Scheduler } from './scheduler';
 
@@ -394,7 +396,7 @@ export class Interpreter<
 
     // Stop all children
     this.children.forEach(child => {
-      if (typeof child.stop === 'function') {
+      if (isFunction(child.stop)) {
         child.stop();
       }
     });
@@ -577,7 +579,7 @@ export class Interpreter<
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
     let { delay } = sendAction;
 
-    if (typeof delay === 'string') {
+    if (isString(delay)) {
       if (
         !this.machine.options.delays ||
         this.machine.options.delays[delay] === undefined
@@ -675,14 +677,13 @@ export class Interpreter<
             return;
           }
 
-          const source =
-            typeof serviceCreator === 'function'
-              ? serviceCreator(context, event)
-              : serviceCreator;
+          const source = isFunction(serviceCreator)
+            ? serviceCreator(context, event)
+            : serviceCreator;
 
           if (isPromiseLike(source)) {
             this.spawnPromise(id, Promise.resolve(source));
-          } else if (typeof source === 'function') {
+          } else if (isFunction(source)) {
             this.spawnCallback(id, source);
           } else if (typeof source !== 'string') {
             // TODO: try/catch here
@@ -728,7 +729,7 @@ export class Interpreter<
   }
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
-    if (child && typeof child.stop === 'function') {
+    if (child && isFunction(child.stop)) {
       child.stop();
       this.children.delete(childId);
       this.forwardTo.delete(childId);

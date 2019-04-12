@@ -19,7 +19,7 @@ import { State } from './State';
 import { IS_PRODUCTION } from './StateNode';
 
 function isState(state: object | string): state is StateInterface {
-  if (typeof state === 'string') {
+  if (isString(state)) {
     return false;
   }
 
@@ -38,8 +38,8 @@ export function matchesState(
   const parentStateValue = toStateValue(parentStateId, delimiter);
   const childStateValue = toStateValue(childStateId, delimiter);
 
-  if (typeof childStateValue === 'string') {
-    if (typeof parentStateValue === 'string') {
+  if (isString(childStateValue)) {
+    if (isString(parentStateValue)) {
       return childStateValue === parentStateValue;
     }
 
@@ -47,7 +47,7 @@ export function matchesState(
     return false;
   }
 
-  if (typeof parentStateValue === 'string') {
+  if (isString(parentStateValue)) {
     return parentStateValue in childStateValue;
   }
 
@@ -64,7 +64,7 @@ export function getEventType<TEvent extends EventObject = EventObject>(
   event: Event<TEvent>
 ): TEvent['type'] {
   try {
-    return typeof event === 'string' || typeof event === 'number'
+    return isString(event) || typeof event === 'number'
       ? `${event}`
       : (event as TEvent).type;
   } catch (e) {
@@ -75,9 +75,9 @@ export function getEventType<TEvent extends EventObject = EventObject>(
 }
 export function getActionType(action: Action<any, any>): ActionType {
   try {
-    return typeof action === 'string' || typeof action === 'number'
+    return isString(action) || typeof action === 'number'
       ? `${action}`
-      : typeof action === 'function'
+      : isFunction(action)
       ? action.name
       : action.type;
   } catch (e) {
@@ -225,7 +225,7 @@ export const toStatePaths = (
     return [[]];
   }
 
-  if (typeof stateValue === 'string') {
+  if (isString(stateValue)) {
     return [[stateValue]];
   }
 
@@ -293,7 +293,7 @@ export function mapContext<TContext, TEvent extends EventObject>(
   context: TContext,
   event: TEvent
 ): any {
-  if (typeof mapper === 'function') {
+  if (isFunction(mapper)) {
     return (mapper as Mapper<TContext, TEvent>)(context, event);
   }
 
@@ -302,7 +302,7 @@ export function mapContext<TContext, TEvent extends EventObject>(
   for (const key of keys(mapper)) {
     const subMapper = mapper[key];
 
-    if (typeof subMapper === 'function') {
+    if (isFunction(subMapper)) {
       result[key] = subMapper(context, event);
     } else {
       result[key] = subMapper;
@@ -339,8 +339,8 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   // Check if shape matches the Promise/A+ specification for a "thenable".
   if (
     value !== null &&
-    (typeof value === 'function' || typeof value === 'object') &&
-    typeof value.then === 'function'
+    (isFunction(value) || typeof value === 'object') &&
+    isFunction(value.then)
   ) {
     return true;
   }
@@ -373,7 +373,7 @@ export function updateHistoryStates(
       return undefined;
     }
     const subStateValue =
-      (typeof stateValue === 'string' ? undefined : stateValue[key]) ||
+      (isString(stateValue) ? undefined : stateValue[key]) ||
       (subHist ? subHist.current : undefined);
 
     if (!subStateValue) {
@@ -411,16 +411,15 @@ export function updateContext<TContext, TEvent extends EventObject>(
 
         let partialUpdate: Partial<TContext> = {};
 
-        if (typeof assignment === 'function') {
+        if (isFunction(assignment)) {
           partialUpdate = assignment(acc, event || { type: ActionTypes.Init });
         } else {
           for (const key of keys(assignment)) {
             const propAssignment = assignment[key];
 
-            partialUpdate[key] =
-              typeof propAssignment === 'function'
-                ? propAssignment(acc, event)
-                : propAssignment;
+            partialUpdate[key] = isFunction(propAssignment)
+              ? propAssignment(acc, event)
+              : propAssignment;
           }
         }
 
@@ -476,4 +475,13 @@ export { warn };
 
 export function isArray(value: any): value is any[] {
   return Array.isArray(value);
+}
+
+// tslint:disable-next-line:ban-types
+export function isFunction(value: any): value is Function {
+  return typeof value === 'function';
+}
+
+export function isString(value: any): value is string {
+  return typeof value === 'string';
 }
