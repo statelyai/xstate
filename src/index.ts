@@ -15,7 +15,7 @@ import {
   after,
   done
 } from './actions';
-import { interpret } from './interpreter';
+import { interpret, Interpreter } from './interpreter';
 import { matchState } from './match';
 
 const actions = {
@@ -42,6 +42,7 @@ export {
   send,
   sendParent,
   interpret,
+  Interpreter, 
   matchState
 };
 
