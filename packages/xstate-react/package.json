@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "0.2.0",
+  "version": "0.2.1",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -29,7 +29,7 @@
   },
   "scripts": {
     "test": "jest",
-    "prepublish": "tsc"
+    "prepublish": "tsc && npm run test"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
