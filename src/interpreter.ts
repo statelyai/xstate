@@ -32,7 +32,8 @@ import {
   mapContext,
   bindActionToState,
   warn,
-  keys
+  keys,
+  isArray
 } from './utils';
 import { Scheduler } from './scheduler';
 
@@ -420,7 +421,7 @@ export class Interpreter<
     event: SingleOrArray<OmniEvent<TEvent>>,
     payload?: Record<string, any> & { type?: never }
   ): State<TContext, TEvent> => {
-    if (Array.isArray(event)) {
+    if (isArray(event)) {
       this.batch(event);
       return this.state;
     }

@@ -3,7 +3,7 @@ import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
 
-const createConfig = ({ input, output, target }) => ({
+const createConfig = ({ input, output, target = undefined }) => ({
   input,
   output,
   plugins: [
@@ -20,7 +20,7 @@ const createConfig = ({ input, output, target }) => ({
       }
     }),
     terser({
-      toplevel: true,
+      toplevel: true
     }),
     fileSize()
   ]

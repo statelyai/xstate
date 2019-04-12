@@ -92,7 +92,7 @@ export function toStatePath(
   delimiter: string
 ): string[] {
   try {
-    if (Array.isArray(stateId)) {
+    if (isArray(stateId)) {
       return stateId;
     }
 
@@ -110,7 +110,7 @@ export function toStateValue(
     return stateValue.value;
   }
 
-  if (Array.isArray(stateValue)) {
+  if (isArray(stateValue)) {
     return pathToStateValue(stateValue);
   }
 
@@ -279,7 +279,7 @@ export function flatten<T>(array: T[][]): T[] {
 }
 
 export function toArray<T>(value: T[] | T | undefined): T[] {
-  if (Array.isArray(value)) {
+  if (isArray(value)) {
     return value;
   }
   if (value === undefined) {
@@ -473,3 +473,7 @@ if (!IS_PRODUCTION) {
 }
 
 export { warn };
+
+export function isArray(value: any): value is any[] {
+  return Array.isArray(value);
+}

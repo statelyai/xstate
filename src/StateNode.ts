@@ -15,7 +15,8 @@ import {
   partition,
   updateHistoryValue,
   updateContext,
-  warn
+  warn,
+  isArray
 } from './utils';
 import {
   Event,
@@ -442,7 +443,7 @@ class StateNode<
       return [];
     }
 
-    if (Array.isArray(afterConfig)) {
+    if (isArray(afterConfig)) {
       return afterConfig.map((delayedTransition, i) => {
         const { delay } = delayedTransition;
         let delayRef: string | number;
@@ -1924,7 +1925,7 @@ class StateNode<
           return [{ target: undefined, event, actions: [], internal: true }];
         }
 
-        if (Array.isArray(value)) {
+        if (isArray(value)) {
           return value.map(targetTransitionConfig =>
             this.formatTransition(
               targetTransitionConfig.target,

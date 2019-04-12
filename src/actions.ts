@@ -26,6 +26,7 @@ import {
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType } from './utils';
+import { isArray } from './utils';
 
 export { actionTypes };
 
@@ -149,7 +150,7 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
     return [];
   }
 
-  const actions = Array.isArray(action) ? action : [action];
+  const actions = isArray(action) ? action : [action];
 
   return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
