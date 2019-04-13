@@ -65,13 +65,45 @@ service.send('CLICK', { x: 40, y: 21 });
 - As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
   - The event object must have a `type: ...` string property.
 - As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`) <Badge text="4.5+"/>
-  - The string represents the event type.
+  - The first string argument represents the event type.
   - The second argument must be an object without a `type: ...` property.
 
 ::: warning
 If the service is not initialized (that is, if `service.start()` wasn't called yet), events will be **deferred** until the service is started. This means that the events won't be processed until `service.start()` is called, and then they will all be sequentially processed.
 
 This behavior can be changed by setting `{ deferEvents: false }` in the [service options](#options). When `deferEvents` is `false`, sending an event to an uninitialized service will throw an error.
+:::
+
+## Batched Events
+
+Multiple events can be sent as a group, or "batch", to a running service by calling `service.send(events)` with an array of events:
+
+```js
+service.send([
+  // String events
+  'CLICK',
+  'CLICK',
+  'ANOTHER_EVENT',
+  // Event objects
+  { type: 'CLICK', x: 40, y: 21 },
+  { type: 'KEYDOWN', key: 'Escape' }
+]);
+```
+
+This will immediately schedule all batched events to be processed sequentially. Since each event causes a state transition that might have actions to execute, actions in intermediate states are deferred until all events are processed, and then they are executed with the state they were created in (not the end state).
+
+This means that the end state (after all events are processed) will have an `.actions` array of _all_ of the accumulated actions from the intermediate states. Each of these actions will be bound to their respective intermediate states.
+
+::: warning
+
+Only one state -- the **end state** (i.e., the resulting state after all events are processed) -- will be sent to the `.onTransition(...)` listener(s). This makes batched events an optimized approach for performance.
+
+:::
+
+::: tip
+
+Batched events are useful for [event sourcing](https://martinfowler.com/eaaDev/EventSourcing.html) approaches. A log of events can be stored and later replayed by sending the batched events to a service to arrive at the same state.
+
 :::
 
 ## Transitions
