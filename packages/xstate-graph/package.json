@@ -29,7 +29,7 @@
   },
   "dependencies": {
     "immer": "^2.1.5",
-    "xstate": "^4.4.0"
+    "xstate": "^4.5.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.3.3",

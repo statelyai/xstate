@@ -38,7 +38,7 @@
     "react": "^16.8.0"
   },
   "dependencies": {
-    "xstate": "^4.4.0"
+    "xstate": "^4.5.0"
   },
   "devDependencies": {
     "@babel/preset-typescript": "^7.3.3",
