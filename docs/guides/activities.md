@@ -157,7 +157,7 @@ green.actions;
 
 ## Interpretation
 
-(since 4.0) In the machine options, the "start" and "stop" behavior of the activity can be defined in the `activities` property. This is done by:
+In the machine options, the "start" and "stop" behavior of the activity can be defined in the `activities` property. This is done by:
 
 - Passing in a function that **starts** the activity (as a side-effect)
 - From that function, returning another function that **stops** the activity (also as a side-effect).

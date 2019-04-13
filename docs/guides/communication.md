@@ -148,9 +148,9 @@ If the `onError` transition is missing and the Promise is rejected, the error wi
 
 :::
 
-## Invoking Callbacks
+## Invoking Callbacks <Badge text="4.2+"/>
 
-(since 4.2) Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
+Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
 
 - `callback` - called with the event to be sent
 - `onEvent` - called with a listener that [listens to events from the parent](#listening-to-parent-events)

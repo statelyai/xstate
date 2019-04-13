@@ -98,7 +98,7 @@ The `exec` function takes three arguments:
 
 - `context` - the current machine context
 - `event` - the event that caused the transition
-- `actionMeta` - (since 4.4) an object containing meta data about the action, including:
+- `actionMeta` <Badge text="4.4+"/> - an object containing meta data about the action, including:
   - `action` - the original action object
   - `state` - the resolved machine state, after transition
 

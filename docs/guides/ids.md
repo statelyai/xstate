@@ -88,9 +88,9 @@ const lightMachine = Machine({
 - IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.
 
-## Avoiding strings
+## Avoiding strings <Badge text="4.2+"/>
 
-Not a fan of using strings for identifying states? You can use [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) to directly reference the target state (since version 4.2):
+Not a fan of using strings for identifying states? You can use [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) to directly reference the target state:
 
 ```js
 const lightMachine = Machine({

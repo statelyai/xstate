@@ -94,9 +94,7 @@ states: {
 // ...
 ```
 
-### Delay Expressions on Transitions
-
-(since 4.4)
+### Delay Expressions on Transitions <Badge text="4.4+" />
 
 Delayed transitions specified on the `after: { ... }` property can have dynamic delays, specified either by a string delay reference:
 
@@ -211,9 +209,7 @@ const toggleMachine = Machine({
 // if the CANCEL event is sent before 1 second, the TIMER event will be canceled.
 ```
 
-## Delay Expressions
-
-(since 4.3)
+## Delay Expressions <Badge text="4.3+" />
 
 The `delay` option can also be evaluated as a delay expression, which is a function that takes in the current `context` and `event` that triggered the `send()` action, and returns the resolved `delay` (in milliseconds):
 

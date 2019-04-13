@@ -96,7 +96,7 @@ Guards can (and should) be serialized as a string or an object with the `{ type:
 
 - `context` - the current machine context
 - `event` - the event that triggered the (potential) transition
-- `guardMeta` - (since 4.4) an object containing meta data about the guard and transition, including:
+- `guardMeta` <Badge text="4.4+" /> - an object containing meta data about the guard and transition, including:
   - `cond` - the original `cond` object
   - `state` - the current machine state, before transition
 
@@ -130,9 +130,7 @@ const searchMachine = Machine(
 );
 ```
 
-## Custom Guards
-
-(since 4.4)
+## Custom Guards <Badge text="4.4+"/>
 
 Sometimes, it is preferable to not only serialize state transitions in JSON, but guard logic as well. This is where serializing guards as objects is helpful, as objects may contain relevant data:
 

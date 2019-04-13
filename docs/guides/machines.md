@@ -1,4 +1,4 @@
-# Machines (Statecharts)
+# Machines
 
 A **state machine** is a finite set of [states](./statenodes.md) that can transition to each other deterministically due to events. A **statechart** is an extension of state machines; mainly, they can have:
 

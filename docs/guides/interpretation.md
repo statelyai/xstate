@@ -9,9 +9,9 @@ While a state machine/statechart with a pure `.transition()` function is useful 
 
 The **interpreter** is responsible for _interpreting_ the state machine/statechart and doing all of the above - that is, parsing and executing it in a runtime environment. An interpreted, running instance of a statechart is called a **service**.
 
-## Interpreter
+## Interpreter <Badge text="4.0+" />
 
-Since version 4.0, XState provides an (optional) interpreter that you can use to run your statecharts. The interpreter handles:
+An optional interpreter is provided that you can use to run your statecharts. The interpreter handles:
 
 - State transitions
 - Executing actions (side-effects)
@@ -64,10 +64,9 @@ service.send('CLICK', { x: 40, y: 21 });
   - The string represents the event type.
 - As an event object (e.g., `.send({ type: 'CLICK', x: 40, y: 21 })`)
   - The event object must have a `type: ...` string property.
-- As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`)
+- As a string followed by an object payload (e.g., `.send('CLICK', { x: 40, y: 21 })`) <Badge text="4.5+"/>
   - The string represents the event type.
   - The second argument must be an object without a `type: ...` property.
-  - Since 4.5
 
 ::: warning
 If the service is not initialized (that is, if `service.start()` wasn't called yet), events will be **deferred** until the service is started. This means that the events won't be processed until `service.start()` is called, and then they will all be sequentially processed.
@@ -142,9 +141,8 @@ The following options can be passed into the interpreter as the 2nd argument (`i
 
 - `execute` (boolean) - Signifies whether state actions should be executed upon transition. Defaults to `true`.
   - See [Executing Actions](#executing-actions) for customizing this behavior.
-- `deferEvents` (boolean) - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
+- `deferEvents` (boolean) <Badge text="4.4+"/> - Signifies whether events sent to an uninitialized service (i.e., prior to calling `service.start()`) should be deferred until the service is initialized. Defaults to `true`.
   - If `false`, events sent to an uninitialized service will throw an error.
-  - Since 4.4
 - `devTools` (boolean) - Signifies whether events should be sent to the [Redux DevTools extension](https://github.com/zalmoxisus/redux-devtools-extension). Defaults to `false`.
 - `logger` - Specifies the logger to be used for `log(...)` actions. Defaults to the native `console.log` method.
 
@@ -197,7 +195,7 @@ send('SOME_EVENT');
 
 ## Notes
 
-- The `interpret` function is exported directly from `xstate` since 4.3.0 (i.e., `import { interpret } from 'xstate'`). For prior versions, it is imported from `'xstate/lib/interpreter'`.
+- The `interpret` function is exported directly from `xstate` since 4.3+ (i.e., `import { interpret } from 'xstate'`). For prior versions, it is imported from `'xstate/lib/interpreter'`.
 - Most interpreter methods can be chained:
 
 ```js
