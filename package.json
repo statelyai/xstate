@@ -40,7 +40,8 @@
     "publish:next": "npm version prerelease && npm publish --tag next",
     "typedoc": "typedoc src/index.ts --excludePrivate --mode file --out ./api --target es6",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
-    "docs:dev": "vuepress dev docs",
+    "docs:dev": "npm run docs:packages && vuepress dev docs",
+    "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md",
     "docs:build": "vuepress build docs",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
   },
@@ -63,6 +64,7 @@
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
     "chai": "^4.2.0",
+    "cpy-cli": "^2.0.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna": "^3.13.1",

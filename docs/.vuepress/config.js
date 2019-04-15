@@ -18,6 +18,10 @@ module.exports = {
     docsDir: 'docs',
     editLinks: true,
     logo: '/logo.svg',
+    algolia: {
+      apiKey: 'ddd397151aad9f0662ca36e5b39fed61',
+      indexName: 'xstatejs'
+    },
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
       { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
@@ -58,6 +62,14 @@ module.exports = {
       {
         title: 'Recipes',
         children: ['/recipes/react', '/recipes/vue', '/recipes/rxjs']
+      },
+      {
+        title: 'Packages',
+        children: [
+          'packages/xstate-react/',
+          'packages/xstate-graph/',
+          'packages/xstate-immer/'
+        ]
       },
       {
         title: 'Patterns',
