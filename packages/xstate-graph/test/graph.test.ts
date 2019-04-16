@@ -1,12 +1,13 @@
 import { assert } from 'chai';
 import { Machine, StateNode } from 'xstate';
-import { getNodes, getAdjacencyMap, getSimplePaths } from '../src/index';
 import {
+  getNodes,
   getEdges,
-  getSimplePathsAsArray,
-  ValueAdjacency,
-  getShortestPaths
-} from '../src/graph';
+  adjacencyMap,
+  simplePaths,
+  shortestPaths
+} from '../src/index';
+import { getSimplePathsAsArray, ValueAdjacency } from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
@@ -260,9 +261,9 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getAdjacencyMap()', () => {
+  describe('adjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
-      assert.deepEqual(getAdjacencyMap(lightMachine), {
+      assert.deepEqual(adjacencyMap(lightMachine), {
         '"green"': {
           TIMER: { state: 'yellow' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
@@ -303,7 +304,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a flattened adjacency map (parallel)', () => {
-      assert.deepEqual(getAdjacencyMap(parallelMachine), {
+      assert.deepEqual(adjacencyMap(parallelMachine), {
         '{"a":"a1","b":"b1"}': {
           '1': { state: { a: 'a1', b: 'b1' } },
           '2': { state: { a: 'a2', b: 'b2' } },
@@ -322,12 +323,10 @@ describe('@xstate/graph', () => {
       });
     });
   });
-  // getShortestPaths(lightMachine);
-  // getShortestPaths(condMachine.withContext({ id: 'foo' }));
 
-  describe('getShortestPaths()', () => {
+  describe('shortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPaths(lightMachine);
+      const paths = shortestPaths(lightMachine);
       assert.deepEqual(paths, {
         '"green"': {
           state: { value: 'green', context: undefined },
@@ -412,7 +411,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPaths(parallelMachine);
+      const paths = shortestPaths(parallelMachine);
       assert.deepEqual(paths, {
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
@@ -444,7 +443,7 @@ describe('@xstate/graph', () => {
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        getShortestPaths(lightMachine)[
+        shortestPaths(lightMachine)[
           JSON.stringify(lightMachine.initialState.value)
         ].path,
         0
@@ -452,11 +451,11 @@ describe('@xstate/graph', () => {
     });
 
     xit('should not throw when a condition is present', () => {
-      assert.doesNotThrow(() => getShortestPaths(condMachine));
+      assert.doesNotThrow(() => shortestPaths(condMachine));
     });
 
     it('should represent conditional paths based on context', () => {
-      const paths = getShortestPaths(condMachine.withContext({ id: 'foo' }), {
+      const paths = shortestPaths(condMachine.withContext({ id: 'foo' }), {
         events: {
           EVENT: [{ type: 'EVENT', id: 'whatever' }],
           STATE: [{ type: 'STATE' }]
@@ -493,9 +492,9 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getSimplePaths()', () => {
+  describe('simplePaths()', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
-      assert.deepEqual(getSimplePaths(lightMachine), {
+      assert.deepEqual(simplePaths(lightMachine), {
         '"green"': {
           state: { value: 'green', context: undefined },
           paths: [[]]
@@ -655,7 +654,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
-      assert.deepEqual(getSimplePaths(parallelMachine), {
+      assert.deepEqual(simplePaths(parallelMachine), {
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           paths: [[]]
@@ -696,7 +695,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      assert.deepEqual(getSimplePaths(equivMachine), {
+      assert.deepEqual(simplePaths(equivMachine), {
         '"a"': { state: { value: 'a', context: undefined }, paths: [[]] },
         '"b"': {
           state: { value: 'b', context: undefined },
@@ -719,8 +718,8 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a single empty path for the initial state', () => {
-      assert.deepEqual(getSimplePaths(lightMachine)['"green"'].paths, [[]]);
-      assert.deepEqual(getSimplePaths(equivMachine)['"a"'].paths, [[]]);
+      assert.deepEqual(simplePaths(lightMachine)['"green"'].paths, [[]]);
+      assert.deepEqual(simplePaths(equivMachine)['"a"'].paths, [[]]);
     });
 
     it('should return value-based paths', () => {
@@ -747,7 +746,7 @@ describe('@xstate/graph', () => {
       });
 
       assert.deepEqual(
-        getSimplePaths(countMachine, {
+        simplePaths(countMachine, {
           events: {
             INC: [{ type: 'INC', value: 1 }]
           }
@@ -807,7 +806,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getSimplePathsAsArray()', () => {
+  describe('simplePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
       assert.deepEqual(getSimplePathsAsArray(lightMachine), [
         { state: { value: 'green', context: undefined }, paths: [[]] },

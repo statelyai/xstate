@@ -117,7 +117,7 @@ export function getEdges<
   return edges;
 }
 
-export function getAdjacencyMap<TContext = DefaultContext>(
+export function adjacencyMap<TContext = DefaultContext>(
   node: StateNode<TContext>,
   context?: TContext
 ): AdjacencyMap {
@@ -434,7 +434,7 @@ export function getShortestPaths<
 //   }));
 // }
 
-export function getSimplePaths<
+export function simplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
@@ -501,6 +501,6 @@ export function getSimplePathsAsArray<
   machine: StateNode<TContext>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<PathsItem<TContext, TEvent>> {
-  const result = getSimplePaths(machine, options);
+  const result = simplePaths(machine, options);
   return keys(result).map(key => result[key]);
 }
