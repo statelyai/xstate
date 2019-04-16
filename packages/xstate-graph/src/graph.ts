@@ -1,11 +1,10 @@
 import { StateNode, State } from 'xstate';
-import { getActionType, flatten, keys } from 'xstate/lib/utils';
+import { getActionType, flatten, keys, warn } from 'xstate/lib/utils';
 import {
   StateValue,
   Edge,
   Segment,
   PathMap,
-  PathItem,
   PathsItem,
   PathsMap,
   AdjacencyMap,
@@ -78,7 +77,7 @@ export function getEventEdges<
             };
           } catch (e) {
             // tslint:disable-next-line:no-console
-            console.warn(`Target '${target}' not found on '${node.id}'`);
+            warn(e, `Target '${target}' not found on '${node.id}'`);
             return undefined;
           }
         })
@@ -100,20 +99,20 @@ export function getEdges<
   const edges: Array<Edge<TContext, TEvent>> = [];
 
   if (node.states && depth === null) {
-    keys(node.states).forEach(stateKey => {
+    for (const stateKey of keys(node.states)) {
       edges.push(...getEdges<TContext>(node.states[stateKey]));
-    });
+    }
   } else if (depth && depth > 0) {
-    keys(node.states).forEach(stateKey => {
+    for (const stateKey of keys(node.states)) {
       edges.push(
         ...getEdges<TContext>(node.states[stateKey], { depth: depth - 1 })
       );
-    });
+    }
   }
 
-  keys(node.on).forEach(event => {
+  for (const event of keys(node.on)) {
     edges.push(...getEventEdges<TContext>(node, event));
-  });
+  }
 
   return edges;
 }
@@ -225,16 +224,14 @@ export function getValueAdjacencyMap<
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): ValueAdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
-    events: {},
-    stateSerializer: serializeState,
-    eventSerializer: serializeEvent,
+    ...defaultValueAdjMapOptions,
     ...options
   } as ValueAdjMapOptions<TContext, TEvent>;
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
   const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
-  node.events.forEach(event => {
+  for (const event of node.events) {
     events[event] = [event];
-  });
+  }
   Object.assign(events, optionsWithDefaults.events);
 
   const adjacency: ValueAdjacencyMap<TContext, TEvent> = {};
@@ -254,7 +251,16 @@ export function getValueAdjacencyMap<
     ).map(event => toEventObject(event));
 
     for (const event of potentialEvents) {
-      const nextState = node.transition(state, event);
+      let nextState: State<TContext, TEvent>;
+      try {
+        nextState = node.transition(state, event);
+      } catch (e) {
+        throw new Error(
+          `Unable to transition from state ${stateSerializer(
+            state
+          )} on event ${eventSerializer(event)}: ${e.message}`
+        );
+      }
 
       if (
         (!filter || filter(nextState)) &&
@@ -272,89 +278,161 @@ export function getValueAdjacencyMap<
   return adjacency;
 }
 
-export function getShortestValuePaths<
+export function getShortestPaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
   machine: StateNode<TContext, any, TEvent>,
-  options: ValueAdjMapOptions<TContext, TEvent> = defaultValueAdjMapOptions
+  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathMap<TContext, TEvent> {
   if (!machine.states) {
+    // return EMPTY_MAP;
     return EMPTY_MAP;
   }
-  const adjacency = getValueAdjacencyMap<TContext, TEvent>(machine, options);
-  const pathMap: PathMap<TContext, TEvent> = {};
-  const visited: Set<string> = new Set();
+  const optionsWithDefaults = {
+    events: {},
+    stateSerializer: serializeState,
+    eventSerializer: serializeEvent,
+    ...options
+  } as ValueAdjMapOptions<TContext, TEvent>;
 
-  function util(state: State<TContext>): PathMap<TContext, TEvent> {
-    const stateKey = serializeState(state);
-    visited.add(stateKey);
-    const eventMap = adjacency[stateKey];
+  const adjacency = getValueAdjacencyMap<TContext, TEvent>(
+    machine,
+    optionsWithDefaults
+  );
 
-    for (const eventType of keys(eventMap)) {
-      const { value, context } = eventMap[eventType];
+  // weight, state, event
+  const weightMap = new Map<
+    string,
+    [number, string | undefined, string | undefined]
+  >();
+  const initialVertex = optionsWithDefaults.stateSerializer(
+    machine.initialState
+  );
 
-      if (!value) {
-        continue;
-      }
+  weightMap.set(initialVertex, [0, undefined, undefined]);
+  const unvisited = new Set<string>();
+  const visited = new Set<string>();
 
-      const nextState = State.from(value, context);
-      const nextStateId = serializeState(nextState);
-
-      if (
-        !pathMap[nextStateId] ||
-        pathMap[nextStateId].length > pathMap[stateKey].length + 1
-      ) {
-        pathMap[nextStateId] = [
-          ...(pathMap[stateKey] || []),
-          {
-            state: { value, context: state.context },
-            event: deserializeEventString(eventType) as TEvent
+  unvisited.add(initialVertex);
+  while (unvisited.size > 0) {
+    for (const vertex of unvisited) {
+      const [weight] = weightMap.get(vertex)!;
+      for (const event of keys(adjacency[vertex])) {
+        const nextVertex = optionsWithDefaults.stateSerializer(
+          adjacency[vertex][event]
+        );
+        if (!weightMap.has(nextVertex)) {
+          weightMap.set(nextVertex, [weight + 1, vertex, event]);
+        } else {
+          const [nextWeight] = weightMap.get(nextVertex)!;
+          if (nextWeight > weight + 1) {
+            weightMap.set(nextVertex, [weight + 1, vertex, event]);
           }
-        ];
+        }
+        if (!visited.has(nextVertex)) {
+          unvisited.add(nextVertex);
+        }
       }
+      visited.add(vertex);
+      unvisited.delete(vertex);
     }
-
-    for (const event of keys(eventMap)) {
-      const { value, context } = eventMap[event];
-
-      if (!value) {
-        continue;
-      }
-
-      const nextState = State.from(value, context);
-      const nextStateId = serializeState(State.from(value, context));
-
-      if (visited.has(nextStateId)) {
-        continue;
-      }
-
-      util(nextState);
-    }
-
-    return pathMap;
   }
 
-  util(machine.initialState);
+  const pathMap: PathMap<TContext, TEvent> = {};
+
+  weightMap.forEach(([weight, fromState, fromEvent], stateSerial) => {
+    pathMap[stateSerial] = {
+      state: deserializeStateString(stateSerial),
+      weight,
+      path: (() => {
+        if (!fromState) {
+          return [];
+        }
+
+        return pathMap[fromState].path.concat({
+          state: deserializeStateString(fromState),
+          event: deserializeEventString(fromEvent!) as TEvent
+        });
+      })()
+    };
+  });
 
   return pathMap;
 }
 
-export function getShortestPathsAsArray<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateNode<TContext, any, TEvent>
-): Array<PathItem<TContext, TEvent>> {
-  const result = getShortestValuePaths<TContext, TEvent>(
-    machine,
-    defaultValueAdjMapOptions
-  );
-  return keys(result).map(key => ({
-    state: JSON.parse(key),
-    path: result[key]
-  }));
-}
+// export function getShortestValuePaths<
+//   TContext = DefaultContext,
+//   TEvent extends EventObject = EventObject
+// >(
+//   machine: StateNode<TContext, any, TEvent>,
+//   options: ValueAdjMapOptions<TContext, TEvent> = defaultValueAdjMapOptions
+// ): PathMap<TContext, TEvent> {
+//   if (!machine.states) {
+//     return EMPTY_MAP;
+//   }
+//   const adjacency = getValueAdjacencyMap<TContext, TEvent>(machine, options);
+//   const pathMap: PathMap<TContext, TEvent> = {};
+//   const visited: Set<string> = new Set();
+
+//   function util(state: State<TContext>): PathMap<TContext, TEvent> {
+//     const stateKey = serializeState(state);
+//     visited.add(stateKey);
+//     const eventMap = adjacency[stateKey];
+
+//     for (const eventType of keys(eventMap)) {
+//       const { value, context } = eventMap[eventType];
+
+//       if (!value) {
+//         continue;
+//       }
+
+//       const nextState = State.from(value, context);
+//       const nextStateId = serializeState(nextState);
+
+//       if (
+//         !pathMap[nextStateId] ||
+//         pathMap[nextStateId].length > pathMap[stateKey].length + 1
+//       ) {
+//         pathMap[nextStateId] = [
+//           ...(pathMap[stateKey] || []),
+//           {
+//             state: { value, context: state.context },
+//             event: deserializeEventString(eventType) as TEvent
+//           }
+//         ];
+//       }
+
+//       if (visited.has(nextStateId)) {
+//         continue;
+//       }
+
+//       util(nextState);
+//     }
+
+//     return pathMap;
+//   }
+
+//   util(machine.initialState);
+
+//   return pathMap;
+// }
+
+// export function getShortestPathsAsArray<
+//   TContext = DefaultContext,
+//   TEvent extends EventObject = EventObject
+// >(
+//   machine: StateNode<TContext, any, TEvent>
+// ): Array<PathItem<TContext, TEvent>> {
+//   const result = getShortestValuePaths<TContext, TEvent>(
+//     machine,
+//     defaultValueAdjMapOptions
+//   );
+//   return keys(result).map(key => ({
+//     state: JSON.parse(key),
+//     path: result[key]
+//   }));
+// }
 
 export function getSimplePaths<
   TContext = DefaultContext,
@@ -409,9 +487,9 @@ export function getSimplePaths<
 
   const initialStateSerial = serializeState(machine.initialState);
 
-  keys(adjacency).forEach(nextStateSerial => {
+  for (const nextStateSerial of keys(adjacency)) {
     util(initialStateSerial, nextStateSerial);
-  });
+  }
 
   return paths;
 }

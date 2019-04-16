@@ -3,16 +3,15 @@ import { Machine, StateNode } from 'xstate';
 import { getNodes, getAdjacencyMap, getSimplePaths } from '../src/index';
 import {
   getEdges,
-  getShortestValuePaths,
   getSimplePathsAsArray,
   ValueAdjacency,
-  getShortestPathsAsArray
+  getShortestPaths
 } from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
 
-describe('graph utilities', () => {
+describe('@xstate/graph', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -323,207 +322,174 @@ describe('graph utilities', () => {
       });
     });
   });
+  // getShortestPaths(lightMachine);
+  // getShortestPaths(condMachine.withContext({ id: 'foo' }));
 
-  xdescribe('getShortestValuePaths()', () => {
+  describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      assert.deepEqual(getShortestValuePaths(lightMachine), {
-        '"green"': [],
-        '"yellow"': [
-          {
-            state: { context: undefined, value: 'green' },
-            event: { type: 'TIMER' }
-          }
-        ],
-        '{"red":"flashing"}': [
-          {
-            state: { context: undefined, value: 'green' },
-            event: { type: 'POWER_OUTAGE' }
-          }
-        ],
-        '{"red":"walk"}': [
-          {
-            state: { context: undefined, value: 'green' },
-            event: { type: 'TIMER' }
-          },
-          {
-            state: { context: undefined, value: 'yellow' },
-            event: { type: 'TIMER' }
-          }
-        ],
-        '{"red":"wait"}': [
-          {
-            state: { context: undefined, value: 'green' },
-            event: { type: 'TIMER' }
-          },
-          {
-            state: { context: undefined, value: 'yellow' },
-            event: { type: 'TIMER' }
-          },
-          {
-            state: { context: undefined, value: { red: 'walk' } },
-            event: { type: 'PED_COUNTDOWN' }
-          }
-        ],
-        '{"red":"stop"}': [
-          {
-            state: { context: undefined, value: 'green' },
-            event: { type: 'TIMER' }
-          },
-          {
-            state: { context: undefined, value: 'yellow' },
-            event: { type: 'TIMER' }
-          },
-          {
-            state: { context: undefined, value: { red: 'walk' } },
-            event: { type: 'PED_COUNTDOWN' }
-          },
-          {
-            state: { context: undefined, value: { red: 'wait' } },
-            event: { type: 'PED_COUNTDOWN' }
-          }
-        ]
+      const paths = getShortestPaths(lightMachine);
+      assert.deepEqual(paths, {
+        '"green"': {
+          state: { value: 'green', context: undefined },
+          weight: 0,
+          path: []
+        },
+        '"yellow"': {
+          state: { value: 'yellow', context: undefined },
+          weight: 1,
+          path: [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            }
+          ]
+        },
+        '{"red":"flashing"}': {
+          state: { value: { red: 'flashing' }, context: undefined },
+          weight: 1,
+          path: [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'POWER_OUTAGE' }
+            }
+          ]
+        },
+        '{"red":"walk"}': {
+          state: { value: { red: 'walk' }, context: undefined },
+          weight: 2,
+          path: [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            }
+          ]
+        },
+        '{"red":"wait"}': {
+          state: { value: { red: 'wait' }, context: undefined },
+          weight: 3,
+          path: [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: { type: 'PED_COUNTDOWN' }
+            }
+          ]
+        },
+        '{"red":"stop"}': {
+          state: { value: { red: 'stop' }, context: undefined },
+          weight: 4,
+          path: [
+            {
+              state: { value: 'green', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: 'yellow', context: undefined },
+              event: { type: 'TIMER' }
+            },
+            {
+              state: { value: { red: 'walk' }, context: undefined },
+              event: { type: 'PED_COUNTDOWN' }
+            },
+            {
+              state: { value: { red: 'wait' }, context: undefined },
+              event: { type: 'PED_COUNTDOWN' }
+            }
+          ]
+        }
       });
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      assert.deepEqual(getShortestValuePaths(parallelMachine), {
-        '{"a":"a1","b":"b1"}': [],
-        '{"a":"a2","b":"b2"}': [
-          {
-            event: { type: '2' },
-            state: {
-              context: undefined,
-              value: {
-                a: 'a1',
-                b: 'b1'
-              }
+      const paths = getShortestPaths(parallelMachine);
+      assert.deepEqual(paths, {
+        '{"a":"a1","b":"b1"}': {
+          state: { value: { a: 'a1', b: 'b1' }, context: undefined },
+          weight: 0,
+          path: []
+        },
+        '{"a":"a2","b":"b2"}': {
+          state: { value: { a: 'a2', b: 'b2' }, context: undefined },
+          weight: 1,
+          path: [
+            {
+              state: { value: { a: 'a1', b: 'b1' }, context: undefined },
+              event: { type: '2' }
             }
-          }
-        ],
-        '{"a":"a3","b":"b3"}': [
-          {
-            event: { type: '3' },
-            state: {
-              context: undefined,
-              value: {
-                a: 'a1',
-                b: 'b1'
-              }
+          ]
+        },
+        '{"a":"a3","b":"b3"}': {
+          state: { value: { a: 'a3', b: 'b3' }, context: undefined },
+          weight: 1,
+          path: [
+            {
+              state: { value: { a: 'a1', b: 'b1' }, context: undefined },
+              event: { type: '3' }
             }
-          }
-        ]
+          ]
+        }
       });
     });
 
     it('the initial state should have a zero-length path', () => {
       assert.lengthOf(
-        getShortestValuePaths(lightMachine)[
+        getShortestPaths(lightMachine)[
           JSON.stringify(lightMachine.initialState.value)
-        ],
+        ].path,
         0
       );
     });
 
-    it('should not throw when a condition is present', () => {
-      assert.doesNotThrow(() => getShortestValuePaths(condMachine));
+    xit('should not throw when a condition is present', () => {
+      assert.doesNotThrow(() => getShortestPaths(condMachine));
     });
 
     it('should represent conditional paths based on context', () => {
-      assert.deepEqual(
-        getShortestValuePaths(condMachine.withContext({ id: 'foo' })),
-        {
-          '"bar"': [
-            {
-              event: { type: 'EVENT', id: 'whatever' },
-              state: { context: { id: 'foo' }, value: 'pending' }
-            }
-          ],
-          '"foo"': [
-            {
-              event: { type: 'STATE' },
-              state: { context: { id: 'foo' }, value: 'pending' }
-            }
-          ],
-          '"pending"': []
+      const paths = getShortestPaths(condMachine.withContext({ id: 'foo' }), {
+        events: {
+          EVENT: [{ type: 'EVENT', id: 'whatever' }],
+          STATE: [{ type: 'STATE' }]
         }
-      );
-    });
-  });
+      });
 
-  xdescribe('getShortestValuePathsAsArray()', () => {
-    it('should return an array of shortest paths to all states', () => {
-      assert.deepEqual(getShortestPathsAsArray(lightMachine), [
-        { state: { value: 'green', context: undefined }, path: [] },
-        {
-          state: { value: 'yellow', context: undefined },
+      assert.deepEqual(paths, {
+        '"pending" | {"id":"foo"}': {
+          state: { value: 'pending', context: { id: 'foo' } },
+          weight: 0,
+          path: []
+        },
+        '"bar" | {"id":"foo"}': {
+          state: { value: 'bar', context: { id: 'foo' } },
+          weight: 1,
           path: [
             {
-              state: { context: undefined, value: 'green' },
-              event: { type: 'TIMER' }
+              state: { value: 'pending', context: { id: 'foo' } },
+              event: { type: 'EVENT', id: 'whatever' }
             }
           ]
         },
-        {
-          state: { value: { red: 'flashing' }, context: undefined },
+        '"foo" | {"id":"foo"}': {
+          state: { value: 'foo', context: { id: 'foo' } },
+          weight: 1,
           path: [
             {
-              state: { context: undefined, value: 'green' },
-              event: { type: 'POWER_OUTAGE' }
-            }
-          ]
-        },
-        {
-          state: { value: { red: 'walk' }, context: undefined },
-          path: [
-            {
-              state: { context: undefined, value: 'green' },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { context: undefined, value: 'yellow' },
-              event: { type: 'TIMER' }
-            }
-          ]
-        },
-        {
-          state: { value: { red: 'wait' }, context: undefined },
-          path: [
-            {
-              state: { context: undefined, value: 'green' },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { context: undefined, value: 'yellow' },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { context: undefined, value: { red: 'walk' } },
-              event: { type: 'PED_COUNTDOWN' }
-            }
-          ]
-        },
-        {
-          state: { value: { red: 'stop' }, context: undefined },
-          path: [
-            {
-              state: { context: undefined, value: 'green' },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { context: undefined, value: 'yellow' },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { context: undefined, value: { red: 'walk' } },
-              event: { type: 'PED_COUNTDOWN' }
-            },
-            {
-              state: { context: undefined, value: { red: 'wait' } },
-              event: { type: 'PED_COUNTDOWN' }
+              state: { value: 'pending', context: { id: 'foo' } },
+              event: { type: 'STATE' }
             }
           ]
         }
-      ]);
+      });
     });
   });
 
