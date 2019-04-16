@@ -108,9 +108,9 @@ The interpreter will call the `exec` function with the `currentState.context`, t
 
 When interpreting statecharts, the order of actions should not necessarily matter (that is, they should not be dependent on each other). However, the order of the actions in the `state.actions` array is:
 
-1. `onExit` actions - all the exit actions of the exited states, from the atomic state node up
+1. `onExit` actions - all the exit actions of the exited state node(s), from the atomic state node up
 2. transition `actions` - all actions defined on the chosen transition
-3. `onEntry` actions - all the entry actions of the entered states, from the parent state down
+3. `onEntry` actions - all the entry actions of the entered state node(s), from the parent state down
 
 ## Built-in Actions
 
