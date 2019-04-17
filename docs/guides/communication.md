@@ -486,7 +486,7 @@ const userMachine = Machine({
   }
 }, {
   services: {
-    getUser: (context, event) => fetchUser(user.id)
+    getUser: (context, event) => fetchUser(context.user.id)
   }
 });
 ```
