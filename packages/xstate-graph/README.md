@@ -2,7 +2,7 @@
 
 This package contains graph algorithms and utilities for XState machines.
 
-## Installation
+## Quick Start
 
 1. Install `xstate` and `@xstate/graph`:
 
