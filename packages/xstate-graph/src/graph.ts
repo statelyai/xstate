@@ -434,7 +434,7 @@ export function getShortestPaths<
 //   }));
 // }
 
-export function simplePaths<
+export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
@@ -501,6 +501,6 @@ export function getSimplePathsAsArray<
   machine: StateNode<TContext>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<PathsItem<TContext, TEvent>> {
-  const result = simplePaths(machine, options);
+  const result = getSimplePaths(machine, options);
   return keys(result).map(key => result[key]);
 }

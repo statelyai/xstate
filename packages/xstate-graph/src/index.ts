@@ -1,24 +1,21 @@
 import {
   getNodes,
   getEdges,
-  adjacencyMap,
-  simplePaths,
+  getSimplePaths,
   getShortestPaths,
   serializeEvent,
   serializeState,
   deserializeEventString,
-  deserializeStateString
+  deserializeStateString,
+  adjacencyMap
 } from './graph';
 
 export {
+  adjacencyMap,
   getNodes,
   getEdges,
-  adjacencyMap as getAdjacencyMap,
-  adjacencyMap,
-  simplePaths as getSimplePaths,
-  simplePaths,
+  getSimplePaths,
   getShortestPaths,
-  getShortestPaths as shortestPaths,
   serializeEvent,
   serializeState,
   deserializeEventString,
