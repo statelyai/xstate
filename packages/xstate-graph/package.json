@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "0.0.2",
+  "version": "0.1.0",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -22,7 +22,8 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
+    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
+    "prepublish": "tsc && npm run test"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
