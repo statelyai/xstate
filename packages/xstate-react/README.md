@@ -51,14 +51,32 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) that you can pass in.
 
-**Returns** a tuple of `[current, send]`:
+**Returns** a tuple of `[current, send, service]`:
 
 - `current` - Represents the current state of the machine as an XState `State` object.
+- `send` - A function that sends events to the running service.
+- `service` - The created service.
+
+### `useService(service)`
+
+A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](TODO).
+
+**Arguments**
+
+- `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
+
+**Returns** a tuple of `[current, send]`:
+
+- `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
 ## Configuring Machines
 
 Existing machines are configurable with `.useConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
+
+::: tip
+The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
+:::
 
 Example: the `'fetchData'` service and `'notifyChanged'` action are both configurable:
 
@@ -92,19 +110,23 @@ const fetchMachine = Machine({
 });
 
 const Fetcher = ({ onResolve }) => {
-  const [current, send] = useMachine(
-    fetchMachine.withContext({
-      actions: {
-        notifyResolve: ctx => {
-          onResolve(ctx.data);
+  const customFetchMachine = useMemo(
+    () =>
+      fetchMachine.withContext({
+        actions: {
+          notifyResolve: ctx => {
+            onResolve(ctx.data);
+          }
+        },
+        services: {
+          fetchData: (ctx, e) =>
+            fetch(`some/api/${e.query}`).then(res => res.json())
         }
-      },
-      services: {
-        fetchData: (ctx, e) =>
-          fetch(`some/api/${e.query}`).then(res => res.json())
-      }
-    })
+      }),
+    [] // Machine should never change
   );
+
+  const [current, send] = useMachine(customFetchMachine);
 
   switch (current.state) {
     case 'idle':
@@ -138,4 +160,24 @@ if (current.matches('idle')) {
 } else {
   return null;
 }
+```
+
+A ternary statement can also be considered, especially within rendered JSX:
+
+```jsx
+const Loader = () => {
+  const [current, send] = useMachine(/* ... */);
+
+  return (
+    <div>
+      {current.matches('idle') ? (
+        <Loader.Idle />
+      ) : current.matches({ loading: 'user' }) ? (
+        <Loader.LoadingUser />
+      ) : current.matches({ loading: 'frends' }) ? (
+        <Loader.LoadingFriends />
+      ) : null}
+    </div>
+  );
+};
 ```

@@ -1,6 +1,11 @@
 import { useState, useRef, useEffect } from 'react';
-import { interpret, EventObject, StateMachine, State } from 'xstate';
-import { Interpreter } from 'xstate/lib/interpreter';
+import {
+  interpret,
+  EventObject,
+  StateMachine,
+  State,
+  Interpreter
+} from 'xstate';
 
 interface InterpreterOptions {
   /**
@@ -27,7 +32,11 @@ interface InterpreterOptions {
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<InterpreterOptions>
-): [State<TContext, TEvent>, Interpreter<TContext, any, TEvent>['send']] {
+): [
+  State<TContext, TEvent>,
+  Interpreter<TContext, any, TEvent>['send'],
+  Interpreter<TContext, any, TEvent>
+] {
   // Keep track of the current machine state
   const [current, setCurrent] = useState(machine.initialState);
 
@@ -57,5 +66,31 @@ export function useMachine<TContext, TEvent extends EventObject>(
     };
   }, []);
 
-  return [current, service.send];
+  return [current, service.send, service];
+}
+
+export function useService<TContext, TEvent extends EventObject>(
+  service: Interpreter<TContext, any, TEvent>
+): [
+  State<TContext, TEvent>,
+  Interpreter<TContext, any, TEvent>['send'],
+  Interpreter<TContext, any, TEvent>
+] {
+  const [current, setCurrent] = useState(service.state);
+
+  useEffect(() => {
+    const listener = state => {
+      if (state.changed) {
+        setCurrent(state);
+      }
+    };
+
+    service.onTransition(listener);
+
+    return () => {
+      service.off(listener);
+    };
+  }, []);
+
+  return [current, service.send, service];
 }

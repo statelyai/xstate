@@ -1,7 +1,8 @@
 import { assert } from 'chai';
+import { useMemo } from 'react';
 import * as React from 'react';
-import { useMachine } from '../src';
-import { Machine, assign } from 'xstate';
+import { useMachine, useService } from '../src';
+import { Machine, assign, interpret, Interpreter } from 'xstate';
 import {
   render,
   fireEvent,
@@ -9,13 +10,16 @@ import {
   waitForElement
 } from 'react-testing-library';
 
+afterEach(cleanup);
+
 describe('useMachine hook', () => {
-  const fetchMachine = Machine({
+  const context = {
+    data: undefined
+  };
+  const fetchMachine = Machine<typeof context>({
     id: 'fetch',
     initial: 'idle',
-    context: {
-      data: undefined
-    },
+    context,
     states: {
       idle: {
         on: { FETCH: 'loading' }
@@ -27,7 +31,8 @@ describe('useMachine hook', () => {
             target: 'success',
             actions: assign({
               data: (_, e) => e.data
-            })
+            }),
+            cond: (_, e) => e.data.length
           }
         }
       },
@@ -38,14 +43,18 @@ describe('useMachine hook', () => {
   });
 
   const Fetcher = () => {
-    const [current, send] = useMachine(
-      Fetcher.machine.withConfig({
-        services: {
-          fetchData: () => new Promise(res => res('some data')),
-          ...Fetcher.machine.options.services
-        }
-      })
+    const machine = useMemo(
+      () =>
+        Fetcher.machine.withConfig({
+          services: {
+            fetchData: () => new Promise(res => res('some data')),
+            ...Fetcher.machine.options.services
+          }
+        }),
+      []
     );
+
+    const [current, send] = useMachine(machine);
 
     switch (current.value) {
       case 'idle':
@@ -65,8 +74,6 @@ describe('useMachine hook', () => {
 
   Fetcher.machine = fetchMachine;
 
-  afterEach(cleanup);
-
   it('should work with the useMachine hook', async () => {
     Fetcher.machine = fetchMachine.withConfig({
       services: {
@@ -81,5 +88,79 @@ describe('useMachine hook', () => {
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     assert.equal(dataEl.textContent, 'fake data');
+  });
+
+  it('should provide the service', () => {
+    const Test = () => {
+      const [, , service] = useMachine(fetchMachine);
+
+      if (!(service instanceof Interpreter)) {
+        throw new Error('service not instance of Interpreter');
+      }
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should provide options for the service', () => {
+    const Test = () => {
+      const [, , service] = useMachine(fetchMachine, {
+        execute: false
+      });
+
+      assert.isFalse(service.options.execute);
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+});
+
+describe('useService hook', () => {
+  const counterMachine = Machine({
+    id: 'counter',
+    initial: 'active',
+    context: { count: 0 },
+    states: {
+      active: {
+        on: {
+          INC: { actions: assign({ count: ctx => ctx.count + 1 }) }
+        }
+      }
+    }
+  });
+
+  it('should share a single service instance', () => {
+    const counterService = interpret(counterMachine).start();
+
+    const Counter = () => {
+      const [state] = useService(counterService);
+
+      return <div data-testid="count">{state.context.count}</div>;
+    };
+
+    const { getAllByTestId } = render(
+      <>
+        <Counter />
+        <Counter />
+      </>
+    );
+
+    const countEls = getAllByTestId('count');
+
+    assert.lengthOf(countEls, 2);
+
+    countEls.forEach(countEl => {
+      assert.equal(countEl.textContent, '0');
+    });
+
+    counterService.send('INC');
+
+    countEls.forEach(countEl => {
+      assert.equal(countEl.textContent, '1');
+    });
   });
 });
