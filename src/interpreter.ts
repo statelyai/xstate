@@ -29,6 +29,7 @@ import { toEventObject, doneInvoke, error } from './actions';
 import { IS_PRODUCTION } from './StateNode';
 import {
   isPromiseLike,
+  isMachine,
   mapContext,
   bindActionToState,
   warn,
@@ -685,7 +686,7 @@ export class Interpreter<
             this.spawnPromise(id, Promise.resolve(source));
           } else if (isFunction(source)) {
             this.spawnCallback(id, source);
-          } else if (typeof source !== 'string') {
+          } else if (isMachine(source)) {
             // TODO: try/catch here
             this.spawn(
               data
@@ -696,6 +697,9 @@ export class Interpreter<
                 autoForward
               }
             );
+          } else if (typeof source !== 'string' && process.env.NODE_ENV !== 'production') {
+            // tslint:disable-next-line:no-console
+            warn(false, `Service does not return a promise, callback function, machine or a string.`);
           } else {
             // service is string
           }

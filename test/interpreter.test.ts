@@ -402,6 +402,28 @@ describe('interpreter', () => {
     });
   });
 
+  describe('services', () => {
+    it("doesn't crash cryptically on undefined return from the service creator", () => {
+      const machine = Machine({
+        initial: 'initial',
+        states: {
+          initial: {
+            invoke: {
+              src: 'testService'
+            }
+          }
+        }
+      }, {
+        services: {
+          testService: ((() => {}) as any)
+        },
+      });
+
+      const service = interpret(machine)
+      assert.doesNotThrow(() => service.start());
+    });
+  })
+
   it('can cancel a delayed event', () => {
     let currentState: State<any>;
     const listener = state => (currentState = state);

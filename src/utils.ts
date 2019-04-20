@@ -5,6 +5,7 @@ import {
   Action,
   EventObject,
   StateInterface,
+  StateMachine,
   PropertyMapper,
   Mapper,
   EventType,
@@ -345,6 +346,10 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
     return true;
   }
   return false;
+}
+
+export function isMachine(value: any): value is StateMachine<any, any, any> {
+  return !!value && value.isXStateNode;
 }
 
 export function partition<T, A extends T, B extends T>(

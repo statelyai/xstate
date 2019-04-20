@@ -105,6 +105,7 @@ class StateNode<
   TStateSchema extends StateSchema = any,
   TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>
 > {
+  public isXStateNode: true = true;
   /**
    * The relative key of the state node, which represents its location in the overall state value.
    */
