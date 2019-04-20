@@ -42,7 +42,7 @@
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:dev": "npm run docs:packages && vuepress dev docs",
     "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md",
-    "docs:build": "vuepress build docs",
+    "docs:build": "npm run docs:packages && vuepress build docs",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
   },
   "repository": {
