@@ -805,33 +805,25 @@ export interface Segment<TContext, TEvent extends EventObject> {
   /**
    * From state.
    */
-  state: {
-    value: StateValue;
-    context: TContext;
-  };
+  state: State<TContext, TEvent>;
   /**
    * Event from state.
    */
   event: TEvent;
 }
 
-export interface PathMap<TContext, TEvent extends EventObject> {
-  [key: string]: Array<Segment<TContext, TEvent>>;
+export interface PathItem<TContext, TEvent extends EventObject> {
+  state: State<TContext, TEvent>;
+  path: Array<Segment<TContext, TEvent>>;
+  weight?: number;
 }
 
-export interface PathItem<TContext, TEvent extends EventObject> {
-  state: {
-    value: StateValue;
-    context: TContext;
-  };
-  path: Array<Segment<TContext, TEvent>>;
+export interface PathMap<TContext, TEvent extends EventObject> {
+  [key: string]: PathItem<TContext, TEvent>;
 }
 
 export interface PathsItem<TContext, TEvent extends EventObject> {
-  state: {
-    value: StateValue;
-    context: TContext;
-  };
+  state: State<TContext, TEvent>;
   paths: Array<Array<Segment<TContext, TEvent>>>;
 }
 

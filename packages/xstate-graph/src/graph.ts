@@ -3,9 +3,6 @@ import { getActionType, flatten, keys, warn } from 'xstate/lib/utils';
 import {
   StateValue,
   Edge,
-  Segment,
-  PathsItem,
-  PathsMap,
   AdjacencyMap,
   DefaultContext,
   ValueAdjacencyMap,
@@ -14,6 +11,26 @@ import {
   StateMachine
 } from 'xstate/lib/types';
 import { toEventObject } from 'xstate/lib/actions';
+
+// TODO: remove types once XState is updated
+export interface PathsItem<TContext, TEvent extends EventObject> {
+  state: State<TContext, TEvent>;
+  paths: Array<Array<Segment<TContext, TEvent>>>;
+}
+
+export interface PathsMap<TContext, TEvent extends EventObject> {
+  [key: string]: PathsItem<TContext, TEvent>;
+}
+export interface Segment<TContext, TEvent extends EventObject> {
+  /**
+   * From state.
+   */
+  state: State<TContext, TEvent>;
+  /**
+   * Event from state.
+   */
+  event: TEvent;
+}
 
 export interface PathItem<TContext, TEvent extends EventObject> {
   state: State<TContext, TEvent>;
@@ -362,7 +379,7 @@ export function getShortestPaths<
         }
 
         return pathMap[fromState].path.concat({
-          state: deserializeStateString(fromState),
+          state: stateMap.get(fromState)!,
           event: deserializeEventString(fromEvent!) as TEvent
         });
       })()
@@ -449,7 +466,7 @@ export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext>,
+  machine: StateNode<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathsMap<TContext, TEvent> {
   if (!machine.states) {
@@ -457,6 +474,7 @@ export function getSimplePaths<
   }
 
   const adjacency = getValueAdjacencyMap(machine, options);
+  const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();
   const path: Array<Segment<TContext, TEvent>> = [];
   const paths: PathsMap<TContext, TEvent> = {};
@@ -467,7 +485,7 @@ export function getSimplePaths<
     if (fromStateSerial === toStateSerial) {
       if (!paths[toStateSerial]) {
         paths[toStateSerial] = {
-          state: deserializeStateString(toStateSerial),
+          state: stateMap.get(toStateSerial)!,
           paths: []
         };
       }
@@ -481,10 +499,11 @@ export function getSimplePaths<
         }
 
         const nextStateSerial = serializeState(nextState);
+        stateMap.set(nextStateSerial, nextState);
 
         if (!visited.has(nextStateSerial)) {
           path.push({
-            state: deserializeStateString(fromStateSerial),
+            state: stateMap.get(fromStateSerial)!,
             event: deserializeEventString(subEvent)
           });
           util(nextStateSerial, toStateSerial);
@@ -497,6 +516,7 @@ export function getSimplePaths<
   }
 
   const initialStateSerial = serializeState(machine.initialState);
+  stateMap.set(initialStateSerial, machine.initialState);
 
   for (const nextStateSerial of keys(adjacency)) {
     util(initialStateSerial, nextStateSerial);
@@ -509,7 +529,7 @@ export function getSimplePathsAsArray<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext>,
+  machine: StateNode<TContext, any, TEvent>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<PathsItem<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);

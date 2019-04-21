@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, StateNode, State } from 'xstate';
+import { Machine, StateNode, State, PathMap } from 'xstate';
 import {
   getNodes,
   getEdges,
@@ -7,7 +7,7 @@ import {
   getSimplePaths,
   getShortestPaths
 } from '../src/index';
-import { getSimplePathsAsArray, ValueAdjacency } from '../src/graph';
+import { getSimplePathsAsArray, ValueAdjacency, PathsMap } from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
@@ -325,16 +325,28 @@ describe('@xstate/graph', () => {
   });
 
   describe('getShortestPaths()', () => {
+    function formatPaths(pathMap: PathMap<any, any>): any {
+      Object.keys(pathMap).forEach(key => {
+        const data = pathMap[key] as any;
+        assert.instanceOf(pathMap[key].state, State);
+        data.state = {
+          value: data.state.value,
+          context: data.state.context
+        };
+        data.path.forEach(segment => {
+          segment.state = {
+            value: segment.state.value,
+            context: segment.state.context
+          };
+        });
+      });
+      return pathMap;
+    }
+
     it('should return a mapping of shortest paths to all states', () => {
       const paths = getShortestPaths(lightMachine) as any;
-      Object.keys(paths).forEach(key => {
-        assert.instanceOf(paths[key].state, State);
-        paths[key].state = {
-          value: paths[key].state.value,
-          context: paths[key].state.context
-        };
-      });
-      assert.deepEqual(paths, {
+
+      assert.deepEqual(formatPaths(paths), {
         '"green"': {
           state: { value: 'green', context: undefined },
           weight: 0,
@@ -419,14 +431,7 @@ describe('@xstate/graph', () => {
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
       const paths = getShortestPaths(parallelMachine) as any;
-      Object.keys(paths).forEach(key => {
-        assert.instanceOf(paths[key].state, State);
-        paths[key].state = {
-          value: paths[key].state.value,
-          context: paths[key].state.context
-        };
-      });
-      assert.deepEqual(paths, {
+      assert.deepEqual(formatPaths(paths), {
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           weight: 0,
@@ -477,10 +482,18 @@ describe('@xstate/graph', () => {
       }) as any;
       Object.keys(paths).forEach(key => {
         assert.instanceOf(paths[key].state, State);
-        paths[key].state = {
-          value: paths[key].state.value,
-          context: paths[key].state.context
+        const data = paths[key];
+
+        data.state = {
+          value: data.state.value,
+          context: data.state.context
         };
+        data.path.forEach(segment => {
+          segment.state = {
+            value: segment.state.value,
+            context: segment.state.context
+          };
+        });
       });
 
       assert.deepEqual(paths, {
@@ -514,8 +527,27 @@ describe('@xstate/graph', () => {
   });
 
   describe('getSimplePaths()', () => {
+    function formatPaths(pathsMap: PathsMap<any, any>): any {
+      Object.keys(pathsMap).forEach(key => {
+        const data = pathsMap[key] as any;
+        data.state = { value: data.state.value, context: data.state.context };
+        data.paths.forEach(path => {
+          path.forEach(segment => {
+            segment.state = {
+              value: segment.state.value,
+              context: segment.state.context
+            };
+          });
+        });
+      });
+
+      return pathsMap;
+    }
+
     it('should return a mapping of arrays of simple paths to all states', () => {
-      assert.deepEqual(getSimplePaths(lightMachine), {
+      const paths = getSimplePaths(lightMachine) as any;
+
+      assert.deepEqual(formatPaths(paths), {
         '"green"': {
           state: { value: 'green', context: undefined },
           paths: [[]]
@@ -675,7 +707,8 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
-      assert.deepEqual(getSimplePaths(parallelMachine), {
+      const paths = getSimplePaths(parallelMachine);
+      assert.deepEqual(formatPaths(paths), {
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           paths: [[]]
@@ -716,7 +749,8 @@ describe('@xstate/graph', () => {
     });
 
     it('should return multiple paths for equivalent transitions', () => {
-      assert.deepEqual(getSimplePaths(equivMachine), {
+      const paths = getSimplePaths(equivMachine);
+      assert.deepEqual(formatPaths(paths), {
         '"a"': { state: { value: 'a', context: undefined }, paths: [[]] },
         '"b"': {
           state: { value: 'b', context: undefined },
@@ -766,70 +800,85 @@ describe('@xstate/graph', () => {
         }
       });
 
-      assert.deepEqual(
-        getSimplePaths(countMachine, {
-          events: {
-            INC: [{ type: 'INC', value: 1 }]
-          }
-        }),
-        {
-          '"start" | {"count":0}': {
-            state: { value: 'start', context: { count: 0 } },
-            paths: [[]]
-          },
-          '"start" | {"count":1}': {
-            state: { value: 'start', context: { count: 1 } },
-            paths: [
-              [
-                {
-                  state: { value: 'start', context: { count: 0 } },
-                  event: { type: 'INC', value: 1 }
-                }
-              ]
-            ]
-          },
-          '"start" | {"count":2}': {
-            state: { value: 'start', context: { count: 2 } },
-            paths: [
-              [
-                {
-                  state: { value: 'start', context: { count: 0 } },
-                  event: { type: 'INC', value: 1 }
-                },
-                {
-                  state: { value: 'start', context: { count: 1 } },
-                  event: { type: 'INC', value: 1 }
-                }
-              ]
-            ]
-          },
-          '"finish" | {"count":3}': {
-            state: { value: 'finish', context: { count: 3 } },
-            paths: [
-              [
-                {
-                  state: { value: 'start', context: { count: 0 } },
-                  event: { type: 'INC', value: 1 }
-                },
-                {
-                  state: { value: 'start', context: { count: 1 } },
-                  event: { type: 'INC', value: 1 }
-                },
-                {
-                  state: { value: 'start', context: { count: 2 } },
-                  event: { type: 'INC', value: 1 }
-                }
-              ]
-            ]
-          }
+      const paths = getSimplePaths(countMachine, {
+        events: {
+          INC: [{ type: 'INC', value: 1 }]
         }
-      );
+      });
+
+      assert.deepEqual(formatPaths(paths), {
+        '"start" | {"count":0}': {
+          state: { value: 'start', context: { count: 0 } },
+          paths: [[]]
+        },
+        '"start" | {"count":1}': {
+          state: { value: 'start', context: { count: 1 } },
+          paths: [
+            [
+              {
+                state: { value: 'start', context: { count: 0 } },
+                event: { type: 'INC', value: 1 }
+              }
+            ]
+          ]
+        },
+        '"start" | {"count":2}': {
+          state: { value: 'start', context: { count: 2 } },
+          paths: [
+            [
+              {
+                state: { value: 'start', context: { count: 0 } },
+                event: { type: 'INC', value: 1 }
+              },
+              {
+                state: { value: 'start', context: { count: 1 } },
+                event: { type: 'INC', value: 1 }
+              }
+            ]
+          ]
+        },
+        '"finish" | {"count":3}': {
+          state: { value: 'finish', context: { count: 3 } },
+          paths: [
+            [
+              {
+                state: { value: 'start', context: { count: 0 } },
+                event: { type: 'INC', value: 1 }
+              },
+              {
+                state: { value: 'start', context: { count: 1 } },
+                event: { type: 'INC', value: 1 }
+              },
+              {
+                state: { value: 'start', context: { count: 2 } },
+                event: { type: 'INC', value: 1 }
+              }
+            ]
+          ]
+        }
+      });
     });
   });
 
   describe('getSimplePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
-      assert.deepEqual(getSimplePathsAsArray(lightMachine), [
+      const pathsArray = getSimplePathsAsArray(lightMachine) as any;
+      pathsArray.forEach(pathData => {
+        pathData.state = {
+          value: pathData.state.value,
+          context: pathData.state.context
+        };
+        pathData.paths.forEach(path => {
+          path.forEach(segment => {
+            segment.state = {
+              value: segment.state.value,
+              context: segment.state.context
+            };
+          });
+        });
+      });
+
+      assert.deepEqual(pathsArray, [
         { state: { value: 'green', context: undefined }, paths: [[]] },
         {
           state: { value: 'yellow', context: undefined },
