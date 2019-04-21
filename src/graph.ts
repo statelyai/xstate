@@ -180,6 +180,7 @@ export function deserializeEventString<TEvent extends EventObject>(
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   events: { [K in TEvent['type']]: Array<TEvent & { type: K }> };
   filter: (state: State<TContext>) => boolean;
+  formatContext: <T>(context: TContext) => T;
   stateSerializer: (state: State<TContext>) => string;
   eventSerializer: (event: TEvent) => string;
 }
@@ -187,34 +188,10 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
 const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
   events: {},
   filter: () => true,
+  formatContext: c => c,
   stateSerializer: serializeState,
   eventSerializer: serializeEvent
 };
-
-export class ValueAdjacency<TContext, TEvent extends EventObject> {
-  public mapping: ValueAdjacencyMap<TContext, TEvent>;
-  public options: ValueAdjMapOptions<TContext, TEvent>;
-
-  constructor(
-    public machine: StateMachine<TContext, any, TEvent>,
-    options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-  ) {
-    this.options = {
-      events: {},
-      stateSerializer: serializeState,
-      eventSerializer: serializeEvent,
-      ...options
-    } as ValueAdjMapOptions<TContext, TEvent>;
-    this.mapping = getValueAdjacencyMap(machine, options);
-  }
-
-  public reaches(stateValue: StateValue, context: TContext): boolean {
-    const resolvedStateValue = this.machine.resolve(stateValue);
-    const state = State.from(resolvedStateValue, context);
-
-    return !!this.mapping[this.options.stateSerializer(state)];
-  }
-}
 
 export function getValueAdjacencyMap<
   TContext = DefaultContext,
@@ -282,7 +259,7 @@ export function getShortestPaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathMap<TContext, TEvent> {
   if (!machine.states) {
@@ -440,7 +417,7 @@ export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathsMap<TContext, TEvent> {
   if (!machine.states) {

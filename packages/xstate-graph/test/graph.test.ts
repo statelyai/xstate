@@ -7,7 +7,11 @@ import {
   getSimplePaths,
   getShortestPaths
 } from '../src/index';
-import { getSimplePathsAsArray, ValueAdjacency, PathsMap } from '../src/graph';
+import {
+  getSimplePathsAsArray,
+  PathsMap,
+  getValueAdjacencyMap
+} from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
 // import * as util from 'util';
@@ -1032,7 +1036,7 @@ describe('@xstate/graph', () => {
       const counterMachine = Machine({
         id: 'counter',
         initial: 'empty',
-        context: { count: 0 },
+        context: { count: 0, other: 'something' },
         states: {
           empty: {
             on: {
@@ -1050,14 +1054,18 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adjacency = new ValueAdjacency(counterMachine, {
+      const adj = getValueAdjacencyMap(counterMachine, {
         filter: state => state.context.count >= 0 && state.context.count <= 5,
+        stateSerializer: state => {
+          const ctx = { count: state.context.count };
+          return JSON.stringify(state.value) + ' | ' + JSON.stringify(ctx);
+        },
         events: {
           INC: [{ type: 'INC', value: 1 }]
         }
       });
 
-      assert.ok(adjacency.reaches('full', { count: 5 }));
+      assert.property(adj, '"full" | {"count":5}');
     });
   });
 });
