@@ -4,7 +4,6 @@ import {
   StateValue,
   Edge,
   Segment,
-  PathMap,
   PathsItem,
   PathsMap,
   AdjacencyMap,
@@ -15,6 +14,16 @@ import {
   StateMachine
 } from 'xstate/lib/types';
 import { toEventObject } from 'xstate/lib/actions';
+
+export interface PathItem<TContext, TEvent extends EventObject> {
+  state: State<TContext, TEvent>;
+  path: Array<Segment<TContext, TEvent>>;
+  weight?: number;
+}
+
+export interface PathMap<TContext, TEvent extends EventObject> {
+  [key: string]: PathItem<TContext, TEvent>;
+}
 
 const EMPTY_MAP = {};
 
@@ -306,9 +315,11 @@ export function getShortestPaths<
     string,
     [number, string | undefined, string | undefined]
   >();
+  const stateMap = new Map<string, State<TContext, TEvent>>();
   const initialVertex = optionsWithDefaults.stateSerializer(
     machine.initialState
   );
+  stateMap.set(initialVertex, machine.initialState);
 
   weightMap.set(initialVertex, [0, undefined, undefined]);
   const unvisited = new Set<string>();
@@ -319,9 +330,9 @@ export function getShortestPaths<
     for (const vertex of unvisited) {
       const [weight] = weightMap.get(vertex)!;
       for (const event of keys(adjacency[vertex])) {
-        const nextVertex = optionsWithDefaults.stateSerializer(
-          adjacency[vertex][event]
-        );
+        const nextState = adjacency[vertex][event];
+        const nextVertex = optionsWithDefaults.stateSerializer(nextState);
+        stateMap.set(nextVertex, nextState);
         if (!weightMap.has(nextVertex)) {
           weightMap.set(nextVertex, [weight + 1, vertex, event]);
         } else {
@@ -343,7 +354,7 @@ export function getShortestPaths<
 
   weightMap.forEach(([weight, fromState, fromEvent], stateSerial) => {
     pathMap[stateSerial] = {
-      state: deserializeStateString(stateSerial),
+      state: stateMap.get(stateSerial)!,
       weight,
       path: (() => {
         if (!fromState) {

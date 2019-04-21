@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine, StateNode } from 'xstate';
+import { Machine, StateNode, State } from 'xstate';
 import {
   getNodes,
   getEdges,
@@ -326,7 +326,14 @@ describe('@xstate/graph', () => {
 
   describe('getShortestPaths()', () => {
     it('should return a mapping of shortest paths to all states', () => {
-      const paths = getShortestPaths(lightMachine);
+      const paths = getShortestPaths(lightMachine) as any;
+      Object.keys(paths).forEach(key => {
+        assert.instanceOf(paths[key].state, State);
+        paths[key].state = {
+          value: paths[key].state.value,
+          context: paths[key].state.context
+        };
+      });
       assert.deepEqual(paths, {
         '"green"': {
           state: { value: 'green', context: undefined },
@@ -411,7 +418,14 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
-      const paths = getShortestPaths(parallelMachine);
+      const paths = getShortestPaths(parallelMachine) as any;
+      Object.keys(paths).forEach(key => {
+        assert.instanceOf(paths[key].state, State);
+        paths[key].state = {
+          value: paths[key].state.value,
+          context: paths[key].state.context
+        };
+      });
       assert.deepEqual(paths, {
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
@@ -460,6 +474,13 @@ describe('@xstate/graph', () => {
           EVENT: [{ type: 'EVENT', id: 'whatever' }],
           STATE: [{ type: 'STATE' }]
         }
+      }) as any;
+      Object.keys(paths).forEach(key => {
+        assert.instanceOf(paths[key].state, State);
+        paths[key].state = {
+          value: paths[key].state.value,
+          context: paths[key].state.context
+        };
       });
 
       assert.deepEqual(paths, {
