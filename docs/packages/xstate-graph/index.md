@@ -33,12 +33,12 @@ Returns the [shortest paths (Dijkstra's algorithm)](https://en.wikipedia.org/wik
 
 - **key** is the stringified state
 - **value** is an object with the properties:
-  - `state` - the target state
+  - `state` - the target [`State`](https://xstate.js.org/docs/guides/states.html)
   - `path` - the shortest path to get from the initial state to the target state
 
 The `path` is an array of segments, where each segment is an object with the properties:
 
-- `state` - the state of the segment
+- `state` - the [`State`](https://xstate.js.org/docs/guides/states.html) of the segment
 - `weight` - the total [weight](<https://en.wikipedia.org/wiki/Graph_(discrete_mathematics)#Weighted_graph>) of the path
   - Currently, each transition from one state to another has a weight of 1. This will be customizable in the future.
 - `event` - the event object that transitions the `machine` from the state to the next state in the path
@@ -50,20 +50,14 @@ The overall object structure looks like this:
 ```json
 {
   "<SERIALIZED STATE>": {
-    "state": { "value": "<state.value>", "context": "<state.context>" },
+    "state": State { ... },
     "path": [
       {
-        "state": {
-          "value": "<initialState.value>",
-          "context": "<initialState.context>"
-        },
+        "state": State { ... },
         "event": { "type": "<event.type>", "<PROP>": "<event.PROP>" }
       },
       {
-        "state": {
-          "value": "<state.value>",
-          "context": "<state.context>"
-        },
+        "state": State { ... },
         "event": { "type": "<event.type>", "<PROP>": "<event.PROP>" }
       },
       ...
@@ -115,36 +109,36 @@ const shortestPaths = getShortestPaths(feedbackMachine);
 console.log(shortestPaths);
 // => {
 //   '"question"': {
-//     state: { value: 'question', context: undefined },
+//     state: State { value: 'question', context: undefined },
 //     weight: 0,
 //     path: []
 //   },
 //   '"thanks"': {
-//     state: { value: 'thanks', context: undefined },
+//     state: State { value: 'thanks', context: undefined },
 //     weight: 1,
 //     path: [
 //       {
-//         state: { value: 'question', context: undefined },
+//         state: State { value: 'question', context: undefined },
 //         event: { type: 'CLICK_GOOD' }
 //       }
 //     ]
 //   },
 //   '"form"': {
-//     state: { value: 'form', context: undefined },
+//     state: State { value: 'form', context: undefined },
 //     weight: 1,
 //     path: [
 //       {
-//         state: { value: 'question', context: undefined },
+//         state: State { value: 'question', context: undefined },
 //         event: { type: 'CLICK_BAD' }
 //       }
 //     ]
 //   },
 //   '"closed"': {
-//     state: { value: 'closed', context: undefined },
+//     state: State { value: 'closed', context: undefined },
 //     weight: 1,
 //     path: [
 //       {
-//         state: { value: 'question', context: undefined },
+//         state: State { value: 'question', context: undefined },
 //         event: { type: 'CLOSE' }
 //       }
 //     ]
@@ -163,12 +157,12 @@ Returns the [simple paths](<https://en.wikipedia.org/wiki/Path_(graph_theory)#De
 
 - **key** is the stringified state
 - **value** is an object with the properties:
-  - `state` - the target state
+  - `state` - the target [`State`](https://xstate.js.org/docs/guides/states.html)
   - `paths` - the array of paths to get from the initial state to the target state
 
 Each `path` in `paths` is an array of segments, where each segment of the path is an object with the properties:
 
-- `state` - the state of the segment
+- `state` - the [`State`](https://xstate.js.org/docs/guides/states.html) of the segment
 - `event` - the event object that transitions the `machine` from the state to the next state in the path
 
 Every path starts with the initial state.
@@ -178,21 +172,15 @@ The overall object structure looks like this:
 ```json
 {
   "<SERIALIZED STATE>": {
-    "state": { "value": "<state.value>", "context": "<state.context>" },
+    "state": State { ... },
     "paths": [
       [
         {
-          "state": {
-            "value": "<initialState.value>",
-            "context": "<initialState.context>"
-          },
+          "state": State { ... },
           "event": { "type": "<event.type>", "<PROP>": "<event.PROP>" }
         },
         {
-          "state": {
-            "value": "<state.value>",
-            "context": "<state.context>"
-          },
+          "state": State { ... },
           "event": { "type": "<event.type>", "<PROP>": "<event.PROP>" }
         },
         ...

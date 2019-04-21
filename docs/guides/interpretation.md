@@ -27,8 +27,8 @@ import { Machine, interpret } from 'xstate';
 const machine = Machine(/* machine config */);
 
 // Interpret the machine, and add a listener for whenever a transition occurs.
-const service = interpret(machine).onTransition(nextState => {
-  console.log(nextState.value);
+const service = interpret(machine).onTransition(state => {
+  console.log(state.value);
 });
 
 // Start the service
@@ -115,12 +115,26 @@ Listeners for state transitions are registered via the `.onTransition(...)` meth
 const service = interpret(machine);
 
 // Add a state listener, which is called whenever a state transition occurs.
-service.onTransition(nextState => {
-  console.log(nextState.value);
+service.onTransition(state => {
+  console.log(state.value);
 });
 
 service.start();
 ```
+
+::: tip
+
+If you only want the `.onTransition(...)` handler(s) to be called when the state changes (that is, when the `state.value` changes, the `state.context` changes, or there are new `state.actions`), use [`state.changed`](https://xstate.js.org/docs/guides/states.html#state-changed):
+
+```js {2}
+service.onTransition(state => {
+  if (state.changed) {
+    console.log(state.value);
+  }
+});
+```
+
+:::
 
 ## Starting and Stopping
 
