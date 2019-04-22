@@ -173,17 +173,6 @@ export function adjacencyMap<TContext = DefaultContext>(
   return adjacency;
 }
 
-export function deserializeStateString(
-  valueContextString: string
-): { value: StateValue; context: any } {
-  const [valueString, contextString] = valueContextString.split(' | ');
-
-  return {
-    value: JSON.parse(valueString),
-    context: contextString === undefined ? undefined : JSON.parse(contextString)
-  };
-}
-
 export function serializeState<TContext>(state: State<TContext>): string {
   const { value, context } = state;
   return context === undefined
@@ -444,11 +433,18 @@ export function getSimplePaths<
   machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): PathsMap<TContext, TEvent> {
+  const optionsWithDefaults = {
+    ...defaultValueAdjMapOptions,
+    ...options
+  };
+
+  const { stateSerializer } = optionsWithDefaults;
+
   if (!machine.states) {
     return EMPTY_MAP;
   }
 
-  const adjacency = getValueAdjacencyMap(machine, options);
+  const adjacency = getValueAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();
   const path: Array<Segment<TContext, TEvent>> = [];
@@ -473,7 +469,7 @@ export function getSimplePaths<
           continue;
         }
 
-        const nextStateSerial = serializeState(nextState);
+        const nextStateSerial = stateSerializer(nextState);
         stateMap.set(nextStateSerial, nextState);
 
         if (!visited.has(nextStateSerial)) {
@@ -490,7 +486,7 @@ export function getSimplePaths<
     visited.delete(fromStateSerial);
   }
 
-  const initialStateSerial = serializeState(machine.initialState);
+  const initialStateSerial = stateSerializer(machine.initialState);
   stateMap.set(initialStateSerial, machine.initialState);
 
   for (const nextStateSerial of keys(adjacency)) {
