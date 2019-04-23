@@ -5,8 +5,6 @@ import {
   getShortestPaths,
   serializeEvent,
   serializeState,
-  deserializeEventString,
-  deserializeStateString,
   adjacencyMap
 } from './graph';
 
@@ -17,7 +15,5 @@ export {
   getSimplePaths,
   getShortestPaths,
   serializeEvent,
-  serializeState,
-  deserializeEventString,
-  deserializeStateString
+  serializeState
 };
