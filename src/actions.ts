@@ -2,6 +2,7 @@ import {
   Action,
   Event,
   EventObject,
+  SingleOrArray,
   SendAction,
   SendActionOptions,
   CancelAction,
@@ -128,6 +129,19 @@ export function toActionObject<TContext, TEvent extends EventObject>(
   return actionObject;
 }
 
+export const toActionObjects = <TContext, TEvent extends EventObject>(
+  action?: SingleOrArray<Action<TContext, TEvent>> | undefined,
+  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+): Array<ActionObject<TContext, TEvent>> => {
+  if (!action) {
+    return [];
+  }
+
+  const actions = isArray(action) ? action : [action];
+
+  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
+};
+
 export function toActivityDefinition<TContext, TEvent extends EventObject>(
   action: string | ActivityDefinition<TContext, TEvent>
 ): ActivityDefinition<TContext, TEvent> {
@@ -139,21 +153,6 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
     type: actionObject.type
   };
 }
-
-export const toActionObjects = <TContext, TEvent extends EventObject>(
-  action:
-    | Array<Action<TContext, TEvent> | Action<TContext, TEvent>>
-    | undefined,
-  actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
-): Array<ActionObject<TContext, TEvent>> => {
-  if (!action) {
-    return [];
-  }
-
-  const actions = isArray(action) ? action : [action];
-
-  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
-};
 
 /**
  * Raises an event. This places the event in the internal event queue, so that

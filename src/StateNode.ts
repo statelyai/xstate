@@ -77,7 +77,8 @@ import {
   doneInvoke,
   toActionObject,
   resolveSend,
-  initEvent
+  initEvent,
+  toActionObjects
 } from './actions';
 import { StateTree } from './StateTree';
 
@@ -1838,34 +1839,21 @@ class StateNode<
       return {
         target: target === undefined ? target : formattedTargets,
         actions: [],
-        internal: target === undefined ? true : internal,
+        internal: target === undefined || internal,
         event
       };
     }
 
     // Check if there is no target (targetless)
     // An undefined transition signals that the state node should not transition from that event.
-    if (target === undefined || target === TARGETLESS_KEY) {
-      return {
-        ...transitionConfig,
-        actions: toArray(transitionConfig.actions).map(action =>
-          toActionObject(action)
-        ),
-        cond: toGuard(transitionConfig.cond),
-        target: undefined,
-        internal: internal === undefined ? true : internal,
-        event
-      };
-    }
+    const isTargetless = target === undefined || target === TARGETLESS_KEY;
 
     return {
       ...transitionConfig,
-      actions: toArray(transitionConfig.actions).map(action =>
-        toActionObject(action)
-      ),
+      actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond),
-      target: formattedTargets,
-      internal,
+      target: isTargetless ? undefined : formattedTargets,
+      internal: (isTargetless && internal === undefined) || internal,
       event
     };
   }
