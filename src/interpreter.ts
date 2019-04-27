@@ -431,14 +431,16 @@ export class Interpreter<
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event, payload);
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
-      warn(
-        false,
-        `Event "${eventObject.type}" was sent to uninitialized service "${
-          this.machine.id
-        }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
+      if (!IS_PRODUCTION) {
+        warn(
+          false,
+          `Event "${eventObject.type}" was sent to uninitialized service "${
+            this.machine.id
+          }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+            event
+          )}`
+        );
+      }
     } else if (!this.initialized) {
       throw new Error(
         `Event "${eventObject.type}" was sent to uninitialized service "${
@@ -466,14 +468,16 @@ export class Interpreter<
   private batch(events: Array<OmniEvent<TEvent>>): void {
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
-      warn(
-        false,
-        `${events.length} event(s) were sent to uninitialized service "${
-          this.machine.id
-        }" and are deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-          event
-        )}`
-      );
+      if (!IS_PRODUCTION) {
+        warn(
+          false,
+          `${events.length} event(s) were sent to uninitialized service "${
+            this.machine.id
+          }" and are deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
+            event
+          )}`
+        );
+      }
     } else if (!this.initialized) {
       throw new Error(
         `${events.length} event(s) were sent to uninitialized service "${
@@ -527,10 +531,14 @@ export class Interpreter<
       }
 
       // tslint:disable-next-line:no-console
-      warn(
-        false,
-        `Service '${this.id}' has no parent: unable to send event ${event.type}`
-      );
+      if (!IS_PRODUCTION) {
+        warn(
+          false,
+          `Service '${this.id}' has no parent: unable to send event ${
+            event.type
+          }`
+        );
+      }
       return;
     }
 
@@ -585,12 +593,14 @@ export class Interpreter<
         this.machine.options.delays[delay] === undefined
       ) {
         // tslint:disable-next-line:no-console
-        warn(
-          false,
-          `No delay reference for delay expression '${delay}' was found on machine '${
-            this.machine.id
-          }' on service '${this.id}'.`
-        );
+        if (!IS_PRODUCTION) {
+          warn(
+            false,
+            `No delay reference for delay expression '${delay}' was found on machine '${
+              this.machine.id
+            }' on service '${this.id}'.`
+          );
+        }
 
         // Do not send anything
         return;
@@ -668,12 +678,14 @@ export class Interpreter<
 
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
-            warn(
-              false,
-              `No service found for invocation '${activity.src}' in machine '${
-                this.machine.id
-              }'.`
-            );
+            if (!IS_PRODUCTION) {
+              warn(
+                false,
+                `No service found for invocation '${
+                  activity.src
+                }' in machine '${this.machine.id}'.`
+              );
+            }
             return;
           }
 
@@ -721,7 +733,12 @@ export class Interpreter<
         }
         break;
       default:
-        warn(false, `No implementation found for action type '${action.type}'`);
+        if (!IS_PRODUCTION) {
+          warn(
+            false,
+            `No implementation found for action type '${action.type}'`
+          );
+        }
         break;
     }
 
@@ -805,12 +822,14 @@ export class Interpreter<
   private spawnCallback(id: string, callback: InvokeCallback): void {
     const receive = (e: TEvent) => this.send(e);
     let listener = (e: EventObject) => {
-      warn(
-        false,
-        `Event '${
-          e.type
-        }' sent to callback service '${id}' but was not handled by a listener.`
-      );
+      if (!IS_PRODUCTION) {
+        warn(
+          false,
+          `Event '${
+            e.type
+          }' sent to callback service '${id}' but was not handled by a listener.`
+        );
+      }
     };
 
     let stop;
@@ -859,7 +878,9 @@ export class Interpreter<
 
     if (!implementation) {
       // tslint:disable-next-line:no-console
-      warn(false, `No implementation found for activity '${activity.type}'`);
+      if (!IS_PRODUCTION) {
+        warn(false, `No implementation found for activity '${activity.type}'`);
+      }
       return;
     }
 

@@ -15,6 +15,7 @@ import {
   StateMachine
 } from './types';
 import { toEventObject } from './actions';
+import { IS_PRODUCTION } from './StateNode';
 
 const EMPTY_MAP = {};
 
@@ -77,7 +78,9 @@ export function getEventEdges<
             };
           } catch (e) {
             // tslint:disable-next-line:no-console
-            warn(e, `Target '${target}' not found on '${node.id}'`);
+            if (!IS_PRODUCTION) {
+              warn(e, `Target '${target}' not found on '${node.id}'`);
+            }
             return undefined;
           }
         })
