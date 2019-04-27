@@ -145,7 +145,7 @@ class StateNode<
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.
    */
-  public transient: boolean;
+  private _transient: boolean;
   /**
    * The child state nodes.
    */
@@ -285,7 +285,7 @@ class StateNode<
     this.history =
       _config.history === true ? 'shallow' : _config.history || false;
 
-    this.transient = !!(_config.on && _config.on[NULL_EVENT]);
+    this._transient = !!(_config.on && _config.on[NULL_EVENT]);
     this.strict = !!_config.strict;
 
     // TODO: deprecate (entry)
@@ -786,7 +786,7 @@ class StateNode<
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = this.on[
       eventType
     ];
-    const actions: Array<ActionObject<TContext, TEvent>> = this.transient
+    const actions: Array<ActionObject<TContext, TEvent>> = this._transient
       ? [{ type: actionTypes.nullEvent }]
       : [];
 
@@ -1193,7 +1193,7 @@ class StateNode<
       ? this.getStateNodes(resolvedStateValue)
       : [];
 
-    const isTransient = stateNodes.some(stateNode => stateNode.transient);
+    const isTransient = stateNodes.some(stateNode => stateNode._transient);
     if (isTransient) {
       raisedEvents.push({ type: actionTypes.nullEvent });
     }
