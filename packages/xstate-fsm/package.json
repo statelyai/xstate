@@ -1,0 +1,38 @@
+{
+  "name": "@xstate/fsm",
+  "version": "0.0.1",
+  "description": "XState for finite state machines",
+  "keywords": [
+    "state",
+    "machine",
+    "scxml",
+    "state",
+    "machine",
+    "finite",
+    "state",
+    "machine",
+    "fsm",
+    "automata"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
+  "license": "MIT",
+  "main": "lib/xstate-fsm.js",
+  "directories": {
+    "lib": "lib",
+    "test": "__tests__"
+  },
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "test": "echo \"Error: run tests from root\" && exit 1"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  }
+}
