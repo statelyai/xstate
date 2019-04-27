@@ -582,20 +582,10 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
-    const tree = this.getStateTree(state.value);
-    const value = this.resolve(state.value);
-
     return new State({
-      value,
-      context: state.context,
-      event: state.event,
-      historyValue: state.historyValue,
-      history: state.history,
-      actions: state.actions,
-      activities: state.activities,
-      meta: state.meta,
-      events: state.events,
-      tree
+      ...state,
+      value: this.resolve(state.value),
+      tree: this.getStateTree(state.value)
     });
   }
 
