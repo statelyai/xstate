@@ -15,7 +15,7 @@ import {
   after,
   done
 } from './actions';
-import { interpret, Interpreter } from './interpreter';
+import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
 
 const actions = {
@@ -42,8 +42,9 @@ export {
   send,
   sendParent,
   interpret,
-  Interpreter, 
-  matchState
+  Interpreter,
+  matchState,
+  spawn
 };
 
 export * from './types';

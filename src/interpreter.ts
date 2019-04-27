@@ -168,7 +168,7 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
-  private children: Map<string, Actor> = new Map();
+  private children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -519,7 +519,7 @@ export class Interpreter<
     return sender.bind(this);
   }
 
-  public sendTo = (event: OmniEventObject<TEvent>, to: string) => {
+  public sendTo = (event: OmniEventObject<TEvent>, to: string | number) => {
     const isParent = to === SpecialTargets.Parent;
     const target = isParent ? this.parent : this.children.get(to);
 
@@ -561,11 +561,13 @@ export class Interpreter<
       throw (eventObject as ErrorExecutionEvent).data;
     }
 
+    spawnContext.serviceStack.push(this);
     const nextState = this.machine.transition(
       this.state,
       eventObject,
       this.state.context
     );
+    spawnContext.serviceStack.pop();
 
     return nextState;
   }
@@ -752,18 +754,24 @@ export class Interpreter<
       this.forwardTo.delete(childId);
     }
   }
-  private spawn<
+  public spawn<
     TChildContext,
     TChildStateSchema,
     TChildEvents extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvents>,
-    options: { id?: string; autoForward?: boolean } = {}
+    options: { id?: string; autoForward?: boolean; subscribe?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
     const childService = new Interpreter(machine, {
       parent: this,
       id: options.id || machine.id
     });
+
+    if (options.subscribe) {
+      childService.onTransition(state => {
+        this.send('xstate.update', { state }); // TODO: actionTypes
+      });
+    }
 
     childService
       .onDone(doneEvent => {
@@ -936,6 +944,20 @@ export class Interpreter<
       });
       this.devTools.init(this.state);
     }
+  }
+}
+
+export const spawnContext = {
+  serviceStack: [] as Array<Interpreter<any, any>>
+};
+
+export function spawn(machine: StateMachine<any, any, any>, id?: string) {
+  if (spawnContext.serviceStack.length) {
+    const service =
+      spawnContext.serviceStack[spawnContext.serviceStack.length - 1];
+    const actor = service.spawn(machine, { id, subscribe: true });
+
+    return { id: actor.id, parent: service.id, send: actor.send };
   }
 }
 

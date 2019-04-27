@@ -210,9 +210,13 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   const resolvedDelay = isFunction(action.delay)
     ? action.delay(ctx, event)
     : action.delay;
+  const resolvedTarget = isFunction(action.to)
+    ? action.to(ctx, event)
+    : action.to;
 
   return {
     ...action,
+    to: resolvedTarget,
     event: resolvedEvent,
     delay: resolvedDelay
   };

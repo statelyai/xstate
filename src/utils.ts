@@ -426,7 +426,6 @@ export function updateContext<TContext, TEvent extends EventObject>(
         return Object.assign({}, acc, partialUpdate);
       }, context)
     : context;
-
   return updatedContext;
 }
 
@@ -485,3 +484,15 @@ export function isFunction(value: any): value is Function {
 export function isString(value: any): value is string {
   return typeof value === 'string';
 }
+
+// export function memoizedGetter<T, TP extends { prototype: object }>(
+//   o: TP,
+//   property: string,
+//   getter: () => T
+// ): void {
+//   Object.defineProperty(o.prototype, property, {
+//     get: getter,
+//     enumerable: false,
+//     configurable: false
+//   });
+// }

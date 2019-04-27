@@ -1151,8 +1151,7 @@ class StateNode<
       ? this.options.updater(currentState.context, eventObject, assignActions)
       : currentState.context;
 
-    const resolvedActions = nonEventActions.map(action => {
-      const actionObject = toActionObject(action);
+    const resolvedActions = nonEventActions.map(actionObject => {
       if (actionObject.type === actionTypes.send) {
         const sendAction = resolveSend(
           actionObject as SendAction<TContext, TEvent>,
