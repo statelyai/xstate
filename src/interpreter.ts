@@ -15,7 +15,6 @@ import {
   SendActionObject,
   ServiceConfig,
   InvokeCallback,
-  Sender,
   DisposeActivityFunction,
   ErrorExecutionEvent,
   StateValue,
@@ -38,6 +37,7 @@ import {
   isString
 } from './utils';
 import { Scheduler } from './scheduler';
+import { Actor } from './Actor';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -113,11 +113,6 @@ export class SimulatedClock implements SimulatedClock {
   }
 }
 
-export interface Actor {
-  send: Sender<any>;
-  stop: (() => void) | void;
-}
-
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -168,7 +163,10 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
-  private children: Map<string | number, Actor> = new Map();
+  private children: Map<
+    string | number,
+    Actor<OmniEventObject<TEvent>>
+  > = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -769,7 +767,7 @@ export class Interpreter<
 
     if (options.subscribe) {
       childService.onTransition(state => {
-        this.send('xstate.update', { state }); // TODO: actionTypes
+        this.send('xstate.update', { state, id: childService.id }); // TODO: actionTypes
       });
     }
 
@@ -779,7 +777,7 @@ export class Interpreter<
       })
       .start();
 
-    this.children.set(childService.id, childService);
+    this.children.set(childService.id, childService as Actor<TEvent>);
 
     if (options.autoForward) {
       this.forwardTo.add(childService.id);
@@ -821,9 +819,13 @@ export class Interpreter<
       });
 
     this.children.set(id, {
+      id,
       send: () => void 0,
       stop: () => {
         canceled = true;
+      },
+      toJSON() {
+        return { id };
       }
     });
   }
@@ -874,8 +876,12 @@ export class Interpreter<
     }
 
     this.children.set(id, {
+      id,
       send: listener,
-      stop
+      stop,
+      toJSON() {
+        return { id };
+      }
     });
   }
   private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
@@ -901,8 +907,12 @@ export class Interpreter<
     dispose?: DisposeActivityFunction | void
   ): void {
     this.children.set(id, {
+      id,
       send: () => void 0,
-      stop: dispose
+      stop: dispose || undefined,
+      toJSON() {
+        return { id };
+      }
     });
   }
   private reportUnhandledExceptionOnInvocation(
@@ -945,19 +955,27 @@ export class Interpreter<
       this.devTools.init(this.state);
     }
   }
+  public toJSON() {
+    return {
+      id: this.id
+    };
+  }
 }
 
 export const spawnContext = {
   serviceStack: [] as Array<Interpreter<any, any>>
 };
 
-export function spawn(machine: StateMachine<any, any, any>, id?: string) {
+export function spawn<TContext, TEvent extends EventObject>(
+  machine: StateMachine<TContext, any, TEvent>,
+  id?: string
+): Actor<TEvent> | undefined {
   if (spawnContext.serviceStack.length) {
     const service =
       spawnContext.serviceStack[spawnContext.serviceStack.length - 1];
     const actor = service.spawn(machine, { id, subscribe: true });
 
-    return { id: actor.id, parent: service.id, send: actor.send };
+    return actor;
   }
 }
 

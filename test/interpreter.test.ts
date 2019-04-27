@@ -1033,7 +1033,7 @@ describe('interpreter', () => {
     });
   });
 
-  describe.only('spawning actors', () => {
+  describe('spawning actors', () => {
     const todoMachine = Machine({
       id: 'todo',
       initial: 'incomplete',

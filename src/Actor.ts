@@ -1,10 +1,10 @@
 import { EventObject } from './types';
-import { toEventObject } from './actions';
 
-export class Actor {
-  constructor(public id: string) {}
-  public send(event: string | EventObject) {
-    const eventObject = toEventObject(event);
-    console.log(eventObject);
-  }
+export interface Actor<TEvent extends EventObject = EventObject> {
+  id: string;
+  send: (event: TEvent) => void;
+  stop?: () => any | undefined;
+  toJSON: () => {
+    id: string;
+  };
 }

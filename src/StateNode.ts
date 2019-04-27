@@ -1919,13 +1919,19 @@ class StateNode<
       },
       {} as any
     );
+    const updateConfig = this.config.onUpdate
+      ? {
+          [ActionTypes.Update]: this.config.onUpdate
+        }
+      : undefined;
+
     const delayedTransitions = this.after;
 
     const formattedTransitions: TransitionsDefinition<
       TContext,
       TEvent
     > = mapValues(
-      { ...onConfig, ...doneConfig, ...invokeConfig },
+      { ...onConfig, ...doneConfig, ...invokeConfig, ...updateConfig },
       (value, event) => {
         if (value === undefined) {
           return [{ target: undefined, event, actions: [], internal: true }];
