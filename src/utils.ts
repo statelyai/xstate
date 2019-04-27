@@ -12,7 +12,9 @@ import {
   HistoryValue,
   OmniEventObject,
   AssignAction,
-  ActionObject
+  ActionObject,
+  Condition,
+  Guard
 } from './types';
 import { STATE_DELIMITER } from './constants';
 import { State } from './State';
@@ -496,3 +498,26 @@ export function isString(value: any): value is string {
 //     configurable: false
 //   });
 // }
+
+export function toGuard<TContext, TEvent extends EventObject>(
+  condition?: Condition<TContext, TEvent>
+): Guard<TContext, TEvent> | undefined {
+  if (!condition) {
+    return undefined;
+  }
+
+  if (isString(condition)) {
+    return {
+      type: condition
+    };
+  }
+
+  if (isFunction(condition)) {
+    return {
+      type: 'xstate.cond',
+      predicate: condition
+    };
+  }
+
+  return condition;
+}

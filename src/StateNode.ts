@@ -18,7 +18,8 @@ import {
   warn,
   isArray,
   isFunction,
-  isString
+  isString,
+  toGuard
 } from './utils';
 import {
   Event,
@@ -28,7 +29,6 @@ import {
   StateTransition,
   StateValueMap,
   MachineOptions,
-  Condition,
   ConditionPredicate,
   EventObject,
   HistoryStateNodeConfig,
@@ -405,6 +405,10 @@ class StateNode<
     };
   }
 
+  public toJSON() {
+    return this.definition;
+  }
+
   /**
    * The raw config used to create the machine.
    */
@@ -468,9 +472,7 @@ class StateNode<
         return {
           event,
           ...delayedTransition,
-          cond: delayedTransition.cond
-            ? this.toGuard(delayedTransition.cond)
-            : undefined,
+          cond: toGuard(delayedTransition.cond),
           actions: toArray(delayedTransition.actions).map(action =>
             toActionObject(action)
           )
@@ -503,7 +505,7 @@ class StateNode<
           event,
           delay,
           ...transition,
-          cond: transition.cond ? this.toGuard(transition.cond) : undefined,
+          cond: toGuard(transition.cond),
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
           )
@@ -967,25 +969,6 @@ class StateNode<
     condFn = guards[guard.type];
 
     return condFn(context, eventObject, guardMeta);
-  }
-
-  private toGuard(
-    condition: Condition<TContext, TEvent>
-  ): Guard<TContext, TEvent> {
-    if (isString(condition)) {
-      return {
-        type: condition
-      };
-    }
-
-    if (isFunction(condition)) {
-      return {
-        type: 'xstate.cond',
-        predicate: condition
-      };
-    }
-
-    return condition;
   }
 
   private getActions(
@@ -1840,28 +1823,6 @@ class StateNode<
     event: string
   ): TransitionDefinition<TContext, TEvent> {
     let internal = transitionConfig ? transitionConfig.internal : undefined;
-
-    // Check if there is no target (targetless)
-    // An undefined transition signals that the state node should not transition from that event.
-    if (target === undefined || target === TARGETLESS_KEY) {
-      return {
-        ...transitionConfig,
-        actions: transitionConfig
-          ? toArray(transitionConfig.actions).map(action =>
-              toActionObject(action)
-            )
-          : [],
-        cond: transitionConfig
-          ? transitionConfig.cond
-            ? this.toGuard(transitionConfig.cond)
-            : undefined
-          : undefined,
-        target: undefined,
-        internal: internal === undefined ? true : internal,
-        event
-      };
-    }
-
     const targets = toArray(target);
 
     // Format targets to their full string path
@@ -1883,18 +1844,36 @@ class StateNode<
       return isInternalTarget ? this.key + _target : `${_target}`;
     });
 
+    if (transitionConfig === undefined) {
+      return {
+        target: target === undefined ? target : formattedTargets,
+        actions: [],
+        internal: target === undefined ? true : internal,
+        event
+      };
+    }
+
+    // Check if there is no target (targetless)
+    // An undefined transition signals that the state node should not transition from that event.
+    if (target === undefined || target === TARGETLESS_KEY) {
+      return {
+        ...transitionConfig,
+        actions: toArray(transitionConfig.actions).map(action =>
+          toActionObject(action)
+        ),
+        cond: toGuard(transitionConfig.cond),
+        target: undefined,
+        internal: internal === undefined ? true : internal,
+        event
+      };
+    }
+
     return {
       ...transitionConfig,
-      actions: transitionConfig
-        ? toArray(transitionConfig.actions).map(action =>
-            toActionObject(action)
-          )
-        : [],
-      cond: transitionConfig
-        ? transitionConfig.cond
-          ? this.toGuard(transitionConfig.cond)
-          : undefined
-        : undefined,
+      actions: toArray(transitionConfig.actions).map(action =>
+        toActionObject(action)
+      ),
+      cond: toGuard(transitionConfig.cond),
       target: formattedTargets,
       internal,
       event
