@@ -1058,13 +1058,12 @@ class StateNode<
       eventObject
     );
 
-    const resolvedStateTransition: StateTransition<TContext, TEvent> = {
-      ...stateTransition,
-      tree: stateTransition.tree ? stateTransition.tree.resolved : undefined
-    };
+    if (stateTransition.tree) {
+      stateTransition.tree = stateTransition.tree.resolved;
+    }
 
     return this.resolveTransition(
-      resolvedStateTransition,
+      stateTransition,
       currentState,
       eventObject
     );
