@@ -113,6 +113,31 @@ export class SimulatedClock implements SimulatedClock {
   }
 }
 
+/**
+ * Maintains a stack of the current service in scope.
+ * This is used to provide the correct service to spawn().
+ *
+ * @private
+ */
+const withServiceScope = (() => {
+  const serviceStack = [] as Array<Interpreter<any, any>>;
+
+  return <T, TService extends Interpreter<any, any>>(
+    service: TService | undefined,
+    fn: (service: TService) => T
+  ) => {
+    service && serviceStack.push(service);
+
+    const result = fn(
+      service || (serviceStack[serviceStack.length - 1] as TService)
+    );
+
+    service && serviceStack.pop();
+
+    return result;
+  };
+})();
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -559,13 +584,13 @@ export class Interpreter<
       throw (eventObject as ErrorExecutionEvent).data;
     }
 
-    spawnContext.serviceStack.push(this);
-    const nextState = this.machine.transition(
-      this.state,
-      eventObject,
-      this.state.context
-    );
-    spawnContext.serviceStack.pop();
+    const nextState = withServiceScope(this, () => {
+      return this.machine.transition(
+        this.state,
+        eventObject,
+        this.state.context
+      );
+    });
 
     return nextState;
   }
@@ -962,21 +987,17 @@ export class Interpreter<
   }
 }
 
-export const spawnContext = {
-  serviceStack: [] as Array<Interpreter<any, any>>
-};
-
 export function spawn<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   id?: string
 ): Actor<TEvent> | undefined {
-  if (spawnContext.serviceStack.length) {
-    const service =
-      spawnContext.serviceStack[spawnContext.serviceStack.length - 1];
-    const actor = service.spawn(machine, { id, subscribe: true });
+  return withServiceScope(undefined, service => {
+    if (service) {
+      const actor = service.spawn(machine, { id, subscribe: true });
 
-    return actor;
-  }
+      return actor;
+    }
+  });
 }
 
 /**
