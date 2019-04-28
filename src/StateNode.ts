@@ -1062,11 +1062,7 @@ class StateNode<
       stateTransition.tree = stateTransition.tree.resolved;
     }
 
-    return this.resolveTransition(
-      stateTransition,
-      currentState,
-      eventObject
-    );
+    return this.resolveTransition(stateTransition, currentState, eventObject);
   }
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
