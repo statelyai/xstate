@@ -7,7 +7,8 @@ import * as path from 'path';
 
 import { toMachine } from '../src/scxml';
 import { StateNode } from '../src/StateNode';
-import { interpret, SimulatedClock } from '../src/interpreter';
+import { interpret } from '../src/interpreter';
+import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
 // import { StateValue } from '../src/types';

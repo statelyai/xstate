@@ -1,4 +1,5 @@
-import { interpret, Interpreter, SimulatedClock } from '../src/interpreter';
+import { interpret, Interpreter } from '../src/interpreter';
+import { SimulatedClock } from '../src/SimulatedClock';
 import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import {

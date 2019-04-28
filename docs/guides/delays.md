@@ -274,7 +274,8 @@ For testing, the XState interpreter provides a `SimulatedClock`:
 
 ```js
 import { interpret } from 'xstate';
-import { SimulatedClock } from 'xstate/lib/interpreter';
+// import { SimulatedClock } from 'xstate/lib/interpreter'; // < 4.6.0
+import { SimulatedClock } from 'xstate/lib/SimulatedClock'; // >= 4.6.0
 
 const service = interpret(lightDelayMachine, {
   clock: new SimulatedClock()
