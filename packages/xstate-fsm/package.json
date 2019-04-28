@@ -30,7 +30,7 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
