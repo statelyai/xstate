@@ -827,22 +827,12 @@ class StateNode<
       }
     }
 
-    // targetless transition
-    if (selectedTransition && nextStateStrings.length === 0) {
-      const tree = state.value
-        ? this.machine.getStateTree(state.value)
-        : undefined;
+    if (nextStateStrings.length === 0) {
       return {
-        tree,
-        source: state,
-        reentryStates: undefined,
-        actions
-      };
-    }
-
-    if (!selectedTransition && nextStateStrings.length === 0) {
-      return {
-        tree: undefined,
+        tree: (selectedTransition // targetless transition
+          && state.value)
+            ? this.machine.getStateTree(state.value)
+            : undefined,
         source: state,
         reentryStates: undefined,
         actions
@@ -951,7 +941,7 @@ class StateNode<
 
     if (!guards[guard.type]) {
       throw new Error(
-        `Guard (condition) '${guard.type}' is not implemented on machine '${
+        `Guard '${guard.type}' is not implemented on machine '${
           this.machine.id
         }'.`
       );
