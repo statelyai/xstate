@@ -23,7 +23,7 @@
     "start": "npm run build",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,es,src,test}/**/*.ts",
     "ci": "npm run build && npm run compile:es && npm run compile:lib && npm run test",
-    "test": "npm run build:cjs && mocha --require ts-node/register test/**.ts test/**/*.test.ts && npm run test:packages",
+    "test": "npm run build:cjs && nyc mocha --require ts-node/register --require source-map-support/register --recursive test/**.ts test/**/*.test.ts && npm run test:packages",
     "test:packages": "mocha --require ts-node/register packages/**/test/*.test.ts && cd packages/xstate-react && npm test",
     "compile:lib": "tsc -p tsconfig.lib.json",
     "compile:es": "tsc -p tsconfig.es.json",
@@ -70,6 +70,7 @@
     "lerna": "^3.13.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mocha": "^3.5.3",
+    "nyc": "^14.0.0",
     "prettier": "^1.15.2",
     "rollup": "^1.4.0",
     "rollup-plugin-filesize": "^4.0.1",
@@ -79,6 +80,7 @@
     "rollup-plugin-uglify": "^6.0.0",
     "scion-core-test-framework": "^1.0.0",
     "scxml-test-framework": "^1.0.2",
+    "source-map-support": "^0.5.12",
     "ts-node": "^7.0.1",
     "tslint": "^5.11.0",
     "typedoc": "^0.12.0",
@@ -86,5 +88,21 @@
     "vuepress": "^0.14.10",
     "webpack-dev-middleware": "^3.6.0",
     "xml-js": "^1.6.8"
+  },
+  "nyc": {
+    "extension": [
+      ".ts"
+    ],
+    "include": [
+      "src/**/*.ts"
+    ],
+    "exclude": [
+      "**/*.d.ts*/"
+    ],
+    "reporter": [
+      "text",
+      "html"
+    ],
+    "all": true
   }
 }

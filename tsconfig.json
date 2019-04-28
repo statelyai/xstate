@@ -12,7 +12,8 @@
     "experimentalDecorators": true,
     "jsx": "react",
     "lib": ["es6", "dom"],
-    "types": ["mocha", "node", "core-js"]
+    "types": ["mocha", "node", "core-js"],
+    "sourceMap": true
   },
   "include": ["src/**/*"],
   "exclude": ["test/**/*", "examples/**/*", "editor/node_modules/**/*"]
