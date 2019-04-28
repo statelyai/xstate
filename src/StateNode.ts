@@ -1183,47 +1183,36 @@ class StateNode<
       return acc;
     }, {});
 
-    let nextState = resolvedStateValue
-      ? new State<TContext, TEvent>({
-          value: resolvedStateValue,
-          context: updatedContext,
-          event: eventObject || initEvent,
-          historyValue: historyValue
-            ? updateHistoryValue(historyValue, resolvedStateValue)
-            : undefined,
-          history: stateTransition.source ? currentState : undefined,
-          actions: resolvedActions,
-          activities,
-          meta,
-          events: raisedEvents as TEvent[],
-          tree: stateTransition.tree
-        })
-      : undefined;
+    const nextState = new State<TContext, TEvent>({
+      value: resolvedStateValue || currentState.value,
+      context: updatedContext,
+      event: eventObject || initEvent,
+      historyValue: resolvedStateValue
+        ? historyValue
+          ? updateHistoryValue(historyValue, resolvedStateValue)
+          : undefined
+        : currentState.historyValue,
+      history:
+        !resolvedStateValue || stateTransition.source
+          ? currentState
+          : undefined,
+      actions: resolvedStateValue ? resolvedActions : [],
+      activities: resolvedStateValue ? activities : currentState.activities,
+      meta: resolvedStateValue ? meta : currentState.meta,
+      events: resolvedStateValue ? (raisedEvents as TEvent[]) : [],
+      tree: resolvedStateValue ? stateTransition.tree : currentState.tree
+    });
 
-    if (!nextState) {
-      nextState = new State({
-        value: currentState.value,
-        context: updatedContext,
-        event: eventObject,
-        historyValue: currentState.historyValue,
-        history: currentState,
-        actions: [],
-        activities: currentState.activities,
-        meta: currentState.meta,
-        events: [],
-        tree: currentState.tree
-      });
-
-      // Unchanged state is changed if its context is changed
-      nextState.changed = !!assignActions.length;
-
-      return nextState;
-    }
+    nextState.changed = !!assignActions.length;
 
     // Dispose of penultimate histories to prevent memory leaks
     const { history } = nextState;
     if (history) {
       delete history.history;
+    }
+
+    if (!resolvedStateValue) {
+      return nextState;
     }
 
     let maybeNextState = nextState;
