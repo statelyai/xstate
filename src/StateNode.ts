@@ -829,8 +829,8 @@ class StateNode<
 
     if (nextStateStrings.length === 0) {
       return {
-        tree: (selectedTransition // targetless transition
-          && state.value)
+        tree:
+          selectedTransition && state.value // targetless transition
             ? this.machine.getStateTree(state.value)
             : undefined,
         source: state,
