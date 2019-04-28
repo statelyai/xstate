@@ -69,10 +69,6 @@ function getActionFunction<TContext, TEvent extends EventObject>(
     return undefined;
   }
 
-  if (isFunction(actionReference)) {
-    return actionReference;
-  }
-
   return actionReference;
 }
 

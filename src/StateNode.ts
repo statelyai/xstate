@@ -455,7 +455,7 @@ class StateNode<
 
     if (isArray(afterConfig)) {
       return afterConfig.map((delayedTransition, i) => {
-        const { delay } = delayedTransition;
+        const { delay, target } = delayedTransition;
         let delayRef: string | number;
 
         if (isFunction(delay)) {
@@ -473,6 +473,7 @@ class StateNode<
         return {
           event,
           ...delayedTransition,
+          target: target === undefined ? undefined : toArray(target),
           cond: toGuard(delayedTransition.cond),
           actions: toArray(delayedTransition.actions).map(action =>
             toActionObject(action)
@@ -497,7 +498,7 @@ class StateNode<
         this.onExit.push(cancel(event));
 
         if (isString(delayedTransition)) {
-          return [{ target: delayedTransition, delay, event, actions: [] }];
+          return [{ target: [delayedTransition], delay, event, actions: [] }];
         }
 
         const delayedTransitions = toArray(delayedTransition);
@@ -506,6 +507,10 @@ class StateNode<
           event,
           delay,
           ...transition,
+          target:
+            transition.target === undefined
+              ? transition.target
+              : toArray(transition.target),
           cond: toGuard(transition.cond),
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
@@ -720,9 +725,9 @@ class StateNode<
     }
 
     const allResolvedTrees = keys(transitionMap).map(key => {
-      const transition = transitionMap[key];
+      const { tree } = transitionMap[key];
       const subValue = path(this.path)(
-        transition.tree ? transition.tree.value : state.value || state.value
+        tree ? tree.value : state.value || state.value
       )[key];
 
       return new StateTree(this.getStateNode(key), subValue).absolute;
@@ -782,18 +787,19 @@ class StateNode<
     const candidates: Array<TransitionDefinition<TContext, TEvent>> = this.on[
       eventType
     ];
-    const actions: Array<ActionObject<TContext, TEvent>> = this._transient
-      ? [{ type: actionTypes.nullEvent }]
-      : [];
 
     if (!candidates || !candidates.length) {
       return {
         tree: undefined,
         source: state,
         reentryStates: undefined,
-        actions
+        actions: []
       };
     }
+
+    const actions: Array<ActionObject<TContext, TEvent>> = this._transient
+      ? [{ type: actionTypes.nullEvent }]
+      : [];
 
     let nextStateStrings: string[] = [];
     let selectedTransition: unknown;
@@ -820,14 +826,16 @@ class StateNode<
           this.evaluateGuard(cond, resolvedContext, eventObject, state)) &&
         isInState
       ) {
-        nextStateStrings = toArray(candidate.target);
+        if (candidate.target !== undefined) {
+          nextStateStrings = candidate.target;
+        }
         actions.push(...toArray(candidate.actions));
         selectedTransition = candidate;
         break;
       }
     }
 
-    if (nextStateStrings.length === 0) {
+    if (!nextStateStrings.length) {
       return {
         tree:
           selectedTransition && state.value // targetless transition
@@ -959,7 +967,7 @@ class StateNode<
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
           this.getStateTree(prevState.value),
-          transition.reentryStates ? transition.reentryStates : undefined
+          transition.reentryStates
         )
       : { entry: [], exit: [] };
     const doneEvents = transition.tree
@@ -1811,7 +1819,7 @@ class StateNode<
 
     if (transitionConfig === undefined) {
       return {
-        target: target === undefined ? target : formattedTargets,
+        target: target === undefined ? undefined : formattedTargets,
         actions: [],
         internal: target === undefined || internal,
         event

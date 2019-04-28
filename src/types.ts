@@ -787,6 +787,7 @@ export interface AssignAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
+  target: string[] | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   event: string;

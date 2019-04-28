@@ -29,7 +29,7 @@ describe('delayed transitions', () => {
   it('should resolve transitions', () => {
     assert.deepEqual(lightMachine.states.green.after, [
       {
-        target: 'yellow',
+        target: ['yellow'],
         delay: 1000,
         event: after(1000, 'light.green'),
         actions: []
@@ -37,7 +37,7 @@ describe('delayed transitions', () => {
     ]);
     assert.deepEqual(lightMachine.states.yellow.after, [
       {
-        target: 'red',
+        target: ['red'],
         cond: undefined,
         delay: 1000,
         event: after(1000, 'light.yellow'),
@@ -46,7 +46,7 @@ describe('delayed transitions', () => {
     ]);
     assert.deepEqual(lightMachine.states.red.after, [
       {
-        target: 'green',
+        target: ['green'],
         cond: undefined,
         delay: 1000,
         event: after(1000, 'light.red'),
