@@ -1,5 +1,6 @@
 import { assert } from 'chai';
 import { Machine, assign, interpret } from '../src/index';
+import { pure } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -694,5 +695,82 @@ describe('action meta', () => {
     );
 
     interpret(testMachine).start();
+  });
+});
+
+describe('purely defined actions', () => {
+  const dynamicMachine = Machine({
+    id: 'dynamic',
+    initial: 'idle',
+    context: {
+      items: [{ id: 1 }, { id: 2 }, { id: 3 }]
+    },
+    states: {
+      idle: {
+        on: {
+          SINGLE: {
+            actions: pure<any, any>((ctx, e) => {
+              console.log(ctx.items.length);
+              if (ctx.items.length > 0) {
+                return {
+                  type: 'SINGLE_EVENT',
+                  length: ctx.items.length,
+                  id: e.id
+                };
+              }
+            })
+          },
+          NONE: {
+            actions: pure<any, any>((ctx, e) => {
+              if (ctx.items.length > 5) {
+                return {
+                  type: 'SINGLE_EVENT',
+                  length: ctx.items.length,
+                  id: e.id
+                };
+              }
+            })
+          },
+          EACH: {
+            actions: pure<any, any>(ctx =>
+              ctx.items.map((item, index) => ({ type: 'EVENT', item, index }))
+            )
+          }
+        }
+      }
+    }
+  });
+
+  it('should allow for a purely defined dynamic action', () => {
+    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+      type: 'SINGLE',
+      id: 3
+    });
+
+    assert.deepEqual(nextState.actions, [
+      { type: 'SINGLE_EVENT', length: 3, id: 3 }
+    ]);
+  });
+
+  it('should allow for purely defined lack of actions', () => {
+    const nextState = dynamicMachine.transition(dynamicMachine.initialState, {
+      type: 'NONE',
+      id: 3
+    });
+
+    assert.deepEqual(nextState.actions, []);
+  });
+
+  it('should allow for purely defined dynamic actions', () => {
+    const nextState = dynamicMachine.transition(
+      dynamicMachine.initialState,
+      'EACH'
+    );
+
+    assert.deepEqual(nextState.actions, [
+      { type: 'EVENT', item: { id: 1 }, index: 0 },
+      { type: 'EVENT', item: { id: 2 }, index: 1 },
+      { type: 'EVENT', item: { id: 3 }, index: 2 }
+    ]);
   });
 });

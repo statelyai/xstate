@@ -645,7 +645,8 @@ export enum ActionTypes {
   Invoke = 'xstate.invoke',
   ErrorExecution = 'error.execution',
   ErrorCommunication = 'error.communication',
-  Update = 'xstate.update'
+  Update = 'xstate.update',
+  Pure = 'xstate.pure'
 }
 
 export interface RaisedEvent<TEvent extends EventObject> {
@@ -777,12 +778,23 @@ export type Updater<
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Assign;
   assignment: any;
 }
 
 export interface AssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Assign;
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+}
+
+export interface PureAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Pure;
+  get: (
+    context: TContext,
+    event: OmniEventObject<TEvent>
+  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

@@ -59,7 +59,8 @@ import {
   Guard,
   GuardPredicate,
   GuardMeta,
-  MachineConfig
+  MachineConfig,
+  PureAction
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1001,10 +1002,10 @@ class StateNode<
       )
     ];
 
-    const actions = exitActions
-      .concat(transition.actions)
-      .concat(entryActions)
-      .map(action => toActionObject(action, this.machine.options.actions));
+    const actions = toActionObjects(
+      exitActions.concat(transition.actions).concat(entryActions),
+      this.machine.options.actions
+    );
 
     return actions;
   }
@@ -1118,47 +1119,58 @@ class StateNode<
       ? this.options.updater(currentState.context, eventObject, assignActions)
       : currentState.context;
 
-    const resolvedActions = nonEventActions.map(actionObject => {
-      if (actionObject.type === actionTypes.send) {
-        const sendAction = resolveSend(
-          actionObject as SendAction<TContext, TEvent>,
-          updatedContext,
-          eventObject || { type: ActionTypes.Init }
-        ); // TODO: fix ActionTypes.Init
+    const resolvedActions = flatten(
+      nonEventActions.map(actionObject => {
+        if (actionObject.type === actionTypes.send) {
+          const sendAction = resolveSend(
+            actionObject as SendAction<TContext, TEvent>,
+            updatedContext,
+            eventObject || { type: ActionTypes.Init }
+          ); // TODO: fix ActionTypes.Init
 
-        if (isString(sendAction.delay)) {
-          if (
-            !this.machine.options.delays ||
-            this.machine.options.delays[sendAction.delay] === undefined
-          ) {
-            if (!IS_PRODUCTION) {
-              warn(
-                false,
-                `No delay reference for delay expression '${
-                  sendAction.delay
-                }' was found on machine '${this.machine.id}'`
-              );
+          if (isString(sendAction.delay)) {
+            if (
+              !this.machine.options.delays ||
+              this.machine.options.delays[sendAction.delay] === undefined
+            ) {
+              if (!IS_PRODUCTION) {
+                warn(
+                  false,
+                  `No delay reference for delay expression '${
+                    sendAction.delay
+                  }' was found on machine '${this.machine.id}'`
+                );
+              }
+
+              // Do not send anything
+              return sendAction;
             }
 
-            // Do not send anything
-            return sendAction;
+            const delayExpr = this.machine.options.delays[sendAction.delay];
+            sendAction.delay =
+              typeof delayExpr === 'number'
+                ? delayExpr
+                : delayExpr(
+                    updatedContext,
+                    eventObject || { type: ActionTypes.Init }
+                  );
           }
 
-          const delayExpr = this.machine.options.delays[sendAction.delay];
-          sendAction.delay =
-            typeof delayExpr === 'number'
-              ? delayExpr
-              : delayExpr(
-                  updatedContext,
-                  eventObject || { type: ActionTypes.Init }
-                );
+          return sendAction;
         }
 
-        return sendAction;
-      }
+        if (actionObject.type === ActionTypes.Pure) {
+          return (
+            (actionObject as PureAction<TContext, TEvent>).get(
+              updatedContext,
+              eventObject
+            ) || []
+          );
+        }
 
-      return toActionObject(actionObject, this.options.actions);
-    });
+        return toActionObject(actionObject, this.options.actions);
+      })
+    );
 
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)

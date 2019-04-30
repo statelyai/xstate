@@ -23,7 +23,8 @@ import {
   DoneEventObject,
   SendExpr,
   SendActionObject,
-  OmniEventObject
+  OmniEventObject,
+  PureAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType, isFunction, isString } from './utils';
@@ -380,5 +381,17 @@ export function error(data: any, src: string): ErrorExecutionEvent {
     src,
     type: ActionTypes.ErrorExecution,
     data
+  };
+}
+
+export function pure<TContext, TEvent extends EventObject>(
+  getActions: ((
+    context: TContext,
+    event: OmniEventObject<TEvent>
+  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined)
+): PureAction<TContext, TEvent> {
+  return {
+    type: ActionTypes.Pure,
+    get: getActions
   };
 }
