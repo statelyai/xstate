@@ -1,5 +1,7 @@
 import { Machine, spawn, interpret } from '../src';
-import { doneInvoke, assign, send } from '../src/actions';
+import { assign, send, sendParent } from '../src/actions';
+import { Actor } from '../src/Actor';
+import { assert } from 'chai';
 
 describe('spawning actors', () => {
   const todoMachine = Machine({
@@ -9,20 +11,24 @@ describe('spawning actors', () => {
       incomplete: {
         on: { SET_COMPLETE: 'complete' }
       },
-      complete: { type: 'final' }
+      complete: {
+        onEntry: sendParent({ type: 'TODO_COMPLETED' })
+      }
     }
   });
 
-  const todosMachine = Machine({
+  const context = {
+    todoRefs: {} as Record<string, Actor>
+  };
+
+  const todosMachine = Machine<typeof context>({
     id: 'todos',
-    context: {
-      todoRefs: {}
-    },
+    context,
     initial: 'active',
     states: {
       active: {
         on: {
-          [doneInvoke('42')]: 'success'
+          TODO_COMPLETED: 'success'
         }
       },
       success: {
@@ -34,13 +40,15 @@ describe('spawning actors', () => {
         actions: assign({
           todoRefs: (ctx, e) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(todoMachine, e.id)
+            [e.id]: spawn(todoMachine)
           })
         })
       },
       SET_COMPLETE: {
         actions: send('SET_COMPLETE', {
-          to: (_, e) => e.id as string
+          to: (ctx, e) => {
+            return ctx.todoRefs[e.id as string];
+          }
         })
       }
     }
@@ -48,12 +56,16 @@ describe('spawning actors', () => {
 
   it('should invoke actors', done => {
     const service = interpret(todosMachine)
-      .start()
       .onDone(() => {
         done();
-      });
+      })
+      .start();
 
     service.send('ADD', { id: 42 });
     service.send('SET_COMPLETE', { id: 42 });
+  });
+
+  it('should not invoke actors spawned outside of a service', () => {
+    assert.isUndefined(spawn(todoMachine));
   });
 });

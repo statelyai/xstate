@@ -8,3 +8,11 @@ export interface Actor<TEvent extends EventObject = EventObject> {
     id: string;
   };
 }
+
+export function isActor(item: any): item is Actor {
+  try {
+    return typeof item.send === 'function';
+  } catch (e) {
+    return false;
+  }
+}

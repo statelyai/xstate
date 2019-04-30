@@ -37,7 +37,7 @@ import {
   isString
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor } from './Actor';
+import { Actor, isActor } from './Actor';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -487,9 +487,16 @@ export class Interpreter<
     return sender.bind(this);
   }
 
-  public sendTo = (event: OmniEventObject<TEvent>, to: string | number) => {
+  public sendTo = (
+    event: OmniEventObject<TEvent>,
+    to: string | number | Actor
+  ) => {
     const isParent = to === SpecialTargets.Parent;
-    const target = isParent ? this.parent : this.children.get(to);
+    const target = isParent
+      ? this.parent
+      : isActor(to)
+      ? to
+      : this.children.get(to);
 
     if (!target) {
       if (!isParent) {
@@ -933,12 +940,20 @@ export class Interpreter<
 }
 
 export function spawn<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>,
-  id?: string
+  machine: StateMachine<TContext, any, TEvent>
 ): Actor<TEvent> | undefined {
   return withServiceScope(undefined, service => {
+    if (!IS_PRODUCTION) {
+      warn(
+        !!service,
+        `Attempted to spawn an Actor (ID: "${
+          machine.id
+        }") outside of a service. This will have no effect.`
+      );
+    }
+
     if (service) {
-      const actor = service.spawn(machine, { id, subscribe: true });
+      const actor = service.spawn(machine, { subscribe: true });
 
       return actor;
     }

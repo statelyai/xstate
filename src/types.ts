@@ -2,6 +2,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { StateTree } from './StateTree';
 import { Interpreter, Clock } from './interpreter';
+import { Actor } from './Actor';
 
 export type EventType = string;
 export type ActionType = string;
@@ -702,7 +703,12 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
 
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
-  to: string | number | Expr<TContext, TEvent, string | number> | undefined;
+  to:
+    | string
+    | number
+    | Actor
+    | Expr<TContext, TEvent, string | number | Actor>
+    | undefined;
   event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
   delay?: number | string | Expr<TContext, TEvent, number>;
   id: string | number;
@@ -710,7 +716,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
 
 export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
-  to: string | number | undefined;
+  to: string | number | Actor | undefined;
   event: TEvent;
   delay?: number | string;
   id: string | number;
@@ -734,7 +740,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | Expr<TContext, TEvent, number>;
-  to?: string | Expr<TContext, TEvent, string | number>;
+  to?: string | Expr<TContext, TEvent, string | number | Actor>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {
