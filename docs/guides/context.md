@@ -185,11 +185,11 @@ const counterMachine = Machine({
   states: {
     active: {
       on: {
-        INC: {
+        INC_TWICE: {
           actions: [
             context => console.log(`Before: ${context.count}`),
-            assign({ count: context => context + 1 }), // count === 1
-            assign({ count: context => context + 1 }), // count === 2
+            assign({ count: context => context.count + 1 }), // count === 1
+            assign({ count: context => context.count + 1 }), // count === 2
             context => console.log(`After: ${context.count}`)
           ]
         }
@@ -198,14 +198,14 @@ const counterMachine = Machine({
   }
 });
 
-interpret(counterMachine).send('INC');
+interpret(counterMachine).send('INC_TWICE');
 // => "Before: 2"
 // => "After: 2"
 ```
 
-This is because both `assign(...)` actions are batched in order, so the next state `context` is `{ count: 2 }`, which is passed to both custom actions. Another way of thinking about this transition is reading it like:
+This is because both `assign(...)` actions are batched in order and executed first (in the microstep), so the next state `context` is `{ count: 2 }`, which is passed to both custom actions. Another way of thinking about this transition is reading it like:
 
-> When in the `active` state and the `INC` event occurs, the next state is the `active` state with `context.count` updated, and these custom actions are executed on that state.
+> When in the `active` state and the `INC_TWICE` event occurs, the next state is the `active` state with `context.count` updated, and _then_ these custom actions are executed on that state.
 
 A good way to refactor this to get the desired result is modeling the `context` with explicit _previous_ values, if those are needed:
 
@@ -217,11 +217,11 @@ const counterMachine = Machine({
   states: {
     active: {
       on: {
-        INC: {
+        INC_TWICE: {
           actions: [
             context => console.log(`Before: ${context.prevCount}`),
             assign({
-              count: context => context + 1,
+              count: context => context.count + 1,
               prevCount: context => context.count
             }), // count === 1, prevCount === 0
             assign({ count: context => context + 1 }), // count === 2
@@ -233,7 +233,7 @@ const counterMachine = Machine({
   }
 });
 
-interpret(counterMachine).send('INC');
+interpret(counterMachine).send('INC_TWICE');
 // => "Before: 0"
 // => "After: 2"
 ```
