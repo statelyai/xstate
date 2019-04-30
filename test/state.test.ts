@@ -270,4 +270,22 @@ describe('State', () => {
       assert.deepEqual(initialState.event, initEvent);
     });
   });
+
+  describe('State.prototype.matches', () => {
+    it('should keep reference to state instance after destcurting', () => {
+      const { initialState } = machine;
+      const { matches } = initialState;
+
+      assert.isTrue(matches('one'));
+    });
+  });
+
+  describe('State.prototype.toStrings', () => {
+    it('should keep reference to state instance after destcurting', () => {
+      const { initialState } = machine;
+      const { toStrings } = initialState;
+
+      assert.deepEqual(toStrings(), ['one']);
+    });
+  });
 });
