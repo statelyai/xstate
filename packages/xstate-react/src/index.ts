@@ -52,19 +52,14 @@ export function useMachine<TContext, TEvent extends EventObject>(
         setCurrent(state);
       }
     });
+    // Start the service as soon as it's created
+    serviceRef.current.start();
   }
 
   const service = serviceRef.current;
 
-  useEffect(() => {
-    // Start the service when the component mounts
-    service.start();
-
-    return () => {
-      // Stop the service when the component unmounts
-      service.stop();
-    };
-  }, []);
+  // Stop the service when the component unmounts
+  useEffect(() => () => service.stop(), []);
 
   return [current, service.send, service];
 }
