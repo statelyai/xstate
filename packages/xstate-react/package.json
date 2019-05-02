@@ -50,6 +50,7 @@
     "react": "^16.8.4",
     "react-dom": "^16.8.4",
     "react-testing-library": "^6.0.1",
-    "ts-jest": "^24.0.0"
+    "ts-jest": "^24.0.0",
+    "xstate": "^4.5.0"
   }
 }
