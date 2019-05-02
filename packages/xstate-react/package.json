@@ -35,9 +35,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "react": "^16.8.0"
-  },
-  "dependencies": {
+    "react": "^16.8.0",
     "xstate": "^4.5.0"
   },
   "devDependencies": {
