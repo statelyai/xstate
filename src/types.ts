@@ -187,6 +187,7 @@ export type InvokeCreator<TFinalContext, TContext> = (
 ) =>
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
+  | Subscribable<any>
   | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
@@ -1007,4 +1008,16 @@ export namespace SCXML {
      */
     $$type: 'scxml';
   }
+}
+
+// Taken from RxJS
+export interface Unsubscribable {
+  unsubscribe(): any | void;
+}
+export interface Subscribable<T> {
+  subscribe(
+    next?: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Unsubscribable;
 }

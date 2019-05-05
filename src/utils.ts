@@ -14,7 +14,8 @@ import {
   AssignAction,
   ActionObject,
   Condition,
-  Guard
+  Guard,
+  Subscribable
 } from './types';
 import { STATE_DELIMITER } from './constants';
 import { State } from './State';
@@ -520,4 +521,14 @@ export function toGuard<TContext, TEvent extends EventObject>(
   }
 
   return condition;
+}
+
+export function isObservable<T>(
+  value: Subscribable<T> | any
+): value is Subscribable<T> {
+  try {
+    return 'subscribe' in value && isFunction(value.subscribe);
+  } catch (e) {
+    return false;
+  }
 }

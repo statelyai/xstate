@@ -9,6 +9,8 @@ import {
 } from '../src/index';
 import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
+import { interval } from 'rxjs';
+import { map, take } from 'rxjs/operators';
 
 const user = { name: 'David' };
 
@@ -533,9 +535,9 @@ describe('invoke', () => {
         function createThenable(promise: Promise<any>): PromiseLike<any> {
           return {
             then(onfulfilled, onrejected) {
-              return createThenable(promise.then(onfulfilled, onrejected))
+              return createThenable(promise.then(onfulfilled, onrejected));
             }
-          }
+          };
         }
         return createThenable(new Promise(executor));
       }
@@ -543,7 +545,7 @@ describe('invoke', () => {
   ];
 
   promiseTypes.forEach(({ type, createPromise }) => {
-    describe(`with ${type}`, () => {
+    describe(`with promises (${type})`, () => {
       const invokePromiseMachine = Machine({
         id: 'invokePromise',
         initial: 'pending',
@@ -1361,6 +1363,126 @@ describe('invoke', () => {
 
         service.send('STOPCHILD');
       });
+    });
+  });
+
+  describe('with observables', () => {
+    const infinite$ = interval(100);
+
+    it('should work with an infinite observable', done => {
+      const obsMachine = Machine<{ count: number | undefined }>({
+        id: 'obs',
+        initial: 'counting',
+        context: { count: undefined },
+        states: {
+          counting: {
+            invoke: {
+              src: () =>
+                infinite$.pipe(
+                  map(value => {
+                    return { type: 'COUNT', value };
+                  })
+                )
+            },
+            on: {
+              '': {
+                target: 'counted',
+                cond: ctx => ctx.count === 5
+              },
+              COUNT: { actions: assign({ count: (_, e) => e.value }) }
+            }
+          },
+          counted: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(obsMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('should work with a finite observable', done => {
+      const obsMachine = Machine<{ count: number | undefined }>({
+        id: 'obs',
+        initial: 'counting',
+        context: { count: undefined },
+        states: {
+          counting: {
+            invoke: {
+              src: () =>
+                infinite$.pipe(
+                  take(5),
+                  map(value => {
+                    return { type: 'COUNT', value };
+                  })
+                ),
+              onDone: {
+                target: 'counted',
+                cond: ctx => ctx.count === 4
+              }
+            },
+            on: {
+              COUNT: { actions: assign({ count: (_, e) => e.value }) }
+            }
+          },
+          counted: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(obsMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('should receive an emitted error', done => {
+      const obsMachine = Machine<{ count: number | undefined }>({
+        id: 'obs',
+        initial: 'counting',
+        context: { count: undefined },
+        states: {
+          counting: {
+            invoke: {
+              src: () =>
+                infinite$.pipe(
+                  map(value => {
+                    if (value === 5) {
+                      throw new Error('some error');
+                    }
+
+                    return { type: 'COUNT', value };
+                  })
+                ),
+              onError: {
+                target: 'success',
+                cond: (ctx, e) => {
+                  assert.equal(e.data.message, 'some error');
+                  return ctx.count === 4 && e.data.message === 'some error';
+                }
+              }
+            },
+            on: {
+              COUNT: { actions: assign({ count: (_, e) => e.value }) }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(obsMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
     });
   });
 

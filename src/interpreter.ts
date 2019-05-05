@@ -20,7 +20,8 @@ import {
   StateValue,
   InterpreterOptions,
   ActivityDefinition,
-  SingleOrArray
+  SingleOrArray,
+  Subscribable
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -34,10 +35,12 @@ import {
   keys,
   isArray,
   isFunction,
-  isString
+  isString,
+  isObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
+import { StateNode } from '.';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -674,7 +677,9 @@ export class Interpreter<
             this.spawnPromise(id, Promise.resolve(source));
           } else if (isFunction(source)) {
             this.spawnCallback(id, source);
-          } else if (typeof source !== 'string') {
+          } else if (isObservable<TEvent>(source)) {
+            this.spawnObservable(id, source);
+          } else if (source instanceof StateNode) {
             // TODO: try/catch here
             this.spawn(
               data
@@ -778,9 +783,7 @@ export class Interpreter<
             // Send "error.execution" to this (parent).
             this.send(errorEvent);
           } catch (error) {
-            if (!IS_PRODUCTION) {
-              this.reportUnhandledExceptionOnInvocation(errorData, error, id);
-            }
+            this.reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
             }
@@ -848,14 +851,39 @@ export class Interpreter<
           }
         });
       }
-    } catch (e) {
-      this.send(error(e, id));
+    } catch (err) {
+      this.send(error(err, id));
     }
 
     this.children.set(id, {
       id,
       send: listener,
       stop,
+      toJSON() {
+        return { id };
+      }
+    });
+  }
+  private spawnObservable<T extends TEvent>(
+    id: string,
+    source: Subscribable<T>
+  ): any {
+    const subscription = source.subscribe(
+      value => {
+        this.send(value);
+      },
+      err => {
+        this.send(error(err, id));
+      },
+      () => {
+        this.send(doneInvoke(id));
+      }
+    );
+
+    this.children.set(id, {
+      id,
+      send: () => void 0,
+      stop: () => subscription.unsubscribe && subscription.unsubscribe(),
       toJSON() {
         return { id };
       }
@@ -897,23 +925,25 @@ export class Interpreter<
     currentError: any,
     id: string
   ) {
-    const originalStackTrace = originalError.stack
-      ? ` Stacktrace was '${originalError.stack}'`
-      : '';
-    if (originalError === currentError) {
-      // tslint:disable-next-line:no-console
-      console.error(
-        `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
-      );
-    } else {
-      const stackTrace = currentError.stack
-        ? ` Stacktrace was '${currentError.stack}'`
+    if (!IS_PRODUCTION) {
+      const originalStackTrace = originalError.stack
+        ? ` Stacktrace was '${originalError.stack}'`
         : '';
-      // tslint:disable-next-line:no-console
-      console.error(
-        `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
-          `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
-      );
+      if (originalError === currentError) {
+        // tslint:disable-next-line:no-console
+        console.error(
+          `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
+        );
+      } else {
+        const stackTrace = currentError.stack
+          ? ` Stacktrace was '${currentError.stack}'`
+          : '';
+        // tslint:disable-next-line:no-console
+        console.error(
+          `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
+            `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
+        );
+      }
     }
   }
   private attachDev() {

@@ -774,6 +774,39 @@ describe('interpreter', () => {
 
       service.send('EVENT', { id: 42 });
     });
+
+    it('should receive and process all events sent simultaneously', done => {
+      const toggleMachine = Machine({
+        id: 'toggle',
+        initial: 'inactive',
+        states: {
+          fail: {},
+          inactive: {
+            on: {
+              INACTIVATE: 'fail',
+              ACTIVATE: 'active'
+            }
+          },
+          active: {
+            on: {
+              INACTIVATE: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const toggleService = interpret(toggleMachine)
+        .onDone(() => {
+          done();
+        })
+        .start();
+
+      toggleService.send('ACTIVATE');
+      toggleService.send('INACTIVATE');
+    });
   });
 
   describe('start()', () => {

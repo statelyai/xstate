@@ -79,6 +79,7 @@
     "rollup-plugin-terser": "^4.0.4",
     "rollup-plugin-typescript2": "^0.16.1",
     "rollup-plugin-uglify": "^6.0.0",
+    "rxjs": "^6.5.1",
     "scion-core-test-framework": "^1.0.0",
     "scxml-test-framework": "^1.0.2",
     "source-map-support": "^0.5.12",
