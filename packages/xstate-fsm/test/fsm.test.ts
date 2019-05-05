@@ -13,7 +13,7 @@ describe('@xstate/fsm', () => {
           assign({ count: ctx => ctx.count + 1 }),
           assign({ count: ctx => ctx.count + 1 }),
           assign({ foo: 'static' }),
-          assign({ foo: ctx => ctx.foo + 'static' })
+          assign({ foo: ctx => ctx.foo + '++' })
         ],
         on: {
           TIMER: {
@@ -39,7 +39,10 @@ describe('@xstate/fsm', () => {
       'g-y 1',
       'g-y 2'
     ]);
-    assert.deepEqual(nextState.context, {});
+    assert.deepEqual(nextState.context, {
+      count: 2,
+      foo: 'static++'
+    });
   });
 
   it('should stay on the same state for undefined transitions', () => {
