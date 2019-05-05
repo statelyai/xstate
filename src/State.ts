@@ -178,6 +178,8 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       value: config.tree,
       enumerable: false
     });
+    this.matches = this.matches.bind(this);
+    this.toStrings = this.toStrings.bind(this);
   }
 
   /**
