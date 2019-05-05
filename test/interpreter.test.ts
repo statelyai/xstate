@@ -64,7 +64,7 @@ describe('interpreter', () => {
   it('.initialState returns the initial state', () => {
     const service = interpret(idMachine);
 
-    assert.deepEqual(service.initialState, idMachine.initialState);
+    assert.deepEqual(service.initialState.value, idMachine.initialState.value);
   });
 
   describe('.nextState() method', () => {
@@ -827,7 +827,7 @@ describe('interpreter', () => {
     it('should initialize the service', done => {
       const startService = interpret(startMachine).onTransition(state => {
         assert.isDefined(state);
-        assert.deepEqual(state, startMachine.initialState);
+        assert.deepEqual(state.value, startMachine.initialState.value);
         done();
       });
 

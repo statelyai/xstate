@@ -208,6 +208,11 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
+  /**
+   * The raw config used to create the machine.
+   */
+  public config: StateNodeConfig<TContext, TStateSchema, TEvent>;
+
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
@@ -217,19 +222,21 @@ class StateNode<
   private idMap: Record<string, StateNode<TContext>> = {};
 
   constructor(
-    private _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
+    _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
     options?: Partial<MachineOptions<TContext, TEvent>>,
     /**
      * The initial extended state
      */
     public context?: Readonly<TContext>
   ) {
+    const { parent, ...config } = _config;
+    this.config = config;
+    this.parent = parent;
     this.options = {
       ...createDefaultOptions<TContext>(),
       ...options
     };
     this.key = _config.key || _config.id || '(machine)';
-    this.parent = _config.parent;
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.delimiter =
@@ -409,15 +416,6 @@ class StateNode<
 
   public toJSON() {
     return this.definition;
-  }
-
-  /**
-   * The raw config used to create the machine.
-   */
-  public get config(): StateNodeConfig<TContext, TStateSchema, TEvent> {
-    const { parent, ...config } = this._config;
-
-    return config;
   }
 
   /**

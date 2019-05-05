@@ -1367,7 +1367,7 @@ describe('invoke', () => {
   });
 
   describe('with observables', () => {
-    const infinite$ = interval(100);
+    const infinite$ = interval(10);
 
     it('should work with an infinite observable', done => {
       const obsMachine = Machine<{ count: number | undefined }>({
