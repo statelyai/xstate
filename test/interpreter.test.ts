@@ -718,6 +718,40 @@ describe('interpreter', () => {
 
       countService.send(['INC', 'INC', { type: 'INC' }, 'INC']);
     });
+
+    it('state changed property should be true if any intermediate state is changed', done => {
+      let transitions = 0;
+
+      const countService = interpret(countMachine)
+        .onTransition(state => {
+          transitions++;
+
+          if (transitions === 2) {
+            assert.isTrue(state.changed);
+            done();
+          }
+        })
+        .start();
+
+      countService.send(['INC', 'bar']);
+    });
+
+    it('state changed property should be false if no intermediate state is changed', done => {
+      let transitions = 0;
+
+      const countService = interpret(countMachine)
+        .onTransition(state => {
+          transitions++;
+
+          if (transitions === 2) {
+            assert.isFalse(state.changed);
+            done();
+          }
+        })
+        .start();
+
+      countService.send(['foo', 'bar']);
+    });
   });
 
   describe('send()', () => {

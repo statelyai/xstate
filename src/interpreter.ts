@@ -460,12 +460,14 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       for (const event of events) {
+        const { changed } = nextState;
         const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
         const actions = nextState.actions.map(a =>
           bindActionToState(a, nextState)
         );
         nextState = this.machine.transition(nextState, eventObject);
         nextState.actions.unshift(...actions);
+        nextState.changed = nextState.changed || !!changed;
 
         this.forward(eventObject);
       }
