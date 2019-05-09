@@ -94,11 +94,11 @@ const intervalMachine = Machine({
       invoke: {
         id: 'intervalService',
         src: ctx => cb => {
-          const interval = setInterval(() => {
+          const ivl = setInterval(() => {
             cb('INC');
           }, ctx.interval);
 
-          return () => clearInterval(interval);
+          return () => clearInterval(ivl);
         }
       },
       on: {
@@ -236,14 +236,18 @@ describe('invoke', () => {
       }
     );
 
+    let state: any;
     const service = interpret(someParentMachine)
+      .onTransition(s => {
+        state = s;
+      })
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
         // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (forward: true)
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
-        assert.deepEqual(service.state.context, { count: -3 });
+        assert.deepEqual(state.context, { count: -3 });
       })
       .start();
 
@@ -739,9 +743,13 @@ describe('invoke', () => {
           }
         });
 
-        const service = interpret(promiseMachine)
+        let state: any;
+        interpret(promiseMachine)
+          .onTransition(s => {
+            state = s;
+          })
           .onDone(() => {
-            assert.equal(service.state.context.count, 1);
+            assert.equal(state.context.count, 1);
             done();
           })
           .start();
@@ -775,9 +783,13 @@ describe('invoke', () => {
           }
         );
 
-        const service = interpret(promiseMachine)
+        let state: any;
+        interpret(promiseMachine)
+          .onTransition(s => {
+            state = s;
+          })
           .onDone(() => {
-            assert.equal(service.state.context.count, 1);
+            assert.equal(state.context.count, 1);
             done();
           })
           .start();
@@ -1081,12 +1093,16 @@ describe('invoke', () => {
     });
 
     it('should dispose of the callback (if disposal function provided)', done => {
+      let state: any;
       const service = interpret(intervalMachine)
+        .onTransition(s => {
+          state = s;
+        })
         .onDone(() => {
           // if intervalService isn't disposed after skipping, 'INC' event will
           // keep being sent
           assert.equal(
-            service.state.context.count,
+            state.context.count,
             0,
             'should exit interval service before the first event is sent'
           );
@@ -1346,7 +1362,11 @@ describe('invoke', () => {
 
       it('ends on the completed state', done => {
         const events: EventObject[] = [];
+        let state: any;
         const service = interpret(anotherParentMachine)
+          .onTransition(s => {
+            state = s;
+          })
           .onEvent(e => {
             events.push(e);
           })
@@ -1356,7 +1376,7 @@ describe('invoke', () => {
               'STOPCHILD',
               doneInvoke('invoked.child').type
             ]);
-            assert.equal(service.state.value, 'completed');
+            assert.equal(state.value, 'completed');
             done();
           })
           .start();
@@ -1586,10 +1606,15 @@ describe('invoke', () => {
     });
 
     it('should start all services at once', done => {
-      const service = interpret(multiple).onDone(() => {
-        assert.deepEqual(service.state.context, { one: 'one', two: 'two' });
-        done();
-      });
+      let state: any;
+      const service = interpret(multiple)
+        .onTransition(s => {
+          state = s;
+        })
+        .onDone(() => {
+          assert.deepEqual(state.context, { one: 'one', two: 'two' });
+          done();
+        });
 
       service.start();
     });
@@ -1645,10 +1670,15 @@ describe('invoke', () => {
     });
 
     it('should run services in parallel', done => {
-      const service = interpret(parallel).onDone(() => {
-        assert.deepEqual(service.state.context, { one: 'one', two: 'two' });
-        done();
-      });
+      let state: any;
+      const service = interpret(parallel)
+        .onTransition(s => {
+          state = s;
+        })
+        .onDone(() => {
+          assert.deepEqual(state.context, { one: 'one', two: 'two' });
+          done();
+        });
 
       service.start();
     });

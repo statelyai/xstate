@@ -69,13 +69,19 @@ describe('interpreter', () => {
 
   describe('.nextState() method', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
+      let state: any;
+
       const service = interpret(lightMachine, {
         clock: new SimulatedClock()
-      }).start();
+      })
+        .onTransition(s => {
+          state = s;
+        })
+        .start();
 
       const nextState = service.nextState('TIMER');
       assert.equal(nextState.value, 'yellow');
-      assert.equal(service.state.value, 'green');
+      assert.equal(state.value, 'green');
     });
   });
 
@@ -254,21 +260,26 @@ describe('interpreter', () => {
         }
       );
 
-      const service = interpret(letterMachine, { clock })
+      let state: any;
+
+      interpret(letterMachine, { clock })
+        .onTransition(s => {
+          state = s;
+        })
         .onDone(() => {
           done();
         })
         .start();
 
-      assert.equal(service.state.value, 'a');
+      assert.equal(state.value, 'a');
       clock.increment(100);
-      assert.equal(service.state.value, 'b');
+      assert.equal(state.value, 'b');
       clock.increment(100 + 50);
-      assert.equal(service.state.value, 'c');
+      assert.equal(state.value, 'c');
       clock.increment(20);
-      assert.equal(service.state.value, 'd');
+      assert.equal(state.value, 'd');
       clock.increment(100 + 200);
-      assert.equal(service.state.value, 'e');
+      assert.equal(state.value, 'e');
       clock.increment(100 + 50);
     });
   });
@@ -396,9 +407,14 @@ describe('interpreter', () => {
         'TOGGLE'
       );
       const bState = toggleMachine.transition(activeState, 'SWITCH');
-      const service = interpret(toggleMachine).start(bState);
+      let state: any;
+      interpret(toggleMachine)
+        .onTransition(s => {
+          state = s;
+        })
+        .start(bState);
 
-      assert.ok(service.state.activities.blink);
+      assert.ok(state.activities.blink);
       assert.isFalse(activityActive);
     });
   });
@@ -480,13 +496,18 @@ describe('interpreter', () => {
       }
     });
 
-    const deferService = interpret(deferMachine).onDone(() => done());
+    let state: any;
+    const deferService = interpret(deferMachine)
+      .onTransition(s => {
+        state = s;
+      })
+      .onDone(() => done());
 
     // uninitialized
     deferService.send('NEXT_A');
     deferService.send('NEXT_B');
 
-    assert.isUndefined(deferService.state);
+    assert.isUndefined(state);
 
     // initialized
     deferService.start();
@@ -799,9 +820,13 @@ describe('interpreter', () => {
     });
 
     it('can send events with a string and object payload', done => {
+      let state: any;
       const service = interpret(sendMachine)
+        .onTransition(s => {
+          state = s;
+        })
         .onDone(() => {
-          assert.deepEqual(service.state.event, { type: 'EVENT', id: 42 });
+          assert.deepEqual(state.event, { type: 'EVENT', id: 42 });
           done();
         })
         .start();
@@ -859,13 +884,15 @@ describe('interpreter', () => {
     });
 
     it('should initialize the service', done => {
-      const startService = interpret(startMachine).onTransition(state => {
-        assert.isDefined(state);
-        assert.deepEqual(state.value, startMachine.initialState.value);
+      let state: any;
+      const startService = interpret(startMachine).onTransition(s => {
+        state = s;
+        assert.isDefined(s);
+        assert.deepEqual(s.value, startMachine.initialState.value);
         done();
       });
 
-      assert.isUndefined(startService.state);
+      assert.isUndefined(state);
 
       startService.start();
     });
