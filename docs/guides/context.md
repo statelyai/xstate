@@ -171,6 +171,10 @@ Both the property updater and context updater function signatures above are give
 - `context` (TContext): the current context (extended state) of the machine
 - `event` (EventObject): the event that caused the `assign` action
 
+::: warning
+The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
+:::
+
 ## Action order
 
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).

@@ -119,7 +119,7 @@ When interpreting statecharts, the order of actions should not necessarily matte
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
 
 ::: warning
-The `send(...)` function is a pure function that only returns an action object and does _not_ imperatively send an event.
+The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
 :::
 
 ```js
