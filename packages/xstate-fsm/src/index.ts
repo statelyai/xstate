@@ -30,6 +30,7 @@ export namespace FSM {
   }
 }
 export interface FSMConfig<TContext, TEvent extends EventObject> {
+  id?: string;
   initial: string;
   context?: TContext;
   states: {
@@ -57,9 +58,12 @@ export function assign(assignment: any): ActionObject<any, any> {
   };
 }
 
-export function FSM<TContext, TEvent extends EventObject = EventObject>(
-  fsmConfig: FSMConfig<TContext, TEvent>
-) {
+export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+export function FSM<
+  TContext extends object,
+  TEvent extends EventObject = EventObject
+>(fsmConfig: FSMConfig<TContext, TEvent>) {
   return {
     initialState: {
       value: fsmConfig.initial,
@@ -67,17 +71,27 @@ export function FSM<TContext, TEvent extends EventObject = EventObject>(
       context: fsmConfig.context
     },
     transition: (
-      state: string | { value: string; context: any },
+      state: string | FSM.State<TContext, TEvent>,
       event: string | Record<string, any> & { type: string }
     ): FSM.State<TContext, TEvent> => {
       const { value, context } =
         typeof state === 'string'
-          ? { value: state, context: fsmConfig.context }
+          ? { value: state, context: fsmConfig.context! }
           : state;
       const eventObject = (typeof event === 'string'
         ? { type: event }
         : event) as TEvent;
       const stateConfig = fsmConfig.states[value];
+
+      if (!IS_PRODUCTION) {
+        if (!stateConfig) {
+          throw new Error(
+            `State '${value}' not found on machine${
+              fsmConfig.id ? ` '${fsmConfig.id}'` : ''
+            }.`
+          );
+        }
+      }
 
       if (stateConfig.on) {
         const transitions = ([] as Array<
@@ -113,7 +127,7 @@ export function FSM<TContext, TEvent extends EventObject = EventObject>(
               )
               .filter(action => {
                 if (action.type === 'xstate.assign') {
-                  let tmpContext = { ...nextContext };
+                  let tmpContext = Object.assign({}, nextContext);
 
                   if (typeof action.assignment === 'function') {
                     tmpContext = action.assignment(nextContext, eventObject);

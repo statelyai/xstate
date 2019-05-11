@@ -3,6 +3,7 @@ import { assert } from 'chai';
 
 describe('@xstate/fsm', () => {
   const lightFSM = FSM({
+    id: 'light',
     initial: 'green',
     context: { count: 0, foo: 'bar' },
     states: {
@@ -49,5 +50,11 @@ describe('@xstate/fsm', () => {
     const nextState = lightFSM.transition('green', 'FAKE');
     assert.deepEqual(nextState.value, 'green');
     assert.deepEqual(nextState.actions, []);
+  });
+
+  it('should throw an error for undefined states', () => {
+    assert.throws(() => {
+      lightFSM.transition('unknown', 'TIMER');
+    });
   });
 });
