@@ -95,7 +95,10 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject
-> {
+>
+  implements
+    Subscribable<State<TContext, TEvent>>,
+    Actor<OmniEventObject<TEvent>> {
   /**
    * The default interpreter options:
    *
