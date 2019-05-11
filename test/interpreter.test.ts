@@ -1126,4 +1126,69 @@ describe('interpreter', () => {
       }
     });
   });
+
+  describe('observable', () => {
+    const context = { count: 0 };
+    const intervalMachine = Machine<typeof context>({
+      id: 'interval',
+      context,
+      initial: 'active',
+      states: {
+        active: {
+          after: {
+            10: {
+              target: 'active',
+              actions: assign({ count: ctx => ctx.count + 1 })
+            }
+          },
+          on: {
+            '': {
+              target: 'finished',
+              cond: ctx => ctx.count >= 5
+            }
+          }
+        },
+        finished: {
+          type: 'final'
+        }
+      }
+    });
+
+    it('should be subscribable', done => {
+      let count: number;
+      const intervalService = interpret(intervalMachine).start();
+
+      intervalService.subscribe(
+        state => (count = state.context.count),
+        undefined,
+        () => {
+          assert.equal(count, 5);
+          done();
+        }
+      );
+    });
+
+    it('should be unsubscribable', done => {
+      let count: number;
+      const intervalService = interpret(intervalMachine).start();
+
+      const subscription = intervalService.subscribe(
+        state => (count = state.context.count),
+        undefined,
+        () => {
+          assert.equal(count, 5);
+          done();
+        }
+      );
+
+      setTimeout(() => {
+        subscription.unsubscribe();
+      }, 15);
+
+      setTimeout(() => {
+        assert.deepEqual(count, 1, 'count should not have advanced past 1');
+        done();
+      }, 500);
+    });
+  });
 });

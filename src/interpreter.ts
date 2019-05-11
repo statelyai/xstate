@@ -22,7 +22,8 @@ import {
   ActivityDefinition,
   SingleOrArray,
   Subscribable,
-  DoneEvent
+  DoneEvent,
+  Unsubscribable
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -255,6 +256,27 @@ export class Interpreter<
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.add(listener);
     return this;
+  }
+  public subscribe(
+    nextListener?: (state: State<TContext, TEvent>) => void,
+    // @ts-ignore
+    errorListener?: (error: any) => void,
+    completeListener?: () => void
+  ): Unsubscribable {
+    if (nextListener) {
+      this.onTransition(nextListener);
+    }
+
+    if (completeListener) {
+      this.onDone(completeListener);
+    }
+
+    return {
+      unsubscribe: () => {
+        nextListener && this.listeners.delete(nextListener);
+        completeListener && this.doneListeners.delete(completeListener);
+      }
+    };
   }
   /**
    * Adds an event listener that is notified whenever an event is sent to the running interpreter.
