@@ -13,10 +13,12 @@ const createConfig = ({ input, output, target = undefined }) => ({
     typescript({
       clean: true,
       tsconfigOverride: {
-        compilerOptions: {
-          declaration: false,
-          ...(target ? { target } : {})
-        }
+        compilerOptions: Object.assign(
+          {
+            declaration: false
+          },
+          target ? { target } : {}
+        )
       }
     }),
     terser({

@@ -23,7 +23,11 @@ describe('@xstate/fsm', () => {
           }
         }
       },
-      yellow: {}
+      yellow: {
+        on: {
+          INC: { actions: assign({ count: ctx => ctx.count + 1 }) }
+        }
+      }
     }
   });
   it('should have the correct initial state', () => {
@@ -56,5 +60,17 @@ describe('@xstate/fsm', () => {
     assert.throws(() => {
       lightFSM.transition('unknown', 'TIMER');
     });
+  });
+
+  it('should be changed if state changes', () => {
+    assert.isTrue(lightFSM.transition('green', 'TIMER').changed);
+  });
+
+  it('should be changed if any actions occur', () => {
+    assert.isTrue(lightFSM.transition('yellow', 'INC').changed);
+  });
+
+  it('should not be changed on unkonwn transitions', () => {
+    assert.isFalse(lightFSM.transition('yellow', 'UNKNOWN').changed);
   });
 });

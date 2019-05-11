@@ -27,6 +27,7 @@ export namespace FSM {
     value: string;
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
+    changed: boolean;
   }
 }
 export interface FSMConfig<TContext, TEvent extends EventObject> {
@@ -100,7 +101,7 @@ export function FSM<
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return { value, context, actions: [] };
+            return { value, context, actions: [], changed: false };
           }
 
           const { target, actions = [], cond = () => true } =
@@ -110,8 +111,11 @@ export function FSM<
 
           let nextContext = context;
 
-          if (target && cond(context, eventObject)) {
-            const nextStateConfig = fsmConfig.states[target];
+          if (cond(context, eventObject)) {
+            const nextStateConfig = target
+              ? fsmConfig.states[target]
+              : stateConfig;
+            let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(Boolean)
@@ -127,6 +131,7 @@ export function FSM<
               )
               .filter(action => {
                 if (action.type === 'xstate.assign') {
+                  assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
 
                   if (typeof action.assignment === 'function') {
@@ -145,17 +150,19 @@ export function FSM<
                 }
                 return true;
               });
+            const nextValue = target ? target : value;
             return {
-              value: target ? target : value,
+              value: nextValue,
               context: nextContext,
-              actions: allActions
+              actions: allActions,
+              changed: nextValue !== value || allActions.length > 0 || assigned
             };
           }
         }
       }
 
       // No transitions match
-      return { value, context, actions: [] };
+      return { value, context, actions: [], changed: false };
     }
   };
 }

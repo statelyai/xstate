@@ -30,6 +30,7 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
+    "build": "rollup -c",
     "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
   },
   "bugs": {
