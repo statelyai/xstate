@@ -1,0 +1,51 @@
+{
+  "name": "@xstate/scxml",
+  "version": "0.2.1",
+  "description": "XState SCXML utilities",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state machine"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-scxml#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "files": [
+    "lib"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
+    "build": "tsc",
+    "build:watch": "tsc -w",
+    "prepublish": "tsc && npm run test"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "dependencies": {
+    "xstate": "^4.5.0"
+  },
+  "devDependencies": {
+    "@babel/preset-typescript": "^7.3.3",
+    "@types/jest": "^24.0.11",
+    "@types/jsdom": "^12.2.3",
+    "@types/react": "^16.8.8",
+    "@types/react-dom": "^16.8.2",
+    "jest": "^24.5.0",
+    "jsdom": "^14.0.0",
+    "jsdom-global": "^3.0.2",
+    "react": "^16.8.4",
+    "react-dom": "^16.8.4",
+    "react-testing-library": "^6.0.1",
+    "ts-jest": "^24.0.0",
+    "ts-node": "^8.0.2",
+    "typescript": "^3.3.3"
+  }
+}
