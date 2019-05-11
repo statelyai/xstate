@@ -621,7 +621,6 @@ export interface StateTransition<TContext, TEvent extends EventObject> {
    * The source state that preceded the transition.
    */
   source: State<TContext> | undefined;
-  reentryStates: Set<StateNode<TContext>> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
 }
 

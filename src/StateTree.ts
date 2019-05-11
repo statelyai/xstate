@@ -26,25 +26,35 @@ const defaultStateTreeOptions = {
 };
 
 export class StateTree {
-  public parent?: StateTree | undefined;
+  public root: StateTree;
   public nodes: Record<string, StateTree>;
   public isResolved: boolean;
+  private reentryNodes: Set<StateNode> = new Set();
 
   constructor(
     public stateNode: StateNode,
     public stateValue: StateValue | undefined,
-    options: StateTreeOptions = defaultStateTreeOptions
+    options: StateTreeOptions = defaultStateTreeOptions,
+    public parent?: StateTree | undefined
   ) {
+    this.root = this.parent ? this.parent.root : this;
     this.nodes = stateValue
       ? isString(stateValue)
         ? {
             [stateValue]: new StateTree(
               stateNode.getStateNode(stateValue),
-              undefined
+              undefined,
+              undefined,
+              this
             )
           }
         : mapValues(stateValue, (subValue, key) => {
-            return new StateTree(stateNode.getStateNode(key), subValue);
+            return new StateTree(
+              stateNode.getStateNode(key),
+              subValue,
+              undefined,
+              this
+            );
           })
       : {};
 
@@ -141,9 +151,17 @@ export class StateTree {
   }
 
   public get resolved(): StateTree {
-    return new StateTree(this.stateNode, this.stateNode.resolve(this.value), {
-      resolved: true
-    });
+    const newStateTree = new StateTree(
+      this.stateNode,
+      this.stateNode.resolve(this.value),
+      {
+        resolved: true
+      }
+    );
+
+    newStateTree.reentryNodes = this.reentryNodes;
+
+    return newStateTree;
   }
 
   public get paths(): string[][] {
@@ -166,7 +184,12 @@ export class StateTree {
       }
     }
 
-    return new StateTree(this.stateNode.machine, absoluteStateValue);
+    const newStateTree = new StateTree(
+      this.stateNode.machine,
+      absoluteStateValue
+    );
+    newStateTree.reentryNodes = this.reentryNodes;
+    return newStateTree;
   }
 
   public get nextEvents(): EventType[] {
@@ -184,7 +207,13 @@ export class StateTree {
   }
 
   public clone(): StateTree {
-    return new StateTree(this.stateNode, this.value);
+    const newStateTree = new StateTree(
+      this.stateNode,
+      this.value,
+      undefined,
+      this.parent
+    );
+    return newStateTree;
   }
 
   public combine(tree: StateTree): StateTree {
@@ -192,13 +221,17 @@ export class StateTree {
       throw new Error('Cannot combine distinct trees');
     }
 
+    const newTree = this.clone();
+    tree.root.reentryNodes.forEach(reentryNode => {
+      newTree.root.addReentryNode(reentryNode);
+    });
+
     if (this.stateNode.type === 'compound') {
       // Only combine if no child state is defined
       let newValue: Record<string, StateTree>;
       if (!keys(this.nodes).length || !keys(tree.nodes).length) {
         newValue = Object.assign({}, this.nodes, tree.nodes);
 
-        const newTree = this.clone();
         newTree.nodes = newValue;
 
         return newTree;
@@ -209,7 +242,6 @@ export class StateTree {
           [childKey]: this.nodes[childKey].combine(tree.nodes[childKey])
         };
 
-        const newTree = this.clone();
         newTree.nodes = newValue;
         return newTree;
       }
@@ -228,7 +260,6 @@ export class StateTree {
         }
       }
 
-      const newTree = this.clone();
       newTree.nodes = newValue;
       return newTree;
     }
@@ -267,10 +298,8 @@ export class StateTree {
   public matches(parentValue: StateValue): boolean {
     return matchesState(parentValue, this.value);
   }
-  public getEntryExitStates(
-    prevTree: StateTree,
-    externalNodes?: Set<StateNode<any>>
-  ): EntryExitStateArrays<any> {
+  public getEntryExitStates(prevTree: StateTree): EntryExitStateArrays<any> {
+    const externalNodes = this.root.reentryNodes;
     if (prevTree.stateNode !== this.stateNode) {
       throw new Error('Cannot compare distinct trees');
     }
@@ -290,8 +319,7 @@ export class StateTree {
           compoundResult.entry = this.nodes[currentChildKey!].getEntryStates();
         } else {
           compoundResult = this.nodes[currentChildKey!].getEntryExitStates(
-            prevTree.nodes[prevChildKey!],
-            externalNodes
+            prevTree.nodes[prevChildKey!]
           );
         }
 
@@ -303,10 +331,7 @@ export class StateTree {
 
       case 'parallel':
         const all = keys(this.nodes).map(key => {
-          return this.nodes[key].getEntryExitStates(
-            prevTree.nodes[key],
-            externalNodes
-          );
+          return this.nodes[key].getEntryExitStates(prevTree.nodes[key]);
         });
 
         const parallelResult: EntryExitStateArrays<any> = {
@@ -365,5 +390,9 @@ export class StateTree {
         return this.nodes[key].getExitStates();
       })
     ).concat(this.stateNode);
+  }
+
+  public addReentryNode(reentryNode: StateNode): void {
+    this.root.reentryNodes.add(reentryNode);
   }
 }
