@@ -710,7 +710,6 @@ describe('purely defined actions', () => {
         on: {
           SINGLE: {
             actions: pure<any, any>((ctx, e) => {
-              console.log(ctx.items.length);
               if (ctx.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',

@@ -686,7 +686,8 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | { type: ActionTypes.NullEvent }
   | { type: ActionTypes.Init }
   | RaisedEvent<TEvent>
-  | ErrorExecutionEvent;
+  | ErrorExecutionEvent
+  | DoneEventObject;
 
 /**
  * Represents the specified events and the built-in internal events.

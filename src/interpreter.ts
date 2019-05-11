@@ -21,7 +21,8 @@ import {
   InterpreterOptions,
   ActivityDefinition,
   SingleOrArray,
-  Subscribable
+  Subscribable,
+  DoneEvent
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
@@ -52,7 +53,9 @@ export type ContextListener<TContext = DefaultContext> = (
   prevContext: TContext | undefined
 ) => void;
 
-export type EventListener = (event: EventObject) => void;
+export type EventListener<TEvent extends EventObject = EventObject> = (
+  event: TEvent
+) => void;
 
 export type Listener = () => void;
 
@@ -298,7 +301,7 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onDone(
-    listener: EventListener
+    listener: EventListener<DoneEvent>
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.doneListeners.add(listener);
     return this;
@@ -751,13 +754,13 @@ export class Interpreter<
 
     if (options.subscribe) {
       childService.onTransition(state => {
-        this.send('xstate.update', { state, id: childService.id }); // TODO: actionTypes
+        this.send(actionTypes.update, { state, id: childService.id }); // TODO: actionTypes
       });
     }
 
     childService
       .onDone(doneEvent => {
-        this.send(doneEvent as OmniEvent<TEvent>); // todo: fix
+        this.send(doneEvent);
       })
       .start();
 
