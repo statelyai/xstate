@@ -1252,41 +1252,45 @@ class StateNode<
   }
 
   private ensureValidPaths(paths: string[][]): void {
-    const visitedParents = new Map<
-      StateNode<TContext>,
-      Array<StateNode<TContext>>
-    >();
+    if (!IS_PRODUCTION) {
+      const visitedParents = new Map<
+        StateNode<TContext>,
+        Array<StateNode<TContext>>
+      >();
 
-    const stateNodes = flatten(
-      paths.map(_path => this.getRelativeStateNodes(_path))
-    );
+      const stateNodes = flatten(
+        paths.map(_path => this.getRelativeStateNodes(_path))
+      );
 
-    outer: for (const stateNode of stateNodes) {
-      let marker = stateNode;
+      outer: for (const stateNode of stateNodes) {
+        let marker = stateNode;
 
-      while (marker.parent) {
-        if (visitedParents.has(marker.parent)) {
-          if (marker.parent.type === 'parallel') {
-            continue outer;
+        while (marker.parent) {
+          if (visitedParents.has(marker.parent)) {
+            if (marker.parent.type === 'parallel') {
+              continue outer;
+            }
+
+            throw new Error(
+              `State node '${stateNode.id}' shares parent '${
+                marker.parent.id
+              }' with state node '${visitedParents
+                .get(marker.parent)!
+                .map(a => a.id)}'`
+            );
           }
 
-          throw new Error(
-            `State node '${stateNode.id}' shares parent '${
-              marker.parent.id
-            }' with state node '${visitedParents
-              .get(marker.parent)!
-              .map(a => a.id)}'`
-          );
-        }
+          if (!visitedParents.get(marker.parent)) {
+            visitedParents.set(marker.parent, [stateNode]);
+          } else {
+            visitedParents.get(marker.parent)!.push(stateNode);
+          }
 
-        if (!visitedParents.get(marker.parent)) {
-          visitedParents.set(marker.parent, [stateNode]);
-        } else {
-          visitedParents.get(marker.parent)!.push(stateNode);
+          marker = marker.parent;
         }
-
-        marker = marker.parent;
       }
+    } else {
+      return;
     }
   }
 
