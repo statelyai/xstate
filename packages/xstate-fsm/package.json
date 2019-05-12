@@ -1,6 +1,6 @@
 {
   "name": "@xstate/fsm",
-  "version": "0.0.1",
+  "version": "0.1.0",
   "description": "XState for finite state machines",
   "keywords": [
     "state",
@@ -17,7 +17,7 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
   "license": "MIT",
-  "main": "lib/xstate-fsm.js",
+  "main": "lib/index.js",
   "files": [
     "dist",
     "lib"
