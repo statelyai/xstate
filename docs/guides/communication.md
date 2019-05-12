@@ -386,7 +386,12 @@ const service = interpret(parentMachine)
 - To send from a **parent** machine to a **child** machine, use `send(event, { to: <child ID> })`
 
 ::: warning
-The `send(...)` and `sendParent(...)` action creators do _not_ imperatively send events to machines. They are pure functions that return an action object describing what is to be sent, e.g., `{ type: 'xstate.send', event: ... }`. An [interpreter](./interpretation.md) will read these objects and then send them.
+The `send(...)` and `sendParent(...)` action creators do _not_ imperatively send
+events to machines. They are pure functions that return an action object
+describing what is to be sent, e.g., `{ type: 'xstate.send', event: ... }`. An
+[interpreter](./interpretation.md) will read these objects and then send them.
+
+[Read more about `send`](/docs/guides/actions.html#built-in-actions)
 :::
 
 Here is an example of two machines, `pingMachine` and `pongMachine`, communicating with each other:
