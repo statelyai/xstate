@@ -42,7 +42,7 @@ import {
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
-import { StateNode } from '.';
+import { StateNode } from './StateNode';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
