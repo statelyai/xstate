@@ -83,10 +83,10 @@
     "scion-core-test-framework": "^1.0.0",
     "scxml-test-framework": "^1.0.2",
     "source-map-support": "^0.5.12",
-    "ts-node": "^7.0.1",
+    "ts-node": "^8.1.0",
     "tslint": "^5.11.0",
     "typedoc": "^0.12.0",
-    "typescript": "3.3.3333",
+    "typescript": "^3.4.5",
     "vuepress": "^0.14.10",
     "webpack-dev-middleware": "^3.6.0",
     "xml-js": "^1.6.8"

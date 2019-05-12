@@ -82,6 +82,7 @@ import {
   toActionObjects
 } from './actions';
 import { StateTree } from './StateTree';
+import { IS_PRODUCTION } from './environment';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -99,8 +100,6 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   delays: {},
   updater: updateContext
 });
-
-export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 class StateNode<
   TContext = DefaultContext,
@@ -180,11 +179,11 @@ class StateNode<
   /**
    * The parent state node.
    */
-  public parent?: StateNode<TContext>;
+  public parent?: StateNode<TContext, any, TEvent>;
   /**
    * The root machine node.
    */
-  public machine: StateNode<TContext>;
+  public machine: StateNode<TContext, any, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -219,7 +218,7 @@ class StateNode<
     initialState: undefined as StateValue | undefined
   };
 
-  private idMap: Record<string, StateNode<TContext>> = {};
+  private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
 
   constructor(
     _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
@@ -493,7 +492,7 @@ class StateNode<
         const delay = isNaN(+delayKey) ? delayKey : +delayKey;
         const event = after(delay, this.id);
 
-        this.onEntry.push(send(event, { delay }));
+        this.onEntry.push(send<TContext, TEvent>(event, { delay }));
         this.onExit.push(cancel(event));
 
         if (isString(delayedTransition)) {
@@ -532,7 +531,7 @@ class StateNode<
    */
   public getStateNodes(
     state: StateValue | State<TContext, TEvent>
-  ): Array<StateNode<TContext>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (!state) {
       return [];
     }
@@ -550,9 +549,9 @@ class StateNode<
     }
 
     const subStateKeys = keys(stateValue);
-    const subStateNodes: Array<StateNode<TContext>> = subStateKeys.map(
-      subStateKey => this.getStateNode(subStateKey)
-    );
+    const subStateNodes: Array<
+      StateNode<TContext, any, TEvent>
+    > = subStateKeys.map(subStateKey => this.getStateNode(subStateKey));
 
     return subStateNodes.concat(
       subStateKeys.reduce(
@@ -563,7 +562,7 @@ class StateNode<
 
           return allSubStateNodes.concat(subStateNode);
         },
-        [] as Array<StateNode<TContext>>
+        [] as Array<StateNode<TContext, any, TEvent>>
       )
     );
   }
@@ -855,14 +854,14 @@ class StateNode<
     return new StateTree(this.machine, stateValue);
   }
   private nodesFromChild(
-    childStateNode: StateNode<TContext>
-  ): Array<StateNode<TContext>> {
+    childStateNode: StateNode<TContext, any, TEvent>
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (childStateNode.escapes(this)) {
       return [];
     }
 
-    const nodes: Array<StateNode<TContext>> = [];
-    let marker: StateNode<TContext> | undefined = childStateNode;
+    const nodes: Array<StateNode<TContext, any, TEvent>> = [];
+    let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
 
     while (marker && marker !== this) {
       nodes.push(marker);
@@ -1095,7 +1094,7 @@ class StateNode<
             actionObject as SendAction<TContext, TEvent>,
             updatedContext,
             eventObject || { type: ActionTypes.Init }
-          ); // TODO: fix ActionTypes.Init
+          ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
           if (isString(sendAction.delay)) {
             if (
@@ -1225,8 +1224,8 @@ class StateNode<
   private ensureValidPaths(paths: string[][]): void {
     if (!IS_PRODUCTION) {
       const visitedParents = new Map<
-        StateNode<TContext>,
-        Array<StateNode<TContext>>
+        StateNode<TContext, any, TEvent>,
+        Array<StateNode<TContext, any, TEvent>>
       >();
 
       const stateNodes = flatten(
@@ -1268,7 +1267,7 @@ class StateNode<
   /**
    * Returns the child state node from its relative `stateKey`, or throws.
    */
-  public getStateNode(stateKey: string): StateNode<TContext> {
+  public getStateNode(stateKey: string): StateNode<TContext, any, TEvent> {
     if (isStateId(stateKey)) {
       return this.machine.getStateNodeById(stateKey);
     }
@@ -1296,7 +1295,7 @@ class StateNode<
    *
    * @param stateId The state ID. The prefix "#" is removed.
    */
-  public getStateNodeById(stateId: string): StateNode<TContext> {
+  public getStateNodeById(stateId: string): StateNode<TContext, any, TEvent> {
     const resolvedStateId = isStateId(stateId)
       ? stateId.slice(STATE_IDENTIFIER.length)
       : stateId;
@@ -1321,9 +1320,11 @@ class StateNode<
    *
    * @param statePath The string or string array relative path to the state node.
    */
-  public getStateNodeByPath(statePath: string | string[]): StateNode<TContext> {
+  public getStateNodeByPath(
+    statePath: string | string[]
+  ): StateNode<TContext, any, TEvent> {
     const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
-    let currentStateNode: StateNode<TContext> = this;
+    let currentStateNode: StateNode<TContext, any, TEvent> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
 
@@ -1393,7 +1394,7 @@ class StateNode<
 
     if (this.type === 'parallel') {
       return {
-        [key]: mapFilterValues<StateNode<TContext>, StateValue>(
+        [key]: mapFilterValues<StateNode<TContext, any, TEvent>, StateValue>(
           this.states,
           stateNode => stateNode.resolvedStateValue[stateNode.key],
           stateNode => !(stateNode.type === 'history')
@@ -1436,7 +1437,7 @@ class StateNode<
 
     const initialStateValue = (this.type === 'parallel'
       ? mapFilterValues(
-          this.states as Record<string, StateNode<TContext>>,
+          this.states as Record<string, StateNode<TContext, any, TEvent>>,
           state => state.initialStateValue || EMPTY_OBJECT,
           stateNode => !(stateNode.type === 'history')
         )
@@ -1570,7 +1571,7 @@ class StateNode<
     relativeStateId: string | string[],
     historyValue?: HistoryValue,
     resolve: boolean = true
-  ): Array<StateNode<TContext>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (isString(relativeStateId) && isStateId(relativeStateId)) {
       const unresolvedStateNode = this.getStateNodeById(relativeStateId);
 
@@ -1597,7 +1598,7 @@ class StateNode<
       unresolvedStateNodes.map(stateNode => stateNode.initialStateNodes)
     );
   }
-  public get initialStateNodes(): Array<StateNode<TContext>> {
+  public get initialStateNodes(): Array<StateNode<TContext, any, TEvent>> {
     if (this.type === 'atomic' || this.type === 'final') {
       return [this];
     }
@@ -1626,7 +1627,7 @@ class StateNode<
   public getFromRelativePath(
     relativePath: string[],
     historyValue?: HistoryValue
-  ): Array<StateNode<TContext>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (!relativePath.length) {
       return [this];
     }
@@ -1666,7 +1667,10 @@ class StateNode<
 
     return {
       current: relativeStateValue || this.initialStateValue,
-      states: mapFilterValues<StateNode<TContext>, HistoryValue | undefined>(
+      states: mapFilterValues<
+        StateNode<TContext, any, TEvent>,
+        HistoryValue | undefined
+      >(
         this.states,
         (stateNode, key) => {
           if (!relativeStateValue) {
@@ -1693,7 +1697,7 @@ class StateNode<
    */
   private resolveHistory(
     historyValue?: HistoryValue
-  ): Array<StateNode<TContext>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (this.type !== 'history') {
       return [this];
     }
@@ -1733,7 +1737,7 @@ class StateNode<
   public get stateIds(): string[] {
     const childStateIds = flatten(
       keys(this.states).map(stateKey => {
-        return (this.states[stateKey] as StateNode<TContext>).stateIds;
+        return this.states[stateKey].stateIds;
       })
     );
     return [this.id].concat(childStateIds);

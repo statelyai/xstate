@@ -909,7 +909,7 @@ describe('invoke', () => {
 
   describe('with callbacks', () => {
     it('should be able to specify a callback as a service', done => {
-      const callbackMachine = Machine(
+      const callbackMachine = Machine<any, any>(
         {
           id: 'callback',
           initial: 'pending',

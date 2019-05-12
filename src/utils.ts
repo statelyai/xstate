@@ -18,8 +18,7 @@ import {
   Subscribable
 } from './types';
 import { STATE_DELIMITER } from './constants';
-import { State } from './State';
-import { IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './environment';
 
 function isState(state: object | string): state is StateInterface {
   if (isString(state)) {
@@ -434,7 +433,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
 
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
-  state: State<TC, TE>
+  state: StateInterface<TC, TE>
 ): ActionObject<TC, TE> {
   const { exec } = action;
   const boundAction: ActionObject<TC, TE> = {

@@ -21,7 +21,20 @@ describe('spawning actors', () => {
     todoRefs: {} as Record<string, Actor>
   };
 
-  const todosMachine = Machine<typeof context>({
+  type TodoEvent =
+    | {
+        type: 'ADD';
+        id: string;
+      }
+    | {
+        type: 'SET_COMPLETE';
+        id: string;
+      }
+    | {
+        type: 'TODO_COMPLETED';
+      };
+
+  const todosMachine = Machine<typeof context, any, TodoEvent>({
     id: 'todos',
     context,
     initial: 'active',

@@ -784,7 +784,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              cond: (_, e) => e.id === 42
+              cond: (_, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }

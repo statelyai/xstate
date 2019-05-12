@@ -15,7 +15,7 @@ import {
   StateMachine
 } from './types';
 import { toEventObject } from './actions';
-import { IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './environment';
 
 const EMPTY_MAP = {};
 
@@ -35,7 +35,10 @@ export function getNodes(node: StateNode): StateNode[] {
 export function getEventEdges<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
->(node: StateNode<TContext>, event: string): Array<Edge<TContext, TEvent>> {
+>(
+  node: StateNode<TContext, any, TEvent>,
+  event: string
+): Array<Edge<TContext, TEvent>> {
   const transitions = node.definition.on[event];
 
   return flatten(
@@ -95,7 +98,7 @@ export function getEdges<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  node: StateNode<TContext>,
+  node: StateNode<TContext, any, TEvent>,
   options?: { depth: null | number }
 ): Array<Edge<TContext, TEvent>> {
   const { depth = null } = options || {};
@@ -103,18 +106,20 @@ export function getEdges<
 
   if (node.states && depth === null) {
     for (const stateKey of keys(node.states)) {
-      edges.push(...getEdges<TContext>(node.states[stateKey]));
+      edges.push(...getEdges<TContext, TEvent>(node.states[stateKey]));
     }
   } else if (depth && depth > 0) {
     for (const stateKey of keys(node.states)) {
       edges.push(
-        ...getEdges<TContext>(node.states[stateKey], { depth: depth - 1 })
+        ...getEdges<TContext, TEvent>(node.states[stateKey], {
+          depth: depth - 1
+        })
       );
     }
   }
 
   for (const event of keys(node.on)) {
-    edges.push(...getEventEdges<TContext>(node, event));
+    edges.push(...getEventEdges<TContext, TEvent>(node, event));
   }
 
   return edges;

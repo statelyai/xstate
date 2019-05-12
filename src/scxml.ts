@@ -189,9 +189,10 @@ function mapActions<
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise(element.attributes!.event! as string);
+        return actions.raise<TContext, TEvent>(element.attributes!
+          .event! as string);
       case 'assign':
-        return actions.assign(xs => {
+        return actions.assign<TContext, TEvent>(xs => {
           const literalKeyExprs = xs
             ? keys(xs)
                 .map(key => `const ${key} = xs['${key}'];`)
@@ -217,9 +218,12 @@ function mapActions<
             ? +/(\d+)ms/.exec(delay)![1]
             : 0
           : 0;
-        return actions.send(element.attributes!.event! as string, {
-          delay: numberDelay
-        });
+        return actions.send<TContext, TEvent>(
+          element.attributes!.event! as string,
+          {
+            delay: numberDelay
+          }
+        );
       default:
         return { type: 'not-implemented' };
     }

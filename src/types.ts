@@ -280,7 +280,7 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
   [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?:
     | string
     | number
-    | StateNode<TContext>
+    | StateNode<TContext, any, TEvent>
     | SingleOrArray<TransitionConfig<TContext, Extract<TEvent, { type: K }>>>
 };
 
@@ -432,7 +432,7 @@ export interface StateNodeConfig<
   /**
    * @private
    */
-  parent?: StateNode<TContext>;
+  parent?: StateNode<TContext, any, TEvent>;
   strict?: boolean | undefined;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
@@ -685,8 +685,7 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | { type: ActionTypes.NullEvent }
   | { type: ActionTypes.Init }
   | RaisedEvent<TEvent>
-  | ErrorExecutionEvent
-  | DoneEventObject;
+  | ErrorExecutionEvent;
 
 /**
  * Represents the specified events and the built-in internal events.
@@ -825,12 +824,12 @@ export interface Edge<
   TEventType extends TEvent['type'] = string
 > {
   event: TEventType;
-  source: StateNode<TContext>;
-  target: StateNode<TContext>;
+  source: StateNode<TContext, any, TEvent>;
+  target: StateNode<TContext, any, TEvent>;
   cond?: Condition<TContext, TEvent & { type: TEventType }>;
   actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
-  transition: TransitionDefinition<TContext, TEvent>;
+  transition: TransitionDefinition<TContext, OmniEventObject<TEvent>>;
 }
 export interface NodesAndEdges<TContext, TEvent extends EventObject> {
   nodes: StateNode[];
@@ -895,9 +894,14 @@ export interface StateInterface<
   actions: Array<ActionObject<TContext, TEvent>>;
   activities: ActivityMap;
   meta: any;
+  event: OmniEventObject<TEvent>;
   events: TEvent[];
   context: TContext;
   toStrings: () => string[];
+  changed: boolean | undefined;
+  inert: any; // TODO: fix
+  matches: (parentStateValue: StateValue) => boolean;
+  nextEvents: EventType[];
 }
 
 export interface StateConfig<TContext, TEvent extends EventObject> {

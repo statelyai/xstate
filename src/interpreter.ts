@@ -28,7 +28,7 @@ import {
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toEventObject, doneInvoke, error } from './actions';
-import { IS_PRODUCTION } from './StateNode';
+import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
   mapContext,
