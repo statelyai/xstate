@@ -11,15 +11,7 @@ const createConfig = ({ input, output, target = undefined }) => ({
       'process.env.NODE_ENV': JSON.stringify('production')
     }),
     typescript({
-      clean: true,
-      tsconfigOverride: {
-        compilerOptions: Object.assign(
-          {
-            declaration: false
-          },
-          target ? { target } : {}
-        )
-      }
+      clean: true
     }),
     terser({
       toplevel: true
@@ -34,7 +26,7 @@ export default [
     output: {
       file: 'dist/xstate.fsm.js',
       format: 'umd',
-      name: 'XStateFSM'
+      name: 'FSM'
     }
   })
 ];

@@ -18,11 +18,8 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
   "license": "MIT",
   "main": "lib/xstate-fsm.js",
-  "directories": {
-    "lib": "lib",
-    "test": "__tests__"
-  },
   "files": [
+    "dist",
     "lib"
   ],
   "repository": {
@@ -31,9 +28,13 @@
   },
   "scripts": {
     "build": "rollup -c",
-    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts"
+    "test": "tsc && mocha --require ts-node/register test/**.ts test/**/*.test.ts",
+    "prepublish": "rollup -c"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "devDependencies": {
+    "rollup": "^1.11.3"
   }
 }
