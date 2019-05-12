@@ -1326,6 +1326,11 @@ class StateNode<
     let currentStateNode: StateNode<TContext> = this;
     while (arrayStatePath.length) {
       const key = arrayStatePath.shift()!;
+
+      if (!key.length) {
+        break;
+      }
+
       currentStateNode = currentStateNode.getStateNode(key);
     }
 
@@ -1800,10 +1805,19 @@ class StateNode<
       // If internal target is defined on machine,
       // do not include machine key on target
       if (isInternalTarget && !this.parent) {
-        return _target.slice(1);
+        return `#${this.getStateNode(_target.slice(1)).id}`;
       }
 
-      return isInternalTarget ? this.key + _target : `${_target}`;
+      const resolvedTarget = isInternalTarget
+        ? this.key + _target
+        : `${_target}`;
+
+      if (this.parent) {
+        const targetStateNode = this.parent.getStateNodeByPath(resolvedTarget);
+        return `#${targetStateNode.id}`;
+      } else {
+        return `#${this.getStateNode(resolvedTarget).id}`;
+      }
     });
 
     if (transitionConfig === undefined) {

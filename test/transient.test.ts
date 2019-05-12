@@ -2,10 +2,11 @@ import { Machine } from '../src/index';
 import { assert } from 'chai';
 import { assign } from '../src/actions';
 
-const greetingMachine = Machine({
+const greetingContext = { hour: 10 };
+const greetingMachine = Machine<typeof greetingContext>({
   key: 'greeting',
   initial: 'pending',
-  context: { hour: 10 },
+  context: greetingContext,
   states: {
     pending: {
       on: {

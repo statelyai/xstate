@@ -1560,7 +1560,7 @@ describe('invoke', () => {
 
   describe('multiple simultaneous services', () => {
     // @ts-ignore
-    const multiple = Machine({
+    const multiple = Machine<any>({
       id: 'machine',
       initial: 'one',
 
@@ -1619,7 +1619,7 @@ describe('invoke', () => {
       service.start();
     });
 
-    const parallel = Machine({
+    const parallel = Machine<any>({
       id: 'machine',
       initial: 'one',
 

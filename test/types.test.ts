@@ -69,7 +69,7 @@ describe('StateSchema', () => {
             on: {
               PED_COUNTDOWN: {
                 target: 'stop',
-                cond: (ctx, e) => {
+                cond: (ctx, e: { type: 'PED_COUNTDOWN'; duration: number }) => {
                   return e.duration === 0 && ctx.elapsed > 0;
                 }
               }
