@@ -357,13 +357,16 @@ export class Interpreter<
   public start(
     initialState?: State<TContext, TEvent> | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent> {
-    const resolvedState =
-      initialState === undefined
+    this.initialized = true;
+
+    const resolvedState = withServiceScope(this, () => {
+      return initialState === undefined
         ? this.machine.initialState
         : initialState instanceof State
         ? this.machine.resolveState(initialState)
         : this.machine.resolveState(State.from(initialState));
-    this.initialized = true;
+    });
+
     if (this.options.devTools) {
       this.attachDev();
     }

@@ -1,5 +1,5 @@
 import { Machine, spawn, interpret } from '../src';
-import { assign, send, sendParent } from '../src/actions';
+import { assign, send, sendParent, raise } from '../src/actions';
 import { Actor } from '../src/Actor';
 import { assert } from 'chai';
 
@@ -67,6 +67,72 @@ describe('spawning actors', () => {
     }
   });
 
+  // Adaptation: https://github.com/p-org/P/wiki/PingPong-program
+  type PingPongEvent =
+    | { type: 'PING' }
+    | { type: 'PONG' }
+    | { type: 'SUCCESS' };
+
+  const serverMachine = Machine({
+    id: 'server',
+    initial: 'waitPing',
+    states: {
+      waitPing: {
+        on: {
+          PING: 'sendPong'
+        }
+      },
+      sendPong: {
+        entry: [sendParent('PONG'), raise('SUCCESS')],
+        on: {
+          SUCCESS: 'waitPing'
+        }
+      }
+    }
+  });
+
+  interface ClientContext {
+    server?: Actor;
+  }
+
+  const clientMachine = Machine<ClientContext, any, PingPongEvent>({
+    id: 'client',
+    initial: 'init',
+    context: {
+      server: undefined
+    },
+    states: {
+      init: {
+        entry: [
+          assign({
+            server: () => spawn(serverMachine)
+          }),
+          raise('SUCCESS')
+        ],
+        on: {
+          SUCCESS: 'sendPing'
+        }
+      },
+      sendPing: {
+        entry: [
+          send('PING', { to: ctx => ctx.server as Actor }),
+          raise('SUCCESS')
+        ],
+        on: {
+          SUCCESS: 'waitPong'
+        }
+      },
+      waitPong: {
+        on: {
+          PONG: 'complete'
+        }
+      },
+      complete: {
+        type: 'final'
+      }
+    }
+  });
+
   it('should invoke actors', done => {
     const service = interpret(todosMachine)
       .onDone(() => {
@@ -80,5 +146,13 @@ describe('spawning actors', () => {
 
   it('should not invoke actors spawned outside of a service', () => {
     assert.isUndefined(spawn(todoMachine));
+  });
+
+  it('should allow bidirectional communication between parent/child actors', done => {
+    interpret(clientMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 });

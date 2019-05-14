@@ -410,16 +410,6 @@ export interface StateNodeConfig<
    */
   onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
   /**
-   * Updates from spawned Actors, e.g., from state transitions for spawned machines.
-   *
-   * Update events will have two properties:
-   * - `id` - the ID of the spawned Actor
-   * - `state` - the state of the spawned Actor after the transition
-   *
-   * This is equivalent to defining a `[actionTypes.update]` transition on this state node's `on` property.
-   */
-  onUpdate?: string | SingleOrArray<TransitionConfig<TContext, UpdateObject>>;
-  /**
    * The mapping (or array) of delays (in milliseconds) to their potential transition(s).
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
