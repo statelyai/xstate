@@ -70,7 +70,7 @@ export function FSM<
       value: fsmConfig.initial,
       actions: toArray(fsmConfig.states[fsmConfig.initial].entry),
       context: fsmConfig.context
-    },
+    } as FSM.State<TContext, TEvent>,
     transition: (
       state: string | FSM.State<TContext, TEvent>,
       event: string | Record<string, any> & { type: string }
