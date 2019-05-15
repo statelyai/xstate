@@ -4,18 +4,20 @@ export interface EventObject {
   [key: string]: any;
 }
 
-export interface ActionObject<TContext, TEvent> {
-  type: string;
-  exec?: (context: TContext, event: TEvent) => void;
-  [key: string]: any;
-}
-
-export type Action<TContext, TEvent extends EventObject> =
-  | TEvent['type']
-  | ActionObject<TContext, TEvent>
-  | ((context: TContext, event: TEvent) => void);
-
 export namespace FSM {
+  export type Action<TContext, TEvent extends EventObject> =
+    | TEvent['type']
+    | FSM.ActionObject<TContext, TEvent>
+    | ((context: TContext, event: TEvent) => void);
+
+  export interface ActionObject<TContext, TEvent> {
+    type: string;
+    exec?: (context: TContext, event: TEvent) => void;
+    [key: string]: any;
+  }
+
+  export type AssignAction = 'xstate.assign';
+
   export type Transition<TContext, TEvent extends EventObject> =
     | string
     | {
@@ -27,22 +29,31 @@ export namespace FSM {
     value: string;
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
-    changed: boolean;
+    changed?: boolean | undefined;
   }
-}
-export interface FSMConfig<TContext, TEvent extends EventObject> {
-  id?: string;
-  initial: string;
-  context?: TContext;
-  states: {
-    [key: string]: {
-      on?: {
-        [event: string]: SingleOrArray<FSM.Transition<TContext, TEvent>>;
+
+  export interface Config<TContext, TEvent extends EventObject> {
+    id?: string;
+    initial: string;
+    context?: TContext;
+    states: {
+      [key: string]: {
+        on?: {
+          [event: string]: SingleOrArray<FSM.Transition<TContext, TEvent>>;
+        };
+        exit?: SingleOrArray<FSM.Action<TContext, TEvent>>;
+        entry?: SingleOrArray<FSM.Action<TContext, TEvent>>;
       };
-      exit?: SingleOrArray<Action<TContext, TEvent>>;
-      entry?: SingleOrArray<Action<TContext, TEvent>>;
     };
-  };
+  }
+
+  export interface Machine<TContext, TEvent extends EventObject> {
+    initialState: FSM.State<TContext, TEvent>;
+    transition: (
+      state: string | FSM.State<TContext, TEvent>,
+      event: string | Record<string, any> & { type: string }
+    ) => FSM.State<TContext, TEvent>;
+  }
 }
 
 function toArray<T>(item: T | T[] | undefined): T[] {
@@ -52,9 +63,11 @@ function toArray<T>(item: T | T[] | undefined): T[] {
   return ([] as T[]).concat(item);
 }
 
-export function assign(assignment: any): ActionObject<any, any> {
+const assignActionType: FSM.AssignAction = 'xstate.assign';
+
+export function assign(assignment: any): FSM.ActionObject<any, any> {
   return {
-    type: 'xstate.assign',
+    type: assignActionType,
     assignment
   };
 }
@@ -64,7 +77,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
   action:
     | string
     | ((context: TContext, event: TEvent) => void)
-    | ActionObject<TContext, TEvent>
+    | FSM.ActionObject<TContext, TEvent>
 ) {
   return typeof action === 'string'
     ? { type: action }
@@ -81,15 +94,15 @@ export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 export function FSM<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(fsmConfig: FSMConfig<TContext, TEvent>) {
+>(fsmConfig: FSM.Config<TContext, TEvent>): FSM.Machine<TContext, TEvent> {
   return {
     initialState: {
       value: fsmConfig.initial,
       actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
         toActionObject
       ),
-      context: fsmConfig.context
-    } as FSM.State<TContext, TEvent>,
+      context: fsmConfig.context!
+    },
     transition: (
       state: string | FSM.State<TContext, TEvent>,
       event: string | Record<string, any> & { type: string }
@@ -138,9 +151,9 @@ export function FSM<
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(Boolean)
-              .map<ActionObject<TContext, TEvent>>(toActionObject)
+              .map<FSM.ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
-                if (action.type === 'xstate.assign') {
+                if (action.type === assignActionType) {
                   assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
 
