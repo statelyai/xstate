@@ -15,6 +15,37 @@ This package contains a minimal implementation of XState for finite state machin
 
 If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/davidkpiano/xstate).
 
+## Super quick start
+
+```bash
+npm i @xstate/fsm
+```
+
+```js
+import { FSM } from '@xstate/fsm';
+
+// Stateless FSM definition
+// machine.transition(...) is a pure function.
+const toggleFSM = FSM({
+  id: 'toggle',
+  initial: 'inactive',
+  states: {
+    inactive: { on: { TOGGLE: 'active' } },
+    active: { on: { TOGGLE: 'inactive' } }
+  }
+});
+
+const { initialState } = toggleFSM;
+
+const toggledState = toggleFSM.transition(initialState, 'TOGGLE');
+toggledState.value;
+// => 'active'
+
+const untoggledState = toggleFSM.transition(toggledState, 'TOGGLE');
+untoggledState.value;
+// => 'inactive'
+```
+
 ## Usage
 
 ```js
