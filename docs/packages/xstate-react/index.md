@@ -67,7 +67,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 **Returns** a tuple of `[current, send]`:
 
-- `current` - Represents the current state of the service as an XState `State` object, or `undefined` if the service isn't started yet.
+- `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
 ## Configuring Machines

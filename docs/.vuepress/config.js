@@ -68,6 +68,7 @@ module.exports = {
         children: [
           'packages/xstate-react/',
           'packages/xstate-graph/',
+          'packages/xstate-fsm/',
           'packages/xstate-immer/'
         ]
       },
