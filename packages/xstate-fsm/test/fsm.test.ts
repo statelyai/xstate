@@ -34,7 +34,7 @@ describe('@xstate/fsm', () => {
     const { initialState } = lightFSM;
 
     assert.deepEqual(initialState.value, 'green');
-    assert.deepEqual(initialState.actions, ['enterGreen']);
+    assert.deepEqual(initialState.actions, [{ type: 'enterGreen' }]);
   });
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');

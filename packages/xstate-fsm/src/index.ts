@@ -59,6 +59,23 @@ export function assign(assignment: any): ActionObject<any, any> {
   };
 }
 
+function toActionObject<TContext, TEvent extends EventObject>(
+  // tslint:disable-next-line:ban-types
+  action:
+    | string
+    | ((context: TContext, event: TEvent) => void)
+    | ActionObject<TContext, TEvent>
+) {
+  return typeof action === 'string'
+    ? { type: action }
+    : typeof action === 'function'
+    ? {
+        type: action.name,
+        exec: action
+      }
+    : action;
+}
+
 export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function FSM<
@@ -68,7 +85,9 @@ export function FSM<
   return {
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(fsmConfig.states[fsmConfig.initial].entry),
+      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
+        toActionObject
+      ),
       context: fsmConfig.context
     } as FSM.State<TContext, TEvent>,
     transition: (
@@ -119,16 +138,7 @@ export function FSM<
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(Boolean)
-              .map<ActionObject<TContext, TEvent>>(action =>
-                typeof action === 'string'
-                  ? { type: action }
-                  : typeof action === 'function'
-                  ? {
-                      type: action.name,
-                      exec: action
-                    }
-                  : action
-              )
+              .map<ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
                 if (action.type === 'xstate.assign') {
                   assigned = true;
