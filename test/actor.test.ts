@@ -1,9 +1,11 @@
 import { Machine, spawn, interpret } from '../src';
-import { assign, send, sendParent, raise } from '../src/actions';
+import { assign, send, sendParent, raise, doneInvoke } from '../src/actions';
 import { Actor } from '../src/Actor';
 import { assert } from 'chai';
+import { interval } from 'rxjs';
+import { map } from 'rxjs/operators';
 
-describe('spawning actors', () => {
+describe('spawning machines', () => {
   const todoMachine = Machine({
     id: 'todo',
     initial: 'incomplete',
@@ -154,5 +156,93 @@ describe('spawning actors', () => {
         done();
       })
       .start();
+  });
+});
+
+describe('spawning promises', () => {
+  const promiseMachine = Machine<any>({
+    id: 'promise',
+    initial: 'idle',
+    context: {
+      promiseRef: undefined
+    },
+    states: {
+      idle: {
+        entry: assign({
+          promiseRef: () => {
+            const ref = spawn(
+              new Promise(res => {
+                res('response');
+              }),
+              'my-promise'
+            );
+
+            return ref;
+          }
+        }),
+        on: {
+          [doneInvoke('my-promise')]: {
+            target: 'success',
+            cond: (_, e) => e.data === 'response'
+          }
+        }
+      },
+      success: {
+        type: 'final'
+      }
+    }
+  });
+
+  it('should be able to spawn a promise', done => {
+    const promiseService = interpret(promiseMachine).onDone(() => {
+      done();
+    });
+
+    promiseService.start();
+  });
+});
+
+describe('spawning observables', () => {
+  const observableMachine = Machine<any>({
+    id: 'observable',
+    initial: 'idle',
+    context: {
+      observableRef: undefined
+    },
+    states: {
+      idle: {
+        entry: assign({
+          observableRef: () => {
+            const ref = spawn(
+              interval(10).pipe(
+                map(n => ({
+                  type: 'INT',
+                  value: n
+                }))
+              )
+            );
+
+            return ref;
+          }
+        }),
+        on: {
+          INT: {
+            target: 'success',
+            cond: (_, e) => e.value === 5
+          }
+        }
+      },
+      success: {
+        type: 'final'
+      }
+    }
+  });
+
+  it('should be able to spawn an observable', done => {
+    const promiseService = interpret(observableMachine).onDone(() => {
+      done();
+    });
+
+    promiseService.start();
   });
 });

@@ -531,3 +531,12 @@ export function isObservable<T>(
     return false;
   }
 }
+
+export const uniqueId = (() => {
+  let currentId = 0;
+
+  return () => {
+    currentId++;
+    return currentId.toString(16);
+  };
+})();

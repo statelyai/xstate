@@ -38,7 +38,8 @@ import {
   isArray,
   isFunction,
   isString,
-  isObservable
+  isObservable,
+  uniqueId
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -764,17 +765,22 @@ export class Interpreter<
       this.forwardTo.delete(childId);
     }
   }
-  public spawn<TChildContext>(entity: Spawnable<TChildContext>): Actor {
+  public spawn<TChildContext>(
+    entity: Spawnable<TChildContext>,
+    name: string
+  ): Actor {
     if (isPromiseLike(entity)) {
-      return this.spawnPromise(Promise.resolve(entity), '');
+      return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
-      return this.spawnCallback(entity, '');
+      return this.spawnCallback(entity, name);
     } else if (isObservable<TEvent>(entity)) {
-      return this.spawnObservable(entity, '');
+      return this.spawnObservable(entity, name);
     } else if (entity instanceof StateNode) {
-      return this.spawnMachine(entity);
+      return this.spawnMachine(entity, { id: name });
     } else {
-      throw new Error(`Unable to spawn entity of type "${typeof entity}".`);
+      throw new Error(
+        `Unable to spawn entity "${name}" of type "${typeof entity}".`
+      );
     }
   }
   public spawnMachine<
@@ -947,7 +953,7 @@ export class Interpreter<
       id,
       send: () => void 0,
       subscribe: source.subscribe,
-      stop: () => subscription.unsubscribe && subscription.unsubscribe(),
+      stop: subscription.unsubscribe,
       toJSON() {
         return { id };
       }
@@ -1056,7 +1062,10 @@ const nullActor: Actor = {
   toJSON: () => ({ id: 'null' })
 };
 
-export function spawn<TContext>(entity: Spawnable<TContext>): Actor<TContext> {
+export function spawn<TContext>(
+  entity: Spawnable<TContext>,
+  name?: string
+): Actor<TContext> {
   return withServiceScope(undefined, service => {
     if (!IS_PRODUCTION) {
       warn(
@@ -1068,7 +1077,7 @@ export function spawn<TContext>(entity: Spawnable<TContext>): Actor<TContext> {
     }
 
     if (service) {
-      return service.spawn(entity);
+      return service.spawn(entity, name || uniqueId());
     } else {
       return nullActor;
     }
