@@ -18,7 +18,10 @@ function transitionToSCXML(
     attributes: {
       event: transition.event,
       cond: JSON.stringify(transition.cond),
-      target: (transition.target || [])
+      target: (transition.target !== undefined
+        ? ([] as string[]).concat(transition.target)
+        : []
+      )
         .map(t => stateNode.parent!.getStateNode(t).id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
@@ -150,7 +153,10 @@ const pedestrianStates = {
   states: {
     walk: {
       on: {
-        PED_COUNTDOWN: 'wait',
+        PED_COUNTDOWN: {
+          target: 'wait',
+          internal: true
+        },
         TIMER: undefined // forbidden event
       }
     },
@@ -186,6 +192,9 @@ const lightMachine = Machine({
         TIMER: 'red',
         POWER_OUTAGE: 'red'
       },
+      after: {
+        1000: 'red'
+      },
       type: 'parallel',
       states: {
         one: {
@@ -207,7 +216,10 @@ const lightMachine = Machine({
     red: {
       on: {
         TIMER: 'green',
-        POWER_OUTAGE: 'red'
+        POWER_OUTAGE: {
+          target: 'red',
+          internal: true
+        }
       },
       ...pedestrianStates
     }
