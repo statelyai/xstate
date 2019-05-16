@@ -25,9 +25,14 @@ describe('@xstate/fsm', () => {
       },
       yellow: {
         on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) }
+          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+          EMERGENCY: {
+            target: 'red',
+            cond: (ctx, e) => ctx.count + e.value === 2
+          }
         }
-      }
+      },
+      red: {}
     }
   });
   it('should have the correct initial state', () => {
@@ -60,6 +65,27 @@ describe('@xstate/fsm', () => {
     assert.throws(() => {
       lightFSM.transition('unknown', 'TIMER');
     });
+  });
+
+  it('should work with guards', () => {
+    const yellowState = lightFSM.transition('yellow', 'EMERGENCY');
+    assert.deepEqual(yellowState.value, 'yellow');
+
+    const redState = lightFSM.transition('yellow', {
+      type: 'EMERGENCY',
+      value: 2
+    });
+    assert.deepEqual(redState.value, 'red');
+    assert.deepEqual(redState.context.count, 0);
+
+    const yellowOneState = lightFSM.transition('yellow', 'INC');
+    const redOneState = lightFSM.transition(yellowOneState, {
+      type: 'EMERGENCY',
+      value: 1
+    });
+
+    assert.deepEqual(redOneState.value, 'red');
+    assert.deepEqual(redOneState.context.count, 1);
   });
 
   it('should be changed if state changes', () => {
