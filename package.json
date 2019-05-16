@@ -37,7 +37,6 @@
     "version": "npm run build",
     "postversion": "git push --follow-tags",
     "prepublish": "npm run build",
-    "postpublish": "lerna add xstate@latest",
     "publish:next": "npm version prerelease && npm publish --tag next",
     "typedoc": "typedoc src/index.ts --excludePrivate --mode file --out ./api --target es6",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
