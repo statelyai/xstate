@@ -1812,7 +1812,7 @@ class StateNode<
       // If internal target is defined on machine,
       // do not include machine key on target
       if (isInternalTarget && !this.parent) {
-        return `#${this.getStateNode(_target.slice(1)).id}`;
+        return `#${this.getStateNodeByPath(_target.slice(1)).id}`;
       }
 
       const resolvedTarget = isInternalTarget
@@ -1823,7 +1823,7 @@ class StateNode<
         const targetStateNode = this.parent.getStateNodeByPath(resolvedTarget);
         return `#${targetStateNode.id}`;
       } else {
-        return `#${this.getStateNode(resolvedTarget).id}`;
+        return `#${this.getStateNodeByPath(resolvedTarget).id}`;
       }
     });
 
