@@ -144,8 +144,8 @@ describe('spawning actors', () => {
     service.send('SET_COMPLETE', { id: 42 });
   });
 
-  it('should not invoke actors spawned outside of a service', () => {
-    assert.isUndefined(spawn(todoMachine));
+  it('should invoke a null actor if spawned outside of a service', () => {
+    assert.ok(spawn(todoMachine));
   });
 
   it('should allow bidirectional communication between parent/child actors', done => {

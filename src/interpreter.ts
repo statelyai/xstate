@@ -98,7 +98,7 @@ export class Interpreter<
 >
   implements
     Subscribable<State<TContext, TEvent>>,
-    Actor<OmniEventObject<TEvent>> {
+    Actor<State<TContext, TEvent>, OmniEventObject<TEvent>> {
   /**
    * The default interpreter options:
    *
@@ -143,10 +143,7 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
-  private children: Map<
-    string | number,
-    Actor<OmniEventObject<TEvent>>
-  > = new Map();
+  private children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -707,14 +704,14 @@ export class Interpreter<
             : serviceCreator;
 
           if (isPromiseLike(source)) {
-            this.spawnPromise(id, Promise.resolve(source));
+            this.spawnPromise(Promise.resolve(source), id);
           } else if (isFunction(source)) {
-            this.spawnCallback(id, source);
+            this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
-            this.spawnObservable(id, source);
+            this.spawnObservable(source, id);
           } else if (source instanceof StateNode) {
             // TODO: try/catch here
-            this.spawn(
+            this.spawnMachine(
               data
                 ? source.withContext(mapContext(data, context, event as TEvent))
                 : source,
@@ -767,7 +764,20 @@ export class Interpreter<
       this.forwardTo.delete(childId);
     }
   }
-  public spawn<
+  public spawn<TChildContext>(entity: Spawnable<TChildContext>): Actor {
+    if (isPromiseLike(entity)) {
+      return this.spawnPromise(Promise.resolve(entity), '');
+    } else if (isFunction(entity)) {
+      return this.spawnCallback(entity, '');
+    } else if (isObservable<TEvent>(entity)) {
+      return this.spawnObservable(entity, '');
+    } else if (entity instanceof StateNode) {
+      return this.spawnMachine(entity);
+    } else {
+      throw new Error(`Unable to spawn entity of type "${typeof entity}".`);
+    }
+  }
+  public spawnMachine<
     TChildContext,
     TChildStateSchema,
     TChildEvents extends EventObject
@@ -792,7 +802,7 @@ export class Interpreter<
       })
       .start();
 
-    this.children.set(childService.id, childService as Actor<TEvent>);
+    this.children.set(childService.id, childService as Actor);
 
     if (options.autoForward) {
       this.forwardTo.add(childService.id);
@@ -800,7 +810,7 @@ export class Interpreter<
 
     return childService;
   }
-  private spawnPromise(id: string, promise: Promise<any>): void {
+  private spawnPromise(promise: Promise<any>, id: string): Actor {
     let canceled = false;
 
     promise
@@ -831,35 +841,42 @@ export class Interpreter<
         }
       });
 
-    this.children.set(id, {
+    const actor = {
       id,
       send: () => void 0,
+      subscribe: (next, handleError, complete) => {
+        promise
+          .then(response => {
+            next && next(response);
+            complete && complete();
+          })
+          .catch(handleError);
+
+        return {
+          unsubscribe: () => (canceled = true)
+        };
+      },
       stop: () => {
         canceled = true;
       },
       toJSON() {
         return { id };
       }
-    });
-  }
-  private spawnCallback(id: string, callback: InvokeCallback): void {
-    const receive = (e: TEvent) => this.send(e);
-    let listener = (e: EventObject) => {
-      if (!IS_PRODUCTION) {
-        warn(
-          false,
-          `Event '${
-            e.type
-          }' sent to callback service '${id}' but was not handled by a listener.`
-        );
-      }
     };
+
+    this.children.set(id, actor);
+
+    return actor;
+  }
+  private spawnCallback(callback: InvokeCallback, id: string): Actor {
+    const receive = (e: TEvent) => this.send(e);
+    const listeners = new Set<(e: EventObject) => void>();
 
     let stop;
 
     try {
       stop = callback(receive, newListener => {
-        listener = newListener;
+        listeners.add(newListener);
       });
 
       if (isPromiseLike(stop)) {
@@ -888,19 +905,32 @@ export class Interpreter<
       this.send(error(err, id));
     }
 
-    this.children.set(id, {
+    const actor = {
       id,
-      send: listener,
+      send: event => listeners.forEach(listener => listener(event)),
+      subscribe: next => {
+        next && listeners.add(next);
+
+        return {
+          unsubscribe: () => {
+            next && listeners.delete(next);
+          }
+        };
+      },
       stop,
       toJSON() {
         return { id };
       }
-    });
+    };
+
+    this.children.set(id, actor);
+
+    return actor;
   }
   private spawnObservable<T extends TEvent>(
-    id: string,
-    source: Subscribable<T>
-  ): any {
+    source: Subscribable<T>,
+    id: string
+  ): Actor {
     const subscription = source.subscribe(
       value => {
         this.send(value);
@@ -913,14 +943,19 @@ export class Interpreter<
       }
     );
 
-    this.children.set(id, {
+    const actor = {
       id,
       send: () => void 0,
+      subscribe: source.subscribe,
       stop: () => subscription.unsubscribe && subscription.unsubscribe(),
       toJSON() {
         return { id };
       }
-    });
+    };
+
+    this.children.set(id, actor);
+
+    return actor;
   }
   private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
     const implementation =
@@ -947,6 +982,9 @@ export class Interpreter<
     this.children.set(id, {
       id,
       send: () => void 0,
+      subscribe: () => {
+        return { unsubscribe: () => void 0 };
+      },
       stop: dispose || undefined,
       toJSON() {
         return { id };
@@ -1002,23 +1040,37 @@ export class Interpreter<
   }
 }
 
-export function spawn<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>
-): Actor<TEvent> | undefined {
+export type Spawnable<TContext> =
+  | StateMachine<TContext, any, any>
+  | Promise<TContext>
+  | InvokeCallback
+  | Subscribable<TContext>;
+
+const nullActor: Actor = {
+  id: 'null',
+  send: () => void 0,
+  subscribe: () => {
+    // tslint:disable-next-line:no-empty
+    return { unsubscribe: () => {} };
+  },
+  toJSON: () => ({ id: 'null' })
+};
+
+export function spawn<TContext>(entity: Spawnable<TContext>): Actor<TContext> {
   return withServiceScope(undefined, service => {
     if (!IS_PRODUCTION) {
       warn(
         !!service,
         `Attempted to spawn an Actor (ID: "${
-          machine.id
+          entity instanceof StateNode ? entity.id : 'undefined'
         }") outside of a service. This will have no effect.`
       );
     }
 
     if (service) {
-      const actor = service.spawn(machine, { subscribe: true });
-
-      return actor;
+      return service.spawn(entity);
+    } else {
+      return nullActor;
     }
   });
 }
