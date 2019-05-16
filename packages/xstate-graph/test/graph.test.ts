@@ -332,7 +332,7 @@ describe('@xstate/graph', () => {
     function formatPaths(pathMap: PathMap<any, any>): any {
       Object.keys(pathMap).forEach(key => {
         const data = pathMap[key] as any;
-        assert.instanceOf(pathMap[key].state, State);
+        // assert.instanceOf(pathMap[key].state, State);
         data.state = {
           value: data.state.value,
           context: data.state.context
