@@ -15,7 +15,8 @@ import {
   ActionObject,
   Condition,
   Guard,
-  Subscribable
+  Subscribable,
+  StateMachine
 } from './types';
 import { STATE_DELIMITER } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -527,6 +528,16 @@ export function isObservable<T>(
 ): value is Subscribable<T> {
   try {
     return 'subscribe' in value && isFunction(value.subscribe);
+  } catch (e) {
+    return false;
+  }
+}
+
+export function isMachine(
+  value: StateMachine<any, any, any> | any
+): value is StateMachine<any, any, any> {
+  try {
+    return '__xstatenode' in value;
   } catch (e) {
     return false;
   }

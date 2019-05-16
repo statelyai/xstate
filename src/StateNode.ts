@@ -19,7 +19,8 @@ import {
   isArray,
   isFunction,
   isString,
-  toGuard
+  toGuard,
+  isMachine
 } from './utils';
 import {
   Event,
@@ -212,6 +213,8 @@ class StateNode<
    */
   public config: StateNodeConfig<TContext, TStateSchema, TEvent>;
 
+  public __xstatenode: true = true;
+
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
@@ -313,7 +316,7 @@ class StateNode<
         ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
     this.invoke = toArray(_config.invoke).map((invokeConfig, i) => {
-      if (invokeConfig instanceof StateNode) {
+      if (isMachine(invokeConfig)) {
         (this.parent || this).options.services = {
           [invokeConfig.id]: invokeConfig,
           ...(this.parent || this).options.services
@@ -1798,7 +1801,7 @@ class StateNode<
 
     // Format targets to their full string path
     const formattedTargets = targets.map(_target => {
-      if (_target instanceof StateNode) {
+      if (isMachine(_target)) {
         return `#${_target.id}`;
       }
 
@@ -1888,7 +1891,7 @@ class StateNode<
           );
         }
 
-        if (isString(value) || value instanceof StateNode) {
+        if (isString(value) || isMachine(value)) {
           return [this.formatTransition([value], undefined, event)];
         }
 

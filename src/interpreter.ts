@@ -39,11 +39,11 @@ import {
   isFunction,
   isString,
   isObservable,
-  uniqueId
+  uniqueId,
+  isMachine
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
-import { StateNode } from './StateNode';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -710,7 +710,7 @@ export class Interpreter<
             this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
             this.spawnObservable(source, id);
-          } else if (source instanceof StateNode) {
+          } else if (isMachine(source)) {
             // TODO: try/catch here
             this.spawnMachine(
               data
@@ -775,7 +775,7 @@ export class Interpreter<
       return this.spawnCallback(entity, name);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
-    } else if (entity instanceof StateNode) {
+    } else if (isMachine(entity)) {
       return this.spawnMachine(entity, { id: name });
     } else {
       throw new Error(
@@ -1071,7 +1071,7 @@ export function spawn<TContext>(
       warn(
         !!service,
         `Attempted to spawn an Actor (ID: "${
-          entity instanceof StateNode ? entity.id : 'undefined'
+          isMachine(entity) ? entity.id : 'undefined'
         }") outside of a service. This will have no effect.`
       );
     }

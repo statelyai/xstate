@@ -13,6 +13,7 @@ import {
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes } from '../src/actions';
+import { isObservable } from '../src/utils';
 
 const lightMachine = Machine({
   id: 'light',
@@ -1172,6 +1173,8 @@ describe('interpreter', () => {
       let count: number;
       const intervalService = interpret(intervalMachine).start();
 
+      assert.ok(isObservable(intervalService));
+
       const subscription = intervalService.subscribe(
         state => (count = state.context.count),
         undefined,
@@ -1189,6 +1192,33 @@ describe('interpreter', () => {
         assert.deepEqual(count, 1, 'count should not have advanced past 1');
         done();
       }, 500);
+    });
+  });
+
+  describe('services', () => {
+    it("doesn't crash cryptically on undefined return from the service creator", () => {
+      const machine = Machine(
+        {
+          initial: 'initial',
+          states: {
+            initial: {
+              invoke: {
+                src: 'testService'
+              }
+            }
+          }
+        },
+        {
+          services: {
+            testService: (() => {
+              return void 0;
+            }) as any
+          }
+        }
+      );
+
+      const service = interpret(machine);
+      assert.doesNotThrow(() => service.start());
     });
   });
 });
