@@ -13,7 +13,8 @@ import {
   stop,
   assign,
   after,
-  done
+  done,
+  doneInvoke
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
@@ -28,7 +29,8 @@ const actions = {
   stop,
   assign,
   after,
-  done
+  done,
+  doneInvoke
 };
 
 export {
@@ -38,9 +40,17 @@ export {
   matchesState,
   mapState,
   actions,
-  assign,
+  raise,
   send,
   sendParent,
+  log,
+  cancel,
+  start,
+  stop,
+  assign,
+  after,
+  done,
+  doneInvoke,
   interpret,
   Interpreter,
   matchState,
