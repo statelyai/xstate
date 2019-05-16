@@ -953,7 +953,7 @@ export class Interpreter<
       id,
       send: () => void 0,
       subscribe: source.subscribe,
-      stop: subscription.unsubscribe,
+      stop: () => subscription.unsubscribe(),
       toJSON() {
         return { id };
       }
