@@ -54,23 +54,16 @@ export function toEventObject<TEvent extends EventObject>(
   return event as TEvent;
 }
 
-function getActionFunction<TContext, TEvent extends EventObject>(
+export function getActionFunction<TContext, TEvent extends EventObject>(
   actionType: ActionType,
   actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
 ):
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | undefined {
-  if (!actionFunctionMap) {
-    return undefined;
-  }
-  const actionReference = actionFunctionMap[actionType];
-
-  if (!actionReference) {
-    return undefined;
-  }
-
-  return actionReference;
+  return actionFunctionMap
+    ? actionFunctionMap[actionType] || undefined
+    : undefined;
 }
 
 export function toActionObject<TContext, TEvent extends EventObject>(

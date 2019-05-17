@@ -1040,6 +1040,41 @@ describe('interpreter', () => {
           })
           .start();
       });
+
+      it('actions should be configurable with execute()', done => {
+        let effect = false;
+
+        const machine = Machine({
+          id: 'noExecute',
+          initial: 'active',
+          context: {
+            value: true
+          },
+          states: {
+            active: {
+              type: 'final',
+              onEntry: 'doEffect'
+            }
+          }
+        });
+
+        const service = interpret(machine, { execute: false })
+          .onTransition(state => {
+            setTimeout(() => {
+              service.execute(state, {
+                doEffect: ctx => {
+                  effect = ctx.value;
+                }
+              });
+              assert.isTrue(effect);
+              done();
+            }, 10);
+          })
+          .onDone(() => {
+            assert.isFalse(effect);
+          })
+          .start();
+      });
     });
 
     describe('id', () => {

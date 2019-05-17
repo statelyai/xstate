@@ -23,11 +23,13 @@ import {
   SingleOrArray,
   Subscribable,
   DoneEvent,
-  Unsubscribable
+  Unsubscribable,
+  MachineOptions,
+  ActionFunctionMap
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke, error } from './actions';
+import { toEventObject, doneInvoke, error, getActionFunction } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -187,16 +189,20 @@ export class Interpreter<
    * The initial state of the statechart.
    */
   public get initialState(): State<TContext, TEvent> {
-    return this.machine.initialState;
+    return withServiceScope(this, () => this.machine.initialState);
   }
   /**
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
    * @param state The state whose actions will be executed
+   * @param actionsConfig The action implementations to use
    */
-  public execute(state: State<TContext, TEvent>): void {
+  public execute(
+    state: State<TContext, TEvent>,
+    actionsConfig?: MachineOptions<TContext, TEvent>['actions']
+  ): void {
     for (const action of state.actions) {
-      this.exec(action, state.context, state.event);
+      this.exec(action, state.context, state.event, actionsConfig);
     }
   }
   private update(
@@ -639,10 +645,19 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext, OmniEventObject<TEvent>>,
     context: TContext,
-    event: OmniEventObject<TEvent>
+    event: OmniEventObject<TEvent>,
+    actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
-    if (action.exec) {
-      return action.exec(context, event, { action, state: this.state });
+    const actionOrExec =
+      getActionFunction(action.type, actionFunctionMap) || action.exec;
+    const exec = isFunction(actionOrExec)
+      ? actionOrExec
+      : actionOrExec
+      ? actionOrExec.exec
+      : action.exec;
+
+    if (exec) {
+      return exec(context, event, { action, state: this.state });
     }
 
     switch (action.type) {

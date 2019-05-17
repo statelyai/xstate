@@ -623,7 +623,7 @@ describe('invoke', () => {
           .onStop(() => assert.fail('should not be called'))
           .start();
         // assumes that error was ignored before the timeout is processed
-        setTimeout(() => done(), 30);
+        setTimeout(() => done(), 10);
       });
 
       it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
