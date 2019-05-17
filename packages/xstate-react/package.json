@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -51,6 +51,7 @@
     "react-dom": "^16.8.4",
     "react-testing-library": "^6.0.1",
     "ts-jest": "^24.0.0",
+    "typescript": "^3.4.5",
     "xstate": "^4.5.0"
   }
 }
