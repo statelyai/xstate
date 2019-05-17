@@ -1,14 +1,15 @@
 import { assert } from 'chai';
 import { useMemo } from 'react';
 import * as React from 'react';
-import { useMachine, useService } from '../src';
-import { Machine, assign, interpret, Interpreter } from 'xstate';
+import { useMachine } from '../src';
+import { Machine, assign, Interpreter, spawn } from 'xstate';
 import {
   render,
   fireEvent,
   cleanup,
   waitForElement
 } from 'react-testing-library';
+import { doneInvoke } from '../../../lib/actions';
 
 afterEach(cleanup);
 
@@ -117,50 +118,42 @@ describe('useMachine hook', () => {
 
     render(<Test />);
   });
-});
 
-describe('useService hook', () => {
-  const counterMachine = Machine({
-    id: 'counter',
-    initial: 'active',
-    context: { count: 0 },
-    states: {
-      active: {
-        on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) }
+  it('should not spawn actors until service is started', async done => {
+    const spawnMachine = Machine<any>({
+      id: 'spawn',
+      initial: 'start',
+      context: { ref: undefined },
+      states: {
+        start: {
+          entry: assign({
+            ref: () => spawn(new Promise(res => res(42)), 'my-promise')
+          }),
+          on: {
+            [doneInvoke('my-promise')]: 'success'
+          }
+        },
+        success: {
+          type: 'final'
         }
       }
-    }
-  });
+    });
 
-  it('should share a single service instance', () => {
-    const counterService = interpret(counterMachine).start();
+    const Spawner = () => {
+      const [current] = useMachine(spawnMachine);
 
-    const Counter = () => {
-      const [state] = useService(counterService);
-
-      return <div data-testid="count">{state.context.count}</div>;
+      switch (current.value) {
+        case 'start':
+          return <span data-testid="start" />;
+        case 'success':
+          return <span data-testid="success" />;
+        default:
+          return null;
+      }
     };
 
-    const { getAllByTestId } = render(
-      <>
-        <Counter />
-        <Counter />
-      </>
-    );
-
-    const countEls = getAllByTestId('count');
-
-    assert.lengthOf(countEls, 2);
-
-    countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '0');
-    });
-
-    counterService.send('INC');
-
-    countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '1');
-    });
+    const { getByTestId } = render(<Spawner />);
+    await waitForElement(() => getByTestId('success'));
+    done();
   });
 });

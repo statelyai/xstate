@@ -37,9 +37,6 @@ export function useMachine<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
-  // Keep track of the current machine state
-  const [current, setCurrent] = useState(machine.initialState);
-
   // Reference the service
   const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
 
@@ -53,6 +50,9 @@ export function useMachine<TContext, TEvent extends EventObject>(
       }
     });
   }
+
+  // Keep track of the current machine state
+  const [current, setCurrent] = useState(serviceRef.current.initialState);
 
   const service = serviceRef.current;
 

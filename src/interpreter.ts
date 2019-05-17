@@ -125,7 +125,7 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  private state: State<TContext, TEvent>;
+  public state: State<TContext, TEvent>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
