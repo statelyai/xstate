@@ -939,6 +939,7 @@ export interface InterpreterOptions {
    * Default: `false`
    */
   devTools: boolean;
+  [option: string]: any;
 }
 
 export namespace SCXML {

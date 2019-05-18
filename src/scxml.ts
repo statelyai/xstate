@@ -296,6 +296,8 @@ function toConfig(
       element => element.name === 'onexit'
     );
 
+    states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
+
     const initialElement = !initial
       ? nodeJson.elements.find(element => element.name === 'initial')
       : undefined;
@@ -304,9 +306,9 @@ function toConfig(
       initial = initialElement.elements!.find(
         element => element.name === 'transition'
       )!.attributes!.target;
+    } else if (!initialElement && stateElements.length) {
+      initial = stateElements[0].attributes!.id;
     }
-
-    states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
 
     on = mapValues(
       indexedAggregateRecord(

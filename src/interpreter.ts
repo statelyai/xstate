@@ -141,7 +141,14 @@ export class Interpreter<
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
   private logger: (...args: any[]) => void;
-  private initialized = false;
+  /**
+   * Whether the service is started.
+   */
+  public initialized = false;
+  /**
+   * The initial state of the machine.
+   */
+  public initialState: State<TContext, TEvent>;
 
   // Actor
   public parent?: Interpreter<any>;
@@ -183,14 +190,13 @@ export class Interpreter<
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
+
+    this.initialState = this.state = withServiceScope(
+      this,
+      () => this.machine.initialState
+    );
   }
   public static interpret = interpret;
-  /**
-   * The initial state of the statechart.
-   */
-  public get initialState(): State<TContext, TEvent> {
-    return withServiceScope(this, () => this.machine.initialState);
-  }
   /**
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
@@ -361,6 +367,11 @@ export class Interpreter<
   public start(
     initialState?: State<TContext, TEvent> | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent> {
+    if (this.initialized) {
+      // Do not restart the service if it is already started
+      return this;
+    }
+
     this.initialized = true;
 
     const resolvedState = withServiceScope(this, () => {

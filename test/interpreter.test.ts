@@ -532,11 +532,9 @@ describe('interpreter', () => {
       }
     };
 
-    const service = interpret(Machine(invalidMachine));
-    assert.throws(
-      () => service.start(),
-      `Initial state 'create' not found on 'fetchMachine'`
-    );
+    assert.throws(() => {
+      interpret(Machine(invalidMachine)).start();
+    }, `Initial state 'create' not found on 'fetchMachine'`);
   });
 
   it('should not update when stopped', () => {
