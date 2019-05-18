@@ -495,6 +495,42 @@ describe('onEntry/onExit actions', () => {
       );
     });
   });
+
+  describe('parallel states', () => {
+    it('should return entry action defined on parallel state', () => {
+      const parallelMachineWithOnEntry = Machine({
+        id: 'fetch',
+        context: { attempts: 0 },
+        initial: 'start',
+        states: {
+          start: {
+            on: { ENTER_PARALLEL: 'p1' },
+          },
+          p1: {
+            type: 'parallel',
+            onEntry: 'enter_p1',
+            states: {
+              nested: {
+                initial: 'inner',
+                states: {
+                  inner: {
+                    onEntry: 'enter_inner',
+                  }
+                },
+              },
+            },
+          },
+        },
+      });
+
+      assert.deepEqual(
+        parallelMachineWithOnEntry
+          .transition('start', 'ENTER_PARALLEL')
+          .actions.map(a => a.type),
+        ['enter_p1', 'enter_inner']
+      );
+    });
+  });
 });
 
 describe('actions on invalid transition', () => {
