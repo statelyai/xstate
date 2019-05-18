@@ -26,7 +26,6 @@ import {
   Event,
   StateValue,
   TransitionConfig,
-  ActivityMap,
   StateTransition,
   StateValueMap,
   MachineOptions,
@@ -218,7 +217,8 @@ class StateNode<
   private __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
-    initialState: undefined as StateValue | undefined
+    initialStateValue: undefined as StateValue | undefined,
+    initialState: undefined as State<TContext, TEvent> | undefined
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
@@ -935,11 +935,11 @@ class StateNode<
 
   private getActions(
     transition: StateTransition<TContext, TEvent>,
-    prevState: State<TContext>
+    prevState?: State<TContext>
   ): Array<ActionObject<TContext, TEvent>> {
     const entryExitStates = transition.tree
       ? transition.tree.resolved.getEntryExitStates(
-          this.getStateTree(prevState.value)
+          prevState ? this.getStateTree(prevState.value) : undefined
         )
       : { entry: [], exit: [] };
     const doneEvents = transition.tree
@@ -1036,17 +1036,23 @@ class StateNode<
   }
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
-    currentState: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>
+    currentState?: State<TContext, TEvent>,
+    _eventObject?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
     const resolvedStateValue = stateTransition.tree
       ? stateTransition.tree.value
       : undefined;
-    const historyValue = currentState.historyValue
+    const historyValue = currentState
       ? currentState.historyValue
-      : stateTransition.source
-      ? (this.machine.historyValue(currentState.value) as HistoryValue)
+        ? currentState.historyValue
+        : stateTransition.source
+        ? (this.machine.historyValue(currentState.value) as HistoryValue)
+        : undefined
       : undefined;
+    const currentContext = currentState
+      ? currentState.context
+      : stateTransition.context || this.machine.context!;
+    const eventObject = _eventObject || { type: ActionTypes.Init };
 
     if (!IS_PRODUCTION && stateTransition.tree) {
       try {
@@ -1061,7 +1067,7 @@ class StateNode<
     }
 
     const actions = this.getActions(stateTransition, currentState);
-    const activities = { ...currentState.activities };
+    const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
       if (action.type === actionTypes.start) {
         activities[action.activity!.type] = action as ActivityDefinition<
@@ -1087,8 +1093,8 @@ class StateNode<
     );
 
     const updatedContext = assignActions.length
-      ? this.options.updater(currentState.context, eventObject, assignActions)
-      : currentState.context;
+      ? this.options.updater(currentContext, eventObject, assignActions)
+      : currentContext;
 
     const resolvedActions = flatten(
       nonEventActions.map(actionObject => {
@@ -1160,23 +1166,37 @@ class StateNode<
     }, {});
 
     const nextState = new State<TContext, TEvent>({
-      value: resolvedStateValue || currentState.value,
+      value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       event: eventObject || initEvent,
       historyValue: resolvedStateValue
         ? historyValue
           ? updateHistoryValue(historyValue, resolvedStateValue)
           : undefined
-        : currentState.historyValue,
+        : currentState
+        ? currentState.historyValue
+        : undefined,
       history:
         !resolvedStateValue || stateTransition.source
           ? currentState
           : undefined,
       actions: resolvedStateValue ? resolvedActions : [],
-      activities: resolvedStateValue ? activities : currentState.activities,
-      meta: resolvedStateValue ? meta : currentState.meta,
+      activities: resolvedStateValue
+        ? activities
+        : currentState
+        ? currentState.activities
+        : {},
+      meta: resolvedStateValue
+        ? meta
+        : currentState
+        ? currentState.meta
+        : undefined,
       events: resolvedStateValue ? (raisedEvents as TEvent[]) : [],
-      tree: resolvedStateValue ? stateTransition.tree : currentState.tree
+      tree: resolvedStateValue
+        ? stateTransition.tree
+        : currentState
+        ? currentState.tree
+        : undefined
     });
 
     nextState.changed = !!assignActions.length;
@@ -1434,8 +1454,8 @@ class StateNode<
     return toStatePath(stateIdentifier, this.delimiter);
   }
   private get initialStateValue(): StateValue | undefined {
-    if (this.__cache.initialState) {
-      return this.__cache.initialState;
+    if (this.__cache.initialStateValue) {
+      return this.__cache.initialStateValue;
     }
 
     const initialStateValue = (this.type === 'parallel'
@@ -1448,48 +1468,26 @@ class StateNode<
       ? undefined
       : this.resolvedStateValue[this.key]) as StateValue;
 
-    this.__cache.initialState = initialStateValue;
+    this.__cache.initialStateValue = initialStateValue;
 
-    return this.__cache.initialState;
+    return this.__cache.initialStateValue;
   }
 
   public getInitialState(
     stateValue: StateValue,
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
-    const activityMap: ActivityMap = {};
-    const actions: Array<ActionObject<TContext, TEvent>> = [];
-
-    for (const stateNode of this.getStateNodes(stateValue)) {
-      if (stateNode.onEntry) {
-        actions.push(...stateNode.onEntry);
-      }
-      if (stateNode.activities) {
-        for (const activity of stateNode.activities) {
-          activityMap[getEventType(activity)] = activity;
-          actions.push(start(activity));
-        }
-      }
-    }
-
-    const assignActions = actions.filter(
-      action => typeof action === 'object' && action.type === actionTypes.assign
-    ) as Array<AssignAction<TContext, TEvent>>;
-
-    const updatedContext = this.options.updater(
-      context,
-      { type: ActionTypes.Init },
-      assignActions
-    );
-
-    const initialNextState = new State<TContext, TEvent>({
-      value: stateValue,
-      context: updatedContext,
-      event: initEvent,
-      activities: activityMap
+    const tree = this.getStateTree(stateValue);
+    this.getStateNodes(stateValue).forEach(stateNode => {
+      tree.addReentryNode(stateNode);
     });
 
-    return initialNextState;
+    return this.resolveTransition({
+      tree,
+      source: undefined,
+      actions: [],
+      context
+    });
   }
 
   /**
@@ -1497,6 +1495,9 @@ class StateNode<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent> {
+    if (this.__cache.initialState) {
+      return this.__cache.initialState;
+    }
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
@@ -1505,21 +1506,9 @@ class StateNode<
       );
     }
 
-    const state = this.getInitialState(initialStateValue);
-    const tree = this.getStateTree(initialStateValue);
-    this.getStateNodes(initialStateValue).forEach(stateNode => {
-      tree.addReentryNode(stateNode);
-    });
+    this.__cache.initialState = this.getInitialState(initialStateValue);
 
-    return this.resolveTransition(
-      {
-        tree,
-        source: undefined,
-        actions: []
-      },
-      state,
-      { type: ActionTypes.Init }
-    );
+    return this.__cache.initialState;
   }
 
   /**

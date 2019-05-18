@@ -298,8 +298,17 @@ export class StateTree {
   public matches(parentValue: StateValue): boolean {
     return matchesState(parentValue, this.value);
   }
-  public getEntryExitStates(prevTree: StateTree): EntryExitStateArrays<any> {
+  public getEntryExitStates(prevTree?: StateTree): EntryExitStateArrays<any> {
     const externalNodes = this.root.reentryNodes;
+
+    if (!prevTree) {
+      // Initial state
+      return {
+        exit: [],
+        entry: [...externalNodes]
+      };
+    }
+
     if (prevTree.stateNode !== this.stateNode) {
       throw new Error('Cannot compare distinct trees');
     }

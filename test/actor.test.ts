@@ -246,3 +246,38 @@ describe('spawning observables', () => {
     promiseService.start();
   });
 });
+
+describe('actors', () => {
+  it('should only spawn actors defined on initial state once', () => {
+    let count = 0;
+
+    const startMachine = Machine<any>({
+      id: 'start',
+      initial: 'start',
+      context: {
+        items: [0, 1, 2, 3],
+        refs: []
+      },
+      states: {
+        start: {
+          entry: assign({
+            refs: ctx => {
+              count++;
+              const c = ctx.items.map(item =>
+                spawn(new Promise(res => res(item)))
+              );
+
+              return c;
+            }
+          })
+        }
+      }
+    });
+
+    interpret(startMachine)
+      .onTransition(() => {
+        assert.equal(count, 1);
+      })
+      .start();
+  });
+});
