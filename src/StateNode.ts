@@ -76,6 +76,7 @@ import {
   raise,
   done,
   doneInvoke,
+  error,
   toActionObject,
   resolveSend,
   initEvent,
@@ -1871,7 +1872,7 @@ class StateNode<
           acc[doneInvoke(invokeDef.id)] = invokeDef.onDone;
         }
         if (invokeDef.onError) {
-          acc[actionTypes.errorExecution] = invokeDef.onError;
+          acc[error(invokeDef.id)] = invokeDef.onError;
         }
         return acc;
       },

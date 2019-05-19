@@ -326,7 +326,8 @@ export function isBuiltInEvent(eventType: EventType): boolean {
   // check if event is an "error" event
   if (
     eventType === ActionTypes.ErrorCommunication ||
-    eventType === ActionTypes.ErrorExecution
+    eventType === ActionTypes.ErrorExecution ||
+    eventType.indexOf(ActionTypes.ErrorPlatform) === 0
   ) {
     return true;
   }
