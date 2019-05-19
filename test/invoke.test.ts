@@ -1304,6 +1304,61 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should call onError only on the state which has invoked failed service', () => {
+      let errorHandlersCalled = 0;
+
+      const errorMachine = Machine({
+        initial: 'start',
+        states: {
+          start: {
+            on: {
+              FETCH: 'fetch',
+            }
+          },
+          fetch: {
+            type: 'parallel',
+            states: {
+              first: {
+                invoke: {
+                  src: () => () => {
+                    throw new Error('test');
+                  },
+                  onError: {
+                    target: 'failed',
+                    cond: () => {
+                      errorHandlersCalled++;
+                      return false;
+                    }
+                  }
+                }
+              },
+              second: {
+                invoke: {
+                  src: () => () => {},
+                  onError: {
+                    target: 'failed',
+                    cond: () => {
+                      errorHandlersCalled++;
+                      return false;
+                    }
+                  }
+                }
+              },
+              failed: {
+                type: 'final'
+              }
+            }
+          },
+        }
+      });
+
+      interpret(errorMachine)
+        .start()
+        .send('FETCH');
+
+      assert.equal(errorHandlersCalled, 1);
+    });
+
     it('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
