@@ -4,34 +4,22 @@ import {
   EventObject,
   StateMachine,
   State,
-  Interpreter
+  Interpreter,
+  InterpreterOptions
 } from 'xstate';
 
-interface InterpreterOptions {
-  /**
-   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
-   */
-  execute: boolean;
-  logger: (...args: any[]) => void;
-  /**
-   * If `true`, defers processing of sent events until the service
-   * is initialized (`.start()`). Otherwise, an error will be thrown
-   * for events sent to an uninitialized service.
-   *
-   * Default: `true`
-   */
-  deferEvents: boolean;
-  /**
-   * If `true`, states and events will be logged to Redux DevTools.
-   *
-   * Default: `false`
-   */
-  devTools: boolean;
+interface UseMachineOptions {
+  immediate: boolean;
 }
+
+const defaultOptions: UseMachineOptions = {
+  immediate: false
+};
 
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<InterpreterOptions>
+  options: Partial<InterpreterOptions> &
+    Partial<UseMachineOptions> = defaultOptions
 ): [
   State<TContext, TEvent>,
   Interpreter<TContext, any, TEvent>['send'],
@@ -51,13 +39,19 @@ export function useMachine<TContext, TEvent extends EventObject>(
     });
   }
 
-  // Keep track of the current machine state
-  const [current, setCurrent] = useState(serviceRef.current.initialState);
-
   const service = serviceRef.current;
 
+  // Start service immediately (before mount) if specified in options
+  if (options && options.immediate) {
+    service.start();
+  }
+
+  // Keep track of the current machine state
+  const [current, setCurrent] = useState(service.initialState);
+
   useEffect(() => {
-    // Start the service when the component mounts
+    // Start the service when the component mounts.
+    // Note: the service will start only if it hasn't started already.
     service.start();
 
     return () => {
