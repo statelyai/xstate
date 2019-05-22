@@ -272,6 +272,41 @@ describe('invoke', () => {
       .send('GO_TO_WAITING_MACHINE');
   });
 
+  it('should start services (machine as invoke config)', done => {
+    const machineInvokeMachine = Machine({
+      id: 'machine-invoke',
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: Machine({
+            id: 'child',
+            initial: 'sending',
+            states: {
+              sending: {
+                entry: sendParent({ type: 'SUCCESS', data: 42 })
+              }
+            }
+          }),
+          on: {
+            SUCCESS: {
+              target: 'success',
+              cond: (_, e) => {
+                return e.data === 42;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machineInvokeMachine)
+      .onDone(() => done())
+      .start();
+  });
+
   it('should use the service overwritten by withConfig', done => {
     const childMachine = Machine({
       id: 'child',

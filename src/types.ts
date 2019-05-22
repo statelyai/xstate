@@ -284,7 +284,12 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
     | string
     | number
     | StateNode<TContext, any, TEvent>
-    | SingleOrArray<TransitionConfig<TContext, Extract<TEvent, { type: K }>>>
+    | SingleOrArray<
+        TransitionConfig<
+          TContext,
+          TEvent extends { type: K } ? TEvent : EventObject
+        >
+      >
 };
 
 export type TransitionsDefinition<TContext, TEvent extends EventObject> = {

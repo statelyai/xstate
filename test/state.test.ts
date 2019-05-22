@@ -205,6 +205,20 @@ describe('State', () => {
         'MACHINE_EVENT'
       ]);
     });
+
+    it('returns no next events if there are none', () => {
+      const noEventsMachine = Machine({
+        id: 'no-events',
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {}
+          }
+        }
+      });
+
+      assert.isEmpty(noEventsMachine.initialState.nextEvents);
+    });
   });
 
   describe('State.create()', () => {
@@ -233,6 +247,15 @@ describe('State', () => {
 
       assert.isEmpty(inertState.actions);
       assert.deepEqual(inertState.context, { foo: 'bar' });
+    });
+
+    it('should preserve the given State if there are no actions', () => {
+      const naturallyInertState = State.from('foo');
+
+      assert.equal(
+        State.inert(naturallyInertState, undefined),
+        naturallyInertState
+      );
     });
   });
 
@@ -281,7 +304,17 @@ describe('State', () => {
   });
 
   describe('State.prototype.toStrings', () => {
-    it('should keep reference to state instance after destcurting', () => {
+    it('should return all state paths as strings', () => {
+      const twoState = machine.transition('one', 'TO_TWO');
+
+      assert.sameMembers(twoState.toStrings(), [
+        'two',
+        'two.deep',
+        'two.deep.foo'
+      ]);
+    });
+
+    it('should keep reference to state instance after destructuring', () => {
       const { initialState } = machine;
       const { toStrings } = initialState;
 

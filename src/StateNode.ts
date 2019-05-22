@@ -219,7 +219,10 @@ class StateNode<
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
-    initialState: undefined as State<TContext, TEvent> | undefined
+    initialState: undefined as State<TContext, TEvent> | undefined,
+    transitions: undefined as
+      | TransitionsDefinition<TContext, TEvent>
+      | undefined
   };
 
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
@@ -425,7 +428,11 @@ class StateNode<
    * The mapping of events to transitions.
    */
   public get on(): TransitionsDefinition<TContext, TEvent> {
-    return this.formatTransitions();
+    return (
+      this.__cache.transitions ||
+      ((this.__cache.transitions = this.formatTransitions()),
+      this.__cache.transitions)
+    );
   }
 
   /**

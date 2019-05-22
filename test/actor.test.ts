@@ -55,7 +55,7 @@ describe('spawning machines', () => {
         actions: assign({
           todoRefs: (ctx, e) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(todoMachine)
+            [e.id as string]: spawn(todoMachine)
           })
         })
       },
