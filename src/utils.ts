@@ -222,9 +222,7 @@ export function nestedPath<T extends Record<string, any>>(
   };
 }
 
-export const toStatePaths = (
-  stateValue: StateValue | undefined
-): string[][] => {
+export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   if (!stateValue) {
     return [[]];
   }
@@ -239,7 +237,7 @@ export const toStatePaths = (
 
       if (
         typeof subStateValue !== 'string' &&
-        !Object.keys(subStateValue).length
+        (!subStateValue || !Object.keys(subStateValue).length)
       ) {
         return [[key]];
       }
@@ -251,7 +249,7 @@ export const toStatePaths = (
   );
 
   return result;
-};
+}
 
 export const pathsToStateValue = (paths: string[][]): StateValue => {
   const result: StateValue = {};

@@ -456,6 +456,43 @@ const nestedParallelState = Machine({
   }
 });
 
+const deepFlatParallelMachine = Machine({
+  type: 'parallel',
+  states: {
+    X: {},
+    V: {
+      initial: 'A',
+      on: {
+        a: {
+          target: 'V.A'
+        },
+        b: {
+          target: 'V.B'
+        },
+        c: {
+          target: 'V.C'
+        }
+      },
+      states: {
+        A: {},
+        B: {
+          initial: 'BB',
+          states: {
+            BB: {
+              type: 'parallel',
+              states: {
+                BBB_A: {},
+                BBB_B: {}
+              }
+            }
+          }
+        },
+        C: {}
+      }
+    }
+  }
+});
+
 describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
@@ -679,6 +716,28 @@ describe('parallel states', () => {
           C: {},
           D: {}
         }
+      });
+    });
+  });
+
+  describe('deep flat parallel states', () => {
+    it('should properly evaluate deep flat parallel states', () => {
+      const state1 = deepFlatParallelMachine.transition(
+        deepFlatParallelMachine.initialState,
+        'a'
+      );
+      const state2 = deepFlatParallelMachine.transition(state1, 'c');
+      const state3 = deepFlatParallelMachine.transition(state2, 'b');
+      assert.deepEqual(state3.value, {
+        V: {
+          B: {
+            BB: {
+              BBB_A: {},
+              BBB_B: {}
+            }
+          }
+        },
+        X: {}
       });
     });
   });
