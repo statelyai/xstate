@@ -16,9 +16,10 @@ import {
   Condition,
   Guard,
   Subscribable,
-  StateMachine
+  StateMachine,
+  ConditionPredicate
 } from './types';
-import { STATE_DELIMITER } from './constants';
+import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
 
 function isState(state: object | string): state is StateInterface {
@@ -501,7 +502,8 @@ export function isString(value: any): value is string {
 // }
 
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>
+  condition?: Condition<TContext, TEvent>,
+  guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
 ): Guard<TContext, TEvent> | undefined {
   if (!condition) {
     return undefined;
@@ -509,13 +511,16 @@ export function toGuard<TContext, TEvent extends EventObject>(
 
   if (isString(condition)) {
     return {
-      type: condition
+      type: DEFAULT_GUARD_TYPE,
+      name: condition,
+      predicate: guardMap ? guardMap[condition] : undefined
     };
   }
 
   if (isFunction(condition)) {
     return {
-      type: 'xstate.cond',
+      type: DEFAULT_GUARD_TYPE,
+      name: condition.name,
       predicate: condition
     };
   }

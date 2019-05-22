@@ -275,3 +275,59 @@ describe('custom guards', () => {
     assert.equal(failState.value, 'inactive');
   });
 });
+
+describe('referencing guards', () => {
+  const stringGuardFn = () => true;
+  const guardsMachine = Machine(
+    {
+      id: 'guards',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            EVENT: [
+              { cond: 'string' },
+              {
+                cond: function guardFn() {
+                  return true;
+                }
+              },
+              {
+                cond: {
+                  type: 'object',
+                  foo: 'bar'
+                }
+              }
+            ]
+          }
+        }
+      }
+    },
+    {
+      guards: {
+        string: stringGuardFn
+      }
+    }
+  );
+
+  const def = guardsMachine.definition;
+  const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
+
+  it('guard predicates should be able to be referenced from a string', () => {
+    assert.isDefined(stringGuard.cond!.predicate);
+    assert.equal(stringGuard.cond!.name, 'string');
+  });
+
+  it('guard predicates should be able to be referenced from a function', () => {
+    assert.isDefined(functionGuard.cond!.predicate);
+    assert.deepEqual(functionGuard.cond!.name, 'guardFn');
+  });
+
+  it('guard predicates should be able to be referenced from an object', () => {
+    assert.isDefined(objectGuard.cond);
+    assert.deepEqual(objectGuard.cond, {
+      type: 'object',
+      foo: 'bar'
+    });
+  });
+});

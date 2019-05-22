@@ -83,6 +83,7 @@ import {
 } from './actions';
 import { StateTree } from './StateTree';
 import { IS_PRODUCTION } from './environment';
+import { DEFAULT_GUARD_TYPE } from './constants';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -368,7 +369,7 @@ class StateNode<
     const { actions, activities, guards, services, delays } = this.options;
 
     return new StateNode(
-      this.definition,
+      this.config,
       {
         actions: { ...actions, ...options.actions },
         activities: { ...activities, ...options.activities },
@@ -449,6 +450,7 @@ class StateNode<
     }
 
     const afterConfig = this.config.after;
+    const { guards } = this.machine.options;
 
     if (!afterConfig) {
       return [];
@@ -475,7 +477,7 @@ class StateNode<
           event,
           ...delayedTransition,
           target: target === undefined ? undefined : toArray(target),
-          cond: toGuard(delayedTransition.cond),
+          cond: toGuard(delayedTransition.cond, guards),
           actions: toArray(delayedTransition.actions).map(action =>
             toActionObject(action)
           )
@@ -512,7 +514,7 @@ class StateNode<
             transition.target === undefined
               ? transition.target
               : toArray(transition.target),
-          cond: toGuard(transition.cond),
+          cond: toGuard(transition.cond, guards),
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
           )
@@ -912,7 +914,7 @@ class StateNode<
     };
 
     // TODO: do not hardcode!
-    if (guard.type === 'xstate.cond') {
+    if (guard.type === DEFAULT_GUARD_TYPE) {
       return (guard as GuardPredicate<TContext, TEvent>).predicate(
         context,
         eventObject,
@@ -1787,6 +1789,7 @@ class StateNode<
   ): TransitionDefinition<TContext, TEvent> {
     let internal = transitionConfig ? transitionConfig.internal : undefined;
     const targets = toArray(target);
+    const { guards } = this.machine.options;
 
     // Format targets to their full string path
     const formattedTargets = targets.map(_target => {
@@ -1832,7 +1835,7 @@ class StateNode<
     return {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
-      cond: toGuard(transitionConfig.cond),
+      cond: toGuard(transitionConfig.cond, guards),
       target: isTargetless ? undefined : formattedTargets,
       internal: (isTargetless && internal === undefined) || internal,
       event

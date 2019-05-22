@@ -96,8 +96,11 @@ export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   meta: GuardMeta<TContext, TEvent>
 ) => boolean;
 
+export type DefaultGuardType = 'xstate.guard';
+
 export interface GuardPredicate<TContext, TEvent extends EventObject> {
-  type: 'xstate.cond';
+  type: DefaultGuardType;
+  name: string | undefined;
   predicate: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
 }
 
