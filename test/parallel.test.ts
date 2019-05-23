@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { raise } from '../src/actions';
+import { raise, assign } from '../src/actions';
 import { Machine } from '../src/Machine';
 import { testMultiTransition } from './utils';
 
@@ -632,6 +632,56 @@ describe('parallel states', () => {
         INNER2: 'ON'
       }
     });
+  });
+
+  xit('should handle simultaneous orthogonal transitions', () => {
+    const simultaneousMachine = Machine<{ value: string }>({
+      id: 'yamlEditor',
+      type: 'parallel',
+      context: {
+        value: ''
+      },
+      states: {
+        editing: {
+          on: {
+            CHANGE: {
+              actions: assign({
+                value: (_, e) => e.value
+              })
+            }
+          }
+        },
+        status: {
+          initial: 'unsaved',
+          states: {
+            unsaved: {
+              on: {
+                SAVE: {
+                  target: 'saved',
+                  actions: 'save'
+                }
+              }
+            },
+            saved: {
+              on: {
+                CHANGE: 'unsaved'
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const savedState = simultaneousMachine.transition(
+      simultaneousMachine.initialState,
+      'SAVE'
+    );
+    const unsavedState = simultaneousMachine.transition(savedState, {
+      type: 'CHANGE',
+      value: 'something'
+    });
+
+    assert.deepEqual(unsavedState.value, {});
   });
 
   describe('transitions with nested parallel states', () => {
