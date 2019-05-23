@@ -896,6 +896,19 @@ describe('interpreter', () => {
       startService.start();
     });
 
+    it('should not reinitialize a started service', () => {
+      let stateCount = 0;
+      const startService = interpret(startMachine).onTransition(() => {
+        stateCount++;
+      });
+
+      startService.start();
+      assert.equal(stateCount, 1);
+
+      startService.start();
+      assert.equal(stateCount, 1);
+    });
+
     it('should be able to be initialized at a custom state', done => {
       const startService = interpret(startMachine).onTransition(state => {
         assert.ok(state.matches('bar'));
@@ -953,6 +966,44 @@ describe('interpreter', () => {
         assert.isFalse(called);
         done();
       }, 60);
+    });
+  });
+
+  describe('off()', () => {
+    it('should remove transition listeners', () => {
+      const toggleMachine = Machine({
+        id: 'toggle',
+        initial: 'inactive',
+        states: {
+          inactive: {
+            on: { TOGGLE: 'active' }
+          },
+          active: {
+            on: { TOGGLE: 'inactive' }
+          }
+        }
+      });
+
+      const toggleService = interpret(toggleMachine).start();
+
+      let stateCount = 0;
+
+      const listener = () => stateCount++;
+
+      toggleService.onTransition(listener);
+
+      toggleService.send('TOGGLE');
+
+      assert.equal(stateCount, 1);
+
+      toggleService.send('TOGGLE');
+
+      assert.equal(stateCount, 2);
+
+      toggleService.off(listener);
+      toggleService.send('TOGGLE');
+
+      assert.equal(stateCount, 2);
     });
   });
 
