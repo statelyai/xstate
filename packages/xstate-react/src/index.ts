@@ -72,19 +72,25 @@ export function useService<TContext, TEvent extends EventObject>(
 ] {
   const [current, setCurrent] = useState(service.state);
 
-  useEffect(() => {
-    const listener = state => {
-      if (state.changed) {
-        setCurrent(state);
-      }
-    };
+  useEffect(
+    () => {
+      // Set to current service state
+      setCurrent(service.state);
 
-    service.onTransition(listener);
+      const listener = state => {
+        if (state.changed) {
+          setCurrent(state);
+        }
+      };
 
-    return () => {
-      service.off(listener);
-    };
-  }, []);
+      service.onTransition(listener);
+
+      return () => {
+        service.off(listener);
+      };
+    },
+    [service]
+  );
 
   return [current, service.send, service];
 }

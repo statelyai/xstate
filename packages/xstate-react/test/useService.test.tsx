@@ -105,4 +105,45 @@ describe('useService hook', () => {
       assert.equal(otherEl.textContent, 'test');
     });
   });
+
+  it('service should be updated when it changes', () => {
+    const counterService1 = interpret(counterMachine).start();
+    const counterService2 = interpret(counterMachine).start();
+
+    const Counter = ({ counterRef }) => {
+      const [state, send] = useService<{ count: number }, any>(counterRef);
+
+      return (
+        <>
+          <button data-testid="inc" onClick={_ => send('INC')} />
+          <div data-testid="count">{state.context.count}</div>
+        </>
+      );
+    };
+    const CounterParent = () => {
+      const [service, setService] = useState(counterService1);
+
+      return (
+        <>
+          <button
+            data-testid="change-service"
+            onClick={() => setService(counterService2)}
+          />
+          <Counter counterRef={service} />
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<CounterParent />);
+
+    const changeServiceButton = getByTestId('change-service');
+    const incButton = getByTestId('inc');
+    const countEl = getByTestId('count');
+
+    assert.equal(countEl.textContent, '0');
+    fireEvent.click(incButton);
+    assert.equal(countEl.textContent, '1');
+    fireEvent.click(changeServiceButton);
+    assert.equal(countEl.textContent, '0');
+  });
 });
