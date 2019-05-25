@@ -818,6 +818,7 @@ export class Interpreter<
     options: { id?: string; autoForward?: boolean; subscribe?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
     const childService = new Interpreter(machine, {
+      ...this.options, // inherit options from this interpreter
       parent: this,
       id: options.id || machine.id
     });
@@ -1055,11 +1056,25 @@ export class Interpreter<
       typeof window !== 'undefined' &&
       (window as any).__REDUX_DEVTOOLS_EXTENSION__
     ) {
+      const devToolsOptions =
+        typeof this.options.devTools === 'object'
+          ? this.options.devTools
+          : undefined;
       this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
         name: this.id,
+        autoPause: true,
+        stateSanitizer: (state: State<any, any>): object => {
+          return {
+            value: state.value,
+            context: state.context,
+            actions: state.actions
+          };
+        },
+        ...devToolsOptions,
         features: {
           jump: false,
-          skip: false
+          skip: false,
+          ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
         }
       });
       this.devTools.init(this.state);

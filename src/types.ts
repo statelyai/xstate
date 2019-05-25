@@ -946,7 +946,7 @@ export interface InterpreterOptions {
    *
    * Default: `false`
    */
-  devTools: boolean;
+  devTools: boolean | object; // TODO: add enhancer options
   [option: string]: any;
 }
 
