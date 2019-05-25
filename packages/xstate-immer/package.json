@@ -30,8 +30,13 @@
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "dependencies": {
+  "dependencies": {},
+  "peerDependencies": {
     "immer": "^2.1.5",
-    "xstate": "^4.5.0"
+    "xstate": "^4.6.0"
+  },
+  "devDependencies": {
+    "immer": "^2.1.5",
+    "xstate": "^4.6.0"
   }
 }

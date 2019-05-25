@@ -2,7 +2,7 @@ import { assert } from 'chai';
 import { Machine } from 'xstate';
 import { updater, assign } from '../src/index';
 
-describe('Immer updater', () => {
+describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {
     const context = {
       count: 0
