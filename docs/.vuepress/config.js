@@ -51,6 +51,7 @@ module.exports = {
           '/guides/context',
           '/guides/activities',
           '/guides/communication',
+          '/guides/actors',
           '/guides/delays',
           '/guides/final',
           '/guides/history',

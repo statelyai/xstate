@@ -46,6 +46,53 @@ untoggledState.value;
 // => 'inactive'
 ```
 
+## API
+
+### `FSM(config)`
+
+Creates a new finite state machine (FSM) from the config, which has this schema:
+
+### Machine config
+
+- `id` (string) - an identifier for the type of machine this is. Useful for debugging.
+- `initial` (string) - the key of the initial state.
+- `states` (object) - an object mapping state names (keys) to [states](#state-config)
+
+### State config
+
+- `on` (object) - an object mapping event types (keys) to [transitions](#transition-config)
+
+### Transition config
+
+String syntax:
+
+- (string) - the state name to transition to.
+  - Same as `{ target: stateName }`
+
+Object syntax:
+
+- `target?` (string) - the state name to transition to.
+- `actions?` (Action | Action[]) - the [action(s)](#action-config) to execute when this transition is taken.
+- `cond?` (Guard) - the condition (predicate function) to test. If it returns `true`, the transition will be taken.
+
+### Action config
+
+String syntax:
+
+- (string) - the action type.
+  - Resolves to `{ type: actionType, exec: undefined }`
+
+Function syntax:
+
+- (function) - the action function to execute. Resolves to `{ type: actionFn.name, exec: actionFn }` and the function takes the following arguments:
+  1. `context` (any) - the machine's current `context`.
+  2. `event` (object) - the event that caused the action to be executed.
+
+Object syntax:
+
+- `type` (string) - the action type.
+- `exec?` (function) - the action function to execute.
+
 ## Usage
 
 ```js
