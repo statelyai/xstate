@@ -43,7 +43,9 @@ All the existing invoked service patterns fit this interface:
 Just as in Actor-model-based languages like [Akka](TODO: link) or [Erlang](TODO: link), actors are spawned and referenced in `context` (as the result of an `assign(...)` action).
 
 1. Import the `spawn` function from `'xstate'`
-2. In an `assign(...)` action, create a new actor reference with `spawn(...)`.
+2. In an `assign(...)` action, create a new actor reference with `spawn(...)`
+
+The `spawn(...)` function creates an **actor reference**.
 
 ```js {13}
 import { Machine, spawn } from 'xstate';
@@ -106,7 +108,7 @@ Different types of values can be spawned as actors.
 
 ## Sending events to actors
 
-With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](TODO: link):
+With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
 ```js
 const machine = Machine({

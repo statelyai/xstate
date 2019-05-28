@@ -112,9 +112,7 @@ When interpreting statecharts, the order of actions should not necessarily matte
 2. transition `actions` - all actions defined on the chosen transition
 3. `onEntry` actions - all the entry actions of the entered state node(s), from the parent state down
 
-## Built-in Actions
-
-### Send Action
+## Send Action
 
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
 
@@ -183,7 +181,54 @@ const machine = Machine({
 });
 ```
 
-### Raise Action
+### Send Targets
+
+An event to be sent from a `send(...)` action can be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
+
+```js
+// ...
+invoke: {
+  id: 'some-service-id',
+  src: 'someService',
+  // ...
+},
+// ...
+// Send { type: 'SOME_EVENT' } to the invoked service
+actions: send('SOME_EVENT', { to: 'some-service-id' })
+```
+
+The target in the `to` prop can also be a **target expression**, which is a function that takes in the current `context` and `event` that triggered the action, and returns either a string target or an [actor reference](./actors.md#spawning-actors):
+
+```js
+entry: assign({
+  someActor: () => {
+    const name = 'some-actor-name';
+
+    return {
+      name,
+      ref: spawn(someMachine, name);
+    }
+  }
+}),
+// ...
+
+// Send { type: 'SOME_EVENT' } to the actor ref via string target
+{
+  actions: send('SOME_EVENT', {
+    to: context => context.someActor.name
+  })
+}
+// ...
+
+// Send { type: 'SOME_EVENT' } to the actor ref via ref target
+{
+  actions: send('SOME_EVENT', {
+    to: context => context.someActor.ref
+  })
+}
+```
+
+## Raise Action
 
 The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
 
@@ -220,7 +265,7 @@ nextState.actions;
 // => []
 ```
 
-### Log Action
+## Log Action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
 
