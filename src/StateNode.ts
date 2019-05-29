@@ -1000,8 +1000,31 @@ class StateNode<
       )
     ];
 
+    // Separating actions of type xstate.stop from the rest
+    // Why? transition actions can have `send` actions to specific invoked
+    // service children, so invoked services need to stay alive until the
+    // transition.are executed
+    // https://github.com/davidkpiano/xstate/issues/470
+    const stopExitActions: Array<
+      ActionObject<any, OmniEventObject<EventObject>>
+    > = [];
+    const nonStopExitActions: Array<
+      ActionObject<any, OmniEventObject<EventObject>>
+    > = [];
+
+    exitActions.forEach(act => {
+      if (act.type === ActionTypes.Stop) {
+        stopExitActions.push(act);
+      } else {
+        nonStopExitActions.push(act);
+      }
+    });
+
     const actions = toActionObjects(
-      exitActions.concat(transition.actions).concat(entryActions),
+      nonStopExitActions
+        .concat(transition.actions)
+        .concat(stopExitActions)
+        .concat(entryActions),
       this.machine.options.actions
     );
 
