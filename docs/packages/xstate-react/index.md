@@ -112,7 +112,7 @@ const fetchMachine = Machine({
 const Fetcher = ({ onResolve }) => {
   const customFetchMachine = useMemo(
     () =>
-      fetchMachine.withContext({
+      fetchMachine.withConfig({
         actions: {
           notifyResolve: ctx => {
             onResolve(ctx.data);
