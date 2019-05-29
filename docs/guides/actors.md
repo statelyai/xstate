@@ -1,6 +1,6 @@
-# Actors
+# Actors <Badge text="4.6+"/>
 
-<Badge text="4.6+"/>
+[:rocket: Quick Reference](#quick-reference)
 
 The [Actor model](https://en.wikipedia.org/wiki/Actor_model) is a mathematical model of message-based computation that simplifies how multiple "entities" (or "actors") communicate with each other. Actors communicate by sending messages (events) to each other. An actor's local state is private, unless it wishes to share it with another actor, by sending it as an event.
 
@@ -14,6 +14,8 @@ State machines and statecharts work very well with the actor model, as they are 
 
 - The next `value` and `context` (an actor's local state)
 - The next `actions` to be executed (potentially newly spawned actors or messages sent to other actors)
+
+> Think of actors like dynamic services in XState.
 
 Actors can be considered a dynamic variant of [invoked services](./communication.md) (same internal implementation!) with two important differences:
 
@@ -30,7 +32,7 @@ An actor (as implemented in XState) has an interface of:
 They may have optional methods:
 
 - A `.stop()` method which stops the actor and performs any necessary cleanup
-- A `.subscribe(...)` method for actors that implement an [Observable](TODO: link) interface.
+- A `.subscribe(...)` method for actors that are [Observable](https://github.com/tc39/proposal-observable).
 
 All the existing invoked service patterns fit this interface:
 
@@ -40,14 +42,21 @@ All the existing invoked service patterns fit this interface:
 
 ## Spawning actors
 
-Just as in Actor-model-based languages like [Akka](TODO: link) or [Erlang](TODO: link), actors are spawned and referenced in `context` (as the result of an `assign(...)` action).
+Just as in Actor-model-based languages like [Akka](https://doc.akka.io/docs/akka/current/guide/introduction.html) or [Erlang](http://www.erlang.org/docs), actors are spawned and referenced in `context` (as the result of an `assign(...)` action).
 
 1. Import the `spawn` function from `'xstate'`
 2. In an `assign(...)` action, create a new actor reference with `spawn(...)`
 
-The `spawn(...)` function creates an **actor reference**.
+The `spawn(...)` function creates an **actor reference** by providing 1 or 2 arguments:
 
-```js {13}
+- `entity` - the (reactive) value or machine that represents the behavior of the actor. Possible types for `entity`:
+  - [Machine](./communication.md#invoking-machines)
+  - [Promise](./communication.md#invoking-promises)
+  - [Callback](./communication.md#invoking-callbacks)
+  - Observable
+- `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
+
+```js {13-14}
 import { Machine, spawn } from 'xstate';
 import { todoMachine } from './todoMachine';
 
@@ -60,7 +69,8 @@ const todosMachine = Machine({
           ...context.todos,
           {
             todo: event.todo,
-            ref: spawn(todoMachine) // add a new todoMachine actor
+            // add a new todoMachine actor with a unique name
+            ref: spawn(todoMachine, `todo-${event.id}`)
           }
         ]
       })
@@ -69,6 +79,8 @@ const todosMachine = Machine({
   }
 });
 ```
+
+If you do not provide a `name` argument to `spawn(...)`, a unique name will be automatically generated. This name will be nondeterministic :warning:.
 
 ::: tip
 Treat `const actorRef = spawn(someMachine)` as just a normal value in `context`. You can place this `actorRef` anywhere within `context`, based on your logic requirements. As long as it's within an assignment function in `assign(...)`, it will be scoped to the service from where it was spawned.
@@ -110,7 +122,7 @@ Different types of values can be spawned as actors.
 
 With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
-```js
+```js {13}
 const machine = Machine({
   // ...
   states: {
@@ -134,9 +146,9 @@ const machine = Machine({
 
 ## Spawning Promises
 
-Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors:
+Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
 
-```js
+```js {11}
 // Returns a promise
 const fetchData = query => {
   return fetch(`http://example.com?query=${event.query}`).then(data =>
@@ -153,11 +165,15 @@ const fetchData = query => {
 // ...
 ```
 
+::: tip
+It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
+:::
+
 ## Spawning callbacks
 
 Just like [invoking callbacks](./communication.md#invoking-callbacks), callbacks can be spawned as actors. This example models a counter-interval actor that increments its own count every second, but can also react to `{ type: 'INC' }` events.
 
-```js
+```js {22}
 const counterInterval = (callback, receive) => {
   let count = 0;
 
@@ -188,7 +204,7 @@ const machine = Machine({
 
 Events can then be sent to the actor:
 
-```js
+```js {5-7}
 const machine = Machine({
   // ...
   on: {
@@ -206,7 +222,7 @@ const machine = Machine({
 
 Machines are the most effective way to use actors, since they offer the most capabilities. Spawning machines is just like [invoking machines](./communication.md#invoking-machines), where a `machine` is passed into `spawn(machine)`:
 
-```js
+```js {13,26,30-32}
 const remoteMachine = Machine({
   id: 'remote',
   initial: 'offline',
@@ -255,4 +271,103 @@ parentService.send('LOCAL.WAKE');
 // => 'waiting'
 // ... after 1000ms
 // => 'connected'
+```
+
+## Quick Reference
+
+**Import `spawn`** to spawn actors:
+
+```js
+import { spawn } from 'xstate';
+```
+
+**Spawn actors** in `assign` action creators:
+
+```js
+// ...
+{
+  actions: assign({
+    someRef: (context, event) => spawn(someMachine)
+  });
+}
+// ...
+```
+
+**Spawn different types** of actors:
+
+```js
+// ...
+{
+  actions: assign({
+    // From a promise
+    promiseRef: (context, event) =>
+      spawn(
+        new Promise((resolve, reject) => {
+          // ...
+        }, 'my-promise')
+      ),
+
+    // From a callback
+    callbackRef: (context, event) =>
+      spawn((callback, receive) => {
+        // send to parent
+        callback('SOME_EVENT');
+
+        // receive from parent
+        receive(event => {
+          // handle event
+        });
+
+        // disposal
+        return () => {
+          /* do cleanup here */
+        };
+      }),
+
+    // From an observable
+    observableRef: (context, event) => spawn(someEvent$),
+
+    // From a machine
+    machineRef: (context, event) =>
+      spawn(
+        Machine({
+          // ...
+        })
+      )
+  });
+}
+// ...
+```
+
+**Send event to actor** with `send` action creator:
+
+```js
+// ...
+{
+  actions: send('SOME_EVENT', {
+    to: context => context.someRef
+  });
+}
+// ...
+```
+
+**Send event from actor** to parent with `sendParent` action creator:
+
+```js
+// ...
+{
+  actions: sendParent('ANOTHER_EVENT');
+}
+// ...
+```
+
+**Reference actors** from `context`:
+
+```js
+someService.onTransition(state => {
+  const { someRef } = state.context;
+
+  console.log(someRef);
+  // => { id: ..., send: ... }
+});
 ```

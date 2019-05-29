@@ -183,7 +183,7 @@ const machine = Machine({
 
 ### Send Targets
 
-An event to be sent from a `send(...)` action can be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
+An event sent from a `send(...)` action can be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
 
 ```js
 // ...

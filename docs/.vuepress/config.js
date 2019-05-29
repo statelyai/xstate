@@ -5,7 +5,8 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   ga: 'UA-129726387-1',
   markdown: {
-    toc: { includeLevel: [2, 3] }
+    toc: { includeLevel: [2, 3] },
+    lineNumbers: true
     // config: md => {
     //   md.use(mdCodesandboxPlugin, {
     //     directory: 'sandboxes',

@@ -1,3 +1,27 @@
 .site-name {
   visibility: hidden;
 }
+
+div[class*="language-"] {
+  line-height: 1.2;
+
+  .highlight-lines {
+    line-height: inherit;
+  }
+
+  .line-numbers-wrapper {
+    line-height: inherit !important;
+  }
+}
+.content pre[class*="language-"] {
+  line-height: inherit;
+
+  > code {
+    font-size: .75em;
+  }
+}
+
+blockquote {
+  font-size: 1rem;
+  color: #8e8e8e;
+}
