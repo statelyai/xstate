@@ -151,7 +151,7 @@ const stateDefinition = JSON.parse(localStorage.getItem('app-state'));
 const restoredState = State.create(stateDefinition);
 
 // Use machine.resolveState() to resolve the state definition to a new State instance relative to the machine
-const resolvedState = myMachine.resolveState(restoredStateDef);
+const resolvedState = myMachine.resolveState(restoredState);
 ```
 
 You can then interpret the machine from this resolved state by passing the `State` into the `.start(...)` method of the interpreted service:
