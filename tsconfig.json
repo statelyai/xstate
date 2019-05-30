@@ -13,7 +13,8 @@
     "jsx": "react",
     "lib": ["es6", "dom"],
     "types": ["mocha", "node", "core-js"],
-    "sourceMap": true
+    "sourceMap": true,
+    "strictPropertyInitialization": true
   },
   "include": ["src/**/*"],
   "exclude": ["test/**/*", "examples/**/*", "editor/node_modules/**/*"]

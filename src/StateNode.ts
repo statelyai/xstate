@@ -142,7 +142,7 @@ class StateNode<
    *
    * Use `type: 'parallel'` instead.
    */
-  public parallel: boolean;
+  public parallel?: boolean;
   /**
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.

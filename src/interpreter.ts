@@ -178,12 +178,10 @@ export class Interpreter<
 
     const resolvedId = id !== undefined ? id : machine.id;
 
-    Object.assign(this, {
-      clock,
-      logger,
-      parent,
-      id: resolvedId
-    });
+    this.id = resolvedId;
+    this.logger = logger;
+    this.clock = clock;
+    this.parent = parent;
 
     this.options = resolvedOptions;
 
