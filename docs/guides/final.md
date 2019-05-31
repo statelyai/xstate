@@ -78,7 +78,7 @@ const shoppingMachine = Machine({
       initial: 'pending',
       states: {
         pending: {
-          onEntry: 'getUser',
+          entry: 'getUser',
           on: {
             RESOLVE_USER: 'success',
             REJECT_USER: 'failure'
@@ -92,7 +92,7 @@ const shoppingMachine = Machine({
       initial: 'pending',
       states: {
         pending: {
-          onEntry: 'getItems',
+          entry: 'getItems',
           on: {
             RESOLVE_ITEMS: 'success',
             REJECT_ITEMS: 'failure'
@@ -119,4 +119,4 @@ Final states correspond to the SCXML spec: [https://www.w3.org/TR/scxml/#final](
 
 - A final state node only indicates that its immediate parent is _done_. It does not affect the _done_ status of any higher parents, except with parallel state nodes, which are _done_ when all of its child compound state nodes are _done_.
 - Final state nodes cannot have any children. They are atomic state nodes.
-- You can specify `onEntry` and `onExit` actions on final state nodes.
+- You can specify `entry` and `onExit` actions on final state nodes.

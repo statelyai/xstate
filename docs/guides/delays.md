@@ -196,7 +196,7 @@ const toggleMachine = Machine({
   initial: 'inactive',
   states: {
     inactive: {
-      onEntry: sendTimerAfter1Second,
+      entry: sendTimerAfter1Second,
       on: {
         TIMER: 'active'
         CANCEL: { actions: cancelTimer }
@@ -227,7 +227,7 @@ const dynamicDelayMachine = Machine({
       }
     },
     pending: {
-      onEntry: send('FINISH', {
+      entry: send('FINISH', {
         delay: (context, event) => context.initialDelay + event.wait || 0
       }),
       on: {
@@ -302,7 +302,7 @@ The `after: ...` property does not introduce anything new to statechart semantic
 // ...
 states: {
   green: {
-    onEntry: [
+    entry: [
       send(after(1000, 'light.green'), { delay: 1000 }),
       send(after(2000, 'light.green'), { delay: 2000 })
     ],

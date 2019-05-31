@@ -201,7 +201,7 @@ const pingPongMachine = Machine({
           });
         }
       },
-      onEntry: send('PING', { to: 'ponger' }),
+      entry: send('PING', { to: 'ponger' }),
       on: {
         PONG: 'done'
       }
@@ -410,7 +410,7 @@ const pingMachine = Machine({
         src: pongMachine
       }
       // Sends 'PING' event to child machine with ID 'pong'
-      onEntry: send('PING', { to: 'pong' }),
+      entry: send('PING', { to: 'pong' }),
       on: {
         PONG: {
           actions: send('PING', {

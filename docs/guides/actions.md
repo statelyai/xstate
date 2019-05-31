@@ -6,8 +6,8 @@ Actions are _not_ immediately triggered. Instead, [the `State` object](./states.
 
 There are three types of actions:
 
-- `onEntry` actions are executed upon entering a state
-- `onExit` actions are executed upon exiting a state
+- `entry` actions are executed upon entering a state
+- `exit` actions are executed upon exiting a state
 - transition actions are executed when a transition is taken.
 
 These are represented in the StateNode definition:
@@ -29,9 +29,9 @@ const triggerMachine = Machine(
       },
       active: {
         // entry actions
-        onEntry: ['notifyActive', 'sendTelemetry'],
+        entry: ['notifyActive', 'sendTelemetry'],
         // exit actions
-        onExit: ['notifyInactive', 'sendTelemetry'],
+        exit: ['notifyInactive', 'sendTelemetry'],
         on: {
           STOP: 'inactive'
         }
@@ -108,9 +108,9 @@ The interpreter will call the `exec` function with the `currentState.context`, t
 
 When interpreting statecharts, the order of actions should not necessarily matter (that is, they should not be dependent on each other). However, the order of the actions in the `state.actions` array is:
 
-1. `onExit` actions - all the exit actions of the exited state node(s), from the atomic state node up
+1. `exit` actions - all the exit actions of the exited state node(s), from the atomic state node up
 2. transition `actions` - all actions defined on the chosen transition
-3. `onEntry` actions - all the entry actions of the entered state node(s), from the parent state down
+3. `entry` actions - all the entry actions of the entered state node(s), from the parent state down
 
 ## Send Action
 
@@ -317,10 +317,10 @@ Without any arguments, `log()` is an action that logs an object with `context` a
 
 A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An internal transition will _not_ exit and reenter itself, so the state node's `onEntry` and `onExit` actions will not be executed again.
+- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `onExit` actions will not be executed again.
   - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
   - Actions defined on the transition's `actions` property will be executed.
-- An external transition _will_ exit and reenter itself, so the state node's `onEntry` and `onExit` actions will be executed again.
+- An external transition _will_ exit and reenter itself, so the state node's `entry` and `onExit` actions will be executed again.
   - All transitions are external by default. To be explicit, you can indicate them with `{ internal: false }`.
   - Actions defined on the transition's `actions` property will be executed.
 
@@ -332,7 +332,7 @@ const counterMachine = Machine({
   initial: 'counting',
   states: {
     counting: {
-      onEntry: 'enterCounting',
+      entry: 'enterCounting',
       onExit: 'exitCounting',
       on: {
         // self-transitions
@@ -344,7 +344,7 @@ const counterMachine = Machine({
   }
 });
 
-// External transition (onExit + transition actions + onEntry)
+// External transition (onExit + transition actions + entry)
 const stateA = counterMachine.transition('counting', 'DEC');
 stateA.actions;
 // ['exitCounting', 'decrement', 'enterCounting']
@@ -361,13 +361,13 @@ stateB.actions;
 
 ## SCXML
 
-Executable actions in transitions are equivalent to the `<script>` element. The `onEntry` and `onExit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
+Executable actions in transitions are equivalent to the `<script>` element. The `entry` and `exit` properties are equivalent to the `<onentry>` and `<onexit>` elements, respectively.
 
 ```js
 {
   start: {
-    onEntry: 'showStartScreen',
-    onExit: 'logScreenChange',
+    entry: 'showStartScreen',
+    exit: 'logScreenChange',
     on: {
       STOP: {
         target: 'stop',

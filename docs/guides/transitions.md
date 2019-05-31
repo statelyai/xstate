@@ -167,7 +167,7 @@ const wordMachine = Machine({
 });
 ```
 
-The above machine will start in the `'left'` state (for reference, the full path and default ID is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `onEntry`, `onExit` or any of the `actions` defined on the parent state node are not executed again.
+The above machine will start in the `'left'` state (for reference, the full path and default ID is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `entry`, `exit` or any of the `actions` defined on the parent state node are not executed again.
 
 Transitions that have `{ target: undefined }` (or no `target`) are also internal transitions:
 
@@ -204,7 +204,7 @@ const buttonMachine = Machine({
 
 ## External Transitions
 
-External transitions _will_ exit and reenter the state node in which the transition is defined. In the above example, the parent `word` state node (the root state node) will have its `onExit` and `onEntry` actions executed on its transitions.
+External transitions _will_ exit and reenter the state node in which the transition is defined. In the above example, the parent `word` state node (the root state node) will have its `exit` and `entry` actions executed on its transitions.
 
 By default, transitions are external, but any transition can be made external by explicitly setting `{ internal: false }` on the transition.
 
@@ -220,7 +220,7 @@ on: {
 // ...
 ```
 
-Every transition above is explicit and will have its `onExit` and `onEntry` actions of the parent state executed.
+Every transition above is explicit and will have its `exit` and `entry` actions of the parent state executed.
 
 **Summary of external transitions:**
 

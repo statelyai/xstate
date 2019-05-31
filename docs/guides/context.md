@@ -272,7 +272,7 @@ const countMachine = Machine({
   context: { count: 0 }
   states: {
     start: {
-      onEntry: 'increment'
+      entry: 'increment'
     }
   }
 }, {

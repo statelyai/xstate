@@ -61,7 +61,7 @@ const lightMachine = Machine(
     states: {
       green: {
         // action referenced via string
-        onEntry: 'alertGreen'
+        entry: 'alertGreen'
       }
     }
   },

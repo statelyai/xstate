@@ -39,7 +39,7 @@ const searchMachine = Machine(
         }
       },
       searching: {
-        onEntry: 'executeSearch'
+        entry: 'executeSearch'
         // ...
       },
       searchError: {
