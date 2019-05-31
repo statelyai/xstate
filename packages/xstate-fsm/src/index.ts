@@ -57,10 +57,7 @@ export namespace FSM {
 }
 
 function toArray<T>(item: T | T[] | undefined): T[] {
-  if (item === undefined) {
-    return [];
-  }
-  return ([] as T[]).concat(item);
+  return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
 const assignActionType: FSM.AssignAction = 'xstate.assign';
@@ -89,7 +86,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
     : action;
 }
 
-export const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function FSM<
   TContext extends object,
