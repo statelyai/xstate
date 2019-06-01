@@ -783,10 +783,13 @@ export class Interpreter<
   }
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
-    if (child && isFunction(child.stop)) {
+    if (!child) return;
+
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    if (isFunction(child.stop)) {
       child.stop();
-      this.children.delete(childId);
-      this.forwardTo.delete(childId);
     }
   }
   public spawn<TChildContext>(
