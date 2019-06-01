@@ -388,6 +388,18 @@ export class Interpreter<
     });
     return this;
   }
+
+  /**
+   * Starts the interpreter keeping the current process running
+   * @param initialState The state to start the statechart from
+   */
+  public run(initialState?: State<TContext, TEvent> | StateValue): Interpreter<TContext, TStateSchema, TEvent> {
+      if (!this.initialized) {
+        this.start(initialState);
+      }
+      setImmediate(this.idle.bind(this));
+      return this;
+  }
   /**
    * Stops the interpreter and unsubscribe all listeners.
    *
@@ -594,6 +606,15 @@ export class Interpreter<
     });
 
     return nextState;
+  }
+
+  /**
+   * This is for running the interpreter keeping the process alive
+   */
+  private idle(): void {
+    if (this.initialized) {
+      setImmediate(this.idle.bind(this));
+    }
   }
   private forward(event: OmniEventObject<TEvent>): void {
     for (const id of this.forwardTo) {

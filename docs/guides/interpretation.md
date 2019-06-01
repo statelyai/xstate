@@ -136,7 +136,7 @@ service.onTransition(state => {
 
 :::
 
-## Starting and Stopping
+## Starting, Running and Stopping
 
 The service can be initialized (i.e., started) and stopped with `.start()` and `.stop()`. Calling `.start()` will immediately transition the service to its initial state. Calling `.stop()` will remove all listeners from the service, and do any listener cleanup, if applicable.
 
@@ -161,6 +161,12 @@ Services can be started from a specific [state](./states.md) by passing the `sta
 service.start(previousState);
 ```
 
+Services can also be ran with `.run()`. This takes the same arguments as `.start()` and  works similar to Node.js `server.listen(...)` method causing the interpeter to keep the process alive untill stopped with `.stop()`.
+
+```js
+// Runs the service keeping the current process alive
+service.run();
+```
 ## Executing Actions
 
 [Actions (side-effects)](./actions.md) are, by default, executed immediately when the state transitions. This is configurable by setting the `{ execute: false }` option (see example). Each action object specified on the `state` might have an `.exec` property, which is called with the state's `context` and `event` object.

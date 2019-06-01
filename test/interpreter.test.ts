@@ -936,7 +936,27 @@ describe('interpreter', () => {
       startService.start(State.from('foo'));
     });
   });
-
+  describe('run()', () => {
+    const runMachine = Machine({
+      id: 'run',
+      initial: 'foo',
+      states: {
+        foo: {
+          initial: 'one',
+          states: {
+            one: {}
+          }
+        },
+        bar: {}
+      }
+    });
+    it ('should start the machine', done => {
+      const runService = interpret(runMachine).run();
+      assert(runService.initialized);
+      runService.stop();
+      done();
+    });
+  });
   describe('stop()', () => {
     it('should cancel delayed events', done => {
       let called = false;
