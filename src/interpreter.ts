@@ -783,10 +783,13 @@ export class Interpreter<
   }
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
-    if (child && isFunction(child.stop)) {
+    if (!child) return;
+
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    if (isFunction(child.stop)) {
       child.stop();
-      this.children.delete(childId);
-      this.forwardTo.delete(childId);
     }
   }
   public spawn<TChildContext>(
@@ -909,31 +912,14 @@ export class Interpreter<
       stop = callback(receive, newListener => {
         listeners.add(newListener);
       });
-
-      if (isPromiseLike(stop)) {
-        Promise.resolve(stop).catch(e => {
-          const errorEvent = error(e, id);
-          try {
-            this.send(errorEvent);
-          } catch (error) {
-            if (!IS_PRODUCTION) {
-              this.reportUnhandledExceptionOnInvocation(e, error, id);
-            }
-            if (this.devTools) {
-              this.devTools.send(errorEvent, this.state);
-            }
-            if (this.machine.strict) {
-              // it would be better to always stop the state machine if unhandled
-              // exception/promise rejection happens but because we don't want to
-              // break existing code so enforce it on strict mode only especially so
-              // because documentation says that onError is optional
-              this.stop();
-            }
-          }
-        });
-      }
     } catch (err) {
       this.send(error(err, id));
+    }
+
+    if (isPromiseLike(stop)) {
+      // it turned out to be an async function, can't reliably check this before calling `callback`
+      // because transpiled async functions are not recognizable
+      return this.spawnPromise(stop as Promise<any>, id)
     }
 
     const actor = {
