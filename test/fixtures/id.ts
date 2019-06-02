@@ -38,7 +38,7 @@ export const machine = Machine({
             NEXT: '#A_foo'
           }
         },
-        dot: {
+        dot_custom: {
           id: 'B.dot'
         }
       }

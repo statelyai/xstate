@@ -1355,6 +1355,15 @@ class StateNode<
   public getStateNodeByPath(
     statePath: string | string[]
   ): StateNode<TContext, any, TEvent> {
+    if (typeof statePath === 'string' && isStateId(statePath)) {
+      try {
+        return this.getStateNodeById(statePath.slice(1));
+      } catch (e) {
+        // try individual paths
+        // throw e;
+      }
+    }
+
     const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
     let currentStateNode: StateNode<TContext, any, TEvent> = this;
     while (arrayStatePath.length) {

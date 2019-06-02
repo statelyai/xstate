@@ -181,6 +181,8 @@ describe('matchesState()', () => {
     assert.ok(matchesState('a', 'a'));
 
     assert.ok(matchesState('b.b1', 'b.b1'));
+
+    assert.isFalse(matchesState('B.bar', { A: 'foo' }));
   });
 
   it('should return true if two state values are equivalent', () => {
