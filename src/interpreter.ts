@@ -847,13 +847,13 @@ export class Interpreter<
   private spawnPromise(promise: Promise<any>, id: string): Actor {
     let canceled = false;
 
-    promise
-      .then(response => {
+    promise.then(
+      response => {
         if (!canceled) {
           this.send(doneInvoke(id, response));
         }
-      })
-      .catch(errorData => {
+      },
+      errorData => {
         if (!canceled) {
           const errorEvent = error(errorData, id);
           try {
@@ -873,21 +873,28 @@ export class Interpreter<
             }
           }
         }
-      });
+      }
+    );
 
     const actor = {
       id,
       send: () => void 0,
       subscribe: (next, handleError, complete) => {
-        promise
-          .then(response => {
+        let unsubscribed = false;
+        promise.then(
+          response => {
+            if (unsubscribed) return;
             next && next(response);
+            if (unsubscribed) return;
             complete && complete();
-          })
-          .catch(handleError);
+          },
+          err => {
+            if (unsubscribed) return;
+            handleError(err);
+          });
 
         return {
-          unsubscribe: () => (canceled = true)
+          unsubscribe: () => (unsubscribed = true)
         };
       },
       stop: () => {
@@ -903,13 +910,17 @@ export class Interpreter<
     return actor;
   }
   private spawnCallback(callback: InvokeCallback, id: string): Actor {
-    const receive = (e: TEvent) => this.send(e);
+    let canceled = false;
+    const receive = (e: TEvent) => {
+      if (canceled) return;
+      this.send(e);
+    };
     const listeners = new Set<(e: EventObject) => void>();
 
-    let stop;
+    let callbackStop;
 
     try {
-      stop = callback(receive, newListener => {
+      callbackStop = callback(receive, newListener => {
         listeners.add(newListener);
       });
     } catch (err) {
@@ -919,22 +930,27 @@ export class Interpreter<
     if (isPromiseLike(stop)) {
       // it turned out to be an async function, can't reliably check this before calling `callback`
       // because transpiled async functions are not recognizable
-      return this.spawnPromise(stop as Promise<any>, id)
+      return this.spawnPromise(callbackStop as Promise<any>, id);
     }
 
     const actor = {
       id,
       send: event => listeners.forEach(listener => listener(event)),
       subscribe: next => {
-        next && listeners.add(next);
+        listeners.add(next);
 
         return {
           unsubscribe: () => {
-            next && listeners.delete(next);
+            listeners.delete(next);
           }
         };
       },
-      stop,
+      stop: () => {
+        canceled = true;
+        if (isFunction(callbackStop)) {
+          callbackStop();
+        }
+      },
       toJSON() {
         return { id };
       }
@@ -963,7 +979,9 @@ export class Interpreter<
     const actor = {
       id,
       send: () => void 0,
-      subscribe: source.subscribe,
+      subscribe: (next, handleError, complete) => {
+        return source.subscribe(next, handleError, complete);
+      },
       stop: () => subscription.unsubscribe(),
       toJSON() {
         return { id };
