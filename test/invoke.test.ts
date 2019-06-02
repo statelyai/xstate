@@ -1267,6 +1267,43 @@ describe('invoke', () => {
         .start();
     });
 
+    it('should call onDone when resolved (async)', done => {
+      let state: any;
+
+      const asyncWithDoneMachine = Machine({
+        id: 'async',
+        initial: 'fetch',
+        context: { result: undefined },
+        states: {
+          fetch: {
+            invoke: {
+              src: () => async () => {
+                await true;
+                return 42;
+              },
+              onDone: {
+                target: 'success',
+                actions: assign((_, { data: result }) => ({ result }))
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(asyncWithDoneMachine)
+        .onTransition(s => {
+          state = s;
+        })
+        .onDone(() => {
+          assert.equal(state.context.result, 42)
+          done()
+        })
+        .start();
+    });
+
     it('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
