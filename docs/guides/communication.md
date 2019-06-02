@@ -1,5 +1,7 @@
 # Invoking Services
 
+[:rocket: Quick Reference](#quick-reference)
+
 Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the [Actor model](https://www.brianstorti.com/the-actor-model/), where each machine instance is considered an "actor" that can send and receive events (messages) to and from other "actors" (such as Promises or other machines) and react to them.
 
 For machines to communicate with each other, the parent machine **invokes** a child machine and listens to events sent from the child machine via `sendParent(...)`, or waits for the child machine to reach its [final state](./final.md), which will then cause the `onDone` transition to be taken.
@@ -8,6 +10,7 @@ You can invoke:
 
 - [Promises](#invoking-promises), which will take the `onDone` transition on `resolve`, or the `onError` transition on `reject`
 - [Callbacks](#invoking-callbacks), which can send events to and receive events from the parent machine
+- [Observables](#invoking-observables), which can send events to the parent machine, as well as a signal when it is completed
 - [Machines](#invoking-machines), which can also send/receive events, and also notify the parent machine when it reaches its [final state](./final.md)
 
 ## The `invoke` Property
@@ -18,12 +21,16 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a machine
   - a string, which refers to a machine defined in this machine's `options.services`
   - a function that returns a `Promise`
-  - a function that returns a callback handler, which sends events to the parent via the callback (example below)
+  - a function that returns a "callback handler"
+  - a function that returns an observable
 - `id` - the unique identifier for the invoked service
 - `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
 - `data` - (optional) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
-- `onDone` - (optional) the [transition](./transitions.md) to be taken when the child machine reaches its [final state](./final.md)
-- `onError` - (optional) the transition to be taken when the child machine encounters an execution error.
+- `onDone` - (optional) the [transition](./transitions.md) to be taken when:
+  - the child machine reaches its [final state](./final.md), or
+  - the invoked promise resolves, or
+  - the invoked observable completes
+- `onError` - (optional) the transition to be taken when the invoked service encounters an execution error.
 
 ## Invoking Promises
 
@@ -148,7 +155,7 @@ If the `onError` transition is missing and the Promise is rejected, the error wi
 
 :::
 
-## Invoking Callbacks <Badge text="4.2+"/>
+## Invoking Callbacks <Badge text="4.2"/>
 
 Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
 
@@ -216,6 +223,69 @@ interpret(pingPongMachine)
   .onDone(() => done())
   .start();
 ```
+
+## Invoking Observables <Badge text="4.6"/>
+
+[Observables](https://github.com/tc39/proposal-observable) are streams of values emitted over time. Think of them as an array/collection whose values are emitted asynchronously, instead of all at once. There are many implementations of observables in JavaScript; the most popular one is [RxJS](https://github.com/ReactiveX/rxjs).
+
+Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events:
+
+```js
+import { Machine, interpret } from 'xstate';
+import { interval } from 'rxjs';
+import { map, take } from 'rxjs/operators';
+
+const intervalMachine = Machine({
+  id: 'interval',
+  initial: 'counting',
+  context: { myInterval: 1000 },
+  states: {
+    counting: {
+      invoke: {
+        src: (context, event) =>
+          interval(context.myInterval).pipe(
+            map(value => ({ type: 'COUNT', value })),
+            take(5)
+          ),
+        onDone: 'finished'
+      },
+      on: {
+        COUNT: { actions: 'notifyCount' },
+        CANCEL: 'finished'
+      }
+    },
+    finished: {
+      type: 'final'
+    }
+  }
+});
+```
+
+The above `intervalMachine` will receive the events from `interval(...)` mapped to event objects, until the observable is "completed" (done emitting values). If the `"CANCEL"` event happens, the observable will be disposed (`.unsubscribe()` will be called internally).
+
+::: tip
+Observables don't necessarily need to be created for every invocation. A "hot observable" can be referenced instead:
+
+```js
+import { fromEvent } from 'rxjs';
+
+const mouseMove$ = fromEvent(document.body, 'mousemove');
+
+const mouseMachine = Machine({
+  id: 'mouse',
+  // ...
+  invoke: {
+    src: (context, event) => mouseMove$
+  },
+  on: {
+    mousemove: {
+      /* ... */
+    }
+  }
+});
+```
+
+:::
 
 ## Invoking Machines
 
@@ -533,6 +603,134 @@ describe('userMachine', () => {
       .start();
   });
 });
+```
+
+## Quick Reference
+
+**The `invoke` property**
+
+```js
+const machine = Machine({
+  // ...
+  states: {
+    someState: {
+      invoke: {
+        // The `src` property can be:
+        // - a string
+        // - a machine
+        // - a function that returns...
+        src: (context, event) => {
+          // - a promise
+          // - a callback handler
+          // - an observable
+        },
+        id: 'some-id',
+        // (optional) forward machine events to invoked service
+        forward: true,
+        // (optional) the transition when the invoked promise/observable/machine is done
+        onDone: { target: /* ... */ },
+        // (optional) the transition when an error from the invoked service occurs
+        onError: { target: /* ... */ }
+      }
+    }
+  }
+});
+```
+
+**Invoking Promises**
+
+```js
+// Function that returns a promise
+const getDataFromAPI = () => fetch(/* ... */)
+    .then(data => data.json());
+
+
+// ...
+{
+  invoke: (context, event) => getDataFromAPI,
+  // resolved promise
+  onDone: {
+    target: 'success',
+    // resolved promise data is on event.data property
+    actions: (context, event) => console.log(event.data)
+  },
+  // rejected promise
+  onError: {
+    target: 'failure',
+    // rejected promise data is on event.data property
+    actions: (context, event) => console.log(event.data)
+  }
+}
+// ...
+```
+
+**Invoking Callbacks**
+
+```js
+// ...
+{
+  invoke: (context, event) => (callback, onReceive) => {
+    // Send event back to parent
+    callback({ type: 'SOME_EVENT' });
+
+    // Receive events from parent
+    onReceive(event => {
+      if (event.type === 'DO_SOMETHING') {
+        // ...
+      }
+    });
+  },
+  // Error from callback
+  onError: {
+    target: 'failure',
+    // Error data is on event.data property
+    actions: (context, event) => console.log(event.data)
+  }
+},
+on: {
+  SOME_EVENT: { /* ... */ }
+}
+```
+
+**Invoking Observables**
+
+```js
+import { map } from 'rxjs/operators';
+
+// ...
+{
+  invoke: {
+    src: (context, event) => createSomeObservable(/* ... */).pipe(
+        map(value => ({ type: 'SOME_EVENT', value }))
+      ),
+    onDone: 'finished'
+  }
+},
+on: {
+  SOME_EVENT: /* ... */
+}
+// ...
+```
+
+**Invoking Machines**
+
+```js
+const someMachine = Machine({ /* ... */ });
+
+// ...
+{
+  invoke: {
+    src: someMachine,
+    onDone: {
+      target: 'finished',
+      actions: (context, event) => {
+        // Child machine's done data (.data property of its final state)
+        console.log(event.data);
+      }
+    }
+  }
+}
+// ...
 ```
 
 ## SCXML

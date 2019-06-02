@@ -39,6 +39,7 @@ All the existing invoked service patterns fit this interface:
 - [Invoked promises](./communication.md#invoking-promises) are actors that ignore any received events and send at most one event back to the parent
 - [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
+- [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
 
 ## Spawning actors
 
@@ -169,7 +170,7 @@ const fetchData = query => {
 It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
 :::
 
-## Spawning callbacks
+## Spawning Callbacks
 
 Just like [invoking callbacks](./communication.md#invoking-callbacks), callbacks can be spawned as actors. This example models a counter-interval actor that increments its own count every second, but can also react to `{ type: 'INC' }` events.
 
@@ -218,7 +219,33 @@ const machine = Machine({
 });
 ```
 
-## Spawning machines
+## Spawning Observables
+
+Just like [invoking observables](./communication.md#invoking-observables), observables can be spawned as actors:
+
+```js {22}
+import { interval } from 'rxjs';
+import { map } from 'rxjs/operators';
+
+const createCounterObservable = (ms) => interval(ms)
+  .pipe(map(count => ({ type: 'COUNT.UPDATE', count })))
+
+const machine = Machine({
+  context: { ms: 1000 },
+  // ...
+  {
+    actions: assign({
+      counterRef: ({ ms }) => spawn(createCounterObservable(ms))
+    })
+  }
+  // ...
+  on: {
+    'COUNT.UPDATE': { /* ... */ }
+  }
+});
+```
+
+## Spawning Machines
 
 Machines are the most effective way to use actors, since they offer the most capabilities. Spawning machines is just like [invoking machines](./communication.md#invoking-machines), where a `machine` is passed into `spawn(machine)`:
 
