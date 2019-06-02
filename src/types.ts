@@ -477,6 +477,7 @@ export interface StateNodeDefinition<
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
+  invoke: Array<InvokeDefinition<TContext, TEvent>>;
 }
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;

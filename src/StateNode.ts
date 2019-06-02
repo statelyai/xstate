@@ -416,7 +416,8 @@ class StateNode<
       activities: this.activities || [],
       meta: this.meta,
       order: this.order || -1,
-      data: this.data
+      data: this.data,
+      invoke: this.invoke
     };
   }
 
