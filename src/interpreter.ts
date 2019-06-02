@@ -1091,15 +1091,15 @@ export type Spawnable<TContext> =
   | InvokeCallback
   | Subscribable<TContext>;
 
-const nullActor: Actor = {
-  id: 'null',
+const createNullActor = (name: string = 'null'): Actor => ({
+  id: name,
   send: () => void 0,
   subscribe: () => {
     // tslint:disable-next-line:no-empty
     return { unsubscribe: () => {} };
   },
-  toJSON: () => ({ id: 'null' })
-};
+  toJSON: () => ({ id: name })
+});
 
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
@@ -1118,7 +1118,7 @@ export function spawn<TContext>(
     if (service) {
       return service.spawn(entity, name || uniqueId());
     } else {
-      return nullActor;
+      return createNullActor(name);
     }
   });
 }

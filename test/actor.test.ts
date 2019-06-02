@@ -202,6 +202,48 @@ describe('spawning promises', () => {
   });
 });
 
+describe('spawning callbacks', () => {
+  const callbackMachine = Machine<any>({
+    id: 'callback',
+    initial: 'idle',
+    context: {
+      callbackRef: undefined
+    },
+    states: {
+      idle: {
+        entry: assign({
+          callbackRef: () =>
+            spawn((cb, receive) => {
+              receive(event => {
+                if (event.type === 'START') {
+                  setTimeout(() => {
+                    cb('SEND_BACK');
+                  }, 10);
+                }
+              });
+            })
+        }),
+        on: {
+          START_CB: { actions: send('START', { to: ctx => ctx.callbackRef }) },
+          SEND_BACK: 'success'
+        }
+      },
+      success: {
+        type: 'final'
+      }
+    }
+  });
+
+  it('should be able to spawn an actor from a callback', done => {
+    const callbackService = interpret(callbackMachine).onDone(() => {
+      done();
+    });
+
+    callbackService.start();
+    callbackService.send('START_CB');
+  });
+});
+
 describe('spawning observables', () => {
   const observableMachine = Machine<any>({
     id: 'observable',
@@ -239,11 +281,11 @@ describe('spawning observables', () => {
   });
 
   it('should be able to spawn an observable', done => {
-    const promiseService = interpret(observableMachine).onDone(() => {
+    const observableService = interpret(observableMachine).onDone(() => {
       done();
     });
 
-    promiseService.start();
+    observableService.start();
   });
 });
 
@@ -279,5 +321,23 @@ describe('actors', () => {
         assert.equal(count, 1);
       })
       .start();
+  });
+
+  it('should spawn null actors if not used within a service', () => {
+    const nullActorMachine = Machine<{ ref: undefined | Actor }>({
+      initial: 'foo',
+      context: { ref: undefined },
+      states: {
+        foo: {
+          entry: assign<any>({
+            ref: () => spawn(Promise.resolve(42))
+          })
+        }
+      }
+    });
+
+    const { initialState } = nullActorMachine;
+
+    assert.equal(initialState.context.ref!.id, 'null');
   });
 });
