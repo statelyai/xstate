@@ -19,7 +19,7 @@ import {
   SpecialTargets,
   RaiseEvent,
   DoneEvent,
-  ErrorExecutionEvent,
+  ErrorPlatformEvent,
   DoneEventObject,
   SendExpr,
   SendActionObject,
@@ -369,12 +369,13 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
   return eventObject as DoneEvent;
 }
 
-export function error(data: any, src: string): ErrorExecutionEvent {
-  return {
-    src,
-    type: ActionTypes.ErrorExecution,
-    data
-  };
+export function error(id: string, data?: any): (ErrorPlatformEvent & string) {
+  const type = `${ActionTypes.ErrorPlatform}.${id}`;
+  const eventObject = { type, data };
+
+  eventObject.toString = () => type;
+
+  return eventObject as (ErrorPlatformEvent & string);
 }
 
 export function pure<TContext, TEvent extends EventObject>(
