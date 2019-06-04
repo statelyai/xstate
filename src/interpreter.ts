@@ -784,7 +784,9 @@ export class Interpreter<
   }
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
-    if (!child) { return; }
+    if (!child) {
+      return;
+    }
 
     this.children.delete(childId);
     this.forwardTo.delete(childId);
@@ -884,13 +886,19 @@ export class Interpreter<
         let unsubscribed = false;
         promise.then(
           response => {
-            if (unsubscribed) { return; }
+            if (unsubscribed) {
+              return;
+            }
             next && next(response);
-            if (unsubscribed) { return; }
+            if (unsubscribed) {
+              return;
+            }
             complete && complete();
           },
           err => {
-            if (unsubscribed) { return; }
+            if (unsubscribed) {
+              return;
+            }
             handleError(err);
           }
         );
@@ -914,7 +922,9 @@ export class Interpreter<
   private spawnCallback(callback: InvokeCallback, id: string): Actor {
     let canceled = false;
     const receive = (e: TEvent) => {
-      if (canceled) { return; }
+      if (canceled) {
+        return;
+      }
       this.send(e);
     };
     const listeners = new Set<(e: EventObject) => void>();
@@ -929,7 +939,7 @@ export class Interpreter<
       this.send(error(err, id));
     }
 
-    if (isPromiseLike(stop)) {
+    if (isPromiseLike(callbackStop)) {
       // it turned out to be an async function, can't reliably check this before calling `callback`
       // because transpiled async functions are not recognizable
       return this.spawnPromise(callbackStop as Promise<any>, id);

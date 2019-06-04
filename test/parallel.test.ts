@@ -790,5 +790,37 @@ describe('parallel states', () => {
         X: {}
       });
     });
+
+    xit('should not overlap resolved state trees in state resolution', () => {
+      const machine = Machine({
+        id: 'pipeline',
+        type: 'parallel',
+        states: {
+          foo: {
+            on: {
+              UPDATE: {
+                actions: () => {
+                  /* do nothing */
+                }
+              }
+            }
+          },
+          bar: {
+            on: {
+              UPDATE: '.baz'
+            },
+            initial: 'idle',
+            states: {
+              idle: {},
+              baz: {}
+            }
+          }
+        }
+      });
+
+      assert.doesNotThrow(() => {
+        machine.transition(machine.initialState, 'UPDATE');
+      });
+    });
   });
 });
