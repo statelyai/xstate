@@ -74,9 +74,6 @@ export function useService<TContext, TEvent extends EventObject>(
 
   useEffect(
     () => {
-      // Set to current service state
-      setCurrent(service.state);
-
       const listener = state => {
         if (state.changed) {
           setCurrent(state);
