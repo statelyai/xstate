@@ -646,6 +646,7 @@ export enum ActionTypes {
   Invoke = 'xstate.invoke',
   ErrorExecution = 'error.execution',
   ErrorCommunication = 'error.communication',
+  ErrorPlatform = 'error.platform',
   Update = 'xstate.update',
   Pure = 'xstate.pure'
 }
@@ -666,6 +667,10 @@ export interface DoneInvokeEvent<TData> extends EventObject {
 export interface ErrorExecutionEvent extends EventObject {
   src: string;
   type: ActionTypes.ErrorExecution;
+  data: any;
+}
+
+export interface ErrorPlatformEvent extends EventObject {
   data: any;
 }
 

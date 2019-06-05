@@ -16,7 +16,7 @@ import {
   ServiceConfig,
   InvokeCallback,
   DisposeActivityFunction,
-  ErrorExecutionEvent,
+  ErrorPlatformEvent,
   StateValue,
   InterpreterOptions,
   ActivityDefinition,
@@ -579,10 +579,10 @@ export class Interpreter<
     const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
 
     if (
-      eventObject.type === actionTypes.errorExecution &&
-      this.state.nextEvents.indexOf(actionTypes.errorExecution) === -1
+      eventObject.type.indexOf(actionTypes.errorPlatform) === 0 &&
+      !this.state.nextEvents.some(nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0)
     ) {
-      throw (eventObject as ErrorExecutionEvent).data;
+      throw (eventObject as ErrorPlatformEvent).data;
     }
 
     const nextState = withServiceScope(this, () => {
@@ -858,7 +858,7 @@ export class Interpreter<
       },
       errorData => {
         if (!canceled) {
-          const errorEvent = error(errorData, id);
+          const errorEvent = error(id, errorData);
           try {
             // Send "error.execution" to this (parent).
             this.send(errorEvent);
@@ -936,7 +936,7 @@ export class Interpreter<
         listeners.add(newListener);
       });
     } catch (err) {
-      this.send(error(err, id));
+      this.send(error(id, err));
     }
 
     if (isPromiseLike(callbackStop)) {
@@ -981,7 +981,7 @@ export class Interpreter<
         this.send(value);
       },
       err => {
-        this.send(error(err, id));
+        this.send(error(id, err));
       },
       () => {
         this.send(doneInvoke(id));
