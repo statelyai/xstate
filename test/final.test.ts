@@ -70,8 +70,26 @@ const finalMachine = Machine({
 describe('final states', () => {
   it('should emit the "done.state.final.red" event when all nested states are in their final states', () => {
     const redState = finalMachine.transition('yellow', 'TIMER');
+    assert.deepEqual(redState.value, {
+      red: {
+        crosswalk1: 'walk',
+        crosswalk2: 'walk'
+      }
+    });
     const waitState = finalMachine.transition(redState, 'PED_WAIT');
+    assert.deepEqual(waitState.value, {
+      red: {
+        crosswalk1: 'wait',
+        crosswalk2: 'wait'
+      }
+    });
     const stopState = finalMachine.transition(waitState, 'PED_STOP');
+    assert.deepEqual(stopState.value, {
+      red: {
+        crosswalk1: 'stop',
+        crosswalk2: 'stop'
+      }
+    });
 
     assert.sameDeepMembers(stopState.actions, [
       { type: 'stopCrosswalk1', exec: undefined }

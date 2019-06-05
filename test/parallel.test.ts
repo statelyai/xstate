@@ -791,7 +791,7 @@ describe('parallel states', () => {
       });
     });
 
-    xit('should not overlap resolved state trees in state resolution', () => {
+    it('should not overlap resolved state trees in state resolution', () => {
       const machine = Machine({
         id: 'pipeline',
         type: 'parallel',
@@ -799,6 +799,7 @@ describe('parallel states', () => {
           foo: {
             on: {
               UPDATE: {
+                target: '.', // TODO: see if tests pass without this
                 actions: () => {
                   /* do nothing */
                 }
