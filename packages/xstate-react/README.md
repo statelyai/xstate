@@ -72,7 +72,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 ## Configuring Machines
 
-Existing machines are configurable with `.useConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
+Existing machines are configurable with `.withConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
 
 ::: tip
 The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
