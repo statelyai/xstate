@@ -74,6 +74,11 @@ export function useService<TContext, TEvent extends EventObject>(
 
   useEffect(
     () => {
+      // Set to current service state as there is a possibility
+      // of a transition occurring between the initial useState()
+      // initialization and useEffect() commit.
+      setCurrent(service.state);
+
       const listener = state => {
         if (state.changed) {
           setCurrent(state);
