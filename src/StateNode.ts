@@ -1342,7 +1342,9 @@ class StateNode<
 
     if (!stateNode) {
       throw new Error(
-        `Substate '#${resolvedStateId}' does not exist on '${this.id}'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${
+          this.id
+        }'`
       );
     }
 
@@ -1830,8 +1832,18 @@ class StateNode<
         : `${_target}`;
 
       if (this.parent) {
-        const targetStateNode = this.parent.getStateNodeByPath(resolvedTarget);
-        return `#${targetStateNode.id}`;
+        try {
+          const targetStateNode = this.parent.getStateNodeByPath(
+            resolvedTarget
+          );
+          return `#${targetStateNode.id}`;
+        } catch (err) {
+          throw new Error(
+            `Invalid transition for state node '${
+              this.id
+            }' on event '${event}':\n${err.message}`
+          );
+        }
       } else {
         return `#${this.getStateNodeByPath(resolvedTarget).id}`;
       }

@@ -182,6 +182,13 @@ function executableContent(elements: XMLElement[]) {
   return transition;
 }
 
+function getTargets(targetAttr?: string | number): string[] | undefined {
+  // return targetAttr ? [`#${targetAttr}`] : undefined;
+  return targetAttr
+    ? `${targetAttr}`.split(/\s+/).map(target => `#${target}`)
+    : undefined;
+}
+
 function mapActions<
   TContext extends object,
   TEvent extends EventObject = EventObject
@@ -317,10 +324,10 @@ function toConfig(
       ),
       (values: XMLElement[]) => {
         return values.map(value => {
-          const target = getAttribute(value, 'target');
+          const targets = getAttribute(value, 'target');
 
           return {
-            target: target ? `#${target}` : undefined,
+            target: getTargets(targets),
             ...(value.elements ? executableContent(value.elements) : undefined),
             ...(value.attributes && value.attributes.cond
               ? {
@@ -385,7 +392,9 @@ export function toMachine(
 
   const extState = dataModelEl
     ? dataModelEl.elements!.reduce((acc, element) => {
-        acc[element.attributes!.id!] = element.attributes!.expr;
+        acc[element.attributes!.id!] = element.attributes!.expr
+          ? JSON.parse(element.attributes!.expr as string)
+          : undefined;
         return acc;
       }, {})
     : undefined;

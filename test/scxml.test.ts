@@ -46,7 +46,22 @@ const testGroups = {
     'history6'
   ],
   misc: ['deep-initial'],
-  // 'more-parallel': [
+  'more-parallel': [
+    'test0',
+    'test1',
+    'test2',
+    // 'test3',
+    'test4',
+    'test5',
+    // 'test6',
+    'test7',
+    'test8',
+    'test9'
+    // 'test10'
+  ],
+  parallel: ['test0', 'test1', 'test2', 'test3'],
+  'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
+  // 'parallel+interrupt': [
   //   'test0',
   //   'test1',
   //   'test2',
@@ -57,16 +72,29 @@ const testGroups = {
   //   'test7',
   //   'test8',
   //   'test9',
-  //   'test10'
-  // ], // not well-formed tests
-  parallel: ['test0', 'test1', 'test2', 'test3'],
-  'targetless-transition': [
-    'test0',
-    'test1'
-    // ,'test2', // TODO: parallel states with leaf node support
-    // 'test3' // TODO: parallel states with leaf node support
-  ],
-  // 'parallel+interrupt': ['test0'],
+  //   'test10',
+  //   'test11',
+  //   'test12',
+  //   'test13',
+  //   'test14',
+  //   'test15',
+  //   'test16',
+  //   'test17',
+  //   'test18',
+  //   'test19',
+  //   'test20',
+  //   'test21',
+  //   'test22',
+  //   'test23',
+  //   'test24',
+  //   'test25',
+  //   'test26',
+  //   'test27',
+  //   'test28',
+  //   'test29',
+  //   'test30',
+  //   'test31'
+  // ],
   'w3c-ecma': ['test144.txml']
 };
 
@@ -110,8 +138,6 @@ async function runTestToCompletion(
     clock: new SimulatedClock()
   })
     .onTransition(state => {
-      // @ts-ignore
-      // console.dir(state.historyValue, { depth: null });
       nextState = state;
     })
     .start(nextState);
@@ -146,7 +172,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['w3c-ecma'];
+  // const testGroupKeys = ['history'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
