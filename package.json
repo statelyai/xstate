@@ -27,6 +27,7 @@
     "test:core": "npm run build:cjs && nyc mocha --require ts-node/register --require source-map-support/register --recursive test/**.ts test/**/*.test.ts",
     "test:only": "mocha --require ts-node/register",
     "test:packages": "mocha --require ts-node/register packages/**/test/*.test.ts && cd packages/xstate-react && npm test",
+    "test:ci": "npm run test:core && lerna bootstrap && npm run test:packages",
     "compile:lib": "tsc -p tsconfig.lib.json",
     "compile:es": "tsc -p tsconfig.es.json",
     "build": "npm run build:cjs && npm run build:es && npm run build:umd",
