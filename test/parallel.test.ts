@@ -799,7 +799,6 @@ describe('parallel states', () => {
           foo: {
             on: {
               UPDATE: {
-                target: '.', // TODO: see if tests pass without this
                 actions: () => {
                   /* do nothing */
                 }

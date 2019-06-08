@@ -303,8 +303,12 @@ describe('transient states (eventless transitions)', () => {
     assert.deepEqual(greetingMachine.initialState.value, 'morning');
   });
 
-  it('should determine the resolved state from a root transient state', () => {
+  // TODO: determine proper behavior here -
+  // Should an internal transition on the parent node activate the parent node
+  // or all previous state nodes?
+  xit('should determine the resolved state from a root transient state', () => {
     const morningState = greetingMachine.initialState;
+    assert.deepEqual(morningState.value, 'morning');
     const stillMorningState = greetingMachine.transition(
       morningState,
       'CHANGE'

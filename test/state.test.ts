@@ -170,6 +170,51 @@ describe('State', () => {
       assert.isTrue(changedState.changed);
       assert.deepEqual(initialState.value, changedState.value);
     });
+
+    it('should not escape targetless child state nodes', () => {
+      const toggleMachine = Machine({
+        id: 'input',
+        context: { value: '' },
+        type: 'parallel',
+        states: {
+          edit: {
+            on: {
+              CHANGE: {
+                actions: assign({
+                  value: (_, e) => {
+                    return e.value;
+                  }
+                })
+              }
+            }
+          },
+          validity: {
+            initial: 'invalid',
+            states: {
+              invalid: {},
+              valid: {}
+            },
+            on: {
+              CHANGE: [
+                { target: '.valid', cond: () => true },
+                { target: '.invalid' }
+              ]
+            }
+          }
+        }
+      });
+
+      const nextState = toggleMachine.transition(toggleMachine.initialState, {
+        type: 'CHANGE',
+        value: 'whatever'
+      });
+
+      assert.isTrue(nextState.changed);
+      assert.deepEqual(nextState.value, {
+        edit: {},
+        validity: 'valid'
+      });
+    });
   });
 
   describe('.nextEvents', () => {

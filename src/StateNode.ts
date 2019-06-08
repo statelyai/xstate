@@ -821,7 +821,7 @@ class StateNode<
       return {
         tree:
           selectedTransition && state.value // targetless transition
-            ? this.machine.getStateTree(state.value)
+            ? new StateTree(this, path(this.path)(state.value)).absolute
             : undefined,
         source: state,
         actions
