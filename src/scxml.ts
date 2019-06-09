@@ -1,8 +1,7 @@
-import { js2xml, xml2js, Element as XMLElement } from 'xml-js';
+import { xml2js, Element as XMLElement } from 'xml-js';
 import { EventObject, ActionObject } from './types';
-// import * as xstate from './index';
 import { StateNode, Machine } from './index';
-import { mapValues, getActionType, keys, isString } from './utils';
+import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 
 function getAttribute(
@@ -10,130 +9,6 @@ function getAttribute(
   attribute: string
 ): string | number | undefined {
   return element.attributes ? element.attributes[attribute] : undefined;
-}
-
-function stateNodeToSCXML(stateNode: StateNode) {
-  const { parallel } = stateNode;
-
-  const scxmlElement: XMLElement = {
-    type: 'element',
-    name: parallel ? 'parallel' : 'state',
-    attributes: {
-      id: stateNode.id
-    },
-    elements: [
-      !parallel && stateNode.initial
-        ? {
-            type: 'element',
-            name: 'initial',
-            elements: [
-              {
-                type: 'element',
-                name: 'transition',
-                attributes: {
-                  target: stateNode.states[stateNode.initial as string].id
-                }
-              }
-            ]
-          }
-        : undefined,
-      stateNode.onEntry && {
-        type: 'element',
-        name: 'onentry',
-        elements: stateNode.onEntry.map(event => {
-          return {
-            type: 'element',
-            name: 'send',
-            attributes: {
-              event: getActionType(event)
-            }
-          };
-        })
-      },
-      stateNode.onExit && {
-        type: 'element',
-        name: 'onexit',
-        elements: stateNode.onExit.map(event => {
-          return {
-            type: 'element',
-            name: 'send',
-            attributes: {
-              event: getActionType(event)
-            }
-          };
-        })
-      },
-      ...keys(stateNode.states).map(stateKey => {
-        const subStateNode = stateNode.states[stateKey];
-
-        return stateNodeToSCXML(subStateNode);
-      }),
-      ...keys(stateNode.on)
-        .map(
-          (event): XMLElement[] => {
-            const transition = stateNode.on![event];
-
-            if (!transition) {
-              return [];
-            }
-
-            return transition.map(targetTransition => {
-              const { target } = targetTransition;
-
-              return {
-                type: 'element',
-                name: 'transition',
-                attributes: {
-                  ...(event ? { event } : undefined),
-                  ...(target
-                    ? {
-                        target: stateNode.parent!.getRelativeStateNodes(
-                          target
-                        )[0]!.id
-                      }
-                    : undefined), // TODO: fixme
-                  ...(targetTransition.cond
-                    ? { cond: targetTransition.cond.toString() }
-                    : undefined)
-                },
-                elements: targetTransition.actions
-                  ? targetTransition.actions.map(action => ({
-                      type: 'element',
-                      name: 'send',
-                      attributes: {
-                        event: getActionType(action)
-                      }
-                    }))
-                  : undefined
-              };
-            });
-          }
-        )
-        .reduce((a, b) => a.concat(b))
-    ].filter(Boolean) as XMLElement[]
-  };
-
-  return scxmlElement;
-}
-
-export function fromMachine(machine: StateNode): string {
-  const scxmlDocument: XMLElement = {
-    declaration: { attributes: { version: '1.0', encoding: 'utf-8' } },
-    elements: [
-      { type: 'instruction', name: 'access-control', instruction: 'allow="*"' },
-      {
-        type: 'element',
-        name: 'scxml',
-        attributes: {
-          version: '1.0',
-          initial: machine.id
-        }
-      },
-      stateNodeToSCXML(machine)
-    ]
-  };
-
-  return js2xml(scxmlDocument, { spaces: 2 });
 }
 
 function indexedRecord<T extends {}>(

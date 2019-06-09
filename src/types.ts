@@ -120,18 +120,26 @@ export type Condition<TContext, TEvent extends EventObject> =
   | ConditionPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
 
+export type TransitionTarget<TContext> = SingleOrArray<
+  string | StateNode<TContext, any>
+>;
+
+export type TransitionTargets<TContext> = Array<
+  string | StateNode<TContext, any>
+>;
+
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions?: SingleOrArray<Action<TContext, TEvent>>;
   in?: StateValue;
   internal?: boolean;
-  target?: string | string[];
+  target?: TransitionTarget<TContext>;
   meta?: Record<string, any>;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: string | string[] | undefined;
+  target: TransitionTarget<TContext>; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
@@ -810,7 +818,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: string[] | undefined;
+  target: TransitionTargets<TContext> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   event: string;

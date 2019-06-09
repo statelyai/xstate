@@ -60,7 +60,8 @@ import {
   GuardPredicate,
   GuardMeta,
   MachineConfig,
-  PureAction
+  PureAction,
+  TransitionTarget
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -485,7 +486,7 @@ class StateNode<
         return {
           event,
           ...delayedTransition,
-          target: target === undefined ? undefined : toArray(target),
+          target: target === undefined ? undefined : toArray<any>(target),
           cond: toGuard(delayedTransition.cond, guards),
           actions: toArray(delayedTransition.actions).map(action =>
             toActionObject(action)
@@ -522,7 +523,7 @@ class StateNode<
           target:
             transition.target === undefined
               ? transition.target
-              : toArray(transition.target),
+              : toArray<any>(transition.target), // TODO: fix generic
           cond: toGuard(transition.cond, guards),
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
@@ -783,7 +784,7 @@ class StateNode<
       ? [{ type: actionTypes.nullEvent }]
       : [];
 
-    let nextStateStrings: string[] = [];
+    let nextStateStrings: TransitionTarget<TContext> = [];
     let selectedTransition: unknown;
 
     for (const candidate of candidates) {
@@ -841,9 +842,12 @@ class StateNode<
     }
 
     const nextStateNodes = flatten(
-      nextStateStrings.map(str =>
-        this.getRelativeStateNodes(str, state.historyValue)
-      )
+      nextStateStrings.map(str => {
+        if (str instanceof StateNode) {
+          return str as StateNode<TContext, any, any>; // TODO: fix anys
+        }
+        return this.getRelativeStateNodes(str, state.historyValue);
+      })
     );
 
     const isInternal = !!(selectedTransition as TransitionDefinition<
@@ -1815,7 +1819,7 @@ class StateNode<
     return Array.from(events);
   }
   private formatTransition(
-    target: string | Array<string | StateNode> | undefined,
+    target: TransitionTarget<TContext> | undefined,
     transitionConfig: TransitionConfig<TContext, TEvent> | undefined,
     event: string
   ): TransitionDefinition<TContext, TEvent> {
