@@ -803,11 +803,23 @@ class StateNode<
             )
         : true;
 
-      if (
-        (!cond ||
-          this.evaluateGuard(cond, resolvedContext, eventObject, state)) &&
-        isInState
-      ) {
+      let guardPassed = false;
+
+      try {
+        guardPassed =
+          !cond ||
+          this.evaluateGuard(cond, resolvedContext, eventObject, state);
+      } catch (err) {
+        throw new Error(
+          `Unable to evaluate guard '${cond!.name ||
+            cond!
+              .type}' in transition for event '${eventType}' in state node '${
+            this.id
+          }':\n${err.message}`
+        );
+      }
+
+      if (guardPassed && isInState) {
         if (candidate.target !== undefined) {
           nextStateStrings = candidate.target;
         }

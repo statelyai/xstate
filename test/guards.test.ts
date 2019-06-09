@@ -330,4 +330,23 @@ describe('referencing guards', () => {
       foo: 'bar'
     });
   });
+
+  it('should throw for guards with missing predicates', () => {
+    const machine = Machine({
+      id: 'invalid-predicate',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            EVENT: { target: 'inactive', cond: 'missing-predicate' }
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    assert.throws(() => {
+      machine.transition(machine.initialState, 'EVENT');
+    }, `Unable to evaluate guard`);
+  });
 });
