@@ -192,7 +192,7 @@ export type InvokeCallback = ((
  * @param context The current machine `context`
  * @param event The event that invoked the service
  */
-export type InvokeCreator<TFinalContext, TContext> = (
+export type InvokeCreator<TContext, TFinalContext = Partial<TContext>> = (
   context: TContext,
   event: EventObject
 ) =>
@@ -538,7 +538,7 @@ export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
 export type ServiceConfig<TContext> =
   | string
   | StateMachine<any, any, any>
-  | InvokeCreator<any, TContext>;
+  | InvokeCreator<TContext>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
