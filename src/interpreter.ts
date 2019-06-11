@@ -580,7 +580,9 @@ export class Interpreter<
 
     if (
       eventObject.type.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.state.nextEvents.some(nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0)
+      !this.state.nextEvents.some(
+        nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0
+      )
     ) {
       throw (eventObject as ErrorPlatformEvent).data;
     }
@@ -797,7 +799,8 @@ export class Interpreter<
   }
   public spawn<TChildContext>(
     entity: Spawnable<TChildContext>,
-    name: string
+    name: string,
+    options: { sync: boolean } = { sync: false }
   ): Actor {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
@@ -806,7 +809,7 @@ export class Interpreter<
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
-      return this.spawnMachine(entity, { id: name });
+      return this.spawnMachine(entity, { id: name, sync: options.sync });
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
@@ -819,17 +822,20 @@ export class Interpreter<
     TChildEvents extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvents>,
-    options: { id?: string; autoForward?: boolean; subscribe?: boolean } = {}
-  ): Interpreter<TChildContext, TChildStateSchema, TChildEvents> {
+    options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
+  ): Actor<State<TChildContext, TChildEvents>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
       id: options.id || machine.id
     });
 
-    if (options.subscribe) {
+    if (options.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update, { state, id: childService.id }); // TODO: actionTypes
+        this.send(actionTypes.update, {
+          state,
+          id: childService.id
+        });
       });
     }
 
@@ -839,13 +845,25 @@ export class Interpreter<
       })
       .start();
 
-    this.children.set(childService.id, childService as Actor);
+    const actor = {
+      id: childService.id,
+      send: childService.send,
+      get state() {
+        return options.sync ? childService.state : undefined;
+      },
+      subscribe: childService.subscribe,
+      toJSON() {
+        return { id: childService.id };
+      }
+    } as Actor<State<TChildContext, TChildEvents>>;
+
+    this.children.set(childService.id, actor);
 
     if (options.autoForward) {
       this.forwardTo.add(childService.id);
     }
 
-    return childService;
+    return actor;
   }
   private spawnPromise(promise: Promise<any>, id: string): Actor {
     let canceled = false;
@@ -1120,7 +1138,24 @@ const createNullActor = (name: string = 'null'): Actor => ({
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
   name?: string
+): Actor<TContext>;
+export function spawn<TContext>(
+  entity: Spawnable<TContext>,
+  // tslint:disable-next-line:unified-signatures
+  options?: { sync: boolean; name?: string }
+): Actor<TContext>;
+export function spawn<TContext>(
+  entity: Spawnable<TContext>,
+  nameOrOptions?: string | { sync: boolean; name?: string }
 ): Actor<TContext> {
+  const resolvedOptions = nameOrOptions
+    ? isString(nameOrOptions)
+      ? { name: nameOrOptions, sync: false }
+      : nameOrOptions
+    : {
+        sync: false
+      };
+
   return withServiceScope(undefined, service => {
     if (!IS_PRODUCTION) {
       warn(
@@ -1132,9 +1167,14 @@ export function spawn<TContext>(
     }
 
     if (service) {
-      return service.spawn(entity, name || uniqueId());
+      console.log('spawning in', service.id);
+      return service.spawn(
+        entity,
+        resolvedOptions.name || uniqueId(),
+        resolvedOptions
+      );
     } else {
-      return createNullActor(name);
+      return createNullActor(resolvedOptions.name || uniqueId());
     }
   });
 }
