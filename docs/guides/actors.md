@@ -300,6 +300,61 @@ parentService.send('LOCAL.WAKE');
 // => 'connected'
 ```
 
+### Syncing and Reading State
+
+One of the main tenets of the Actor model is that actor state is _private_ and _local_ - it is never shared unless the actor chooses to share it, via message passing. Sticking with this model, an actor can _notify_ its parent whenever its state changes by sending it a special "update" event with its latest state. In other words, parent actors can subscribe to their child actors' states.
+
+To do this, set `{ sync: true }` as an option to `spawn(...)`:
+
+```js {4}
+// ...
+{
+  actions: assign({
+    someRef: () => spawn(todoMachine, { sync: true })
+  });
+}
+// ...
+```
+
+This will automatically subscribe the machine to the spawned child machine's state, which is kept updated in `ref.state`:
+
+```js
+someService.onTransition(state => {
+  const { someRef } = state.context;
+
+  console.log(someRef.state);
+  // => State {
+  //   value: ...,
+  //   context: ...
+  // }
+});
+```
+
+By default, `sync` is set to `false`; that is, `ref.state === undefined`.
+
+::: warning
+Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
+
+```js {9-12}
+// Child machine
+// ...
+on: {
+  CHANGE: {
+    actions: assign({ value: (_, event) => event.value })
+  },
+  SAVE: {
+    // Only notify parent of changes on SAVE event
+    actions: sendParent({
+      type: 'UPDATE_FROM_CHILD',
+      data: context
+    })
+  }
+}
+// ...
+```
+
+:::
+
 ## Quick Reference
 
 **Import `spawn`** to spawn actors:
@@ -364,6 +419,29 @@ import { spawn } from 'xstate';
   });
 }
 // ...
+```
+
+**Sync state** with an actor:
+
+```js
+// ...
+{
+  actions: assign({
+    someRef: () => spawn(someMachine, { spawn: true })
+  });
+}
+// ...
+```
+
+**Reading synced state** from an actor:
+
+```js
+service.onTransition(state => {
+  const { someRef } = state.context;
+
+  someRef.state;
+  // => State { ... }
+});
 ```
 
 **Send event to actor** with `send` action creator:

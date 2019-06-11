@@ -103,7 +103,7 @@ const fetchMachine = Machine({
       }
     },
     success: {
-      onEntry: 'notifyResolve',
+      entry: 'notifyResolve',
       type: 'final'
     }
   }
