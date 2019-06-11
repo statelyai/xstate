@@ -300,7 +300,7 @@ parentService.send('LOCAL.WAKE');
 // => 'connected'
 ```
 
-### Syncing and Reading State
+### Syncing and Reading State <Badge text="4.6.1+">
 
 One of the main tenets of the Actor model is that actor state is _private_ and _local_ - it is never shared unless the actor chooses to share it, via message passing. Sticking with this model, an actor can _notify_ its parent whenever its state changes by sending it a special "update" event with its latest state. In other words, parent actors can subscribe to their child actors' states.
 
@@ -421,7 +421,7 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Sync state** with an actor:
+**Sync state** with an actor: <Badge text="4.6.1+">
 
 ```js
 // ...
@@ -433,7 +433,7 @@ import { spawn } from 'xstate';
 // ...
 ```
 
-**Reading synced state** from an actor:
+**Reading synced state** from an actor: <Badge text="4.6.1+">
 
 ```js
 service.onTransition(state => {
