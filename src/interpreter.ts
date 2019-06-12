@@ -397,7 +397,7 @@ export class Interpreter<
       if (!this.initialized) {
         this.start(initialState);
       }
-      setImmediate(this.idle.bind(this));
+      setTimeout(this.idle.bind(this), 0);
       return this;
   }
   /**
@@ -613,7 +613,7 @@ export class Interpreter<
    */
   private idle(): void {
     if (this.initialized) {
-      setImmediate(this.idle.bind(this));
+      setTimeout(this.idle.bind(this), 0);
     }
   }
   private forward(event: OmniEventObject<TEvent>): void {
@@ -821,7 +821,7 @@ export class Interpreter<
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
-      return this.spawnMachine(entity, { id: name , autoForward: true});
+      return this.spawnMachine(entity, { id: name });
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
