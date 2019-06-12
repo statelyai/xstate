@@ -821,7 +821,7 @@ export class Interpreter<
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
-      return this.spawnMachine(entity, { id: name });
+      return this.spawnMachine(entity, { id: name , autoForward: true});
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
