@@ -25,52 +25,13 @@ export const toggleMachine = Machine({
 Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
 
 ```js
-import { useState, useRef, useEffect } from 'react';
-import { interpret } from 'xstate';
-
-export function useMachine(machine, options) {
-  // Keep track of the current machine state
-  const [current, setCurrent] = useState(machine.initialState);
-
-  // Reference the service
-  const serviceRef = useRef(null);
-
-  // Create the service only once
-  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
-  if (serviceRef.current === null) {
-    serviceRef.current = interpret(machine, options).onTransition(state => {
-      // Update the current machine state when a transition occurs
-      if (state.changed) {
-        setCurrent(state);
-      }
-    });
-  }
-
-  const service = serviceRef.current;
-
-  useEffect(() => {
-    // Start the service when the component mounts
-    service.start();
-
-    return () => {
-      // Stop the service when the component unmounts
-      service.stop();
-    };
-  }, []);
-
-  return [current, service.send];
-}
-```
-
-Then the above toggle, as a function component, becomes:
-
-```js
-// import { useMachine } from '@xstate/react'
-import { useMachine } from '../path/to/useMachine';
+// import { useMachine } from '../path/to/useMachine';
+import { useMachine } from '@xstate/react';
 import { toggleMachine } from '../path/to/toggleMachine';
 
 function Toggle() {
   const [current, send] = useMachine(toggleMachine);
+
   return (
     <button onClick={() => send('TOGGLE')}>
       {current.matches('inactive') ? 'Off' : 'On'}

@@ -5,10 +5,14 @@ import {
   StateMachine,
   State,
   Interpreter,
-  InterpreterOptions
+  InterpreterOptions,
+  MachineOptions
 } from 'xstate';
 
 interface UseMachineOptions {
+  /**
+   * If `true`, service will start immediately (before mount).
+   */
   immediate: boolean;
 }
 
@@ -19,24 +23,36 @@ const defaultOptions: UseMachineOptions = {
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions> = defaultOptions
+    Partial<UseMachineOptions> &
+    Partial<MachineOptions<TContext, TEvent>> = defaultOptions
 ): [
   State<TContext, TEvent>,
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
+  const { guards, actions, activities, services, delays } = options;
+  const customMachine = machine.withConfig({
+    guards,
+    actions,
+    activities,
+    services,
+    delays
+  });
+
   // Reference the service
   const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
 
   // Create the service only once
   // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
   if (serviceRef.current === null) {
-    serviceRef.current = interpret(machine, options).onTransition(state => {
-      // Update the current machine state when a transition occurs
-      if (state.changed) {
-        setCurrent(state);
+    serviceRef.current = interpret(customMachine, options).onTransition(
+      state => {
+        // Update the current machine state when a transition occurs
+        if (state.changed) {
+          setCurrent(state);
+        }
       }
-    });
+    );
   }
 
   const service = serviceRef.current;

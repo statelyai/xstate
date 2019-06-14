@@ -1,5 +1,4 @@
 import { assert } from 'chai';
-import { useMemo } from 'react';
 import * as React from 'react';
 import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn } from 'xstate';
@@ -43,19 +42,14 @@ describe('useMachine hook', () => {
     }
   });
 
-  const Fetcher = () => {
-    const machine = useMemo(
-      () =>
-        Fetcher.machine.withConfig({
-          services: {
-            fetchData: () => new Promise(res => res('some data')),
-            ...Fetcher.machine.options.services
-          }
-        }),
-      []
-    );
-
-    const [current, send] = useMachine(machine);
+  const Fetcher = ({
+    onFetch = () => new Promise(res => res('some data'))
+  }) => {
+    const [current, send] = useMachine(fetchMachine, {
+      services: {
+        fetchData: onFetch
+      }
+    });
 
     switch (current.value) {
       case 'idle':
@@ -73,16 +67,10 @@ describe('useMachine hook', () => {
     }
   };
 
-  Fetcher.machine = fetchMachine;
-
   it('should work with the useMachine hook', async () => {
-    Fetcher.machine = fetchMachine.withConfig({
-      services: {
-        fetchData: () => new Promise(res => res('fake data'))
-      }
-    });
-
-    const { getByText, getByTestId } = render(<Fetcher />);
+    const { getByText, getByTestId } = render(
+      <Fetcher onFetch={() => new Promise(res => res('fake data'))} />
+    );
     const button = getByText('Fetch');
     fireEvent.click(button);
     getByText('Loading...');

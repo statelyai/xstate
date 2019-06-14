@@ -52,6 +52,6 @@
     "react-testing-library": "^6.1.2",
     "ts-jest": "^24.0.0",
     "typescript": "^3.4.5",
-    "xstate": "^4.6.0"
+    "xstate": "^4.6.1"
   }
 }
