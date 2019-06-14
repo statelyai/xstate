@@ -365,6 +365,31 @@ describe('invoke', () => {
       .start();
   });
 
+  it('should not start services only once when using withContext', () => {
+    let startCount = 0;
+
+    const startMachine = Machine({
+      id: 'start',
+      initial: 'active',
+      context: { foo: true },
+      states: {
+        active: {
+          invoke: {
+            src: () => () => {
+              startCount++;
+            }
+          }
+        }
+      }
+    });
+
+    const startService = interpret(startMachine.withContext({ foo: false }));
+
+    startService.start();
+
+    assert.equal(startCount, 1);
+  });
+
   describe('parent to child', () => {
     const subMachine = Machine({
       id: 'child',
@@ -1298,8 +1323,8 @@ describe('invoke', () => {
           state = s;
         })
         .onDone(() => {
-          assert.equal(state.context.result, 42)
-          done()
+          assert.equal(state.context.result, 42);
+          done();
         })
         .start();
     });
@@ -1312,7 +1337,7 @@ describe('invoke', () => {
         states: {
           start: {
             on: {
-              FETCH: 'fetch',
+              FETCH: 'fetch'
             }
           },
           fetch: {
@@ -1348,7 +1373,7 @@ describe('invoke', () => {
                 type: 'final'
               }
             }
-          },
+          }
         }
       });
 
@@ -1822,7 +1847,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: async () => {
+              src: () => async () => {
                 serviceCalled = true;
               }
             },
