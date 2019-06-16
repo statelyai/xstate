@@ -147,7 +147,7 @@ describe('invoke', () => {
             invoke: {
               src: 'child',
               id: 'someService',
-              forward: true
+              autoForward: true
             },
             on: {
               INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
@@ -188,7 +188,7 @@ describe('invoke', () => {
       .start();
   });
 
-  it('should forward events to services if forward: true', () => {
+  it('should forward events to services if autoForward: true', () => {
     const childMachine = Machine({
       id: 'child',
       initial: 'init',
@@ -213,7 +213,7 @@ describe('invoke', () => {
             invoke: {
               src: 'child',
               id: 'someService',
-              forward: true
+              autoForward: true
             },
             on: {
               DEC: { actions: assign({ count: ctx => ctx.count - 1 }) },
@@ -243,7 +243,7 @@ describe('invoke', () => {
       })
       .onDone(() => {
         // 1. The 'parent' machine will not do anything (inert transition)
-        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (forward: true)
+        // 2. The 'FORWARD_DEC' event will be forwarded to the 'child' machine (autoForward: true)
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
@@ -326,7 +326,7 @@ describe('invoke', () => {
             invoke: {
               src: 'child',
               id: 'someService',
-              forward: true
+              autoForward: true
             },
             on: {
               STOP: 'stop'

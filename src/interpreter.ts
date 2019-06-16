@@ -68,6 +68,10 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
+type SpawnOptions = { name?: string; autoForward?: boolean; sync?: boolean };
+
+const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
+
 /**
  * Maintains a stack of the current service in scope.
  * This is used to provide the correct service to spawn().
@@ -712,7 +716,14 @@ export class Interpreter<
 
           const { id, data } = activity;
 
-          const autoForward = !!activity.forward;
+          if (!IS_PRODUCTION) {
+            warn(
+              !('forward' in activity),
+              `\`forward\` property is deprecated (found in invocation of '${ activity.src }' in in machine '${ this.machine.id }'). ` +
+              `Please use \`autoForward\` instead.`)
+          }
+
+          const autoForward = 'autoForward' in activity ? activity.autoForward : !!activity.forward;
 
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
@@ -800,7 +811,7 @@ export class Interpreter<
   public spawn<TChildContext>(
     entity: Spawnable<TChildContext>,
     name: string,
-    options: { sync: boolean } = { sync: false }
+    options?: SpawnOptions
   ): Actor {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
@@ -809,7 +820,7 @@ export class Interpreter<
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
-      return this.spawnMachine(entity, { id: name, sync: options.sync });
+      return this.spawnMachine(entity, { ...options, id: name });
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
@@ -830,12 +841,14 @@ export class Interpreter<
       id: options.id || machine.id
     });
 
-    if (options.sync) {
+    const resolvedOptions = {
+      ...DEFAULT_SPAWN_OPTIONS,
+      ...options,
+    }
+
+    if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update, {
-          state,
-          id: childService.id
-        });
+        this.send(actionTypes.update, { state, id: childService.id });
       });
     }
 
@@ -849,7 +862,7 @@ export class Interpreter<
       id: childService.id,
       send: childService.send,
       get state() {
-        return options.sync ? childService.state : undefined;
+        return resolvedOptions.sync ? childService.state : undefined;
       },
       subscribe: childService.subscribe,
       toJSON() {
@@ -859,7 +872,7 @@ export class Interpreter<
 
     this.children.set(childService.id, actor);
 
-    if (options.autoForward) {
+    if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
     }
 
@@ -1135,6 +1148,18 @@ const createNullActor = (name: string = 'null'): Actor => ({
   toJSON: () => ({ id: name })
 });
 
+const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
+  if (isString(nameOrOptions)) {
+    return { ...DEFAULT_SPAWN_OPTIONS, name: nameOrOptions };
+  }
+
+  return {
+    ...DEFAULT_SPAWN_OPTIONS,
+    name: uniqueId(),
+    ...nameOrOptions
+  }
+}
+
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
   name?: string
@@ -1142,19 +1167,13 @@ export function spawn<TContext>(
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
   // tslint:disable-next-line:unified-signatures
-  options?: { sync: boolean; name?: string }
+  options?: SpawnOptions
 ): Actor<TContext>;
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
-  nameOrOptions?: string | { sync: boolean; name?: string }
+  nameOrOptions?: string | SpawnOptions
 ): Actor<TContext> {
-  const resolvedOptions = nameOrOptions
-    ? isString(nameOrOptions)
-      ? { name: nameOrOptions, sync: false }
-      : nameOrOptions
-    : {
-        sync: false
-      };
+  const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, service => {
     if (!IS_PRODUCTION) {
@@ -1170,11 +1189,11 @@ export function spawn<TContext>(
       console.log('spawning in', service.id);
       return service.spawn(
         entity,
-        resolvedOptions.name || uniqueId(),
+        resolvedOptions.name,
         resolvedOptions
       );
     } else {
-      return createNullActor(resolvedOptions.name || uniqueId());
+      return createNullActor(resolvedOptions.name);
     }
   });
 }

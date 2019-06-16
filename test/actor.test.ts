@@ -349,6 +349,107 @@ describe('actors', () => {
     assert.isDefined(initialState.context.ref!.send);
   });
 
+  describe('autoForward option', () => {
+    const pongActorMachine = Machine({
+      id: 'server',
+      initial: 'waitPing',
+      states: {
+        waitPing: {
+          on: {
+            PING: 'sendPong'
+          }
+        },
+        sendPong: {
+          entry: [sendParent('PONG'), raise('SUCCESS')],
+          on: {
+            SUCCESS: 'waitPing'
+          }
+        }
+      }
+    })
+
+    it('should not forward events to a spawned actor by default', () => {
+      let pongCounter = 0;
+
+      const machine = Machine<any>({
+        id: 'client',
+        context: { counter: 0, serverRef: undefined },
+        initial: 'initial',
+        states: {
+          initial: {
+            entry: assign(() => ({
+              serverRef: spawn(pongActorMachine)
+            })),
+            on: {
+              PONG: {
+                actions: () => ++pongCounter
+              }
+            }
+          }
+        }
+      });
+      const service = interpret(machine);
+      service.start();
+      service.send('PING')
+      service.send('PING')
+      assert.equal(pongCounter, 0);
+    })
+
+    it('should not forward events to a spawned actor when { autoForward: false }', () => {
+      let pongCounter = 0;
+
+      const machine = Machine<any>({
+        id: 'client',
+        context: { counter: 0, serverRef: undefined },
+        initial: 'initial',
+        states: {
+          initial: {
+            entry: assign(() => ({
+              serverRef: spawn(pongActorMachine, { autoForward: false })
+            })),
+            on: {
+              PONG: {
+                actions: () => ++pongCounter
+              }
+            }
+          }
+        }
+      });
+      const service = interpret(machine);
+      service.start();
+      service.send('PING');
+      service.send('PING');
+      assert.equal(pongCounter, 0);
+    });
+
+    it('should not forward events to a spawned actor when { autoForward: true }', () => {
+      let pongCounter = 0;
+
+      const machine = Machine<any>({
+        id: 'client',
+        context: { counter: 0, serverRef: undefined },
+        initial: 'initial',
+        states: {
+          initial: {
+            entry: assign(() => ({
+              serverRef: spawn(pongActorMachine, { autoForward: true })
+            })),
+            on: {
+              PONG: {
+                actions: () => ++pongCounter
+              }
+            }
+          }
+        }
+      });
+      const service = interpret(machine);
+      service.start();
+      service.send('PING');
+      service.send('PING');
+      assert.equal(pongCounter, 2);
+    });
+  });
+
   describe('sync option', () => {
     const childMachine = Machine({
       id: 'child',

@@ -212,7 +212,13 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    *
    * Default: `false`
    */
-  forward?: boolean;
+  autoForward?: boolean;
+  /**
+   * @deprecated
+   *
+   *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
+   */
+  forward?: boolean
   /**
    * Data from the parent machine's context to set as the (partial or full) context
    * for the invoked child machine.
@@ -321,6 +327,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        * If `true`, events sent to the parent service will be forwarded to the invoked service.
        *
        * Default: `false`
+       */
+      autoForward?: boolean;
+      /**
+       * @deprecated
+       *
+       *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
        */
       forward?: boolean;
       /**
