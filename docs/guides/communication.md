@@ -24,7 +24,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a "callback handler"
   - a function that returns an observable
 - `id` - the unique identifier for the invoked service
-- `forward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
+- `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child machine (`false` by default)
 - `data` - (optional) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or
