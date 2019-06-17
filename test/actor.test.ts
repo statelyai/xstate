@@ -422,7 +422,7 @@ describe('actors', () => {
       assert.equal(pongCounter, 0);
     });
 
-    it('should not forward events to a spawned actor when { autoForward: true }', () => {
+    it('should forward events to a spawned actor when { autoForward: true }', () => {
       let pongCounter = 0;
 
       const machine = Machine<any>({
