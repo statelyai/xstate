@@ -25,7 +25,7 @@ Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 ## Super quick start
 
 ```bash
-npm i xstate -S
+npm install xstate
 ```
 
 ```js
@@ -81,10 +81,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 - [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
 
-## Installation
-
-1. `npm install xstate --save`
-2. `import { Machine } from 'xstate';`
 
 ## Finite State Machines
 
