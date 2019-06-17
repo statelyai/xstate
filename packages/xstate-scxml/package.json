@@ -13,6 +13,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-scxml#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "sideEffects": false,
   "files": [
     "lib"
   ],

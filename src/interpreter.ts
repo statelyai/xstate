@@ -1167,7 +1167,6 @@ export function spawn<TContext>(
     }
 
     if (service) {
-      console.log('spawning in', service.id);
       return service.spawn(
         entity,
         resolvedOptions.name || uniqueId(),

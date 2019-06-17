@@ -16,6 +16,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "sideEffects": false,
   "directories": {
     "lib": "lib",
     "test": "test"
