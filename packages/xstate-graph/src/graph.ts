@@ -95,8 +95,8 @@ export function getEventEdges<
               : node;
 
             return {
-              source: node,
-              target: targetNode,
+              source: node as StateNode<TContext, any, any>, // TODO: fix
+              target: targetNode as StateNode<TContext, any, any>, // TODO: fix
               event,
               actions: transition.actions
                 ? transition.actions.map(getActionType)
