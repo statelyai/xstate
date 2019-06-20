@@ -43,9 +43,10 @@
     "publish:next": "npm version prerelease && npm publish --tag next",
     "typedoc": "typedoc src/index.ts --excludePrivate --mode file --out ./api --target es6",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
+    "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && vuepress dev docs",
     "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md",
-    "docs:build": "npm run docs:packages && vuepress build docs",
+    "docs:build": "npm run docs:readme && npm run docs:packages && vuepress build docs",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
   },
   "repository": {
