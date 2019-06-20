@@ -32,7 +32,7 @@ module.exports = {
     sidebar: [
       {
         title: 'About',
-        children: ['/about/concepts', '/about/goals']
+        children: ['/about/concepts', '/about/goals', '/about/showcase']
       },
       {
         title: 'Guides',
@@ -80,7 +80,11 @@ module.exports = {
       },
       {
         title: 'Examples',
-        children: ['/examples/todomvc', '/examples/calculator']
+        children: [
+          '/examples/counter',
+          '/examples/todomvc',
+          '/examples/calculator'
+        ]
       }
     ]
   }

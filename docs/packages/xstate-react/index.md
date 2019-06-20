@@ -57,19 +57,6 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
-**Example**
-
-```jsx
-import { useMachine } from '@xstate/react';
-import { someMachine } from './someMachine';
-
-export function SomeComponent() {
-  const [current, send] = useMachine(someMachine);
-
-  return (/* ... */);
-}
-```
-
 ### `useService(service)`
 
 A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](TODO).
@@ -85,14 +72,15 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 ## Configuring Machines
 
-Machine configuration options (such as `guards`, `actions`, `activities`, `services`, and `delays`) can be passed in as the second argument to `useMachine(machine, options)`.
+Existing machines are configurable with `.withConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
 
-Example: the `'fetchData'` service and `'notifyChanged'` action can be configured:
+::: tip
+The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
+:::
+
+Example: the `'fetchData'` service and `'notifyChanged'` action are both configurable:
 
 ```js
-import { Machine } from 'xstate';
-import { useMachine } from '@xstate/react';
-
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
@@ -122,17 +110,23 @@ const fetchMachine = Machine({
 });
 
 const Fetcher = ({ onResolve }) => {
-  const [current, send] = useMachine(customFetchMachine, {
-    actions: {
-      notifyResolve: ctx => {
-        onResolve(ctx.data);
-      }
-    },
-    services: {
-      fetchData: (ctx, e) =>
-        fetch(`some/api/${e.query}`).then(res => res.json())
-    }
-  });
+  const customFetchMachine = useMemo(
+    () =>
+      fetchMachine.withConfig({
+        actions: {
+          notifyResolve: ctx => {
+            onResolve(ctx.data);
+          }
+        },
+        services: {
+          fetchData: (ctx, e) =>
+            fetch(`some/api/${e.query}`).then(res => res.json())
+        }
+      }),
+    [] // Machine should never change
+  );
+
+  const [current, send] = useMachine(customFetchMachine);
 
   switch (current.state) {
     case 'idle':

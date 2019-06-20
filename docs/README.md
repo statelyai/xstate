@@ -14,26 +14,27 @@
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
-Functional, stateless JavaScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) for the modern web.
 
 📖 [Read the documentation](https://xstate.js.org/docs)
 
 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 
-[**Version 3.x to 4 Migration Guide**](https://github.com/davidkpiano/xstate/blob/master/migration.md)
+[**Version 3.x to 4 Migration Guide**](./migration.md)
 
 ## Super quick start
 
 ```bash
-npm i xstate -S
+npm install xstate
 ```
 
 ```js
-import { Machine, interpret } from 'xstate'; // or use your own interpreter!
+import { Machine, interpret } from 'xstate';
 
 // Stateless machine definition
 // machine.transition(...) is a pure function used by the interpreter.
 const toggleMachine = Machine({
+  id: 'toggle',
   initial: 'inactive',
   states: {
     inactive: { on: { TOGGLE: 'active' } },
@@ -55,7 +56,6 @@ toggleService.send('TOGGLE');
 ```
 
 - [Visualizer](#visualizer)
-- [3rd-Party Usage](#3rd-party-usage)
 - [Why? (info about statecharts)](#why)
 - [Installation](#installation)
 - [Finite State Machines](#finite-state-machines)
@@ -81,10 +81,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 - [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
 
-## Installation
-
-1. `npm install xstate --save`
-2. `import { Machine } from 'xstate';`
 
 ## Finite State Machines
 
