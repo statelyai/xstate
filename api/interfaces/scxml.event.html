@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>InvokeDefinition | xstate</title>
+	<title>Event | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,43 +56,26 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="invokedefinition.html">InvokeDefinition</a>
+					<a href="../modules/scxml.html">SCXML</a>
+				</li>
+				<li>
+					<a href="scxml.event.html">Event</a>
 				</li>
 			</ul>
-			<h1>Interface InvokeDefinition&lt;TContext, TEvent&gt;</h1>
+			<h1>Interface Event</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<section class="tsd-panel tsd-type-parameters">
-				<h3>Type parameters</h3>
-				<ul class="tsd-type-parameters">
-					<li>
-						<h4>TContext</h4>
-					</li>
-					<li>
-						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
-					</li>
-				</ul>
-			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="activitydefinition.html" class="tsd-signature-type">ActivityDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
-						<ul class="tsd-hierarchy">
-							<li>
-								<span class="target">InvokeDefinition</span>
-							</li>
-						</ul>
+						<span class="target">Event</span>
 					</li>
 				</ul>
-			</section>
-			<section class="tsd-panel tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-				<h3 class="tsd-before-signature">Indexable</h3>
-				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>other: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></div>
 			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
@@ -101,13 +84,14 @@
 						<section class="tsd-index-section tsd-is-external">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="invokedefinition.html#autoforward" class="tsd-kind-icon">auto<wbr>Forward</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="invokedefinition.html#data" class="tsd-kind-icon">data</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="invokedefinition.html#exec" class="tsd-kind-icon">exec</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="invokedefinition.html#forward" class="tsd-kind-icon">forward</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="invokedefinition.html#id" class="tsd-kind-icon">id</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="invokedefinition.html#src" class="tsd-kind-icon">src</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-inherited tsd-is-external"><a href="invokedefinition.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external"><a href="scxml.event.html#__type" class="tsd-kind-icon">$$type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#data" class="tsd-kind-icon">data</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#invokeid" class="tsd-kind-icon">invokeid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#origin" class="tsd-kind-icon">origin</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#origintype" class="tsd-kind-icon">origintype</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#sendid" class="tsd-kind-icon">sendid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#type" class="tsd-kind-icon">type</a></li>
 							</ul>
 						</section>
 					</div>
@@ -115,109 +99,147 @@
 			</section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-external">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="autoforward" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> auto<wbr>Forward</h3>
-					<div class="tsd-signature tsd-kind-icon">auto<wbr>Forward<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external">
+					<a name="__type" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagPrivate">Private</span> $$type</h3>
+					<div class="tsd-signature tsd-kind-icon">$$type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"scxml"</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L215">types.ts:215</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1039">types.ts:1039</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
-						<div class="lead">
-							<p>If <code>true</code>, events sent to the parent service will be forwarded to the invoked service.</p>
-						</div>
-						<p>Default: <code>false</code></p>
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="data" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> data</h3>
-					<div class="tsd-signature tsd-kind-icon">data<span class="tsd-signature-symbol">:</span> <a href="../globals.html#mapper" class="tsd-signature-type">Mapper</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#propertymapper" class="tsd-signature-type">PropertyMapper</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<h3>data</h3>
+					<div class="tsd-signature tsd-kind-icon">data<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L228">types.ts:228</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1035">types.ts:1035</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>Data from the parent machine&#39;s context to set as the (partial or full) context
-							for the invoked child machine.</p>
+							<p>This field contains whatever data the sending entity chose to include in this event.
+								The receiving SCXML Processor should reformat this data to match its data model,
+							but must not otherwise modify it.</p>
 						</div>
-						<p>Data should be mapped to match the child machine&#39;s context shape.</p>
+						<p>If the conversion is not possible, the Processor must leave the field blank
+						and must place an error &#39;error.execution&#39; in the internal event queue.</p>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="exec" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> exec</h3>
-					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="actionfunction.html" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="invokeid" class="tsd-anchor"></a>
+					<h3>invokeid</h3>
+					<div class="tsd-signature tsd-kind-icon">invokeid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#exec">exec</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L38">types.ts:38</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1026">types.ts:1026</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>The implementation for executing the action.</p>
+							<p>If this event is generated from an invoked child process, the SCXML Processor
+								must set this field to the invoke id of the invocation that triggered the child process.
+							Otherwise it must leave it blank.</p>
 						</div>
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="forward" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> forward</h3>
-					<div class="tsd-signature tsd-kind-icon">forward<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+					<a name="name" class="tsd-anchor"></a>
+					<h3>name</h3>
+					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L221">types.ts:221</a></li>
-						</ul>
-					</aside>
-					<div class="tsd-comment tsd-typography">
-						<dl class="tsd-comment-tags">
-							<dt>deprecated</dt>
-							<dd><p> Use <code>autoForward</code> property instead of <code>forward</code>. Support for <code>forward</code> will get removed in the future.</p>
-							</dd>
-						</dl>
-					</div>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-					<a name="id" class="tsd-anchor"></a>
-					<h3>id</h3>
-					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<p>Inherited from <a href="activitydefinition.html">ActivityDefinition</a>.<a href="activitydefinition.html#id">id</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L168">types.ts:168</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="src" class="tsd-anchor"></a>
-					<h3>src</h3>
-					<div class="tsd-signature tsd-kind-icon">src<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L209">types.ts:209</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L989">types.ts:989</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>The source of the machine to be invoked, or the machine itself.</p>
+							<p>This is a character string giving the name of the event.
+								The SCXML Processor must set the name field to the name of this event.
+								It is what is matched against the &#39;event&#39; attribute of <transition>.
+									Note that transitions can do additional tests by using the value of this field
+							inside boolean expressions in the &#39;cond&#39; attribute.</p>
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-inherited tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="origin" class="tsd-anchor"></a>
+					<h3>origin</h3>
+					<div class="tsd-signature tsd-kind-icon">origin<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1012">types.ts:1012</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>This is a URI, equivalent to the &#39;target&#39; attribute on the <send> element.
+									For external events, the SCXML Processor should set this field to a value which,
+									when used as the value of &#39;target&#39;, will allow the receiver of the event to <send>
+										a response back to the originating entity via the Event I/O Processor specified in &#39;origintype&#39;.
+							For internal and platform events, the Processor must leave this field blank.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="origintype" class="tsd-anchor"></a>
+					<h3>origintype</h3>
+					<div class="tsd-signature tsd-kind-icon">origintype<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1020">types.ts:1020</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>This is equivalent to the &#39;type&#39; field on the <send> element.
+									For external events, the SCXML Processor should set this field to a value which,
+									when used as the value of &#39;type&#39;, will allow the receiver of the event to <send>
+										a response back to the originating entity at the URI specified by &#39;origin&#39;.
+							For internal and platform events, the Processor must leave this field blank.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+					<a name="sendid" class="tsd-anchor"></a>
+					<h3>sendid</h3>
+					<div class="tsd-signature tsd-kind-icon">sendid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L1004">types.ts:1004</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>If the sending entity has specified a value for this, the Processor must set this field to that value
+								(see C Event I/O Processors for details).
+								Otherwise, in the case of error events triggered by a failed attempt to send an event,
+								the Processor must set this field to the send id of the triggering <send> element.
+							Otherwise it must leave it blank.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
 					<a name="type" class="tsd-anchor"></a>
 					<h3>type</h3>
-					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"platform"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"internal"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"external"</span></div>
 					<aside class="tsd-sources">
-						<p>Inherited from <a href="activitydefinition.html">ActivityDefinition</a>.<a href="activitydefinition.html#type">type</a></p>
-						<p>Overrides <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L169">types.ts:169</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/types.ts#L996">types.ts:996</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>This field describes the event type.
+								The SCXML Processor must set it to: &quot;platform&quot; (for events raised by the platform itself, such as error events),
+								&quot;internal&quot; (for events raised by <raise> and <send> with target &#39;_internal&#39;)
+							or &quot;external&quot; (for all other events).</p>
+						</div>
+					</div>
 				</section>
 			</section>
 		</div>
@@ -227,35 +249,44 @@
 					<li class="globals  ">
 						<a href="../globals.html"><em>Globals</em></a>
 					</li>
+					<li class="label tsd-is-external">
+						<span>Externals</span>
+					</li>
+					<li class="current tsd-kind-module tsd-is-external">
+						<a href="../modules/scxml.html">SCXML</a>
+					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="invokedefinition.html" class="tsd-kind-icon">Invoke<wbr>Definition</a>
+					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-is-external">
+						<a href="scxml.event.html" class="tsd-kind-icon">Event</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="invokedefinition.html#autoforward" class="tsd-kind-icon">auto<wbr>Forward</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external">
+								<a href="scxml.event.html#__type" class="tsd-kind-icon">$$type</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="invokedefinition.html#data" class="tsd-kind-icon">data</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="invokedefinition.html#exec" class="tsd-kind-icon">exec</a>
+								<a href="scxml.event.html#data" class="tsd-kind-icon">data</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="invokedefinition.html#forward" class="tsd-kind-icon">forward</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="invokedefinition.html#id" class="tsd-kind-icon">id</a>
+								<a href="scxml.event.html#invokeid" class="tsd-kind-icon">invokeid</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="invokedefinition.html#src" class="tsd-kind-icon">src</a>
+								<a href="scxml.event.html#name" class="tsd-kind-icon">name</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite tsd-is-inherited tsd-is-external">
-								<a href="invokedefinition.html#type" class="tsd-kind-icon">type</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="scxml.event.html#origin" class="tsd-kind-icon">origin</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="scxml.event.html#origintype" class="tsd-kind-icon">origintype</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="scxml.event.html#sendid" class="tsd-kind-icon">sendid</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+								<a href="scxml.event.html#type" class="tsd-kind-icon">type</a>
 							</li>
 						</ul>
 					</li>

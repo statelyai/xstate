@@ -88,6 +88,13 @@
 					</li>
 				</ul>
 			</section>
+			<section class="tsd-panel">
+				<h3>Implements</h3>
+				<ul class="tsd-hierarchy">
+					<li><a href="../interfaces/subscribable.html" class="tsd-signature-type">Subscribable</a><span class="tsd-signature-symbol">&lt;</span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<li><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a><span class="tsd-signature-symbol">&lt;</span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">, </span><a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+				</ul>
+			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
@@ -104,18 +111,14 @@
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#clock" class="tsd-kind-icon">clock</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#id" class="tsd-kind-icon">id</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#init" class="tsd-kind-icon">init</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#initialstate" class="tsd-kind-icon">initial<wbr>State</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#initialized" class="tsd-kind-icon">initialized</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#machine" class="tsd-kind-icon">machine</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#options" class="tsd-kind-icon">options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#parent" class="tsd-kind-icon">parent</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#state" class="tsd-kind-icon">state</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external"><a href="interpreter.html#defaultoptions" class="tsd-kind-icon">default<wbr>Options</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external"><a href="interpreter.html#interpret" class="tsd-kind-icon">interpret</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section tsd-is-external">
-							<h3>Accessors</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#initialstate" class="tsd-kind-icon">initial<wbr>State</a></li>
 							</ul>
 						</section>
 						<section class="tsd-index-section tsd-is-external">
@@ -133,8 +136,12 @@
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#send" class="tsd-kind-icon">send</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#sendto" class="tsd-kind-icon">send<wbr>To</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#sender" class="tsd-kind-icon">sender</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external"><a href="interpreter.html#spawn" class="tsd-kind-icon">spawn</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external"><a href="interpreter.html#spawnmachine" class="tsd-kind-icon">spawn<wbr>Machine</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#start" class="tsd-kind-icon">start</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#stop" class="tsd-kind-icon">stop</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#subscribe" class="tsd-kind-icon">subscribe</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="interpreter.html#tojson" class="tsd-kind-icon">toJSON</a></li>
 							</ul>
 						</section>
 					</div>
@@ -152,7 +159,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L175">interpreter.ts:175</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L164">interpreter.ts:164</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -192,7 +199,7 @@
 					<div class="tsd-signature tsd-kind-icon">clock<span class="tsd-signature-symbol">:</span> <a href="../interfaces/clock.html" class="tsd-signature-type">Clock</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L154">interpreter.ts:154</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L136">interpreter.ts:136</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -206,8 +213,9 @@
 					<h3>id</h3>
 					<div class="tsd-signature tsd-kind-icon">id<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
+						<p>Implementation of <a href="../interfaces/actor.html">Actor</a>.<a href="../interfaces/actor.html#id">id</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L170">interpreter.ts:170</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L159">interpreter.ts:159</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -217,7 +225,7 @@
 					<div class="tsd-signature tsd-kind-icon">init<span class="tsd-signature-symbol">:</span> <a href="interpreter.html#start" class="tsd-signature-type">start</a><span class="tsd-signature-symbol"> =&nbsp;this.start</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L353">interpreter.ts:353</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L364">interpreter.ts:364</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -227,12 +235,42 @@
 					</div>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+					<a name="initialstate" class="tsd-anchor"></a>
+					<h3>initial<wbr>State</h3>
+					<div class="tsd-signature tsd-kind-icon">initial<wbr>State<span class="tsd-signature-symbol">:</span> <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L155">interpreter.ts:155</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The initial state of the machine.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+					<a name="initialized" class="tsd-anchor"></a>
+					<h3>initialized</h3>
+					<div class="tsd-signature tsd-kind-icon">initialized<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;false</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L151">interpreter.ts:151</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>Whether the service is started.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
 					<a name="machine" class="tsd-anchor"></a>
 					<h3>machine</h3>
 					<div class="tsd-signature tsd-kind-icon">machine<span class="tsd-signature-symbol">:</span> <a href="../interfaces/statemachine.html" class="tsd-signature-type">StateMachine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L184">interpreter.ts:184</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L173">interpreter.ts:173</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -247,7 +285,7 @@
 					<div class="tsd-signature tsd-kind-icon">options<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/interpreteroptions.html" class="tsd-signature-type">InterpreterOptions</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L155">interpreter.ts:155</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L137">interpreter.ts:137</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -257,7 +295,7 @@
 					<div class="tsd-signature tsd-kind-icon">parent<span class="tsd-signature-symbol">:</span> <a href="interpreter.html" class="tsd-signature-type">Interpreter</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L169">interpreter.ts:169</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L158">interpreter.ts:158</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -267,7 +305,7 @@
 					<div class="tsd-signature tsd-kind-icon">state<span class="tsd-signature-symbol">:</span> <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L150">interpreter.ts:150</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L132">interpreter.ts:132</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -282,7 +320,7 @@
 					<div class="tsd-signature tsd-kind-icon">default<wbr>Options<span class="tsd-signature-symbol">:</span> <a href="../interfaces/interpreteroptions.html" class="tsd-signature-type">InterpreterOptions</a><span class="tsd-signature-symbol"> =&nbsp;(global &#x3D;&gt; ({execute: true,deferEvents: true,clock: {setTimeout: (fn, ms) &#x3D;&gt; {return global.setTimeout.call(null, fn, ms);},clearTimeout: id &#x3D;&gt; {return global.clearTimeout.call(null, id);}},logger: global.console.log.bind(console),devTools: false}))(typeof window &#x3D;&#x3D;&#x3D; &#x27;undefined&#x27; ? global : window)</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L133">interpreter.ts:133</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L115">interpreter.ts:115</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -301,34 +339,9 @@
 					<div class="tsd-signature tsd-kind-icon">interpret<span class="tsd-signature-symbol">:</span> <a href="../globals.html#interpret" class="tsd-signature-type">interpret</a><span class="tsd-signature-symbol"> =&nbsp;interpret</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L209">interpreter.ts:209</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L201">interpreter.ts:201</a></li>
 						</ul>
 					</aside>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
-				<h2>Accessors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-					<a name="initialstate" class="tsd-anchor"></a>
-					<h3>initial<wbr>State</h3>
-					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> initialState<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L213">interpreter.ts:213</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>The initial state of the statechart.</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
 				</section>
 			</section>
 			<section class="tsd-panel-group tsd-member-group tsd-is-external">
@@ -337,13 +350,13 @@
 					<a name="execute" class="tsd-anchor"></a>
 					<h3>execute</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">(</span>state<span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">execute<span class="tsd-signature-symbol">(</span>state<span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, actionsConfig<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L221">interpreter.ts:221</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L208">interpreter.ts:208</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -357,6 +370,12 @@
 									<h5>state: <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>The state whose actions will be executed</p>
+									</div>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> actionsConfig: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">object</span></h5>
+									<div class="tsd-comment tsd-typography">
+										<p>The action implementations to use</p>
 									</div>
 								</li>
 							</ul>
@@ -374,7 +393,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L546">interpreter.ts:546</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L582">interpreter.ts:582</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -406,7 +425,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L339">interpreter.ts:339</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L350">interpreter.ts:350</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -455,7 +474,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L309">interpreter.ts:309</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L320">interpreter.ts:320</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -480,13 +499,13 @@
 					<a name="ondone" class="tsd-anchor"></a>
 					<h3>on<wbr>Done</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">on<wbr>Done<span class="tsd-signature-symbol">(</span>listener<span class="tsd-signature-symbol">: </span><a href="../globals.html#eventlistener" class="tsd-signature-type">EventListener</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="interpreter.html" class="tsd-signature-type">Interpreter</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">on<wbr>Done<span class="tsd-signature-symbol">(</span>listener<span class="tsd-signature-symbol">: </span><a href="../globals.html#eventlistener" class="tsd-signature-type">EventListener</a><span class="tsd-signature-symbol">&lt;</span><a href="../globals.html#doneevent" class="tsd-signature-type">DoneEvent</a><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="interpreter.html" class="tsd-signature-type">Interpreter</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L329">interpreter.ts:329</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L340">interpreter.ts:340</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -497,7 +516,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>listener: <a href="../globals.html#eventlistener" class="tsd-signature-type">EventListener</a></h5>
+									<h5>listener: <a href="../globals.html#eventlistener" class="tsd-signature-type">EventListener</a><span class="tsd-signature-symbol">&lt;</span><a href="../globals.html#doneevent" class="tsd-signature-type">DoneEvent</a><span class="tsd-signature-symbol">&gt;</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>The state listener</p>
 									</div>
@@ -517,7 +536,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L289">interpreter.ts:289</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L300">interpreter.ts:300</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -548,7 +567,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L299">interpreter.ts:299</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L310">interpreter.ts:310</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -579,7 +598,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L319">interpreter.ts:319</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L330">interpreter.ts:330</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -610,7 +629,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L279">interpreter.ts:279</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L269">interpreter.ts:269</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -633,7 +652,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L422">interpreter.ts:422</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L441">interpreter.ts:441</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -666,13 +685,13 @@
 					<a name="sendto" class="tsd-anchor"></a>
 					<h3>send<wbr>To</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">send<wbr>To<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, to<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+						<li class="tsd-signature tsd-kind-icon">send<wbr>To<span class="tsd-signature-symbol">(</span>event<span class="tsd-signature-symbol">: </span><a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, to<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L518">interpreter.ts:518</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L543">interpreter.ts:543</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -681,7 +700,7 @@
 									<h5>event: <a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h5>
 								</li>
 								<li>
-									<h5>to: <span class="tsd-signature-type">string</span></h5>
+									<h5>to: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> | </span><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
@@ -698,7 +717,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L510">interpreter.ts:510</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L535">interpreter.ts:535</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -733,6 +752,90 @@
 						</li>
 					</ul>
 				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+					<a name="spawn" class="tsd-anchor"></a>
+					<h3>spawn</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+						<li class="tsd-signature tsd-kind-icon">spawn&lt;TChildContext&gt;<span class="tsd-signature-symbol">(</span>entity<span class="tsd-signature-symbol">: </span><a href="../globals.html#spawnable" class="tsd-signature-type">Spawnable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">&gt;</span>, name<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span>, options<span class="tsd-signature-symbol">?: </span><a href="../globals.html#spawnoptions" class="tsd-signature-type">SpawnOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L811">interpreter.ts:811</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>TChildContext</h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>entity: <a href="../globals.html#spawnable" class="tsd-signature-type">Spawnable</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+								<li>
+									<h5>name: <span class="tsd-signature-type">string</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> options: <a href="../globals.html#spawnoptions" class="tsd-signature-type">SpawnOptions</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+					<a name="spawnmachine" class="tsd-anchor"></a>
+					<h3>spawn<wbr>Machine</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+						<li class="tsd-signature tsd-kind-icon">spawn<wbr>Machine&lt;TChildContext, TChildStateSchema, TChildEvents&gt;<span class="tsd-signature-symbol">(</span>machine<span class="tsd-signature-symbol">: </span><a href="../interfaces/statemachine.html" class="tsd-signature-type">StateMachine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildEvents</span><span class="tsd-signature-symbol">&gt;</span>, options<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">object</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a><span class="tsd-signature-symbol">&lt;</span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildEvents</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L830">interpreter.ts:830</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>TChildContext</h4>
+								</li>
+								<li>
+									<h4>TChildStateSchema</h4>
+								</li>
+								<li>
+									<h4>TChildEvents<span class="tsd-signature-symbol">: </span><a href="../interfaces/eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+								</li>
+							</ul>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>machine: <a href="../interfaces/statemachine.html" class="tsd-signature-type">StateMachine</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildEvents</span><span class="tsd-signature-symbol">&gt;</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <span class="tsd-signature-type">object</span><span class="tsd-signature-symbol"> =&nbsp;{}</span></h5>
+									<ul class="tsd-parameters">
+										<li class="tsd-parameter">
+											<h5><span class="tsd-flag ts-flagOptional">Optional</span> auto<wbr>Forward<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></h5>
+										</li>
+										<li class="tsd-parameter">
+											<h5><span class="tsd-flag ts-flagOptional">Optional</span> id<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></h5>
+										</li>
+										<li class="tsd-parameter">
+											<h5><span class="tsd-flag ts-flagOptional">Optional</span> sync<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></h5>
+										</li>
+									</ul>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a><span class="tsd-signature-symbol">&lt;</span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TChildContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TChildEvents</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
 					<a name="start" class="tsd-anchor"></a>
 					<h3>start</h3>
@@ -743,7 +846,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L358">interpreter.ts:358</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L369">interpreter.ts:369</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -774,7 +877,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/interpreter.ts#L381">interpreter.ts:381</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L400">interpreter.ts:400</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -784,6 +887,57 @@
 								<p>This will also notify the <code>onStop</code> listeners.</p>
 							</div>
 							<h4 class="tsd-returns-title">Returns <a href="interpreter.html" class="tsd-signature-type">Interpreter</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a name="subscribe" class="tsd-anchor"></a>
+					<h3>subscribe</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+						<li class="tsd-signature tsd-kind-icon">subscribe<span class="tsd-signature-symbol">(</span>nextListener<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span>, errorListener<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span>, completeListener<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/unsubscribable.html" class="tsd-signature-type">Unsubscribable</a></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L275">interpreter.ts:275</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> nextListener: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> errorListener: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> completeListener: <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">function</span></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <a href="../interfaces/unsubscribable.html" class="tsd-signature-type">Unsubscribable</a></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a name="tojson" class="tsd-anchor"></a>
+					<h3>toJSON</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+						<li class="tsd-signature tsd-kind-icon">toJSON<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/interpreter.ts#L1128">interpreter.ts:1128</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<ul class="tsd-parameters">
+								<li class="tsd-parameter">
+									<h5>id<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span></h5>
+								</li>
+							</ul>
 						</li>
 					</ul>
 				</section>
@@ -817,6 +971,12 @@
 								<a href="interpreter.html#init" class="tsd-kind-icon">init</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+								<a href="interpreter.html#initialstate" class="tsd-kind-icon">initial<wbr>State</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+								<a href="interpreter.html#initialized" class="tsd-kind-icon">initialized</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
 								<a href="interpreter.html#machine" class="tsd-kind-icon">machine</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
@@ -833,9 +993,6 @@
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-static tsd-is-external">
 								<a href="interpreter.html#interpret" class="tsd-kind-icon">interpret</a>
-							</li>
-							<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-								<a href="interpreter.html#initialstate" class="tsd-kind-icon">initial<wbr>State</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 								<a href="interpreter.html#execute" class="tsd-kind-icon">execute</a>
@@ -873,11 +1030,23 @@
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 								<a href="interpreter.html#sender" class="tsd-kind-icon">sender</a>
 							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+								<a href="interpreter.html#spawn" class="tsd-kind-icon">spawn</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external">
+								<a href="interpreter.html#spawnmachine" class="tsd-kind-icon">spawn<wbr>Machine</a>
+							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 								<a href="interpreter.html#start" class="tsd-kind-icon">start</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 								<a href="interpreter.html#stop" class="tsd-kind-icon">stop</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+								<a href="interpreter.html#subscribe" class="tsd-kind-icon">subscribe</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+								<a href="interpreter.html#tojson" class="tsd-kind-icon">toJSON</a>
 							</li>
 						</ul>
 					</li>

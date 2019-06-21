@@ -90,6 +90,7 @@
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#isresolved" class="tsd-kind-icon">is<wbr>Resolved</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#nodes" class="tsd-kind-icon">nodes</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#parent" class="tsd-kind-icon">parent</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#root" class="tsd-kind-icon">root</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#statenode" class="tsd-kind-icon">state<wbr>Node</a></li>
 								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="statetree.html#statevalue" class="tsd-kind-icon">state<wbr>Value</a></li>
 							</ul>
@@ -109,6 +110,7 @@
 						<section class="tsd-index-section tsd-is-external">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="statetree.html#addreentrynode" class="tsd-kind-icon">add<wbr>Reentry<wbr>Node</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="statetree.html#clone" class="tsd-kind-icon">clone</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="statetree.html#combine" class="tsd-kind-icon">combine</a></li>
 								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-external"><a href="statetree.html#getdonedata" class="tsd-kind-icon">get<wbr>Done<wbr>Data</a></li>
@@ -128,13 +130,13 @@
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
 					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">new <wbr>State<wbr>Tree<span class="tsd-signature-symbol">(</span>stateNode<span class="tsd-signature-symbol">: </span><a href="statenode.html" class="tsd-signature-type">StateNode</a>, stateValue<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/statetreeoptions.html" class="tsd-signature-type">StateTreeOptions</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="statetree.html" class="tsd-signature-type">StateTree</a></li>
+						<li class="tsd-signature tsd-kind-icon">new <wbr>State<wbr>Tree<span class="tsd-signature-symbol">(</span>stateNode<span class="tsd-signature-symbol">: </span><a href="statenode.html" class="tsd-signature-type">StateNode</a>, stateValue<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span>, options<span class="tsd-signature-symbol">?: </span><a href="../interfaces/statetreeoptions.html" class="tsd-signature-type">StateTreeOptions</a>, parent<span class="tsd-signature-symbol">?: </span><a href="statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="statetree.html" class="tsd-signature-type">StateTree</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L31">StateTree.ts:31</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L32">StateTree.ts:32</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -147,6 +149,9 @@
 								</li>
 								<li>
 									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> options: <a href="../interfaces/statetreeoptions.html" class="tsd-signature-type">StateTreeOptions</a><span class="tsd-signature-symbol"> =&nbsp;defaultStateTreeOptions</span></h5>
+								</li>
+								<li>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> parent: <a href="statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="statetree.html" class="tsd-signature-type">StateTree</a></h4>
@@ -162,7 +167,7 @@
 					<div class="tsd-signature tsd-kind-icon">is<wbr>Resolved<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L31">StateTree.ts:31</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L31">StateTree.ts:31</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -172,7 +177,7 @@
 					<div class="tsd-signature tsd-kind-icon">nodes<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L30">StateTree.ts:30</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L30">StateTree.ts:30</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -182,7 +187,17 @@
 					<div class="tsd-signature tsd-kind-icon">parent<span class="tsd-signature-symbol">:</span> <a href="statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L29">StateTree.ts:29</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L38">StateTree.ts:38</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+					<a name="root" class="tsd-anchor"></a>
+					<h3>root</h3>
+					<div class="tsd-signature tsd-kind-icon">root<span class="tsd-signature-symbol">:</span> <a href="statetree.html" class="tsd-signature-type">StateTree</a></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L29">StateTree.ts:29</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -192,7 +207,7 @@
 					<div class="tsd-signature tsd-kind-icon">state<wbr>Node<span class="tsd-signature-symbol">:</span> <a href="statenode.html" class="tsd-signature-type">StateNode</a></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L34">StateTree.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L35">StateTree.ts:35</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -202,7 +217,7 @@
 					<div class="tsd-signature tsd-kind-icon">state<wbr>Value<span class="tsd-signature-symbol">:</span> <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L35">StateTree.ts:35</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L36">StateTree.ts:36</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -219,7 +234,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L153">StateTree.ts:153</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L171">StateTree.ts:171</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statetree.html" class="tsd-signature-type">StateTree</a></h4>
@@ -236,7 +251,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L87">StateTree.ts:87</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L97">StateTree.ts:97</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">[]</span></h4>
@@ -253,7 +268,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L55">StateTree.ts:55</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L65">StateTree.ts:65</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
@@ -270,7 +285,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L172">StateTree.ts:172</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L195">StateTree.ts:195</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="../globals.html#eventtype" class="tsd-signature-type">EventType</a><span class="tsd-signature-symbol">[]</span></h4>
@@ -287,7 +302,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L149">StateTree.ts:149</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L167">StateTree.ts:167</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol">[]</span></h4>
@@ -304,7 +319,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L143">StateTree.ts:143</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L153">StateTree.ts:153</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statetree.html" class="tsd-signature-type">StateTree</a></h4>
@@ -321,7 +336,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L240">StateTree.ts:240</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L273">StateTree.ts:273</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h4>
@@ -332,6 +347,29 @@
 			<section class="tsd-panel-group tsd-member-group tsd-is-external">
 				<h2>Methods</h2>
 				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<a name="addreentrynode" class="tsd-anchor"></a>
+					<h3>add<wbr>Reentry<wbr>Node</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+						<li class="tsd-signature tsd-kind-icon">add<wbr>Reentry<wbr>Node<span class="tsd-signature-symbol">(</span>reentryNode<span class="tsd-signature-symbol">: </span><a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">void</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L406">StateTree.ts:406</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-parameters-title">Parameters</h4>
+							<ul class="tsd-parameters">
+								<li>
+									<h5>reentryNode: <a href="statenode.html" class="tsd-signature-type">StateNode</a></h5>
+								</li>
+							</ul>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">void</span></h4>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
 					<a name="clone" class="tsd-anchor"></a>
 					<h3>clone</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
@@ -341,7 +379,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L186">StateTree.ts:186</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L209">StateTree.ts:209</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statetree.html" class="tsd-signature-type">StateTree</a></h4>
@@ -358,7 +396,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L190">StateTree.ts:190</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L219">StateTree.ts:219</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -381,7 +419,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L69">StateTree.ts:69</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L79">StateTree.ts:79</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-type-parameters-title">Type parameters</h4>
@@ -413,7 +451,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L99">StateTree.ts:99</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L109">StateTree.ts:109</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -430,22 +468,19 @@
 					<a name="getentryexitstates" class="tsd-anchor"></a>
 					<h3>get<wbr>Entry<wbr>Exit<wbr>States</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Entry<wbr>Exit<wbr>States<span class="tsd-signature-symbol">(</span>prevTree<span class="tsd-signature-symbol">: </span><a href="statetree.html" class="tsd-signature-type">StateTree</a>, externalNodes<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/entryexitstatearrays.html" class="tsd-signature-type">EntryExitStateArrays</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Entry<wbr>Exit<wbr>States<span class="tsd-signature-symbol">(</span>prevTree<span class="tsd-signature-symbol">?: </span><a href="statetree.html" class="tsd-signature-type">StateTree</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../interfaces/entryexitstatearrays.html" class="tsd-signature-type">EntryExitStateArrays</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L270">StateTree.ts:270</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L303">StateTree.ts:303</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>prevTree: <a href="statetree.html" class="tsd-signature-type">StateTree</a></h5>
-								</li>
-								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> externalNodes: <span class="tsd-signature-type">Set</span><span class="tsd-signature-symbol">&lt;</span><a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> prevTree: <a href="statetree.html" class="tsd-signature-type">StateTree</a></h5>
 								</li>
 							</ul>
 							<h4 class="tsd-returns-title">Returns <a href="../interfaces/entryexitstatearrays.html" class="tsd-signature-type">EntryExitStateArrays</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -462,7 +497,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L344">StateTree.ts:344</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L380">StateTree.ts:380</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">[]</span></h4>
@@ -479,7 +514,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L358">StateTree.ts:358</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L394">StateTree.ts:394</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">[]</span></h4>
@@ -496,7 +531,7 @@
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/e42f4f6/src/StateTree.ts#L267">StateTree.ts:267</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/0330ffc/src/StateTree.ts#L300">StateTree.ts:300</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -539,6 +574,9 @@
 								<a href="statetree.html#parent" class="tsd-kind-icon">parent</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+								<a href="statetree.html#root" class="tsd-kind-icon">root</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
 								<a href="statetree.html#statenode" class="tsd-kind-icon">state<wbr>Node</a>
 							</li>
 							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
@@ -564,6 +602,9 @@
 							</li>
 							<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
 								<a href="statetree.html#value" class="tsd-kind-icon">value</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+								<a href="statetree.html#addreentrynode" class="tsd-kind-icon">add<wbr>Reentry<wbr>Node</a>
 							</li>
 							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
 								<a href="statetree.html#clone" class="tsd-kind-icon">clone</a>
