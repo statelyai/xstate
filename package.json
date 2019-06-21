@@ -91,7 +91,7 @@
     "tslint": "^5.11.0",
     "typedoc": "^0.14.2",
     "typescript": "^3.4.5",
-    "vuepress": "^0.14.10",
+    "vuepress": "^1.0.1",
     "webpack-dev-middleware": "^3.6.0",
     "xml-js": "^1.6.8"
   },
@@ -110,5 +110,8 @@
       "html"
     ],
     "all": true
+  },
+  "dependencies": {
+    "@vuepress/plugin-google-analytics": "^1.0.1"
   }
 }

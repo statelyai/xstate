@@ -3,7 +3,6 @@ module.exports = {
   base: '/docs/',
   description:
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
-  ga: 'UA-129726387-1',
   markdown: {
     toc: { includeLevel: [2, 3] }
     // lineNumbers: true
@@ -87,5 +86,6 @@ module.exports = {
         ]
       }
     ]
-  }
+  },
+  plugins: [['@vuepress/google-analytics', { ga: 'UA-129726387-1' }]]
 };
