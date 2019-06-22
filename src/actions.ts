@@ -24,7 +24,7 @@ import {
   SendExpr,
   SendActionObject,
   OmniEventObject,
-  PureAction
+  PureAction,
 } from './types';
 import * as actionTypes from './actionTypes';
 import { getEventType, isFunction, isString } from './utils';
@@ -302,9 +302,21 @@ export function stop<TContext, TEvent extends EventObject>(
  *
  * @param assignment An object that represents the partial context to update.
  */
-export const assign = <TContext, TEvent extends EventObject = EventObject>(
+export function assign<
+  T extends ActionObject<any, TEvent> | undefined,
+  TEvent extends EventObject
+>(
+  // trick to make TS inferring TContext based on return type of `assignment` instead of its arguments (microsoft/TypeScript#31933)
+  assignment: T extends ActionObject<infer TContext, TEvent>
+    ? Assigner<TContext, TEvent>
+    : never
+): T;
+export function assign<TContext, TEvent extends EventObject = EventObject>(
   assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>
-): AssignAction<TContext, TEvent> => {
+): AssignAction<TContext, TEvent>;
+export function assign<TContext, TEvent extends EventObject = EventObject>(
+  assignment: TContext extends any ? (Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>) : never
+): AssignAction<TContext, TEvent> {
   return {
     type: actionTypes.assign,
     assignment
