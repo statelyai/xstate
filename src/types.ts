@@ -60,12 +60,12 @@ export interface ActionMeta<TContext, TEvent extends EventObject>
   action: ActionObject<TContext, TEvent>;
 }
 
-export interface ActionFunction<TContext, TEvent extends EventObject> {
-  (context: TContext, event: TEvent, meta: ActionMeta<TContext, TEvent>):
-    | any
-    | void;
-  name: string;
-}
+export type ActionFunction<TContext, TEvent extends EventObject> = (
+  context: TContext,
+  event: TEvent,
+  meta: ActionMeta<TContext, TEvent>
+) => any | void;
+
 // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
 export type Action<TContext, TEvent extends EventObject> =
   | ActionType
@@ -218,7 +218,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    *
    *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
    */
-  forward?: boolean
+  forward?: boolean;
   /**
    * Data from the parent machine's context to set as the (partial or full) context
    * for the invoked child machine.
