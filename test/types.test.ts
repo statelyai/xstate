@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, assign } from '../src/index';
 
 function noop(_x) {
   return;
@@ -88,6 +88,113 @@ describe('StateSchema', () => {
   noop(lightMachine);
 
   it('should work with a StateSchema defined', () => {
+    assert.ok(true, 'Tests will not compile if types are wrong');
+  });
+});
+
+describe('Parallel StateSchema', () => {
+  interface ParallelStateSchema {
+    states: {
+      foo: {};
+      bar: {};
+      baz: {
+        states: {
+          one: {};
+          two: {};
+        };
+      };
+    };
+  }
+
+  type ParallelEvent =
+    | { type: 'TIMER' }
+    | { type: 'POWER_OUTAGE' }
+    | { type: 'E' }
+    | { type: 'PED_COUNTDOWN'; duration: number };
+
+  interface ParallelContext {
+    elapsed: number;
+  }
+
+  const parallelMachine = Machine<
+    ParallelContext,
+    ParallelStateSchema,
+    ParallelEvent
+  >({
+    type: 'parallel',
+    states: {
+      foo: {},
+      bar: {},
+      baz: {
+        initial: 'one',
+        states: {
+          one: { on: { E: 'two' } },
+          two: {}
+        }
+      }
+    }
+  });
+
+  noop(parallelMachine);
+
+  it('should work with a parallel StateSchema defined', () => {
+    assert.ok(true, 'Tests will not compile if types are wrong');
+  });
+});
+
+describe('Nested parallel stateSchema', () => {
+  interface ParallelStateSchema {
+    states: {
+      foo: {};
+      bar: {};
+      baz: {
+        states: {
+          blockUpdates: {};
+          activeParallelNode: {};
+        };
+      };
+    };
+  }
+
+  type ParallelEvent = { type: 'UPDATE.CONTEXT' };
+
+  interface ParallelContext {
+    lastDate: Date;
+  }
+
+  const nestedParallelMachine = Machine<
+    ParallelContext,
+    ParallelStateSchema,
+    ParallelEvent
+  >({
+    initial: 'foo',
+    states: {
+      foo: {},
+      bar: {},
+      baz: {
+        type: 'parallel',
+        initial: 'blockUpdates',
+        states: {
+          blockUpdates: { type: 'final' },
+          activeParallelNode: {
+            on: {
+              'UPDATE.CONTEXT': {
+                actions: [
+                  assign({
+                    lastDate: new Date()
+                  })
+                ]
+              }
+            }
+          }
+        }
+      }
+    }
+  });
+
+  noop(nestedParallelMachine);
+
+  it('should work with a parallel StateSchema defined', () => {
     assert.ok(true, 'Tests will not compile if types are wrong');
   });
 });
