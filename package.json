@@ -70,13 +70,15 @@
     "chai": "^4.2.0",
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
+    "husky": "^2.5.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna": "^3.13.1",
+    "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mocha": "^3.5.3",
     "nyc": "^14.1.1",
-    "prettier": "^1.15.2",
+    "prettier": "^1.18.2",
     "rollup": "^1.4.0",
     "rollup-plugin-filesize": "^6.0.1",
     "rollup-plugin-replace": "^2.1.0",
@@ -113,5 +115,16 @@
   },
   "dependencies": {
     "@vuepress/plugin-google-analytics": "^1.0.1"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "lint-staged"
+    }
+  },
+  "lint-staged": {
+    "*.{ts,json,md}": [
+      "prettier --write",
+      "git add"
+    ]
   }
 }

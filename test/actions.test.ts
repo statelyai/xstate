@@ -504,7 +504,7 @@ describe('onEntry/onExit actions', () => {
         initial: 'start',
         states: {
           start: {
-            on: { ENTER_PARALLEL: 'p1' },
+            on: { ENTER_PARALLEL: 'p1' }
           },
           p1: {
             type: 'parallel',
@@ -514,13 +514,13 @@ describe('onEntry/onExit actions', () => {
                 initial: 'inner',
                 states: {
                   inner: {
-                    onEntry: 'enter_inner',
+                    onEntry: 'enter_inner'
                   }
-                },
-              },
-            },
-          },
-        },
+                }
+              }
+            }
+          }
+        }
       });
 
       assert.deepEqual(
