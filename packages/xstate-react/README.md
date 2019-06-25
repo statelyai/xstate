@@ -78,14 +78,15 @@ Existing machines are configurable with `.withConfig(...)`. The machine passed i
 The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
 :::
 
-Example: the `'fetchData'` service and `'notifyChanged'` action are both configurable:
+Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
   context: {
-    data: undefined
+    data: undefined,
+    error: undefined
   },
   states: {
     idle: {
@@ -99,12 +100,23 @@ const fetchMachine = Machine({
           actions: assign({
             data: (_, e) => e.data
           })
+        },
+        onError: {
+          target: 'failure',
+          actions: assign({
+            error: (_, e) => e.data
+          })
         }
       }
     },
     success: {
-      entry: 'notifyResolve',
+      entry: 'notifySuccess',
       type: 'final'
+    },
+    failure: {
+      on: {
+        RETRY: 'loading'
+      }
     }
   }
 });
@@ -114,12 +126,10 @@ const Fetcher = ({ onResolve }) => {
     () =>
       fetchMachine.withConfig({
         actions: {
-          notifyResolve: ctx => {
-            onResolve(ctx.data);
-          }
+          notifySuccess: ctx => onResolve(ctx.data)
         },
         services: {
-          fetchData: (ctx, e) =>
+          fetchData: (_, e) =>
             fetch(`some/api/${e.query}`).then(res => res.json())
         }
       }),
@@ -128,10 +138,10 @@ const Fetcher = ({ onResolve }) => {
 
   const [current, send] = useMachine(customFetchMachine);
 
-  switch (current.state) {
+  switch (current.value) {
     case 'idle':
       return (
-        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
+        <button onClick={() => send('FETCH', { query: 'something' })}>
           Search for something
         </button>
       );
@@ -139,6 +149,13 @@ const Fetcher = ({ onResolve }) => {
       return <div>Searching...</div>;
     case 'success':
       return <div>Success! Data: {current.context.data}</div>;
+    case 'failure':
+      return (
+        <>
+          <p>{current.context.error.message}</p>
+          <button onClick={() => send('RETRY')}>Retry</button>
+        </>
+      );
     default:
       return null;
   }
