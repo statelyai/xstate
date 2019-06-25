@@ -72,11 +72,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 ## Configuring Machines
 
-Existing machines are configurable with `.withConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
-
-::: tip
-The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
-:::
+Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
@@ -98,13 +94,13 @@ const fetchMachine = Machine({
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, e) => e.data
+            data: (_, event) => event.data
           })
         },
         onError: {
           target: 'failure',
           actions: assign({
-            error: (_, e) => e.data
+            error: (_, event) => event.data
           })
         }
       }
@@ -122,21 +118,14 @@ const fetchMachine = Machine({
 });
 
 const Fetcher = ({ onResolve }) => {
-  const customFetchMachine = useMemo(
-    () =>
-      fetchMachine.withConfig({
-        actions: {
-          notifySuccess: ctx => onResolve(ctx.data)
-        },
-        services: {
-          fetchData: (_, e) =>
-            fetch(`some/api/${e.query}`).then(res => res.json())
-        }
-      }),
-    [] // Machine should never change
-  );
-
-  const [current, send] = useMachine(customFetchMachine);
+  const [current, send] = useMachine(fetchMachine, {
+    actions: {
+      notifySuccess: ctx => onResolve(ctx.data)
+    },
+    services: {
+      fetchData: (_, e) => fetch(`some/api/${e.query}`).then(res => res.json())
+    }
+  });
 
   switch (current.value) {
     case 'idle':
