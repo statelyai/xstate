@@ -68,7 +68,11 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-type SpawnOptions = { name?: string; autoForward?: boolean; sync?: boolean };
+interface SpawnOptions {
+  name?: string;
+  autoForward?: boolean;
+  sync?: boolean;
+}
 
 const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
 
@@ -499,9 +503,7 @@ export class Interpreter<
       }
     } else if (!this.initialized) {
       throw new Error(
-        `${events.length} event(s) were sent to uninitialized service "${
-          this.machine.id
-        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
 
@@ -538,7 +540,7 @@ export class Interpreter<
     }
 
     return sender.bind(this);
-  }
+  };
 
   public sendTo = (
     event: OmniEventObject<TEvent>,
@@ -562,16 +564,14 @@ export class Interpreter<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `Service '${this.id}' has no parent: unable to send event ${
-            event.type
-          }`
+          `Service '${this.id}' has no parent: unable to send event ${event.type}`
         );
       }
       return;
     }
 
     target.send(event);
-  }
+  };
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
@@ -607,9 +607,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event}' from interpreter '${
-            this.id
-          }' to nonexistant child '${id}'.`
+          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -628,9 +626,7 @@ export class Interpreter<
         if (!IS_PRODUCTION) {
           warn(
             false,
-            `No delay reference for delay expression '${delay}' was found on machine '${
-              this.machine.id
-            }' on service '${this.id}'.`
+            `No delay reference for delay expression '${delay}' was found on machine '${this.machine.id}' on service '${this.id}'.`
           );
         }
 
@@ -719,20 +715,22 @@ export class Interpreter<
           if (!IS_PRODUCTION) {
             warn(
               !('forward' in activity),
-              `\`forward\` property is deprecated (found in invocation of '${ activity.src }' in in machine '${ this.machine.id }'). ` +
-              `Please use \`autoForward\` instead.`)
+              `\`forward\` property is deprecated (found in invocation of '${activity.src}' in in machine '${this.machine.id}'). ` +
+                `Please use \`autoForward\` instead.`
+            );
           }
 
-          const autoForward = 'autoForward' in activity ? activity.autoForward : !!activity.forward;
+          const autoForward =
+            'autoForward' in activity
+              ? activity.autoForward
+              : !!activity.forward;
 
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
             if (!IS_PRODUCTION) {
               warn(
                 false,
-                `No service found for invocation '${
-                  activity.src
-                }' in machine '${this.machine.id}'.`
+                `No service found for invocation '${activity.src}' in machine '${this.machine.id}'.`
               );
             }
             return;
@@ -843,8 +841,8 @@ export class Interpreter<
 
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
-      ...options,
-    }
+      ...options
+    };
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
@@ -858,17 +856,17 @@ export class Interpreter<
       })
       .start();
 
-    const actor = {
-      id: childService.id,
-      send: childService.send,
-      get state() {
-        return resolvedOptions.sync ? childService.state : undefined;
-      },
-      subscribe: childService.subscribe,
-      toJSON() {
-        return { id: childService.id };
-      }
-    } as Actor<State<TChildContext, TChildEvents>>;
+    const actor = childService as Actor<State<TChildContext, TChildEvents>>;
+
+    // const actor = {
+    //   id: childService.id,
+    //   send: childService.send,
+    //   state: childService.state,
+    //   subscribe: childService.subscribe,
+    //   toJSON() {
+    //     return { id: childService.id };
+    //   }
+    // } as Actor<State<TChildContext, TChildEvents>>;
 
     this.children.set(childService.id, actor);
 
@@ -1157,8 +1155,8 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
     ...DEFAULT_SPAWN_OPTIONS,
     name: uniqueId(),
     ...nameOrOptions
-  }
-}
+  };
+};
 
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
@@ -1186,11 +1184,7 @@ export function spawn<TContext>(
     }
 
     if (service) {
-      return service.spawn(
-        entity,
-        resolvedOptions.name,
-        resolvedOptions
-      );
+      return service.spawn(entity, resolvedOptions.name, resolvedOptions);
     } else {
       return createNullActor(resolvedOptions.name);
     }
