@@ -152,9 +152,9 @@ const Fetcher = ({ onResolve }) => {
 };
 ```
 
-## Provide a cleanup callback on Unmount lifecycle
+## Provide a Cleanup Callback to be Executed Before Service Stops
 
-The `onStop` function argument allows to perform a cleanup of subscriptions before the component unmounts.
+The `onStop` callback argument allows to perform a cleanup of subscriptions before the service is stopped.
 
 ```js
 const timerMachine = Machine({
