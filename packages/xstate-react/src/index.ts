@@ -24,7 +24,8 @@ export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions> &
-    Partial<MachineOptions<TContext, TEvent>> = defaultOptions
+    Partial<MachineOptions<TContext, TEvent>> = defaultOptions,
+    onStop?: Function
 ): [
   State<TContext, TEvent>,
   Interpreter<TContext, any, TEvent>['send'],
@@ -71,6 +72,9 @@ export function useMachine<TContext, TEvent extends EventObject>(
     service.start();
 
     return () => {
+      if (onStop !== undefined) {
+        onStop();
+      }
       // Stop the service when the component unmounts
       service.stop();
     };

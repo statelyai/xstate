@@ -42,7 +42,7 @@ export const Toggler = () => {
 
 ## API
 
-### `useMachine(machine, options?)`
+### `useMachine(machine, options?, onStop?)`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
 
@@ -50,6 +50,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) that you can pass in.
+- `onStop` - A function called before the machine service is stopped.
 
 **Returns** a tuple of `[current, send, service]`:
 
@@ -150,6 +151,50 @@ const Fetcher = ({ onResolve }) => {
   }
 };
 ```
+
+## Provide a cleanup callback  on Unmount lifecycle
+The `onStop` function argument allows to perform a cleanup of subscriptions before the component unmounts.
+
+```js
+const timerMachine = Machine({
+  id: 'alarm-clock',
+  initial: 'uninitialized',
+  context: {
+    unsubscribe: () => {}, // initial value
+    secondsElapsed: 0
+  },
+  states: {
+    uninitialized: {
+      INITIALIZE: assign({ unsubscribe: (_, event) => event.handler() })
+    },
+    initialized: {
+      TICK: assign({ secondsElapsed: (context) => context.secondsElapsed + 1, 1000 })
+    },
+    stopped: {
+      type: 'final'
+    }
+  },
+  on: {
+    STOP: 'stopped',
+    actions: (context) => context.unsubscribe()
+  }
+})
+
+const Timer = () => {
+  setInterval()
+  const [current, send] = useMachine(timerMachine, {}, () => send('STOP'))
+  React.useEffect(() => {
+    send('INITIALIZE', { handler: setInterval(() => send('TICK'), 1000) })
+  }, [send])
+
+  const { secondsElapsed }= current.context;
+
+  return (
+    <h2>{`Seconds elapsed: ${secondsElapsed}`}</h2>
+  )
+}
+```
+
 
 ## Matching States
 
