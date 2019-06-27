@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret } from '../src';
+import { Machine, spawn, interpret, Interpreter } from '../src';
 import {
   assign,
   send,
@@ -545,6 +545,144 @@ describe('actors', () => {
       );
       service.start();
       service.send('CHECK_NO_SYNC_DEFAULT');
+    });
+
+    it('parent state should be changed if synced child actor update occurs', done => {
+      const syncChildMachine = Machine({
+        initial: 'active',
+        states: {
+          active: {
+            after: { 500: 'inactive' }
+          },
+          inactive: {}
+        }
+      });
+
+      interface SyncMachineContext {
+        ref?: Actor;
+      }
+
+      const syncMachine = Machine<SyncMachineContext>({
+        initial: 'same',
+        context: {},
+        states: {
+          same: {
+            entry: assign<SyncMachineContext>({
+              ref: () => spawn(syncChildMachine, { sync: true })
+            })
+          }
+        }
+      });
+
+      interpret(syncMachine)
+        .onTransition(state => {
+          if (
+            state.context.ref &&
+            (state.context.ref as Interpreter<any>).state.matches('inactive')
+          ) {
+            assert.isTrue(state.changed);
+            done();
+          }
+        })
+        .start();
+    });
+
+    const falseSyncOptions = [{}, { sync: false }];
+
+    falseSyncOptions.forEach(falseSyncOption => {
+      it(`parent state should NOT be changed regardless of unsynced child actor update (options: ${JSON.stringify(
+        falseSyncOption
+      )})`, done => {
+        const syncChildMachine = Machine({
+          initial: 'active',
+          states: {
+            active: {
+              after: { 10: 'inactive' }
+            },
+            inactive: {}
+          }
+        });
+
+        interface SyncMachineContext {
+          ref?: Actor;
+        }
+
+        const syncMachine = Machine<SyncMachineContext>({
+          initial: 'same',
+          context: {},
+          states: {
+            same: {
+              entry: assign<SyncMachineContext>({
+                ref: () => spawn(syncChildMachine, falseSyncOption)
+              })
+            }
+          }
+        });
+
+        const service = interpret(syncMachine)
+          .onTransition(state => {
+            if (
+              state.context.ref &&
+              (state.context.ref as Interpreter<any>).state.matches('inactive')
+            ) {
+              assert.isFalse(state.changed);
+            }
+          })
+          .start();
+
+        setTimeout(() => {
+          assert.isTrue(
+            (service.state.context.ref! as Interpreter<any>).state.matches(
+              'inactive'
+            )
+          );
+          done();
+        }, 20);
+      });
+
+      it(`parent state should be changed if unsynced child actor manually sends update event (options: ${JSON.stringify(
+        falseSyncOption
+      )})`, done => {
+        const syncChildMachine = Machine({
+          initial: 'active',
+          states: {
+            active: {
+              after: { 10: 'inactive' }
+            },
+            inactive: {
+              entry: sendParent(actionTypes.update)
+            }
+          }
+        });
+
+        interface SyncMachineContext {
+          ref?: Actor;
+        }
+
+        const syncMachine = Machine<SyncMachineContext>({
+          initial: 'same',
+          context: {},
+          states: {
+            same: {
+              entry: assign<SyncMachineContext>({
+                ref: () => spawn(syncChildMachine, falseSyncOption)
+              })
+            }
+          }
+        });
+
+        interpret(syncMachine)
+          .onTransition(state => {
+            if (
+              state.context.ref &&
+              (state.context.ref as Interpreter<any>).state.matches('inactive')
+            ) {
+              assert.isTrue(state.changed);
+              done();
+            }
+          })
+          .start();
+      });
     });
   });
 });

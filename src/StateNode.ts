@@ -949,9 +949,7 @@ class StateNode<
 
     if (!guards[guard.type]) {
       throw new Error(
-        `Guard '${guard.type}' is not implemented on machine '${
-          this.machine.id
-        }'.`
+        `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
       );
     }
 
@@ -1140,9 +1138,8 @@ class StateNode<
               if (!IS_PRODUCTION) {
                 warn(
                   false,
-                  `No delay reference for delay expression '${
-                    sendAction.delay
-                  }' was found on machine '${this.machine.id}'`
+                  // tslint:disable-next-line:max-line-length
+                  `No delay reference for delay expression '${sendAction.delay}' was found on machine '${this.machine.id}'`
                 );
               }
 
@@ -1226,7 +1223,8 @@ class StateNode<
         : undefined
     });
 
-    nextState.changed = !!assignActions.length;
+    nextState.changed =
+      eventObject.type === actionTypes.update || !!assignActions.length;
 
     // Dispose of penultimate histories to prevent memory leaks
     const { history } = nextState;
@@ -1255,12 +1253,14 @@ class StateNode<
     }
 
     // Detect if state changed
-    const changed = history
-      ? !!maybeNextState.actions.length ||
-        !!assignActions.length ||
-        typeof history.value !== typeof maybeNextState.value ||
-        !stateValuesEqual(maybeNextState.value, history.value)
-      : undefined;
+    const changed =
+      maybeNextState.changed ||
+      (history
+        ? !!maybeNextState.actions.length ||
+          !!assignActions.length ||
+          typeof history.value !== typeof maybeNextState.value ||
+          !stateValuesEqual(maybeNextState.value, history.value)
+        : undefined);
 
     maybeNextState.changed = changed;
 
@@ -1324,9 +1324,7 @@ class StateNode<
 
     if (!this.states) {
       throw new Error(
-        `Unable to retrieve child state '${stateKey}' from '${
-          this.id
-        }'; no child states exist.`
+        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`
       );
     }
 
@@ -1358,9 +1356,7 @@ class StateNode<
 
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${
-          this.id
-        }'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
 
@@ -1855,9 +1851,7 @@ class StateNode<
           return `#${targetStateNode.id}`;
         } catch (err) {
           throw new Error(
-            `Invalid transition for state node '${
-              this.id
-            }' on event '${event}':\n${err.message}`
+            `Invalid transition for state node '${this.id}' on event '${event}':\n${err.message}`
           );
         }
       } else {
@@ -1941,9 +1935,8 @@ class StateNode<
               ) === -1
             ) {
               throw new Error(
-                `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${
-                  this.id
-                }'.`
+                // tslint:disable-next-line:max-line-length
+                `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${this.id}'.`
               );
             }
           }
