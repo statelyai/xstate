@@ -152,49 +152,63 @@ const Fetcher = ({ onResolve }) => {
 };
 ```
 
-## Provide a cleanup callback  on Unmount lifecycle
+## Provide a cleanup callback on Unmount lifecycle
+
 The `onStop` function argument allows to perform a cleanup of subscriptions before the component unmounts.
 
 ```js
 const timerMachine = Machine({
-  id: 'alarm-clock',
+  id: 'timer',
   initial: 'uninitialized',
   context: {
-    unsubscribe: () => {}, // initial value
+    intervalRef: 0, // just an initial value
     secondsElapsed: 0
   },
   states: {
     uninitialized: {
-      INITIALIZE: assign({ unsubscribe: (_, event) => event.handler() })
+      on: {
+        INITIALIZE: {
+          target: 'initialized',
+          actions: assign({ intervalRef: (_, event) => event.intervalRef })
+        }
+      }
     },
     initialized: {
-      TICK: assign({ secondsElapsed: (context) => context.secondsElapsed + 1, 1000 })
+      on: {
+        TICK: {
+          actions: assign({
+            secondsElapsed: context => context.secondsElapsed + 1
+          })
+        }
+      }
     },
     stopped: {
       type: 'final'
     }
   },
   on: {
-    STOP: 'stopped',
-    actions: (context) => context.unsubscribe()
+    STOP: {
+      target: 'stopped',
+      actions: context => clearInterval(context.intervalRef)
+    }
   }
-})
+});
 
 const Timer = () => {
-  setInterval()
-  const [current, send] = useMachine(timerMachine, {}, () => send('STOP'))
+  const onStop = () => send('STOP');
+  const [current, send] = useMachine(timerMachine, {}, onStop);
   React.useEffect(() => {
-    send('INITIALIZE', { handler: setInterval(() => send('TICK'), 1000) })
-  }, [send])
+    const intervalRef = setInterval(() => send('TICK'), 1000);
+    send('INITIALIZE', {
+      intervalRef: intervalRef
+    });
+  }, [send]);
 
-  const { secondsElapsed }= current.context;
+  const { secondsElapsed } = current.context;
 
-  return (
-    <h2>{`Seconds elapsed: ${secondsElapsed}`}</h2>
-  )
-}
+  return <h2>{`Seconds elapsed: ${secondsElapsed}`}</h2>;
+};
 ```
-
 
 ## Matching States
 
