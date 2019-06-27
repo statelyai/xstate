@@ -70,22 +70,19 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-## Configuring Machines
+## Configuring Machines <Badge text="0.7+"/>
 
-Existing machines are configurable with `.withConfig(...)`. The machine passed into `useMachine` will remain static for the entire lifetime of the component (it is important that state machines are the least dynamic part of the code).
+Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
-::: tip
-The [`useMemo` hook](TODO) is an important performance optimization when creating a machine with custom config inside of a React component. It ensures that the machine isn't recreated every time the component rerenders.
-:::
-
-Example: the `'fetchData'` service and `'notifyChanged'` action are both configurable:
+Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
   context: {
-    data: undefined
+    data: undefined,
+    error: undefined
   },
   states: {
     idle: {
@@ -97,41 +94,43 @@ const fetchMachine = Machine({
         onDone: {
           target: 'success',
           actions: assign({
-            data: (_, e) => e.data
+            data: (_, event) => event.data
+          })
+        },
+        onError: {
+          target: 'failure',
+          actions: assign({
+            error: (_, event) => event.data
           })
         }
       }
     },
     success: {
-      entry: 'notifyResolve',
+      entry: 'notifySuccess',
       type: 'final'
+    },
+    failure: {
+      on: {
+        RETRY: 'loading'
+      }
     }
   }
 });
 
 const Fetcher = ({ onResolve }) => {
-  const customFetchMachine = useMemo(
-    () =>
-      fetchMachine.withConfig({
-        actions: {
-          notifyResolve: ctx => {
-            onResolve(ctx.data);
-          }
-        },
-        services: {
-          fetchData: (ctx, e) =>
-            fetch(`some/api/${e.query}`).then(res => res.json())
-        }
-      }),
-    [] // Machine should never change
-  );
+  const [current, send] = useMachine(fetchMachine, {
+    actions: {
+      notifySuccess: ctx => onResolve(ctx.data)
+    },
+    services: {
+      fetchData: (_, e) => fetch(`some/api/${e.query}`).then(res => res.json())
+    }
+  });
 
-  const [current, send] = useMachine(customFetchMachine);
-
-  switch (current.state) {
+  switch (current.value) {
     case 'idle':
       return (
-        <button onClick={() => send({ type: 'FETCH', query: 'something' })}>
+        <button onClick={() => send('FETCH', { query: 'something' })}>
           Search for something
         </button>
       );
@@ -139,6 +138,13 @@ const Fetcher = ({ onResolve }) => {
       return <div>Searching...</div>;
     case 'success':
       return <div>Success! Data: {current.context.data}</div>;
+    case 'failure':
+      return (
+        <>
+          <p>{current.context.error.message}</p>
+          <button onClick={() => send('RETRY')}>Retry</button>
+        </>
+      );
     default:
       return null;
   }

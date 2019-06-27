@@ -70,7 +70,7 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-## Configuring Machines
+## Configuring Machines <Badge text="0.7+"/>
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
