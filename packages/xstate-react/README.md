@@ -151,6 +151,68 @@ const Fetcher = ({ onResolve }) => {
 };
 ```
 
+## Provide a Cleanup Callback to be Executed Before Service Stops
+
+In order to send an event to be executed before service stops, we can use the returned `service` for its' `onStop` method which allows to perform a cleanup of subscriptions before the service is stopped.
+
+```js
+const timerMachine = Machine({
+  id: 'timer',
+  initial: 'uninitialized',
+  context: {
+    intervalRef: 0, // just an initial value
+    secondsElapsed: 0
+  },
+  states: {
+    uninitialized: {
+      on: {
+        INITIALIZE: {
+          target: 'initialized',
+          actions: assign({ intervalRef: (_, event) => event.intervalRef })
+        }
+      }
+    },
+    initialized: {
+      on: {
+        TICK: {
+          actions: assign({
+            secondsElapsed: context => context.secondsElapsed + 1
+          })
+        }
+      }
+    },
+    stopped: {
+      type: 'final'
+    }
+  },
+  on: {
+    STOP: {
+      target: 'stopped',
+      actions: context => clearInterval(context.intervalRef)
+    }
+  }
+});
+
+const Timer = () => {
+  const [current, send, service] = useMachine(timerMachine);
+
+  React.useEffect(() => {
+    const intervalRef = setInterval(() => send('TICK'), 1000);
+    send('INITIALIZE', {
+      intervalRef: intervalRef
+    });
+  }, [send]);
+
+  React.useEffect(() => {
+    service.onStop(() => send('STOP'));
+  }, [send, service]);
+
+  const { secondsElapsed } = current.context;
+
+  return <h2>{`Seconds elapsed: ${secondsElapsed}`}</h2>;
+};
+```
+
 ## Matching States
 
 Using a `switch` statement might suffice for a simple, non-hierarchical state machine, but for [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it's better to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters):
