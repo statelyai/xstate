@@ -534,12 +534,8 @@ export class Interpreter<
    *
    * @param event The event to be sent by the sender.
    */
-  public sender = (event: Event<TEvent>): (() => State<TContext, TEvent>) => {
-    function sender() {
-      return this.send(event);
-    }
-
-    return sender.bind(this);
+  public sender(event: Event<TEvent>): (() => State<TContext, TEvent>) {
+    return this.send.bind(this, event);
   };
 
   public sendTo = (
