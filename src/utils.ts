@@ -156,7 +156,7 @@ export function mapValues<T, P>(
     i: number
   ) => P
 ): { [key: string]: P } {
-  const result = {};
+  const result: { [key: string]: P } = {};
 
   const collectionKeys = keys(collection);
   for (let i = 0; i < collectionKeys.length; i++) {
@@ -172,7 +172,7 @@ export function mapFilterValues<T, P>(
   iteratee: (item: T, key: string, collection: { [key: string]: T }) => P,
   predicate: (item: T) => boolean
 ): { [key: string]: P } {
-  const result = {};
+  const result: { [key: string]: P } = {};
 
   for (const key of keys(collection)) {
     const item = collection[key];
@@ -463,7 +463,7 @@ if (!IS_PRODUCTION) {
     }
 
     if (console !== undefined) {
-      const args: any[] = [`Warning: ${message}`];
+      const args: [string, ...any[]] = [`Warning: ${message}`];
       if (error) {
         args.push(error);
       }
@@ -538,7 +538,7 @@ export function isObservable<T>(
 }
 
 export function isMachine(
-  value: StateMachine<any, any, any> | any
+  value: any
 ): value is StateMachine<any, any, any> {
   try {
     return '__xstatenode' in value;
