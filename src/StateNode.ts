@@ -61,7 +61,8 @@ import {
   GuardMeta,
   MachineConfig,
   PureAction,
-  TransitionTarget
+  TransitionTarget,
+  InvokeCreator
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -336,7 +337,7 @@ class StateNode<
       } else if (typeof invokeConfig.src !== 'string') {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src,
+          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext>,
           ...this.machine.options.services
         };
 
@@ -1182,12 +1183,15 @@ class StateNode<
       raisedEvents.push({ type: actionTypes.nullEvent });
     }
 
-    const meta = [this, ...stateNodes].reduce((acc, stateNode) => {
-      if (stateNode.meta !== undefined) {
-        acc[stateNode.id] = stateNode.meta;
-      }
-      return acc;
-    }, {});
+    const meta = [this, ...stateNodes].reduce(
+      (acc, stateNode) => {
+        if (stateNode.meta !== undefined) {
+          acc[stateNode.id] = stateNode.meta;
+        }
+        return acc;
+      },
+      {} as Record<string, string>
+    );
 
     const nextState = new State<TContext, TEvent>({
       value: resolvedStateValue || currentState!.value,
@@ -1825,12 +1829,11 @@ class StateNode<
 
     // Format targets to their full string path
     const formattedTargets = targets.map(_target => {
-      if (isMachine(_target)) {
+      if (!isString(_target)) {
         return `#${_target.id}`;
       }
 
-      const isInternalTarget =
-        isString(_target) && _target[0] === this.delimiter;
+      const isInternalTarget = _target[0] === this.delimiter;
       internal = internal === undefined ? isInternalTarget : internal;
 
       // If internal target is defined on machine,
