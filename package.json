@@ -64,6 +64,7 @@
     "@types/core-js": "^2.5.0",
     "@types/mocha": "^2.2.44",
     "@types/node": "^8.10.38",
+    "@vuepress/plugin-google-analytics": "^1.0.2",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
     "babel-plugin-annotate-pure-calls": "^0.3.0",
@@ -113,9 +114,7 @@
     ],
     "all": true
   },
-  "dependencies": {
-    "@vuepress/plugin-google-analytics": "^1.0.1"
-  },
+  "dependencies": {},
   "husky": {
     "hooks": {
       "pre-commit": "lint-staged"
