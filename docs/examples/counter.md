@@ -10,8 +10,8 @@ The `count` is [stored in `context`](../guides/context.md).
 ```js
 import { Machine, interpret, assign } from 'xstate';
 
-const increment = context => countext.count + 1;
-const decrement = context => countext.count - 1;
+const increment = context => context.count + 1;
+const decrement = context => context.count - 1;
 
 const counterMachine = Machine({
   initial: 'active',
