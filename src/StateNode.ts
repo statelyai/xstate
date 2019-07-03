@@ -628,10 +628,14 @@ class StateNode<
     const next = stateNode.next(state, eventObject);
 
     if (!next.tree) {
-      const { actions, tree, configuration } = this.next(state, eventObject);
+      const { actions, tree, transitions, configuration } = this.next(
+        state,
+        eventObject
+      );
 
       return {
         tree,
+        transitions,
         configuration,
         source: state,
         actions
@@ -655,10 +659,14 @@ class StateNode<
     );
 
     if (!next.tree) {
-      const { actions, tree, configuration } = this.next(state, eventObject);
+      const { actions, tree, transitions, configuration } = this.next(
+        state,
+        eventObject
+      );
 
       return {
         tree,
+        transitions,
         configuration,
         source: state,
         actions
@@ -693,18 +701,26 @@ class StateNode<
       transitionMap[subStateKey] = next;
     }
 
-    const willTransition = keys(transitionMap).some(
-      key => transitionMap[key].tree !== undefined
+    const stateTransitions = keys(transitionMap).map(key => transitionMap[key]);
+    const enabledTransitions = flatten(
+      stateTransitions.map(st => st.transitions)
+    );
+
+    const willTransition = stateTransitions.some(
+      transition => transition.tree !== undefined
     );
 
     if (!willTransition) {
-      const { actions, tree, configuration: _configuration } = this.next(
-        state,
-        eventObject
-      );
+      const {
+        actions,
+        tree,
+        transitions,
+        configuration: _configuration
+      } = this.next(state, eventObject);
 
       return {
         tree,
+        transitions,
         configuration: _configuration,
         source: state,
         actions
@@ -731,6 +747,7 @@ class StateNode<
     ) {
       return {
         tree: combinedTree,
+        transitions: enabledTransitions,
         configuration,
         source: state,
         actions: flatten(
@@ -743,6 +760,7 @@ class StateNode<
 
     const allResolvedTrees = keys(transitionMap).map(key => {
       const { tree } = transitionMap[key];
+
       if (tree) {
         return tree;
       }
@@ -758,6 +776,7 @@ class StateNode<
 
     return {
       tree: finalCombinedTree,
+      transitions: enabledTransitions,
       configuration,
       source: state,
       actions: flatten(
@@ -797,6 +816,7 @@ class StateNode<
     if (!candidates || !candidates.length) {
       return {
         tree: undefined,
+        transitions: [],
         configuration: [],
         source: state,
         actions: []
@@ -808,7 +828,7 @@ class StateNode<
       : [];
 
     let nextStateStrings: TransitionTarget<TContext> = [];
-    let selectedTransition: unknown;
+    let selectedTransition: TransitionDefinition<TContext, TEvent>;
 
     for (const candidate of candidates) {
       const { cond, in: stateIn } = candidate;
@@ -856,9 +876,10 @@ class StateNode<
     if (!nextStateStrings.length) {
       return {
         tree:
-          selectedTransition && state.value // targetless transition
+          selectedTransition! && state.value // targetless transition
             ? new StateTree(this, path(this.path)(state.value)).absolute
             : undefined,
+        transitions: [selectedTransition],
         configuration: selectedTransition && state.value ? [this] : [],
         source: state,
         actions
@@ -894,6 +915,7 @@ class StateNode<
 
     return {
       tree: combinedTree,
+      transitions: [selectedTransition],
       configuration: nextStateNodes,
       source: state,
       actions
@@ -1548,6 +1570,7 @@ class StateNode<
     return this.resolveTransition({
       tree,
       configuration,
+      transitions: [],
       source: undefined,
       actions: [],
       context

@@ -875,6 +875,7 @@ describe('parallel states', () => {
         testMachine.initialState,
         'toggle'
       );
+      console.log('-----');
       const dashboardState = testMachine.transition(
         openMenuState,
         'go to dashboard'
