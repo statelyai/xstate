@@ -823,4 +823,66 @@ describe('parallel states', () => {
       });
     });
   });
+
+  describe('other', () => {
+    // https://github.com/davidkpiano/xstate/issues/518
+    it('regions should be able to transition to orthogonal regions', () => {
+      const testMachine = Machine({
+        id: 'app',
+        type: 'parallel',
+        states: {
+          Pages: {
+            id: 'Pages',
+            initial: 'About',
+            states: {
+              About: {
+                id: 'About',
+                on: {
+                  dashboard: '#Dashboard'
+                }
+              },
+              Dashboard: {
+                id: 'Dashboard',
+                on: {
+                  about: '#About'
+                }
+              }
+            }
+          },
+          Menu: {
+            id: 'Menu',
+            initial: 'Closed',
+            states: {
+              Closed: {
+                id: 'Closed',
+                on: {
+                  toggle: '#Opened'
+                }
+              },
+              Opened: {
+                id: 'Opened',
+                on: {
+                  toggle: '#Closed',
+                  'go to dashboard': '#Dashboard'
+                }
+              }
+            }
+          }
+        }
+      });
+
+      const openMenuState = testMachine.transition(
+        testMachine.initialState,
+        'toggle'
+      );
+      const dashboardState = testMachine.transition(
+        openMenuState,
+        'go to dashboard'
+      );
+
+      assert.isTrue(
+        dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
+      );
+    });
+  });
 });

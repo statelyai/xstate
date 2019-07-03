@@ -217,8 +217,6 @@ export class StateTree {
   }
 
   public combine(tree: StateTree): StateTree {
-    // console.log('COMBINE', this.value, tree ? tree.value : undefined);
-    // console.log(this.stateNode.type, tree ? tree.stateNode.type : undefined);
     if (tree.stateNode !== this.stateNode) {
       throw new Error('Cannot combine distinct trees');
     }
