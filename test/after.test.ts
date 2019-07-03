@@ -1,6 +1,18 @@
-import { assert } from 'chai';
+import { assert, use as chaiUse } from 'chai';
 import { Machine } from '../src/index';
 import { after, cancel, send, actionTypes } from '../src/actions';
+// tslint:disable-next-line:no-var-requires
+const chaiSubset = require('chai-subset');
+
+chaiUse(chaiSubset);
+
+declare global {
+  namespace Chai {
+    interface AssertStatic {
+      containSubset(val: any, exp: any, msg?: string): void;
+    }
+  }
+}
 
 const lightMachine = Machine({
   id: 'light',
@@ -27,7 +39,7 @@ const lightMachine = Machine({
 
 describe('delayed transitions', () => {
   it('should resolve transitions', () => {
-    assert.deepEqual(lightMachine.states.green.after, [
+    assert.containSubset(lightMachine.states.green.after, [
       {
         target: ['yellow'],
         delay: 1000,
@@ -35,7 +47,7 @@ describe('delayed transitions', () => {
         actions: []
       }
     ]);
-    assert.deepEqual(lightMachine.states.yellow.after, [
+    assert.containSubset(lightMachine.states.yellow.after, [
       {
         target: ['red'],
         cond: undefined,
@@ -44,7 +56,7 @@ describe('delayed transitions', () => {
         actions: []
       }
     ]);
-    assert.deepEqual(lightMachine.states.red.after, [
+    assert.containSubset(lightMachine.states.red.after, [
       {
         target: ['green'],
         cond: undefined,

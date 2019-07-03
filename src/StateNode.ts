@@ -487,6 +487,7 @@ class StateNode<
         return {
           event,
           ...delayedTransition,
+          source: this,
           target: target === undefined ? undefined : toArray<any>(target),
           cond: toGuard(delayedTransition.cond, guards),
           actions: toArray(delayedTransition.actions).map(action =>
@@ -512,7 +513,15 @@ class StateNode<
         this.onExit.push(cancel(event));
 
         if (isString(delayedTransition)) {
-          return [{ target: [delayedTransition], delay, event, actions: [] }];
+          return [
+            {
+              source: this,
+              target: [delayedTransition],
+              delay,
+              event,
+              actions: []
+            }
+          ];
         }
 
         const delayedTransitions = toArray(delayedTransition);
@@ -521,6 +530,7 @@ class StateNode<
           event,
           delay,
           ...transition,
+          source: this,
           target:
             transition.target === undefined
               ? transition.target
@@ -618,10 +628,11 @@ class StateNode<
     const next = stateNode.next(state, eventObject);
 
     if (!next.tree) {
-      const { actions, tree } = this.next(state, eventObject);
+      const { actions, tree, configuration } = this.next(state, eventObject);
 
       return {
         tree,
+        configuration,
         source: state,
         actions
       };
@@ -644,10 +655,11 @@ class StateNode<
     );
 
     if (!next.tree) {
-      const { actions, tree } = this.next(state, eventObject);
+      const { actions, tree, configuration } = this.next(state, eventObject);
 
       return {
         tree,
+        configuration,
         source: state,
         actions
       };
@@ -686,10 +698,14 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const { actions, tree } = this.next(state, eventObject);
+      const { actions, tree, configuration: _configuration } = this.next(
+        state,
+        eventObject
+      );
 
       return {
         tree,
+        configuration: _configuration,
         source: state,
         actions
       };
@@ -704,6 +720,9 @@ class StateNode<
     });
 
     const allPaths = combinedTree.paths;
+    const configuration = flatten(
+      keys(transitionMap).map(key => transitionMap[key].configuration)
+    );
 
     // External transition that escapes orthogonal region
     if (
@@ -712,6 +731,7 @@ class StateNode<
     ) {
       return {
         tree: combinedTree,
+        configuration,
         source: state,
         actions: flatten(
           keys(transitionMap).map(key => {
@@ -738,6 +758,7 @@ class StateNode<
 
     return {
       tree: finalCombinedTree,
+      configuration,
       source: state,
       actions: flatten(
         keys(transitionMap).map(key => {
@@ -776,6 +797,7 @@ class StateNode<
     if (!candidates || !candidates.length) {
       return {
         tree: undefined,
+        configuration: [],
         source: state,
         actions: []
       };
@@ -837,6 +859,7 @@ class StateNode<
           selectedTransition && state.value // targetless transition
             ? new StateTree(this, path(this.path)(state.value)).absolute
             : undefined,
+        configuration: selectedTransition && state.value ? [this] : [],
         source: state,
         actions
       };
@@ -871,6 +894,7 @@ class StateNode<
 
     return {
       tree: combinedTree,
+      configuration: nextStateNodes,
       source: state,
       actions
     };
@@ -1516,12 +1540,14 @@ class StateNode<
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const tree = this.getStateTree(stateValue);
-    this.getStateNodes(stateValue).forEach(stateNode => {
+    const configuration = this.getStateNodes(stateValue);
+    configuration.forEach(stateNode => {
       tree.addReentryNode(stateNode);
     });
 
     return this.resolveTransition({
       tree,
+      configuration,
       source: undefined,
       actions: [],
       context
@@ -1865,6 +1891,7 @@ class StateNode<
     if (transitionConfig === undefined) {
       return {
         target: target === undefined ? undefined : formattedTargets,
+        source: this,
         actions: [],
         internal: target === undefined || internal,
         event
@@ -1880,6 +1907,7 @@ class StateNode<
       actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond, guards),
       target: isTargetless ? undefined : formattedTargets,
+      source: this,
       internal: (isTargetless && internal === undefined) || internal,
       event
     };

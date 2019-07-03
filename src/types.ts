@@ -174,10 +174,10 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback = ((
+export type InvokeCallback = (
   sender: Sender<any>,
   onEvent: Receiver<EventObject>
-) => any);
+) => any;
 
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
@@ -266,7 +266,7 @@ export type StateNodesConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >
+  >;
 };
 
 export type StatesConfig<
@@ -278,7 +278,7 @@ export type StatesConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >
+  >;
 };
 
 export type StatesDefinition<
@@ -290,7 +290,7 @@ export type StatesDefinition<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >
+  >;
 };
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> = {
@@ -303,13 +303,13 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
           TContext,
           TEvent extends { type: K } ? TEvent : EventObject
         >
-      >
+      >;
 };
 
 export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
   [K in TEvent['type']]: Array<
     TransitionDefinition<TContext, Extract<TEvent, { type: K }>>
-  >
+  >;
 };
 
 export type InvokeConfig<TContext, TEvent extends EventObject> =
@@ -636,6 +636,7 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   tree: StateTree | undefined;
+  configuration: Array<StateNode<TContext, any, TEvent>>;
   /**
    * The source state that preceded the transition.
    */
@@ -781,7 +782,7 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = Partial<
   {
     [K in keyof TContext]:
       | ((context: TContext, event: TEvent) => TContext[K])
-      | TContext[K]
+      | TContext[K];
   }
 >;
 
@@ -831,6 +832,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
   target: TransitionTargets<TContext> | undefined;
+  source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   event: string;

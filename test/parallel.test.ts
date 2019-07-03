@@ -824,7 +824,7 @@ describe('parallel states', () => {
     });
   });
 
-  describe('other', () => {
+  xdescribe('other', () => {
     // https://github.com/davidkpiano/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = Machine({
