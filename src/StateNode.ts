@@ -87,6 +87,7 @@ import {
 import { StateTree } from './StateTree';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE } from './constants';
+import { getValue, getConfiguration } from './stateUtils';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -727,13 +728,30 @@ class StateNode<
       };
     }
 
-    const allTrees = keys(transitionMap)
-      .map(key => transitionMap[key].tree)
-      .filter(t => t !== undefined) as StateTree[];
+    const targetNodes = flatten(stateTransitions.map(st => st.configuration));
+    const prevNodes = this.getStateNodes(stateValue);
 
-    const combinedTree = allTrees.reduce((acc, t) => {
-      return acc.combine(t);
-    });
+    // console.log(targetNodes.map(t => t.id));
+    // console.log([...getConfiguration(prevNodes, targetNodes)].map(c => c.id));
+
+    const stateValueFromConfiguration = getValue(
+      this.machine,
+      getConfiguration(prevNodes, targetNodes)
+    );
+    // console.log(sv);
+
+    const combinedTree = new StateTree(
+      this.machine,
+      stateValueFromConfiguration
+    );
+
+    // const allTrees = keys(transitionMap)
+    //   .map(key => transitionMap[key].tree)
+    //   .filter(t => t !== undefined) as StateTree[];
+
+    // const combinedTree = allTrees.reduce((acc, t) => {
+    //   return acc.combine(t);
+    // });
 
     const allPaths = combinedTree.paths;
     const configuration = flatten(
@@ -758,24 +776,24 @@ class StateNode<
       };
     }
 
-    const allResolvedTrees = keys(transitionMap).map(key => {
-      const { tree } = transitionMap[key];
+    // const allResolvedTrees = keys(transitionMap).map(key => {
+    //   const { tree } = transitionMap[key];
 
-      if (tree) {
-        return tree;
-      }
+    //   if (tree) {
+    //     return tree;
+    //   }
 
-      const subValue = path(this.path)(state.value)[key];
+    //   const subValue = path(this.path)(state.value)[key];
 
-      return new StateTree(this.getStateNode(key), subValue).absolute;
-    });
+    //   return new StateTree(this.getStateNode(key), subValue).absolute;
+    // });
 
-    const finalCombinedTree = allResolvedTrees.reduce((acc, t) => {
-      return acc.combine(t);
-    });
+    // const finalCombinedTree = allResolvedTrees.reduce((acc, t) => {
+    //   return acc.combine(t);
+    // });
 
     return {
-      tree: finalCombinedTree,
+      tree: combinedTree,
       transitions: enabledTransitions,
       configuration,
       source: state,
@@ -1103,6 +1121,23 @@ class StateNode<
     if (stateTransition.tree) {
       stateTransition.tree = stateTransition.tree.resolved;
     }
+
+    // const prevConfig = this.machine.getStateNodes(currentState.value);
+
+    // const cv = getValue(
+    //   this.machine,
+    //   getConfiguration(prevConfig, stateTransition.configuration)
+    // );
+
+    // if (stateTransition.tree) {
+    //   const eq = stateValuesEqual(cv, stateTransition.tree.value);
+    //   console.log(eq);
+    // }
+    // if (!eq) {
+    //   console.log('prevConfig', prevConfig.map(c => c.id));
+    //   console.log('config', [...stateTransition.configuration].map(c => c.id));
+    //   console.log(cv, stateTransition.tree!.value);
+    // }
 
     return this.resolveTransition(stateTransition, currentState, eventObject);
   }

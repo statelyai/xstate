@@ -824,7 +824,7 @@ describe('parallel states', () => {
     });
   });
 
-  xdescribe('other', () => {
+  describe('other', () => {
     // https://github.com/davidkpiano/xstate/issues/518
     it('regions should be able to transition to orthogonal regions', () => {
       const testMachine = Machine({
@@ -875,7 +875,7 @@ describe('parallel states', () => {
         testMachine.initialState,
         'toggle'
       );
-      console.log('-----');
+
       const dashboardState = testMachine.transition(
         openMenuState,
         'go to dashboard'

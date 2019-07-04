@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { Machine } from '../src';
-import { getConfiguration, getValue } from '../src/stateUtils';
+import { getConfiguration } from '../src/stateUtils';
 
 const testMachine = Machine({
   id: 'a',
@@ -70,13 +70,17 @@ const testMachine = Machine({
 });
 
 describe('algorithm', () => {
-  it('yes', () => {
+  it('getConfiguration', () => {
+    const prevNodes = testMachine.getStateNodes({
+      b1: {
+        c1: 'd1',
+        c2: {},
+        c3: 'd3'
+      }
+    });
     const nodes = ['c1', 'd4'].map(id => testMachine.getStateNodeById(id));
 
-    const c = getConfiguration(nodes);
-
-    console.log([...c].map(sn => sn.id));
-    console.dir(getValue(c), { depth: null });
+    const c = getConfiguration(prevNodes, nodes);
 
     assert.sameMembers([...c].map(sn => sn.id), [
       'a',
@@ -89,24 +93,4 @@ describe('algorithm', () => {
       'e3'
     ]);
   });
-
-  // it('the issue', () => {
-  //   const nodes = ['d2'].map(id => testMachine.getStateNodeById(id));
-
-  //   const c = getConfiguration(nodes);
-
-  //   console.log([...c].map(sn => sn.id));
-  //   console.dir(getValue(c), { depth: null });
-
-  //   assert.sameMembers([...c].map(sn => sn.id), [
-  //     'a',
-  //     'b1',
-  //     'c1',
-  //     'c2',
-  //     'c3',
-  //     'd1',
-  //     'd4',
-  //     'e3'
-  //   ]);
-  // });
 });

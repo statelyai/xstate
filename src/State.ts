@@ -28,7 +28,7 @@ export function stateValuesEqual(
     return false;
   }
 
-  if (isString(a === 'string' || typeof b)) {
+  if (isString(a) || isString(b)) {
     return a === b;
   }
 
