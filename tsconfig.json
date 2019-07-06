@@ -16,6 +16,6 @@
     "sourceMap": true,
     "strictPropertyInitialization": true
   },
-  "include": ["src/**/*"],
-  "exclude": ["test/**/*", "examples/**/*", "editor/node_modules/**/*"]
+  "include": ["src/**/*", "test/**/*"],
+  "exclude": ["examples/**/*", "editor/node_modules/**/*"]
 }
