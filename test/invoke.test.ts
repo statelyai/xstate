@@ -1359,7 +1359,9 @@ describe('invoke', () => {
               },
               second: {
                 invoke: {
-                  src: () => () => {},
+                  src: () => () => {
+                    // empty
+                  },
                   onError: {
                     target: 'failed',
                     cond: () => {

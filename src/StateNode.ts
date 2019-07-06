@@ -33,7 +33,6 @@ import {
   EventObject,
   HistoryStateNodeConfig,
   HistoryValue,
-  DefaultContext,
   StateNodeDefinition,
   TransitionDefinition,
   AssignAction,
@@ -107,7 +106,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 });
 
 class StateNode<
-  TContext = DefaultContext,
+  TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>
 > {

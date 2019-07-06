@@ -1159,15 +1159,6 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 
 export function spawn<TContext>(
   entity: Spawnable<TContext>,
-  name?: string
-): Actor<TContext>;
-export function spawn<TContext>(
-  entity: Spawnable<TContext>,
-  // tslint:disable-next-line:unified-signatures
-  options?: SpawnOptions
-): Actor<TContext>;
-export function spawn<TContext>(
-  entity: Spawnable<TContext>,
   nameOrOptions?: string | SpawnOptions
 ): Actor<TContext> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
