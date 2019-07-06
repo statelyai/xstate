@@ -161,7 +161,7 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
-  private children: Map<string | number, Actor> = new Map();
+  public children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -503,6 +503,7 @@ export class Interpreter<
       }
     } else if (!this.initialized) {
       throw new Error(
+        // tslint:disable-next-line:max-line-length
         `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
@@ -534,9 +535,9 @@ export class Interpreter<
    *
    * @param event The event to be sent by the sender.
    */
-  public sender(event: Event<TEvent>): (() => State<TContext, TEvent>) {
+  public sender(event: Event<TEvent>): () => State<TContext, TEvent> {
     return this.send.bind(this, event);
-  };
+  }
 
   public sendTo = (
     event: OmniEventObject<TEvent>,
@@ -622,6 +623,7 @@ export class Interpreter<
         if (!IS_PRODUCTION) {
           warn(
             false,
+            // tslint:disable-next-line:max-line-length
             `No delay reference for delay expression '${delay}' was found on machine '${this.machine.id}' on service '${this.id}'.`
           );
         }
@@ -711,6 +713,7 @@ export class Interpreter<
           if (!IS_PRODUCTION) {
             warn(
               !('forward' in activity),
+              // tslint:disable-next-line:max-line-length
               `\`forward\` property is deprecated (found in invocation of '${activity.src}' in in machine '${this.machine.id}'). ` +
                 `Please use \`autoForward\` instead.`
             );
