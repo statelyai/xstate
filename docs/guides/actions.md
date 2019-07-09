@@ -29,9 +29,9 @@ const triggerMachine = Machine(
       },
       active: {
         // entry actions
-        entry: ['notifyActive', 'sendTelemetry'],
+        onEntry: ['notifyActive', 'sendTelemetry'],
         // exit actions
-        exit: ['notifyInactive', 'sendTelemetry'],
+        onExit: ['notifyInactive', 'sendTelemetry'],
         on: {
           STOP: 'inactive'
         }
