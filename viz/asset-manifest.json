@@ -1,15 +1,15 @@
 {
   "files": {
-    "main.css": "/xstate-viz/static/css/main.9d8496ab.chunk.css",
-    "main.js": "/xstate-viz/static/js/main.11a00d0a.chunk.js",
-    "main.js.map": "/xstate-viz/static/js/main.11a00d0a.chunk.js.map",
-    "runtime~main.js": "/xstate-viz/static/js/runtime~main.fd8b18ba.js",
-    "runtime~main.js.map": "/xstate-viz/static/js/runtime~main.fd8b18ba.js.map",
-    "static/js/2.93897deb.chunk.js": "/xstate-viz/static/js/2.93897deb.chunk.js",
-    "static/js/2.93897deb.chunk.js.map": "/xstate-viz/static/js/2.93897deb.chunk.js.map",
-    "index.html": "/xstate-viz/index.html",
-    "precache-manifest.f43874ed0287e00c23bc8f85871c9660.js": "/xstate-viz/precache-manifest.f43874ed0287e00c23bc8f85871c9660.js",
-    "service-worker.js": "/xstate-viz/service-worker.js",
-    "static/css/main.9d8496ab.chunk.css.map": "/xstate-viz/static/css/main.9d8496ab.chunk.css.map"
+    "main.css": "/viz/static/css/main.9d8496ab.chunk.css",
+    "main.js": "/viz/static/js/main.54077ca4.chunk.js",
+    "main.js.map": "/viz/static/js/main.54077ca4.chunk.js.map",
+    "runtime~main.js": "/viz/static/js/runtime~main.ec69783e.js",
+    "runtime~main.js.map": "/viz/static/js/runtime~main.ec69783e.js.map",
+    "static/js/2.078cdcea.chunk.js": "/viz/static/js/2.078cdcea.chunk.js",
+    "static/js/2.078cdcea.chunk.js.map": "/viz/static/js/2.078cdcea.chunk.js.map",
+    "index.html": "/viz/index.html",
+    "precache-manifest.f9a7b76e507080e2228d04c586d935c6.js": "/viz/precache-manifest.f9a7b76e507080e2228d04c586d935c6.js",
+    "service-worker.js": "/viz/service-worker.js",
+    "static/css/main.9d8496ab.chunk.css.map": "/viz/static/css/main.9d8496ab.chunk.css.map"
   }
 }
