@@ -1,6 +1,6 @@
 import { StateNode, State } from '../src/index';
 import { assert } from 'chai';
-import { matchesState } from '../lib';
+import { matchesState } from '../src';
 
 export function testMultiTransition<TExt>(
   machine: StateNode<TExt>,
