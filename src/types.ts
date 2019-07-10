@@ -322,7 +322,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
       /**
        * The source of the machine to be invoked, or the machine itself.
        */
-      src: string | StateMachine<any, any, any> | InvokeCreator<any, TContext>;
+      src: string | StateMachine<any, any, any> | InvokeCreator<any, any>;
       /**
        * If `true`, events sent to the parent service will be forwarded to the invoked service.
        *
