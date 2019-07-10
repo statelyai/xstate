@@ -192,7 +192,7 @@ export type InvokeCallback = (
  * @param context The current machine `context`
  * @param event The event that invoked the service
  */
-export type InvokeCreator<TContext, TFinalContext = Partial<TContext>> = (
+export type InvokeCreator<TContext, TFinalContext = any> = (
   context: TContext,
   event: EventObject
 ) =>
