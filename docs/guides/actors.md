@@ -211,7 +211,7 @@ const machine = Machine({
   on: {
     'COUNTER.INC': {
       actions: send('INC', {
-        to: context => context.ref
+        to: context => context.counterRef
       })
     }
   }
@@ -260,7 +260,7 @@ const remoteMachine = Machine({
       }
     },
     online: {
-      after {
+      after: {
         1000: {
           actions: sendParent('REMOTE.ONLINE')
         }
@@ -272,6 +272,9 @@ const remoteMachine = Machine({
 const parentMachine = Machine({
   id: 'parent',
   initial: 'waiting',
+  context: {
+    localOne: null
+  },
   states: {
     waiting: {
       entry: assign({
