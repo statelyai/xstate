@@ -34,7 +34,17 @@ export function useMachine<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
-  const { context, guards, actions, activities, services, delays } = options;
+  const {
+    context,
+    guards,
+    actions,
+    activities,
+    services,
+    delays,
+    immediate,
+    ...interpreterOptions
+  } = options;
+
   const customMachine = machine.withConfig(
     {
       guards,
@@ -55,20 +65,21 @@ export function useMachine<TContext, TEvent extends EventObject>(
   // Create the service only once
   // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
   if (serviceRef.current === null) {
-    serviceRef.current = interpret(customMachine, options).onTransition(
-      state => {
-        // Update the current machine state when a transition occurs
-        if (state.changed) {
-          setCurrent(state);
-        }
+    serviceRef.current = interpret(
+      customMachine,
+      interpreterOptions
+    ).onTransition(state => {
+      // Update the current machine state when a transition occurs
+      if (state.changed) {
+        setCurrent(state);
       }
-    );
+    });
   }
 
   const service = serviceRef.current;
 
   // Start service immediately (before mount) if specified in options
-  if (options && options.immediate) {
+  if (immediate) {
     service.start();
   }
 
