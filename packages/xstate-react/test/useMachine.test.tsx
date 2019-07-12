@@ -107,6 +107,23 @@ describe('useMachine hook', () => {
     render(<Test />);
   });
 
+  it('should merge machine context with options.context', () => {
+    const Test = () => {
+      const context = { test: true };
+
+      const [state] = useMachine(fetchMachine, { context });
+
+      assert.deepEqual(state.context, {
+        ...fetchMachine.context,
+        ...context
+      });
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
   it('should not spawn actors until service is started', async done => {
     const spawnMachine = Machine<any>({
       id: 'spawn',
