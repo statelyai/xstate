@@ -20,14 +20,14 @@ interface UseMachineOptions<TContext> {
   immediate: boolean;
 }
 
-const defaultOptions: UseMachineOptions = {
+const defaultOptions = {
   immediate: false
 };
 
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions> &
+    Partial<UseMachineOptions<TContext>> &
     Partial<MachineOptions<TContext, TEvent>> = defaultOptions
 ): [
   State<TContext, TEvent>,
@@ -56,7 +56,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     {
       ...machine.context,
       ...context
-    }
+    } as TContext
   );
 
   // Reference the service
