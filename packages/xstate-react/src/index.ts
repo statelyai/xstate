@@ -13,7 +13,7 @@ interface UseMachineOptions<TContext> {
   /**
    * If provided, will be merged with machine's context.
    */
-  context?: TContext;
+  context?: Partial<TContext>;
   /**
    * If `true`, service will start immediately (before mount).
    */

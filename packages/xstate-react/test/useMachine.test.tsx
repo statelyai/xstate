@@ -108,14 +108,23 @@ describe('useMachine hook', () => {
   });
 
   it('should merge machine context with options.context', () => {
-    const Test = () => {
-      const context = { test: true };
+    const testMachine = Machine<{ foo: string; test: boolean }>({
+      context: {
+        foo: 'bar',
+        test: false
+      },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
 
-      const [state] = useMachine(fetchMachine, { context });
+    const Test = () => {
+      const [state] = useMachine(testMachine, { context: { test: true } });
 
       assert.deepEqual(state.context, {
-        ...fetchMachine.context,
-        ...context
+        foo: 'bar',
+        test: true
       });
 
       return null;
