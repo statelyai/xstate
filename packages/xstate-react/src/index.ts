@@ -9,7 +9,11 @@ import {
   MachineOptions
 } from 'xstate';
 
-interface UseMachineOptions {
+interface UseMachineOptions<TContext> {
+  /**
+   * If provided, will be merged with machine's context.
+   */
+  context?: TContext;
   /**
    * If `true`, service will start immediately (before mount).
    */
@@ -30,14 +34,20 @@ export function useMachine<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
-  const { guards, actions, activities, services, delays } = options;
-  const customMachine = machine.withConfig({
-    guards,
-    actions,
-    activities,
-    services,
-    delays
-  });
+  const { context, guards, actions, activities, services, delays } = options;
+  const customMachine = machine.withConfig(
+    {
+      guards,
+      actions,
+      activities,
+      services,
+      delays
+    },
+    {
+      ...machine.context,
+      ...context
+    }
+  );
 
   // Reference the service
   const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
@@ -88,27 +98,24 @@ export function useService<TContext, TEvent extends EventObject>(
 ] {
   const [current, setCurrent] = useState(service.state);
 
-  useEffect(
-    () => {
-      // Set to current service state as there is a possibility
-      // of a transition occurring between the initial useState()
-      // initialization and useEffect() commit.
-      setCurrent(service.state);
+  useEffect(() => {
+    // Set to current service state as there is a possibility
+    // of a transition occurring between the initial useState()
+    // initialization and useEffect() commit.
+    setCurrent(service.state);
 
-      const listener = state => {
-        if (state.changed) {
-          setCurrent(state);
-        }
-      };
+    const listener = state => {
+      if (state.changed) {
+        setCurrent(state);
+      }
+    };
 
-      service.onTransition(listener);
+    service.onTransition(listener);
 
-      return () => {
-        service.off(listener);
-      };
-    },
-    [service]
-  );
+    return () => {
+      service.off(listener);
+    };
+  }, [service]);
 
   return [current, service.send, service];
 }
