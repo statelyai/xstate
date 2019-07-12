@@ -412,7 +412,8 @@ import { spawn } from 'xstate';
       spawn(
         new Promise((resolve, reject) => {
           // ...
-        }, 'my-promise')
+        }),
+        'my-promise'
       ),
 
     // From a callback
