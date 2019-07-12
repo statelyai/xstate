@@ -152,13 +152,13 @@ If you provide an unique `name` argument to `spawn(...)`, you can reference it i
 const loginMachine = Machine({
   // ...
   entry: assign({
-    formRef: () => spawn(formMachine, "form")
+    formRef: () => spawn(formMachine, 'form')
   }),
   states: {
     idle: {
       on: {
         LOGIN: {
-          actions: send('SUBMIT', { to: "form" })
+          actions: send('SUBMIT', { to: 'form' })
         }
       }
     }
