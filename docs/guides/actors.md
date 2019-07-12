@@ -356,7 +356,9 @@ someService.onTransition(state => {
 });
 ```
 
+::: warning
 By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
+:::
 
 ::: warning
 Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
