@@ -145,6 +145,29 @@ const machine = Machine({
 });
 ```
 
+::: tip
+If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
+
+```js
+const loginMachine = Machine({
+  // ...
+  entry: assign({
+    formRef: () => spawn(formMachine, "form")
+  }),
+  states: {
+    idle: {
+      on: {
+        LOGIN: {
+          actions: send('SUBMIT', { to: "form" })
+        }
+      }
+    }
+  }
+});
+```
+
+:::
+
 ## Spawning Promises
 
 Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
@@ -166,7 +189,7 @@ const fetchData = query => {
 // ...
 ```
 
-::: tip
+::: warning
 It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
 :::
 
@@ -333,7 +356,7 @@ someService.onTransition(state => {
 });
 ```
 
-By default, `sync` is set to `false`; that is, `ref.state === undefined`.
+By default, `sync` is set to `false`. Even when `sync` is set to `false` (both explicitly or implicitly), you'll be able to read the actor's state, e.g. `actorRef.state`, but you should rely on that state only when `sync` is set to `true`, otherwise you might end up referencing stale state.
 
 ::: warning
 Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
@@ -430,7 +453,7 @@ import { spawn } from 'xstate';
 // ...
 {
   actions: assign({
-    someRef: () => spawn(someMachine, { spawn: true })
+    someRef: () => spawn(someMachine, { sync: true })
   });
 }
 // ...
