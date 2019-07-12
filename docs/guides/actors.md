@@ -370,10 +370,10 @@ on: {
   },
   SAVE: {
     // Only notify parent of changes on SAVE event
-    actions: sendParent({
+    actions: sendParent(context => ({
       type: 'UPDATE_FROM_CHILD',
       data: context
-    })
+    }))
   }
 }
 // ...
