@@ -628,7 +628,7 @@ class StateNode<
     const next = stateNode.next(state, eventObject);
 
     if (!next.tree) {
-      const { actions, tree, transitions, configuration } = this.next(
+      const { actions, tree, transitions, entrySet, configuration } = this.next(
         state,
         eventObject
       );
@@ -636,6 +636,7 @@ class StateNode<
       return {
         tree,
         transitions,
+        entrySet,
         configuration,
         source: state,
         actions
@@ -659,7 +660,7 @@ class StateNode<
     );
 
     if (!next.tree) {
-      const { actions, tree, transitions, configuration } = this.next(
+      const { actions, tree, transitions, entrySet, configuration } = this.next(
         state,
         eventObject
       );
@@ -667,6 +668,7 @@ class StateNode<
       return {
         tree,
         transitions,
+        entrySet,
         configuration,
         source: state,
         actions
@@ -715,12 +717,14 @@ class StateNode<
         actions,
         tree,
         transitions,
+        entrySet,
         configuration: _configuration
       } = this.next(state, eventObject);
 
       return {
         tree,
         transitions,
+        entrySet,
         configuration: _configuration,
         source: state,
         actions
@@ -729,6 +733,7 @@ class StateNode<
 
     const targetNodes = flatten(stateTransitions.map(st => st.configuration));
     const prevNodes = this.getStateNodes(stateValue);
+    const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
     // console.log(targetNodes.map(t => t.id));
     // console.log([...getConfiguration(prevNodes, targetNodes)].map(c => c.id));
@@ -743,6 +748,10 @@ class StateNode<
       this.machine,
       stateValueFromConfiguration
     );
+
+    for (const entryNode of entryNodes) {
+      combinedTree.addReentryNode(entryNode);
+    }
 
     // const allTrees = keys(transitionMap)
     //   .map(key => transitionMap[key].tree)
@@ -764,6 +773,7 @@ class StateNode<
     ) {
       return {
         tree: combinedTree,
+        entrySet: [],
         transitions: enabledTransitions,
         configuration,
         source: state,
@@ -794,6 +804,7 @@ class StateNode<
     return {
       tree: combinedTree,
       transitions: enabledTransitions,
+      entrySet: [],
       configuration,
       source: state,
       actions: flatten(
@@ -834,6 +845,7 @@ class StateNode<
       return {
         tree: undefined,
         transitions: [],
+        entrySet: [],
         configuration: [],
         source: state,
         actions: []
@@ -897,6 +909,8 @@ class StateNode<
             ? new StateTree(this, path(this.path)(state.value)).absolute
             : undefined,
         transitions: [selectedTransition],
+        entrySet:
+          selectedTransition && selectedTransition.internal ? [] : [this],
         configuration: selectedTransition && state.value ? [this] : [],
         source: state,
         actions
@@ -933,6 +947,7 @@ class StateNode<
     return {
       tree: combinedTree,
       transitions: [selectedTransition],
+      entrySet: reentryNodes,
       configuration: nextStateNodes,
       source: state,
       actions
@@ -1604,6 +1619,7 @@ class StateNode<
     return this.resolveTransition({
       tree,
       configuration,
+      entrySet: configuration,
       transitions: [],
       source: undefined,
       actions: [],

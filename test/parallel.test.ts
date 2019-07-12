@@ -885,5 +885,41 @@ describe('parallel states', () => {
         dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
       );
     });
+
+    // https://github.com/davidkpiano/xstate/issues/531
+    it('should calculate the entry set for external transitions in parallel states', () => {
+      const testMachine = Machine({
+        id: 'test',
+        context: { log: [] },
+        type: 'parallel',
+        states: {
+          foo: {
+            initial: 'foobar',
+            states: {
+              foobar: {
+                on: {
+                  GOTO_FOOBAZ: 'foobaz'
+                }
+              },
+              foobaz: {
+                entry: assign({ log: ctx => [...ctx.log, 'entered foobaz'] }),
+                on: {
+                  GOTO_FOOBAZ: 'foobaz'
+                }
+              }
+            }
+          },
+          bar: {}
+        }
+      });
+
+      const run1 = testMachine.transition(
+        testMachine.initialState,
+        'GOTO_FOOBAZ'
+      );
+      const run2 = testMachine.transition(run1, 'GOTO_FOOBAZ');
+
+      assert.lengthOf(run2.context.log, 2);
+    });
   });
 });
