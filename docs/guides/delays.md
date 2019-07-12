@@ -325,5 +325,3 @@ states: {
 ```
 
 The interpreted statechart will `send(...)` the `after(...)` events after their `delay`, unless the state node is exited, which will `cancel(...)` those delayed `send(...)` events.
-
-## Notes
