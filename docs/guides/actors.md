@@ -356,7 +356,7 @@ someService.onTransition(state => {
 });
 ```
 
-By default, `sync` is set to `false`. Even when `sync` is set to `false` (both explicitly or implicitly), you'll be able to read the actor's state, e.g. `actorRef.state`, but you should rely on that state only when `sync` is set to `true`, otherwise you might end up referencing stale state.
+By default, `sync` is set to `false`. Even when `sync` is set to `false` (both explicitly or implicitly), you'll be able to read the actor's state, e.g. `actorRef.state`. You shouldn't rely on that state when `sync` is disabled, otherwise you might end up referencing stale state.
 
 ::: warning
 Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
