@@ -51,9 +51,8 @@ export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
  * as well as the built in event types and/or objects.
  */
 export type OmniEvent<TEvent extends EventObject> =
-  | TEvent['type']
-  | BuiltInEvent<TEvent>['type']
-  | OmniEventObject<TEvent>;
+  | OmniEventObject<TEvent>
+  | OmniEventObject<TEvent>['type'];
 
 export interface ActionMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
