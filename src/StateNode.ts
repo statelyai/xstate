@@ -61,7 +61,8 @@ import {
   MachineConfig,
   PureAction,
   TransitionTarget,
-  InvokeCreator
+  InvokeCreator,
+  StateMachine
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -857,7 +858,7 @@ class StateNode<
       : [];
 
     let nextStateStrings: TransitionTarget<TContext> = [];
-    let selectedTransition: TransitionDefinition<TContext, TEvent>;
+    let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     for (const candidate of candidates) {
       const { cond, in: stateIn } = candidate;
@@ -908,7 +909,7 @@ class StateNode<
           selectedTransition! && state.value // targetless transition
             ? new StateTree(this, path(this.path)(state.value)).absolute
             : undefined,
-        transitions: [selectedTransition],
+        transitions: selectedTransition ? [selectedTransition] : [],
         entrySet:
           selectedTransition && selectedTransition.internal ? [] : [this],
         configuration: selectedTransition && state.value ? [this] : [],
@@ -926,10 +927,8 @@ class StateNode<
       })
     );
 
-    const isInternal = !!(selectedTransition as TransitionDefinition<
-      TContext,
-      TEvent
-    >).internal;
+    const refinedSelectedTransition = selectedTransition as TransitionDefinition<TContext, TEvent>;
+    const isInternal = !!refinedSelectedTransition.internal;
 
     const reentryNodes = isInternal
       ? []
@@ -946,7 +945,7 @@ class StateNode<
 
     return {
       tree: combinedTree,
-      transitions: [selectedTransition],
+      transitions: [refinedSelectedTransition],
       entrySet: reentryNodes,
       configuration: nextStateNodes,
       source: state,
@@ -1080,7 +1079,7 @@ class StateNode<
     const actions = toActionObjects(
       exitActions.concat(transition.actions).concat(entryActions),
       this.machine.options.actions
-    );
+    ) as Array<ActionObject<TContext, TEvent>>;
 
     return actions;
   }
@@ -1115,7 +1114,7 @@ class StateNode<
       );
     }
 
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+    const eventObject = toEventObject(event);
     const eventType = eventObject.type;
 
     if (this.strict) {
@@ -1221,7 +1220,7 @@ class StateNode<
       nonEventActions.map(actionObject => {
         if (actionObject.type === actionTypes.send) {
           const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent>,
+            actionObject as SendAction<TContext, OmniEventObject<TEvent>>,
             updatedContext,
             eventObject || { type: ActionTypes.Init }
           ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
@@ -1339,10 +1338,11 @@ class StateNode<
     while (raisedEvents.length) {
       const currentActions = maybeNextState.actions;
       const raisedEvent = raisedEvents.shift()!;
+
       maybeNextState = this.transition(
         maybeNextState,
         raisedEvent.type === actionTypes.nullEvent
-          ? NULL_EVENT
+          ? raisedEvent
           : (raisedEvent as RaisedEvent<TEvent>).event,
         maybeNextState.context
       );
@@ -2012,7 +2012,7 @@ class StateNode<
       TEvent
     > = mapValues(
       { ...onConfig, ...doneConfig, ...invokeConfig },
-      (value, event) => {
+      (value: TransitionConfig<TContext, TEvent> | string | StateMachine<any, any, any> | undefined, event) => {
         if (value === undefined) {
           return [{ target: undefined, event, actions: [], internal: true }];
         }
@@ -2046,13 +2046,7 @@ class StateNode<
           }
         }
 
-        return [
-          this.formatTransition(
-            (value as TransitionConfig<TContext, TEvent>).target,
-            value,
-            event
-          )
-        ];
+        return [this.formatTransition(value.target, value, event)];
       }
     ) as TransitionsDefinition<TContext, TEvent>;
 
