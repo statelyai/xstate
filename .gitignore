@@ -29,13 +29,12 @@ node_modules
 
 # Other
 .DS_Store
-.vscode/
 dist/
 lib/
 es/
 editor/
 _examples/
-__examples/ 
+__examples/
 
 # Documentation
 docs-src/

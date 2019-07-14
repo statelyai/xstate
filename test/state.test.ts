@@ -271,7 +271,7 @@ describe('State', () => {
       const { initialState } = machine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create(jsonInitialState);
+      const stateFromConfig = State.create<any>(jsonInitialState);
 
       assert.deepEqual(machine.transition(stateFromConfig, 'TO_TWO').value, {
         two: { deep: 'foo' }

@@ -256,7 +256,7 @@ export class Interpreter<
       // get donedata
       const doneData = this.state.tree.getDoneData(
         this.state.context,
-        toEventObject<OmniEventObject<TEvent>>(event)
+        toEventObject(event)
       );
       for (const listener of this.doneListeners) {
         listener(doneInvoke(this.id, doneData));
@@ -451,7 +451,7 @@ export class Interpreter<
       return this.state;
     }
 
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event, payload);
+    const eventObject = toEventObject(event, payload);
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
@@ -512,7 +512,7 @@ export class Interpreter<
       let nextState = this.state;
       for (const event of events) {
         const { changed } = nextState;
-        const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+        const eventObject = toEventObject(event);
         const actions = nextState.actions.map(a =>
           bindActionToState(a, nextState)
         );
@@ -525,7 +525,7 @@ export class Interpreter<
 
       this.update(
         nextState,
-        toEventObject<OmniEventObject<TEvent>>(events[events.length - 1])
+        toEventObject(events[events.length - 1])
       );
     });
   }
@@ -577,7 +577,7 @@ export class Interpreter<
    * @param event The event to determine the next state
    */
   public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
-    const eventObject = toEventObject<OmniEventObject<TEvent>>(event);
+    const eventObject = toEventObject(event);
 
     if (
       eventObject.type.indexOf(actionTypes.errorPlatform) === 0 &&
@@ -845,13 +845,13 @@ export class Interpreter<
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update, { state, id: childService.id });
+        this.send(actionTypes.update as any, { state, id: childService.id });
       });
     }
 
     childService
       .onDone(doneEvent => {
-        this.send(doneEvent);
+        this.send(doneEvent as any);
       })
       .start();
 
@@ -881,7 +881,7 @@ export class Interpreter<
     promise.then(
       response => {
         if (!canceled) {
-          this.send(doneInvoke(id, response));
+          this.send(doneInvoke(id, response) as any);
         }
       },
       errorData => {
@@ -889,7 +889,7 @@ export class Interpreter<
           const errorEvent = error(id, errorData);
           try {
             // Send "error.execution" to this (parent).
-            this.send(errorEvent);
+            this.send(errorEvent as any);
           } catch (error) {
             this.reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
@@ -964,7 +964,7 @@ export class Interpreter<
         listeners.add(newListener);
       });
     } catch (err) {
-      this.send(error(id, err));
+      this.send(error(id, err) as any);
     }
 
     if (isPromiseLike(callbackStop)) {
@@ -1009,10 +1009,10 @@ export class Interpreter<
         this.send(value);
       },
       err => {
-        this.send(error(id, err));
+        this.send(error(id, err) as any);
       },
       () => {
-        this.send(doneInvoke(id));
+        this.send(doneInvoke(id) as any);
       }
     );
 
