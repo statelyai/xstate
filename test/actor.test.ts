@@ -43,7 +43,7 @@ describe('spawning machines', () => {
         type: 'TODO_COMPLETED';
       };
 
-  const todosMachine = Machine<typeof context, any, TodoEvent>({
+  const todosMachine = Machine<any, TodoEvent>({
     id: 'todos',
     context,
     initial: 'active',
@@ -104,7 +104,7 @@ describe('spawning machines', () => {
     server?: Actor;
   }
 
-  const clientMachine = Machine<ClientContext, any, PingPongEvent>({
+  const clientMachine = Machine<ClientContext, PingPongEvent>({
     id: 'client',
     initial: 'init',
     context: {

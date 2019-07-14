@@ -156,7 +156,9 @@ describe('Nested parallel stateSchema', () => {
     };
   }
 
-  type ParallelEvent = { type: 'UPDATE.CONTEXT' };
+  interface ParallelEvent {
+    type: 'UPDATE.CONTEXT';
+  }
 
   interface ParallelContext {
     lastDate: Date;

@@ -10,6 +10,23 @@ import { StateNode } from './StateNode';
 
 export function Machine<
   TContext = DefaultContext,
+  TEvent extends EventObject = EventObject
+>(
+  config: MachineConfig<TContext, any, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>,
+  initialContext?: TContext
+): StateMachine<TContext, any, TEvent>;
+export function Machine<
+  TContext = DefaultContext,
+  TStateSchema extends StateSchema = any,
+  TEvent extends EventObject = EventObject
+>(
+  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>,
+  initialContext?: TContext
+): StateMachine<TContext, TStateSchema, TEvent>;
+export function Machine<
+  TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject
 >(
