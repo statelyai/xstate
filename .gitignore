@@ -35,6 +35,7 @@ es/
 editor/
 _examples/
 __examples/
+.vscode/
 
 # Documentation
 docs-src/
