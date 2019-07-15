@@ -1158,9 +1158,17 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 };
 
 export function spawn<TContext>(
+  entity: StateMachine<TContext, any, any>,
+  nameOrOptions?: string | SpawnOptions
+): Actor<State<TContext>>;
+export function spawn<TContext>(
+  entity: Exclude<Spawnable<TContext>, StateMachine<any, any, any>>,
+  nameOrOptions?: string | SpawnOptions
+): Actor<TContext>;
+export function spawn<TContext>(
   entity: Spawnable<TContext>,
   nameOrOptions?: string | SpawnOptions
-): Actor<TContext> {
+) {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, service => {
