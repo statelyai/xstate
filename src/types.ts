@@ -927,7 +927,6 @@ export interface StateInterface<
   context: TContext;
   toStrings: () => string[];
   changed: boolean | undefined;
-  inert: any; // TODO: fix
   matches: (parentStateValue: StateValue) => boolean;
   nextEvents: EventType[];
 }

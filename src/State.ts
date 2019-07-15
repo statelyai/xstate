@@ -66,6 +66,11 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    */
   public tree?: StateTree;
   /**
+   * The next events that will cause a transition from the current state.
+   */
+  // @ts-ignore - getter for this gets configured in constructor so this property can stay non-enumerable
+  public nextEvents: EventType[];
+  /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
    * @param context
@@ -146,13 +151,6 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   }
 
   /**
-   * Returns a new `State` instance that is equal to this state no actions (side-effects).
-   */
-  public get inert(): State<TContext, TEvent> {
-    return State.inert(this, this.context);
-  }
-
-  /**
    * Creates a new State instance.
    * @param value The state value
    * @param context The extended state
@@ -174,23 +172,21 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     this.activities = config.activities || EMPTY_ACTIVITY_MAP;
     this.meta = config.meta || {};
     this.events = config.events || [];
-    Object.defineProperty(this, 'tree', {
-      value: config.tree,
-      enumerable: false
-    });
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
-  }
 
-  /**
-   * The next events that will cause a transition from the current state.
-   */
-  public get nextEvents(): EventType[] {
-    if (!this.tree) {
-      return [];
-    }
+    Object.defineProperty(this, 'tree', {
+      value: config.tree,
+    });
 
-    return this.tree.nextEvents;
+    Object.defineProperty(this, 'nextEvents', {
+      get: () => {
+        if (!config.tree) {
+          return [];
+        }
+        return config.tree.nextEvents;
+      },
+    });
   }
 
   /**
