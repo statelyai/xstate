@@ -170,17 +170,23 @@ export class StateTree {
 
   public get absolute(): StateTree {
     const { stateValue: _stateValue } = this;
-    const absoluteStateValue = {};
-    let marker: any = absoluteStateValue;
+    let absoluteStateValue: any;
 
-    for (let i = 0; i < this.stateNode.path.length; i++) {
-      const key = this.stateNode.path[i];
+    if (!this.stateNode.path.length) {
+      absoluteStateValue = _stateValue;
+    } else {
+      absoluteStateValue = {};
+      let marker: any = absoluteStateValue;
 
-      if (i === this.stateNode.path.length - 1) {
-        marker[key] = _stateValue;
-      } else {
-        marker[key] = {};
-        marker = marker[key];
+      for (let i = 0; i < this.stateNode.path.length; i++) {
+        const key = this.stateNode.path[i];
+
+        if (i === this.stateNode.path.length - 1) {
+          marker[key] = _stateValue;
+        } else {
+          marker[key] = {};
+          marker = marker[key];
+        }
       }
     }
 
