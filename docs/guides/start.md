@@ -79,3 +79,7 @@ promiseService.start();
 promiseService.send('RESOLVE');
 // => 'resolved'
 ```
+
+You can also copy/paste the `Machine(...)` code and [visualize it on XState Viz](https://xstate.js.org/viz):
+
+<iframe src="https://xstate.js.org/viz/?gist=9e4476d6312ac1bb29938d6c5e7f8f84&layout=viz"></iframe>

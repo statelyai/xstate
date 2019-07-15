@@ -95,9 +95,14 @@ console.log(nextState.value);
 // => 'three'
 ```
 
+<iframe src="https://xstate.js.org/viz/?gist=f8b1c6470371b13eb2838b84194ca428&layout=viz"></iframe>
+
 There are many use cases for null events, especially when defining [transient transitions](./transitions.md#transient-transitions), where a (potentially [transient](./statenodes.md#transient-state-nodes)) state immediately determines what the next state should be based on [conditions](./guards.md):
 
 ```js
+const isAdult = ({ age }) => age >= 18;
+const isMinor = ({ age }) => age < 18;
+
 const ageMachine = Machine({
   id: 'age',
   context: { age: undefined }, // age unknown
@@ -108,8 +113,8 @@ const ageMachine = Machine({
         // immediately take transition that satisfies conditional guard.
         // otherwise, no transition occurs
         '': [
-          { target: 'adult', cond: context => context && context.age >= 18 },
-          { target: 'child', cond: context => context && context.age < 18 }
+          { target: 'adult', cond: isAdult },
+          { target: 'child', cond: isMinor }
         ]
       }
     },
@@ -128,3 +133,5 @@ const personMachine = ageMachine.withContext(personData);
 console.log(personMachine.initialState.value);
 // => 'adult'
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=2f9f2f4bd5dcd5ff262c7f2a7e9199aa&layout=viz"></iframe>
