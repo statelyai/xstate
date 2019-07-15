@@ -24,7 +24,7 @@ module.exports = {
     },
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
-      { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
+      { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
       { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
       { text: 'Community', link: 'https://spectrum.chat/statecharts' }
     ],
