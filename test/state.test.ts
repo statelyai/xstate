@@ -304,14 +304,6 @@ describe('State', () => {
     });
   });
 
-  describe('.inert', () => {
-    it('should create an inert instance of the current State', () => {
-      const { initialState } = machine;
-
-      assert.isEmpty(initialState.inert.actions);
-    });
-  });
-
   describe('.event', () => {
     it('the .event prop should be the event (string) that caused the transition', () => {
       const { initialState } = machine;
