@@ -531,6 +531,50 @@ describe('onEntry/onExit actions', () => {
       );
     });
   });
+
+  describe('targetless transitions', () => {
+    it("shouldn't exit a state on a parent's targetless transition", done => {
+      const actual: string[] = []
+
+      const parent = Machine({
+        initial: 'one',
+        on: {
+          WHATEVER: {
+            actions: () => {
+              actual.push('got WHATEVER');
+            }
+          }
+        },
+        states: {
+          one: {
+            entry: () => {
+              actual.push('entered one');
+            },
+            on: {
+              '': 'two'
+            }
+          },
+          two: {
+            exit: () => {
+              actual.push('exitted two');
+            }
+          }
+        }
+      });
+
+      const service = interpret(parent).start();
+
+      Promise.resolve()
+        .then(() => {
+          service.send("WHATEVER");
+        })
+        .then(() => {
+          assert.deepEqual(actual, ["entered one", "got WHATEVER"]);
+          done();
+        })
+        .catch(done);
+    })
+  })
 });
 
 describe('actions on invalid transition', () => {
