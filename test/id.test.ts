@@ -34,7 +34,7 @@ const idMachine = Machine({
           id: 'B_foo',
           on: {
             NEXT: '#B_bar',
-            NEXT_DOT: '#B.dot'
+            NEXT_BAZ: '#B_baz'
           }
         },
         bar: {
@@ -43,8 +43,8 @@ const idMachine = Machine({
             NEXT: '#A_foo'
           }
         },
-        dot: {
-          id: 'B.dot'
+        baz: {
+          id: 'B_baz'
         }
       }
     },
@@ -96,7 +96,7 @@ describe('State node IDs', () => {
     },
     'B.foo': {
       'NEXT,NEXT': 'A.foo',
-      NEXT_DOT: 'B.dot'
+      NEXT_BAZ: 'B.baz'
     },
     '#B_foo': {
       'NEXT,NEXT': 'A.foo'
