@@ -252,8 +252,13 @@ class StateNode<
     this.delimiter =
       _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
+
+    if (!IS_PRODUCTION && _config.id && _config.id.includes(this.delimiter)) {
+      throw new Error(`Explicitly configured state node ID ("${_config.id}") cannot contain path delimiter ("${this.delimiter}").`);
+    }
+
     this.id =
-      _config.id || [this.machine.key, ...this.path].join(this.delimiter);
+        _config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
       : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
