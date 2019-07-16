@@ -253,8 +253,16 @@ class StateNode<
       _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
 
-    if (!IS_PRODUCTION && _config.id && _config.id.includes(this.delimiter)) {
-      throw new Error(`Explicitly configured state node ID ("${_config.id}") cannot contain path delimiter ("${this.delimiter}").`);
+    if (!IS_PRODUCTION && _config.id) {
+      if (_config.id.includes(this.delimiter)) {
+        throw new Error(`Explicitly configured state node ID ("${_config.id}") cannot contain path delimiter ("${this.delimiter}").`);
+      }
+
+      if (_config.id[0] === STATE_IDENTIFIER) {
+        throw new Error(
+          `State node ID ("${_config.id}") shouldn't start with "${STATE_IDENTIFIER}".`
+        );
+      }
     }
 
     this.id =
