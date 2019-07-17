@@ -62,7 +62,8 @@ import {
   PureAction,
   TransitionTarget,
   InvokeCreator,
-  StateMachine
+  StateMachine,
+  DoneEventObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1090,26 +1091,48 @@ class StateNode<
       }
     }
 
-    // const entryExitStates = transition.tree
-    //   ? transition.tree.resolved.getEntryExitStates(
-    //       prevState ? this.getStateTree(prevState.value) : undefined
-    //     )
-    //   : { entry: [], exit: [] };
-
-    // const ent = new Set(transition.entrySet.map(s => s.id));
-    // const ext = new Set(transition.exitSet.map(s => s.id));
-
-    const doneEvents = transition.tree
-      ? transition.tree.getDoneEvents(new Set(transition.entrySet))
-      : [];
-
     if (!transition.source) {
       transition.exitSet = [];
-      // entryExitStates.exit = [];
 
       // Ensure that root StateNode (machine) is entered
       transition.entrySet.push(this);
     }
+
+    function isInFinalState(stateNode: StateNode): boolean {
+      if (stateNode.type === 'compound') {
+        return getChildren(stateNode).some(
+          s => s.type === 'final' && has(transition.configuration, s)
+        );
+      }
+      if (stateNode.type === 'parallel') {
+        return getChildren(stateNode).every(isInFinalState);
+      }
+
+      return false;
+    }
+
+    const doneEvents = flatten(
+      transition.entrySet.map(sn => {
+        const events: DoneEventObject[] = [];
+        if (sn.type === 'final') {
+          events.push(
+            done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
+            done(sn.parent!.id, sn.data)
+          );
+        }
+
+        if (sn.parent && sn.parent.parent) {
+          const grandparent = sn.parent.parent;
+
+          if (grandparent.type === 'parallel') {
+            if (getChildren(grandparent).every(isInFinalState)) {
+              events.push(done(grandparent.id, grandparent.data));
+            }
+          }
+        }
+        return events;
+      })
+    ).filter((event): event is DoneEventObject => event !== undefined);
 
     transition.exitSet.sort((a, b) => a.order + b.order);
     transition.entrySet.sort((a, b) => a.order - b.order);

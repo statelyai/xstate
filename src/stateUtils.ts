@@ -12,7 +12,7 @@ type AdjList<TC, TE extends EventObject> = Map<
 
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
-): Configuration<TC, TE> {
+): Array<StateNode<TC, any, TE>> {
   return keys(stateNode.states).map(key => stateNode.states[key]);
 }
 
