@@ -10,7 +10,7 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
-function getChildren<TC, TE extends EventObject>(
+export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Configuration<TC, TE> {
   return keys(stateNode.states).map(key => stateNode.states[key]);
@@ -41,6 +41,7 @@ export function getConfiguration<TC, TE extends EventObject>(
 
   // add descendants
   for (const s of configuration) {
+    // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
       if (prevAdjList.get(s)) {
         prevAdjList.get(s)!.forEach(sn => configuration.add(sn));
@@ -50,6 +51,10 @@ export function getConfiguration<TC, TE extends EventObject>(
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
+          if (child.type === 'history') {
+            continue;
+          }
+
           if (!configuration.has(child)) {
             configuration.add(child);
 
@@ -64,6 +69,16 @@ export function getConfiguration<TC, TE extends EventObject>(
     }
   }
 
+  // add all ancestors
+  for (const s of configuration) {
+    let m = s.parent;
+
+    while (m && !configuration.has(m)) {
+      configuration.add(m);
+      m = m.parent;
+    }
+  }
+
   return configuration;
 }
 
@@ -71,8 +86,6 @@ function getValueFromAdj<TC, TE extends EventObject>(
   baseNode: StateNode<TC, any, TE>,
   adjList: AdjList<TC, TE>
 ): StateValue {
-  const stateValue = {};
-
   const childStateNodes = adjList.get(baseNode);
 
   if (!childStateNodes) {
@@ -80,15 +93,17 @@ function getValueFromAdj<TC, TE extends EventObject>(
   }
 
   if (baseNode.type === 'compound') {
-    if (childStateNodes[0]) {
-      if (childStateNodes[0].type === 'atomic') {
-        return childStateNodes[0].key;
+    const childStateNode = childStateNodes[0];
+    if (childStateNode) {
+      if (childStateNode.type === 'atomic' || childStateNode.type === 'final') {
+        return childStateNode.key;
       }
     } else {
       return {};
     }
   }
 
+  const stateValue = {};
   childStateNodes.forEach(csn => {
     stateValue[csn.key] = getValueFromAdj(csn, adjList);
   });
@@ -129,4 +144,16 @@ export function getValue<TC, TE extends EventObject>(
   const config = getConfiguration([rootNode], configuration);
 
   return getValueFromAdj(rootNode, getAdjList(config));
+}
+
+export function has<T>(iterable: Iterable<T>, item: T): boolean {
+  if (Array.isArray(iterable)) {
+    return iterable.some(member => member === item);
+  }
+
+  if (iterable instanceof Set) {
+    return iterable.has(item);
+  }
+
+  return false; // TODO: fix
 }

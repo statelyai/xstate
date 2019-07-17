@@ -638,6 +638,7 @@ export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   configuration: Array<StateNode<TContext, any, TEvent>>;
   entrySet: Array<StateNode<TContext, any, TEvent>>;
+  exitSet: Array<StateNode<TContext, any, TEvent>>;
   /**
    * The source state that preceded the transition.
    */

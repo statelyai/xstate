@@ -458,7 +458,7 @@ describe('actors', () => {
       states: {
         active: {
           after: {
-            10: { actions: assign({ value: 42 }) }
+            10: { actions: assign({ value: 42 }), internal: true }
           }
         }
       }
@@ -519,8 +519,10 @@ describe('actors', () => {
     });
 
     it('should sync spawned actor state when { sync: true }', done => {
-      const service = interpret(parentMachine, { id: 'a-service' }).onDone(() =>
-        done()
+      const service = interpret(parentMachine, { id: 'a-service' }).onDone(
+        () => {
+          done();
+        }
       );
       service.start();
     });

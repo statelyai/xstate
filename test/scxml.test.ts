@@ -172,7 +172,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['history'];
+  // const testGroupKeys = ['misc'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {

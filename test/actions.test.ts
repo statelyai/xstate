@@ -327,8 +327,8 @@ describe('onEntry/onExit actions', () => {
           .transition(parallelMachine.initialState, 'CHANGE')
           .actions.map(a => a.type),
         [
+          'exit_b1', // reverse document order
           'exit_a1',
-          'exit_b1',
           'do_a2',
           'another_do_a2',
           'do_b2',
@@ -534,7 +534,7 @@ describe('onEntry/onExit actions', () => {
 
   describe('targetless transitions', () => {
     it("shouldn't exit a state on a parent's targetless transition", done => {
-      const actual: string[] = []
+      const actual: string[] = [];
 
       const parent = Machine({
         initial: 'one',
@@ -566,15 +566,15 @@ describe('onEntry/onExit actions', () => {
 
       Promise.resolve()
         .then(() => {
-          service.send("WHATEVER");
+          service.send('WHATEVER');
         })
         .then(() => {
-          assert.deepEqual(actual, ["entered one", "got WHATEVER"]);
+          assert.deepEqual(actual, ['entered one', 'got WHATEVER']);
           done();
         })
         .catch(done);
-    })
-  })
+    });
+  });
 });
 
 describe('actions on invalid transition', () => {

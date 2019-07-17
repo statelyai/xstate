@@ -87,7 +87,7 @@ import {
 import { StateTree } from './StateTree';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE } from './constants';
-import { getValue, getConfiguration } from './stateUtils';
+import { getValue, getConfiguration, has, getChildren } from './stateUtils';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -204,7 +204,7 @@ class StateNode<
   /**
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
-  public order: number;
+  public order: number = -1;
   /**
    * The services invoked by this state node.
    */
@@ -282,16 +282,14 @@ class StateNode<
     }
 
     this.initial = _config.initial;
-    this.order = _config.order || -1;
 
     this.states = (_config.states
       ? mapValues(
           _config.states,
-          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key, _, i) => {
+          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
             const stateNode = new StateNode({
               ...stateConfig,
               key,
-              order: stateConfig.order === undefined ? i : stateConfig.order,
               parent: this
             });
             Object.assign(this.idMap, {
@@ -302,6 +300,19 @@ class StateNode<
           }
         )
       : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvent>;
+
+    // Document order
+    let order = 0;
+
+    function dfs(sn: StateNode): void {
+      sn.order = order++;
+
+      for (const child of getChildren(sn)) {
+        dfs(child);
+      }
+    }
+
+    dfs(this);
 
     // History config
     this.history =
@@ -628,16 +639,21 @@ class StateNode<
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, eventObject);
 
-    if (!next.tree) {
-      const { actions, tree, transitions, entrySet, configuration } = this.next(
-        state,
-        eventObject
-      );
+    if (!next.transitions.length) {
+      const {
+        actions,
+        tree,
+        transitions,
+        entrySet,
+        exitSet,
+        configuration
+      } = this.next(state, eventObject);
 
       return {
         tree,
         transitions,
         entrySet,
+        exitSet,
         configuration,
         source: state,
         actions
@@ -660,16 +676,21 @@ class StateNode<
       eventObject
     );
 
-    if (!next.tree) {
-      const { actions, tree, transitions, entrySet, configuration } = this.next(
-        state,
-        eventObject
-      );
+    if (!next.transitions.length) {
+      const {
+        actions,
+        tree,
+        transitions,
+        entrySet,
+        exitSet,
+        configuration
+      } = this.next(state, eventObject);
 
       return {
         tree,
         transitions,
         entrySet,
+        exitSet,
         configuration,
         source: state,
         actions
@@ -710,7 +731,7 @@ class StateNode<
     );
 
     const willTransition = stateTransitions.some(
-      transition => transition.tree !== undefined
+      st => st.transitions.length > 0
     );
 
     if (!willTransition) {
@@ -719,6 +740,7 @@ class StateNode<
         tree,
         transitions,
         entrySet,
+        exitSet,
         configuration: _configuration
       } = this.next(state, eventObject);
 
@@ -726,6 +748,7 @@ class StateNode<
         tree,
         transitions,
         entrySet,
+        exitSet,
         configuration: _configuration,
         source: state,
         actions
@@ -774,7 +797,8 @@ class StateNode<
     ) {
       return {
         tree: combinedTree,
-        entrySet: [],
+        entrySet: entryNodes,
+        exitSet: [this],
         transitions: enabledTransitions,
         configuration,
         source: state,
@@ -805,7 +829,8 @@ class StateNode<
     return {
       tree: combinedTree,
       transitions: enabledTransitions,
-      entrySet: [],
+      entrySet: entryNodes,
+      exitSet: flatten(stateTransitions.map(t => t.exitSet)),
       configuration,
       source: state,
       actions: flatten(
@@ -847,6 +872,7 @@ class StateNode<
         tree: undefined,
         transitions: [],
         entrySet: [],
+        exitSet: [],
         configuration: [],
         source: state,
         actions: []
@@ -897,7 +923,7 @@ class StateNode<
         if (candidate.target !== undefined) {
           nextStateStrings = candidate.target;
         }
-        actions.push(...toArray(candidate.actions));
+        actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;
       }
@@ -912,6 +938,8 @@ class StateNode<
         transitions: selectedTransition ? [selectedTransition] : [],
         entrySet:
           selectedTransition && selectedTransition.internal ? [] : [this],
+        exitSet:
+          selectedTransition && selectedTransition.internal ? [] : [this],
         configuration: selectedTransition && state.value ? [this] : [],
         source: state,
         actions
@@ -920,14 +948,17 @@ class StateNode<
 
     const nextStateNodes = flatten(
       nextStateStrings.map(str => {
-        if (str instanceof StateNode) {
+        if ((str as any) instanceof StateNode) {
           return str as StateNode<TContext, any, any>; // TODO: fix anys
         }
-        return this.getRelativeStateNodes(str, state.historyValue);
+        return this.getRelativeStateNodes(str as string, state.historyValue);
       })
     );
 
-    const refinedSelectedTransition = selectedTransition as TransitionDefinition<TContext, TEvent>;
+    const refinedSelectedTransition = selectedTransition as TransitionDefinition<
+      TContext,
+      TEvent
+    >;
     const isInternal = !!refinedSelectedTransition.internal;
 
     const reentryNodes = isInternal
@@ -947,6 +978,7 @@ class StateNode<
       tree: combinedTree,
       transitions: [refinedSelectedTransition],
       entrySet: reentryNodes,
+      exitSet: isInternal ? [] : [this],
       configuration: nextStateNodes,
       source: state,
       actions
@@ -1040,24 +1072,50 @@ class StateNode<
     transition: StateTransition<TContext, TEvent>,
     prevState?: State<TContext>
   ): Array<ActionObject<TContext, TEvent>> {
-    const entryExitStates = transition.tree
-      ? transition.tree.resolved.getEntryExitStates(
-          prevState ? this.getStateTree(prevState.value) : undefined
-        )
-      : { entry: [], exit: [] };
+    const prevConfig = prevState
+      ? getConfiguration([], this.getStateNodes(prevState.value))
+      : getConfiguration([], [this]);
+    const resolvedConfig = transition.configuration.length
+      ? getConfiguration(prevConfig, transition.configuration)
+      : prevConfig;
+
+    for (const sn of resolvedConfig) {
+      if (!has(prevConfig, sn)) {
+        transition.entrySet.push(sn);
+      }
+    }
+    for (const sn of prevConfig) {
+      if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
+        transition.exitSet.push(sn);
+      }
+    }
+
+    // const entryExitStates = transition.tree
+    //   ? transition.tree.resolved.getEntryExitStates(
+    //       prevState ? this.getStateTree(prevState.value) : undefined
+    //     )
+    //   : { entry: [], exit: [] };
+
+    // const ent = new Set(transition.entrySet.map(s => s.id));
+    // const ext = new Set(transition.exitSet.map(s => s.id));
+
     const doneEvents = transition.tree
-      ? transition.tree.getDoneEvents(new Set(entryExitStates.entry))
+      ? transition.tree.getDoneEvents(new Set(transition.entrySet))
       : [];
 
     if (!transition.source) {
-      entryExitStates.exit = [];
+      transition.exitSet = [];
+      // entryExitStates.exit = [];
 
       // Ensure that root StateNode (machine) is entered
-      entryExitStates.entry.unshift(this);
+      transition.entrySet.push(this);
     }
 
-    const entryStates = new Set(entryExitStates.entry);
-    const exitStates = new Set(entryExitStates.exit);
+    transition.exitSet.sort((a, b) => a.order + b.order);
+    transition.entrySet.sort((a, b) => a.order - b.order);
+
+    const entryStates = new Set(transition.entrySet);
+    const exitStates = new Set(transition.exitSet);
 
     const [entryActions, exitActions] = [
       flatten(
@@ -1131,26 +1189,19 @@ class StateNode<
       eventObject
     );
 
+    const prevConfig = getConfiguration(
+      [],
+      this.getStateNodes(currentState.value)
+    );
+    const resolvedConfig = stateTransition.configuration.length
+      ? getConfiguration(prevConfig, stateTransition.configuration)
+      : prevConfig;
+
+    stateTransition.configuration = [...resolvedConfig];
+
     if (stateTransition.tree) {
       stateTransition.tree = stateTransition.tree.resolved;
     }
-
-    // const prevConfig = this.machine.getStateNodes(currentState.value);
-
-    // const cv = getValue(
-    //   this.machine,
-    //   getConfiguration(prevConfig, stateTransition.configuration)
-    // );
-
-    // if (stateTransition.tree) {
-    //   const eq = stateValuesEqual(cv, stateTransition.tree.value);
-    //   console.log(eq);
-    // }
-    // if (!eq) {
-    //   console.log('prevConfig', prevConfig.map(c => c.id));
-    //   console.log('config', [...stateTransition.configuration].map(c => c.id));
-    //   console.log(cv, stateTransition.tree!.value);
-    // }
 
     return this.resolveTransition(stateTransition, currentState, eventObject);
   }
@@ -1159,9 +1210,13 @@ class StateNode<
     currentState?: State<TContext, TEvent>,
     _eventObject?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
-    const resolvedStateValue = stateTransition.tree
-      ? stateTransition.tree.value
-      : undefined;
+    const cv = getValue(this.machine, stateTransition.configuration);
+    // Transition will "apply" if:
+    // - this is the initial state (there is no current state)
+    // - OR there are transitions
+    const willTransition =
+      !currentState || stateTransition.transitions.length > 0;
+    const resolvedStateValue = willTransition ? cv : undefined;
     const historyValue = currentState
       ? currentState.historyValue
         ? currentState.historyValue
@@ -1620,6 +1675,7 @@ class StateNode<
       tree,
       configuration,
       entrySet: configuration,
+      exitSet: [],
       transitions: [],
       source: undefined,
       actions: [],
@@ -2012,7 +2068,14 @@ class StateNode<
       TEvent
     > = mapValues(
       { ...onConfig, ...doneConfig, ...invokeConfig },
-      (value: TransitionConfig<TContext, TEvent> | string | StateMachine<any, any, any> | undefined, event) => {
+      (
+        value:
+          | TransitionConfig<TContext, TEvent>
+          | string
+          | StateMachine<any, any, any>
+          | undefined,
+        event
+      ) => {
         if (value === undefined) {
           return [{ target: undefined, event, actions: [], internal: true }];
         }
