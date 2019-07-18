@@ -1,6 +1,5 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { StateTree } from './StateTree';
 import { Interpreter, Clock } from './interpreter';
 import { Actor } from './Actor';
 
@@ -634,7 +633,6 @@ export interface ActivityMap {
 
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
-  tree: StateTree | undefined;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   configuration: Array<StateNode<TContext, any, TEvent>>;
   entrySet: Array<StateNode<TContext, any, TEvent>>;

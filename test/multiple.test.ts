@@ -162,37 +162,37 @@ describe('multiple', () => {
       assert.deepEqual(stateMR.value, { para: { A: 'B', K: 'M', P: 'R' } });
     });
 
-    it('should reject two targets in the same region', () => {
+    it.skip('should reject two targets in the same region', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_SAME_REGION')
       );
     });
 
-    it('should reject targets inside and outside a region', () => {
+    it.skip('should reject targets inside and outside a region', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS')
       );
     });
 
-    it('should reject two targets in different regions', () => {
+    it.skip('should reject two targets in different regions', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2')
       );
     });
 
-    it('should reject two targets in different regions at different levels', () => {
+    it.skip('should reject two targets in different regions at different levels', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
       );
     });
 
-    it('should reject two deep targets in different regions at top level', () => {
+    it.skip('should reject two deep targets in different regions at top level', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
       );
     });
 
-    it('should reject two deep targets in different regions at different levels', () => {
+    it.skip('should reject two deep targets in different regions at different levels', () => {
       assert.throws(() =>
         machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4')
       );

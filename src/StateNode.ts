@@ -85,7 +85,6 @@ import {
   initEvent,
   toActionObjects
 } from './actions';
-import { StateTree } from './StateTree';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE } from './constants';
 import {
@@ -652,7 +651,6 @@ class StateNode<
     if (!next.transitions.length) {
       const {
         actions,
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -660,7 +658,6 @@ class StateNode<
       } = this.next(state, eventObject);
 
       return {
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -689,7 +686,6 @@ class StateNode<
     if (!next.transitions.length) {
       const {
         actions,
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -697,7 +693,6 @@ class StateNode<
       } = this.next(state, eventObject);
 
       return {
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -728,7 +723,7 @@ class StateNode<
 
       const next = subStateNode._transition(subStateValue, state, eventObject);
 
-      if (!next.tree) {
+      if (!next.transitions.length) {
         noTransitionKeys.push(subStateKey);
       }
 
@@ -747,7 +742,6 @@ class StateNode<
     if (!willTransition) {
       const {
         actions,
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -755,7 +749,6 @@ class StateNode<
       } = this.next(state, eventObject);
 
       return {
-        tree,
         transitions,
         entrySet,
         exitSet,
@@ -764,52 +757,13 @@ class StateNode<
         actions
       };
     }
-
-    const targetNodes = flatten(stateTransitions.map(st => st.configuration));
-    const prevNodes = this.getStateNodes(stateValue);
     const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
-    const stateValueFromConfiguration = getValue(
-      this.machine,
-      getConfiguration(prevNodes, targetNodes)
-    );
-
-    const combinedTree = new StateTree(
-      this.machine,
-      stateValueFromConfiguration
-    );
-
-    for (const entryNode of entryNodes) {
-      combinedTree.addReentryNode(entryNode);
-    }
-
-    const allPaths = combinedTree.paths;
     const configuration = flatten(
       keys(transitionMap).map(key => transitionMap[key].configuration)
     );
 
-    // External transition that escapes orthogonal region
-    if (
-      allPaths.length === 1 &&
-      !matchesState(toStateValue(this.path, this.delimiter), combinedTree.value)
-    ) {
-      return {
-        tree: combinedTree,
-        entrySet: entryNodes,
-        exitSet: [this],
-        transitions: enabledTransitions,
-        configuration,
-        source: state,
-        actions: flatten(
-          keys(transitionMap).map(key => {
-            return transitionMap[key].actions;
-          })
-        )
-      };
-    }
-
     return {
-      tree: combinedTree,
       transitions: enabledTransitions,
       entrySet: entryNodes,
       exitSet: flatten(stateTransitions.map(t => t.exitSet)),
@@ -851,7 +805,6 @@ class StateNode<
 
     if (!candidates || !candidates.length) {
       return {
-        tree: undefined,
         transitions: [],
         entrySet: [],
         exitSet: [],
@@ -913,10 +866,6 @@ class StateNode<
 
     if (!nextStateStrings.length) {
       return {
-        tree:
-          selectedTransition! && state.value // targetless transition
-            ? new StateTree(this, path(this.path)(state.value)).absolute
-            : undefined,
         transitions: selectedTransition ? [selectedTransition] : [],
         entrySet:
           selectedTransition && selectedTransition.internal ? [] : [this],
@@ -947,17 +896,7 @@ class StateNode<
       ? []
       : flatten(nextStateNodes.map(n => this.nodesFromChild(n)));
 
-    const trees = nextStateNodes.map(stateNode => stateNode.tree);
-    const combinedTree = trees.reduce((acc, t) => {
-      return acc.combine(t);
-    });
-
-    reentryNodes.forEach(reentryNode =>
-      combinedTree.addReentryNode(reentryNode)
-    );
-
     return {
-      tree: combinedTree,
       transitions: [refinedSelectedTransition],
       entrySet: reentryNodes,
       exitSet: isInternal ? [] : [this],
@@ -967,14 +906,6 @@ class StateNode<
     };
   }
 
-  /**
-   * The state tree represented by this state node.
-   */
-  private get tree(): StateTree {
-    const stateValue = toStateValue(this.path, this.delimiter);
-
-    return new StateTree(this.machine, stateValue);
-  }
   private nodesFromChild(
     childStateNode: StateNode<TContext, any, TEvent>
   ): Array<StateNode<TContext, any, TEvent>> {
@@ -1191,10 +1122,6 @@ class StateNode<
 
     stateTransition.configuration = [...resolvedConfig];
 
-    if (stateTransition.tree) {
-      stateTransition.tree = stateTransition.tree.resolved;
-    }
-
     return this.resolveTransition(stateTransition, currentState, eventObject);
   }
   private resolveTransition(
@@ -1220,19 +1147,6 @@ class StateNode<
       ? currentState.context
       : stateTransition.context || this.machine.context!;
     const eventObject = _eventObject || { type: ActionTypes.Init };
-
-    if (!IS_PRODUCTION && stateTransition.tree) {
-      try {
-        this.ensureValidPaths(stateTransition.tree.paths); // TODO: ensure code coverage for this
-      } catch (e) {
-        throw new Error(
-          `Event '${
-            eventObject ? eventObject.type : 'none'
-          }' leads to an invalid configuration: ${e.message}`
-        );
-      }
-    }
-
     const actions = this.getActions(stateTransition, currentState);
     const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
@@ -1415,49 +1329,6 @@ class StateNode<
     maybeNextState.history = history;
 
     return maybeNextState;
-  }
-
-  private ensureValidPaths(paths: string[][]): void {
-    if (!IS_PRODUCTION) {
-      const visitedParents = new Map<
-        StateNode<TContext, any, TEvent>,
-        Array<StateNode<TContext, any, TEvent>>
-      >();
-
-      const stateNodes = flatten(
-        paths.map(_path => this.getRelativeStateNodes(_path))
-      );
-
-      outer: for (const stateNode of stateNodes) {
-        let marker = stateNode;
-
-        while (marker.parent) {
-          if (visitedParents.has(marker.parent)) {
-            if (marker.parent.type === 'parallel') {
-              continue outer;
-            }
-
-            throw new Error(
-              `State node '${stateNode.id}' shares parent '${
-                marker.parent.id
-              }' with state node '${visitedParents
-                .get(marker.parent)!
-                .map(a => a.id)}'`
-            );
-          }
-
-          if (!visitedParents.get(marker.parent)) {
-            visitedParents.set(marker.parent, [stateNode]);
-          } else {
-            visitedParents.get(marker.parent)!.push(stateNode);
-          }
-
-          marker = marker.parent;
-        }
-      }
-    } else {
-      return;
-    }
   }
 
   /**
@@ -1660,7 +1531,6 @@ class StateNode<
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition({
-      tree: undefined,
       configuration,
       entrySet: configuration,
       exitSet: [],
