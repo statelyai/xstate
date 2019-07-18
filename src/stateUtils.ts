@@ -1,5 +1,5 @@
 import { EventObject, StateNode, StateValue } from '.';
-import { keys } from './utils';
+import { keys, flatten, mapContext } from './utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -36,8 +36,6 @@ export function getConfiguration<TC, TE extends EventObject>(
   }
 
   const adjList = getAdjList(configuration);
-
-  // console.log('KEYS:', [...adjList.keys()].map(k => k.id));
 
   // add descendants
   for (const s of configuration) {
@@ -130,10 +128,6 @@ export function getAdjList<TC, TE extends EventObject>(
     }
   }
 
-  // console.log(
-  //   [...adjList.keys()].map(key => [key.id, adjList.get(key)!.map(sn => sn.id)])
-  // );
-
   return adjList;
 }
 
@@ -156,4 +150,45 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
   }
 
   return false; // TODO: fix
+}
+
+export function nextEvents<TC, TE extends EventObject>(
+  configuration: Array<StateNode<TC, any, TE>>
+): Array<TE['type']> {
+  return flatten([...new Set(configuration.map(sn => sn.ownEvents))]);
+}
+
+export function isInFinalState(
+  configuration: StateNode[],
+  stateNode: StateNode
+): boolean {
+  if (stateNode.type === 'compound') {
+    return getChildren(stateNode).some(
+      s => s.type === 'final' && has(configuration, s)
+    );
+  }
+  if (stateNode.type === 'parallel') {
+    return getChildren(stateNode).every(sn =>
+      isInFinalState(configuration, sn)
+    );
+  }
+
+  return false;
+}
+
+export function getDoneData<TContext>(
+  context: TContext,
+  event: EventObject
+): any {
+  if (this.stateNode.type === 'compound') {
+    const childTree = this.nodes[keys(this.nodes)[0]];
+
+    if (!childTree.stateNode.data) {
+      return undefined;
+    }
+
+    return mapContext(childTree.stateNode.data, context, event);
+  }
+
+  return undefined;
 }

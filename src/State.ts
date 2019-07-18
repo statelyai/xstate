@@ -14,7 +14,8 @@ import {
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
-import { StateTree } from './StateTree';
+import { StateNode } from './StateNode';
+import { nextEvents } from './stateUtils';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -64,7 +65,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   /**
    * The state node tree representation of the state value.
    */
-  public tree?: StateTree;
+  public tree: Array<StateNode<TContext, any, TEvent>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -91,7 +92,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
           activities: stateValue.activities,
           meta: {},
           events: [],
-          tree: stateValue.tree
+          tree: [] // TODO: fix
         });
       }
 
@@ -109,7 +110,8 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       actions: [],
       activities: undefined,
       meta: undefined,
-      events: []
+      events: [],
+      tree: [] // TODO: fix
     });
   }
   /**
@@ -136,13 +138,14 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       }
       const event = { type: ActionTypes.Init } as BuiltInEvent<TE>;
 
-      return new State({
+      return new State<TC, TE>({
         value: stateValue.value,
         context,
         event,
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
+        // @ts-ignore
         tree: stateValue.tree
       });
     }
@@ -174,18 +177,12 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
-
-    Object.defineProperty(this, 'tree', {
-      value: config.tree,
-    });
+    this.tree = config.tree || [];
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
-        if (!config.tree) {
-          return [];
-        }
-        return config.tree.nextEvents;
-      },
+        return nextEvents(config.tree);
+      }
     });
   }
 
@@ -208,6 +205,12 @@ export class State<TContext, TEvent extends EventObject = EventObject>
         this.toStrings(stateValue[key]).map(s => key + delimiter + s)
       )
     );
+  }
+
+  public toJSON() {
+    const { tree, ...jsonValues } = this;
+
+    return jsonValues;
   }
 
   /**

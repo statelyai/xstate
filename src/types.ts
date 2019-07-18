@@ -917,7 +917,7 @@ export interface StateInterface<
   TEvent extends EventObject = EventObject
 > {
   value: StateValue;
-  tree?: StateTree;
+  tree: Array<StateNode<TContext, any, TEvent>>;
   history?: State<TContext>;
   historyValue?: HistoryValue | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
@@ -930,6 +930,7 @@ export interface StateInterface<
   changed: boolean | undefined;
   matches: (parentStateValue: StateValue) => boolean;
   nextEvents: EventType[];
+  toJSON(): Omit<StateInterface<TContext, TEvent>, 'tree'>;
 }
 
 export interface StateConfig<TContext, TEvent extends EventObject> {
@@ -942,7 +943,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];
-  tree?: StateTree;
+  tree: Array<StateNode<TContext, any, TEvent>>;
 }
 
 export interface StateSchema {

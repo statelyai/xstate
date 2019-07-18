@@ -219,7 +219,7 @@ describe('State', () => {
 
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
-      assert.deepEqual(machine.initialState.nextEvents, [
+      assert.sameMembers(machine.initialState.nextEvents, [
         'EXTERNAL',
         'INERT',
         'INTERNAL',
@@ -243,7 +243,7 @@ describe('State', () => {
       const A = machine.transition(machine.initialState, 'TO_THREE');
       const B = machine.transition(A.value, 'TO_THREE');
 
-      assert.deepEqual(B.nextEvents, [
+      assert.sameMembers(B.nextEvents, [
         'P31',
         'P32',
         'THREE_EVENT',

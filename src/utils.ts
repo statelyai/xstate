@@ -27,7 +27,7 @@ function isState(state: object | string): state is StateInterface {
     return false;
   }
 
-  return 'value' in state && 'tree' in state && 'history' in state;
+  return 'value' in state && 'history' in state;
 }
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -537,9 +537,7 @@ export function isObservable<T>(
   }
 }
 
-export function isMachine(
-  value: any
-): value is StateMachine<any, any, any> {
+export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
     return '__xstatenode' in value;
   } catch (e) {

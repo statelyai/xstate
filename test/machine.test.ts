@@ -232,7 +232,7 @@ describe('machine', () => {
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
-      assert.deepEqual(resolvedState.nextEvents, ['TO_BAR']);
+      assert.sameMembers(resolvedState.nextEvents, ['TO_TWO', 'TO_BAR']);
     });
   });
 

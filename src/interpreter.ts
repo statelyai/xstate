@@ -46,6 +46,7 @@ import {
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
+import { isInFinalState } from './stateUtils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -252,12 +253,23 @@ export class Interpreter<
       );
     }
 
-    if (this.state.tree && this.state.tree.done) {
-      // get donedata
-      const doneData = this.state.tree.getDoneData(
-        this.state.context,
-        toEventObject(event)
+    const isDone = isInFinalState(state.tree || [], this.machine);
+
+    if (this.state.tree && isDone) {
+      // get final child state node
+      const finalChildStateNode = state.tree!.find(
+        sn => sn.type === 'final' && sn.parent === this.machine
       );
+
+      const doneData =
+        finalChildStateNode && finalChildStateNode.data
+          ? mapContext(
+              finalChildStateNode.data,
+              state.context,
+              toEventObject(event)
+            )
+          : undefined;
+
       for (const listener of this.doneListeners) {
         listener(doneInvoke(this.id, doneData));
       }
@@ -523,10 +535,7 @@ export class Interpreter<
         this.forward(eventObject);
       }
 
-      this.update(
-        nextState,
-        toEventObject(events[events.length - 1])
-      );
+      this.update(nextState, toEventObject(events[events.length - 1]));
     });
   }
 
