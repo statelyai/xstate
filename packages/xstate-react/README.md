@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) that you can pass in.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays` and `updates` (NOTE: `context` option is not implemented yet, use `withContext` or `withConfig` instead for the meantime). 
 
 **Returns** a tuple of `[current, send, service]`:
 
