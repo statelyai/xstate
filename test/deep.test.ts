@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 describe('deep transitions', () => {
@@ -100,7 +99,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'A_EVENT')
         .actions.map(a => `${a}`);
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit substates and superstates when exiting (B_EVENT)', () => {
@@ -108,7 +107,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'B_EVENT')
         .actions.map(a => `${a}`);
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit substates and superstates when exiting (C_EVENT)', () => {
@@ -116,7 +115,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'C_EVENT')
         .actions.map(a => `${a}`);
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit superstates when exiting (D_EVENT)', () => {
@@ -124,7 +123,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'D_EVENT')
         .actions.map(a => `${a}`);
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit substate when machine handles event (MACHINE_EVENT)', () => {
@@ -133,7 +132,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'MACHINE_EVENT')
         .actions.map(a => `${a}`);
       const expected = ['EXIT_D', 'EXIT_C', 'EXIT_B', 'EXIT_A'];
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     const DBCAPQRS = [
@@ -152,7 +151,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'A_S')
         .actions.map(a => `${a}`);
       const expected = DBCAPQRS;
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit deep and enter deep (D_P)', () => {
@@ -160,7 +159,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'D_P')
         .actions.map(a => `${a}`);
       const expected = DBCAPQRS;
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit deep and enter deep (A_P)', () => {
@@ -168,7 +167,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'A_P')
         .actions.map(a => `${a}`);
       const expected = DBCAPQRS;
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
 
     it('should exit deep and enter deep (D_S)', () => {
@@ -176,7 +175,7 @@ describe('deep transitions', () => {
         .transition(deepMachine.initialState, 'D_S')
         .actions.map(a => `${a}`);
       const expected = DBCAPQRS;
-      assert.deepEqual(actual, expected);
+      expect(actual).toEqual(expected);
     });
   });
 });

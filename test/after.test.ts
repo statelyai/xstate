@@ -1,18 +1,5 @@
-import { assert, use as chaiUse } from 'chai';
 import { Machine } from '../src/index';
 import { after, cancel, send, actionTypes } from '../src/actions';
-// tslint:disable-next-line:no-var-requires
-const chaiSubset = require('chai-subset');
-
-chaiUse(chaiSubset);
-
-declare global {
-  namespace Chai {
-    interface AssertStatic {
-      containSubset(val: any, exp: any, msg?: string): void;
-    }
-  }
-}
 
 const lightMachine = Machine({
   id: 'light',
@@ -44,8 +31,8 @@ describe('delayed transitions', () => {
       after(1000, 'light.green')
     );
 
-    assert.deepEqual(nextState.value, 'yellow');
-    assert.deepEqual(nextState.actions, [
+    expect(nextState.value).toEqual('yellow');
+    expect(nextState.actions).toEqual([
       cancel(after(1000, 'light.green')),
       send(after(1000, 'light.yellow'), { delay: 1000 })
     ]);
@@ -56,7 +43,7 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    assert.deepEqual(transitions.map(t => t.event), [
+    expect(transitions.map(t => t.event)).toEqual([
       after(1000, greenNode.id)
     ]);
   });
@@ -114,9 +101,9 @@ describe('delayed transitions', () => {
         a => a.type === actionTypes.send
       );
 
-      assert.lengthOf(sendActions, 1);
+      expect(sendActions.length).toBe(1);
 
-      assert.equal(sendActions[0].delay, 1000);
+      expect(sendActions[0].delay).toEqual(1000);
     });
 
     it('should evaluate the expression (string) to determine the delay', () => {
@@ -130,9 +117,9 @@ describe('delayed transitions', () => {
         a => a.type === actionTypes.send
       );
 
-      assert.lengthOf(sendActions, 1);
+      expect(sendActions.length).toBe(1);
 
-      assert.equal(sendActions[0].delay, 1000 + 500);
+      expect(sendActions[0].delay).toEqual(1000 + 500);
     });
 
     it('should send the expression (string) as delay if expression not found', () => {
@@ -146,9 +133,9 @@ describe('delayed transitions', () => {
         a => a.type === actionTypes.send
       );
 
-      assert.lengthOf(sendActions, 1);
+      expect(sendActions.length).toBe(1);
 
-      assert.equal(sendActions[0].delay, 'nonExistantDelay');
+      expect(sendActions[0].delay).toEqual('nonExistantDelay');
     });
   });
 });

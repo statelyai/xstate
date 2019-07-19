@@ -1,10 +1,8 @@
-import { assert } from 'chai';
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useService } from '../src';
 import { Machine, assign, interpret } from 'xstate';
 import { render, cleanup, fireEvent } from 'react-testing-library';
-// import { doneInvoke } from '../../../lib/actions';
 
 afterEach(cleanup);
 
@@ -41,16 +39,16 @@ describe('useService hook', () => {
 
     const countEls = getAllByTestId('count');
 
-    assert.lengthOf(countEls, 2);
+    expect(countEls.length).toBe(2);
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '0');
+      expect(countEl.textContent).toBe('0');
     });
 
     counterService.send('INC');
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '1');
+      expect(countEl.textContent).toBe('1');
     });
   });
 
@@ -86,10 +84,10 @@ describe('useService hook', () => {
     const countEls = getAllByTestId('count');
     const buttonEls = getAllByTestId('button');
 
-    assert.lengthOf(countEls, 2);
+    expect(countEls.length).toBe(2);
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '0');
+      expect(countEl.textContent).toBe('0');
     });
 
     buttonEls.forEach(buttonEl => {
@@ -99,7 +97,7 @@ describe('useService hook', () => {
     const otherEls = getAllByTestId('other');
 
     otherEls.forEach(otherEl => {
-      assert.equal(otherEl.textContent, 'test');
+      expect(otherEl.textContent).toBe('test');
     });
   });
 
@@ -137,10 +135,10 @@ describe('useService hook', () => {
     const incButton = getByTestId('inc');
     const countEl = getByTestId('count');
 
-    assert.equal(countEl.textContent, '0');
+    expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
-    assert.equal(countEl.textContent, '1');
+    expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
-    assert.equal(countEl.textContent, '0');
+    expect(countEl.textContent).toBe('0');
   });
 });

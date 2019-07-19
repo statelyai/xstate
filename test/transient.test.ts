@@ -1,5 +1,4 @@
 import { Machine } from '../src/index';
-import { assert } from 'chai';
 import { assign } from '../src/actions';
 
 const greetingContext = { hour: 10 };
@@ -56,7 +55,7 @@ describe('transient states (eventless transitions)', () => {
     const nextState = updateMachine.transition('G', 'UPDATE_BUTTON_CLICKED', {
       data: false
     });
-    assert.equal(nextState.value, 'D');
+    expect(nextState.value).toEqual('D');
   });
 
   it('should choose the first candidate target that matches the cond (B)', () => {
@@ -64,7 +63,7 @@ describe('transient states (eventless transitions)', () => {
       data: true,
       status: 'Y'
     });
-    assert.equal(nextState.value, 'B');
+    expect(nextState.value).toEqual('B');
   });
 
   it('should choose the first candidate target that matches the cond (C)', () => {
@@ -72,7 +71,7 @@ describe('transient states (eventless transitions)', () => {
       data: true,
       status: 'X'
     });
-    assert.equal(nextState.value, 'C');
+    expect(nextState.value).toEqual('C');
   });
 
   it('should choose the final candidate without a cond if none others match', () => {
@@ -80,7 +79,7 @@ describe('transient states (eventless transitions)', () => {
       data: true,
       status: 'other'
     });
-    assert.equal(nextState.value, 'F');
+    expect(nextState.value).toEqual('F');
   });
 
   it('should carry actions from previous transitions within same step', () => {
@@ -109,7 +108,7 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('A', 'TIMER');
 
-    assert.deepEqual(state.actions.map(a => a.type), [
+    expect(state.actions.map(a => a.type)).toEqual([
       'exit_A',
       'timer',
       'enter_B'
@@ -181,7 +180,7 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition(machine.initialState, 'E');
 
-    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C4' });
+    expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C4' });
   });
 
   it('should execute all eventless transitions in the same microstep', () => {
@@ -245,7 +244,7 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition(machine.initialState, 'E');
 
-    assert.deepEqual(state.value, { A: 'A4', B: 'B4' });
+    expect(state.value).toEqual({ A: 'A4', B: 'B4' });
   });
 
   it('should check for automatic transitions even after microsteps are done', () => {
@@ -296,11 +295,11 @@ describe('transient states (eventless transitions)', () => {
 
     let state = machine.initialState; // A1, B1, C1
     state = machine.transition(state, 'A'); // A2, B2, C2
-    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C2' });
+    expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C2' });
   });
 
   it('should determine the resolved initial state from the transient state', () => {
-    assert.deepEqual(greetingMachine.initialState.value, 'morning');
+    expect(greetingMachine.initialState.value).toEqual('morning');
   });
 
   // TODO: determine proper behavior here -
@@ -308,16 +307,16 @@ describe('transient states (eventless transitions)', () => {
   // or all previous state nodes?
   xit('should determine the resolved state from a root transient state', () => {
     const morningState = greetingMachine.initialState;
-    assert.deepEqual(morningState.value, 'morning');
+    expect(morningState.value).toEqual('morning');
     const stillMorningState = greetingMachine.transition(
       morningState,
       'CHANGE'
     );
-    assert.deepEqual(stillMorningState.value, 'morning');
+    expect(stillMorningState.value).toEqual('morning');
     const eveningState = greetingMachine.transition(
       stillMorningState,
       'RECHECK'
     );
-    assert.deepEqual(eveningState.value, 'evening');
+    expect(eveningState.value).toEqual('evening');
   });
 });

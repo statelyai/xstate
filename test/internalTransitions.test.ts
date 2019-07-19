@@ -1,5 +1,4 @@
 import { Machine } from '../src/index';
-import { assert } from 'chai';
 
 const wordMachine = Machine({
   key: 'word',
@@ -59,12 +58,8 @@ describe('internal transitions', () => {
       'RIGHT_CLICK'
     );
 
-    assert.deepEqual(nextState.value, { direction: 'right' });
-    assert.lengthOf(
-      nextState.actions,
-      0,
-      'should not have onEntry or onExit actions'
-    );
+    expect(nextState.value).toEqual({ direction: 'right' });
+    expect(nextState.actions.length).toBe(0);
   });
 
   it('parent state should re-enter self upon transitioning to child state if internal is false', () => {
@@ -73,13 +68,9 @@ describe('internal transitions', () => {
       'RIGHT_CLICK_EXTERNAL'
     );
 
-    assert.deepEqual(nextState.value, { direction: 'right' });
-    assert.lengthOf(
-      nextState.actions,
-      2,
-      'should have onEntry and onExit actions'
-    );
-    assert.deepEqual(nextState.actions.map(a => a.type), [
+    expect(nextState.value).toEqual({ direction: 'right' });
+    expect(nextState.actions.length).toBe(2);
+    expect(nextState.actions.map(a => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -88,8 +79,8 @@ describe('internal transitions', () => {
   it('parent state should only exit/reenter if there is an explicit self-transition', () => {
     const resetState = wordMachine.transition('direction.center', 'RESET');
 
-    assert.deepEqual(resetState.value, { direction: 'left' });
-    assert.deepEqual(resetState.actions.map(a => a.type), [
+    expect(resetState.value).toEqual({ direction: 'left' });
+    expect(resetState.actions.map(a => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -101,8 +92,8 @@ describe('internal transitions', () => {
       'RESET_TO_CENTER'
     );
 
-    assert.deepEqual(resetState.value, { direction: 'center' });
-    assert.deepEqual(resetState.actions.map(a => a.type), [
+    expect(resetState.value).toEqual({ direction: 'center' });
+    expect(resetState.actions.map(a => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -111,25 +102,25 @@ describe('internal transitions', () => {
   it('should listen to events declared at top state', () => {
     const actualState = topLevelMachine.transition('Failure', 'CLICKED_CLOSE');
 
-    assert.deepEqual(actualState.value, 'Hidden');
+    expect(actualState.value).toEqual('Hidden');
   });
 
   it('should work with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_ARRAY');
 
-    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomething']);
+    expect(sameState.actions.map(a => a.type)).toEqual(['doSomething']);
   });
 
   it('should work with targetless transitions (in object)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_OBJECT');
 
-    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomething']);
+    expect(sameState.actions.map(a => a.type)).toEqual(['doSomething']);
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Failure', 'TARGETLESS_ARRAY');
 
-    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomethingParent']);
+    expect(sameState.actions.map(a => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should work with targetless transitions (in object)', () => {
@@ -138,12 +129,12 @@ describe('internal transitions', () => {
       'TARGETLESS_OBJECT'
     );
 
-    assert.deepEqual(sameState.actions.map(a => a.type), ['doSomethingParent']);
+    expect(sameState.actions.map(a => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {
     const hiddenState = topLevelMachine.transition('Hidden', 'PARENT_EVENT');
 
-    assert.deepEqual(hiddenState.value, 'Hidden');
+    expect(hiddenState.value).toEqual('Hidden');
   });
 });

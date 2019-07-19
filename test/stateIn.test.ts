@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 const machine = Machine({
@@ -93,141 +92,122 @@ const lightMachine = Machine({
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
-    assert.deepEqual(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
-            }
-          }
-        },
-        'EVENT1'
-      ).value,
+    expect(machine.transition(
       {
-        a: 'a2',
+        a: 'a1',
         b: {
           b2: {
             foo: 'foo2',
             bar: 'bar1'
           }
         }
+      },
+      'EVENT1'
+    ).value).toEqual({
+      a: 'a2',
+      b: {
+        b2: {
+          foo: 'foo2',
+          bar: 'bar1'
+        }
       }
-    );
+    });
   });
 
   it('should transition if state node ID matches current state value', () => {
-    assert.deepEqual(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
-            }
-          }
-        },
-        'EVENT3'
-      ).value,
+    expect(machine.transition(
       {
-        a: 'a2',
+        a: 'a1',
         b: {
           b2: {
             foo: 'foo2',
             bar: 'bar1'
           }
         }
+      },
+      'EVENT3'
+    ).value).toEqual({
+      a: 'a2',
+      b: {
+        b2: {
+          foo: 'foo2',
+          bar: 'bar1'
+        }
       }
-    );
+    });
   });
 
   it('should not transition if string state path does not match current state value', () => {
-    assert.deepEqual(machine.transition({ a: 'a1', b: 'b1' }, 'EVENT1').value, {
+    expect(machine.transition({ a: 'a1', b: 'b1' }, 'EVENT1').value).toEqual({
       a: 'a1',
       b: 'b1'
     });
   });
 
   it('should not transition if state value matches current state value', () => {
-    assert.deepEqual(
-      machine.transition(
-        {
-          a: 'a1',
-          b: {
-            b2: {
-              foo: 'foo2',
-              bar: 'bar1'
-            }
-          }
-        },
-        'EVENT2'
-      ).value,
+    expect(machine.transition(
       {
-        a: 'a2',
+        a: 'a1',
         b: {
           b2: {
             foo: 'foo2',
             bar: 'bar1'
           }
         }
+      },
+      'EVENT2'
+    ).value).toEqual({
+      a: 'a2',
+      b: {
+        b2: {
+          foo: 'foo2',
+          bar: 'bar1'
+        }
       }
-    );
+    });
   });
 
   it('matching should be relative to grandparent (match)', () => {
-    assert.deepEqual(
-      machine.transition(
-        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
-        'EVENT_DEEP'
-      ).value,
-      {
-        a: 'a1',
-        b: {
-          b2: {
-            foo: 'foo2',
-            bar: 'bar1'
-          }
+    expect(machine.transition(
+      { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
+      'EVENT_DEEP'
+    ).value).toEqual({
+      a: 'a1',
+      b: {
+        b2: {
+          foo: 'foo2',
+          bar: 'bar1'
         }
       }
-    );
+    });
   });
 
   it('matching should be relative to grandparent (no match)', () => {
-    assert.deepEqual(
-      machine.transition(
-        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
-        'EVENT_DEEP'
-      ).value,
-      {
-        a: 'a1',
-        b: {
-          b2: {
-            foo: 'foo1',
-            bar: 'bar2'
-          }
+    expect(machine.transition(
+      { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
+      'EVENT_DEEP'
+    ).value).toEqual({
+      a: 'a1',
+      b: {
+        b2: {
+          foo: 'foo1',
+          bar: 'bar2'
         }
       }
-    );
+    });
   });
 
   it('should work to forbid events', () => {
     const walkState = lightMachine.transition('red.walk', 'TIMER');
 
-    assert.deepEqual(walkState.value, { red: 'walk' });
+    expect(walkState.value).toEqual({ red: 'walk' });
 
     const waitState = lightMachine.transition('red.wait', 'TIMER');
 
-    assert.deepEqual(waitState.value, { red: 'wait' });
+    expect(waitState.value).toEqual({ red: 'wait' });
 
     const stopState = lightMachine.transition('red.stop', 'TIMER');
 
-    assert.deepEqual(
-      stopState.value,
-      'green',
-      'Transition allowed due to "in" clause'
-    );
+    expect(stopState.value).toEqual('green');
   });
 });

@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Scheduler } from '../src/scheduler';
 
 describe('scheduler', () => {
@@ -11,7 +10,7 @@ describe('scheduler', () => {
     });
 
     const expectedCount = 1;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   it('should process more than one event', () => {
@@ -26,7 +25,7 @@ describe('scheduler', () => {
     });
 
     const expectedCount = 2;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   it('should process events in the same order they were hit', () => {
@@ -50,9 +49,9 @@ describe('scheduler', () => {
     });
 
     const expectedOrder = [1, 2, 3, 4, 5];
-    assert.equal(order.length, expectedOrder.length);
+    expect(order.length).toEqual(expectedOrder.length);
     for (let i = 0; i < expectedOrder.length; i++) {
-      assert.equal(order[i], expectedOrder[i]);
+      expect(order[i]).toEqual(expectedOrder[i]);
     }
   });
 
@@ -60,92 +59,84 @@ describe('scheduler', () => {
     let calledCount = 0;
     const scheduler = new Scheduler();
     scheduler.initialize(); // TODO: refactor (use .start())
-    assert.throws(
-      () =>
-        scheduler.schedule(() => {
-          calledCount++;
-          throw Error('Test');
-        }),
-      'Test'
-    );
+    expect(() =>
+      scheduler.schedule(() => {
+        calledCount++;
+        throw Error('Test');
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`"Test"`);
     scheduler.schedule(() => {
       calledCount++;
     });
 
     const expectedCount = 2;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   it('should recover if error is thrown while processing the queue', () => {
     let calledCount = 0;
     const scheduler = new Scheduler();
     scheduler.initialize(); // TODO: refactor (use .start())
-    assert.throws(
-      () =>
+    expect(() =>
+      scheduler.schedule(() => {
+        calledCount++;
         scheduler.schedule(() => {
           calledCount++;
-          scheduler.schedule(() => {
-            calledCount++;
-            throw Error('Test');
-          });
-        }),
-      'Test'
-    );
+          throw Error('Test');
+        });
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`"Test"`);
     scheduler.schedule(() => {
       calledCount++;
     });
 
     const expectedCount = 3;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   it('should stop processing events if error condition is met', () => {
     let calledCount = 0;
     const scheduler = new Scheduler();
     scheduler.initialize(); // TODO: refactor (use .start())
-    assert.throws(
-      () =>
+    expect(() =>
+      scheduler.schedule(() => {
+        calledCount++;
         scheduler.schedule(() => {
           calledCount++;
-          scheduler.schedule(() => {
-            calledCount++;
-            throw Error('Test');
-          });
-          scheduler.schedule(() => {
-            calledCount++;
-          });
-        }),
-      'Test'
-    );
+          throw Error('Test');
+        });
+        scheduler.schedule(() => {
+          calledCount++;
+        });
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`"Test"`);
 
     const expectedCount = 2;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   it('should discard not processed events in the case of error condition', () => {
     let calledCount = 0;
     const scheduler = new Scheduler();
     scheduler.initialize(); // TODO: refactor (use .start())
-    assert.throws(
-      () =>
+    expect(() =>
+      scheduler.schedule(() => {
+        calledCount++;
         scheduler.schedule(() => {
           calledCount++;
-          scheduler.schedule(() => {
-            calledCount++;
-            throw Error('Test');
-          });
-          scheduler.schedule(() => {
-            calledCount++;
-          });
-        }),
-      'Test'
-    );
+          throw Error('Test');
+        });
+        scheduler.schedule(() => {
+          calledCount++;
+        });
+      })
+    ).toThrowErrorMatchingInlineSnapshot(`"Test"`);
     scheduler.schedule(() => {
       calledCount++;
     });
 
     const expectedCount = 3;
-    assert.equal(calledCount, expectedCount);
+    expect(calledCount).toEqual(expectedCount);
   });
 
   describe('deferred events', () => {
@@ -159,10 +150,10 @@ describe('scheduler', () => {
       });
 
       const expectedCount = 0;
-      assert.equal(calledCount, expectedCount);
+      expect(calledCount).toEqual(expectedCount);
       scheduler.initialize(); // TODO: refactor (use .start())
       const expectedFinalCount = 1;
-      assert.equal(calledCount, expectedFinalCount);
+      expect(calledCount).toEqual(expectedFinalCount);
     });
 
     it('should process initialization before other events', () => {
@@ -181,9 +172,9 @@ describe('scheduler', () => {
       });
 
       const expectedOrder = [1, 2, 3];
-      assert.equal(callOrder.length, expectedOrder.length);
+      expect(callOrder.length).toEqual(expectedOrder.length);
       for (let i = 0; i < expectedOrder.length; i++) {
-        assert.equal(callOrder[i], expectedOrder[i]);
+        expect(callOrder[i]).toEqual(expectedOrder[i]);
       }
     });
 
@@ -198,7 +189,7 @@ describe('scheduler', () => {
       });
 
       const expectedCount = 1;
-      assert.equal(calledCount, expectedCount);
+      expect(calledCount).toEqual(expectedCount);
     });
   });
 });

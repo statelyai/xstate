@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/index';
 import { start, stop } from '../src/actions';
 
@@ -60,14 +59,10 @@ describe('activities with guarded transitions', () => {
   it('should activate even if there are subsequent automatic, but blocked transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'E');
-    assert.ok(state.activities.B_ACTIVITY);
-    assert.deepEqual(state.actions, [
+    expect(state.activities.B_ACTIVITY).toBeTruthy();
+    expect(state.actions).toEqual([
       start({ type: 'B_ACTIVITY', id: 'B_ACTIVITY', exec: undefined })
     ]);
-    // assert.isFunction(
-    //   state.actions[0].exec,
-    //   'Activity start function should be defined'
-    // );
   });
 });
 
@@ -93,7 +88,7 @@ describe('remembering activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'E');
     state = machine.transition(state, 'IGNORE');
-    assert.ok(state.activities.B_ACTIVITY);
+    expect(state.activities.B_ACTIVITY).toBeTruthy();
   });
 });
 
@@ -101,12 +96,12 @@ describe('activities', () => {
   it('identifies initial activities', () => {
     const { initialState } = lightMachine;
 
-    assert.ok(initialState.activities.fadeInGreen);
+    expect(initialState.activities.fadeInGreen).toBeTruthy();
   });
   it('identifies start activities', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER');
-    assert.ok(nextState.activities.activateCrosswalkLight);
-    assert.sameDeepMembers(nextState.actions, [
+    expect(nextState.activities.activateCrosswalkLight).toBeTruthy();
+    expect(nextState.actions).toEqual([
       start('activateCrosswalkLight')
     ]);
   });
@@ -114,9 +109,9 @@ describe('activities', () => {
   it('identifies start activities for child states and active activities', () => {
     const redWalkState = lightMachine.transition('yellow', 'TIMER');
     const nextState = lightMachine.transition(redWalkState, 'PED_WAIT');
-    assert.ok(nextState.activities.activateCrosswalkLight);
-    assert.ok(nextState.activities.blinkCrosswalkLight);
-    assert.sameDeepMembers(nextState.actions, [start('blinkCrosswalkLight')]);
+    expect(nextState.activities.activateCrosswalkLight).toBeTruthy();
+    expect(nextState.activities.blinkCrosswalkLight).toBeTruthy();
+    expect(nextState.actions).toEqual([start('blinkCrosswalkLight')]);
   });
 
   it('identifies stop activities for child states', () => {
@@ -124,9 +119,9 @@ describe('activities', () => {
     const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
     const nextState = lightMachine.transition(redWaitState, 'PED_STOP');
 
-    assert.ok(nextState.activities.activateCrosswalkLight);
-    assert.isFalse(nextState.activities.blinkCrosswalkLight);
-    assert.sameDeepMembers(nextState.actions, [stop('blinkCrosswalkLight')]);
+    expect(nextState.activities.activateCrosswalkLight).toBeTruthy();
+    expect(nextState.activities.blinkCrosswalkLight).toBe(false);
+    expect(nextState.actions).toEqual([stop('blinkCrosswalkLight')]);
   });
 
   it('identifies multiple stop activities for child and parent states', () => {
@@ -135,13 +130,13 @@ describe('activities', () => {
     const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
     const nextState = lightMachine.transition(redStopState, 'TIMER');
 
-    assert.ok(nextState.activities.fadeInGreen);
-    assert.isFalse(nextState.activities.activateCrosswalkLight);
-    assert.isFalse(nextState.activities.blinkCrosswalkLight);
+    expect(nextState.activities.fadeInGreen).toBeTruthy();
+    expect(nextState.activities.activateCrosswalkLight).toBe(false);
+    expect(nextState.activities.blinkCrosswalkLight).toBe(false);
 
-    assert.sameDeepMembers(nextState.actions, [
+    expect(nextState.actions).toEqual([
+      stop('activateCrosswalkLight'),
       start('fadeInGreen'),
-      stop('activateCrosswalkLight')
     ]);
   });
 });
@@ -226,36 +221,36 @@ describe('transient activities', () => {
 
   it('should have started initial activities', () => {
     const state = machine.initialState;
-    assert.ok(state.activities.A);
+    expect(state.activities.A).toBeTruthy();
   });
 
   it('should have started deep initial activities', () => {
     const state = machine.initialState;
-    assert.ok(state.activities.A1);
+    expect(state.activities.A1).toBeTruthy();
   });
 
   it('should have kept existing activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'A');
-    assert.ok(state.activities.A);
+    expect(state.activities.A).toBeTruthy();
   });
 
   it('should have kept same activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'C_SIMILAR');
-    assert.ok(state.activities.C1);
+    expect(state.activities.C1).toBeTruthy();
   });
 
   it('should have kept same activities after self transition', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'C');
-    assert.ok(state.activities.C1);
+    expect(state.activities.C1).toBeTruthy();
   });
 
   it('should have stopped after automatic transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'A');
-    assert.deepEqual(state.value, { A: 'A2', B: 'B2', C: 'C1' });
-    assert.ok(state.activities.B2);
+    expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C1' });
+    expect(state.activities.B2).toBeTruthy();
   });
 });

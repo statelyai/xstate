@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 const machine = Machine({
@@ -23,11 +22,11 @@ const machine = Machine({
 
 describe('invalid or resolved states', () => {
   it('should resolve a String state', () => {
-    assert.deepEqual(machine.transition('A', 'E').value, { A: 'A1', B: 'B1' });
+    expect(machine.transition('A', 'E').value).toEqual({ A: 'A1', B: 'B1' });
   });
 
   it('should resolve transitions from empty states', () => {
-    assert.deepEqual(machine.transition({ A: {}, B: {} }, 'E').value, {
+    expect(machine.transition({ A: {}, B: {} }, 'E').value).toEqual({
       A: 'A1',
       B: 'B1'
     });
@@ -38,23 +37,20 @@ describe('invalid or resolved states', () => {
   });
 
   it('should reject transitioning from bad state configs', () => {
-    assert.throws(() => machine.transition({ A: 'A3', B: 'B3' }, 'E'));
+    expect(() => machine.transition({ A: 'A3', B: 'B3' }, 'E')).toThrow();
   });
 
   it('should resolve transitioning from partially valid states', () => {
-    assert.deepEqual(machine.transition({ A: 'A1', B: {} }, 'E').value, {
+    expect(machine.transition({ A: 'A1', B: {} }, 'E').value).toEqual({
       A: 'A1',
       B: 'B1'
     });
   });
 
   it("should resolve transitioning from regions that don't exist (remove region)", () => {
-    assert.deepEqual(
-      machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value,
-      {
-        A: 'A1',
-        B: 'B1'
-      }
-    );
+    expect(machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value).toEqual({
+      A: 'A1',
+      B: 'B1'
+    });
   });
 });

@@ -1,5 +1,4 @@
 import { Machine, StateNode } from '../src';
-import { assert } from 'chai';
 import { flatten } from '../lib/utils';
 
 describe('document order', () => {
@@ -63,7 +62,7 @@ describe('document order', () => {
 
     const allStateNodeOrders = dfs(machine).map(sn => [sn.key, sn.order]);
 
-    assert.deepEqual(allStateNodeOrders, [
+    expect(allStateNodeOrders).toEqual([
       ['order', 0],
       ['one', 1],
       ['two', 2],

@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine, interpret } from '../src';
 
 describe('guard conditions', () => {
@@ -58,67 +57,63 @@ describe('guard conditions', () => {
   );
 
   it('should transition only if condition is met', () => {
-    assert.equal(
+    expect(
       lightMachine.transition('green', 'TIMER', {
         elapsed: 50
-      }).value,
-      'green'
-    );
+      }).value
+    ).toEqual('green');
 
-    assert.deepEqual(
+    expect(
       lightMachine.transition('green', 'TIMER', {
         elapsed: 120
-      }).value,
-      'yellow'
-    );
+      }).value
+    ).toEqual('yellow');
   });
 
   it('should transition if condition based on event is met', () => {
-    assert.deepEqual(
+    expect(
       lightMachine.transition('green', { type: 'EMERGENCY', isEmergency: true })
-        .value,
-      'red'
-    );
+        .value
+    ).toEqual('red');
   });
 
   it('should not transition if condition based on event is not met', () => {
-    assert.deepEqual(
-      lightMachine.transition('green', { type: 'EMERGENCY' }).value,
-      'green'
-    );
+    expect(
+      lightMachine.transition('green', { type: 'EMERGENCY' }).value
+    ).toEqual('green');
   });
 
   it('should not transition if no condition is met', () => {
     const nextState = lightMachine.transition('green', 'TIMER', {
       elapsed: 9000
     });
-    assert.deepEqual(nextState.value, 'green');
-    assert.isEmpty(nextState.actions);
+    expect(nextState.value).toEqual('green');
+    expect(nextState.actions).toEqual([]);
   });
 
   it('should work with defined string transitions', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER', {
       elapsed: 150
     });
-    assert.equal(nextState.value, 'red');
+    expect(nextState.value).toEqual('red');
   });
 
   it('should work with guard objects', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER_COND_OBJ', {
       elapsed: 150
     });
-    assert.equal(nextState.value, 'red');
+    expect(nextState.value).toEqual('red');
   });
 
   it('should work with defined string transitions (condition not met)', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER', {
       elapsed: 10
     });
-    assert.equal(nextState.value, 'yellow');
+    expect(nextState.value).toEqual('yellow');
   });
 
   it('should throw if string transition is not defined', () => {
-    assert.throws(() => lightMachine.transition('red', 'BAD_COND'));
+    expect(() => lightMachine.transition('red', 'BAD_COND')).toThrow();
   });
 });
 
@@ -199,21 +194,21 @@ describe('guard conditions', () => {
   });
 
   it('should guard against transition', () => {
-    assert.deepEqual(machine.transition({ A: 'A2', B: 'B0' }, 'T1').value, {
+    expect(machine.transition({ A: 'A2', B: 'B0' }, 'T1').value).toEqual({
       A: 'A2',
       B: 'B0'
     });
   });
 
   it('should allow a matching transition', () => {
-    assert.deepEqual(machine.transition({ A: 'A2', B: 'B0' }, 'T2').value, {
+    expect(machine.transition({ A: 'A2', B: 'B0' }, 'T2').value).toEqual({
       A: 'A2',
       B: 'B2'
     });
   });
 
   it('should check guards with interim states', () => {
-    assert.deepEqual(machine.transition({ A: 'A2', B: 'B0' }, 'A').value, {
+    expect(machine.transition({ A: 'A2', B: 'B0' }, 'A').value).toEqual({
       A: 'A5',
       B: 'B4'
     });
@@ -265,14 +260,14 @@ describe('custom guards', () => {
       value: 4
     });
 
-    assert.equal(passState.value, 'active');
+    expect(passState.value).toEqual('active');
 
     const failState = machine.transition(machine.initialState, {
       type: 'EVENT',
       value: 3
     });
 
-    assert.equal(failState.value, 'inactive');
+    expect(failState.value).toEqual('inactive');
   });
 });
 
@@ -314,18 +309,18 @@ describe('referencing guards', () => {
   const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
 
   it('guard predicates should be able to be referenced from a string', () => {
-    assert.isDefined(stringGuard.cond!.predicate);
-    assert.equal(stringGuard.cond!.name, 'string');
+    expect(stringGuard.cond!.predicate).toBeDefined();
+    expect(stringGuard.cond!.name).toEqual('string');
   });
 
   it('guard predicates should be able to be referenced from a function', () => {
-    assert.isDefined(functionGuard.cond!.predicate);
-    assert.deepEqual(functionGuard.cond!.name, 'guardFn');
+    expect(functionGuard.cond!.predicate).toBeDefined();
+    expect(functionGuard.cond!.name).toEqual('guardFn');
   });
 
   it('guard predicates should be able to be referenced from an object', () => {
-    assert.isDefined(objectGuard.cond);
-    assert.deepEqual(objectGuard.cond, {
+    expect(objectGuard.cond).toBeDefined();
+    expect(objectGuard.cond).toEqual({
       type: 'object',
       foo: 'bar'
     });
@@ -345,30 +340,30 @@ describe('referencing guards', () => {
       }
     });
 
-    assert.throws(() => {
+    expect(() => {
       machine.transition(machine.initialState, 'EVENT');
-    }, `Unable to evaluate guard`);
+    }).toThrow();
   });
 });
 
 describe('guards - other', () => {
   it('should allow for a fallback target to be a simple string', () => {
-      const machine = Machine({
-        initial: 'a',
-        states: {
-          a: {
-            on: {
-              EVENT: [{ target: 'b', cond: () => false }, 'c']
-            }
-          },
-          b: {},
-          c: {}
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            EVENT: [{ target: 'b', cond: () => false }, 'c']
+          }
         },
-      });
+        b: {},
+        c: {}
+      }
+    });
 
-      const service = interpret(machine).start();
-      service.send('EVENT');
+    const service = interpret(machine).start();
+    service.send('EVENT');
 
-      assert.equal(service.state.value, 'c');
-  })
-})
+    expect(service.state.value).toBe('c');
+  });
+});

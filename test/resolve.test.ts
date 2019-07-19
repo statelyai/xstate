@@ -1,5 +1,4 @@
 import { Machine } from '../src/index';
-import { assert } from 'chai';
 
 // from parallel/test3.scxml
 const flatParallelMachine = Machine({
@@ -65,7 +64,7 @@ describe('machine.resolve()', () => {
     const resolvedStateValue = flatParallelMachine.resolve(
       unresolvedStateValue
     );
-    assert.deepEqual(resolvedStateValue, {
+    expect(resolvedStateValue).toEqual({
       p1: { s1: { p2: { s3: 's3.1', s4: {} } }, s2: { p4: { s7: {}, s8: {} } } }
     });
   });

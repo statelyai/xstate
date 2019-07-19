@@ -38,6 +38,7 @@ __examples/
 .vscode/
 !.vscode/settings.json
 src/invoke.ts
+*.tsbuildinfo
 
 # Documentation
 docs-src/

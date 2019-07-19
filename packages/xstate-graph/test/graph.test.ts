@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine, StateNode, State, PathMap } from 'xstate';
 import {
   getNodes,
@@ -14,7 +13,6 @@ import {
 } from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
-// import * as util from 'util';
 
 describe('@xstate/graph', () => {
   const pedestrianStates = {
@@ -128,22 +126,22 @@ describe('@xstate/graph', () => {
   describe('getNodes()', () => {
     it('should return an array of all nodes', () => {
       const nodes = getNodes(lightMachine);
-      assert.ok(nodes.every(node => node instanceof StateNode));
-      assert.sameMembers(nodes.map(node => node.id), [
+      expect(nodes.every(node => node instanceof StateNode)).toBe(true);
+      expect(nodes.map(node => node.id).sort()).toEqual([
         'light.green',
-        'light.yellow',
         'light.red',
-        'light.red.walk',
-        'light.red.wait',
+        'light.red.flashing',
         'light.red.stop',
-        'light.red.flashing'
+        'light.red.wait',
+        'light.red.walk',
+        'light.yellow'
       ]);
     });
 
     it('should return an array of all nodes (parallel)', () => {
       const nodes = getNodes(parallelMachine);
-      assert.ok(nodes.every(node => node instanceof StateNode));
-      assert.sameMembers(nodes.map(node => node.id), [
+      expect(nodes.every(node => node instanceof StateNode)).toBe(true);
+      expect(nodes.map(node => node.id).sort()).toEqual([
         'p.a',
         'p.a.a1',
         'p.a.a2',
@@ -157,9 +155,41 @@ describe('@xstate/graph', () => {
   });
 
   describe('getEdges()', () => {
+    const getStringSortCriteria = (a: string, b: string): number => {
+      if (a === b) {
+        return 0;
+      }
+
+      const sorted = [a, b].sort();
+      return sorted[0] === a ? -1 : 1;
+    };
+
+    const getFormattedEdges = (machine: Parameters<typeof getEdges>[0]) =>
+      getEdges(machine)
+        .map(edge => ({
+          event: edge.event,
+          source: edge.source.id,
+          target: edge.target.id,
+          actions: edge.actions
+        }))
+        .sort((edgeA, edgeB) => {
+          for (let property of ['source', 'event', 'target']) {
+            const criteria = getStringSortCriteria(
+              edgeA[property],
+              edgeB[property]
+            );
+
+            if (criteria !== 0) {
+              return criteria;
+            }
+          }
+
+          return 0;
+        });
+
     it('should return an array of all directed edges', () => {
       const edges = getEdges(lightMachine);
-      assert.ok(
+      expect(
         edges.every(edge => {
           return (
             typeof edge.event === 'string' &&
@@ -167,76 +197,71 @@ describe('@xstate/graph', () => {
             edge.target instanceof StateNode
           );
         })
-      );
-      assert.sameDeepMembers(
-        edges.map(edge => ({
-          event: edge.event,
-          source: edge.source.id,
-          target: edge.target.id,
-          actions: edge.actions
-        })),
+      ).toBe(true);
+
+      expect(getFormattedEdges(lightMachine)).toEqual(
         [
           {
+            source: 'light.green',
+            event: 'POWER_OUTAGE',
+            target: 'light.red.flashing',
+            actions: [],
+          },
+          {
+            source: 'light.green',
             event: 'PUSH_BUTTON',
-            source: 'light.green',
             target: 'light.green',
-            actions: ['doNothing'] // lol
+            actions: ['doNothing'],
           },
           {
-            event: 'TIMER',
             source: 'light.green',
+            event: 'TIMER',
             target: 'light.yellow',
-            actions: []
+            actions: [],
           },
           {
-            event: 'TIMER',
-            source: 'light.yellow',
-            target: 'light.red',
-            actions: []
-          },
-          {
-            event: 'PED_COUNTDOWN',
-            source: 'light.red.walk',
-            target: 'light.red.wait',
-            actions: ['startCountdown']
-          },
-          {
-            event: 'PED_COUNTDOWN',
-            source: 'light.red.wait',
-            target: 'light.red.stop',
-            actions: []
-          },
-          {
-            event: 'TIMER',
             source: 'light.red',
+            event: 'POWER_OUTAGE',
+            target: 'light.red.flashing',
+            actions: [],
+          },
+          {
+            source: 'light.red',
+            event: 'TIMER',
             target: 'light.green',
-            actions: []
+            actions: [],
           },
           {
-            event: 'POWER_OUTAGE',
-            source: 'light.red',
-            target: 'light.red.flashing',
-            actions: []
+            source: 'light.red.wait',
+            event: 'PED_COUNTDOWN',
+            target: 'light.red.stop',
+            actions: [],
           },
           {
-            event: 'POWER_OUTAGE',
+            source: 'light.red.walk',
+            event: 'PED_COUNTDOWN',
+            target: 'light.red.wait',
+            actions: ['startCountdown'],
+          },
+          {
             source: 'light.yellow',
+            event: 'POWER_OUTAGE',
             target: 'light.red.flashing',
-            actions: []
+            actions: [],
           },
           {
-            event: 'POWER_OUTAGE',
-            source: 'light.green',
-            target: 'light.red.flashing',
-            actions: []
-          }
+            source: 'light.yellow',
+            event: 'TIMER',
+            target: 'light.red',
+            actions: [],
+          },
         ]
       );
     });
 
     it('should return an array of all directed edges (parallel)', () => {
       const edges = getEdges(parallelMachine);
-      assert.ok(
+      expect(
         edges.every(edge => {
           return (
             typeof edge.event === 'string' &&
@@ -244,22 +269,58 @@ describe('@xstate/graph', () => {
             edge.target instanceof StateNode
           );
         })
-      );
-      assert.sameDeepMembers(
-        edges.map(edge => ({
-          event: edge.event,
-          source: edge.source.id,
-          target: edge.target.id
-        })),
+      ).toBe(true);
+
+      expect(getFormattedEdges(parallelMachine)).toEqual(
         [
-          { event: '2', source: 'p.a.a1', target: 'p.a.a2' },
-          { event: '1', source: 'p.a.a2', target: 'p.a.a1' },
-          { event: '3', source: 'p.a.a2', target: 'p.a.a3' },
-          { event: '3', source: 'p.a.a1', target: 'p.a.a3' },
-          { event: '2', source: 'p.b.b1', target: 'p.b.b2' },
-          { event: '1', source: 'p.b.b2', target: 'p.b.b1' },
-          { event: '3', source: 'p.b.b2', target: 'p.b.b3' },
-          { event: '3', source: 'p.b.b1', target: 'p.b.b3' }
+          {
+            source: 'p.a.a1',
+            event: '2',
+            target: 'p.a.a2',
+            actions: [],
+          },
+          {
+            source: 'p.a.a1',
+            event: '3',
+            target: 'p.a.a3',
+            actions: [],
+          },
+          {
+            source: 'p.a.a2',
+            event: '1',
+            target: 'p.a.a1',
+            actions: [],
+          },
+          {
+            source: 'p.a.a2',
+            event: '3',
+            target: 'p.a.a3',
+            actions: [],
+          },
+          {
+            source: 'p.b.b1',
+            event: '2',
+            target: 'p.b.b2',
+            actions: [],
+          },
+          {
+            source: 'p.b.b1',
+            event: '3',
+            target: 'p.b.b3',
+            actions: [],
+          },
+          {
+            source: 'p.b.b2',
+            event: '1',
+            target: 'p.b.b1',
+            actions: [],
+          },
+          {
+            source: 'p.b.b2',
+            event: '3',
+            target: 'p.b.b3',
+            actions: [],
+          },
         ]
       );
     });
@@ -267,7 +328,7 @@ describe('@xstate/graph', () => {
 
   describe('adjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
-      assert.deepEqual(adjacencyMap(lightMachine), {
+      expect(adjacencyMap(lightMachine)).toEqual({
         '"green"': {
           TIMER: { state: 'yellow' },
           POWER_OUTAGE: { state: { red: 'flashing' } },
@@ -308,7 +369,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a flattened adjacency map (parallel)', () => {
-      assert.deepEqual(adjacencyMap(parallelMachine), {
+      expect(adjacencyMap(parallelMachine)).toEqual({
         '{"a":"a1","b":"b1"}': {
           '1': { state: { a: 'a1', b: 'b1' } },
           '2': { state: { a: 'a2', b: 'b2' } },
@@ -332,7 +393,6 @@ describe('@xstate/graph', () => {
     function formatPaths(pathMap: PathMap<any, any>): any {
       Object.keys(pathMap).forEach(key => {
         const data = pathMap[key] as any;
-        // assert.instanceOf(pathMap[key].state, State);
         data.state = {
           value: data.state.value,
           context: data.state.context
@@ -350,7 +410,7 @@ describe('@xstate/graph', () => {
     it('should return a mapping of shortest paths to all states', () => {
       const paths = getShortestPaths(lightMachine) as any;
 
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '"green"': {
           state: { value: 'green', context: undefined },
           weight: 0,
@@ -435,7 +495,7 @@ describe('@xstate/graph', () => {
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
       const paths = getShortestPaths(parallelMachine) as any;
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           weight: 0,
@@ -465,16 +525,15 @@ describe('@xstate/graph', () => {
     });
 
     it('the initial state should have a zero-length path', () => {
-      assert.lengthOf(
+      expect(
         getShortestPaths(lightMachine)[
           JSON.stringify(lightMachine.initialState.value)
-        ].path,
-        0
-      );
+        ].path
+      ).toHaveLength(0);
     });
 
     xit('should not throw when a condition is present', () => {
-      assert.doesNotThrow(() => getShortestPaths(condMachine));
+      expect(() => getShortestPaths(condMachine)).not.toThrow();
     });
 
     it('should represent conditional paths based on context', () => {
@@ -485,7 +544,7 @@ describe('@xstate/graph', () => {
         }
       }) as any;
       Object.keys(paths).forEach(key => {
-        assert.instanceOf(paths[key].state, State);
+        expect(paths[key].state).toBeInstanceOf(State);
         const data = paths[key];
 
         data.state = {
@@ -500,7 +559,7 @@ describe('@xstate/graph', () => {
         });
       });
 
-      assert.deepEqual(paths, {
+      expect(paths).toEqual({
         '"pending" | {"id":"foo"}': {
           state: { value: 'pending', context: { id: 'foo' } },
           weight: 0,
@@ -551,7 +610,7 @@ describe('@xstate/graph', () => {
     it('should return a mapping of arrays of simple paths to all states', () => {
       const paths = getSimplePaths(lightMachine) as any;
 
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '"green"': {
           state: { value: 'green', context: undefined },
           paths: [[]]
@@ -712,7 +771,7 @@ describe('@xstate/graph', () => {
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
       const paths = getSimplePaths(parallelMachine);
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '{"a":"a1","b":"b1"}': {
           state: { value: { a: 'a1', b: 'b1' }, context: undefined },
           paths: [[]]
@@ -754,7 +813,7 @@ describe('@xstate/graph', () => {
 
     it('should return multiple paths for equivalent transitions', () => {
       const paths = getSimplePaths(equivMachine);
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '"a"': { state: { value: 'a', context: undefined }, paths: [[]] },
         '"b"': {
           state: { value: 'b', context: undefined },
@@ -777,8 +836,8 @@ describe('@xstate/graph', () => {
     });
 
     it('should return a single empty path for the initial state', () => {
-      assert.deepEqual(getSimplePaths(lightMachine)['"green"'].paths, [[]]);
-      assert.deepEqual(getSimplePaths(equivMachine)['"a"'].paths, [[]]);
+      expect(getSimplePaths(lightMachine)['"green"'].paths).toEqual([[]]);
+      expect(getSimplePaths(equivMachine)['"a"'].paths).toEqual([[]]);
     });
 
     it('should return value-based paths', () => {
@@ -810,7 +869,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      assert.deepEqual(formatPaths(paths), {
+      expect(formatPaths(paths)).toEqual({
         '"start" | {"count":0}': {
           state: { value: 'start', context: { count: 0 } },
           paths: [[]]
@@ -882,7 +941,7 @@ describe('@xstate/graph', () => {
         });
       });
 
-      assert.deepEqual(pathsArray, [
+      expect(pathsArray).toEqual([
         { state: { value: 'green', context: undefined }, paths: [[]] },
         {
           state: { value: 'yellow', context: undefined },
@@ -1065,7 +1124,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      assert.property(adj, '"full" | {"count":5}');
+      expect(adj).toHaveProperty('"full" | {"count":5}');
     });
   });
 });

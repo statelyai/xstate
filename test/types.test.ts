@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine, assign } from '../src/index';
 
 function noop(_x) {
@@ -88,7 +87,7 @@ describe('StateSchema', () => {
   noop(lightMachine);
 
   it('should work with a StateSchema defined', () => {
-    assert.ok(true, 'Tests will not compile if types are wrong');
+    expect(true).toBeTruthy();
   });
 });
 
@@ -138,7 +137,7 @@ describe('Parallel StateSchema', () => {
   noop(parallelMachine);
 
   it('should work with a parallel StateSchema defined', () => {
-    assert.ok(true, 'Tests will not compile if types are wrong');
+    expect(true).toBeTruthy();
   });
 });
 
@@ -197,6 +196,6 @@ describe('Nested parallel stateSchema', () => {
   noop(nestedParallelMachine);
 
   it('should work with a parallel StateSchema defined', () => {
-    assert.ok(true, 'Tests will not compile if types are wrong');
+    expect(true).toBeTruthy();
   });
 });

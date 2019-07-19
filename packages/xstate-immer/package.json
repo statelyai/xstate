@@ -26,6 +26,9 @@
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "prebuild": "npm run clean",
+    "build": "tsc",
     "test": "echo \"Error: run tests from root\" && exit 1"
   },
   "bugs": {
@@ -38,6 +41,8 @@
   },
   "devDependencies": {
     "immer": "^2.1.5",
+    "lerna-alias": "3.0.3-0",
+    "typescript": "^3.5.3",
     "xstate": "^4.6.0"
   }
 }

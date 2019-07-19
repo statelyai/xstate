@@ -1,12 +1,10 @@
-import { assert } from 'chai';
-// import { Machine, State } from '../src/index';
 import { toggle, sequence } from '../src/patterns';
 import { Machine } from '../src';
 
 describe('patterns', () => {
   describe('toggle pattern', () => {
     it('should produce a partial state machine with a binary toggle', () => {
-      assert.deepEqual(toggle('on', 'off', 'SWITCH'), {
+      expect(toggle('on', 'off', 'SWITCH')).toEqual({
         on: { on: { SWITCH: 'off' } },
         off: { on: { SWITCH: 'on' } }
       });
@@ -22,25 +20,13 @@ describe('patterns', () => {
         ...sequence(seq)
       });
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[0], 'NEXT').value,
-        seq[1]
-      );
+      expect(sequenceMachine.transition(seq[0], 'NEXT').value).toEqual(seq[1]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[1], 'PREV').value,
-        seq[0]
-      );
+      expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[0]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[seq.length - 1], 'NEXT').value,
-        seq[seq.length - 1]
-      );
+      expect(sequenceMachine.transition(seq[seq.length - 1], 'NEXT').value).toEqual(seq[seq.length - 1]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[0], 'PREV').value,
-        seq[0]
-      );
+      expect(sequenceMachine.transition(seq[0], 'PREV').value).toEqual(seq[0]);
     });
 
     it('should customize the next/prev events', () => {
@@ -54,25 +40,13 @@ describe('patterns', () => {
         })
       });
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[0], 'NEXT').value,
-        seq[0]
-      );
+      expect(sequenceMachine.transition(seq[0], 'NEXT').value).toEqual(seq[0]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[1], 'PREV').value,
-        seq[1]
-      );
+      expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[1]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[0], 'FORWARD').value,
-        seq[1]
-      );
+      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[1]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[1], 'BACK').value,
-        seq[0]
-      );
+      expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[0]);
     });
 
     it('should allow next/prev events to be undefined', () => {
@@ -86,15 +60,9 @@ describe('patterns', () => {
         })
       });
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[0], 'FORWARD').value,
-        seq[1]
-      );
+      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[1]);
 
-      assert.deepEqual(
-        sequenceMachine.transition(seq[1], 'BACK').value,
-        seq[1]
-      );
+      expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[1]);
 
       const backSequenceMachine = Machine({
         id: 'backSequence',
@@ -104,15 +72,9 @@ describe('patterns', () => {
         })
       });
 
-      assert.deepEqual(
-        backSequenceMachine.transition(seq[0], 'FORWARD').value,
-        seq[0]
-      );
+      expect(backSequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[0]);
 
-      assert.deepEqual(
-        backSequenceMachine.transition(seq[1], 'BACK').value,
-        seq[0]
-      );
+      expect(backSequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[0]);
     });
   });
 });

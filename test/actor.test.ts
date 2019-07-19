@@ -8,7 +8,6 @@ import {
   actionTypes
 } from '../src/actions';
 import { Actor } from '../src/Actor';
-import { assert } from 'chai';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -154,7 +153,7 @@ describe('spawning machines', () => {
   });
 
   it('should invoke a null actor if spawned outside of a service', () => {
-    assert.ok(spawn(todoMachine));
+    expect(spawn(todoMachine)).toBeTruthy();
   });
 
   it('should allow bidirectional communication between parent/child actors', done => {
@@ -325,7 +324,7 @@ describe('actors', () => {
 
     interpret(startMachine)
       .onTransition(() => {
-        assert.equal(count, 1);
+        expect(count).toEqual(1);
       })
       .start();
   });
@@ -345,8 +344,8 @@ describe('actors', () => {
 
     const { initialState } = nullActorMachine;
 
-    // assert.equal(initialState.context.ref!.id, 'null'); // TODO: identify null actors
-    assert.isDefined(initialState.context.ref!.send);
+    // expect(initialState.context.ref!.id).toBe('null'); // TODO: identify null actors
+    expect(initialState.context.ref!.send).toBeDefined();
   });
 
   describe('autoForward option', () => {
@@ -392,7 +391,7 @@ describe('actors', () => {
       service.start();
       service.send('PING');
       service.send('PING');
-      assert.equal(pongCounter, 0);
+      expect(pongCounter).toEqual(0);
     });
 
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
@@ -419,7 +418,7 @@ describe('actors', () => {
       service.start();
       service.send('PING');
       service.send('PING');
-      assert.equal(pongCounter, 0);
+      expect(pongCounter).toEqual(0);
     });
 
     it('should forward events to a spawned actor when { autoForward: true }', () => {
@@ -446,7 +445,7 @@ describe('actors', () => {
       service.start();
       service.send('PING');
       service.send('PING');
-      assert.equal(pongCounter, 2);
+      expect(pongCounter).toEqual(2);
     });
   });
 
@@ -515,11 +514,7 @@ describe('actors', () => {
         service.start();
 
         setTimeout(() => {
-          assert.equal(
-            service.state.context.refNoSync.state.context.value,
-            42,
-            'value should change without notification'
-          );
+          expect(service.state.context.refNoSync.state.context.value).toBe(42);
           res();
         }, 30);
       });
@@ -537,11 +532,7 @@ describe('actors', () => {
         service.start();
 
         setTimeout(() => {
-          assert.equal(
-            service.state.context.refNoSyncDefault.state.context.value,
-            42,
-            'value should change without notification'
-          );
+          expect(service.state.context.refNoSyncDefault.state.context.value).toBe(42);
           res();
         }, 30);
       });
@@ -580,7 +571,7 @@ describe('actors', () => {
             state.context.ref &&
             (state.context.ref as Interpreter<any>).state.matches('inactive')
           ) {
-            assert.isTrue(state.changed);
+            expect(state.changed).toBe(true);
             done();
           }
         })
@@ -625,17 +616,15 @@ describe('actors', () => {
               state.context.ref &&
               (state.context.ref as Interpreter<any>).state.matches('inactive')
             ) {
-              assert.isFalse(state.changed);
+              expect(state.changed).toBe(false);
             }
           })
           .start();
 
         setTimeout(() => {
-          assert.isTrue(
-            (service.state.context.ref! as Interpreter<any>).state.matches(
-              'inactive'
-            )
-          );
+          expect((service.state.context.ref! as Interpreter<any>).state.matches(
+            'inactive'
+          )).toBe(true);
           done();
         }, 20);
       });
@@ -677,7 +666,7 @@ describe('actors', () => {
               state.context.ref &&
               (state.context.ref as Interpreter<any>).state.matches('inactive')
             ) {
-              assert.isTrue(state.changed);
+              expect(state.changed).toBe(true);
               done();
             }
           })
