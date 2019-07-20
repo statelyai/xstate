@@ -717,7 +717,8 @@ describe('actions config', () => {
           { type: 'any' },
           {
             action,
-            state: initialState
+            state: initialState,
+            _event: initialState._event
           }
         );
       }
@@ -736,7 +737,8 @@ describe('actions config', () => {
           { type: 'EVENT' },
           {
             action,
-            state: initialState
+            state: initialState,
+            _event: initialState._event
           }
         );
       }

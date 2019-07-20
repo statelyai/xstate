@@ -1,6 +1,7 @@
 import { assert } from 'chai';
 import { Machine, State } from '../src/index';
 import { initEvent, assign } from '../src/actions';
+import { toSCXMLEvent } from '../src/utils';
 
 const machine = Machine({
   initial: 'one',
@@ -328,6 +329,64 @@ describe('State', () => {
       const { initialState } = machine;
 
       assert.deepEqual(initialState.event, initEvent);
+    });
+  });
+
+  describe('._event', () => {
+    it('the ._event prop should be the SCXML event (string) that caused the transition', () => {
+      const { initialState } = machine;
+
+      const nextState = machine.transition(initialState, 'TO_TWO');
+
+      assert.deepEqual(nextState._event, toSCXMLEvent('TO_TWO'));
+    });
+
+    it('the ._event prop should be the SCXML event (object) that caused the transition', () => {
+      const { initialState } = machine;
+
+      const nextState = machine.transition(initialState, {
+        type: 'TO_TWO',
+        foo: 'bar'
+      });
+
+      assert.deepEqual(
+        nextState._event,
+        toSCXMLEvent({ type: 'TO_TWO', foo: 'bar' })
+      );
+    });
+
+    it('the ._event prop should be the initial SCXML event for the initial state', () => {
+      const { initialState } = machine;
+
+      assert.deepEqual(initialState._event, toSCXMLEvent(initEvent));
+    });
+
+    it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {
+      const { initialState } = machine;
+
+      const nextState = machine.transition(initialState, {
+        type: 'TO_TWO',
+        foo: 'bar',
+        __scxml: toSCXMLEvent(
+          {
+            type: 'TO_TWO',
+            foo: 'bar'
+          },
+          {
+            sendid: 'test'
+          }
+        )
+      });
+
+      assert.deepEqual(
+        nextState._event,
+        toSCXMLEvent(
+          { type: 'TO_TWO', foo: 'bar' },
+          {
+            sendid: 'test'
+          }
+        )
+      );
     });
   });
 

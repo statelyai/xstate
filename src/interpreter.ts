@@ -26,7 +26,7 @@ import {
 } from './types';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toEventObject, doneInvoke, error, getActionFunction } from './actions';
+import { doneInvoke, error, getActionFunction } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -39,7 +39,9 @@ import {
   isString,
   isObservable,
   uniqueId,
-  isMachine
+  isMachine,
+  toEventObject,
+  toSCXMLEvent
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -567,7 +569,13 @@ export class Interpreter<
       return;
     }
 
-    target.send(event);
+    // add SCXML event
+    const eventWithSCXML = {
+      ...event,
+      __scxml: toSCXMLEvent(event, { sendid: this.id, type: 'external' })
+    };
+
+    target.send(eventWithSCXML);
   };
   /**
    * Returns the next state given the interpreter's current state and the event.

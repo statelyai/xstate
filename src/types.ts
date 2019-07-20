@@ -892,7 +892,7 @@ export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
   state: State<TContext, TEvent>;
-  // _event: SCXML.Event;
+  _event: SCXML.Event<TEvent>;
 }
 
 export interface StateInterface<
@@ -907,6 +907,7 @@ export interface StateInterface<
   activities: ActivityMap;
   meta: any;
   event: TEvent;
+  _event: SCXML.Event<TEvent>;
   events: TEvent[];
   context: TContext;
   toStrings: () => string[];
@@ -920,6 +921,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   value: StateValue;
   context: TContext;
   event: TEvent;
+  _event: SCXML.Event<TEvent>;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext>;
   actions?: Array<ActionObject<TContext, TEvent>>;
@@ -965,7 +967,7 @@ export interface InterpreterOptions {
 
 export namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
-  export interface Event {
+  export interface Event<TEvent extends EventObject> {
     /**
      * This is a character string giving the name of the event.
      * The SCXML Processor must set the name field to the name of this event.
@@ -988,7 +990,7 @@ export namespace SCXML {
      * the Processor must set this field to the send id of the triggering <send> element.
      * Otherwise it must leave it blank.
      */
-    sendid: string | undefined;
+    sendid?: string;
     /**
      * This is a URI, equivalent to the 'target' attribute on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,
@@ -996,7 +998,7 @@ export namespace SCXML {
      * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origin: string | undefined;
+    origin?: string;
     /**
      * This is equivalent to the 'type' field on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,
@@ -1004,13 +1006,13 @@ export namespace SCXML {
      * a response back to the originating entity at the URI specified by 'origin'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origintype: string | undefined;
+    origintype?: string;
     /**
      * If this event is generated from an invoked child process, the SCXML Processor
      * must set this field to the invoke id of the invocation that triggered the child process.
      * Otherwise it must leave it blank.
      */
-    invokeid: string | undefined;
+    invokeid?: string;
     /**
      * This field contains whatever data the sending entity chose to include in this event.
      * The receiving SCXML Processor should reformat this data to match its data model,
@@ -1019,7 +1021,7 @@ export namespace SCXML {
      * If the conversion is not possible, the Processor must leave the field blank
      * and must place an error 'error.execution' in the internal event queue.
      */
-    data: Record<string, any> | undefined;
+    data: TEvent;
     /**
      * @private
      */

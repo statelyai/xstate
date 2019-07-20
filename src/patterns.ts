@@ -6,7 +6,7 @@ import {
   StateSchema,
   StateNodeConfig
 } from './types';
-import { toEventObject } from './actions';
+import { toEventObject } from './utils';
 
 export function toggle<TEventType extends string = string>(
   onState: string,

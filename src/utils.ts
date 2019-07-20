@@ -16,7 +16,8 @@ import {
   Guard,
   Subscribable,
   StateMachine,
-  ConditionPredicate
+  ConditionPredicate,
+  SCXML
 } from './types';
 import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -440,7 +441,8 @@ export function bindActionToState<TC, TE extends EventObject>(
         ? () =>
             exec(state.context, state.event as TE, {
               action,
-              state
+              state,
+              _event: toSCXMLEvent(state.event)
             })
         : undefined
   };
@@ -549,3 +551,50 @@ export const uniqueId = (() => {
     return currentId.toString(16);
   };
 })();
+
+export function toEventObject<TEvent extends EventObject>(
+  event: Event<TEvent> | SCXML.Event<TEvent>,
+  payload?: Record<string, any> & { type?: never }
+  // id?: TEvent['type']
+): TEvent {
+  if (isString(event) || typeof event === 'number') {
+    const eventObject = { type: event };
+
+    if (payload) {
+      Object.assign(eventObject, payload);
+    }
+
+    return eventObject as TEvent;
+  }
+
+  return event as TEvent;
+}
+
+export function toSCXMLEvent<TEvent extends EventObject>(
+  event: Event<TEvent> | SCXML.Event<TEvent>,
+  scxmlEvent: Partial<SCXML.Event<TEvent>> = {}
+): SCXML.Event<TEvent> {
+  if (!isString(event)) {
+    if (event.$$type === 'scxml') {
+      return event as SCXML.Event<TEvent>;
+    }
+
+    if ('__scxml' in event) {
+      return event.__scxml as SCXML.Event<TEvent>;
+    }
+  }
+
+  const eventObject = toEventObject(event);
+
+  if (eventObject.__scxml) {
+    return eventObject.__scxml as SCXML.Event<TEvent>;
+  }
+
+  return {
+    name: eventObject.type,
+    data: eventObject,
+    $$type: 'scxml',
+    type: 'external',
+    ...scxmlEvent
+  };
+}

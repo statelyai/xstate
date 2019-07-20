@@ -8,10 +8,11 @@ import {
   EventType,
   StateValueMap,
   StateConfig,
-  ActionTypes
+  ActionTypes,
+  SCXML
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString } from './utils';
+import { matchesState, keys, isString, toSCXMLEvent } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 
@@ -51,6 +52,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   public meta: any = {};
   public events: TEvent[] = [];
   public event: TEvent;
+  public _event: SCXML.Event<TEvent>;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *
@@ -84,6 +86,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
           value: stateValue.value,
           context: context as TC,
           event: stateValue.event,
+          _event: stateValue._event,
           historyValue: stateValue.historyValue,
           history: stateValue.history,
           actions: [],
@@ -103,6 +106,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       value: stateValue,
       context: context as TC,
       event,
+      _event: toSCXMLEvent(event),
       historyValue: undefined,
       history: undefined,
       actions: [],
@@ -140,6 +144,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
         value: stateValue.value,
         context,
         event,
+        _event: toSCXMLEvent(event),
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
@@ -166,6 +171,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     this.value = config.value;
     this.context = config.context;
     this.event = config.event;
+    this._event = toSCXMLEvent(config.event);
     this.historyValue = config.historyValue;
     this.history = config.history;
     this.actions = config.actions || [];

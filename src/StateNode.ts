@@ -20,7 +20,9 @@ import {
   isFunction,
   isString,
   toGuard,
-  isMachine
+  isMachine,
+  toSCXMLEvent,
+  toEventObject
 } from './utils';
 import {
   Event,
@@ -70,7 +72,6 @@ import * as actionTypes from './actionTypes';
 import {
   start,
   stop,
-  toEventObject,
   toActivityDefinition,
   send,
   cancel,
@@ -961,7 +962,8 @@ class StateNode<
     const { guards } = this.machine.options;
     const guardMeta: GuardMeta<TContext, TEvent> = {
       state,
-      cond: guard
+      cond: guard,
+      _event: toSCXMLEvent(eventObject)
     };
 
     // TODO: do not hardcode!
@@ -1260,6 +1262,7 @@ class StateNode<
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       event: eventObject || initEvent,
+      _event: toSCXMLEvent(eventObject),
       historyValue: resolvedStateValue
         ? historyValue
           ? updateHistoryValue(historyValue, resolvedStateValue)

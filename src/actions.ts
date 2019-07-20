@@ -26,7 +26,7 @@ import {
   PureAction
 } from './types';
 import * as actionTypes from './actionTypes';
-import { getEventType, isFunction, isString } from './utils';
+import { getEventType, isFunction, isString, toEventObject } from './utils';
 import { isArray } from './utils';
 
 export { actionTypes };
@@ -34,24 +34,6 @@ export { actionTypes };
 export const initEvent = { type: actionTypes.init } as {
   type: ActionTypes.Init;
 };
-
-export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: Record<string, any> & { type?: never }
-  // id?: TEvent['type']
-): TEvent {
-  if (isString(event) || typeof event === 'number') {
-    const eventObject = { type: event };
-
-    if (payload) {
-      Object.assign(eventObject, payload);
-    }
-
-    return eventObject as TEvent;
-  }
-
-  return event as TEvent;
-}
 
 export function getActionFunction<TContext, TEvent extends EventObject>(
   actionType: ActionType,
