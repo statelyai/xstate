@@ -36,14 +36,6 @@ export default [
     }
   }),
   createConfig({
-    input: 'src/graph.ts',
-    output: {
-      file: 'dist/xstate.graph.js',
-      format: 'umd',
-      name: 'XStateGraph'
-    }
-  }),
-  createConfig({
     input: 'src/interpreter.ts',
     output: {
       file: 'dist/xstate.interpreter.js',
