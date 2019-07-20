@@ -10,7 +10,6 @@ import {
   EventType,
   ActionTypes,
   HistoryValue,
-  OmniEventObject,
   AssignAction,
   ActionObject,
   Condition,
@@ -402,15 +401,12 @@ export function updateHistoryValue(
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
-  event: OmniEventObject<TEvent>,
+  event: TEvent,
   assignActions: Array<AssignAction<TContext, TEvent>>
 ): TContext {
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as AssignAction<
-          TContext,
-          OmniEventObject<TEvent>
-        >;
+        const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
         let partialUpdate: Partial<TContext> = {};
 

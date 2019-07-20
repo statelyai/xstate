@@ -10,13 +10,10 @@ import {
   SpecialTargets,
   ActionTypes,
   InvokeDefinition,
-  OmniEventObject,
-  OmniEvent,
   SendActionObject,
   ServiceConfig,
   InvokeCallback,
   DisposeActivityFunction,
-  ErrorPlatformEvent,
   StateValue,
   InterpreterOptions,
   ActivityDefinition,
@@ -50,7 +47,7 @@ import { isInFinalState } from './stateUtils';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
-  event: OmniEventObject<TEvent>
+  event: TEvent
 ) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
@@ -110,7 +107,7 @@ export class Interpreter<
 >
   implements
     Subscribable<State<TContext, TEvent>>,
-    Actor<State<TContext, TEvent>, OmniEventObject<TEvent>> {
+    Actor<State<TContext, TEvent>, TEvent> {
   /**
    * The default interpreter options:
    *
@@ -218,10 +215,7 @@ export class Interpreter<
       this.exec(action, state.context, state.event, actionsConfig);
     }
   }
-  private update(
-    state: State<TContext, TEvent>,
-    event: OmniEventObject<TEvent>
-  ): void {
+  private update(state: State<TContext, TEvent>, event: TEvent): void {
     // Update state
     this.state = state;
 
@@ -404,7 +398,7 @@ export class Interpreter<
       this.attachDev();
     }
     this.scheduler.initialize(() => {
-      this.update(resolvedState, { type: actionTypes.init });
+      this.update(resolvedState, { type: actionTypes.init } as TEvent);
     });
     return this;
   }
@@ -455,7 +449,7 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send = (
-    event: SingleOrArray<OmniEvent<TEvent>>,
+    event: SingleOrArray<TEvent | TEvent['type']>,
     payload?: Record<string, any> & { type?: never }
   ): State<TContext, TEvent> => {
     if (isArray(event)) {
@@ -500,7 +494,7 @@ export class Interpreter<
     // tslint:disable-next-line:semicolon
   };
 
-  private batch(events: Array<OmniEvent<TEvent>>): void {
+  private batch(events: Array<TEvent | TEvent['type']>): void {
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
@@ -548,10 +542,7 @@ export class Interpreter<
     return this.send.bind(this, event);
   }
 
-  public sendTo = (
-    event: OmniEventObject<TEvent>,
-    to: string | number | Actor
-  ) => {
+  public sendTo = (event: TEvent, to: string | number | Actor) => {
     const isParent = to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
@@ -585,7 +576,7 @@ export class Interpreter<
    *
    * @param event The event to determine the next state
    */
-  public nextState(event: OmniEvent<TEvent>): State<TContext, TEvent> {
+  public nextState(event: TEvent | TEvent['type']): State<TContext, TEvent> {
     const eventObject = toEventObject(event);
 
     if (
@@ -594,7 +585,7 @@ export class Interpreter<
         nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
-      throw (eventObject as ErrorPlatformEvent).data;
+      throw (eventObject as TEvent).data;
     }
 
     const nextState = withServiceScope(this, () => {
@@ -607,7 +598,7 @@ export class Interpreter<
 
     return nextState;
   }
-  private forward(event: OmniEventObject<TEvent>): void {
+  private forward(event: TEvent): void {
     for (const id of this.forwardTo) {
       const child = this.children.get(id);
 
@@ -661,9 +652,9 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, OmniEventObject<TEvent>>,
+    action: ActionObject<TContext, TEvent>,
     context: TContext,
-    event: OmniEventObject<TEvent>,
+    event: TEvent,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
     const actionOrExec =

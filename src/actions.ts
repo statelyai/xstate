@@ -23,7 +23,6 @@ import {
   DoneEventObject,
   SendExpr,
   SendActionObject,
-  OmniEventObject,
   PureAction
 } from './types';
 import * as actionTypes from './actionTypes';
@@ -191,10 +190,10 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   action: SendAction<TContext, TEvent>,
   ctx: TContext,
   event: TEvent
-): SendActionObject<TContext, OmniEventObject<TEvent>> {
+): SendActionObject<TContext, TEvent> {
   // TODO: helper function for resolving Expr
   const resolvedEvent = isFunction(action.event)
-    ? toEventObject(action.event(ctx, event) as OmniEventObject<TEvent>)
+    ? toEventObject(action.event(ctx, event) as TEvent)
     : toEventObject(action.event);
   const resolvedDelay = isFunction(action.delay)
     ? action.delay(ctx, event)
@@ -369,7 +368,7 @@ export function doneInvoke(id: string, data?: any): DoneEvent {
   return eventObject as DoneEvent;
 }
 
-export function error(id: string, data?: any): (ErrorPlatformEvent & string) {
+export function error(id: string, data?: any): ErrorPlatformEvent & string {
   const type = `${ActionTypes.ErrorPlatform}.${id}`;
   const eventObject = { type, data };
 
@@ -379,10 +378,10 @@ export function error(id: string, data?: any): (ErrorPlatformEvent & string) {
 }
 
 export function pure<TContext, TEvent extends EventObject>(
-  getActions: ((
+  getActions: (
     context: TContext,
-    event: OmniEventObject<TEvent>
-  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined)
+    event: TEvent
+  ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined
 ): PureAction<TContext, TEvent> {
   return {
     type: ActionTypes.Pure,

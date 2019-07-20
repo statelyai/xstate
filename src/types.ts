@@ -45,14 +45,6 @@ export type DefaultContext = Record<string, any> | undefined;
  */
 export type Event<TEvent extends EventObject> = TEvent['type'] | TEvent;
 
-/**
- * Represents the specified event types or the full event objects,
- * as well as the built in event types and/or objects.
- */
-export type OmniEvent<TEvent extends EventObject> =
-  | OmniEventObject<TEvent>
-  | OmniEventObject<TEvent>['type'];
-
 export interface ActionMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
   action: ActionObject<TContext, TEvent>;
@@ -99,7 +91,7 @@ export type DefaultGuardType = 'xstate.guard';
 export interface GuardPredicate<TContext, TEvent extends EventObject> {
   type: DefaultGuardType;
   name: string | undefined;
-  predicate: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
+  predicate: ConditionPredicate<TContext, TEvent>;
 }
 
 export type Guard<TContext, TEvent extends EventObject> =
@@ -552,7 +544,7 @@ export type ServiceConfig<TContext> =
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
-  | Expr<TContext, OmniEventObject<TEvent>, number>;
+  | Expr<TContext, TEvent, number>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
@@ -713,13 +705,6 @@ export type BuiltInEvent<TEvent extends EventObject> =
   | RaisedEvent<TEvent>
   | ErrorExecutionEvent;
 
-/**
- * Represents the specified events and the built-in internal events.
- */
-export type OmniEventObject<TEvent extends EventObject> =
-  | TEvent
-  | BuiltInEvent<TEvent>;
-
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
@@ -756,7 +741,7 @@ export type Expr<TContext, TEvent extends EventObject, T> = (
 export type SendExpr<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent
-) => OmniEvent<TEvent>;
+) => TEvent;
 
 export enum SpecialTargets {
   Parent = '#_parent',
@@ -804,7 +789,7 @@ export type Updater<
   >
 > = (
   context: TContext,
-  event: OmniEventObject<TEvent>,
+  event: TEvent,
   assignActions: TAssignAction[]
 ) => TContext;
 
@@ -825,7 +810,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
   type: ActionTypes.Pure;
   get: (
     context: TContext,
-    event: OmniEventObject<TEvent>
+    event: TEvent
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
 }
 
@@ -856,7 +841,7 @@ export interface Edge<
   cond?: Condition<TContext, TEvent & { type: TEventType }>;
   actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
-  transition: TransitionDefinition<TContext, OmniEventObject<TEvent>>;
+  transition: TransitionDefinition<TContext, TEvent>;
 }
 export interface NodesAndEdges<TContext, TEvent extends EventObject> {
   nodes: StateNode[];
@@ -921,7 +906,7 @@ export interface StateInterface<
   actions: Array<ActionObject<TContext, TEvent>>;
   activities: ActivityMap;
   meta: any;
-  event: OmniEventObject<TEvent>;
+  event: TEvent;
   events: TEvent[];
   context: TContext;
   toStrings: () => string[];
@@ -934,7 +919,7 @@ export interface StateInterface<
 export interface StateConfig<TContext, TEvent extends EventObject> {
   value: StateValue;
   context: TContext;
-  event: OmniEventObject<TEvent>;
+  event: TEvent;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext>;
   actions?: Array<ActionObject<TContext, TEvent>>;

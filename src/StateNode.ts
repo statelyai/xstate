@@ -45,11 +45,9 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  OmniEventObject,
   RaisedEvent,
   FinalStateNodeConfig,
   InvokeDefinition,
-  OmniEvent,
   ActionObject,
   Mapper,
   PropertyMapper,
@@ -116,7 +114,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
-  TEvent extends OmniEventObject<EventObject> = OmniEventObject<EventObject>
+  TEvent extends EventObject = EventObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -656,7 +654,7 @@ class StateNode<
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>
+    eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, eventObject);
@@ -685,7 +683,7 @@ class StateNode<
   private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>
+    eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
     const subStateKeys = keys(stateValue);
 
@@ -720,7 +718,7 @@ class StateNode<
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>
+    eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
     const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
@@ -792,7 +790,7 @@ class StateNode<
   private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvent>,
-    event: OmniEventObject<TEvent>
+    event: TEvent
   ): StateTransition<TContext, TEvent> {
     // leaf node
     if (isString(stateValue)) {
@@ -809,12 +807,10 @@ class StateNode<
   }
   private next(
     state: State<TContext, TEvent>,
-    eventObject: OmniEventObject<TEvent>
+    eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
     const eventType = eventObject.type;
-    const candidates: Array<TransitionDefinition<TContext, TEvent>> = this.on[
-      eventType
-    ];
+    const candidates = this.on[eventType];
 
     if (!candidates || !candidates.length) {
       return {
@@ -958,10 +954,10 @@ class StateNode<
   private evaluateGuard(
     guard: Guard<TContext, TEvent>,
     context: TContext,
-    eventObject: OmniEventObject<TEvent>,
+    eventObject: TEvent,
     state: State<TContext, TEvent>
   ): boolean {
-    let condFn: ConditionPredicate<TContext, OmniEventObject<TEvent>>;
+    let condFn: ConditionPredicate<TContext, TEvent>;
     const { guards } = this.machine.options;
     const guardMeta: GuardMeta<TContext, TEvent> = {
       state,
@@ -1084,7 +1080,7 @@ class StateNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent>,
-    event: OmniEvent<TEvent>,
+    event: TEvent | TEvent['type'],
     context?: TContext
   ): State<TContext, TEvent> {
     let currentState: State<TContext, TEvent>;
@@ -1137,7 +1133,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
-    _eventObject?: OmniEventObject<TEvent>
+    _eventObject?: TEvent
   ): State<TContext, TEvent> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
@@ -1158,7 +1154,7 @@ class StateNode<
     const currentContext = currentState
       ? currentState.context
       : stateTransition.context || this.machine.context!;
-    const eventObject = _eventObject || { type: ActionTypes.Init };
+    const eventObject = _eventObject || ({ type: ActionTypes.Init } as TEvent);
     const actions = this.getActions(stateTransition, currentState);
     const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
@@ -1193,7 +1189,7 @@ class StateNode<
       nonEventActions.map(actionObject => {
         if (actionObject.type === actionTypes.send) {
           const sendAction = resolveSend(
-            actionObject as SendAction<TContext, OmniEventObject<TEvent>>,
+            actionObject as SendAction<TContext, TEvent>,
             updatedContext,
             eventObject || { type: ActionTypes.Init }
           ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
@@ -1314,9 +1310,9 @@ class StateNode<
 
       maybeNextState = this.transition(
         maybeNextState,
-        raisedEvent.type === actionTypes.nullEvent
+        (raisedEvent.type === actionTypes.nullEvent
           ? raisedEvent
-          : (raisedEvent as RaisedEvent<TEvent>).event,
+          : (raisedEvent as RaisedEvent<TEvent>).event) as TEvent,
         maybeNextState.context
       );
       // Save original event to state

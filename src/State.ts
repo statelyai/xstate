@@ -8,9 +8,7 @@ import {
   EventType,
   StateValueMap,
   StateConfig,
-  ActionTypes,
-  OmniEventObject,
-  BuiltInEvent
+  ActionTypes
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -52,7 +50,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];
-  public event: OmniEventObject<TEvent>;
+  public event: TEvent;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *
@@ -99,7 +97,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       return stateValue;
     }
 
-    const event = { type: ActionTypes.Init } as BuiltInEvent<TE>;
+    const event = { type: ActionTypes.Init } as TE;
 
     return new State<TC, TE>({
       value: stateValue,
@@ -136,7 +134,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       if (!stateValue.actions.length) {
         return stateValue as State<TC, TE>;
       }
-      const event = { type: ActionTypes.Init } as BuiltInEvent<TE>;
+      const event = { type: ActionTypes.Init } as TE;
 
       return new State<TC, TE>({
         value: stateValue.value,
