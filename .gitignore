@@ -43,6 +43,7 @@ docs-src/
 netlify/
 docs/.cache
 !docs/examples/
+*.pdf
 
 ./public/
 .cache

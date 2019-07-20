@@ -45,6 +45,7 @@
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && vuepress dev docs",
+    "docs:pdf": "npm run docs:build && vuepress export ./docs",
     "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md",
     "docs:build": "npm run docs:readme && npm run docs:packages && vuepress build docs",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
@@ -97,6 +98,7 @@
     "typedoc": "^0.14.2",
     "typescript": "^3.5.3",
     "vuepress": "^1.0.1",
+    "vuepress-plugin-export": "^0.2.0",
     "webpack-dev-middleware": "^3.6.0",
     "xml-js": "^1.6.8"
   },
