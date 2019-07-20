@@ -1853,7 +1853,7 @@ class StateNode<
             return [targetStateNode];
           } catch (err) {
             throw new Error(
-              `Invalid transition for state node '${this.id}':\n${err.message}`
+              `Invalid transition definition for state node '${this.id}':\n${err.message}`
             );
           }
         } else {
@@ -1899,7 +1899,7 @@ class StateNode<
           return targetStateNode;
         } catch (err) {
           throw new Error(
-            `Invalid transition for state node '${this.id}' on event '${event}':\n${err.message}`
+            `Invalid transition definition for state node '${this.id}' on event '${event}':\n${err.message}`
           );
         }
       } else {
