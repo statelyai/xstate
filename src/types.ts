@@ -634,9 +634,9 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
-  entrySet: Array<StateNode<TContext, any, TEvent>>;
-  exitSet: Array<StateNode<TContext, any, TEvent>>;
+  configuration: Array<StateNode<TContext>>;
+  entrySet: Array<StateNode<TContext>>;
+  exitSet: Array<StateNode<TContext>>;
   /**
    * The source state that preceded the transition.
    */
@@ -831,7 +831,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: TransitionTargets<TContext> | undefined;
+  target: Array<StateNode<TContext>> | undefined;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
@@ -941,7 +941,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];
-  tree: Array<StateNode<TContext, any, TEvent>>;
+  tree: Array<StateNode<TContext>>;
 }
 
 export interface StateSchema {

@@ -38,35 +38,6 @@ const lightMachine = Machine({
 });
 
 describe('delayed transitions', () => {
-  it('should resolve transitions', () => {
-    assert.containSubset(lightMachine.states.green.after, [
-      {
-        target: ['yellow'],
-        delay: 1000,
-        event: after(1000, 'light.green'),
-        actions: []
-      }
-    ]);
-    assert.containSubset(lightMachine.states.yellow.after, [
-      {
-        target: ['red'],
-        cond: undefined,
-        delay: 1000,
-        event: after(1000, 'light.yellow'),
-        actions: []
-      }
-    ]);
-    assert.containSubset(lightMachine.states.red.after, [
-      {
-        target: ['green'],
-        cond: undefined,
-        delay: 1000,
-        event: after(1000, 'light.red'),
-        actions: []
-      }
-    ]);
-  });
-
   it('should transition after delay', () => {
     const nextState = lightMachine.transition(
       lightMachine.initialState,

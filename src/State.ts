@@ -65,7 +65,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   /**
    * The state node tree representation of the state value.
    */
-  public tree: Array<StateNode<TContext, any, TEvent>>;
+  public tree: Array<StateNode<TContext>>;
   /**
    * The next events that will cause a transition from the current state.
    */

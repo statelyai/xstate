@@ -63,7 +63,8 @@ import {
   TransitionTarget,
   InvokeCreator,
   StateMachine,
-  DoneEventObject
+  DoneEventObject,
+  SingleOrArray
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -182,10 +183,6 @@ class StateNode<
    * and stopped upon exiting the state node.
    */
   public activities: Array<ActivityDefinition<TContext, TEvent>>;
-  /**
-   * The delayed transitions.
-   */
-  public after: Array<DelayedTransitionDefinition<TContext, TEvent>>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -232,6 +229,9 @@ class StateNode<
     initialState: undefined as State<TContext, TEvent> | undefined,
     transitions: undefined as
       | TransitionsDefinition<TContext, TEvent>
+      | undefined,
+    delayedTransitions: undefined as
+      | Array<DelayedTransitionDefinition<TContext, TEvent>>
       | undefined
   };
 
@@ -377,7 +377,6 @@ class StateNode<
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
       .map(activity => toActivityDefinition(activity));
-    this.after = this.getDelayedTransitions();
   }
 
   /**
@@ -457,6 +456,14 @@ class StateNode<
     );
   }
 
+  public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+    return (
+      this.__cache.delayedTransitions ||
+      ((this.__cache.delayedTransitions = this.getDelayedTransitions()),
+      this.__cache.delayedTransitions)
+    );
+  }
+
   /**
    * All the transitions that can be taken from this state node.
    */
@@ -474,10 +481,6 @@ class StateNode<
   private getDelayedTransitions(): Array<
     DelayedTransitionDefinition<TContext, TEvent>
   > {
-    if (this.after) {
-      return this.after;
-    }
-
     const afterConfig = this.config.after;
     const { guards } = this.machine.options;
 
@@ -506,7 +509,7 @@ class StateNode<
           event,
           ...delayedTransition,
           source: this,
-          target: target === undefined ? undefined : toArray<any>(target),
+          target: target === undefined ? undefined : this.resolveTarget(target),
           cond: toGuard(delayedTransition.cond, guards),
           actions: toArray(delayedTransition.actions).map(action =>
             toActionObject(action)
@@ -524,6 +527,7 @@ class StateNode<
           | TransitionConfig<TContext, TEvent>
           | Array<TransitionConfig<TContext, TEvent>>
         >)[delayKey];
+
         const delay = isNaN(+delayKey) ? delayKey : +delayKey;
         const event = after(delay, this.id);
 
@@ -534,7 +538,7 @@ class StateNode<
           return [
             {
               source: this,
-              target: [delayedTransition],
+              target: this.resolveTarget(delayedTransition),
               delay,
               event,
               actions: []
@@ -552,7 +556,7 @@ class StateNode<
           target:
             transition.target === undefined
               ? transition.target
-              : toArray<any>(transition.target), // TODO: fix generic
+              : this.resolveTarget(transition.target),
           cond: toGuard(transition.cond, guards),
           actions: toArray(transition.actions).map(action =>
             toActionObject(action)
@@ -818,7 +822,7 @@ class StateNode<
       ? [{ type: actionTypes.nullEvent }]
       : [];
 
-    let nextStateStrings: TransitionTarget<TContext> = [];
+    let nextStateStrings: Array<StateNode<TContext>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     for (const candidate of candidates) {
@@ -878,11 +882,8 @@ class StateNode<
     }
 
     const nextStateNodes = flatten(
-      nextStateStrings.map(str => {
-        if ((str as any) instanceof StateNode) {
-          return str as StateNode<TContext, any, any>; // TODO: fix anys
-        }
-        return this.getRelativeStateNodes(str as string, state.historyValue);
+      nextStateStrings.map(stateNode => {
+        return this.getRelativeStateNodes(stateNode, state.historyValue);
       })
     );
 
@@ -907,14 +908,14 @@ class StateNode<
   }
 
   private nodesFromChild(
-    childStateNode: StateNode<TContext, any, TEvent>
-  ): Array<StateNode<TContext, any, TEvent>> {
+    childStateNode: StateNode<TContext>
+  ): Array<StateNode<TContext>> {
     if (childStateNode.escapes(this)) {
       return [];
     }
 
-    const nodes: Array<StateNode<TContext, any, TEvent>> = [];
-    let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
+    const nodes: Array<StateNode<TContext>> = [];
+    let marker: StateNode<TContext> | undefined = childStateNode;
 
     while (marker && marker !== this) {
       nodes.push(marker);
@@ -1129,13 +1130,16 @@ class StateNode<
     currentState?: State<TContext, TEvent>,
     _eventObject?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
-    const cv = getValue(this.machine, stateTransition.configuration);
+    const { configuration } = stateTransition;
+    configuration.forEach(n => n.on); // TODO: fix
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
     // - OR there are transitions
     const willTransition =
       !currentState || stateTransition.transitions.length > 0;
-    const resolvedStateValue = willTransition ? cv : undefined;
+    const resolvedStateValue = willTransition
+      ? getValue(this.machine, configuration)
+      : undefined;
     const historyValue = currentState
       ? currentState.historyValue
         ? currentState.historyValue
@@ -1611,35 +1615,15 @@ class StateNode<
    * @param resolve Whether state nodes should resolve to initial child state nodes
    */
   public getRelativeStateNodes(
-    relativeStateId: string | string[],
+    relativeStateId: StateNode<TContext>,
     historyValue?: HistoryValue,
     resolve: boolean = true
-  ): Array<StateNode<TContext, any, TEvent>> {
-    if (isString(relativeStateId) && isStateId(relativeStateId)) {
-      const unresolvedStateNode = this.getStateNodeById(relativeStateId);
-
-      return resolve
-        ? unresolvedStateNode.type === 'history'
-          ? unresolvedStateNode.resolveHistory(historyValue)
-          : unresolvedStateNode.initialStateNodes
-        : [unresolvedStateNode];
-    }
-
-    const statePath = toStatePath(relativeStateId, this.delimiter);
-
-    const rootStateNode = this.parent || this;
-
-    const unresolvedStateNodes = rootStateNode.getFromRelativePath(
-      statePath,
-      historyValue
-    );
-
-    if (!resolve) {
-      return unresolvedStateNodes;
-    }
-    return flatten(
-      unresolvedStateNodes.map(stateNode => stateNode.initialStateNodes)
-    );
+  ): Array<StateNode<TContext>> {
+    return resolve
+      ? relativeStateId.type === 'history'
+        ? relativeStateId.resolveHistory(historyValue)
+        : relativeStateId.initialStateNodes
+      : [relativeStateId];
   }
   public get initialStateNodes(): Array<StateNode<TContext, any, TEvent>> {
     if (this.type === 'atomic' || this.type === 'final') {
@@ -1831,6 +1815,48 @@ class StateNode<
 
     return Array.from(events);
   }
+  private resolveTarget(
+    _target: SingleOrArray<string | StateNode<TContext>>,
+    internal: boolean = false
+  ): Array<StateNode<TContext>> {
+    const targets = toArray(_target);
+    return flatten(
+      targets.map(target => {
+        if (!isString(target)) {
+          return [target];
+        }
+
+        const isInternalTarget = target[0] === this.delimiter;
+        internal = internal === undefined ? isInternalTarget : internal;
+
+        // If internal target is defined on machine,
+        // do not include machine key on target
+        if (isInternalTarget && !this.parent) {
+          return [this.getStateNodeByPath(target.slice(1))];
+        }
+
+        const resolvedTarget = isInternalTarget
+          ? this.key + target
+          : `${target}`;
+
+        if (this.parent) {
+          try {
+            const targetStateNode = this.parent.getStateNodeByPath(
+              resolvedTarget
+            );
+            return [targetStateNode];
+          } catch (err) {
+            throw new Error(
+              `Invalid transition for state node '${this.id}':\n${err.message}`
+            );
+          }
+        } else {
+          return [this.getStateNodeByPath(resolvedTarget)];
+        }
+      })
+    );
+  }
+
   private formatTransition(
     target: TransitionTarget<TContext> | undefined,
     transitionConfig: TransitionConfig<TContext, TEvent> | undefined,
@@ -1843,7 +1869,8 @@ class StateNode<
     // Format targets to their full string path
     const formattedTargets = targets.map(_target => {
       if (!isString(_target)) {
-        return `#${_target.id}`;
+        return _target;
+        // return `#${_target.id}`;
       }
 
       const isInternalTarget = _target[0] === this.delimiter;
@@ -1852,7 +1879,8 @@ class StateNode<
       // If internal target is defined on machine,
       // do not include machine key on target
       if (isInternalTarget && !this.parent) {
-        return `#${this.getStateNodeByPath(_target.slice(1)).id}`;
+        return this.getStateNodeByPath(_target.slice(1));
+        // return `#${this.getStateNodeByPath(_target.slice(1)).id}`;
       }
 
       const resolvedTarget = isInternalTarget
@@ -1864,14 +1892,16 @@ class StateNode<
           const targetStateNode = this.parent.getStateNodeByPath(
             resolvedTarget
           );
-          return `#${targetStateNode.id}`;
+          return targetStateNode;
+          // return `#${targetStateNode.id}`;
         } catch (err) {
           throw new Error(
             `Invalid transition for state node '${this.id}' on event '${event}':\n${err.message}`
           );
         }
       } else {
-        return `#${this.getStateNodeByPath(resolvedTarget).id}`;
+        return this.getStateNodeByPath(resolvedTarget);
+        // return `#${this.getStateNodeByPath(resolvedTarget).id}`;
       }
     });
 

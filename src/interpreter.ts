@@ -527,7 +527,7 @@ export class Interpreter<
         const eventObject = toEventObject(event);
         const actions = nextState.actions.map(a =>
           bindActionToState(a, nextState)
-        );
+        ) as Array<ActionObject<TContext, TEvent>>;
         nextState = this.machine.transition(nextState, eventObject);
         nextState.actions.unshift(...actions);
         nextState.changed = nextState.changed || !!changed;
