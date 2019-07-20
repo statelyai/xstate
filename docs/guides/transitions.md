@@ -195,7 +195,7 @@ const buttonMachine = Machine({
 
 - `EVENT: '.foo'` - internal transition to child
 - `EVENT: { target: '.foo' }` - internal transition to child (starts with `'.'`)
-- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to child
+- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to own child node (equivalent to `{ target: '.foo' }`)
   - This would otherwise be an external transition
 - `EVENT: undefined` - forbidden transition
 - `EVENT: { actions: [ ... ] }` - internal self-transition
@@ -224,13 +224,13 @@ Every transition above is explicit and will have its `exit` and `entry` actions 
 
 **Summary of external transitions:**
 
-- `{ EVENT: 'foo' }` - all transitions to siblings are external transitions
-- `{ EVENT: '#someTarget' }` - all transitions to other nodes are external transitions
-- `{ EVENT: 'same.foo' }` - external transition to child node with reference to self (parent node)
-- `{ EVENT: '.foo', internal: false }` - external transition to child node
+- `EVENT: { target: 'foo' }` - all transitions to siblings are external transitions
+- `EVENT: { target: '#someTarget' }` - all transitions to other nodes are external transitions
+- `EVENT: { target: 'same.foo' }` - external transition to own child node (equivalent to `{ target: '.foo', internal: false }`)
+- `EVENT: { target: '.foo', internal: false }` - external transition to child node
   - This would otherwise be an internal transition
-- `{ actions: [ ... ], internal: false }` - external self-transition
-- `{ target: undefined, actions: [ ... ], internal: false }` - external self-transition, same as above
+- `EVENT: { actions: [ ... ], internal: false }` - external self-transition
+- `EVENT: { target: undefined, actions: [ ... ], internal: false }` - external self-transition, same as above
 
 ## Transient Transitions
 

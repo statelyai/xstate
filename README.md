@@ -9,7 +9,6 @@
   </a>
 </p>
 
-[![Build Status](https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate)](https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1)
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
@@ -17,10 +16,7 @@
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) for the modern web.
 
 📖 [Read the documentation](https://xstate.js.org/docs)
-
-Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
-
-[**Version 3.x to 4 Migration Guide**](./migration.md)
+📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 
 ## Super quick start
 
@@ -65,9 +61,9 @@ toggleService.send('TOGGLE');
 
 ## Visualizer
 
-**[:new: Preview and simulate your statecharts in the XState visualizer (beta)!](https://statecharts.github.io/xstate-viz)**
+**[Visualize, simulate, and share your statecharts in XState Viz!](https://xstate.js.org/viz)**
 
-<a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
+<a href="https://xstate.js.org/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
 
 ## Why?
 
