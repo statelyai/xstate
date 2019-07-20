@@ -379,6 +379,15 @@ class StateNode<
       .map(activity => toActivityDefinition(activity));
   }
 
+  private _init(): void {
+    if (this.__cache.transitions) {
+      return;
+    }
+    ([this] as StateNode[])
+      .concat(getChildren(this))
+      .forEach(child => child.on);
+  }
+
   /**
    * Clones this state machine with custom options and context.
    *
@@ -1131,7 +1140,6 @@ class StateNode<
     _eventObject?: OmniEventObject<TEvent>
   ): State<TContext, TEvent> {
     const { configuration } = stateTransition;
-    configuration.forEach(n => n.on); // TODO: fix
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
     // - OR there are transitions
@@ -1553,6 +1561,7 @@ class StateNode<
     if (this.__cache.initialState) {
       return this.__cache.initialState;
     }
+    this._init();
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
@@ -1835,9 +1844,7 @@ class StateNode<
           return [this.getStateNodeByPath(target.slice(1))];
         }
 
-        const resolvedTarget = isInternalTarget
-          ? this.key + target
-          : `${target}`;
+        const resolvedTarget = isInternalTarget ? this.key + target : target;
 
         if (this.parent) {
           try {
@@ -1870,7 +1877,6 @@ class StateNode<
     const formattedTargets = targets.map(_target => {
       if (!isString(_target)) {
         return _target;
-        // return `#${_target.id}`;
       }
 
       const isInternalTarget = _target[0] === this.delimiter;
@@ -1880,7 +1886,6 @@ class StateNode<
       // do not include machine key on target
       if (isInternalTarget && !this.parent) {
         return this.getStateNodeByPath(_target.slice(1));
-        // return `#${this.getStateNodeByPath(_target.slice(1)).id}`;
       }
 
       const resolvedTarget = isInternalTarget
@@ -1893,7 +1898,6 @@ class StateNode<
             resolvedTarget
           );
           return targetStateNode;
-          // return `#${targetStateNode.id}`;
         } catch (err) {
           throw new Error(
             `Invalid transition for state node '${this.id}' on event '${event}':\n${err.message}`
@@ -1901,7 +1905,6 @@ class StateNode<
         }
       } else {
         return this.getStateNodeByPath(resolvedTarget);
-        // return `#${this.getStateNodeByPath(resolvedTarget).id}`;
       }
     });
 
