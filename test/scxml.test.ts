@@ -61,41 +61,47 @@ const testGroups = {
   ],
   parallel: ['test0', 'test1', 'test2', 'test3'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
-  // 'parallel+interrupt': [
-  //   'test0',
-  //   'test1',
-  //   'test2',
-  //   'test3',
-  //   'test4',
-  //   'test5',
-  //   'test6',
-  //   'test7',
-  //   'test8',
-  //   'test9',
-  //   'test10',
-  //   'test11',
-  //   'test12',
-  //   'test13',
-  //   'test14',
-  //   'test15',
-  //   'test16',
-  //   'test17',
-  //   'test18',
-  //   'test19',
-  //   'test20',
-  //   'test21',
-  //   'test22',
-  //   'test23',
-  //   'test24',
-  //   'test25',
-  //   'test26',
-  //   'test27',
-  //   'test28',
-  //   'test29',
-  //   'test30',
-  //   'test31'
-  // ],
-  'w3c-ecma': ['test144.txml']
+  'parallel+interrupt': [
+    'test0',
+    // 'test1',
+    'test2',
+    'test3',
+    'test4',
+    // 'test5',
+    'test6',
+    // 'test7',
+    'test8',
+    'test9',
+    'test10',
+    'test11',
+    // 'test12',
+    'test13',
+    'test14',
+    // 'test15',
+    'test16',
+    'test17',
+    'test18',
+    'test19',
+    // 'test20',
+    // 'test21',
+    'test22',
+    'test23',
+    'test24',
+    // 'test25',
+    // 'test26',
+    'test27',
+    'test28',
+    'test29',
+    'test30',
+    'test31'
+  ],
+  'w3c-ecma': [
+    'test144.txml',
+    'test158.txml',
+    'test173.txml',
+    'test174.txml',
+    'test178.txml'
+  ]
 };
 
 const overrides = {
@@ -152,7 +158,11 @@ async function runTestToCompletion(
       .getStateNodes(nextState)
       .map(stateNode => stateNode.id);
 
-    assert.include(stateIds, nextConfiguration[0], `run ${i}`);
+    assert.include(
+      stateIds,
+      nextConfiguration[0],
+      `run ${i} (event ${event.name})`
+    );
   });
 }
 
@@ -172,7 +182,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['misc'];
+  // const testGroupKeys = ['history'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
