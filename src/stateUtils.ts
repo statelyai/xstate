@@ -181,13 +181,13 @@ export function getDoneData<TContext>(
   event: EventObject
 ): any {
   if (this.stateNode.type === 'compound') {
-    const childTree = this.nodes[keys(this.nodes)[0]];
+    const childNode = this.nodes[keys(this.nodes)[0]];
 
-    if (!childTree.stateNode.data) {
+    if (!childNode.stateNode.data) {
       return undefined;
     }
 
-    return mapContext(childTree.stateNode.data, context, event);
+    return mapContext(childNode.stateNode.data, context, event);
   }
 
   return undefined;

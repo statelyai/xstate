@@ -643,13 +643,13 @@ class StateNode<
    * @param state The state to resolve
    */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
-    const tree = Array.from(
+    const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
     return new State({
       ...state,
       value: this.resolve(state.value),
-      tree
+      configuration
     });
   }
 
@@ -1287,10 +1287,10 @@ class StateNode<
         ? currentState.meta
         : undefined,
       events: resolvedStateValue ? (raisedEvents as TEvent[]) : [],
-      tree: resolvedStateValue
+      configuration: resolvedStateValue
         ? stateTransition.configuration
         : currentState
-        ? currentState.tree
+        ? currentState.configuration
         : []
     });
 

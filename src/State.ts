@@ -63,9 +63,9 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    */
   public changed: boolean | undefined;
   /**
-   * The state node tree representation of the state value.
+   * The enabled state nodes representative of the state value.
    */
-  public tree: Array<StateNode<TContext>>;
+  public configuration: Array<StateNode<TContext>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -92,7 +92,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
           activities: stateValue.activities,
           meta: {},
           events: [],
-          tree: [] // TODO: fix
+          configuration: [] // TODO: fix
         });
       }
 
@@ -111,7 +111,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
       activities: undefined,
       meta: undefined,
       events: [],
-      tree: [] // TODO: fix
+      configuration: []
     });
   }
   /**
@@ -145,8 +145,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
-        // @ts-ignore
-        tree: stateValue.tree
+        configuration: stateValue.configuration
       });
     }
 
@@ -163,7 +162,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
    * @param meta
    * @param events Internal event queue. Should be empty with run-to-completion semantics.
-   * @param tree
+   * @param configuration
    */
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;
@@ -177,11 +176,11 @@ export class State<TContext, TEvent extends EventObject = EventObject>
     this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
-    this.tree = config.tree || [];
+    this.configuration = config.configuration;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
-        return nextEvents(config.tree);
+        return nextEvents(config.configuration);
       }
     });
   }
@@ -208,7 +207,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
   }
 
   public toJSON() {
-    const { tree, ...jsonValues } = this;
+    const { configuration, ...jsonValues } = this;
 
     return jsonValues;
   }

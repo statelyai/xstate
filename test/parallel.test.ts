@@ -791,7 +791,7 @@ describe('parallel states', () => {
       });
     });
 
-    it('should not overlap resolved state trees in state resolution', () => {
+    it('should not overlap resolved state configuration in state resolution', () => {
       const machine = Machine({
         id: 'pipeline',
         type: 'parallel',

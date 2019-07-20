@@ -253,11 +253,11 @@ export class Interpreter<
       );
     }
 
-    const isDone = isInFinalState(state.tree || [], this.machine);
+    const isDone = isInFinalState(state.configuration || [], this.machine);
 
-    if (this.state.tree && isDone) {
+    if (this.state.configuration && isDone) {
       // get final child state node
-      const finalChildStateNode = state.tree!.find(
+      const finalChildStateNode = state.configuration!.find(
         sn => sn.type === 'final' && sn.parent === this.machine
       );
 

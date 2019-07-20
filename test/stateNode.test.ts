@@ -227,7 +227,7 @@ describe('machine', () => {
       });
     });
 
-    it('should resolve the state tree (implicit via events)', () => {
+    it('should resolve the state configuration (implicit via events)', () => {
       const tempState = State.from<any>('foo');
 
       const resolvedState = resolveMachine.resolveState(tempState);
