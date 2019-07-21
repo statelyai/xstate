@@ -906,26 +906,11 @@ export interface StateMeta<TContext, TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
 }
 
-export interface StateInterface<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
-> {
+export interface StateLike<TContext> {
   value: StateValue;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
-  history?: State<TContext, TEvent>;
-  historyValue?: HistoryValue | undefined;
-  actions: Array<ActionObject<TContext, TEvent>>;
-  activities: ActivityMap;
-  meta: any;
-  event: TEvent;
-  _event: SCXML.Event<TEvent>;
-  events: TEvent[];
   context: TContext;
-  toStrings: () => string[];
-  changed: boolean | undefined;
-  matches: (parentStateValue: any) => boolean;
-  nextEvents: EventType[];
-  toJSON(): Omit<StateInterface<TContext, TEvent>, 'configuration'>;
+  event: EventObject;
+  _event: SCXML.Event<EventObject>;
 }
 
 export interface StateConfig<TContext, TEvent extends EventObject> {

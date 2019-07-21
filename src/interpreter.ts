@@ -24,14 +24,13 @@ import {
   MachineOptions,
   ActionFunctionMap
 } from './types';
-import { State } from './State';
+import { State, bindActionToState } from './State';
 import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
   mapContext,
-  bindActionToState,
   warn,
   keys,
   isArray,

@@ -4,31 +4,22 @@ import {
   ActionType,
   Action,
   EventObject,
-  StateInterface,
   PropertyMapper,
   Mapper,
   EventType,
   ActionTypes,
   HistoryValue,
   AssignAction,
-  ActionObject,
   Condition,
   Guard,
   Subscribable,
   StateMachine,
   ConditionPredicate,
-  SCXML
+  SCXML,
+  StateLike
 } from './types';
 import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
-
-function isState(state: object | string): state is StateInterface {
-  if (isString(state)) {
-    return false;
-  }
-
-  return 'value' in state && 'history' in state;
-}
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -106,11 +97,21 @@ export function toStatePath(
   }
 }
 
+export function isStateLike(state: any): state is StateLike<any> {
+  return (
+    typeof state === 'object' &&
+    ('value' in state &&
+      'context' in state &&
+      'event' in state &&
+      '_event' in state)
+  );
+}
+
 export function toStateValue(
-  stateValue: StateInterface<any> | StateValue | string[],
+  stateValue: StateLike<any> | StateValue | string[],
   delimiter: string
 ): StateValue {
-  if (isState(stateValue)) {
+  if (isStateLike(stateValue)) {
     return stateValue.value;
   }
 
@@ -118,7 +119,7 @@ export function toStateValue(
     return pathToStateValue(stateValue);
   }
 
-  if (typeof stateValue !== 'string' && !isState(stateValue)) {
+  if (typeof stateValue !== 'string') {
     return stateValue as StateValue;
   }
 
@@ -427,27 +428,6 @@ export function updateContext<TContext, TEvent extends EventObject>(
       }, context)
     : context;
   return updatedContext;
-}
-
-export function bindActionToState<TC, TE extends EventObject>(
-  action: ActionObject<TC, TE>,
-  state: StateInterface<TC, TE>
-): ActionObject<TC, TE> {
-  const { exec } = action;
-  const boundAction: ActionObject<TC, TE> = {
-    ...action,
-    exec:
-      exec !== undefined
-        ? () =>
-            exec(state.context, state.event as TE, {
-              action,
-              state,
-              _event: toSCXMLEvent(state.event)
-            })
-        : undefined
-  };
-
-  return boundAction;
 }
 
 // tslint:disable-next-line:no-empty

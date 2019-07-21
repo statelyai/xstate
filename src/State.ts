@@ -2,7 +2,6 @@ import {
   StateValue,
   ActivityMap,
   EventObject,
-  StateInterface,
   HistoryValue,
   ActionObject,
   EventType,
@@ -43,11 +42,40 @@ export function stateValuesEqual(
   );
 }
 
+export function isState(state: object | string): state is State<any> {
+  if (isString(state)) {
+    return false;
+  }
+
+  return 'value' in state && 'history' in state;
+}
+
+export function bindActionToState<TC, TE extends EventObject>(
+  action: ActionObject<TC, TE>,
+  state: State<TC, TE>
+): ActionObject<TC, TE> {
+  const { exec } = action;
+  const boundAction: ActionObject<TC, TE> = {
+    ...action,
+    exec:
+      exec !== undefined
+        ? () =>
+            exec(state.context, state.event as TE, {
+              action,
+              state,
+              _event: toSCXMLEvent(state.event)
+            })
+        : undefined
+  };
+
+  return boundAction;
+}
+
 export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any
-> implements StateInterface<TContext> {
+> {
   public value: StateValue;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
