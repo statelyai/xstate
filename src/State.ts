@@ -9,7 +9,9 @@ import {
   StateValueMap,
   StateConfig,
   ActionTypes,
-  SCXML
+  SCXML,
+  StateSchema,
+  ExtractStateValue
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString, toSCXMLEvent } from './utils';
@@ -41,12 +43,15 @@ export function stateValuesEqual(
   );
 }
 
-export class State<TContext, TEvent extends EventObject = EventObject>
-  implements StateInterface<TContext> {
+export class State<
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TStateSchema extends StateSchema<TContext> = any
+> implements StateInterface<TContext> {
   public value: StateValue;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
-  public history?: State<TContext>;
+  public history?: State<TContext, TEvent, TStateSchema>;
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
@@ -131,7 +136,7 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    * @param context
    */
   public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC> | StateValue,
+    stateValue: State<TC, TE> | StateValue,
     context: TC
   ): State<TC, TE> {
     if (stateValue instanceof State) {
@@ -220,7 +225,19 @@ export class State<TContext, TEvent extends EventObject = EventObject>
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches(parentStateValue: StateValue): boolean {
-    return matchesState(parentStateValue, this.value);
+  public matches<
+    TSV extends ExtractStateValue<TStateSchema> | keyof TStateSchema['states']
+  >(
+    parentStateValue: TSV
+  ): this is State<TContext, TEvent, TStateSchema> & {
+    context: TContext &
+      (TStateSchema['states'] extends Record<string, any>
+        ? TSV extends keyof TStateSchema['states']
+          ? TStateSchema['states'][TSV]['context']
+          : TStateSchema['states'][keyof TSV &
+              keyof TStateSchema['states']]['context']
+        : TContext);
+  } {
+    return matchesState(parentStateValue as StateValue, this.value);
   }
 }

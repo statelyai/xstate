@@ -289,4 +289,53 @@ describe('matches() method', () => {
     assert.ok(machine.initialState.matches({ foo: 'bar' }));
     assert.notOk(machine.initialState.matches('fake'));
   });
+
+  it('should compile with typed matches', () => {
+    interface TestContext {
+      count?: number;
+      user?: { name: string };
+    }
+
+    interface TestStateSchema {
+      states: {
+        loading: {
+          context: TestContext & { count: number; user: undefined };
+          states: {
+            one: {
+              states: {
+                foo: {};
+              };
+            };
+            two: {};
+          };
+        };
+        loaded: {
+          context: TestContext & { user: { name: string } };
+        };
+      };
+    }
+
+    const machine = Machine<TestContext, TestStateSchema>({
+      initial: 'loading',
+      states: {
+        loading: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {}
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    const init = machine.initialState;
+
+    if (init.matches('loaded')) {
+      const { name } = init.context.user;
+
+      // never called - it's okay if the name is undefined
+      assert.ok(name);
+    }
+  });
 });

@@ -75,6 +75,17 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
+export type ExtractStateValue<
+  TS extends StateSchema<any>,
+  TSS = TS['states']
+> = TSS extends undefined
+  ? never
+  : {
+      [K in keyof TSS]?:
+        | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
+        | ExtractStateValue<TSS[K]>;
+    };
+
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
   current: StateValue | undefined;
@@ -901,7 +912,7 @@ export interface StateInterface<
 > {
   value: StateValue;
   configuration: Array<StateNode<TContext, any, TEvent>>;
-  history?: State<TContext>;
+  history?: State<TContext, TEvent>;
   historyValue?: HistoryValue | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
   activities: ActivityMap;
@@ -912,7 +923,7 @@ export interface StateInterface<
   context: TContext;
   toStrings: () => string[];
   changed: boolean | undefined;
-  matches: (parentStateValue: StateValue) => boolean;
+  matches: (parentStateValue: any) => boolean;
   nextEvents: EventType[];
   toJSON(): Omit<StateInterface<TContext, TEvent>, 'configuration'>;
 }
@@ -923,7 +934,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   event: TEvent;
   _event: SCXML.Event<TEvent>;
   historyValue?: HistoryValue | undefined;
-  history?: State<TContext>;
+  history?: State<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   activities?: ActivityMap;
   meta?: any;
@@ -931,9 +942,12 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   configuration: Array<StateNode<TContext>>;
 }
 
-export interface StateSchema {
+export interface StateSchema<TC = any> {
   meta?: any;
-  states?: Record<string | number, StateSchema>;
+  context?: Partial<TC>;
+  states?: {
+    [key: string]: StateSchema<TC>;
+  };
 }
 
 export interface InterpreterOptions {

@@ -1084,7 +1084,7 @@ class StateNode<
     state: StateValue | State<TContext, TEvent>,
     event: TEvent | TEvent['type'],
     context?: TContext
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TStateSchema> {
     let currentState: State<TContext, TEvent>;
 
     if (state instanceof State) {
@@ -1556,7 +1556,7 @@ class StateNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent> {
+  public get initialState(): State<TContext, TEvent, TStateSchema> {
     if (this.__cache.initialState) {
       return this.__cache.initialState;
     }
