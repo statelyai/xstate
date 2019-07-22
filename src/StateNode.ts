@@ -1618,20 +1618,24 @@ class StateNode<
   /**
    * Returns the leaf nodes from a state path relative to this state node.
    *
-   * @param relativeStateId The relative state path to retrieve the state nodes
+   * @param target stateNode or stateNode's ID from which state nodes should be retrieved
    * @param history The previous state to retrieve history
    * @param resolve Whether state nodes should resolve to initial child state nodes
    */
   public getRelativeStateNodes(
-    relativeStateId: StateNode<TContext>,
+    target: StateNode<TContext> | string,
     historyValue?: HistoryValue,
     resolve: boolean = true
   ): Array<StateNode<TContext>> {
+    const targetNode = isString(target)
+      ? this.getStateNodeById(target)
+      : target;
+
     return resolve
-      ? relativeStateId.type === 'history'
-        ? relativeStateId.resolveHistory(historyValue)
-        : relativeStateId.initialStateNodes
-      : [relativeStateId];
+      ? targetNode.type === 'history'
+        ? targetNode.resolveHistory(historyValue)
+        : targetNode.initialStateNodes
+      : [targetNode];
   }
   public get initialStateNodes(): Array<StateNode<TContext, any, TEvent>> {
     if (this.type === 'atomic' || this.type === 'final') {
