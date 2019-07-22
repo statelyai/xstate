@@ -10,7 +10,7 @@ import {
   EventObject,
   StateMachine
 } from 'xstate/lib/types';
-import { toEventObject } from 'xstate/lib/actions';
+import { toEventObject } from 'xstate/lib/utils';
 
 // TODO: remove types once XState is updated
 export interface PathsItem<TContext, TEvent extends EventObject> {
