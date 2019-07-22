@@ -1,16 +1,17 @@
-import { StateNode, State } from 'xstate';
-import { getActionType, flatten, keys, warn } from 'xstate/lib/utils';
 import {
-  StateValue,
-  Edge,
+  StateNode,
+  State,
   AdjacencyMap,
   DefaultContext,
-  ValueAdjacencyMap,
+  Edge,
   Event,
   EventObject,
-  StateMachine
-} from 'xstate/lib/types';
-import { toEventObject } from 'xstate/lib/utils';
+  StateMachine,
+  StateValue,
+  TransitionDefinition,
+  ValueAdjacencyMap
+} from 'xstate';
+import { getActionType, flatten, keys, warn, toEventObject } from 'xstate/lib/utils';
 
 // TODO: remove types once XState is updated
 export interface PathsItem<TContext, TEvent extends EventObject> {
@@ -64,12 +65,12 @@ export function getEventEdges<
   node: StateNode<TContext, any, TEvent>,
   event: string
 ): Array<Edge<TContext, TEvent>> {
-  const transitions = node.definition.on[event];
+  const transitions: TransitionDefinition<TContext, TEvent>[] = node.definition.on[event];
 
   return flatten(
     transitions.map(transition => {
       const targets = transition.target
-        ? ([] as string[]).concat(transition.target)
+        ? transition.target.slice()
         : undefined;
 
       if (!targets) {
