@@ -1040,7 +1040,7 @@ class StateNode<
         }
         return events;
       })
-    ).filter((event): event is DoneEventObject => event !== undefined);
+    );
 
     transition.exitSet.sort((a, b) => a.order + b.order);
     transition.entrySet.sort((a, b) => a.order - b.order);
