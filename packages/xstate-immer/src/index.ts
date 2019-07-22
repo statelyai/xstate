@@ -1,4 +1,4 @@
-import { EventObject, OmniEventObject, ActionObject } from 'xstate';
+import { EventObject, ActionObject } from 'xstate';
 import { produce, Draft } from 'immer';
 import { actionTypes } from 'xstate/lib/actions';
 
@@ -23,14 +23,14 @@ export function assign<TContext, TEvent extends EventObject = EventObject>(
 
 export function updater<TContext, TEvent extends EventObject>(
   context: TContext,
-  event: OmniEventObject<TEvent>,
+  event: TEvent,
   assignActions: Array<ImmerAssignAction<TContext, TEvent>>
 ): TContext {
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as ImmerAssignAction<
           TContext,
-          OmniEventObject<TEvent>
+          TEvent
         >;
 
         const update = produce(acc, interim => void assignment(interim, event));
