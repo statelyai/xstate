@@ -1042,7 +1042,7 @@ class StateNode<
       })
     ).filter((event): event is DoneEventObject => event !== undefined);
 
-    transition.exitSet.sort((a, b) => a.order + b.order);
+    transition.exitSet.sort((a, b) => b.order - a.order);
     transition.entrySet.sort((a, b) => a.order - b.order);
 
     const entryStates = new Set(transition.entrySet);
