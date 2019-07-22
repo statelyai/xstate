@@ -729,7 +729,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
     | string
     | number
     | Actor
-    | Expr<TContext, TEvent, string | number | Actor>
+    | ExprWithMeta<TContext, TEvent, string | number | Actor>
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
   delay?: number | string | Expr<TContext, TEvent, number>;
@@ -749,9 +749,16 @@ export type Expr<TContext, TEvent extends EventObject, T> = (
   event: TEvent
 ) => T;
 
+export type ExprWithMeta<TContext, TEvent extends EventObject, T> = (
+  context: TContext,
+  event: TEvent,
+  meta: SCXMLEventMeta<TEvent>
+) => T;
+
 export type SendExpr<TContext, TEvent extends EventObject> = (
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  meta: SCXMLEventMeta<TEvent>
 ) => TEvent;
 
 export enum SpecialTargets {
@@ -899,6 +906,10 @@ export interface AdjacencyMap {
 
 export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<string, State<TContext, TEvent>>;
+}
+
+export interface SCXMLEventMeta<TEvent extends EventObject> {
+  _event: SCXML.Event<TEvent>;
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {

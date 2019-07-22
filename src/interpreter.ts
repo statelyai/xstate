@@ -544,7 +544,8 @@ export class Interpreter<
   }
 
   public sendTo = (event: TEvent, to: string | number | Actor) => {
-    const isParent = to === SpecialTargets.Parent;
+    const isParent =
+      this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
     const target = isParent
       ? this.parent
       : isActor(to)

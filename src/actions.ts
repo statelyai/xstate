@@ -23,10 +23,17 @@ import {
   DoneEventObject,
   SendExpr,
   SendActionObject,
-  PureAction
+  PureAction,
+  Expr
 } from './types';
 import * as actionTypes from './actionTypes';
-import { getEventType, isFunction, isString, toEventObject } from './utils';
+import {
+  getEventType,
+  isFunction,
+  isString,
+  toEventObject,
+  toSCXMLEvent
+} from './utils';
 import { isArray } from './utils';
 
 export { actionTypes };
@@ -173,15 +180,19 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   ctx: TContext,
   event: TEvent
 ): SendActionObject<TContext, TEvent> {
+  const meta = {
+    _event: toSCXMLEvent(event)
+  };
+
   // TODO: helper function for resolving Expr
   const resolvedEvent = isFunction(action.event)
-    ? toEventObject(action.event(ctx, event) as TEvent)
+    ? toEventObject(action.event(ctx, event, meta) as TEvent)
     : toEventObject(action.event);
   const resolvedDelay = isFunction(action.delay)
     ? action.delay(ctx, event)
     : action.delay;
   const resolvedTarget = isFunction(action.to)
-    ? action.to(ctx, event)
+    ? action.to(ctx, event, meta)
     : action.to;
 
   return {
@@ -205,6 +216,24 @@ export function sendParent<TContext, TEvent extends EventObject>(
   return send<TContext, TEvent>(event, {
     ...options,
     to: SpecialTargets.Parent
+  });
+}
+
+/**
+ * Sends an event back to the sender of the original event.
+ *
+ * @param event The event to send back to the sender
+ * @param options Options to pass into the send event
+ */
+export function respond<TContext, TEvent extends EventObject>(
+  event: Event<TEvent> | SendExpr<TContext, TEvent>,
+  options?: SendActionOptions<TContext, TEvent>
+) {
+  return send<TContext, TEvent>(event, {
+    ...options,
+    to: ((_, __, { _event }) => {
+      return _event.sendid;
+    }) as Expr<TContext, TEvent, string>
   });
 }
 

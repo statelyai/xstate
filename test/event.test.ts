@@ -1,4 +1,5 @@
 import { Machine, sendParent, interpret } from '../src';
+import { respond, send } from '../src/actions';
 // import { assert } from 'chai';
 
 describe('SCXML events', () => {
@@ -24,6 +25,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               cond: (_, __, { _event }) => {
+                console.log(_event);
                 return _event.sendid === 'child';
               }
             }
@@ -38,5 +40,49 @@ describe('SCXML events', () => {
     interpret(parentMachine)
       .onDone(() => done())
       .start();
+  });
+
+  it('respond() should be able to respond to sender', done => {
+    const authServerMachine = Machine({
+      initial: 'waitingForCode',
+      states: {
+        waitingForCode: {
+          on: {
+            CODE: {
+              actions: respond('TOKEN', { delay: 10 })
+            }
+          }
+        }
+      }
+    });
+
+    const authClientMachine = Machine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { AUTH: 'authorizing' }
+        },
+        authorizing: {
+          invoke: {
+            id: 'auth-server',
+            src: authServerMachine
+          },
+          entry: send('CODE', { to: 'auth-server' }),
+          on: {
+            TOKEN: 'authorized'
+          }
+        },
+        authorized: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(authClientMachine)
+      .onTransition(e => console.log(e.actions, e.event))
+      .onDone(() => done())
+      .start();
+
+    service.send('AUTH');
   });
 });
