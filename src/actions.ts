@@ -23,8 +23,7 @@ import {
   DoneEventObject,
   SendExpr,
   SendActionObject,
-  PureAction,
-  Expr
+  PureAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -231,9 +230,9 @@ export function respond<TContext, TEvent extends EventObject>(
 ) {
   return send<TContext, TEvent>(event, {
     ...options,
-    to: ((_, __, { _event }) => {
-      return _event.sendid;
-    }) as Expr<TContext, TEvent, string>
+    to: (_, __, { _event }) => {
+      return _event.origin!; // TODO: handle when _event.origin is undefined
+    }
   });
 }
 

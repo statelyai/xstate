@@ -3,7 +3,7 @@ import { respond, send } from '../src/actions';
 // import { assert } from 'chai';
 
 describe('SCXML events', () => {
-  it('should have the sendid from the sending service', done => {
+  it('should have the origin (id) from the sending service', done => {
     const childMachine = Machine({
       initial: 'active',
       states: {
@@ -25,8 +25,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               cond: (_, __, { _event }) => {
-                console.log(_event);
-                return _event.sendid === 'child';
+                return _event.origin === 'child';
               }
             }
           }
@@ -79,7 +78,6 @@ describe('SCXML events', () => {
     });
 
     const service = interpret(authClientMachine)
-      .onTransition(e => console.log(e.actions, e.event))
       .onDone(() => done())
       .start();
 

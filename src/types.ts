@@ -769,7 +769,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | Expr<TContext, TEvent, number>;
-  to?: string | Expr<TContext, TEvent, string | number | Actor>;
+  to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {

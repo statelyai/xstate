@@ -572,7 +572,7 @@ export class Interpreter<
     // add SCXML event
     const eventWithSCXML = {
       ...event,
-      __scxml: toSCXMLEvent(event, { sendid: this.id, type: 'external' })
+      __scxml: toSCXMLEvent(event, { origin: this.id, type: 'external' })
     };
 
     target.send(eventWithSCXML);
