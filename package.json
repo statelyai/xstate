@@ -80,6 +80,7 @@
     "lerna": "^3.13.1",
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
+    "mermaid": "^8.2.3",
     "mocha": "^3.5.3",
     "nyc": "^14.1.1",
     "prettier": "^1.18.2",

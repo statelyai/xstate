@@ -34,6 +34,10 @@ module.exports = {
         children: ['/about/concepts', '/about/goals', '/about/showcase']
       },
       {
+        title: 'Tutorials',
+        children: ['/tutorials/reddit']
+      },
+      {
         title: 'Guides',
         children: [
           '/guides/start',
