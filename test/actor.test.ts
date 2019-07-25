@@ -482,71 +482,69 @@ describe('actors', () => {
             ref: () => spawn(childMachine, { sync: true }),
             refNoSync: () => spawn(childMachine, { sync: false }),
             refNoSyncDefault: () => spawn(childMachine)
-          }),
-          on: {
-            '': {
-              target: 'success',
-              cond: ctx => {
-                assert.isDefined(ctx.ref.state);
-                return ctx.ref.state.context.value === 42;
-              }
-            },
-            CHECK_NO_SYNC: {
-              target: 'success',
-              cond: ctx => {
-                assert.isUndefined(ctx.refNoSync.state);
-                return !ctx.refNoSync.state;
-              }
-            },
-            CHECK_NO_SYNC_DEFAULT: {
-              target: 'success',
-              cond: ctx => {
-                assert.isUndefined(ctx.refNoSyncDefault.state);
-                return !ctx.refNoSyncDefault.state;
-              }
-            }
-          }
+          })
         },
         success: {
           type: 'final'
         }
-      },
-      on: {
-        [actionTypes.update]: {
-          actions: assign({})
-        }
       }
     });
 
-    it('should sync spawned actor state when { sync: true }', done => {
-      const service = interpret(parentMachine, { id: 'a-service' }).onDone(
-        () => {
-          done();
-        }
-      );
-      service.start();
+    it('should sync spawned actor state when { sync: true }', () => {
+      return new Promise(res => {
+        const service = interpret(parentMachine, {
+          id: 'a-service'
+        }).onTransition(s => {
+          if (s.context.ref.state.context.value === 42) {
+            res();
+          }
+        });
+        service.start();
+      });
     });
 
-    xit('should not sync spawned actor state when { sync: false }', done => {
-      const service = interpret(parentMachine, { id: 'b-service' }).onDone(
-        () => {
-          assert.isUndefined(service.state.context.refNoSync.state);
-          done();
-        }
-      );
-      service.start();
-      service.send('CHECK_NO_SYNC');
+    it('should not sync spawned actor state when { sync: false }', () => {
+      return new Promise((res, rej) => {
+        const service = interpret(parentMachine, {
+          id: 'b-service'
+        }).onTransition(s => {
+          if (s.context.refNoSync.state.context.value === 42) {
+            rej(new Error('value change caused transition'));
+          }
+        });
+        service.start();
+
+        setTimeout(() => {
+          assert.equal(
+            service.state.context.refNoSync.state.context.value,
+            42,
+            'value should change without notification'
+          );
+          res();
+        }, 30);
+      });
     });
 
-    xit('should not sync spawned actor state (default)', done => {
-      const service = interpret(parentMachine, { id: 'c-service' }).onDone(
-        () => {
-          assert.isUndefined(service.state.context.refNoSyncDefault.state);
-          done();
-        }
-      );
-      service.start();
-      service.send('CHECK_NO_SYNC_DEFAULT');
+    it('should not sync spawned actor state (default)', () => {
+      return new Promise((res, rej) => {
+        const service = interpret(parentMachine, {
+          id: 'c-service'
+        }).onTransition(s => {
+          if (s.context.refNoSyncDefault.state.context.value === 42) {
+            rej(new Error('value change caused transition'));
+          }
+        });
+        service.start();
+
+        setTimeout(() => {
+          assert.equal(
+            service.state.context.refNoSyncDefault.state.context.value,
+            42,
+            'value should change without notification'
+          );
+          res();
+        }, 30);
+      });
     });
 
     it('parent state should be changed if synced child actor update occurs', done => {

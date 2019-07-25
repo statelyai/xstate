@@ -132,7 +132,7 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  public state: State<TContext, TEvent>;
+  private _state?: State<TContext, TEvent>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -155,7 +155,7 @@ export class Interpreter<
   /**
    * The initial state of the machine.
    */
-  public initialState: State<TContext, TEvent>;
+  private _initialState?: State<TContext, TEvent>;
 
   // Actor
   public parent?: Interpreter<any>;
@@ -195,11 +195,30 @@ export class Interpreter<
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
+  }
+  public get initialState(): State<TContext, TEvent> {
+    if (!IS_PRODUCTION) {
+      warn(
+        this.initialized,
+        // tslint:disable-next-line:max-line-length
+        `Attempted to read initial state from uninitialized service '${this.id}'. Make sure the service is started first.`
+      );
+    }
 
-    this.initialState = this.state = withServiceScope(
-      this,
-      () => this.machine.initialState
+    return (
+      this._initialState ||
+      withServiceScope(this, () => this.machine.initialState)
     );
+  }
+  public get state(): State<TContext, TEvent> {
+    if (!IS_PRODUCTION) {
+      warn(
+        this.initialized,
+        `Attempted to read state from uninitialized service '${this.id}'. Make sure the service is started first.`
+      );
+    }
+
+    return this._state!;
   }
   public static interpret = interpret;
   /**
@@ -218,7 +237,7 @@ export class Interpreter<
   }
   private update(state: State<TContext, TEvent>, event: TEvent): void {
     // Update state
-    this.state = state;
+    this._state = state;
 
     // Execute actions
     if (this.options.execute) {
@@ -491,7 +510,7 @@ export class Interpreter<
       this.forward(eventObject);
     });
 
-    return this.state; // TODO: deprecate (should return void)
+    return this._state!; // TODO: deprecate (should return void)
     // tslint:disable-next-line:semicolon
   };
 

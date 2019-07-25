@@ -1557,9 +1557,6 @@ class StateNode<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TStateSchema> {
-    if (this.__cache.initialState) {
-      return this.__cache.initialState;
-    }
     this._init();
     const { initialStateValue } = this;
 
@@ -1569,9 +1566,7 @@ class StateNode<
       );
     }
 
-    this.__cache.initialState = this.getInitialState(initialStateValue);
-
-    return this.__cache.initialState;
+    return this.getInitialState(initialStateValue);
   }
 
   /**
