@@ -411,7 +411,7 @@ export class Interpreter<
         ? this.machine.initialState
         : initialState instanceof State
         ? this.machine.resolveState(initialState)
-        : this.machine.resolveState(State.from(initialState));
+        : this.machine.resolveState(State.from(initialState, this.machine.context));
     });
 
     if (this.options.devTools) {
