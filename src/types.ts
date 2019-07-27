@@ -644,7 +644,6 @@ export interface StateTransition<TContext, TEvent extends EventObject> {
    * The source state that preceded the transition.
    */
   source: State<TContext> | undefined;
-  context?: TContext;
   actions: Array<ActionObject<TContext, TEvent>>;
 }
 
