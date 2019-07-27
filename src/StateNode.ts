@@ -661,22 +661,10 @@ class StateNode<
     const next = stateNode.next(state, eventObject);
 
     if (!next.transitions.length) {
-      const {
-        actions,
-        transitions,
-        entrySet,
-        exitSet,
-        configuration
-      } = this.next(state, eventObject);
-
       return {
-        transitions,
-        entrySet,
-        exitSet,
-        configuration,
-        source: state,
-        actions
-      };
+        ...this.next(state, eventObject),
+        source: state
+      }
     }
 
     return next;
@@ -696,21 +684,9 @@ class StateNode<
     );
 
     if (!next.transitions.length) {
-      const {
-        actions,
-        transitions,
-        entrySet,
-        exitSet,
-        configuration
-      } = this.next(state, eventObject);
-
       return {
-        transitions,
-        entrySet,
-        exitSet,
-        configuration,
+        ...this.next(state, eventObject),
         source: state,
-        actions
       };
     }
 
@@ -752,21 +728,9 @@ class StateNode<
     );
 
     if (!willTransition) {
-      const {
-        actions,
-        transitions,
-        entrySet,
-        exitSet,
-        configuration: _configuration
-      } = this.next(state, eventObject);
-
       return {
-        transitions,
-        entrySet,
-        exitSet,
-        configuration: _configuration,
+        ...this.next(state, eventObject),
         source: state,
-        actions
       };
     }
     const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
@@ -1135,7 +1099,8 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
-    _eventObject?: TEvent
+    _eventObject?: TEvent,
+    context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
@@ -1155,7 +1120,7 @@ class StateNode<
       : undefined;
     const currentContext = currentState
       ? currentState.context
-      : stateTransition.context || this.machine.context!;
+      : context;
     const eventObject = _eventObject || ({ type: ActionTypes.Init } as TEvent);
     const actions = this.getActions(stateTransition, currentState);
     const activities = currentState ? { ...currentState.activities } : {};
@@ -1537,19 +1502,23 @@ class StateNode<
 
   public getInitialState(
     stateValue: StateValue,
-    context: TContext = this.machine.context!
+    context?: TContext
   ): State<TContext, TEvent> {
     const configuration = this.getStateNodes(stateValue);
 
-    return this.resolveTransition({
-      configuration,
-      entrySet: configuration,
-      exitSet: [],
-      transitions: [],
-      source: undefined,
-      actions: [],
+    return this.resolveTransition(
+      {
+        configuration,
+        entrySet: configuration,
+        exitSet: [],
+        transitions: [],
+        source: undefined,
+        actions: []
+      },
+      undefined,
+      undefined,
       context
-    });
+    );
   }
 
   /**
