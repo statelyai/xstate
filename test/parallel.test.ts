@@ -1,6 +1,6 @@
 import { assert } from 'chai';
 import { raise, assign } from '../src/actions';
-import { Machine } from '../src/Machine';
+import { Machine } from '../src';
 import { testMultiTransition } from './utils';
 
 const composerMachine = Machine({
