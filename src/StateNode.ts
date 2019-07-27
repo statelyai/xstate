@@ -656,15 +656,12 @@ class StateNode<
     stateValue: string,
     state: State<TContext, TEvent>,
     eventObject: TEvent
-  ): StateTransition<TContext, TEvent> {
+  ): StateTransition<TContext, TEvent> | undefined {
     const stateNode = this.getStateNode(stateValue);
     const next = stateNode.next(state, eventObject);
 
-    if (!next.transitions.length) {
-      return {
-        ...this.next(state, eventObject),
-        source: state
-      };
+    if (!next || !next.transitions.length) {
+      return this.next(state, eventObject);
     }
 
     return next;
@@ -673,7 +670,7 @@ class StateNode<
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
     eventObject: TEvent
-  ): StateTransition<TContext, TEvent> {
+  ): StateTransition<TContext, TEvent> | undefined {
     const subStateKeys = keys(stateValue);
 
     const stateNode = this.getStateNode(subStateKeys[0]);
@@ -683,11 +680,8 @@ class StateNode<
       eventObject
     );
 
-    if (!next.transitions.length) {
-      return {
-        ...this.next(state, eventObject),
-        source: state
-      };
+    if (!next || !next.transitions.length) {
+      return this.next(state, eventObject);
     }
 
     return next;
@@ -696,7 +690,7 @@ class StateNode<
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
     eventObject: TEvent
-  ): StateTransition<TContext, TEvent> {
+  ): StateTransition<TContext, TEvent> | undefined {
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
     for (const subStateKey of keys(stateValue)) {
@@ -708,7 +702,9 @@ class StateNode<
 
       const subStateNode = this.getStateNode(subStateKey);
       const next = subStateNode._transition(subStateValue, state, eventObject);
-      transitionMap[subStateKey] = next;
+      if (next) {
+        transitionMap[subStateKey] = next;
+      }
     }
 
     const stateTransitions = keys(transitionMap).map(key => transitionMap[key]);
@@ -721,10 +717,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      return {
-        ...this.next(state, eventObject),
-        source: state
-      };
+      return this.next(state, eventObject);
     }
     const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
@@ -749,7 +742,7 @@ class StateNode<
     stateValue: StateValue,
     state: State<TContext, TEvent>,
     event: TEvent
-  ): StateTransition<TContext, TEvent> {
+  ): StateTransition<TContext, TEvent> | undefined {
     // leaf node
     if (isString(stateValue)) {
       return this.transitionLeafNode(stateValue, state, event);
@@ -766,24 +759,15 @@ class StateNode<
   private next(
     state: State<TContext, TEvent>,
     eventObject: TEvent
-  ): StateTransition<TContext, TEvent> {
+  ): StateTransition<TContext, TEvent> | undefined {
     const eventType = eventObject.type;
-    const candidates = this.on[eventType];
+    const candidates = this.on[eventType as TEvent['type']];
 
     if (!candidates || !candidates.length) {
-      return {
-        transitions: [],
-        entrySet: [],
-        exitSet: [],
-        configuration: [],
-        source: state,
-        actions: []
-      };
+      return undefined;
     }
 
-    const actions: Array<ActionObject<TContext, TEvent>> = this._transient
-      ? [{ type: actionTypes.nullEvent }]
-      : [];
+    const actions: Array<ActionObject<TContext, TEvent>> = [];
 
     let nextStateStrings: Array<StateNode<TContext>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
@@ -1075,7 +1059,14 @@ class StateNode<
       currentState.value,
       currentState,
       eventObject
-    );
+    ) || {
+      transitions: [],
+      configuration: [],
+      entrySet: [],
+      exitSet: [],
+      source: currentState,
+      actions: []
+    };
 
     const prevConfig = getConfiguration(
       [],
