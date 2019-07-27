@@ -721,7 +721,6 @@ class StateNode<
     state: State<TContext, TEvent>,
     eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
-    const noTransitionKeys: string[] = [];
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
     for (const subStateKey of keys(stateValue)) {
@@ -732,13 +731,7 @@ class StateNode<
       }
 
       const subStateNode = this.getStateNode(subStateKey);
-
       const next = subStateNode._transition(subStateValue, state, eventObject);
-
-      if (!next.transitions.length) {
-        noTransitionKeys.push(subStateKey);
-      }
-
       transitionMap[subStateKey] = next;
     }
 
