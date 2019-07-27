@@ -664,7 +664,7 @@ class StateNode<
       return {
         ...this.next(state, eventObject),
         source: state
-      }
+      };
     }
 
     return next;
@@ -686,7 +686,7 @@ class StateNode<
     if (!next.transitions.length) {
       return {
         ...this.next(state, eventObject),
-        source: state,
+        source: state
       };
     }
 
@@ -723,7 +723,7 @@ class StateNode<
     if (!willTransition) {
       return {
         ...this.next(state, eventObject),
-        source: state,
+        source: state
       };
     }
     const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
@@ -1111,9 +1111,7 @@ class StateNode<
         ? (this.machine.historyValue(currentState.value) as HistoryValue)
         : undefined
       : undefined;
-    const currentContext = currentState
-      ? currentState.context
-      : context;
+    const currentContext = currentState ? currentState.context : context;
     const eventObject = _eventObject || ({ type: ActionTypes.Init } as TEvent);
     const actions = this.getActions(stateTransition, currentState);
     const activities = currentState ? { ...currentState.activities } : {};
@@ -1840,7 +1838,7 @@ class StateNode<
 
       // If internal target is defined on machine,
       // do not include machine key on target
-      if (isInternalTarget && !this.parent) {
+      if (isInternalTarget) {
         return this.getStateNodeByPath(_target.slice(1));
       }
 
