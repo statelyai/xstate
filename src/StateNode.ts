@@ -99,6 +99,7 @@ const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const TARGETLESS_KEY = '';
+const WILDCARD = '*'
 
 const EMPTY_OBJECT = {};
 
@@ -768,9 +769,10 @@ class StateNode<
     eventObject: TEvent
   ): StateTransition<TContext, TEvent> {
     const eventType = eventObject.type;
-    const candidates = this.on[eventType];
+    const candidates = this.on[eventType] || [];
+    const hasWildcard = this.on[WILDCARD];
 
-    if (!candidates || !candidates.length) {
+    if (!candidates.length && !hasWildcard) {
       return {
         transitions: [],
         entrySet: [],
@@ -788,7 +790,9 @@ class StateNode<
     let nextStateStrings: Array<StateNode<TContext>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of candidates) {
+    const allCandidates = hasWildcard ? candidates.concat(this.on['*']) : candidates
+
+    for (const candidate of allCandidates) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
@@ -1062,6 +1066,13 @@ class StateNode<
 
     const eventObject = toEventObject(event);
     const eventType = eventObject.type;
+
+    if (!IS_PRODUCTION && eventType === WILDCARD) {
+      throw new Error(
+        `Wildcard ("${WILDCARD}") is a special event descriptor (catch all) which can be used when configuring transitions.` +
+          ` An event cannot be given such type.`
+      );
+    }
 
     if (this.strict) {
       if (this.events.indexOf(eventType) === -1 && !isBuiltInEvent(eventType)) {
