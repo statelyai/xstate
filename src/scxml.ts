@@ -200,6 +200,7 @@ function toConfig(
       (values: XMLElement[]) => {
         return values.map(value => {
           const targets = getAttribute(value, 'target');
+          const internal = getAttribute(value, 'type') === 'internal';
 
           return {
             target: getTargets(targets),
@@ -208,7 +209,8 @@ function toConfig(
               ? {
                   cond: evalCond(value.attributes.cond as string, extState)
                 }
-              : undefined)
+              : undefined),
+            internal
           };
         });
       }
@@ -268,7 +270,8 @@ export function toMachine(
   const extState = dataModelEl
     ? dataModelEl.elements!.reduce((acc, element) => {
         acc[element.attributes!.id!] = element.attributes!.expr
-          ? JSON.parse(element.attributes!.expr as string)
+          ? // tslint:disable-next-line:no-eval
+            eval(`(${element.attributes!.expr})`)
           : undefined;
         return acc;
       }, {})
@@ -277,6 +280,7 @@ export function toMachine(
   return Machine(
     {
       ...toConfig(machineElement, '(machine)', options, extState),
+      context: extState,
       delimiter: options.delimiter
     },
     undefined,

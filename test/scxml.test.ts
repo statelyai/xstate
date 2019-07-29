@@ -25,10 +25,17 @@ const testGroups = {
     'send8'
     // 'send9' // - edge case, since initial transitions in xstate are not microstepped
   ],
+  assign: [
+    // 'assign_invalid', // TODO: handle error.execution event
+    'assign_obj_literal'
+  ],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
-  data: [], // 4.0
+  data: [
+    // 'data_invalid',
+    'data_obj_literal'
+  ],
   'default-initial-state': ['initial1', 'initial2'],
   delayedSend: ['send1', 'send2', 'send3'], // 4.0
   documentOrder: ['documentOrder0'],
@@ -45,6 +52,7 @@ const testGroups = {
     'history5',
     'history6'
   ],
+  'internal-transitions': ['test0', 'test1'],
   misc: ['deep-initial'],
   'more-parallel': [
     'test0',
@@ -95,6 +103,7 @@ const testGroups = {
     'test30',
     'test31'
   ],
+  // 'scxml-prefix-event-name-matching': ['star0'], TODO: source ordering of wildcard appearing first
   'w3c-ecma': [
     'test144.txml',
     'test158.txml',
@@ -182,7 +191,7 @@ function evalCond(expr: string, context: object | undefined) {
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['history'];
+  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
