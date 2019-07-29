@@ -149,7 +149,7 @@ describe('State', () => {
     });
 
     it('should report any internal transition assignments as changed', () => {
-      const assignMachine = Machine({
+      const assignMachine = Machine<{ count: number }>({
         id: 'assign',
         initial: 'same',
         context: {

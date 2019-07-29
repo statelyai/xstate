@@ -16,19 +16,17 @@ const counterMachine = Machine<CounterContext>({
         INC: [
           {
             target: 'counting',
-            actions: [
-              assign<CounterContext>(xs => ({
-                count: xs.count + 1
-              }))
-            ]
+            actions: assign(ctx => ({
+              count: ctx.count + 1
+            }))
           }
         ],
         DEC: [
           {
             target: 'counting',
             actions: [
-              assign<CounterContext>({
-                count: xs => xs.count - 1
+              assign({
+                count: ctx => ctx.count - 1
               })
             ]
           }
@@ -37,7 +35,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              assign<CounterContext>({
+              assign({
                 count: () => 100,
                 foo: () => 'win'
               })
@@ -48,7 +46,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              assign<CounterContext>({
+              assign({
                 count: 100,
                 foo: 'win'
               })
@@ -59,7 +57,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              assign<CounterContext>({
+              assign({
                 count: () => 100,
                 foo: 'win'
               })
@@ -70,7 +68,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: [
-              assign<CounterContext>(() => ({
+              assign(() => ({
                 count: 100,
                 foo: 'win'
               }))
@@ -80,7 +78,7 @@ const counterMachine = Machine<CounterContext>({
         SET_MAYBE: [
           {
             actions: [
-              assign<CounterContext>({
+              assign({
                 maybe: 'defined'
               })
             ]
@@ -244,10 +242,10 @@ describe('custom updater', () => {
           on: {
             EVENT: {
               actions: [
-                assign<UpdaterContext>({
+                assign({
                   count: ctx => ctx.count + 2
                 }),
-                assign<UpdaterContext>({
+                assign({
                   count: ctx => ctx.count * 2
                 })
               ]

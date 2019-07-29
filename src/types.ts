@@ -60,7 +60,13 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
 export type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>;
+  | ActionFunction<TContext, TEvent>
+  | AssignAction<Required<TContext>, TEvent>;
+
+export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
+  Action<TContext, TEvent>
+>;
+
 export type StateKey = string | State<any>;
 
 export interface StateValueMap {
@@ -131,7 +137,7 @@ export type TransitionTargets<TContext> = Array<
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
-  actions?: SingleOrArray<Action<TContext, TEvent>>;
+  actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext>;
@@ -417,21 +423,21 @@ export interface StateNodeConfig<
    *
    * @deprecated Use `entry` instead.
    */
-  onEntry?: SingleOrArray<Action<TContext, TEvent>>; // TODO: deprecate
+  onEntry?: Actions<TContext, TEvent>; // TODO: deprecate
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: SingleOrArray<Action<TContext, TEvent>>;
+  entry?: Actions<TContext, TEvent>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
    * @deprecated Use `exit` instead.
    */
-  onExit?: SingleOrArray<Action<TContext, TEvent>>; // TODO: deprecate
+  onExit?: Actions<TContext, TEvent>; // TODO: deprecate
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: SingleOrArray<Action<TContext, TEvent>>;
+  exit?: Actions<TContext, TEvent>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
@@ -780,13 +786,11 @@ export type Assigner<TContext, TEvent extends EventObject> = (
   event: TEvent
 ) => Partial<TContext>;
 
-export type PropertyAssigner<TContext, TEvent extends EventObject> = Partial<
-  {
-    [K in keyof TContext]:
-      | ((context: TContext, event: TEvent) => TContext[K])
-      | TContext[K];
-  }
->;
+export type PropertyAssigner<TContext, TEvent extends EventObject> = {
+  [K in keyof TContext]?:
+    | ((context: TContext, event: TEvent) => TContext[K])
+    | TContext[K];
+};
 
 export type Mapper<TContext, TEvent extends EventObject> = (
   context: TContext,

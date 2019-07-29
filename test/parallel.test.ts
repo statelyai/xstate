@@ -888,7 +888,7 @@ describe('parallel states', () => {
 
     // https://github.com/davidkpiano/xstate/issues/531
     it('should calculate the entry set for external transitions in parallel states', () => {
-      const testMachine = Machine({
+      const testMachine = Machine<{ log: string[] }>({
         id: 'test',
         context: { log: [] },
         type: 'parallel',

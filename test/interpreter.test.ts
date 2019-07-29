@@ -558,7 +558,7 @@ describe('interpreter', () => {
   it('should be able to log (log action)', () => {
     const logs: any[] = [];
 
-    const logMachine = Machine({
+    const logMachine = Machine<{ count: number }>({
       id: 'log',
       initial: 'x',
       context: { count: 0 },
@@ -599,7 +599,7 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          onEntry: send(ctx => ({ type: 'NEXT', password: ctx.password })),
+          entry: send(ctx => ({ type: 'NEXT', password: ctx.password })),
           on: {
             NEXT: {
               target: 'finish',
@@ -669,17 +669,17 @@ describe('interpreter', () => {
   });
 
   describe('send() batch events', () => {
-    const countMachine = Machine({
+    const countMachine = Machine<{ count: number }>({
       id: 'count',
       initial: 'even',
       context: { count: 0 },
       states: {
         even: {
-          onExit: [assign({ count: ctx => ctx.count + 1 }), 'evenAction'],
+          exit: [assign({ count: ctx => ctx.count + 1 }), 'evenAction'],
           on: { INC: 'odd' }
         },
         odd: {
-          onExit: [assign({ count: ctx => ctx.count + 1 }), 'oddAction'],
+          exit: [assign({ count: ctx => ctx.count + 1 }), 'oddAction'],
           on: { INC: 'even' }
         }
       }

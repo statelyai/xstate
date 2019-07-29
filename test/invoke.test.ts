@@ -81,8 +81,10 @@ const fetcherMachine = Machine({
   }
 });
 
-// @ts-ignore
-const intervalMachine = Machine({
+const intervalMachine = Machine<{
+  interval: number;
+  count: number;
+}>({
   id: 'interval',
   initial: 'counting',
   context: {
@@ -137,7 +139,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = Machine(
+    const someParentMachine = Machine<{ count: number }>(
       {
         id: 'parent',
         context: { count: 0 },
@@ -203,7 +205,7 @@ describe('invoke', () => {
       }
     });
 
-    const someParentMachine = Machine(
+    const someParentMachine = Machine<{ count: number }>(
       {
         id: 'parent',
         context: { count: 0 },

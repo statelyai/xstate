@@ -10,19 +10,19 @@ describe('onEntry/onExit actions', () => {
         on: {
           PED_COUNTDOWN: 'wait'
         },
-        onEntry: 'enter_walk',
-        onExit: 'exit_walk'
+        entry: 'enter_walk',
+        exit: 'exit_walk'
       },
       wait: {
         on: {
           PED_COUNTDOWN: 'stop'
         },
-        onEntry: 'enter_wait',
-        onExit: 'exit_wait'
+        entry: 'enter_wait',
+        exit: 'exit_wait'
       },
       stop: {
-        onEntry: ['enter_stop'],
-        onExit: ['exit_stop']
+        entry: ['enter_stop'],
+        exit: ['exit_stop']
       }
     }
   };
@@ -37,16 +37,16 @@ describe('onEntry/onExit actions', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'green'
         },
-        onEntry: 'enter_green',
-        onExit: 'exit_green'
+        entry: 'enter_green',
+        exit: 'exit_green'
       },
       yellow: {
         on: {
           TIMER: 'red',
           POWER_OUTAGE: 'red'
         },
-        onEntry: 'enter_yellow',
-        onExit: 'exit_yellow'
+        entry: 'enter_yellow',
+        exit: 'exit_yellow'
       },
       red: {
         on: {
@@ -54,8 +54,8 @@ describe('onEntry/onExit actions', () => {
           POWER_OUTAGE: 'red',
           NOTHING: 'red'
         },
-        onEntry: 'enter_red',
-        onExit: 'exit_red',
+        entry: 'enter_red',
+        exit: 'exit_red',
         ...pedestrianStates
       }
     }
@@ -129,26 +129,26 @@ describe('onEntry/onExit actions', () => {
             on: {
               CHANGE: { target: 'a2', actions: ['do_a2', 'another_do_a2'] }
             },
-            onEntry: 'enter_a1',
-            onExit: 'exit_a1'
+            entry: 'enter_a1',
+            exit: 'exit_a1'
           },
-          a2: { onEntry: 'enter_a2', onExit: 'exit_a2' }
+          a2: { entry: 'enter_a2', exit: 'exit_a2' }
         },
-        onEntry: 'enter_a',
-        onExit: 'exit_a'
+        entry: 'enter_a',
+        exit: 'exit_a'
       },
       b: {
         initial: 'b1',
         states: {
           b1: {
             on: { CHANGE: { target: 'b2', actions: 'do_b2' } },
-            onEntry: 'enter_b1',
-            onExit: 'exit_b1'
+            entry: 'enter_b1',
+            exit: 'exit_b1'
           },
-          b2: { onEntry: 'enter_b2', onExit: 'exit_b2' }
+          b2: { entry: 'enter_b2', exit: 'exit_b2' }
         },
-        onEntry: 'enter_b',
-        onExit: 'exit_b'
+        entry: 'enter_b',
+        exit: 'exit_b'
       }
     }
   });
@@ -164,12 +164,12 @@ describe('onEntry/onExit actions', () => {
               NEXT: 'a2',
               NEXT_FN: 'a3'
             },
-            onEntry: 'enter_a1',
-            onExit: 'exit_a1'
+            entry: 'enter_a1',
+            exit: 'exit_a1'
           },
           a2: {
-            onEntry: 'enter_a2',
-            onExit: 'exit_a2'
+            entry: 'enter_a2',
+            exit: 'exit_a2'
           },
           a3: {
             on: {
@@ -182,26 +182,26 @@ describe('onEntry/onExit actions', () => {
                 ]
               }
             },
-            onEntry: function enter_a3_fn() {
+            entry: function enter_a3_fn() {
               return;
             },
-            onExit: function exit_a3_fn() {
+            exit: function exit_a3_fn() {
               return;
             }
           }
         },
-        onEntry: 'enter_a',
-        onExit: ['exit_a', 'another_exit_a'],
+        entry: 'enter_a',
+        exit: ['exit_a', 'another_exit_a'],
         on: { CHANGE: 'b' }
       },
       b: {
-        onEntry: ['enter_b', 'another_enter_b'],
-        onExit: 'exit_b',
+        entry: ['enter_b', 'another_enter_b'],
+        exit: 'exit_b',
         initial: 'b1',
         states: {
           b1: {
-            onEntry: 'enter_b1',
-            onExit: 'exit_b1'
+            entry: 'enter_b1',
+            exit: 'exit_b1'
           }
         }
       }
@@ -238,8 +238,8 @@ describe('onEntry/onExit actions', () => {
                 }
               },
               D2: {
-                onEntry: ['D2 Entry'],
-                onExit: ['D2 Exit']
+                entry: ['D2 Entry'],
+                exit: ['D2 Exit']
               }
             }
           }
@@ -409,7 +409,7 @@ describe('onEntry/onExit actions', () => {
         key: 'machine',
         states: {
           ping: {
-            onEntry: ['entryEvent'],
+            entry: ['entryEvent'],
             on: {
               TICK: 'pong'
             },
@@ -508,13 +508,13 @@ describe('onEntry/onExit actions', () => {
           },
           p1: {
             type: 'parallel',
-            onEntry: 'enter_p1',
+            entry: 'enter_p1',
             states: {
               nested: {
                 initial: 'inner',
                 states: {
                   inner: {
-                    onEntry: 'enter_inner'
+                    entry: 'enter_inner'
                   }
                 }
               }
@@ -625,7 +625,7 @@ describe('actions config', () => {
       },
       states: {
         a: {
-          onEntry: [
+          entry: [
             'definedAction',
             { type: 'definedAction' },
             'undefinedAction'
@@ -695,8 +695,8 @@ describe('actions config', () => {
       initial: 'active',
       states: {
         active: {
-          onEntry: () => (onEntryCalled = true),
-          onExit: () => (onExitCalled = true),
+          entry: () => (onEntryCalled = true),
+          exit: () => (onExitCalled = true),
           on: {
             EVENT: {
               target: 'inactive',
@@ -757,7 +757,7 @@ describe('action meta', () => {
         initial: 'foo',
         states: {
           foo: {
-            onEntry: {
+            entry: {
               type: 'entryAction',
               value: 'something'
             }

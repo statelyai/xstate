@@ -336,7 +336,7 @@ describe('actors', () => {
       context: { ref: undefined },
       states: {
         foo: {
-          entry: assign<any>({
+          entry: assign({
             ref: () => spawn(Promise.resolve(42))
           })
         }
@@ -567,7 +567,7 @@ describe('actors', () => {
         context: {},
         states: {
           same: {
-            entry: assign<SyncMachineContext>({
+            entry: assign({
               ref: () => spawn(syncChildMachine, { sync: true })
             })
           }
@@ -612,7 +612,7 @@ describe('actors', () => {
           context: {},
           states: {
             same: {
-              entry: assign<SyncMachineContext>({
+              entry: assign({
                 ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
@@ -664,7 +664,7 @@ describe('actors', () => {
           context: {},
           states: {
             same: {
-              entry: assign<SyncMachineContext>({
+              entry: assign({
                 ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
