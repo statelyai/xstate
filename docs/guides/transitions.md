@@ -374,11 +374,9 @@ const settingsMachine = Machine({
   },
   on: {
     // Multiple targets
-    DEACTIVATE: ['.mode.inactive', '.status.disabled']
-    // Can also be coded as...
-    // DEACTIVATE: {
-    //   target: ['.mode.inactive', '.status.disabled']
-    // }
+    DEACTIVATE: {
+      target: ['.mode.inactive', '.status.disabled']
+    }
   }
 });
 ```
