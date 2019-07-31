@@ -1,5 +1,7 @@
 # Identifying State Nodes
 
+[:rocket: Quick Reference](#quick-reference)
+
 By default, a state node's `id` is its delimited full path. You can use this default `id` to specify a state node:
 
 ```js
@@ -42,7 +44,17 @@ const optionsMachine = Machine({
 });
 ```
 
-By default, relative targets are [internal transitions](./transitions.md#internal-transitions).
+By default, relative targets are [internal transitions](./transitions.md#internal-transitions), which means the parent state will _not_ exit and reenter. You can make relative targets external transitions by specifying `internal: false`:
+
+```js {4}
+// ...
+on: {
+  SELECT_FIRST: {
+    target: '.first',
+    internal: false // external transition, will exit/reenter parent state node
+  }
+}
+```
 
 ## Custom IDs
 
@@ -88,9 +100,9 @@ const lightMachine = Machine({
 - IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.
 
-## Avoiding strings <Badge text="4.2+"/>
+## Avoiding strings
 
-Not a fan of using strings for identifying states? You can use [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) to directly reference the target state:
+If you don't want to use strings for identifying states, [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) can be used to directly reference the target state:
 
 ```js
 const lightMachine = Machine({
@@ -127,7 +139,7 @@ const lightMachine = Machine({
 ```
 
 ::: warning
-The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings.
+The getter _must_ be a pure function that always returns the same value, which is a `StateNode` instance. Using getters to reference state nodes is completely optional, and useful if you want to avoid strings or have stricter typings. This getter will only be called once.
 :::
 
 ## SCXML
@@ -150,3 +162,50 @@ IDs correspond to the definition of IDs in the SCXML spec:
 
 - [https://www.w3.org/TR/scxml/#IDs](https://www.w3.org/TR/scxml/#IDs) - specification that all `id` attributes _must_ be unique
 - [https://www.w3.org/TR/scxml/#state](https://www.w3.org/TR/scxml/#state) - see the definition of the `id` attribute in `<state>`
+
+## Quick Reference
+
+**Default, automatically generated ID:**
+
+```js
+const lightMachine = Machine({
+  id: 'light',
+  initial: 'green',
+  states: {
+    // ID: "light.green"
+    green: {
+      /* ... */
+    },
+    // ID: "light.yellow"
+    yellow: {
+      /* ... */
+    },
+    // ID: "light.red"
+    red: {
+      /* ... */
+    }
+  }
+});
+```
+
+**Custom ID**
+
+```js
+// ...
+states: {
+  active: {
+    id: 'custom-active', // can be any unique string
+    // ...
+  }
+}
+```
+
+**Targeting state node by ID:**
+
+```js
+// ...
+on: {
+  EVENT: '#light.yellow', // target default ID
+  ANOTHER_EVENT: '#custom-id' // target custom ID
+}
+```
