@@ -9,7 +9,7 @@ import { render, cleanup, fireEvent } from 'react-testing-library';
 afterEach(cleanup);
 
 describe('useService hook', () => {
-  const counterMachine = Machine({
+  const counterMachine = Machine<{ count: number }>({
     id: 'counter',
     initial: 'active',
     context: { count: 0 },
@@ -61,14 +61,11 @@ describe('useService hook', () => {
       const [state, send] = useService(counterService);
       const [otherState, setOtherState] = useState('');
 
-      useEffect(
-        () => {
-          counterService.execute(state, {
-            doSomething: () => setOtherState('test')
-          });
-        },
-        [state]
-      );
+      useEffect(() => {
+        counterService.execute(state, {
+          doSomething: () => setOtherState('test')
+        });
+      }, [state]);
 
       return (
         <>

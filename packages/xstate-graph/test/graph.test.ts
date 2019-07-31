@@ -782,7 +782,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return value-based paths', () => {
-      const countMachine = Machine({
+      const countMachine = Machine<{ count: number }>({
         id: 'count',
         initial: 'start',
         context: {
@@ -1033,7 +1033,7 @@ describe('@xstate/graph', () => {
 
   describe('valueAdjacencyMap', () => {
     it('should map adjacencies', () => {
-      const counterMachine = Machine({
+      const counterMachine = Machine<{ count: number; other: string }>({
         id: 'counter',
         initial: 'empty',
         context: { count: 0, other: 'something' },
