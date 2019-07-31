@@ -398,7 +398,7 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<any>({
+      const machine = Machine<{ counter: number; serverRef?: Actor }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
