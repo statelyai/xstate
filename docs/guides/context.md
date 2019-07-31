@@ -438,7 +438,7 @@ const machine = Machine({
   }
 });
 
-const myMachine = machine.withConfig({
+const myMachine = machine.withContext({
   count: 10,
   user: {
     name: 'David'
