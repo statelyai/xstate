@@ -1148,7 +1148,12 @@ class StateNode<
     );
 
     const updatedContext = assignActions.length
-      ? this.options.updater(currentContext, eventObject, assignActions)
+      ? this.options.updater(
+          currentContext,
+          eventObject,
+          assignActions,
+          currentState
+        )
       : currentContext;
 
     const resolvedActions = flatten(

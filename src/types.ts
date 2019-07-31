@@ -50,6 +50,11 @@ export interface ActionMeta<TContext, TEvent extends EventObject>
   action: ActionObject<TContext, TEvent>;
 }
 
+export interface AssignMeta<TContext, TEvent extends EventObject> {
+  state?: State<TContext, TEvent>;
+  action: AssignAction<TContext, TEvent>;
+}
+
 export type ActionFunction<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
@@ -783,12 +788,17 @@ export interface CancelAction extends ActionObject<any, any> {
 
 export type Assigner<TContext, TEvent extends EventObject> = (
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  meta: AssignMeta<TContext, TEvent>
 ) => Partial<TContext>;
 
 export type PropertyAssigner<TContext, TEvent extends EventObject> = {
   [K in keyof TContext]?:
-    | ((context: TContext, event: TEvent) => TContext[K])
+    | ((
+        context: TContext,
+        event: TEvent,
+        meta: AssignMeta<TContext, TEvent>
+      ) => TContext[K])
     | TContext[K];
 };
 
@@ -811,7 +821,8 @@ export type Updater<
 > = (
   context: TContext,
   event: TEvent,
-  assignActions: TAssignAction[]
+  assignActions: TAssignAction[],
+  state?: State<TContext, TEvent>
 ) => TContext;
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>

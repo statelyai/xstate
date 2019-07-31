@@ -20,6 +20,7 @@ import {
 } from './types';
 import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
+import { State } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -404,22 +405,31 @@ export function updateHistoryValue(
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   event: TEvent,
-  assignActions: Array<AssignAction<TContext, TEvent>>
+  assignActions: Array<AssignAction<TContext, TEvent>>,
+  state?: State<TContext, TEvent>
 ): TContext {
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
+        const meta = {
+          state,
+          action: assignAction
+        };
 
         let partialUpdate: Partial<TContext> = {};
 
         if (isFunction(assignment)) {
-          partialUpdate = assignment(acc, event || { type: ActionTypes.Init });
+          partialUpdate = assignment(
+            acc,
+            event || { type: ActionTypes.Init },
+            meta
+          );
         } else {
           for (const key of keys(assignment)) {
             const propAssignment = assignment[key];
 
             partialUpdate[key] = isFunction(propAssignment)
-              ? propAssignment(acc, event)
+              ? propAssignment(acc, event, meta)
               : propAssignment;
           }
         }

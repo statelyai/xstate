@@ -282,3 +282,74 @@ describe('custom updater', () => {
     assert.deepEqual(updates, [2, 4]);
   });
 });
+
+describe('assign meta', () => {
+  const machine = Machine<{ count: number }>({
+    id: 'assign',
+    initial: 'start',
+    context: { count: 0 },
+    states: {
+      start: {
+        entry: assign({
+          count: (_, __, { state }) => {
+            return state === undefined ? 1 : -1;
+          }
+        }),
+        meta: { test: 3 },
+        on: {
+          NEXT: {
+            target: 'two',
+            actions: assign({
+              count: (_, __, { state }) => {
+                return state ? state.meta['assign.start'].test : -1;
+              }
+            })
+          },
+          NEXT_FN: {
+            target: 'two',
+            actions: assign((_, __, { state }) => ({
+              count: state ? state.meta['assign.start'].test : -1
+            }))
+          },
+          NEXT_ASSIGNER: {
+            target: 'two',
+            actions: assign((_, __, { action }) => ({
+              count: action.assignment ? 5 : -1
+            }))
+          }
+        }
+      },
+      two: {}
+    }
+  });
+
+  it('should provide the state in regular transitions (prop assigner)', () => {
+    const { initialState } = machine;
+
+    const nextState = machine.transition(initialState, 'NEXT');
+
+    assert.deepEqual(nextState.context, { count: 3 });
+  });
+
+  it('should provide the state in regular transitions (assigner)', () => {
+    const { initialState } = machine;
+
+    const nextState = machine.transition(initialState, 'NEXT_FN');
+
+    assert.deepEqual(nextState.context, { count: 3 });
+  });
+
+  it('should provide the assign action', () => {
+    const { initialState } = machine;
+
+    const nextState = machine.transition(initialState, 'NEXT_ASSIGNER');
+
+    assert.deepEqual(nextState.context, { count: 5 });
+  });
+
+  it('should not provide the state from initial state', () => {
+    const { initialState } = machine;
+
+    assert.deepEqual(initialState.context, { count: 1 });
+  });
+});
