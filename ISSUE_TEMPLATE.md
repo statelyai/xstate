@@ -16,10 +16,11 @@ I also strongly encourage you to [create a pull request](https://github.com/davi
 ## (Feature) Potential implementation:
 
 **Required!** If you would like to see a feature or enhancement make its way to xstate, please describe:
+
 - What the API would look like
 - If this is a breaking change
 - If this is part of the existing [SCXML specification](https://www.w3.org/TR/scxml/)
 
 ## Link to reproduction or proof-of-concept:
 
-You can use [CodePen](codepen.io) or [Code Sandbox](codesandbox.io) to create a reproduction/POC.
+You can use [CodePen](codepen.io) or [CodeSandbox template](https://codesandbox.io/s/6dsws) to create a reproduction/POC.
