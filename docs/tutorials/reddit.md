@@ -90,7 +90,7 @@ const redditMachine = Machine({
 When a subreddit is selected (that is, when the machine is in the `'selected'` state due to a `'SELECT'` event), the machine should start loading the subreddit data. To do this, we [invoke a Promise](../guides/invoke.md#invoking-promises) that will resolve with the selected subreddit data:
 
 ```js
-function invokeFetchSubreddit = (context) => {
+function invokeFetchSubreddit(context) {
   const { subreddit } = context;
 
   return fetch(`https://www.reddit.com/r/${subreddit}.json`)
@@ -109,7 +109,9 @@ const redditMachine = Machine({
       }
     }
   },
-  on: {/* ... */}
+  on: {
+    /* ... */
+  }
 });
 ```
 
@@ -196,44 +198,7 @@ const redditMachine = Machine({
 
 ## Testing It Out
 
-It's a good idea to test that your machine's logic matches the app logic you intended. Since the `machine.transition(...)` function is just a pure reducer, you can test this logic by passing in events and ensuring that the resulting state matches the expected state:
-
-```js
-import { interpret } from 'xstate';
-import { assert } from 'chai';
-
-import { redditMachine } from '../path/to/redditMachine';
-
-describe('reddit machine', () => {
-  it('should load posts of a selected subreddit', () => {
-    let currentState = redditMachine.initialState;
-
-    currentState = redditMachine.transition(currentState, {
-      type: 'SELECT',
-      name: 'reactjs'
-    });
-
-    assert.isTrue(currentState.matches('selected'));
-    assert.equal(currentState.context.subreddit, 'reactjs');
-
-    assert.isTrue(currentState.matches({ selected: 'loading' }));
-
-    const mockPosts = [
-      /* ... */
-    ];
-
-    currentState = redditMachine.transition(
-      currentState,
-      doneInvoke('fetch-subreddit', mockPosts)
-    );
-
-    assert.isTrue(currentState.matches({ selected: 'loaded' }));
-    assert.equal(currentState.context.posts, mockPosts);
-  });
-});
-```
-
-If you want to test against a real/mock implementation of your app logic (e.g., using real services, making API calls, etc.), you can [run the logic in an interpreter](../guides/interpretation.md) via `interpret(...)` and write an async test that finishes when the state machine reaches a certain state:
+It's a good idea to test that your machine's logic matches the app logic you intended. The most straightforward way to confidently test your app logic is by writing **integration tests**. You can test against a real or mock implementation of your app logic (e.g., using real services, making API calls, etc.), you can [run the logic in an interpreter](../guides/interpretation.md) via `interpret(...)` and write an async test that finishes when the state machine reaches a certain state:
 
 ```js
 import { interpret } from 'xstate';
@@ -256,6 +221,8 @@ describe('reddit machine (live)', () => {
       })
       .start(); // remember to start the service!
 
+    // Test that when the 'SELECT' event is sent, the machine eventually
+    // reaches the { selected: 'loaded' } state with posts
     redditService.send('SELECT', { name: 'reactjs' });
   });
 });
@@ -283,7 +250,7 @@ const App = () => {
       <header>
         <select
           onChange={e => {
-            send('SELECT', e.target.value);
+            send('SELECT', { name: e.target.value });
           }}
         >
           {subreddits.map(subreddit => {
@@ -379,9 +346,10 @@ Then, in the UI framework (React, in this case), a `<Subreddit>` component can b
 
 ```jsx
 const Subreddit = ({ name }) => {
+  // Only create the machine based on the subreddit name once
   const subredditMachine = useMemo(() => {
     createSubredditMachine(name);
-  }, [name]);
+  }, []);
 
   const [current, send] = useMachine(subredditMachine);
 
@@ -415,12 +383,12 @@ And the overall app can use that `<Subreddit>` component:
 ```jsx
 const App = () => {
   const [current, send] = useMachine(redditMachine);
-  const { subreddit, posts } = current.context;
+  const { subreddit } = current.context;
 
   return (
     <main>
-      {/* ... */}
-      <Subreddit name={subreddit} key={subreddit} />
+      <header>{/* ... */}</header>
+      {subreddit && <Subreddit name={subreddit} key={subreddit} />}
     </main>
   );
 };
@@ -535,12 +503,12 @@ const Subreddit = ({ service }) => {
 
 const App = () => {
   const [current, send] = useMachine(redditMachine);
-  const { subreddit, posts } = current.context;
+  const { subreddit } = current.context;
 
   return (
     <main>
       {/* ... */}
-      <Subreddit service={subreddit} key={subreddit.id} />
+      {subreddit && <Subreddit service={subreddit} key={subreddit.id} />}
     </main>
   );
 };
