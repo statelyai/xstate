@@ -1938,7 +1938,7 @@ class StateNode<
           return [{ target: undefined, event, actions: [], internal: true }];
         }
 
-        const transitions = toArray(value)
+        const transitions = toArray(value);
 
         if (!IS_PRODUCTION) {
           const hasNonLastUnguardedTarget = transitions
@@ -1950,10 +1950,13 @@ class StateNode<
                 (!('cond' in transition) && !('in' in transition))
             );
 
+          const eventText =
+            event.length === 0 ? 'the transient event' : `event '${event}'`;
+
           warn(
             !hasNonLastUnguardedTarget,
-            `Transitions for event '${event}' on state '${this.id}' look broken.` +
-              ' Non-last target is unguarded (no `cond` or `in`), it will always be chosen over following targets.'
+            `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
+              `Make sure that the default transition is the last one defined.`
           );
         }
 
@@ -1965,9 +1968,14 @@ class StateNode<
           if (!IS_PRODUCTION) {
             for (const key of keys(transition)) {
               if (
-                ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
-                  key
-                ) === -1
+                [
+                  'target',
+                  'actions',
+                  'internal',
+                  'in',
+                  'cond',
+                  'event'
+                ].indexOf(key) === -1
               ) {
                 throw new Error(
                   // tslint:disable-next-line:max-line-length
