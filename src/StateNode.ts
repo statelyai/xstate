@@ -1938,36 +1938,47 @@ class StateNode<
           return [{ target: undefined, event, actions: [], internal: true }];
         }
 
-        if (isArray(value)) {
-          return value.map(targetTransitionConfig =>
-            this.formatTransition(
-              targetTransitionConfig.target,
-              targetTransitionConfig,
-              event
-            )
+        const transitions = toArray(value)
+
+        if (!IS_PRODUCTION) {
+          const hasNonLastUnguardedTarget = transitions
+            .slice(0, -1)
+            .some(
+              transition =>
+                isString(transition) ||
+                isMachine(transition) ||
+                (!('cond' in transition) && !('in' in transition))
+            );
+
+          warn(
+            !hasNonLastUnguardedTarget,
+            `Transitions for event '${event}' on state '${this.id}' look broken.` +
+              ' Non-last target is unguarded (no `cond` or `in`), it will always be chosen over following targets.'
           );
         }
 
-        if (isString(value) || isMachine(value)) {
-          return [this.formatTransition([value], undefined, event)];
-        }
+        return transitions.map(transition => {
+          if (isString(transition) || isMachine(transition)) {
+            return this.formatTransition(transition, undefined, event);
+          }
 
-        if (!IS_PRODUCTION) {
-          for (const key of keys(value)) {
-            if (
-              ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
-                key
-              ) === -1
-            ) {
-              throw new Error(
-                // tslint:disable-next-line:max-line-length
-                `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${this.id}'.`
-              );
+          if (!IS_PRODUCTION) {
+            for (const key of keys(transition)) {
+              if (
+                ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
+                  key
+                ) === -1
+              ) {
+                throw new Error(
+                  // tslint:disable-next-line:max-line-length
+                  `State object mapping of transitions is deprecated. Check the config for event '${event}' on state '${this.id}'.`
+                );
+              }
             }
           }
-        }
 
-        return [this.formatTransition(value.target, value, event)];
+          return this.formatTransition(transition.target, transition, event);
+        });
       }
     ) as TransitionsDefinition<TContext, TEvent>;
 

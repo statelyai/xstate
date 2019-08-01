@@ -1,5 +1,5 @@
 import { assert } from 'chai';
-import { Machine } from '../src/index';
+import { Machine, interpret } from '../src';
 
 describe('guard conditions', () => {
   // type LightMachineEvents =
@@ -350,3 +350,25 @@ describe('referencing guards', () => {
     }, `Unable to evaluate guard`);
   });
 });
+
+describe('guards - other', () => {
+  it('should allow for a fallback target to be a simple string', () => {
+      const machine = Machine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: [{ target: 'b', cond: () => false }, 'c']
+            }
+          },
+          b: {},
+          c: {}
+        },
+      });
+
+      const service = interpret(machine).start();
+      service.send('EVENT');
+
+      assert.equal(service.state.value, 'c');
+  })
+})
