@@ -306,16 +306,15 @@ export type StatesDefinition<
 };
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?:
+  [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?: SingleOrArray<
     | string
     | number
     | StateNode<TContext, any, TEvent>
-    | SingleOrArray<
-        TransitionConfig<
-          TContext,
-          TEvent extends { type: K } ? TEvent : EventObject
-        >
-      >;
+    | TransitionConfig<
+      TContext,
+      TEvent extends { type: K } ? TEvent : EventObject
+    >
+  >;
 };
 
 export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
