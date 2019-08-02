@@ -1,6 +1,5 @@
 import { Machine, sendParent, interpret } from '../src';
 import { respond, send } from '../src/actions';
-// import { assert } from 'chai';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending service', done => {

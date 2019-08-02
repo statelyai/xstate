@@ -1,6 +1,5 @@
 import { interpret, Interpreter } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
-import { assert } from 'chai';
 import { machine as idMachine } from './fixtures/id';
 import {
   Machine,
@@ -48,14 +47,14 @@ describe('interpreter', () => {
   it('creates an interpreter', () => {
     const service = interpret(idMachine);
 
-    assert.instanceOf(service, Interpreter);
+    expect(service).toBeInstanceOf(Interpreter);
   });
 
   it('immediately notifies the listener with the initial state and event', done => {
     const service = interpret(idMachine).onTransition((initialState, event) => {
-      assert.instanceOf(initialState, State);
-      assert.deepEqual(initialState.value, idMachine.initialState.value);
-      assert.deepEqual(event.type, actionTypes.init);
+      expect(initialState).toBeInstanceOf(State);
+      expect(initialState.value).toEqual(idMachine.initialState.value);
+      expect(event.type).toEqual(actionTypes.init);
       done();
     });
 
@@ -65,7 +64,7 @@ describe('interpreter', () => {
   it('.initialState returns the initial state', () => {
     const service = interpret(idMachine);
 
-    assert.deepEqual(service.initialState.value, idMachine.initialState.value);
+    expect(service.initialState.value).toEqual(idMachine.initialState.value);
   });
 
   describe('.nextState() method', () => {
@@ -81,8 +80,8 @@ describe('interpreter', () => {
         .start();
 
       const nextState = service.nextState('TIMER');
-      assert.equal(nextState.value, 'yellow');
-      assert.equal(state.value, 'green');
+      expect(nextState.value).toEqual('yellow');
+      expect(state.value).toEqual('green');
     });
   });
 
@@ -93,7 +92,7 @@ describe('interpreter', () => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
-          assert.deepEqual(currentStates.map(s => s.value), [
+          expect(currentStates.map(s => s.value)).toEqual([
             'green',
             'yellow',
             'red',
@@ -109,34 +108,30 @@ describe('interpreter', () => {
       service.start();
 
       clock.increment(5);
-      assert.equal(
-        currentStates[0]!.value,
-        'green',
-        'State should still be green before delayed send'
-      );
+      expect(currentStates[0]!.value).toEqual('green');
 
       clock.increment(5);
-      assert.deepEqual(currentStates.map(s => s.value), ['green', 'yellow']);
+      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
 
       clock.increment(5);
-      assert.deepEqual(currentStates.map(s => s.value), ['green', 'yellow']);
+      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
 
       clock.increment(5);
-      assert.deepEqual(currentStates.map(s => s.value), [
+      expect(currentStates.map(s => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
       clock.increment(5);
-      assert.deepEqual(currentStates.map(s => s.value), [
+      expect(currentStates.map(s => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
       clock.increment(5);
-      assert.deepEqual(currentStates.map(s => s.value), [
+      expect(currentStates.map(s => s.value)).toEqual([
         'green',
         'yellow',
         'red',
@@ -192,11 +187,11 @@ describe('interpreter', () => {
 
       clock.increment(101);
 
-      assert.isFalse(stopped);
+      expect(stopped).toBe(false);
 
       clock.increment(50);
 
-      assert.isTrue(stopped);
+      expect(stopped).toBe(true);
     });
 
     it('can send an event after a delay (delayed transitions)', done => {
@@ -272,15 +267,15 @@ describe('interpreter', () => {
         })
         .start();
 
-      assert.equal(state.value, 'a');
+      expect(state.value).toEqual('a');
       clock.increment(100);
-      assert.equal(state.value, 'b');
+      expect(state.value).toEqual('b');
       clock.increment(100 + 50);
-      assert.equal(state.value, 'c');
+      expect(state.value).toEqual('c');
       clock.increment(20);
-      assert.equal(state.value, 'd');
+      expect(state.value).toEqual('d');
       clock.increment(100 + 200);
-      assert.equal(state.value, 'e');
+      expect(state.value).toEqual('e');
       clock.increment(100 + 50);
     });
   });
@@ -317,7 +312,7 @@ describe('interpreter', () => {
 
       service.start();
 
-      assert.equal(activityState, 'on');
+      expect(activityState).toEqual('on');
     });
 
     it('should stop activities', () => {
@@ -325,11 +320,11 @@ describe('interpreter', () => {
 
       service.start();
 
-      assert.equal(activityState, 'on');
+      expect(activityState).toEqual('on');
 
       service.send('TURN_OFF');
 
-      assert.equal(activityState, 'off');
+      expect(activityState).toEqual('off');
     });
 
     it('should stop activities upon stopping the service', () => {
@@ -361,11 +356,11 @@ describe('interpreter', () => {
 
       const stopActivityService = interpret(stopActivityMachine).start();
 
-      assert.equal(stopActivityState!, 'on');
+      expect(stopActivityState!).toEqual('on');
 
       stopActivityService.stop();
 
-      assert.equal(stopActivityState!, 'off', 'activity should be disposed');
+      expect(stopActivityState!).toEqual('off');
     });
 
     it('should not restart activities from a compound state', () => {
@@ -415,8 +410,8 @@ describe('interpreter', () => {
         })
         .start(bState);
 
-      assert.ok(state.activities.blink);
-      assert.isFalse(activityActive);
+      expect(state.activities.blink).toBeTruthy();
+      expect(activityActive).toBe(false);
     });
   });
 
@@ -433,13 +428,9 @@ describe('interpreter', () => {
     clock.increment(5);
     service.send('KEEP_GOING');
 
-    assert.deepEqual(currentState!.value, 'green');
+    expect(currentState!.value).toEqual('green');
     clock.increment(10);
-    assert.deepEqual(
-      currentState!.value,
-      'green',
-      'should still be green due to canceled event'
-    );
+    expect(currentState!.value).toEqual('green');
   });
 
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
@@ -448,11 +439,15 @@ describe('interpreter', () => {
       deferEvents: false
     });
 
-    assert.throws(() => service.send('SOME_EVENT'), /uninitialized/);
+    expect(() => service.send('SOME_EVENT'))
+      .toThrowErrorMatchingInlineSnapshot(`
+"Event \\"SOME_EVENT\\" was sent to uninitialized service \\"light\\". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.
+Event: {\\"type\\":\\"SOME_EVENT\\"}"
+`);
 
     service.start();
 
-    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+    expect(() => service.send('SOME_EVENT')).not.toThrow();
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
@@ -461,11 +456,11 @@ describe('interpreter', () => {
       deferEvents: true
     });
 
-    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+    expect(() => service.send('SOME_EVENT')).not.toThrow();
 
     service.start();
 
-    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+    expect(() => service.send('SOME_EVENT')).not.toThrow();
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
@@ -473,11 +468,11 @@ describe('interpreter', () => {
       clock: new SimulatedClock()
     });
 
-    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+    expect(() => service.send('SOME_EVENT')).not.toThrow();
 
     service.start();
 
-    assert.doesNotThrow(() => service.send('SOME_EVENT'));
+    expect(() => service.send('SOME_EVENT')).not.toThrow();
   });
 
   it('should defer events sent to an uninitialized service', done => {
@@ -508,7 +503,7 @@ describe('interpreter', () => {
     deferService.send('NEXT_A');
     deferService.send('NEXT_B');
 
-    assert.isUndefined(state);
+    expect(state).not.toBeDefined();
 
     // initialized
     deferService.start();
@@ -532,9 +527,11 @@ describe('interpreter', () => {
       }
     };
 
-    assert.throws(() => {
+    expect(() => {
       interpret(Machine(invalidMachine)).start();
-    }, `Initial state 'create' not found on 'fetchMachine'`);
+    }).toThrowErrorMatchingInlineSnapshot(
+      `"Initial state 'create' not found on 'fetchMachine'"`
+    );
   });
 
   it('should not update when stopped', () => {
@@ -545,13 +542,13 @@ describe('interpreter', () => {
 
     service.start();
     service.send('TIMER'); // yellow
-    assert.deepEqual(state.value, 'yellow');
+    expect(state.value).toEqual('yellow');
 
     service.stop();
     try {
       service.send('TIMER'); // red if interpreter is not stopped
     } catch (e) {
-      assert.deepEqual(state.value, 'yellow');
+      expect(state.value).toEqual('yellow');
     }
   });
 
@@ -583,8 +580,8 @@ describe('interpreter', () => {
     service.send('LOG');
     service.send('LOG');
 
-    assert.lengthOf(logs, 2);
-    assert.deepEqual(logs, [{ count: 1 }, { count: 2 }]);
+    expect(logs.length).toBe(2);
+    expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
   describe('send() event expressions', () => {
@@ -707,29 +704,21 @@ describe('interpreter', () => {
           switch (transitions) {
             // initial state
             case 1:
-              assert.deepEqual(state.context, { count: 0 });
+              expect(state.context).toEqual({ count: 0 });
               break;
             // transition with batched events
             case 2:
-              assert.equal(state.value, 'even');
-              assert.deepEqual(state.context, { count: 4 });
-              assert.deepEqual(state.actions.map(a => a.type), [
+              expect(state.value).toEqual('even');
+              expect(state.context).toEqual({ count: 4 });
+              expect(state.actions.map(a => a.type)).toEqual([
                 'evenAction',
                 'oddAction',
                 'evenAction',
                 'oddAction'
               ]);
 
-              assert.deepEqual(
-                evenCounts,
-                [1, 3],
-                'even actions should be bound to their state at time of creation'
-              );
-              assert.deepEqual(
-                oddCounts,
-                [2, 4],
-                'odd actions should be bound to their state at time of creation'
-              );
+              expect(evenCounts).toEqual([1, 3]);
+              expect(oddCounts).toEqual([2, 4]);
               done();
               break;
           }
@@ -747,7 +736,7 @@ describe('interpreter', () => {
           transitions++;
 
           if (transitions === 2) {
-            assert.isTrue(state.changed);
+            expect(state.changed).toBe(true);
             done();
           }
         })
@@ -764,7 +753,7 @@ describe('interpreter', () => {
           transitions++;
 
           if (transitions === 2) {
-            assert.isFalse(state.changed);
+            expect(state.changed).toBe(false);
             done();
           }
         })
@@ -825,7 +814,7 @@ describe('interpreter', () => {
           state = s;
         })
         .onDone(() => {
-          assert.deepEqual(state.event, { type: 'EVENT', id: 42 });
+          expect(state.event).toEqual({ type: 'EVENT', id: 42 });
           done();
         })
         .start();
@@ -886,12 +875,12 @@ describe('interpreter', () => {
       let state: any;
       const startService = interpret(startMachine).onTransition(s => {
         state = s;
-        assert.isDefined(s);
-        assert.deepEqual(s.value, startMachine.initialState.value);
+        expect(s).toBeDefined();
+        expect(s.value).toEqual(startMachine.initialState.value);
         done();
       });
 
-      assert.isUndefined(state);
+      expect(state).not.toBeDefined();
 
       startService.start();
     });
@@ -903,15 +892,15 @@ describe('interpreter', () => {
       });
 
       startService.start();
-      assert.equal(stateCount, 1);
+      expect(stateCount).toEqual(1);
 
       startService.start();
-      assert.equal(stateCount, 1);
+      expect(stateCount).toEqual(1);
     });
 
     it('should be able to be initialized at a custom state', done => {
       const startService = interpret(startMachine).onTransition(state => {
-        assert.ok(state.matches('bar'));
+        expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
@@ -920,7 +909,7 @@ describe('interpreter', () => {
 
     it('should be able to be initialized at a custom state value', done => {
       const startService = interpret(startMachine).onTransition(state => {
-        assert.ok(state.matches('bar'));
+        expect(state.matches('bar')).toBeTruthy();
         done();
       });
 
@@ -929,7 +918,7 @@ describe('interpreter', () => {
 
     it('should be able to resolve a custom initialized state', done => {
       const startService = interpret(startMachine).onTransition(state => {
-        assert.ok(state.matches({ foo: 'one' }));
+        expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
 
@@ -963,7 +952,7 @@ describe('interpreter', () => {
       delayedService.stop();
 
       setTimeout(() => {
-        assert.isFalse(called);
+        expect(called).toBe(false);
         done();
       }, 60);
     });
@@ -994,16 +983,16 @@ describe('interpreter', () => {
 
       toggleService.send('TOGGLE');
 
-      assert.equal(stateCount, 1);
+      expect(stateCount).toEqual(1);
 
       toggleService.send('TOGGLE');
 
-      assert.equal(stateCount, 2);
+      expect(stateCount).toEqual(2);
 
       toggleService.off(listener);
       toggleService.send('TOGGLE');
 
-      assert.equal(stateCount, 2);
+      expect(stateCount).toEqual(2);
     });
   });
 
@@ -1027,7 +1016,7 @@ describe('interpreter', () => {
 
         interpret(machine, { execute: false })
           .onDone(() => {
-            assert.isFalse(effect);
+            expect(effect).toBe(false);
             done();
           })
           .start();
@@ -1051,7 +1040,7 @@ describe('interpreter', () => {
 
         interpret(machine, { execute: true })
           .onDone(() => {
-            assert.isTrue(effect);
+            expect(effect).toBe(true);
             done();
           })
           .start();
@@ -1080,12 +1069,12 @@ describe('interpreter', () => {
           .onTransition(state => {
             setTimeout(() => {
               service.execute(state);
-              assert.isTrue(effect);
+              expect(effect).toBe(true);
               done();
             }, 10);
           })
           .onDone(() => {
-            assert.isFalse(effect);
+            expect(effect).toBe(false);
           })
           .start();
       });
@@ -1115,12 +1104,12 @@ describe('interpreter', () => {
                   effect = ctx.value;
                 }
               });
-              assert.isTrue(effect);
+              expect(effect).toBe(true);
               done();
             }, 10);
           })
           .onDone(() => {
-            assert.isFalse(effect);
+            expect(effect).toBe(false);
           })
           .start();
       });
@@ -1130,13 +1119,13 @@ describe('interpreter', () => {
       it('uses the ID specified in the options', () => {
         const service = interpret(lightMachine, { id: 'custom-id' });
 
-        assert.equal(service.id, 'custom-id');
+        expect(service.id).toEqual('custom-id');
       });
 
       it('uses the machine ID if not specified', () => {
         const service = interpret(lightMachine);
 
-        assert.equal(service.id, lightMachine.id);
+        expect(service.id).toEqual(lightMachine.id);
       });
     });
 
@@ -1144,7 +1133,7 @@ describe('interpreter', () => {
       it('devTools should not be connected by default', () => {
         const service = interpret(lightMachine);
 
-        assert.isFalse(service.options.devTools);
+        expect(service.options.devTools).toBe(false);
       });
     });
   });
@@ -1169,9 +1158,9 @@ describe('interpreter', () => {
       service.send('START');
 
       const expectedStateValues = ['idle', 'next'];
-      assert.equal(stateValues.length, expectedStateValues.length);
+      expect(stateValues.length).toEqual(expectedStateValues.length);
       for (let i = 0; i < expectedStateValues.length; i++) {
-        assert.equal(stateValues[i], expectedStateValues[i]);
+        expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
     });
 
@@ -1205,9 +1194,9 @@ describe('interpreter', () => {
       service.send('START');
 
       const expectedStateValues = ['idle', 'next'];
-      assert.equal(stateValues.length, expectedStateValues.length);
+      expect(stateValues.length).toEqual(expectedStateValues.length);
       for (let i = 0; i < expectedStateValues.length; i++) {
-        assert.equal(stateValues[i], expectedStateValues[i]);
+        expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
     });
   });
@@ -1247,7 +1236,7 @@ describe('interpreter', () => {
         state => (count = state.context.count),
         undefined,
         () => {
-          assert.equal(count, 5);
+          expect(count).toEqual(5);
           done();
         }
       );
@@ -1257,13 +1246,13 @@ describe('interpreter', () => {
       let count: number;
       const intervalService = interpret(intervalMachine).start();
 
-      assert.ok(isObservable(intervalService));
+      expect(isObservable(intervalService)).toBeTruthy();
 
       const subscription = intervalService.subscribe(
         state => (count = state.context.count),
         undefined,
         () => {
-          assert.equal(count, 5);
+          expect(count).toEqual(5);
           done();
         }
       );
@@ -1273,7 +1262,7 @@ describe('interpreter', () => {
       }, 15);
 
       setTimeout(() => {
-        assert.deepEqual(count, 1, 'count should not have advanced past 1');
+        expect(count).toEqual(1);
         done();
       }, 500);
     });
@@ -1302,7 +1291,7 @@ describe('interpreter', () => {
       );
 
       const service = interpret(machine);
-      assert.doesNotThrow(() => service.start());
+      expect(() => service.start()).not.toThrow();
     });
   });
 });

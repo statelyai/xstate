@@ -1,5 +1,4 @@
 import { Machine, interpret } from '../src/index';
-import { assert } from 'chai';
 
 describe('event descriptors', () => {
   it('should fallback to using wildcard transition definition (if specified)', () => {
@@ -19,6 +18,6 @@ describe('event descriptors', () => {
 
     const service = interpret(machine).start();
     service.send('BAR');
-    assert.equal(service.state.value, 'C');
+    expect(service.state.value).toBe('C');
   });
 });

@@ -7,7 +7,6 @@ import {
   EventObject,
   StateValue
 } from '../src/index';
-import { assert } from 'chai';
 import { actionTypes, done as _done, doneInvoke } from '../src/actions';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
@@ -184,7 +183,7 @@ describe('invoke', () => {
         // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
         // 5. The context will be updated to increment count to 2
 
-        assert.equal(count, 2);
+        expect(count).toEqual(2);
         done();
       })
       .start();
@@ -249,7 +248,7 @@ describe('invoke', () => {
         // 3. On the 'child' machine, the 'FORWARD_DEC' event sends the 'DEC' action to the 'parent' thrice
         // 4. The context of the 'parent' machine will be updated from 2 to -1
 
-        assert.deepEqual(state.context, { count: -3 });
+        expect(state.context).toEqual({ count: -3 });
       })
       .start();
 
@@ -389,7 +388,7 @@ describe('invoke', () => {
 
     startService.start();
 
-    assert.equal(startCount, 1);
+    expect(startCount).toEqual(1);
   });
 
   describe('parent to child', () => {
@@ -532,7 +531,7 @@ describe('invoke', () => {
         .onTransition(current => (currentState = current))
         .start();
       setTimeout(() => {
-        assert.equal(currentState.value, expectedStateValue);
+        expect(currentState.value).toEqual(expectedStateValue);
         done();
       }, 30);
     });
@@ -661,6 +660,9 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and ignore unhandled onError target', done => {
+        const doneSpy = jest.fn()
+        const stopSpy = jest.fn()
+
         const promiseMachine = Machine({
           id: 'invokePromise',
           initial: 'pending',
@@ -681,14 +683,21 @@ describe('invoke', () => {
         });
 
         interpret(promiseMachine)
-          .onDone(() => assert.fail('should not be called'))
-          .onStop(() => assert.fail('should not be called'))
+          .onDone(doneSpy)
+          .onStop(stopSpy)
           .start();
-        // assumes that error was ignored before the timeout is processed
-        setTimeout(() => done(), 10);
+
+          // assumes that error was ignored before the timeout is processed
+        setTimeout(() => {
+          expect(doneSpy).not.toHaveBeenCalled()
+          expect(stopSpy).not.toHaveBeenCalled()
+          done()
+        }, 10);
       });
 
       it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
+        const doneSpy = jest.fn();
+
         const promiseMachine = Machine({
           id: 'invokePromise',
           initial: 'pending',
@@ -710,8 +719,11 @@ describe('invoke', () => {
         });
 
         interpret(promiseMachine)
-          .onDone(() => assert.fail('should not be called'))
-          .onStop(() => done())
+          .onDone(doneSpy)
+          .onStop(() => {
+            expect(doneSpy).not.toHaveBeenCalled()
+            done()
+          })
           .start();
       });
 
@@ -811,7 +823,7 @@ describe('invoke', () => {
             state = s;
           })
           .onDone(() => {
-            assert.equal(state.context.count, 1);
+            expect(state.context.count).toEqual(1);
             done();
           })
           .start();
@@ -851,7 +863,7 @@ describe('invoke', () => {
             state = s;
           })
           .onDone(() => {
-            assert.equal(state.context.count, 1);
+            expect(state.context.count).toEqual(1);
             done();
           })
           .start();
@@ -884,7 +896,7 @@ describe('invoke', () => {
 
         interpret(promiseMachine)
           .onDone(() => {
-            assert.equal(count, 1);
+            expect(count).toEqual(1);
             done();
           })
           .start();
@@ -923,7 +935,7 @@ describe('invoke', () => {
 
         interpret(promiseMachine)
           .onDone(() => {
-            assert.equal(count, 1);
+            expect(count).toEqual(1);
             done();
           })
           .start();
@@ -1055,7 +1067,7 @@ describe('invoke', () => {
         .start()
         .send('BEGIN');
       for (let i = 0; i < expectedStateValues.length; i++) {
-        assert.equal(stateValues[i], expectedStateValues[i]);
+        expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
     });
 
@@ -1096,7 +1108,7 @@ describe('invoke', () => {
         .start()
         .send('BEGIN');
       for (let i = 0; i < expectedStateValues.length; i++) {
-        assert.equal(stateValues[i], expectedStateValues[i]);
+        expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
     });
 
@@ -1144,7 +1156,7 @@ describe('invoke', () => {
         .start()
         .send('BEGIN');
       for (let i = 0; i < expectedStateValues.length; i++) {
-        assert.equal(stateValues[i], expectedStateValues[i]);
+        expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
     });
 
@@ -1163,11 +1175,7 @@ describe('invoke', () => {
         .onDone(() => {
           // if intervalService isn't disposed after skipping, 'INC' event will
           // keep being sent
-          assert.equal(
-            state.context.count,
-            0,
-            'should exit interval service before the first event is sent'
-          );
+          expect(state.context.count).toEqual(0);
           done();
         })
         .start();
@@ -1261,7 +1269,7 @@ describe('invoke', () => {
       interpret(errorMachine)
         .onTransition(current => (currentState = current))
         .start();
-      assert.equal(currentState.value, expectedStateValue);
+      expect(currentState.value).toEqual(expectedStateValue);
     });
 
     it('should call onError upon error (async)', done => {
@@ -1325,7 +1333,7 @@ describe('invoke', () => {
           state = s;
         })
         .onDone(() => {
-          assert.equal(state.context.result, 42);
+          expect(state.context.result).toEqual(42);
           done();
         })
         .start();
@@ -1385,7 +1393,7 @@ describe('invoke', () => {
         .start()
         .send('FETCH');
 
-      assert.equal(errorHandlersCalled, 1);
+      expect(errorHandlersCalled).toEqual(1);
     });
 
     it('should be able to be stringified', () => {
@@ -1394,11 +1402,11 @@ describe('invoke', () => {
         'GO_TO_WAITING'
       );
 
-      assert.doesNotThrow(() => {
+      expect(() => {
         JSON.stringify(waitingState);
-      });
+      }).not.toThrow();
 
-      assert.isString(waitingState.actions[0].activity!.src);
+      expect(typeof waitingState.actions[0].activity!.src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -1420,7 +1428,7 @@ describe('invoke', () => {
       });
 
       const service = interpret(errorMachine);
-      assert.throws(() => service.start(), 'test');
+      expect(() => service.start()).toThrow();
     });
 
     it('should stop machine if unhandled error and on strict mode (async)', done => {
@@ -1451,6 +1459,9 @@ describe('invoke', () => {
     });
 
     it('should ignore error if unhandled error and not on strict mode (async)', done => {
+      const doneSpy = jest.fn();
+      const stopSpy = jest.fn();
+
       const errorMachine = Machine({
         id: 'asyncError',
         initial: 'safe',
@@ -1473,11 +1484,16 @@ describe('invoke', () => {
       });
 
       interpret(errorMachine)
-        .onDone(() => assert.fail('should not be called'))
-        .onStop(() => assert.fail('should not be called'))
+        .onDone(doneSpy)
+        .onStop(stopSpy)
         .start();
+
       // assumes that error was ignored before the timeout is processed
-      setTimeout(() => done(), 20);
+      setTimeout(() => {
+        expect(doneSpy).not.toHaveBeenCalled()
+        expect(stopSpy).not.toHaveBeenCalled()
+        done()
+      }, 20);
     });
 
     describe('sub invoke race condition', () => {
@@ -1527,12 +1543,12 @@ describe('invoke', () => {
             events.push(e);
           })
           .onDone(() => {
-            assert.deepEqual(events.map(e => e.type), [
+            expect(events.map(e => e.type)).toEqual([
               actionTypes.init,
               'STOPCHILD',
               doneInvoke('invoked.child').type
             ]);
-            assert.equal(state.value, 'completed');
+            expect(state.value).toEqual('completed');
             done();
           })
           .start();
@@ -1639,7 +1655,7 @@ describe('invoke', () => {
               onError: {
                 target: 'success',
                 cond: (ctx, e) => {
-                  assert.equal(e.data.message, 'some error');
+                  expect(e.data.message).toEqual('some error');
                   return ctx.count === 4 && e.data.message === 'some error';
                 }
               }
@@ -1768,7 +1784,7 @@ describe('invoke', () => {
           state = s;
         })
         .onDone(() => {
-          assert.deepEqual(state.context, { one: 'one', two: 'two' });
+          expect(state.context).toEqual({ one: 'one', two: 'two' });
           done();
         });
 
@@ -1832,7 +1848,7 @@ describe('invoke', () => {
           state = s;
         })
         .onDone(() => {
-          assert.deepEqual(state.context, { one: 'one', two: 'two' });
+          expect(state.context).toEqual({ one: 'one', two: 'two' });
           done();
         });
 
@@ -1872,7 +1888,7 @@ describe('invoke', () => {
 
       service
         .onDone(() => {
-          assert.isFalse(serviceCalled, 'service should not be called');
+          expect(serviceCalled).toBe(false);
           done();
         })
         .start();

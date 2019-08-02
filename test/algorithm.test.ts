@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src';
 import { getConfiguration } from '../src/stateUtils';
 
@@ -82,7 +81,7 @@ describe('algorithm', () => {
 
     const c = getConfiguration(prevNodes, nodes);
 
-    assert.sameMembers([...c].map(sn => sn.id), [
+    expect([...c].map(sn => sn.id).sort()).toEqual([
       'a',
       'b1',
       'c1',

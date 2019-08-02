@@ -1,5 +1,4 @@
 import * as actions from '../src/actions';
-import { assert } from 'chai';
 
 const { actionTypes } = actions;
 
@@ -8,8 +7,8 @@ describe('action creators', () => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
         const action = actions[actionKey]('test');
-        assert.equal(action.type, actionTypes[actionKey]);
-        assert.deepEqual(action, {
+        expect(action.type).toEqual(actionTypes[actionKey]);
+        expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
           activity: {
@@ -22,8 +21,8 @@ describe('action creators', () => {
 
       it('should accept an action object', () => {
         const action = actions[actionKey]({ type: 'test', foo: 'bar' });
-        assert.equal(action.type, actionTypes[actionKey]);
-        assert.deepEqual(action, {
+        expect(action.type).toEqual(actionTypes[actionKey]);
+        expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
           activity: {
@@ -40,8 +39,8 @@ describe('action creators', () => {
           foo: 'bar',
           src: 'someSrc'
         });
-        assert.equal(action.type, actionTypes[actionKey]);
-        assert.deepEqual(action, {
+        expect(action.type).toEqual(actionTypes[actionKey]);
+        expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
           activity: {
@@ -58,7 +57,7 @@ describe('action creators', () => {
   describe('send()', () => {
     it('should accept a string event', () => {
       const action = actions.send('foo');
-      assert.deepEqual(action, {
+      expect(action).toEqual({
         to: undefined,
         type: actionTypes.send,
         event: { type: 'foo' },
@@ -69,7 +68,7 @@ describe('action creators', () => {
 
     it('should accept an event object', () => {
       const action = actions.send({ type: 'foo', bar: 'baz' });
-      assert.deepEqual(action, {
+      expect(action).toEqual({
         to: undefined,
         type: actionTypes.send,
         event: { type: 'foo', bar: 'baz' },
@@ -80,7 +79,7 @@ describe('action creators', () => {
 
     it('should accept an id option', () => {
       const action = actions.send('foo', { id: 'foo-id' });
-      assert.deepEqual(action, {
+      expect(action).toEqual({
         to: undefined,
         type: actionTypes.send,
         event: { type: 'foo' },
@@ -91,7 +90,7 @@ describe('action creators', () => {
 
     it('should accept a delay option', () => {
       const action = actions.send('foo', { delay: 1000 });
-      assert.deepEqual(action, {
+      expect(action).toEqual({
         to: undefined,
         type: actionTypes.send,
         event: { type: 'foo' },
@@ -114,7 +113,7 @@ describe('action creators', () => {
         { type: 'EVENT', value: 50 }
       );
 
-      assert.equal(resolvedAction.delay, 150);
+      expect(resolvedAction.delay).toEqual(150);
     });
   });
 });

@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../../src/index';
 import { testMultiTransition } from '../utils';
 
@@ -60,7 +59,7 @@ describe('Example 6.17', () => {
       )} on ${eventTypes}`, () => {
         const resultState = testMultiTransition(machine, fromState, eventTypes);
 
-        assert.deepEqual(resultState.value, toState);
+        expect(resultState.value).toEqual(toState);
       });
     });
   });
@@ -125,7 +124,7 @@ describe('Jump to ID', () => {
       )} on ${eventTypes}`, () => {
         const resultState = testMultiTransition(machine, fromState, eventTypes);
 
-        assert.deepEqual(resultState.value, toState);
+        expect(resultState.value).toEqual(toState);
       });
     });
   });

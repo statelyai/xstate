@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src';
 
 describe('definition', () => {
@@ -12,6 +11,6 @@ describe('definition', () => {
       }
     });
 
-    assert.lengthOf(invokeMachine.definition.invoke, 2);
+    expect(invokeMachine.definition.invoke.length).toBe(2);
   });
 });

@@ -1,9 +1,8 @@
-import { assert } from 'chai';
-import { Machine } from '../lib';
+import { Machine } from '../src';
 
 describe('smoke test', () => {
   it('should work with built files', () => {
-    assert.doesNotThrow(() => {
+    expect(() => {
       return Machine({
         id: 'light',
         initial: 'green',
@@ -26,6 +25,6 @@ describe('smoke test', () => {
           }
         }
       });
-    });
+    }).not.toThrow();
   });
 });

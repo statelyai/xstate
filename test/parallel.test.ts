@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { raise, assign } from '../src/actions';
 import { Machine } from '../src';
 import { testMultiTransition } from './utils';
@@ -497,7 +496,7 @@ describe('parallel states', () => {
   it('should have initial parallel states', () => {
     const { initialState } = wordMachine;
 
-    assert.deepEqual(initialState.value, {
+    expect(initialState.value).toEqual({
       bold: 'off',
       italics: 'off',
       underline: 'off',
@@ -556,7 +555,7 @@ describe('parallel states', () => {
           eventTypes
         );
 
-        assert.deepEqual(resultState.value, toState);
+        expect(resultState.value).toEqual(toState);
       });
     });
   });
@@ -564,17 +563,17 @@ describe('parallel states', () => {
   it('should have all parallel states represented in the state value', () => {
     const nextState = wakMachine.transition(wakMachine.initialState, 'WAK1');
 
-    assert.deepEqual(nextState.value, { wak1: 'wak1sonB', wak2: 'wak2sonA' });
+    expect(nextState.value).toEqual({ wak1: 'wak1sonB', wak2: 'wak2sonA' });
   });
 
   it('should have all parallel states represented in the state value (2)', () => {
     const nextState = wakMachine.transition(wakMachine.initialState, 'WAK2');
 
-    assert.deepEqual(nextState.value, { wak1: 'wak1sonA', wak2: 'wak2sonB' });
+    expect(nextState.value).toEqual({ wak1: 'wak1sonA', wak2: 'wak2sonB' });
   });
 
   it('should work with regions without states', () => {
-    assert.deepEqual(flatParallelMachine.initialState.value, {
+    expect(flatParallelMachine.initialState.value).toEqual({
       foo: {},
       bar: {},
       baz: 'one'
@@ -586,7 +585,7 @@ describe('parallel states', () => {
       flatParallelMachine.initialState,
       'E'
     );
-    assert.deepEqual(nextState.value, {
+    expect(nextState.value).toEqual({
       foo: {},
       bar: {},
       baz: 'two'
@@ -599,7 +598,7 @@ describe('parallel states', () => {
       'singleClickActivity'
     );
 
-    assert.deepEqual(nextState.value, {
+    expect(nextState.value).toEqual({
       ReadOnly: {
         StructureEdit: {
           SelectionStatus: 'SelectedActivity',
@@ -610,7 +609,7 @@ describe('parallel states', () => {
   });
 
   it('should properly transition according to onEntry events on an initial state', () => {
-    assert.deepEqual(raisingParallelMachine.initialState.value, {
+    expect(raisingParallelMachine.initialState.value).toEqual({
       OUTER1: 'C',
       OUTER2: {
         INNER1: 'OFF',
@@ -625,7 +624,7 @@ describe('parallel states', () => {
       'EVENT_OUTER1_B'
     );
 
-    assert.deepEqual(nextState.value, {
+    expect(nextState.value).toEqual({
       OUTER1: 'B',
       OUTER2: {
         INNER1: 'ON',
@@ -681,7 +680,7 @@ describe('parallel states', () => {
       value: 'something'
     });
 
-    assert.deepEqual(unsavedState.value, {});
+    expect(unsavedState.value).toEqual({});
   });
 
   describe('transitions with nested parallel states', () => {
@@ -701,7 +700,7 @@ describe('parallel states', () => {
         'EVENT_STATE_NTJ0_WORK'
       );
 
-      assert.deepEqual(nextState.value, {
+      expect(nextState.value).toEqual({
         OUTER1: {
           STATE_ON: {
             STATE_NTJ0: 'STATE_WORKING_0',
@@ -718,7 +717,7 @@ describe('parallel states', () => {
         'EVENT_STATE_NTJ0_WORK'
       );
 
-      assert.deepEqual(nextState.value, {
+      expect(nextState.value).toEqual({
         OUTER1: {
           STATE_ON: {
             STATE_NTJ0: 'STATE_WORKING_0',
@@ -761,7 +760,7 @@ describe('parallel states', () => {
     it('should represent the flat nested parallel states in the state value', () => {
       const result = machine.transition(machine.initialState, 'to-B');
 
-      assert.deepEqual(result.value, {
+      expect(result.value).toEqual({
         B: {
           C: {},
           D: {}
@@ -778,7 +777,7 @@ describe('parallel states', () => {
       );
       const state2 = deepFlatParallelMachine.transition(state1, 'c');
       const state3 = deepFlatParallelMachine.transition(state2, 'b');
-      assert.deepEqual(state3.value, {
+      expect(state3.value).toEqual({
         V: {
           B: {
             BB: {
@@ -818,9 +817,9 @@ describe('parallel states', () => {
         }
       });
 
-      assert.doesNotThrow(() => {
+      expect(() => {
         machine.transition(machine.initialState, 'UPDATE');
-      });
+      }).not.toThrow();
     });
   });
 
@@ -881,9 +880,7 @@ describe('parallel states', () => {
         'go to dashboard'
       );
 
-      assert.isTrue(
-        dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
-      );
+      expect(dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })).toBe(true);
     });
 
     // https://github.com/davidkpiano/xstate/issues/531
@@ -919,7 +916,7 @@ describe('parallel states', () => {
       );
       const run2 = testMachine.transition(run1, 'GOTO_FOOBAZ');
 
-      assert.lengthOf(run2.context.log, 2);
+      expect(run2.context.log.length).toBe(2);
     });
   });
 });

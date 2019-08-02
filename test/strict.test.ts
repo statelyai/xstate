@@ -1,5 +1,3 @@
-import { assert } from 'chai';
-// @ts-ignore
 import { Machine } from '../src/index';
 // @ts-ignore
 import { StateValue } from '../src/types';
@@ -100,14 +98,14 @@ describe('strict mode', () => {
   });
 
   it('should throw for unacceptable events', () => {
-    assert.throws(() => {
+    expect(() => {
       lightMachine.transition('green', 'FOO');
-    });
+    }).toThrow();
   });
 
   it('should not throw for built-in events', () => {
-    assert.doesNotThrow(() => {
+    expect(() => {
       lightMachine.transition('red.wait', 'PED_COUNTDOWN');
-    });
+    }).not.toThrow();
   });
 });

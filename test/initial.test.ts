@@ -1,5 +1,4 @@
 import { Machine } from '../src';
-import { assert } from 'chai';
 
 const config = {
   initial: 'a',
@@ -39,18 +38,18 @@ const deepParallelMachine = Machine({
 
 describe('Initial states', () => {
   it('should return the correct initial state', () => {
-    assert.deepEqual(deepMachine.initialState.value, { a: { b: 'c' } });
+    expect(deepMachine.initialState.value).toEqual({ a: { b: 'c' } });
   });
 
   it('should return the correct initial state (parallel)', () => {
-    assert.deepEqual(parallelDeepMachine.initialState.value, {
+    expect(parallelDeepMachine.initialState.value).toEqual({
       foo: { a: { b: 'c' } },
       bar: { a: { b: 'c' } }
     });
   });
 
   it('should return the correct initial state (deep parallel)', () => {
-    assert.deepEqual(deepParallelMachine.initialState.value, {
+    expect(deepParallelMachine.initialState.value).toEqual({
       one: {
         foo: { a: { b: 'c' } },
         bar: { a: { b: 'c' } }
@@ -59,6 +58,6 @@ describe('Initial states', () => {
   });
 
   it('should return undefined for leaf nodes', () => {
-    assert.throws(() => deepMachine.states.leaf.initialState);
+    expect(() => deepMachine.states.leaf.initialState).toThrow();
   });
 });

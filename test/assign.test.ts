@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine, assign } from '../src/index';
 
 interface CounterContext {
@@ -96,13 +95,13 @@ describe('assign', () => {
       'DEC'
     );
 
-    assert.deepEqual(oneState.value, 'counting');
-    assert.deepEqual(oneState.context, { count: -1, foo: 'bar' });
+    expect(oneState.value).toEqual('counting');
+    expect(oneState.context).toEqual({ count: -1, foo: 'bar' });
 
     const twoState = counterMachine.transition(oneState, 'DEC');
 
-    assert.deepEqual(twoState.value, 'counting');
-    assert.deepEqual(twoState.context, { count: -2, foo: 'bar' });
+    expect(twoState.value).toEqual('counting');
+    expect(twoState.context).toEqual({ count: -2, foo: 'bar' });
   });
 
   it('applies the assignment to the external state', () => {
@@ -111,13 +110,13 @@ describe('assign', () => {
       'INC'
     );
 
-    assert.deepEqual(oneState.value, 'counting');
-    assert.deepEqual(oneState.context, { count: 1, foo: 'bar' });
+    expect(oneState.value).toEqual('counting');
+    expect(oneState.context).toEqual({ count: 1, foo: 'bar' });
 
     const twoState = counterMachine.transition(oneState, 'INC');
 
-    assert.deepEqual(twoState.value, 'counting');
-    assert.deepEqual(twoState.context, { count: 2, foo: 'bar' });
+    expect(twoState.value).toEqual('counting');
+    expect(twoState.context).toEqual({ count: 2, foo: 'bar' });
   });
 
   it('applies the assignment to multiple properties (property assignment)', () => {
@@ -126,7 +125,7 @@ describe('assign', () => {
       'WIN_PROP'
     );
 
-    assert.deepEqual(nextState.context, { count: 100, foo: 'win' });
+    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static)', () => {
@@ -135,7 +134,7 @@ describe('assign', () => {
       'WIN_STATIC'
     );
 
-    assert.deepEqual(nextState.context, { count: 100, foo: 'win' });
+    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties (static + prop assignment)', () => {
@@ -144,7 +143,7 @@ describe('assign', () => {
       'WIN_MIX'
     );
 
-    assert.deepEqual(nextState.context, { count: 100, foo: 'win' });
+    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to multiple properties', () => {
@@ -153,7 +152,7 @@ describe('assign', () => {
       'WIN'
     );
 
-    assert.deepEqual(nextState.context, { count: 100, foo: 'win' });
+    expect(nextState.context).toEqual({ count: 100, foo: 'win' });
   });
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
@@ -163,21 +162,21 @@ describe('assign', () => {
       { count: 50, foo: 'bar' }
     );
 
-    assert.deepEqual(oneState.value, 'counting');
-    assert.deepEqual(oneState.context, { count: 49, foo: 'bar' });
+    expect(oneState.value).toEqual('counting');
+    expect(oneState.context).toEqual({ count: 49, foo: 'bar' });
 
     const twoState = counterMachine.transition(oneState, 'DEC');
 
-    assert.deepEqual(twoState.value, 'counting');
-    assert.deepEqual(twoState.context, { count: 48, foo: 'bar' });
+    expect(twoState.value).toEqual('counting');
+    expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
     const threeState = counterMachine.transition(twoState, 'DEC', {
       count: 100,
       foo: 'bar'
     });
 
-    assert.deepEqual(threeState.value, 'counting');
-    assert.deepEqual(threeState.context, { count: 99, foo: 'bar' });
+    expect(threeState.value).toEqual('counting');
+    expect(threeState.context).toEqual({ count: 99, foo: 'bar' });
   });
 
   it('applies the assignment to the explicit external state', () => {
@@ -187,21 +186,21 @@ describe('assign', () => {
       { count: 50, foo: 'bar' }
     );
 
-    assert.deepEqual(oneState.value, 'counting');
-    assert.deepEqual(oneState.context, { count: 51, foo: 'bar' });
+    expect(oneState.value).toEqual('counting');
+    expect(oneState.context).toEqual({ count: 51, foo: 'bar' });
 
     const twoState = counterMachine.transition(oneState, 'INC');
 
-    assert.deepEqual(twoState.value, 'counting');
-    assert.deepEqual(twoState.context, { count: 52, foo: 'bar' });
+    expect(twoState.value).toEqual('counting');
+    expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
     const threeState = counterMachine.transition(twoState, 'INC', {
       count: 102,
       foo: 'bar'
     });
 
-    assert.deepEqual(threeState.value, 'counting');
-    assert.deepEqual(threeState.context, { count: 103, foo: 'bar' });
+    expect(threeState.value).toEqual('counting');
+    expect(threeState.context).toEqual({ count: 103, foo: 'bar' });
   });
 
   it('should maintain state after unhandled event', () => {
@@ -209,8 +208,8 @@ describe('assign', () => {
 
     const nextState = counterMachine.transition(initialState, 'FAKE_EVENT');
 
-    assert.isDefined(nextState.context);
-    assert.deepEqual(nextState.context, { count: 0, foo: 'bar' });
+    expect(nextState.context).toBeDefined();
+    expect(nextState.context).toEqual({ count: 0, foo: 'bar' });
   });
 
   it('sets undefined properties', () => {
@@ -218,8 +217,8 @@ describe('assign', () => {
 
     const nextState = counterMachine.transition(initialState, 'SET_MAYBE');
 
-    assert.isDefined(nextState.context.maybe);
-    assert.deepEqual(nextState.context, {
+    expect(nextState.context.maybe).toBeDefined();
+    expect(nextState.context).toEqual({
       count: 0,
       foo: 'bar',
       maybe: 'defined'
@@ -278,8 +277,8 @@ describe('custom updater', () => {
       updaterMachine.initialState,
       'EVENT'
     );
-    assert.deepEqual(newState.context, { count: 4 });
-    assert.deepEqual(updates, [2, 4]);
+    expect(newState.context).toEqual({ count: 4 });
+    expect(updates).toEqual([2, 4]);
   });
 });
 
@@ -328,7 +327,7 @@ describe('assign meta', () => {
 
     const nextState = machine.transition(initialState, 'NEXT');
 
-    assert.deepEqual(nextState.context, { count: 3 });
+    expect(nextState.context).toEqual({ count: 3 });
   });
 
   it('should provide the state in regular transitions (assigner)', () => {
@@ -336,7 +335,7 @@ describe('assign meta', () => {
 
     const nextState = machine.transition(initialState, 'NEXT_FN');
 
-    assert.deepEqual(nextState.context, { count: 3 });
+    expect(nextState.context).toEqual({ count: 3 });
   });
 
   it('should provide the assign action', () => {
@@ -344,12 +343,12 @@ describe('assign meta', () => {
 
     const nextState = machine.transition(initialState, 'NEXT_ASSIGNER');
 
-    assert.deepEqual(nextState.context, { count: 5 });
+    expect(nextState.context).toEqual({ count: 5 });
   });
 
   it('should not provide the state from initial state', () => {
     const { initialState } = machine;
 
-    assert.deepEqual(initialState.context, { count: 1 });
+    expect(initialState.context).toEqual({ count: 1 });
   });
 });
