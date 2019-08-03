@@ -1,21 +1,10 @@
 {
+  "extends": "./tsconfig.base.json",
+  "include": [
+    "src/**/*"
+  ],
   "compilerOptions": {
-    "allowSyntheticDefaultImports": true,
-    "target": "es5",
-    "declaration": true,
-    "noUnusedLocals": true,
-    "noUnusedParameters": true,
-    "strictNullChecks": true,
     "outDir": "./lib",
-    "moduleResolution": "node",
-    "downlevelIteration": true,
-    "experimentalDecorators": true,
-    "jsx": "react",
-    "lib": ["es6", "dom"],
-    "types": ["mocha", "node", "core-js"],
-    "sourceMap": true,
-    "strictPropertyInitialization": true
-  },
-  "include": ["src/**/*"],
-  "exclude": ["examples/**/*", "editor/node_modules/**/*"]
+    "rootDir": "./src"
+  }
 }

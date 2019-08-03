@@ -1,5 +1,4 @@
 import { StateNode, State } from '../src/index';
-import { assert } from 'chai';
 import { matchesState } from '../src';
 
 export function testMultiTransition<TExt>(
@@ -32,15 +31,12 @@ export function testAll(machine: StateNode, expected: {}): void {
 
         if (toState === undefined) {
           // undefined means that the state didn't transition
-          assert.isEmpty(resultState.actions);
-          assert.isFalse(resultState.changed);
+          expect(resultState.actions).toEqual([]);
+          expect(resultState.changed).toBe(false);
         } else if (typeof toState === 'string') {
-          assert.ok(
-            matchesState(toState, resultState.value),
-            `${JSON.stringify(resultState.value)} does not match ${toState}`
-          );
+          expect(matchesState(toState, resultState.value)).toBeTruthy();
         } else {
-          assert.deepEqual(resultState.value, toState);
+          expect(resultState.value).toEqual(toState);
         }
       });
     });

@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/Machine';
 
 describe('deterministic machine', () => {
@@ -92,20 +91,17 @@ describe('deterministic machine', () => {
 
   describe('machine.initialState', () => {
     it('should return the initial state value', () => {
-      assert.deepEqual(lightMachine.initialState.value, 'green');
+      expect(lightMachine.initialState.value).toEqual('green');
     });
 
     it('should not have any history', () => {
-      assert.isUndefined(lightMachine.initialState.history);
+      expect(lightMachine.initialState.history).not.toBeDefined();
     });
   });
 
   describe('machine.transition()', () => {
     it('should properly transition states based on string event', () => {
-      assert.deepEqual(
-        lightMachine.transition('green', 'TIMER').value,
-        'yellow'
-      );
+      expect(lightMachine.transition('green', 'TIMER').value).toEqual('yellow');
     });
 
     it('should properly transition states based on event-like object', () => {
@@ -113,74 +109,71 @@ describe('deterministic machine', () => {
         type: 'TIMER'
       };
 
-      assert.deepEqual(lightMachine.transition('green', event).value, 'yellow');
+      expect(lightMachine.transition('green', event).value).toEqual('yellow');
     });
 
     it('should not transition states for illegal transitions', () => {
-      assert.equal(lightMachine.transition('green', 'FAKE').value, 'green');
-      assert.isEmpty(lightMachine.transition('green', 'FAKE').actions);
+      expect(lightMachine.transition('green', 'FAKE').value).toEqual('green');
+      expect(lightMachine.transition('green', 'FAKE').actions).toHaveLength(0);
     });
 
     it('should throw an error if not given an event', () => {
       // @ts-ignore
-      assert.throws(() => (lightMachine.transition as any)('red', undefined));
+      expect(() => (lightMachine.transition as any)('red', undefined)).toThrow();
     });
 
     it('should transition to nested states as target', () => {
-      assert.deepEqual(testMachine.transition('a', 'T').value, { b: 'b1' });
+      expect(testMachine.transition('a', 'T').value).toEqual({ b: 'b1' });
     });
 
     it('should throw an error for transitions from invalid states', () => {
-      assert.throws(() => testMachine.transition('fake', 'T'));
+      expect(() => testMachine.transition('fake', 'T')).toThrow();
     });
 
     xit('should throw an error for transitions to invalid states', () => {
-      assert.throws(() => testMachine.transition('a', 'F'));
+      expect(() => testMachine.transition('a', 'F')).toThrow();
     });
 
     it('should throw an error for transitions from invalid substates', () => {
-      assert.throws(() => testMachine.transition('a.fake', 'T'));
+      expect(() => testMachine.transition('a.fake', 'T')).toThrow();
     });
   });
 
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
-      assert.deepEqual(
-        lightMachine.transition('red.walk', 'PED_COUNTDOWN').value,
-        { red: 'wait' }
-      );
+      expect(lightMachine.transition('red.walk', 'PED_COUNTDOWN').value).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
-      assert.deepEqual(lightMachine.transition('red', 'PED_COUNTDOWN').value, {
+      expect(lightMachine.transition('red', 'PED_COUNTDOWN').value).toEqual({
         red: 'wait'
       });
     });
 
     it('should transition from deep initial nested states', () => {
-      assert.deepEqual(lightMachine.transition('red', 'PED_COUNTDOWN').value, {
+      expect(lightMachine.transition('red', 'PED_COUNTDOWN').value).toEqual({
         red: 'wait'
       });
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      assert.equal(lightMachine.transition('red.stop', 'TIMER').value, 'green');
+      expect(lightMachine.transition('red.stop', 'TIMER').value).toEqual('green');
     });
 
     it('should not transition from illegal events', () => {
-      assert.deepEqual(lightMachine.transition('red.walk', 'FAKE').value, {
+      expect(lightMachine.transition('red.walk', 'FAKE').value).toEqual({
         red: 'walk'
       });
-      assert.isEmpty(lightMachine.transition('red.walk', 'FAKE').actions);
+      expect(lightMachine.transition('red.walk', 'FAKE').actions).toHaveLength(0);
 
-      assert.deepEqual(deepMachine.transition('a1', 'FAKE').value, {
+      expect(deepMachine.transition('a1', 'FAKE').value).toEqual({
         a1: { a2: { a3: 'a4' } }
       });
-      assert.isEmpty(deepMachine.transition('a1', 'FAKE').actions);
+      expect(deepMachine.transition('a1', 'FAKE').actions).toHaveLength(0);
     });
 
     it('should transition to the deepest initial state', () => {
-      assert.deepEqual(lightMachine.transition('yellow', 'TIMER').value, {
+      expect(lightMachine.transition('yellow', 'TIMER').value).toEqual({
         red: 'walk'
       });
     });
@@ -192,8 +185,8 @@ describe('deterministic machine', () => {
       );
       const nextState = lightMachine.transition(initialState, 'NOTHING');
 
-      assert.equal(initialState.value, nextState.value);
-      assert.isFalse(nextState.changed);
+      expect(initialState.value).toEqual(nextState.value);
+      expect(nextState.changed).toBe(false);
     });
   });
 
@@ -214,10 +207,7 @@ describe('deterministic machine', () => {
     });
 
     it('should work with substate nodes that have the same key', () => {
-      assert.deepEqual(
-        machine.transition(machine.initialState, 'NEXT').value,
-        'test'
-      );
+      expect(machine.transition(machine.initialState, 'NEXT').value).toEqual('test');
     });
   });
 
@@ -225,11 +215,7 @@ describe('deterministic machine', () => {
     it('undefined transitions should forbid events', () => {
       const walkState = lightMachine.transition('red.walk', 'TIMER');
 
-      assert.deepEqual(
-        walkState.value,
-        { red: 'walk' },
-        'Machine should not transition to "green" when in "red.walk"'
-      );
+      expect(walkState.value).toEqual({ red: 'walk' });
     });
   });
 });

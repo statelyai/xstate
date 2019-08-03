@@ -1,6 +1,3 @@
-import { assert } from 'chai';
-// import { Element as XMLElement } from 'xml-js';
-
 import * as fs from 'fs';
 import * as path from 'path';
 // import * as util from 'util';
@@ -157,7 +154,7 @@ async function runTestToCompletion(
     })
     .start(nextState);
 
-  test.events.forEach(({ event, nextConfiguration, after }, i) => {
+  test.events.forEach(({ event, nextConfiguration, after }) => {
     if (after) {
       (service.clock as SimulatedClock).increment(after);
     }
@@ -167,11 +164,7 @@ async function runTestToCompletion(
       .getStateNodes(nextState)
       .map(stateNode => stateNode.id);
 
-    assert.include(
-      stateIds,
-      nextConfiguration[0],
-      `run ${i} (event ${event.name})`
-    );
+    expect(stateIds).toContain(nextConfiguration[0]);
   });
 }
 

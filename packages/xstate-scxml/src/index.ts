@@ -19,7 +19,8 @@ function transitionToSCXML(
       event: transition.event,
       cond: JSON.stringify(transition.cond),
       target: (transition.target !== undefined
-        ? ([] as string[]).concat(transition.target)
+        ? ([] as string[]).concat(
+            transition.target.map(target => typeof target === 'string' ? target : target.id))
         : []
       )
         .map(t => stateNode.parent!.getStateNode(t).id)

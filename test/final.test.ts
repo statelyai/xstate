@@ -1,5 +1,4 @@
 import { Machine } from '../src/index';
-import { assert } from 'chai';
 
 // @ts-ignore
 const finalMachine = Machine({
@@ -70,40 +69,40 @@ const finalMachine = Machine({
 describe('final states', () => {
   it('should emit the "done.state.final.red" event when all nested states are in their final states', () => {
     const redState = finalMachine.transition('yellow', 'TIMER');
-    assert.deepEqual(redState.value, {
+    expect(redState.value).toEqual({
       red: {
         crosswalk1: 'walk',
         crosswalk2: 'walk'
       }
     });
     const waitState = finalMachine.transition(redState, 'PED_WAIT');
-    assert.deepEqual(waitState.value, {
+    expect(waitState.value).toEqual({
       red: {
         crosswalk1: 'wait',
         crosswalk2: 'wait'
       }
     });
     const stopState = finalMachine.transition(waitState, 'PED_STOP');
-    assert.deepEqual(stopState.value, {
+    expect(stopState.value).toEqual({
       red: {
         crosswalk1: 'stop',
         crosswalk2: 'stop'
       }
     });
 
-    assert.sameDeepMembers(stopState.actions, [
+    expect(stopState.actions).toEqual([
       { type: 'stopCrosswalk1', exec: undefined }
     ]);
 
     const stopState2 = finalMachine.transition(stopState, 'PED_STOP');
 
-    assert.sameDeepMembers(stopState2.actions, [
+    expect(stopState2.actions).toEqual([
       { type: 'stopCrosswalk2', exec: undefined },
       { type: 'prepareGreenLight', exec: undefined }
     ]);
 
     const greenState = finalMachine.transition(stopState, 'TIMER');
-    assert.isEmpty(greenState.actions);
+    expect(greenState.actions).toHaveLength(0);
   });
 
   it('should execute final child state actions first', () => {
@@ -136,7 +135,7 @@ describe('final states', () => {
 
     const { initialState } = nestedFinalMachine;
 
-    assert.deepEqual(initialState.actions.map(a => a.type), [
+    expect(initialState.actions.map(a => a.type)).toEqual([
       'bazAction',
       'barAction',
       'fooAction'

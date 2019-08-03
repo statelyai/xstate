@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine, interpret } from '../src/index';
 import { State } from '../src/State';
 
@@ -89,7 +88,7 @@ const configMachine = Machine(
 describe('machine', () => {
   describe('machine.states', () => {
     it('should properly register machine states', () => {
-      assert.deepEqual(Object.keys(lightMachine.states), [
+      expect(Object.keys(lightMachine.states)).toEqual([
         'green',
         'yellow',
         'red'
@@ -99,7 +98,7 @@ describe('machine', () => {
 
   describe('machine.events', () => {
     it('should return the set of events accepted by machine', () => {
-      assert.sameMembers(lightMachine.events, [
+      expect(lightMachine.events).toEqual([
         'TIMER',
         'POWER_OUTAGE',
         'PED_COUNTDOWN'
@@ -109,11 +108,11 @@ describe('machine', () => {
 
   describe('machine.initialState', () => {
     it('should return a State instance', () => {
-      assert.instanceOf(lightMachine.initialState, State);
+      expect(lightMachine.initialState).toBeInstanceOf(State);
     });
 
     it('should return the initial state', () => {
-      assert.equal(lightMachine.initialState.value, 'green');
+      expect(lightMachine.initialState.value).toEqual('green');
     });
   });
 
@@ -121,7 +120,7 @@ describe('machine', () => {
     it('should not retain previous history', () => {
       const next = lightMachine.transition(lightMachine.initialState, 'TIMER');
       const following = lightMachine.transition(next, 'TIMER');
-      assert.isUndefined(following!.history!.history);
+      expect(following!.history!.history).not.toBeDefined();
     });
   });
 
@@ -136,31 +135,21 @@ describe('machine', () => {
         guards: { someCondition: () => true }
       });
 
-      assert.deepEqual(
-        differentMachine.context,
-        { foo: 'bar' },
-        'context should be untouched'
-      );
+      expect(differentMachine.context).toEqual({ foo: 'bar' });
 
       const service = interpret(differentMachine);
 
-      assert.throws(
-        () => service.start(),
-        /new entry/,
-        'different action should be used'
+      expect(() => service.start()).toThrowErrorMatchingInlineSnapshot(
+        `"new entry"`
       );
 
-      assert.deepEqual(
-        differentMachine.transition('foo', 'EVENT').value,
-        'bar'
-      );
+      expect(differentMachine.transition('foo', 'EVENT').value).toEqual('bar');
     });
 
     it('should not override context if not defined', () => {
       const differentMachine = configMachine.withConfig({});
 
-      assert.deepEqual(
-        differentMachine.initialState.context,
+      expect(differentMachine.initialState.context).toEqual(
         configMachine.context
       );
     });
@@ -171,7 +160,7 @@ describe('machine', () => {
         { foo: 'different' }
       );
 
-      assert.deepEqual(differentMachine.initialState.context, {
+      expect(differentMachine.initialState.context).toEqual({
         foo: 'different'
       });
     });
@@ -222,7 +211,7 @@ describe('machine', () => {
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
-      assert.deepEqual(resolvedState.value, {
+      expect(resolvedState.value).toEqual({
         foo: { one: { a: 'aa', b: 'bb' } }
       });
     });
@@ -232,7 +221,7 @@ describe('machine', () => {
 
       const resolvedState = resolveMachine.resolveState(tempState);
 
-      assert.sameMembers(resolvedState.nextEvents, ['TO_TWO', 'TO_BAR']);
+      expect(resolvedState.nextEvents.sort()).toEqual(['TO_BAR', 'TO_TWO']);
     });
   });
 
@@ -244,7 +233,7 @@ describe('machine', () => {
         states: {}
       });
 
-      assert.equal(versionMachine.version, '1.0.4');
+      expect(versionMachine.version).toEqual('1.0.4');
     });
 
     it('should show the version on state nodes', () => {
@@ -260,7 +249,7 @@ describe('machine', () => {
 
       const fooStateNode = versionMachine.getStateNodeById('foo');
 
-      assert.equal(fooStateNode.version, '1.0.4');
+      expect(fooStateNode.version).toEqual('1.0.4');
     });
   });
 
@@ -272,7 +261,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      assert.equal(idMachine.id, 'some-id');
+      expect(idMachine.id).toEqual('some-id');
     });
 
     it('should represent the ID (state node)', () => {
@@ -286,7 +275,7 @@ describe('machine', () => {
         }
       });
 
-      assert.equal(idMachine.getStateNode('idle').id, 'idle');
+      expect(idMachine.getStateNode('idle').id).toEqual('idle');
     });
 
     it('should use the key as the ID if no ID is provided', () => {
@@ -296,7 +285,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      assert.equal(noIDMachine.id, 'some-key');
+      expect(noIDMachine.id).toEqual('some-key');
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
@@ -306,8 +295,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      assert.equal(
-        noStateNodeIDMachine.getStateNode('idle').id,
+      expect(noStateNodeIDMachine.getStateNode('idle').id).toEqual(
         'some-id.idle'
       );
     });
@@ -320,7 +308,7 @@ describe('StateNode', () => {
 
     const transitions = greenNode.transitions;
 
-    assert.deepEqual(transitions.map(t => t.event), [
+    expect(transitions.map(t => t.event)).toEqual([
       'TIMER',
       'POWER_OUTAGE',
       'FORBIDDEN_EVENT'

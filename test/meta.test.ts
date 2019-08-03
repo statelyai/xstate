@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../src/index';
 
 describe('state meta data', () => {
@@ -75,17 +74,17 @@ describe('state meta data', () => {
 
   it('states should aggregate meta data', () => {
     const yellowState = lightMachine.transition('green', 'TIMER');
-    assert.deepEqual(yellowState.meta, {
+    expect(yellowState.meta).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
       }
     });
-    assert.notProperty(yellowState.meta, 'light.green');
-    assert.notProperty(yellowState.meta, 'light');
+    expect('light.green' in yellowState.meta).toBeFalsy();
+    expect('light' in yellowState.meta).toBeFalsy();
   });
 
   it('states should aggregate meta data (deep)', () => {
-    assert.deepEqual(lightMachine.transition('yellow', 'TIMER').meta, {
+    expect(lightMachine.transition('yellow', 'TIMER').meta).toEqual({
       'light.red': {
         redData: {
           nested: {

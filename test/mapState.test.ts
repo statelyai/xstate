@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { mapState } from '../src/index';
 
 describe('mapState()', () => {
@@ -11,7 +10,7 @@ describe('mapState()', () => {
       'b'
     );
 
-    assert.strictEqual(mapping, 'state b');
+    expect(mapping).toBe('state b');
   });
 
   it('should return undefined for unmapped states', () => {
@@ -23,7 +22,7 @@ describe('mapState()', () => {
       'c'
     );
 
-    assert.isUndefined(mapping);
+    expect(mapping).not.toBeDefined();
   });
 
   it('should prioritize returning equivalent state mapping', () => {
@@ -36,7 +35,7 @@ describe('mapState()', () => {
       'b.b1'
     );
 
-    assert.strictEqual(mapping, 'st b.b1');
+    expect(mapping).toBe('st b.b1');
   });
 
   it('should return superstate mapping when substate is not found', () => {
@@ -49,7 +48,7 @@ describe('mapState()', () => {
       'b.foo'
     );
 
-    assert.strictEqual(mapping, 'state b');
+    expect(mapping).toBe('state b');
   });
 
   it('should return superstate mapping when deep substate is not found', () => {
@@ -62,6 +61,6 @@ describe('mapState()', () => {
       'b.b1.foo'
     );
 
-    assert.strictEqual(mapping, 'state b.b1');
+    expect(mapping).toBe('state b.b1');
   });
 });

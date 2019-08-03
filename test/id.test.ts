@@ -1,6 +1,5 @@
 import { testAll } from './utils';
 import { Machine } from '../src';
-import { assert } from 'chai';
 
 const idMachine = Machine({
   initial: 'A',
@@ -139,7 +138,7 @@ describe('State node IDs', () => {
       }
     });
 
-    assert.deepEqual(brokenMachine.transition('foo', 'ACTION').value, {
+    expect(brokenMachine.transition('foo', 'ACTION').value).toEqual({
       bar: { qux: 'quux' }
     });
   });

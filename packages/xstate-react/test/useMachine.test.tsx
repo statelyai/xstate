@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import * as React from 'react';
 import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn } from 'xstate';
@@ -8,7 +7,7 @@ import {
   cleanup,
   waitForElement
 } from 'react-testing-library';
-import { doneInvoke } from '../../../lib/actions';
+import { doneInvoke } from '../../../src/actions';
 
 afterEach(cleanup);
 
@@ -76,7 +75,7 @@ describe('useMachine hook', () => {
     getByText('Loading...');
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
-    assert.equal(dataEl.textContent, 'fake data');
+    expect(dataEl.textContent).toBe('fake data');
   });
 
   it('should provide the service', () => {
@@ -99,7 +98,7 @@ describe('useMachine hook', () => {
         execute: false
       });
 
-      assert.isFalse(service.options.execute);
+      expect(service.options.execute).toBe(false);
 
       return null;
     };
@@ -122,7 +121,7 @@ describe('useMachine hook', () => {
     const Test = () => {
       const [state] = useMachine(testMachine, { context: { test: true } });
 
-      assert.deepEqual(state.context, {
+      expect(state.context).toEqual({
         foo: 'bar',
         test: true
       });

@@ -1,4 +1,3 @@
-import { assert } from 'chai';
 import { Machine } from '../../src/index';
 import { testAll } from '../utils';
 
@@ -73,6 +72,6 @@ describe('Example 6.8', () => {
     const stateF = machine.transition(stateC, '6');
     const stateActual = machine.transition(stateF, '5');
 
-    assert.deepEqual(stateActual.value, { A: 'C' });
+    expect(stateActual.value).toEqual({ A: 'C' });
   });
 });

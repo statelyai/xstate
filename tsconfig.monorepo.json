@@ -1,0 +1,26 @@
+{
+    "files": [],
+    "references": [
+        {
+            "path": "./tsconfig.json"
+        },
+        {
+            "path": "./tsconfig.esm.json"
+        },
+        {
+            "path": "./packages/xstate-fsm"
+        },
+        {
+            "path": "./packages/xstate-graph"
+        },
+        {
+            "path": "./packages/xstate-immer"
+        },
+        {
+            "path": "./packages/xstate-react"
+        },
+        {
+            "path": "./packages/xstate-scxml"
+        },
+    ]
+}
