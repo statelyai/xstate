@@ -8,5 +8,9 @@ module.exports = {
     // don't catch nested tests within this jest project
     // this avoids testing those nested ones twice by dev script
     '/packages/'
+  ],
+  watchPlugins: [
+    'jest-watch-typeahead/filename',
+    'jest-watch-typeahead/testname'
   ]
 };
