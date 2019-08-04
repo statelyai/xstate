@@ -260,10 +260,7 @@ class StateNode<
       _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      _config.id ||
-      (this.machine
-        ? [this.machine.key, ...this.path].join(this.delimiter)
-        : this.key);
+      _config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
       : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
