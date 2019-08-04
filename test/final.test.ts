@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, interpret, assign } from '../src';
 
 // @ts-ignore
 const finalMachine = Machine({
@@ -140,5 +140,55 @@ describe('final states', () => {
       'barAction',
       'fooAction'
     ]);
+  });
+
+  it('should call data expressions on nested final nodes', done => {
+    const machine = Machine({
+      initial: 'secret',
+      context: {
+        revealedSecret: undefined
+      },
+      states: {
+        secret: {
+          initial: 'wait',
+          states: {
+            wait: {
+              on: {
+                REQUEST_SECRET: 'reveal'
+              }
+            },
+            reveal: {
+              type: 'final',
+              data: {
+                secret: () => 'the secret'
+              }
+            }
+          },
+          onDone: {
+            target: 'success',
+            actions: assign({
+              revealedSecret: (_, event) => {
+                return event.data.secret;
+              }
+            })
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    let _context: any;
+
+    const service = interpret(machine)
+      .onTransition(state => (_context = state.context))
+      .onDone(() => {
+        expect(_context).toEqual({ revealedSecret: 'the secret' });
+        done();
+      })
+      .start();
+
+    service.send('REQUEST_SECRET');
   });
 });
