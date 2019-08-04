@@ -22,7 +22,8 @@ import {
   toGuard,
   isMachine,
   toSCXMLEvent,
-  toEventObject
+  toEventObject,
+  mapContext
 } from './utils';
 import {
   Event,
@@ -259,10 +260,7 @@ class StateNode<
       _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      _config.id ||
-      (this.machine
-        ? [this.machine.key, ...this.path].join(this.delimiter)
-        : this.key);
+      _config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
       : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
@@ -942,6 +940,8 @@ class StateNode<
 
   private getActions(
     transition: StateTransition<TContext, TEvent>,
+    currentContext: TContext,
+    eventObject: TEvent,
     prevState?: State<TContext>
   ): Array<ActionObject<TContext, TEvent>> {
     const prevConfig = prevState
@@ -972,15 +972,25 @@ class StateNode<
     const doneEvents = flatten(
       transition.entrySet.map(sn => {
         const events: DoneEventObject[] = [];
-        if (sn.type === 'final') {
-          events.push(
-            done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
-            done(sn.parent!.id, sn.data)
-          );
+
+        if (sn.type !== 'final') {
+          return events;
         }
 
-        if (sn.parent && sn.parent.parent) {
-          const grandparent = sn.parent.parent;
+        const parent = sn.parent!;
+
+        events.push(
+          done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
+          done(
+            parent.id,
+            sn.data
+              ? mapContext(sn.data, currentContext, eventObject)
+              : undefined
+          )
+        );
+
+        if (parent.parent) {
+          const grandparent = parent.parent;
 
           if (grandparent.type === 'parallel') {
             if (
@@ -992,6 +1002,7 @@ class StateNode<
             }
           }
         }
+
         return events;
       })
     );
@@ -1121,7 +1132,12 @@ class StateNode<
       : undefined;
     const currentContext = currentState ? currentState.context : context;
     const eventObject = _eventObject || ({ type: ActionTypes.Init } as TEvent);
-    const actions = this.getActions(stateTransition, currentState);
+    const actions = this.getActions(
+      stateTransition,
+      currentContext,
+      eventObject,
+      currentState
+    );
     const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
       if (action.type === actionTypes.start) {
