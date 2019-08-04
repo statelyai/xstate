@@ -259,10 +259,7 @@ class StateNode<
       _config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      _config.id ||
-      (this.machine
-        ? [this.machine.key, ...this.path].join(this.delimiter)
-        : this.key);
+      _config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
       : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
@@ -1938,7 +1935,7 @@ class StateNode<
           return [{ target: undefined, event, actions: [], internal: true }];
         }
 
-        const transitions = toArray(value)
+        const transitions = toArray(value);
 
         if (!IS_PRODUCTION) {
           const hasNonLastUnguardedTarget = transitions
@@ -1965,9 +1962,14 @@ class StateNode<
           if (!IS_PRODUCTION) {
             for (const key of keys(transition)) {
               if (
-                ['target', 'actions', 'internal', 'in', 'cond', 'event'].indexOf(
-                  key
-                ) === -1
+                [
+                  'target',
+                  'actions',
+                  'internal',
+                  'in',
+                  'cond',
+                  'event'
+                ].indexOf(key) === -1
               ) {
                 throw new Error(
                   // tslint:disable-next-line:max-line-length
