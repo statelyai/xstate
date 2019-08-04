@@ -46,15 +46,14 @@ import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 
-export type StateListener<TContext, TEvent extends EventObject> = (
-  state: State<TContext, TEvent>,
-  event: TEvent
-) => void;
+export type StateListener<
+  TContext extends DefaultContext,
+  TEvent extends EventObject
+> = (state: State<TContext, TEvent>, event: TEvent) => void;
 
-export type ContextListener<TContext = DefaultContext> = (
-  context: TContext,
-  prevContext: TContext | undefined
-) => void;
+export type ContextListener<
+  TContext extends DefaultContext = DefaultContext
+> = (context: TContext, prevContext: TContext | undefined) => void;
 
 export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
@@ -102,7 +101,7 @@ const withServiceScope = (() => {
 
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
-  TContext,
+  TContext extends DefaultContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject
 >
@@ -834,7 +833,7 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn<TChildContext>(
+  public spawn<TChildContext extends DefaultContext>(
     entity: Spawnable<TChildContext>,
     name: string,
     options?: SpawnOptions
@@ -854,7 +853,7 @@ export class Interpreter<
     }
   }
   public spawnMachine<
-    TChildContext,
+    TChildContext extends DefaultContext,
     TChildStateSchema,
     TChildEvents extends EventObject
   >(
@@ -874,7 +873,10 @@ export class Interpreter<
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update as any, { state, id: childService.id });
+        this.send(actionTypes.update as any, {
+          state,
+          id: childService.id
+        });
       });
     }
 
@@ -1158,7 +1160,7 @@ export class Interpreter<
   }
 }
 
-export type Spawnable<TContext> =
+export type Spawnable<TContext extends DefaultContext> =
   | StateMachine<TContext, any, any>
   | Promise<TContext>
   | InvokeCallback
@@ -1186,7 +1188,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
-export function spawn<TContext>(
+export function spawn<TContext extends DefaultContext>(
   entity: StateMachine<TContext, any, any>,
   nameOrOptions?: string | SpawnOptions
 ): Actor<State<TContext>>;
@@ -1225,7 +1227,7 @@ export function spawn<TContext>(
  * @param options Interpreter options
  */
 export function interpret<
-  TContext = DefaultContext,
+  TContext extends DefaultContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject
 >(
