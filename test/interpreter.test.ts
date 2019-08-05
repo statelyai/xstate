@@ -521,7 +521,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               on: {
                 FETCH: 'pending'
               }
-            }
+            },
+            pending: {}
           }
         }
       }

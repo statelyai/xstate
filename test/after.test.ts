@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, interpret } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
 
 const lightMachine = Machine({
@@ -43,9 +43,35 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map(t => t.event)).toEqual([
-      after(1000, greenNode.id)
-    ]);
+    expect(transitions.map(t => t.event)).toEqual([after(1000, greenNode.id)]);
+  });
+
+  it('should be able to transition with delay from nested initial state', done => {
+    const machine = Machine({
+      initial: 'nested',
+      states: {
+        nested: {
+          initial: 'wait',
+          states: {
+            wait: {
+              after: {
+                10: '#end'
+              }
+            }
+          }
+        },
+        end: {
+          id: 'end',
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        done();
+      })
+      .start();
   });
 
   describe('delay expressions', () => {
