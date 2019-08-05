@@ -93,6 +93,7 @@ import {
   getConfiguration,
   has,
   getChildren,
+  getAllStateNodes,
   isInFinalState
 } from './stateUtils';
 
@@ -381,9 +382,7 @@ class StateNode<
     if (this.__cache.transitions) {
       return;
     }
-    ([this] as StateNode[])
-      .concat(getChildren(this))
-      .forEach(child => child.on);
+    getAllStateNodes(this).forEach(stateNode => stateNode.on);
   }
 
   /**
@@ -1916,7 +1915,7 @@ class StateNode<
     };
   }
   private formatTransitions(): TransitionsDefinition<TContext, TEvent> {
-    const onConfig = this.config.on || EMPTY_OBJECT;
+    const onConfig = this.config.on;
     const doneConfig = this.config.onDone
       ? {
           [`${done(this.id)}`]: this.config.onDone

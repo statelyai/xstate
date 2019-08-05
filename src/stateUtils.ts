@@ -16,6 +16,21 @@ export function getChildren<TC, TE extends EventObject>(
   return keys(stateNode.states).map(key => stateNode.states[key]);
 }
 
+export function getAllStateNodes<TC, TE extends EventObject>(
+  stateNode: StateNode<TC, any, TE>
+): Array<StateNode<TC, any, TE>> {
+  const stateNodes = [stateNode];
+  const isLeaf = stateNode.type === 'atomic' || stateNode.type === 'final';
+
+  if (isLeaf) {
+    return stateNodes;
+  }
+
+  return stateNodes.concat(
+    flatten(getChildren(stateNode).map(getAllStateNodes))
+  );
+}
+
 export function getConfiguration<TC, TE extends EventObject>(
   prevStateNodes: Iterable<StateNode<TC, any, TE>>,
   stateNodes: Iterable<StateNode<TC, any, TE>>
