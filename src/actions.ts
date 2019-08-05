@@ -203,7 +203,7 @@ export function resolveSend<TContext, TEvent extends EventObject>(
 }
 
 /**
- * Sends an event to this machine's parent machine.
+ * Sends an event to this machine's parent.
  *
  * @param event The event to send to the parent machine.
  * @param options Options to pass into the send event.
@@ -216,6 +216,16 @@ export function sendParent<TContext, TEvent extends EventObject>(
     ...options,
     to: SpecialTargets.Parent
   });
+}
+
+/**
+ * Sends an update event to this machine's parent.
+ */
+export function sendUpdate<TContext, TEvent extends EventObject>(): SendAction<
+  TContext,
+  TEvent
+> {
+  return sendParent<TContext, TEvent>(actionTypes.update);
 }
 
 /**

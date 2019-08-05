@@ -5,7 +5,7 @@ import {
   sendParent,
   raise,
   doneInvoke,
-  actionTypes
+  sendUpdate
 } from '../src/actions';
 import { Actor } from '../src/Actor';
 import { interval } from 'rxjs';
@@ -532,7 +532,9 @@ describe('actors', () => {
         service.start();
 
         setTimeout(() => {
-          expect(service.state.context.refNoSyncDefault.state.context.value).toBe(42);
+          expect(
+            service.state.context.refNoSyncDefault.state.context.value
+          ).toBe(42);
           res();
         }, 30);
       });
@@ -622,9 +624,11 @@ describe('actors', () => {
           .start();
 
         setTimeout(() => {
-          expect((service.state.context.ref! as Interpreter<any>).state.matches(
-            'inactive'
-          )).toBe(true);
+          expect(
+            (service.state.context.ref! as Interpreter<any>).state.matches(
+              'inactive'
+            )
+          ).toBe(true);
           done();
         }, 20);
       });
@@ -639,7 +643,7 @@ describe('actors', () => {
               after: { 10: 'inactive' }
             },
             inactive: {
-              entry: sendParent(actionTypes.update)
+              entry: sendUpdate()
             }
           }
         });
