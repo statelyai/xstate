@@ -763,19 +763,12 @@ class StateNode<
     const hasWildcard = this.on[WILDCARD];
 
     if (!candidates.length && !hasWildcard) {
-      return {
-        transitions: [],
-        entrySet: [],
-        exitSet: [],
-        configuration: [],
-        source: state,
-        actions: []
-      };
+      return undefined;
     }
 
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-    let nextStateStrings: Array<StateNode<TContext>> = [];
+    let nextStateNodes: Array<StateNode<TContext>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     const allCandidates = hasWildcard
@@ -817,7 +810,7 @@ class StateNode<
 
       if (guardPassed && isInState) {
         if (candidate.target !== undefined) {
-          nextStateStrings = candidate.target;
+          nextStateNodes = candidate.target;
         }
         actions.push(...candidate.actions);
         selectedTransition = candidate;
@@ -825,40 +818,37 @@ class StateNode<
       }
     }
 
-    if (!nextStateStrings.length) {
+    if (!selectedTransition) {
+      return undefined;
+    }
+    if (!nextStateNodes.length) {
       return {
-        transitions: selectedTransition ? [selectedTransition] : [],
-        entrySet:
-          selectedTransition && selectedTransition.internal ? [] : [this],
-        exitSet:
-          selectedTransition && selectedTransition.internal ? [] : [this],
-        configuration: selectedTransition && state.value ? [this] : [],
+        transitions: [selectedTransition],
+        entrySet: selectedTransition.internal ? [] : [this],
+        exitSet: selectedTransition.internal ? [] : [this],
+        configuration: state.value ? [this] : [],
         source: state,
         actions
       };
     }
 
-    const nextStateNodes = flatten(
-      nextStateStrings.map(stateNode => {
+    const allNextStateNodes = flatten(
+      nextStateNodes.map(stateNode => {
         return this.getRelativeStateNodes(stateNode, state.historyValue);
       })
     );
 
-    const refinedSelectedTransition = selectedTransition as TransitionDefinition<
-      TContext,
-      TEvent
-    >;
-    const isInternal = !!refinedSelectedTransition.internal;
+    const isInternal = !!selectedTransition.internal;
 
     const reentryNodes = isInternal
       ? []
-      : flatten(nextStateNodes.map(n => this.nodesFromChild(n)));
+      : flatten(allNextStateNodes.map(n => this.nodesFromChild(n)));
 
     return {
-      transitions: [refinedSelectedTransition],
+      transitions: [selectedTransition],
       entrySet: reentryNodes,
       exitSet: isInternal ? [] : [this],
-      configuration: nextStateNodes,
+      configuration: allNextStateNodes,
       source: state,
       actions
     };
@@ -943,9 +933,10 @@ class StateNode<
     eventObject: TEvent,
     prevState?: State<TContext>
   ): Array<ActionObject<TContext, TEvent>> {
-    const prevConfig = prevState
-      ? getConfiguration([], this.getStateNodes(prevState.value))
-      : getConfiguration([], [this]);
+    const prevConfig = getConfiguration(
+      [],
+      prevState ? this.getStateNodes(prevState.value) : [this]
+    );
     const resolvedConfig = transition.configuration.length
       ? getConfiguration(prevConfig, transition.configuration)
       : prevConfig;
