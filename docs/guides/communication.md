@@ -438,7 +438,9 @@ const parentMachine = Machine({
         }
       }
     },
-    success: {}
+    success: {
+      type: 'final'
+    }
   }
 });
 
@@ -522,6 +524,55 @@ const service = interpret(pingMachine).start();
 // => 'pong'
 // ...
 ```
+
+## Sending Responses
+
+An invoked service (or [spawned actor](./actors.md)) can _respond_ to another service/actor; i.e., it can send an event _in response to_ an event sent by another service/actor. This is done with the `respond(...)` action creator.
+
+For example, the `'client'` machine below sends the `'CODE'` event to the invoked `'auth-server'` service, which then responds with a `'TOKEN'` event after 1 second.
+
+```js
+import { Machine, send, respond } from 'xstate';
+
+const authServerMachine = Machine({
+  id: 'server',
+  initial: 'waitingForCode',
+  states: {
+    waitingForCode: {
+      on: {
+        CODE: {
+          actions: respond('TOKEN', { delay: 1000 })
+        }
+      }
+    }
+  }
+});
+
+const authClientMachine = Machine({
+  id: 'client',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { AUTH: 'authorizing' }
+    },
+    authorizing: {
+      invoke: {
+        id: 'auth-server',
+        src: authServerMachine
+      },
+      entry: send('CODE', { to: 'auth-server' }),
+      on: {
+        TOKEN: 'authorized'
+      }
+    },
+    authorized: {
+      type: 'final'
+    }
+  }
+});
+```
+
+This specific example can use `sendParent(...)` for the same effect; the difference is that `respond(...)` will send an event back to the received event's origin, which might not necessarily be the parent machine.
 
 ## Multiple Services
 
