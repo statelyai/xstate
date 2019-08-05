@@ -185,8 +185,8 @@ export function resolveSend<TContext, TEvent extends EventObject>(
 
   // TODO: helper function for resolving Expr
   const resolvedEvent = isFunction(action.event)
-    ? toEventObject(action.event(ctx, event, meta) as TEvent)
-    : toEventObject(action.event);
+    ? action.event(ctx, event, meta)
+    : action.event;
   const resolvedDelay = isFunction(action.delay)
     ? action.delay(ctx, event)
     : action.delay;
