@@ -326,7 +326,7 @@ parentService.send('LOCAL.WAKE');
 // => 'connected'
 ```
 
-### Syncing and Reading State <Badge text="4.6.1+"/>
+## Syncing and Reading State <Badge text="4.6.1+"/>
 
 One of the main tenets of the Actor model is that actor state is _private_ and _local_ - it is never shared unless the actor chooses to share it, via message passing. Sticking with this model, an actor can _notify_ its parent whenever its state changes by sending it a special "update" event with its latest state. In other words, parent actors can subscribe to their child actors' states.
 
@@ -336,6 +336,7 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 {
   actions: assign({
+    // Actor will send update event to parent whenever its state changes
     someRef: () => spawn(todoMachine, { sync: true })
   });
 }
@@ -360,27 +361,29 @@ someService.onTransition(state => {
 By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
 :::
 
-::: warning
-Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
+## Sending Updates
 
-```js {9-12}
-// Child machine
-// ...
-on: {
-  CHANGE: {
-    actions: assign({ value: (_, event) => event.value })
-  },
-  SAVE: {
-    // Only notify parent of changes on SAVE event
-    actions: sendParent(context => ({
-      type: 'UPDATE_FROM_CHILD',
-      data: context
-    }))
+For actors that are not synchronized with the parent, the actor can send an explicit event to its parent machine via `sendUpdate()`:
+
+```js
+import { Machine, sendUpdate } from 'xstate';
+
+const childMachine = Machine({
+  // ...
+  on: {
+    SOME_EVENT: {
+      actions: [
+        // ...
+        // Creates an action that sends an update event to parent
+        sendUpdate()
+      ]
+    }
   }
-}
-// ...
+});
 ```
 
+::: tip
+Prefer sending events to the parent explicitly (`sendUpdate()`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent.
 :::
 
 ## Quick Reference
