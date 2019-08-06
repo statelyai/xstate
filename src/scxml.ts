@@ -1,5 +1,5 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
-import { EventObject, ActionObject } from './types';
+import { EventObject, ActionObject, SCXMLEventMeta } from './types';
 import { StateNode, Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
@@ -64,6 +64,36 @@ function getTargets(targetAttr?: string | number): string[] | undefined {
     : undefined;
 }
 
+const evaluateExecutableContent = <
+  TContext extends object,
+  TEvent extends EventObject
+>(
+  context: TContext,
+  _ev: TEvent,
+  meta: SCXMLEventMeta<TEvent>,
+  body: string
+) => {
+  const datamodel = context
+    ? keys(context)
+        .map(key => `const ${key} = context['${key}'];`)
+        .join('\n')
+    : '';
+
+  const scope = ['const _sessionid = "NOT_IMPLEMENTED";', datamodel]
+    .filter(Boolean)
+    .join('\n');
+
+  const args = ['context', '_event'];
+
+  const fnBody = `
+    ${scope}
+    ${body}
+  `;
+
+  const fn = new Function(...args, fnBody);
+  return fn(context, meta._event);
+};
+
 function mapActions<
   TContext extends object,
   TEvent extends EventObject = EventObject
@@ -74,22 +104,14 @@ function mapActions<
         return actions.raise<TContext, TEvent>(element.attributes!
           .event! as string);
       case 'assign':
-        return actions.assign<TContext, TEvent>(xs => {
-          const literalKeyExprs = xs
-            ? keys(xs)
-                .map(key => `const ${key} = xs['${key}'];`)
-                .join('\n')
-            : '';
-          const fnStr = `
-          const xs = arguments[0];
-          ${literalKeyExprs};
+        return actions.assign<TContext, TEvent>((context, event, meta) => {
+          const fnBody = `
             return {'${element.attributes!.location}': ${
             element.attributes!.expr
           }};
           `;
 
-          const fn = new Function(fnStr);
-          return fn(xs);
+          return evaluateExecutableContent(context, event, meta, fnBody);
         });
       case 'send':
         const delay = element.attributes!.delay!;
@@ -105,6 +127,19 @@ function mapActions<
           {
             delay: numberDelay
           }
+        );
+      case 'log':
+        const label = element.attributes!.label;
+
+        return actions.log<TContext, TEvent>(
+          (context, event, meta) => {
+            const fnBody = `
+              return ${element.attributes!.expr};
+            `;
+
+            return evaluateExecutableContent(context, event, meta, fnBody);
+          },
+          label !== undefined ? String(label) : undefined
         );
       default:
         return { type: 'not-implemented' };
