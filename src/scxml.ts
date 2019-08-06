@@ -150,10 +150,8 @@ function mapActions<
 function toConfig(
   nodeJson: XMLElement,
   id: string,
-  options: ScxmlToMachineOptions,
-  extState?: {}
+  options: ScxmlToMachineOptions
 ) {
-  const { evalCond } = options;
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
   let states: Record<string, any>;
@@ -242,7 +240,18 @@ function toConfig(
             ...(value.elements ? executableContent(value.elements) : undefined),
             ...(value.attributes && value.attributes.cond
               ? {
-                  cond: evalCond(value.attributes.cond as string, extState)
+                  cond: (context, event, meta) => {
+                    const fnBody = `
+                      return ${value.attributes!.cond as string};
+                    `;
+
+                    return evaluateExecutableContent(
+                      context,
+                      event,
+                      meta,
+                      fnBody
+                    );
+                  }
                 }
               : undefined),
             internal
@@ -266,7 +275,7 @@ function toConfig(
       ...(stateElements.length
         ? {
             states: mapValues(states, (state, key) =>
-              toConfig(state, key, options, extState)
+              toConfig(state, key, options)
             )
           }
         : undefined),
@@ -280,11 +289,6 @@ function toConfig(
 }
 
 export interface ScxmlToMachineOptions {
-  evalCond: (
-    expr: string,
-    extState?: object
-  ) => // tslint:disable-next-line:ban-types
-  ((extState: any, event: EventObject) => boolean) | Function;
   delimiter?: string;
 }
 
@@ -312,13 +316,9 @@ export function toMachine(
       }, {})
     : undefined;
 
-  return Machine(
-    {
-      ...toConfig(machineElement, '(machine)', options, extState),
-      context: extState,
-      delimiter: options.delimiter
-    },
-    undefined,
-    extState
-  );
+  return Machine({
+    ...toConfig(machineElement, '(machine)', options),
+    context: extState,
+    delimiter: options.delimiter
+  });
 }
