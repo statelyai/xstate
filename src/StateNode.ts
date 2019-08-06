@@ -1121,7 +1121,7 @@ class StateNode<
         : undefined
       : undefined;
     const currentContext = currentState ? currentState.context : context;
-    const eventObject = _eventObject || ({ type: ActionTypes.Init } as TEvent);
+    const eventObject = _eventObject || (initEvent as TEvent);
     const actions = this.getActions(
       stateTransition,
       currentContext,
@@ -1168,7 +1168,7 @@ class StateNode<
           const sendAction = resolveSend(
             actionObject as SendAction<TContext, TEvent>,
             updatedContext,
-            eventObject || { type: ActionTypes.Init }
+            eventObject
           ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
           if (isString(sendAction.delay)) {
@@ -1192,10 +1192,7 @@ class StateNode<
             sendAction.delay =
               typeof delayExpr === 'number'
                 ? delayExpr
-                : delayExpr(
-                    updatedContext,
-                    eventObject || { type: ActionTypes.Init }
-                  );
+                : delayExpr(updatedContext, eventObject);
           }
 
           return sendAction;
@@ -1236,7 +1233,7 @@ class StateNode<
     const nextState = new State<TContext, TEvent>({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
-      event: eventObject || initEvent,
+      event: eventObject,
       _event: toSCXMLEvent(eventObject),
       historyValue: resolvedStateValue
         ? historyValue

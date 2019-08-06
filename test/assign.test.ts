@@ -1,4 +1,4 @@
-import { Machine, assign } from '../src/index';
+import { Machine, interpret, assign, send, sendParent } from '../src';
 
 interface CounterContext {
   count: number;
@@ -350,5 +350,73 @@ describe('assign meta', () => {
     const { initialState } = machine;
 
     expect(initialState.context).toEqual({ count: 1 });
+  });
+
+  it('should provide meta._event to assigner', () => {
+    type Ctx = {
+      eventLog: Array<{ event: string; origin: string | undefined }>;
+    };
+
+    const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
+      eventLog: ctx.eventLog.concat({
+        event: event.type,
+        origin: meta._event.origin
+      })
+    }));
+
+    const childMachine = Machine({
+      initial: 'bar',
+      states: {
+        bar: {}
+      },
+      on: {
+        PING: {
+          actions: [sendParent('PONG')]
+        }
+      }
+    });
+
+    const parentMachine = Machine<Ctx>({
+      initial: 'foo',
+      context: {
+        eventLog: []
+      },
+      states: {
+        foo: {
+          invoke: {
+            id: 'child',
+            src: childMachine
+          }
+        }
+      },
+      on: {
+        PING_CHILD: {
+          actions: [send('PING', { to: 'child' }), assignEventLog]
+        },
+        '*': {
+          actions: [assignEventLog]
+        }
+      }
+    });
+
+    let state: any;
+
+    const service = interpret(parentMachine)
+      .onTransition(s => {
+        state = s;
+      })
+      .start();
+
+    service.send('PING_CHILD');
+    service.send('PING_CHILD');
+
+    expect(state.context).toEqual({
+      eventLog: [
+        { event: 'PING_CHILD', origin: undefined },
+        { event: 'PONG', origin: 'child' },
+        { event: 'PING_CHILD', origin: undefined },
+        { event: 'PONG', origin: 'child' }
+      ]
+    });
   });
 });
