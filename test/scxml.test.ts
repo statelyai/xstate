@@ -168,20 +168,6 @@ async function runTestToCompletion(
   });
 }
 
-function evalCond(expr: string, context: object | undefined) {
-  const literalKeyExprs = context
-    ? Object.keys(context)
-        .map(key => `const ${key} = xs['${key}'];`)
-        .join('\n')
-    : '';
-
-  const fn = new Function(
-    `const xs = arguments[0]; ${literalKeyExprs} return ${expr}`
-  ) as () => boolean;
-
-  return fn;
-}
-
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
@@ -209,7 +195,6 @@ describe('scxml', () => {
 
       it(`${testGroupName}/${testName}`, async () => {
         const machine = toMachine(scxmlDefinition, {
-          evalCond,
           delimiter: '$'
         });
 
