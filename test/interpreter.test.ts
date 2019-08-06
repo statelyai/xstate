@@ -585,6 +585,61 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     expect(logs).toEqual([{ count: 1 }, { count: 2 }]);
   });
 
+  it('should be able to log event origin (log action)', () => {
+    const logs: any[] = [];
+    const logAction = log((_ctx, event, meta) => ({
+      event: event.type,
+      origin: meta._event.origin
+    }));
+
+    const childMachine = Machine({
+      initial: 'bar',
+      states: {
+        bar: {}
+      },
+      on: {
+        PING: {
+          actions: [actions.respond('PONG')]
+        }
+      }
+    });
+
+    const parentMachine = Machine({
+      initial: 'foo',
+      states: {
+        foo: {
+          invoke: {
+            id: 'child',
+            src: childMachine
+          }
+        }
+      },
+      on: {
+        PING_CHILD: {
+          actions: [send('PING', { to: 'child' }), logAction]
+        },
+        '*': {
+          actions: [logAction]
+        }
+      }
+    });
+
+    const service = interpret(parentMachine, {
+      logger: msg => logs.push(msg)
+    }).start();
+
+    service.send('PING_CHILD');
+    service.send('PING_CHILD');
+
+    expect(logs.length).toBe(4);
+    expect(logs).toEqual([
+      { event: 'PING_CHILD', origin: undefined },
+      { event: 'PONG', origin: 'child' },
+      { event: 'PING_CHILD', origin: undefined },
+      { event: 'PONG', origin: 'child' }
+    ]);
+  });
+
   describe('send() event expressions', () => {
     interface Ctx {
       password: string;

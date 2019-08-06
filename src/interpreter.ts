@@ -797,12 +797,14 @@ export class Interpreter<
       }
 
       case actionTypes.log:
-        const expr = action.expr ? action.expr(context, event) : undefined;
+        const value = action.expr(context, event, {
+          _event: toSCXMLEvent(event)
+        });
 
         if (action.label) {
-          this.logger(action.label, expr);
+          this.logger(action.label, value);
         } else {
-          this.logger(expr);
+          this.logger(value);
         }
         break;
       default:

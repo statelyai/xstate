@@ -13,7 +13,8 @@ import {
   stop,
   assign,
   after,
-  done
+  done,
+  respond
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
@@ -28,7 +29,8 @@ const actions = {
   stop,
   assign,
   after,
-  done
+  done,
+  respond
 };
 
 export {

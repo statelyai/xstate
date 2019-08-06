@@ -23,7 +23,8 @@ import {
   DoneEventObject,
   SendExpr,
   SendActionObject,
-  PureAction
+  PureAction,
+  SCXMLEventMeta
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -236,6 +237,14 @@ export function respond<TContext, TEvent extends EventObject>(
   });
 }
 
+const defaultLogExpr = <TContext, TEvent extends EventObject>(
+  context: TContext,
+  event: TEvent
+) => ({
+  context,
+  event
+});
+
 /**
  *
  * @param expr The expression function to evaluate which will be logged.
@@ -245,10 +254,11 @@ export function respond<TContext, TEvent extends EventObject>(
  * @param label The label to give to the logged expression.
  */
 export function log<TContext, TEvent extends EventObject>(
-  expr: (ctx: TContext, event: TEvent) => any = (context, event) => ({
-    context,
-    event
-  }),
+  expr: (
+    ctx: TContext,
+    event: TEvent,
+    meta: SCXMLEventMeta<TEvent>
+  ) => any = defaultLogExpr,
   label?: string
 ) {
   return {
