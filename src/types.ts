@@ -53,6 +53,7 @@ export interface ActionMeta<TContext, TEvent extends EventObject>
 export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
+  _event: SCXML.Event<TEvent>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -311,9 +312,9 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
     | number
     | StateNode<TContext, any, TEvent>
     | TransitionConfig<
-      TContext,
-      TEvent extends { type: K } ? TEvent : EventObject
-    >
+        TContext,
+        TEvent extends { type: K } ? TEvent : EventObject
+      >
   >;
 };
 

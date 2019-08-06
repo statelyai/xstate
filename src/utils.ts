@@ -408,22 +408,22 @@ export function updateContext<TContext, TEvent extends EventObject>(
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>
 ): TContext {
+  const _event = toSCXMLEvent(event);
+
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
+
         const meta = {
           state,
-          action: assignAction
+          action: assignAction,
+          _event
         };
 
         let partialUpdate: Partial<TContext> = {};
 
         if (isFunction(assignment)) {
-          partialUpdate = assignment(
-            acc,
-            event || { type: ActionTypes.Init },
-            meta
-          );
+          partialUpdate = assignment(acc, event, meta);
         } else {
           for (const key of keys(assignment)) {
             const propAssignment = assignment[key];
