@@ -1233,7 +1233,7 @@ class StateNode<
 
     const isTransient = stateNodes.some(stateNode => stateNode._transient);
     if (isTransient) {
-      raisedEvents.push({ type: actionTypes.nullEvent });
+      raisedEvents.unshift({ type: actionTypes.nullEvent });
     }
 
     const meta = [this, ...stateNodes].reduce(

@@ -58,6 +58,7 @@
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
+    "@scion-scxml/test-framework": "^2.0.15",
     "@types/jest": "^24.0.15",
     "@types/node": "^8.10.38",
     "@vuepress/plugin-google-analytics": "^1.0.2",
@@ -86,8 +87,6 @@
     "rollup-plugin-typescript2": "^0.21.1",
     "rollup-plugin-uglify": "^6.0.0",
     "rxjs": "^6.5.1",
-    "scion-core-test-framework": "^1.0.0",
-    "scxml-test-framework": "^1.0.2",
     "source-map-support": "^0.5.12",
     "spawn-command": "0.0.2-1",
     "ts-jest": "^24.0.2",
