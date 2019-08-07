@@ -733,6 +733,23 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
+export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
+  TContext,
+  TEvent,
+  any
+>;
+
+export interface LogAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  label: string | undefined;
+  expr: LogExpr<TContext, TEvent>;
+}
+
+export interface LogActionObject<TContext, TEvent extends EventObject>
+  extends LogAction<TContext, TEvent> {
+  value: any;
+}
+
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   to:

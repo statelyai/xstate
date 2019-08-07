@@ -24,7 +24,9 @@ import {
   SendExpr,
   SendActionObject,
   PureAction,
-  SCXMLEventMeta
+  LogExpr,
+  LogAction,
+  LogActionObject
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -254,19 +256,27 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
  * @param label The label to give to the logged expression.
  */
 export function log<TContext, TEvent extends EventObject>(
-  expr: (
-    ctx: TContext,
-    event: TEvent,
-    meta: SCXMLEventMeta<TEvent>
-  ) => any = defaultLogExpr,
+  expr: LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
-) {
+): LogAction<TContext, TEvent> {
   return {
     type: actionTypes.log,
     label,
     expr
   };
 }
+
+export const resolveLog = <TContext, TEvent extends EventObject>(
+  action: LogAction<TContext, TEvent>,
+  ctx: TContext,
+  event: TEvent
+): LogActionObject<TContext, TEvent> => ({
+  // TODO: remove .expr from resulting object
+  ...action,
+  value: action.expr(ctx, event, {
+    _event: toSCXMLEvent(event)
+  })
+});
 
 /**
  * Cancels an in-flight `send(...)` action. A canceled sent action will not
