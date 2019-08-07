@@ -11,7 +11,7 @@ import {
   StateValue
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes } from '../src/actions';
+import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
 
 const lightMachine = Machine({
@@ -638,6 +638,38 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       { event: 'PING_CHILD', origin: undefined },
       { event: 'PONG', origin: 'child' }
     ]);
+  });
+
+  it('should receive correct _event (log action)', () => {
+    const logs: any[] = [];
+    const logAction = log((_ctx, _ev, meta) => meta._event.data.type);
+
+    const parentMachine = Machine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            EXTERNAL_EVENT: {
+              actions: [raise('RAISED_EVENT'), logAction]
+            }
+          }
+        }
+      },
+      on: {
+        '*': {
+          actions: [logAction]
+        }
+      }
+    });
+
+    const service = interpret(parentMachine, {
+      logger: msg => logs.push(msg)
+    }).start();
+
+    service.send('EXTERNAL_EVENT');
+
+    expect(logs.length).toBe(2);
+    expect(logs).toEqual(['EXTERNAL_EVENT', 'RAISED_EVENT']);
   });
 
   describe('send() event expressions', () => {
