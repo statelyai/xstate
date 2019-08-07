@@ -101,13 +101,7 @@ const testGroups = {
     'test31'
   ],
   // 'scxml-prefix-event-name-matching': ['star0'], TODO: source ordering of wildcard appearing first
-  'w3c-ecma': [
-    'test144.txml',
-    'test158.txml',
-    'test173.txml',
-    'test174.txml',
-    'test178.txml'
-  ]
+  'w3c-ecma': ['test144.txml', 'test158.txml', 'test173.txml', 'test174.txml']
 };
 
 const overrides = {
@@ -178,7 +172,7 @@ describe('scxml', () => {
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1
           ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
-          : `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.scxml`;
+          : `../node_modules/@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
       const scxmlDefinition = fs.readFileSync(
         path.resolve(__dirname, scxmlSource),
         { encoding: 'utf-8' }
@@ -187,7 +181,7 @@ describe('scxml', () => {
         fs.readFileSync(
           path.resolve(
             __dirname,
-            `../node_modules/scxml-test-framework/test/${testGroupName}/${testName}.json`
+            `../node_modules/@scion-scxml/test-framework/test/${testGroupName}/${testName}.json`
           ),
           { encoding: 'utf-8' }
         )

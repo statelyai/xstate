@@ -1,5 +1,5 @@
 import { Machine } from '../src/index';
-import { assign } from '../src/actions';
+import { assign, raise } from '../src/actions';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = Machine<typeof greetingContext>({
@@ -318,5 +318,35 @@ describe('transient states (eventless transitions)', () => {
       'RECHECK'
     );
     expect(eveningState.value).toEqual('evening');
+  });
+
+  it('should select eventless transition before processing raised events', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: {
+            FOO: 'b'
+          }
+        },
+        b: {
+          entry: raise('BAR'),
+          on: {
+            '': 'c',
+            BAR: 'd'
+          }
+        },
+        c: {
+          on: {
+            BAR: 'e'
+          }
+        },
+        d: {},
+        e: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('e');
   });
 });
