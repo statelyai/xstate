@@ -792,17 +792,14 @@ export class Interpreter<
       }
       case actionTypes.stop: {
         this.stopChild(action.activity.id);
-
         break;
       }
 
       case actionTypes.log:
-        const value = action.expr(context, event, {
-          _event: toSCXMLEvent(event)
-        });
+        const { label, value } = action;
 
-        if (action.label) {
-          this.logger(action.label, value);
+        if (label) {
+          this.logger(label, value);
         } else {
           this.logger(value);
         }

@@ -65,7 +65,8 @@ import {
   InvokeCreator,
   StateMachine,
   DoneEventObject,
-  SingleOrArray
+  SingleOrArray,
+  LogAction
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -84,7 +85,8 @@ import {
   toActionObject,
   resolveSend,
   initEvent,
-  toActionObjects
+  toActionObjects,
+  resolveLog
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE } from './constants';
@@ -1164,50 +1166,55 @@ class StateNode<
 
     const resolvedActions = flatten(
       nonEventActions.map(actionObject => {
-        if (actionObject.type === actionTypes.send) {
-          const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent>,
-            updatedContext,
-            eventObject
-          ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
-
-          if (isString(sendAction.delay)) {
-            if (
-              !this.machine.options.delays ||
-              this.machine.options.delays[sendAction.delay] === undefined
-            ) {
-              if (!IS_PRODUCTION) {
-                warn(
-                  false,
-                  // tslint:disable-next-line:max-line-length
-                  `No delay reference for delay expression '${sendAction.delay}' was found on machine '${this.machine.id}'`
-                );
-              }
-
-              // Do not send anything
-              return sendAction;
-            }
-
-            const delayExpr = this.machine.options.delays[sendAction.delay];
-            sendAction.delay =
-              typeof delayExpr === 'number'
-                ? delayExpr
-                : delayExpr(updatedContext, eventObject);
-          }
-
-          return sendAction;
-        }
-
-        if (actionObject.type === ActionTypes.Pure) {
-          return (
-            (actionObject as PureAction<TContext, TEvent>).get(
+        switch (actionObject.type) {
+          case actionTypes.send:
+            const sendAction = resolveSend(
+              actionObject as SendAction<TContext, TEvent>,
               updatedContext,
               eventObject
-            ) || []
-          );
-        }
+            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
-        return toActionObject(actionObject, this.options.actions);
+            if (isString(sendAction.delay)) {
+              if (
+                !this.machine.options.delays ||
+                this.machine.options.delays[sendAction.delay] === undefined
+              ) {
+                if (!IS_PRODUCTION) {
+                  warn(
+                    false,
+                    // tslint:disable-next-line:max-line-length
+                    `No delay reference for delay expression '${sendAction.delay}' was found on machine '${this.machine.id}'`
+                  );
+                }
+
+                // Do not send anything
+                return sendAction;
+              }
+
+              const delayExpr = this.machine.options.delays[sendAction.delay];
+              sendAction.delay =
+                typeof delayExpr === 'number'
+                  ? delayExpr
+                  : delayExpr(updatedContext, eventObject);
+            }
+
+            return sendAction;
+          case actionTypes.log:
+            return resolveLog(
+              actionObject as LogAction<TContext, TEvent>,
+              updatedContext,
+              eventObject
+            );
+          case ActionTypes.Pure:
+            return (
+              (actionObject as PureAction<TContext, TEvent>).get(
+                updatedContext,
+                eventObject
+              ) || []
+            );
+          default:
+            return toActionObject(actionObject, this.options.actions);
+        }
       })
     );
 
