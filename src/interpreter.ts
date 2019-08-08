@@ -453,6 +453,7 @@ export class Interpreter<
       this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
+    this.scheduler.clear();
     this.initialized = false;
 
     return this;
