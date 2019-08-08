@@ -1,5 +1,5 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
-import { EventObject, ActionObject, SCXMLEventMeta } from './types';
+import { EventObject, ActionObject, SCXMLEventMeta, SendExpr } from './types';
 import { StateNode, Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
@@ -115,6 +115,7 @@ function mapActions<
         });
       case 'send':
         const delay = element.attributes!.delay!;
+
         const numberDelay = delay
           ? typeof delay === 'number'
             ? delay
@@ -125,19 +126,23 @@ function mapActions<
 
         const { event, eventexpr } = element.attributes!;
 
-        return actions.send<TContext, TEvent>(
-          (context, _ev, meta) => {
-            const expr = event ? `"${event}"` : eventexpr;
+        let converted: TEvent['type'] | SendExpr<TContext, TEvent>;
+
+        if (event) {
+          converted = event as TEvent['type'];
+        } else {
+          converted = (context, _ev, meta) => {
             const fnBody = `
-              return ${expr}
+              return ${eventexpr}
             `;
 
             return evaluateExecutableContent(context, _ev, meta, fnBody);
-          },
-          {
-            delay: numberDelay
-          }
-        );
+          };
+        }
+
+        return actions.send<TContext, TEvent>(converted, {
+          delay: numberDelay
+        });
       case 'log':
         const label = element.attributes!.label;
 
