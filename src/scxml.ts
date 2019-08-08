@@ -122,8 +122,18 @@ function mapActions<
             ? +/(\d+)ms/.exec(delay)![1]
             : 0
           : 0;
+
+        const { event, eventexpr } = element.attributes!;
+
         return actions.send<TContext, TEvent>(
-          element.attributes!.event! as string,
+          (context, _ev, meta) => {
+            const expr = event ? `"${event}"` : eventexpr;
+            const fnBody = `
+              return ${expr}
+            `;
+
+            return evaluateExecutableContent(context, _ev, meta, fnBody);
+          },
           {
             delay: numberDelay
           }
