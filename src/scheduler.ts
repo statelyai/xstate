@@ -49,6 +49,10 @@ export class Scheduler {
     this.flushEvents();
   }
 
+  public clear(): void {
+    this.queue = [];
+  }
+
   private flushEvents() {
     let nextCallback: (() => void) | undefined = this.queue.shift();
     while (nextCallback) {
@@ -64,7 +68,7 @@ export class Scheduler {
     } catch (e) {
       // there is no use to keep the future events
       // as the situation is not anymore the same
-      this.queue = [];
+      this.clear();
       throw e;
     } finally {
       this.processingEvent = false;
