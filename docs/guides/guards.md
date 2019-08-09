@@ -183,7 +183,7 @@ const doorMachine = Machine(
     id: 'door',
     initial: 'closed',
     context: {
-      level: 'admin',
+      level: 'user',
       alert: false // alert when intrusions happen
     },
     states: {
