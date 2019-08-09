@@ -1,5 +1,11 @@
 import { xml2js, Element as XMLElement } from 'xml-js';
-import { EventObject, ActionObject, SCXMLEventMeta, SendExpr } from './types';
+import {
+  EventObject,
+  ActionObject,
+  SCXMLEventMeta,
+  SendExpr,
+  DelayExpr
+} from './types';
 import { StateNode, Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
@@ -64,6 +70,43 @@ function getTargets(targetAttr?: string | number): string[] | undefined {
     : undefined;
 }
 
+function delayToMs(delay?: string | number): number | undefined {
+  if (!delay) {
+    return undefined;
+  }
+
+  if (typeof delay === 'number') {
+    return delay;
+  }
+
+  const millisecondsMatch = delay.match(/(\d+)ms/);
+
+  if (millisecondsMatch) {
+    return parseInt(millisecondsMatch[1]);
+  }
+
+  const secondsMatch = delay.match(/(\d*)(\.?)(\d+)s/);
+
+  if (secondsMatch) {
+    const hasDecimal = !!secondsMatch[2];
+    if (!hasDecimal) {
+      return parseInt(secondsMatch[3]) * 1000;
+    }
+    const secondsPart = !!secondsMatch[1]
+      ? parseInt(secondsMatch[1]) * 1000
+      : 0;
+    const millisecondsPart = parseInt((secondsMatch[3] as any).padEnd(3, '0'));
+
+    if (millisecondsPart >= 1000) {
+      throw new Error(`Can't parse "${delay} delay."`);
+    }
+
+    return secondsPart + millisecondsPart;
+  }
+
+  throw new Error(`Can't parse "${delay} delay."`);
+}
+
 const evaluateExecutableContent = <
   TContext extends object,
   TEvent extends EventObject
@@ -114,24 +157,15 @@ function mapActions<
           return evaluateExecutableContent(context, event, meta, fnBody);
         });
       case 'send':
-        const delay = element.attributes!.delay!;
-
-        const numberDelay = delay
-          ? typeof delay === 'number'
-            ? delay
-            : /(\d+)ms/.test(delay)
-            ? +/(\d+)ms/.exec(delay)![1]
-            : 0
-          : 0;
-
         const { event, eventexpr } = element.attributes!;
 
-        let converted: TEvent['type'] | SendExpr<TContext, TEvent>;
+        let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
+        let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
 
         if (event) {
-          converted = event as TEvent['type'];
+          convertedEvent = event as TEvent['type'];
         } else {
-          converted = (context, _ev, meta) => {
+          convertedEvent = (context, _ev, meta) => {
             const fnBody = `
               return ${eventexpr}
             `;
@@ -140,8 +174,20 @@ function mapActions<
           };
         }
 
-        return actions.send<TContext, TEvent>(converted, {
-          delay: numberDelay
+        if ('delay' in element.attributes!) {
+          convertedDelay = delayToMs(element.attributes!.delay);
+        } else if (element.attributes!.delayexpr) {
+          convertedDelay = (context, _ev, meta) => {
+            const fnBody = `
+              return (${delayToMs})(${element.attributes!.delayexpr});
+            `;
+
+            return evaluateExecutableContent(context, _ev, meta, fnBody);
+          };
+        }
+
+        return actions.send<TContext, TEvent>(convertedEvent, {
+          delay: convertedDelay
         });
       case 'log':
         const label = element.attributes!.label;
