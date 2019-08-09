@@ -26,7 +26,8 @@ import {
   PureAction,
   LogExpr,
   LogAction,
-  LogActionObject
+  LogActionObject,
+  DelayFunctionMap
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -180,7 +181,8 @@ export function send<TContext, TEvent extends EventObject>(
 export function resolveSend<TContext, TEvent extends EventObject>(
   action: SendAction<TContext, TEvent>,
   ctx: TContext,
-  event: TEvent
+  event: TEvent,
+  delaysMap?: DelayFunctionMap<TContext, TEvent>
 ): SendActionObject<TContext, TEvent> {
   const meta = {
     _event: toSCXMLEvent(event)
@@ -190,9 +192,19 @@ export function resolveSend<TContext, TEvent extends EventObject>(
   const resolvedEvent = isFunction(action.event)
     ? action.event(ctx, event, meta)
     : action.event;
-  const resolvedDelay = isFunction(action.delay)
-    ? action.delay(ctx, event)
-    : action.delay;
+
+  let resolvedDelay: number | string | undefined;
+  if (isString(action.delay)) {
+    const configDelay = delaysMap && delaysMap[action.delay];
+    resolvedDelay = isFunction(configDelay)
+      ? configDelay(ctx, event, meta)
+      : configDelay || action.delay;
+  } else {
+    resolvedDelay = isFunction(action.delay)
+      ? action.delay(ctx, event, meta)
+      : action.delay;
+  }
+
   const resolvedTarget = isFunction(action.to)
     ? action.to(ctx, event, meta)
     : action.to;

@@ -638,40 +638,16 @@ export class Interpreter<
     }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    let { delay } = sendAction;
-
-    if (isString(delay)) {
-      if (
-        !this.machine.options.delays ||
-        this.machine.options.delays[delay] === undefined
-      ) {
-        // tslint:disable-next-line:no-console
-        if (!IS_PRODUCTION) {
-          warn(
-            false,
-            // tslint:disable-next-line:max-line-length
-            `No delay reference for delay expression '${delay}' was found on machine '${this.machine.id}' on service '${this.id}'.`
-          );
+    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(
+      () => {
+        if (sendAction.to) {
+          this.sendTo(sendAction.event, sendAction.to);
+        } else {
+          this.send(sendAction.event);
         }
-
-        // Do not send anything
-        return;
-      } else {
-        const delayExpr = this.machine.options.delays[delay];
-        delay =
-          typeof delayExpr === 'number'
-            ? delayExpr
-            : delayExpr(this.state.context, this.state.event);
-      }
-    }
-
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
-      if (sendAction.to) {
-        this.sendTo(sendAction.event, sendAction.to);
-      } else {
-        this.send(sendAction.event);
-      }
-    }, (delay as number) || 0);
+      },
+      sendAction.delay as number
+    );
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -700,7 +676,7 @@ export class Interpreter<
       case actionTypes.send:
         const sendAction = action as SendActionObject<TContext, TEvent>;
 
-        if (sendAction.delay) {
+        if (typeof sendAction.delay === 'number') {
           this.defer(sendAction);
           return;
         } else {

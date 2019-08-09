@@ -194,6 +194,61 @@ describe('interpreter', () => {
       expect(stopped).toBe(true);
     });
 
+    it('can send an event after a delay (expression using _event)', () => {
+      interface DelayExprMachineCtx {
+        initialDelay: number;
+      }
+
+      const delayExprMachine = Machine<DelayExprMachineCtx>({
+        id: 'delayExpr',
+        context: {
+          initialDelay: 100
+        },
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              ACTIVATE: 'pending'
+            }
+          },
+          pending: {
+            onEntry: send('FINISH', {
+              delay: (ctx, _, { _event }) => ctx.initialDelay + _event.data.wait
+            }),
+            on: {
+              FINISH: 'finished'
+            }
+          },
+          finished: { type: 'final' }
+        }
+      });
+
+      let stopped = false;
+
+      const clock = new SimulatedClock();
+
+      const delayExprService = interpret(delayExprMachine, {
+        clock
+      })
+        .onDone(() => {
+          stopped = true;
+        })
+        .start();
+
+      delayExprService.send({
+        type: 'ACTIVATE',
+        wait: 50
+      });
+
+      clock.increment(101);
+
+      expect(stopped).toBe(false);
+
+      clock.increment(50);
+
+      expect(stopped).toBe(true);
+    });
+
     it('can send an event after a delay (delayed transitions)', done => {
       const clock = new SimulatedClock();
       const letterMachine = Machine(
