@@ -42,12 +42,18 @@ export class SimulatedClock implements SimulatedClock {
     this.flushTimeouts();
   }
   private flushTimeouts() {
-    this.timeouts.forEach((timeout, id) => {
-      if (this.now() - timeout.start >= timeout.timeout) {
-        timeout.fn.call(null);
-        this.timeouts.delete(id);
-      }
-    });
+    [...this.timeouts]
+      .sort(([_idA, timeoutA], [_idB, timeoutB]) => {
+        const endA = timeoutA.start + timeoutA.timeout;
+        const endB = timeoutB.start + timeoutB.timeout;
+        return endB > endA ? -1 : 1;
+      })
+      .forEach(([id, timeout]) => {
+        if (this.now() - timeout.start >= timeout.timeout) {
+          this.timeouts.delete(id);
+          timeout.fn.call(null);
+        }
+      });
   }
   public increment(ms: number): void {
     this._now += ms;
