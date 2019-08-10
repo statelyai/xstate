@@ -343,9 +343,9 @@ class StateNode<
         : undefined;
     this.invoke = toArray(_config.invoke).map((invokeConfig, i) => {
       if (isMachine(invokeConfig)) {
-        (this.parent || this).options.services = {
+        this.machine.options.services = {
           [invokeConfig.id]: invokeConfig,
-          ...(this.parent || this).options.services
+          ...this.machine.options.services
         };
 
         return {

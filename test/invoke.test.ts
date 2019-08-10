@@ -409,6 +409,47 @@ describe('invoke', () => {
       .start();
   });
 
+  it('should start deeply nested service (machine as invoke config)', done => {
+    const machineInvokeMachine = Machine({
+      id: 'parent',
+      initial: 'a',
+      states: {
+        a: {
+          initial: 'b',
+          states: {
+            b: {
+              invoke: Machine({
+                id: 'child',
+                initial: 'sending',
+                states: {
+                  sending: {
+                    entry: sendParent({ type: 'SUCCESS', data: 42 })
+                  }
+                }
+              })
+            }
+          }
+        },
+        success: {
+          id: 'success',
+          type: 'final',
+        }
+      },
+      on: {
+        SUCCESS: {
+          target: 'success',
+          cond: (_, e) => {
+            return e.data === 42;
+          }
+        }
+      }
+    });
+
+    interpret(machineInvokeMachine)
+      .onDone(() => done())
+      .start();
+  });
+
   it('should use the service overwritten by withConfig', done => {
     const childMachine = Machine({
       id: 'child',
