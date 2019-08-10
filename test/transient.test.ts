@@ -128,10 +128,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              onEntry: {
-                type: 'xstate.raise',
-                event: 'INT1'
-              }
+              onEntry: raise('INT1')
             }
           }
         },
@@ -145,10 +142,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              onEntry: {
-                type: 'xstate.raise',
-                event: 'INT2'
-              }
+              onEntry: raise('INT2')
             }
           }
         },

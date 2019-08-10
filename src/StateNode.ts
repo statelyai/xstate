@@ -55,7 +55,7 @@ import {
   Mapper,
   PropertyMapper,
   SendAction,
-  BuiltInEvent,
+  NullEvent,
   Guard,
   GuardPredicate,
   GuardMeta,
@@ -66,7 +66,9 @@ import {
   StateMachine,
   DoneEventObject,
   SingleOrArray,
-  LogAction
+  LogAction,
+  SendActionObject,
+  SpecialTargets
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1109,6 +1111,21 @@ class StateNode<
 
     return this.resolveTransition(stateTransition, currentState, eventObject);
   }
+
+  private resolveRaisedTransition(
+    state: State<TContext, TEvent>,
+    raisedEvent: TEvent | NullEvent,
+    eventObject: TEvent
+  ): State<TContext, TEvent> {
+    const currentActions = state.actions;
+
+    state = this.transition(state, raisedEvent as TEvent, state.context);
+    // Save original event to state
+    state.event = eventObject;
+    state.actions.unshift(...currentActions);
+    return state;
+  }
+
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
@@ -1151,15 +1168,8 @@ class StateNode<
       }
     }
 
-    const [raisedEvents, otherActions] = partition(
+    const [assignActions, otherActions] = partition(
       actions,
-      (action): action is BuiltInEvent<TEvent> =>
-        action.type === actionTypes.raise ||
-        action.type === actionTypes.nullEvent
-    );
-
-    const [assignActions, nonEventActions] = partition(
-      otherActions,
       (action): action is AssignAction<TContext, TEvent> =>
         action.type === actionTypes.assign
     );
@@ -1174,8 +1184,10 @@ class StateNode<
       : currentContext;
 
     const resolvedActions = flatten(
-      nonEventActions.map(actionObject => {
+      otherActions.map(actionObject => {
         switch (actionObject.type) {
+          case actionTypes.raise:
+            return actionObject;
           case actionTypes.send:
             const sendAction = resolveSend(
               actionObject as SendAction<TContext, TEvent>,
@@ -1214,14 +1226,18 @@ class StateNode<
       })
     );
 
+    const [raisedEvents, nonRaisedActions] = partition(
+      resolvedActions,
+      (action): action is RaisedEvent<TEvent> | TEvent =>
+        action.type === actionTypes.raise ||
+        (action.type === actionTypes.send &&
+          (action as SendActionObject<TContext, TEvent>).to ===
+            SpecialTargets.Internal)
+    );
+
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)
       : [];
-
-    const isTransient = stateNodes.some(stateNode => stateNode._transient);
-    if (isTransient) {
-      raisedEvents.unshift({ type: actionTypes.nullEvent });
-    }
 
     const meta = [this, ...stateNodes].reduce(
       (acc, stateNode) => {
@@ -1249,7 +1265,7 @@ class StateNode<
         !resolvedStateValue || stateTransition.source
           ? currentState
           : undefined,
-      actions: resolvedStateValue ? resolvedActions : [],
+      actions: resolvedStateValue ? nonRaisedActions : [],
       activities: resolvedStateValue
         ? activities
         : currentState
@@ -1282,20 +1298,24 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    while (raisedEvents.length) {
-      const currentActions = maybeNextState.actions;
-      const raisedEvent = raisedEvents.shift()!;
+    let isTransient = stateNodes.some(stateNode => stateNode._transient);
 
-      maybeNextState = this.transition(
+    if (isTransient) {
+      maybeNextState = this.resolveRaisedTransition(
         maybeNextState,
-        (raisedEvent.type === actionTypes.nullEvent
-          ? raisedEvent
-          : (raisedEvent as RaisedEvent<TEvent>).event) as TEvent,
-        maybeNextState.context
+        {
+          type: actionTypes.nullEvent
+        },
+        eventObject
       );
-      // Save original event to state
-      maybeNextState.event = eventObject;
-      maybeNextState.actions.unshift(...currentActions);
+    }
+
+    while (raisedEvents.length) {
+      maybeNextState = this.resolveRaisedTransition(
+        maybeNextState,
+        raisedEvents.shift()!.event,
+        eventObject
+      );
     }
 
     // Detect if state changed

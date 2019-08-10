@@ -157,7 +157,7 @@ function mapActions<
           return evaluateExecutableContent(context, event, meta, fnBody);
         });
       case 'send':
-        const { event, eventexpr } = element.attributes!;
+        const { event, eventexpr, target } = element.attributes!;
 
         let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
         let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
@@ -187,7 +187,8 @@ function mapActions<
         }
 
         return actions.send<TContext, TEvent>(convertedEvent, {
-          delay: convertedDelay
+          delay: convertedDelay,
+          to: target as string | undefined
         });
       case 'log':
         const label = element.attributes!.label;
