@@ -231,8 +231,6 @@ function toConfig(
 ) {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
-  let states: Record<string, any>;
-  let on: Record<string, any>;
   const { elements } = nodeJson;
 
   switch (nodeJson.name) {
@@ -280,6 +278,10 @@ function toConfig(
       element => element.name === 'transition'
     );
 
+    const invokeElements = nodeJson.elements.filter(
+      element => element.name === 'invoke'
+    );
+
     const onEntryElement = nodeJson.elements.find(
       element => element.name === 'onentry'
     );
@@ -288,7 +290,10 @@ function toConfig(
       element => element.name === 'onexit'
     );
 
-    states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
+    const states: Record<string, any> = indexedRecord(
+      stateElements,
+      item => `${item.attributes!.id}`
+    );
 
     const initialElement = !initial
       ? nodeJson.elements.find(element => element.name === 'initial')
@@ -302,7 +307,7 @@ function toConfig(
       initial = stateElements[0].attributes!.id;
     }
 
-    on = mapValues(
+    const on: Record<string, any> = mapValues(
       indexedAggregateRecord(
         transitionElements,
         item => (item.attributes ? item.attributes.event || '' : '') as string
@@ -345,6 +350,19 @@ function toConfig(
       ? mapActions(onExitElement.elements!)
       : undefined;
 
+    const invoke = invokeElements.map(element => {
+      if (element.attributes!.type !== 'scxml') {
+        throw new Error(
+          'Currently only conversion of <invoke type="scxml"/> is supported.'
+        );
+      }
+      const content = element.elements!.find(
+        el => el.name === 'content'
+      ) as XMLElement;
+
+      return scxmlToMachine(content, options);
+    });
+
     return {
       id,
       ...(initial ? { initial } : undefined),
@@ -358,7 +376,8 @@ function toConfig(
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
       ...(onEntry ? { onEntry } : undefined),
-      ...(onExit ? { onExit } : undefined)
+      ...(onExit ? { onExit } : undefined),
+      ...(invoke.length ? { invoke } : undefined)
     };
   }
 
@@ -369,15 +388,13 @@ export interface ScxmlToMachineOptions {
   delimiter?: string;
 }
 
-export function toMachine(
-  xml: string,
+function scxmlToMachine(
+  scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
 ): StateNode {
-  const json = xml2js(xml) as XMLElement;
-
-  const machineElement = json.elements!.filter(
+  const machineElement = scxmlJson.elements!.find(
     element => element.name === 'scxml'
-  )[0];
+  ) as XMLElement;
 
   const dataModelEl = machineElement.elements!.filter(
     element => element.name === 'datamodel'
@@ -403,4 +420,12 @@ export function toMachine(
     context: extState,
     delimiter: options.delimiter
   });
+}
+
+export function toMachine(
+  xml: string,
+  options: ScxmlToMachineOptions
+): StateNode {
+  const json = xml2js(xml) as XMLElement;
+  return scxmlToMachine(json, options);
 }
