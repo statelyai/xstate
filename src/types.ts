@@ -559,6 +559,11 @@ export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent>
 >;
 
+export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
+  string,
+  DelayConfig<TContext, TEvent>
+>;
+
 export type ServiceConfig<TContext> =
   | string
   | StateMachine<any, any, any>
@@ -566,14 +571,14 @@ export type ServiceConfig<TContext> =
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
-  | Expr<TContext, TEvent, number>;
+  | DelayExpr<TContext, TEvent>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext>>;
-  delays: Record<string, DelayConfig<TContext, TEvent>>;
+  delays: DelayFunctionMap<TContext, TEvent>;
   updater: Updater<TContext, TEvent>;
 }
 export interface MachineConfig<
@@ -733,6 +738,12 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
+export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
+  TContext,
+  TEvent,
+  number
+>;
+
 export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
   TContext,
   TEvent,
@@ -758,8 +769,8 @@ export interface SendAction<TContext, TEvent extends EventObject>
     | Actor
     | ExprWithMeta<TContext, TEvent, string | number | Actor>
     | undefined;
-  event: TEvent | SendExpr<TContext, TEvent>; // TODO: use Expr type
-  delay?: number | string | Expr<TContext, TEvent, number>;
+  event: TEvent | SendExpr<TContext, TEvent>;
+  delay?: number | string | DelayExpr<TContext, TEvent>;
   id: string | number;
 }
 
@@ -782,11 +793,11 @@ export type ExprWithMeta<TContext, TEvent extends EventObject, T> = (
   meta: SCXMLEventMeta<TEvent>
 ) => T;
 
-export type SendExpr<TContext, TEvent extends EventObject> = (
-  context: TContext,
-  event: TEvent,
-  meta: SCXMLEventMeta<TEvent>
-) => TEvent;
+export type SendExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
+  TContext,
+  TEvent,
+  TEvent
+>;
 
 export enum SpecialTargets {
   Parent = '#_parent',
@@ -795,7 +806,7 @@ export enum SpecialTargets {
 
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
-  delay?: number | string | Expr<TContext, TEvent, number>;
+  delay?: number | string | DelayExpr<TContext, TEvent>;
   to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
 }
 
@@ -876,7 +887,7 @@ export interface DelayedTransitionDefinition<
   TContext,
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
-  delay: number | string | Expr<TContext, TEvent, number>;
+  delay: number | string | DelayExpr<TContext, TEvent>;
 }
 
 export interface Edge<

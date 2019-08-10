@@ -144,11 +144,11 @@ const testGroups = {
     'test172.txml',
     'test173.txml',
     'test174.txml',
-    // 'test175.txml',
-    // 'test176.txml',
+    'test175.txml',
+    'test176.txml',
     // 'test179.txml',
     // 'test183.txml',
-    // 'test185.txml',
+    'test185.txml',
     // 'test186.txml',
     'test187.txml',
     // 'test189.txml',
@@ -184,7 +184,7 @@ const testGroups = {
     // 'test239.txml',
     // 'test240.txml',
     // 'test241.txml',
-    'test242.txml',
+    // 'test242.txml',
     // 'test243.txml',
     // 'test244.txml',
     // 'test245.txml',
@@ -305,7 +305,7 @@ const testGroups = {
     // 'test550.txml',
     // 'test551.txml',
     // 'test552.txml',
-    'test553.txml',
+    // 'test553.txml',
     'test554.txml',
     // 'test557.txml',
     // 'test558.txml',
@@ -369,6 +369,7 @@ async function runTestToCompletion(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )
   );
+  let done = false;
   let nextState: State<any> = machine.getInitialState(resolvedStateValue);
   const service = interpret(machine, {
     clock: new SimulatedClock()
@@ -376,9 +377,15 @@ async function runTestToCompletion(
     .onTransition(state => {
       nextState = state;
     })
+    .onDone(() => {
+      done = true;
+    })
     .start(nextState);
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
+    if (done) {
+      return;
+    }
     if (after) {
       (service.clock as SimulatedClock).increment(after);
     }

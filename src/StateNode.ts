@@ -343,9 +343,9 @@ class StateNode<
         : undefined;
     this.invoke = toArray(_config.invoke).map((invokeConfig, i) => {
       if (isMachine(invokeConfig)) {
-        (this.parent || this).options.services = {
+        this.machine.options.services = {
           [invokeConfig.id]: invokeConfig,
-          ...(this.parent || this).options.services
+          ...this.machine.options.services
         };
 
         return {
@@ -1171,31 +1171,18 @@ class StateNode<
             const sendAction = resolveSend(
               actionObject as SendAction<TContext, TEvent>,
               updatedContext,
-              eventObject
+              eventObject,
+              this.machine.options.delays
             ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
-            if (isString(sendAction.delay)) {
-              if (
-                !this.machine.options.delays ||
-                this.machine.options.delays[sendAction.delay] === undefined
-              ) {
-                if (!IS_PRODUCTION) {
-                  warn(
-                    false,
-                    // tslint:disable-next-line:max-line-length
-                    `No delay reference for delay expression '${sendAction.delay}' was found on machine '${this.machine.id}'`
-                  );
-                }
-
-                // Do not send anything
-                return sendAction;
-              }
-
-              const delayExpr = this.machine.options.delays[sendAction.delay];
-              sendAction.delay =
-                typeof delayExpr === 'number'
-                  ? delayExpr
-                  : delayExpr(updatedContext, eventObject);
+            if (!IS_PRODUCTION) {
+              // warn after resolving as we can create better contextual message here
+              warn(
+                !isString(actionObject.delay) ||
+                  typeof sendAction.delay === 'number',
+                // tslint:disable-next-line:max-line-length
+                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${this.machine.id}'`
+              );
             }
 
             return sendAction;

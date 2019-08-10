@@ -6,7 +6,7 @@ import {
   fireEvent,
   cleanup,
   waitForElement
-} from 'react-testing-library';
+} from '@testing-library/react';
 import { doneInvoke } from '../../../src/actions';
 
 afterEach(cleanup);

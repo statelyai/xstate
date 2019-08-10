@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useService } from '../src';
 import { Machine, assign, interpret } from 'xstate';
-import { render, cleanup, fireEvent } from 'react-testing-library';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 
 afterEach(cleanup);
 
@@ -45,7 +45,9 @@ describe('useService hook', () => {
       expect(countEl.textContent).toBe('0');
     });
 
-    counterService.send('INC');
+    act(() => {
+      counterService.send('INC');
+    });
 
     countEls.forEach(countEl => {
       expect(countEl.textContent).toBe('1');
