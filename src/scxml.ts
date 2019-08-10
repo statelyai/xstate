@@ -162,12 +162,27 @@ function mapActions<
         let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
         let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
 
-        if (event) {
+        const params =
+          element.elements &&
+          element.elements.reduce((acc, child) => {
+            if (child.name === 'content') {
+              throw new Error(
+                'Conversion of <content/> inside <send/> not implemented.'
+              );
+            }
+            return `${acc}${child.attributes!.name}:${
+              child.attributes!.expr
+            },\n`;
+          }, '');
+
+        if (event && !params) {
           convertedEvent = event as TEvent['type'];
         } else {
           convertedEvent = (context, _ev, meta) => {
             const fnBody = `
-              return ${eventexpr}
+              return { type: ${event ? `"${event}"` : eventexpr}, ${
+              params ? params : ''
+            } }
             `;
 
             return evaluateExecutableContent(context, _ev, meta, fnBody);
@@ -369,6 +384,11 @@ export function toMachine(
 
   const extState = dataModelEl
     ? dataModelEl.elements!.reduce((acc, element) => {
+        if (element.attributes!.src) {
+          throw new Error(
+            "Conversion of `src` attribute on datamodel's <data> elements is not supported."
+          );
+        }
         acc[element.attributes!.id!] = element.attributes!.expr
           ? // tslint:disable-next-line:no-eval
             eval(`(${element.attributes!.expr})`)

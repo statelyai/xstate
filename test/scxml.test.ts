@@ -145,7 +145,7 @@ const testGroups = {
     'test173.txml',
     'test174.txml',
     'test175.txml',
-    // 'test176.txml',
+    'test176.txml',
     // 'test179.txml',
     // 'test183.txml',
     // 'test185.txml',
@@ -369,6 +369,7 @@ async function runTestToCompletion(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )
   );
+  let done = false;
   let nextState: State<any> = machine.getInitialState(resolvedStateValue);
   const service = interpret(machine, {
     clock: new SimulatedClock()
@@ -376,9 +377,15 @@ async function runTestToCompletion(
     .onTransition(state => {
       nextState = state;
     })
+    .onDone(() => {
+      done = true;
+    })
     .start(nextState);
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
+    if (done) {
+      return;
+    }
     if (after) {
       (service.clock as SimulatedClock).increment(after);
     }
