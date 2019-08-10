@@ -151,7 +151,7 @@ const testGroups = {
     'test185.txml',
     // 'test186.txml',
     'test187.txml',
-    // 'test189.txml',
+    'test189.txml',
     // 'test190.txml',
     // 'test191.txml',
     // 'test192.txml',

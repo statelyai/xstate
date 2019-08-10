@@ -758,6 +758,38 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         .onDone(() => done())
         .start();
     });
+
+    it('should be able to raise event using special target', () => {
+      const machine = Machine({
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: [send('EVENT_2'), send('EVENT_1', { to: '#_internal' })],
+            on: {
+              EVENT_1: 'pass',
+              EVENT_2: 'fail'
+            }
+          },
+          pass: {
+            type: 'final'
+          },
+          fail: {
+            type: 'final'
+          }
+        }
+      });
+
+      let state: State<any>;
+
+      interpret(machine)
+        .onTransition(s => {
+          state = s;
+        })
+        .onDone(() => {
+          expect(state.value).toBe('pass');
+        })
+        .start();
+    });
   });
 
   describe('sendParent() event expressions', () => {
