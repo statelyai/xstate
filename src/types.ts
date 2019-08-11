@@ -725,8 +725,10 @@ export interface UpdateObject extends EventObject {
 
 export type DoneEvent = DoneEventObject & string;
 
+export type NullEvent = { type: ActionTypes.NullEvent };
+
 export type BuiltInEvent<TEvent extends EventObject> =
-  | { type: ActionTypes.NullEvent }
+  | NullEvent
   | { type: ActionTypes.Init }
   | RaisedEvent<TEvent>
   | ErrorExecutionEvent;

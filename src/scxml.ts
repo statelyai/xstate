@@ -157,7 +157,7 @@ function mapActions<
           return evaluateExecutableContent(context, e, meta, fnBody);
         });
       case 'send':
-        const { event, eventexpr } = element.attributes!;
+        const { event, eventexpr, target } = element.attributes!;
 
         let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
         let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
@@ -202,7 +202,8 @@ function mapActions<
         }
 
         return actions.send<TContext, TEvent>(convertedEvent, {
-          delay: convertedDelay
+          delay: convertedDelay,
+          to: target as string | undefined
         });
       case 'log':
         const label = element.attributes!.label;
@@ -230,8 +231,6 @@ function toConfig(
 ) {
   const parallel = nodeJson.name === 'parallel';
   let initial = parallel ? undefined : nodeJson.attributes!.initial;
-  let states: Record<string, any>;
-  let on: Record<string, any>;
   const { elements } = nodeJson;
 
   switch (nodeJson.name) {
@@ -279,6 +278,10 @@ function toConfig(
       element => element.name === 'transition'
     );
 
+    const invokeElements = nodeJson.elements.filter(
+      element => element.name === 'invoke'
+    );
+
     const onEntryElement = nodeJson.elements.find(
       element => element.name === 'onentry'
     );
@@ -287,7 +290,10 @@ function toConfig(
       element => element.name === 'onexit'
     );
 
-    states = indexedRecord(stateElements, item => `${item.attributes!.id}`);
+    const states: Record<string, any> = indexedRecord(
+      stateElements,
+      item => `${item.attributes!.id}`
+    );
 
     const initialElement = !initial
       ? nodeJson.elements.find(element => element.name === 'initial')
@@ -301,7 +307,7 @@ function toConfig(
       initial = stateElements[0].attributes!.id;
     }
 
-    on = mapValues(
+    const on: Record<string, any> = mapValues(
       indexedAggregateRecord(
         transitionElements,
         item => (item.attributes ? item.attributes.event || '' : '') as string
@@ -344,6 +350,22 @@ function toConfig(
       ? mapActions(onExitElement.elements!)
       : undefined;
 
+    const invoke = invokeElements.map(element => {
+      if (
+        ['scxml', 'http://www.w3.org/TR/scxml/'].indexOf(element.attributes!
+          .type as string) === -1
+      ) {
+        throw new Error(
+          'Currently only converting invoke elements of type SCXML is supported.'
+        );
+      }
+      const content = element.elements!.find(
+        el => el.name === 'content'
+      ) as XMLElement;
+
+      return scxmlToMachine(content, options);
+    });
+
     return {
       id,
       ...(initial ? { initial } : undefined),
@@ -357,7 +379,8 @@ function toConfig(
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
       ...(onEntry ? { onEntry } : undefined),
-      ...(onExit ? { onExit } : undefined)
+      ...(onExit ? { onExit } : undefined),
+      ...(invoke.length ? { invoke } : undefined)
     };
   }
 
@@ -368,15 +391,13 @@ export interface ScxmlToMachineOptions {
   delimiter?: string;
 }
 
-export function toMachine(
-  xml: string,
+function scxmlToMachine(
+  scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
 ): StateNode {
-  const json = xml2js(xml) as XMLElement;
-
-  const machineElement = json.elements!.filter(
+  const machineElement = scxmlJson.elements!.find(
     element => element.name === 'scxml'
-  )[0];
+  ) as XMLElement;
 
   const dataModelEl = machineElement.elements!.filter(
     element => element.name === 'datamodel'
@@ -402,4 +423,12 @@ export function toMachine(
     context: extState,
     delimiter: options.delimiter
   });
+}
+
+export function toMachine(
+  xml: string,
+  options: ScxmlToMachineOptions
+): StateNode {
+  const json = xml2js(xml) as XMLElement;
+  return scxmlToMachine(json, options);
 }
