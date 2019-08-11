@@ -351,9 +351,12 @@ function toConfig(
       : undefined;
 
     const invoke = invokeElements.map(element => {
-      if (element.attributes!.type !== 'scxml') {
+      if (
+        ['scxml', 'http://www.w3.org/TR/scxml/'].indexOf(element.attributes!
+          .type as string) === -1
+      ) {
         throw new Error(
-          'Currently only conversion of <invoke type="scxml"/> is supported.'
+          'Currently only converting invoke elements of type SCXML is supported.'
         );
       }
       const content = element.elements!.find(
