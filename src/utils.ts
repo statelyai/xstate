@@ -7,7 +7,6 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  ActionTypes,
   HistoryValue,
   AssignAction,
   Condition,
@@ -317,24 +316,7 @@ export function mapContext<TContext, TEvent extends EventObject>(
 }
 
 export function isBuiltInEvent(eventType: EventType): boolean {
-  // check if event is a "done" event
-  if (
-    eventType.indexOf(ActionTypes.DoneState) === 0 ||
-    eventType.indexOf(ActionTypes.DoneInvoke) === 0
-  ) {
-    return true;
-  }
-
-  // check if event is an "error" event
-  if (
-    eventType === ActionTypes.ErrorCommunication ||
-    eventType === ActionTypes.ErrorExecution ||
-    eventType.indexOf(ActionTypes.ErrorPlatform) === 0
-  ) {
-    return true;
-  }
-
-  return false;
+  return /^(done|error)\./.test(eventType);
 }
 
 export function isPromiseLike(value: any): value is PromiseLike<any> {
@@ -564,14 +546,8 @@ export function toSCXMLEvent<TEvent extends EventObject>(
   event: Event<TEvent> | SCXML.Event<TEvent>,
   scxmlEvent: Partial<SCXML.Event<TEvent>> = {}
 ): SCXML.Event<TEvent> {
-  if (!isString(event)) {
-    if (event.$$type === 'scxml') {
-      return event as SCXML.Event<TEvent>;
-    }
-
-    if ('__scxml' in event) {
-      return event.__scxml as SCXML.Event<TEvent>;
-    }
+  if (!isString(event) && event.$$type === 'scxml') {
+    return event as SCXML.Event<TEvent>;
   }
 
   const eventObject = toEventObject(event);
@@ -580,11 +556,17 @@ export function toSCXMLEvent<TEvent extends EventObject>(
     return eventObject.__scxml as SCXML.Event<TEvent>;
   }
 
+  const type = scxmlEvent.type || 'external';
+
   return {
     name: eventObject.type,
     data: eventObject,
     $$type: 'scxml',
-    type: 'external',
+    type,
+    // origintype:
+    //   type === 'external'
+    //     ? 'http://www.w3.org/TR/scxml/#SCXMLEventProcessor'
+    //     : undefined,
     ...scxmlEvent
   };
 }

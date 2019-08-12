@@ -48,7 +48,6 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  RaisedEvent,
   FinalStateNodeConfig,
   InvokeDefinition,
   ActionObject,
@@ -68,7 +67,8 @@ import {
   SingleOrArray,
   LogAction,
   SendActionObject,
-  SpecialTargets
+  SpecialTargets,
+  RaiseAction
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -1228,7 +1228,9 @@ class StateNode<
 
     const [raisedEvents, nonRaisedActions] = partition(
       resolvedActions,
-      (action): action is RaisedEvent<TEvent> | TEvent =>
+      (
+        action
+      ): action is RaiseAction<TEvent> | SendActionObject<TContext, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
           (action as SendActionObject<TContext, TEvent>).to ===
@@ -1276,7 +1278,7 @@ class StateNode<
         : currentState
         ? currentState.meta
         : undefined,
-      events: resolvedStateValue ? (raisedEvents as TEvent[]) : [],
+      events: [],
       configuration: resolvedStateValue
         ? stateTransition.configuration
         : currentState
@@ -1311,9 +1313,12 @@ class StateNode<
     }
 
     while (raisedEvents.length) {
+      const raisedEvent = raisedEvents.shift()!;
       maybeNextState = this.resolveRaisedTransition(
         maybeNextState,
-        raisedEvents.shift()!.event,
+        raisedEvent.type === actionTypes.raise
+          ? toEventObject((raisedEvent as RaiseAction<TEvent>).event)
+          : (raisedEvent as SendActionObject<TContext, TEvent>).event,
         eventObject
       );
     }

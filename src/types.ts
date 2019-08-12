@@ -307,7 +307,7 @@ export type StatesDefinition<
 };
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type'] | BuiltInEvent<TEvent>['type']]?: SingleOrArray<
+  [K in TEvent['type'] | NullEvent['type'] | '*']?: SingleOrArray<
     | string
     | number
     | StateNode<TContext, any, TEvent>
@@ -690,13 +690,9 @@ export enum ActionTypes {
   Pure = 'xstate.pure'
 }
 
-export interface RaisedEvent<TEvent extends EventObject> {
+export interface RaiseAction<TEvent extends EventObject> {
   type: ActionTypes.Raise;
-  event: TEvent;
-}
-export interface RaiseEvent<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  event: Event<TEvent>;
+  event: TEvent['type'];
 }
 
 export interface DoneInvokeEvent<TData> extends EventObject {
@@ -726,12 +722,6 @@ export interface UpdateObject extends EventObject {
 export type DoneEvent = DoneEventObject & string;
 
 export type NullEvent = { type: ActionTypes.NullEvent };
-
-export type BuiltInEvent<TEvent extends EventObject> =
-  | NullEvent
-  | { type: ActionTypes.Init }
-  | RaisedEvent<TEvent>
-  | ErrorExecutionEvent;
 
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

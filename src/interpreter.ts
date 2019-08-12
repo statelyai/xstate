@@ -590,7 +590,7 @@ export class Interpreter<
     // add SCXML event
     const eventWithSCXML = {
       ...event,
-      __scxml: toSCXMLEvent(event, { origin: this.id, type: 'external' })
+      __scxml: toSCXMLEvent(event, { origin: this.id })
     };
 
     target.send(eventWithSCXML);
@@ -889,7 +889,7 @@ export class Interpreter<
         if (!canceled) {
           const errorEvent = error(id, errorData);
           try {
-            // Send "error.execution" to this (parent).
+            // Send "error.platform.id" to this (parent).
             this.send(errorEvent as any);
           } catch (error) {
             this.reportUnhandledExceptionOnInvocation(errorData, error, id);

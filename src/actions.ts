@@ -17,7 +17,7 @@ import {
   ActionTypes,
   ActivityDefinition,
   SpecialTargets,
-  RaiseEvent,
+  RaiseAction,
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
@@ -143,7 +143,10 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  */
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
-): RaiseEvent<TContext, TEvent> {
+): RaiseAction<TEvent> | SendAction<TContext, TEvent> {
+  if (!isString(event)) {
+    return send(event, { to: SpecialTargets.Internal });
+  }
   return {
     type: actionTypes.raise,
     event
