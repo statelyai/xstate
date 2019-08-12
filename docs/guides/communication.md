@@ -39,7 +39,7 @@ Since every promise can be modeled as a state machine, XState can invoke promise
 - `resolve()`, which will take the `onDone` transition
 - `reject()` (or throw an error), which will take the `onError` transition
 
-If the state of the machine changes before the promise settles, the result of the promise is discarded.
+If the state where the invoked promise is active is exited before the promise settles, the result of the promise is discarded.
 
 ```js
 // Function that returns a promise
@@ -230,7 +230,7 @@ interpret(pingPongMachine)
 
 [Observables](https://github.com/tc39/proposal-observable) are streams of values emitted over time. Think of them as an array/collection whose values are emitted asynchronously, instead of all at once. There are many implementations of observables in JavaScript; the most popular one is [RxJS](https://github.com/ReactiveX/rxjs).
 
-Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events.  The observable is unsubscribed when the current state is exited.
+Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events.  The observable is unsubscribed when the state where it is invoked is exited.
 
 ```js
 import { Machine, interpret } from 'xstate';
@@ -296,7 +296,7 @@ Machines communicate hierarchically, and invoked machines can communicate:
 - Parent-to-child via the `send(EVENT, { to: 'someChildId' })` action
 - Child-to-parent via the `sendParent(EVENT)` action.
 
-If the current state is exited, the machine is stopped.
+If the state where the machine is invoked is exited, the machine is stopped.
 
 ```js
 import { Machine, interpret, send, sendParent } from 'xstate';
