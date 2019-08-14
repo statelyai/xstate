@@ -7,15 +7,15 @@ import {
   EventType,
   StateValueMap,
   StateConfig,
-  ActionTypes,
   SCXML,
   StateSchema,
   ExtractStateValue
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
-import { matchesState, keys, isString, toSCXMLEvent } from './utils';
+import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
+import { initEvent } from './actions';
 
 export function stateValuesEqual(
   a: StateValue | undefined,
@@ -63,7 +63,7 @@ export function bindActionToState<TC, TE extends EventObject>(
             exec(state.context, state.event as TE, {
               action,
               state,
-              _event: toSCXMLEvent(state.event)
+              _event: state._event
             })
         : undefined
   };
@@ -118,7 +118,6 @@ export class State<
         return new State<TC, TE>({
           value: stateValue.value,
           context: context as TC,
-          event: stateValue.event,
           _event: stateValue._event,
           historyValue: stateValue.historyValue,
           history: stateValue.history,
@@ -133,13 +132,12 @@ export class State<
       return stateValue;
     }
 
-    const event = { type: ActionTypes.Init } as TE;
+    const _event = initEvent as SCXML.Event<TE>;
 
     return new State<TC, TE>({
       value: stateValue,
       context: context as TC,
-      event,
-      _event: toSCXMLEvent(event),
+      _event,
       historyValue: undefined,
       history: undefined,
       actions: [],
@@ -171,13 +169,12 @@ export class State<
       if (!stateValue.actions.length) {
         return stateValue as State<TC, TE>;
       }
-      const event = { type: ActionTypes.Init } as TE;
+      const _event = initEvent as SCXML.Event<TE>;
 
       return new State<TC, TE>({
         value: stateValue.value,
         context,
-        event,
-        _event: toSCXMLEvent(event),
+        _event,
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
@@ -203,8 +200,8 @@ export class State<
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;
     this.context = config.context;
-    this.event = config.event;
-    this._event = toSCXMLEvent(config.event);
+    this._event = config._event;
+    this.event = this._event.data;
     this.historyValue = config.historyValue;
     this.history = config.history;
     this.actions = config.actions || [];

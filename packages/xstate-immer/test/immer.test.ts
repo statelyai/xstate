@@ -1,5 +1,5 @@
 import { Machine } from 'xstate';
-import { updater, assign } from '../src/index';
+import { updater, assign } from '../src';
 
 describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {

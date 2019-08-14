@@ -1,4 +1,5 @@
 import * as actions from '../src/actions';
+import { toSCXMLEvent } from '../src/utils';
 
 const { actionTypes } = actions;
 
@@ -110,7 +111,7 @@ describe('action creators', () => {
       const resolvedAction = actions.resolveSend(
         action,
         { delay: 100 },
-        { type: 'EVENT', value: 50 }
+        toSCXMLEvent({ type: 'EVENT', value: 50 })
       );
 
       expect(resolvedAction.delay).toEqual(150);

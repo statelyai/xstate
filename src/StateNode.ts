@@ -22,7 +22,6 @@ import {
   toGuard,
   isMachine,
   toSCXMLEvent,
-  toEventObject,
   mapContext
 } from './utils';
 import {
@@ -32,7 +31,6 @@ import {
   StateTransition,
   StateValueMap,
   MachineOptions,
-  ConditionPredicate,
   EventObject,
   HistoryStateNodeConfig,
   HistoryValue,
@@ -48,7 +46,6 @@ import {
   StatesDefinition,
   StateNodesConfig,
   ActionTypes,
-  RaisedEvent,
   FinalStateNodeConfig,
   InvokeDefinition,
   ActionObject,
@@ -68,7 +65,10 @@ import {
   SingleOrArray,
   LogAction,
   SendActionObject,
-  SpecialTargets
+  SpecialTargets,
+  RaiseAction,
+  SCXML,
+  RaiseActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -88,7 +88,8 @@ import {
   resolveSend,
   initEvent,
   toActionObjects,
-  resolveLog
+  resolveLog,
+  resolveRaise
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE } from './constants';
@@ -657,13 +658,13 @@ class StateNode<
   private transitionLeafNode(
     stateValue: string,
     state: State<TContext, TEvent>,
-    eventObject: TEvent
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const stateNode = this.getStateNode(stateValue);
-    const next = stateNode.next(state, eventObject);
+    const next = stateNode.next(state, _event);
 
     if (!next || !next.transitions.length) {
-      return this.next(state, eventObject);
+      return this.next(state, _event);
     }
 
     return next;
@@ -671,7 +672,7 @@ class StateNode<
   private transitionCompoundNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: TEvent
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const subStateKeys = keys(stateValue);
 
@@ -679,11 +680,11 @@ class StateNode<
     const next = stateNode._transition(
       stateValue[subStateKeys[0]],
       state,
-      eventObject
+      _event
     );
 
     if (!next || !next.transitions.length) {
-      return this.next(state, eventObject);
+      return this.next(state, _event);
     }
 
     return next;
@@ -691,7 +692,7 @@ class StateNode<
   private transitionParallelNode(
     stateValue: StateValueMap,
     state: State<TContext, TEvent>,
-    eventObject: TEvent
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
 
@@ -703,7 +704,7 @@ class StateNode<
       }
 
       const subStateNode = this.getStateNode(subStateKey);
-      const next = subStateNode._transition(subStateValue, state, eventObject);
+      const next = subStateNode._transition(subStateValue, state, _event);
       if (next) {
         transitionMap[subStateKey] = next;
       }
@@ -719,7 +720,7 @@ class StateNode<
     );
 
     if (!willTransition) {
-      return this.next(state, eventObject);
+      return this.next(state, _event);
     }
     const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
@@ -743,27 +744,27 @@ class StateNode<
   private _transition(
     stateValue: StateValue,
     state: State<TContext, TEvent>,
-    event: TEvent
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
     // leaf node
     if (isString(stateValue)) {
-      return this.transitionLeafNode(stateValue, state, event);
+      return this.transitionLeafNode(stateValue, state, _event);
     }
 
     // hierarchical node
     if (keys(stateValue).length === 1) {
-      return this.transitionCompoundNode(stateValue, state, event);
+      return this.transitionCompoundNode(stateValue, state, _event);
     }
 
     // orthogonal node
-    return this.transitionParallelNode(stateValue, state, event);
+    return this.transitionParallelNode(stateValue, state, _event);
   }
   private next(
     state: State<TContext, TEvent>,
-    eventObject: TEvent
+    _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
-    const eventType = eventObject.type;
-    const candidates = this.on[eventType as TEvent['type']] || [];
+    const eventName = _event.name;
+    const candidates = this.on[eventName as TEvent['type']] || [];
     const hasWildcard = this.on[WILDCARD];
 
     if (!candidates.length && !hasWildcard) {
@@ -807,13 +808,12 @@ class StateNode<
 
       try {
         guardPassed =
-          !cond ||
-          this.evaluateGuard(cond, resolvedContext, eventObject, state);
+          !cond || this.evaluateGuard(cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||
             cond!
-              .type}' in transition for event '${eventType}' in state node '${
+              .type}' in transition for event '${eventName}' in state node '${
             this.id
           }':\n${err.message}`
         );
@@ -910,41 +910,40 @@ class StateNode<
   private evaluateGuard(
     guard: Guard<TContext, TEvent>,
     context: TContext,
-    eventObject: TEvent,
+    _event: SCXML.Event<TEvent>,
     state: State<TContext, TEvent>
   ): boolean {
-    let condFn: ConditionPredicate<TContext, TEvent>;
     const { guards } = this.machine.options;
     const guardMeta: GuardMeta<TContext, TEvent> = {
       state,
       cond: guard,
-      _event: toSCXMLEvent(eventObject)
+      _event
     };
 
     // TODO: do not hardcode!
     if (guard.type === DEFAULT_GUARD_TYPE) {
       return (guard as GuardPredicate<TContext, TEvent>).predicate(
         context,
-        eventObject,
+        _event.data,
         guardMeta
       );
     }
 
-    if (!guards[guard.type]) {
+    const condFn = guards[guard.type];
+
+    if (!condFn) {
       throw new Error(
         `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
       );
     }
 
-    condFn = guards[guard.type];
-
-    return condFn(context, eventObject, guardMeta);
+    return condFn(context, _event.data, guardMeta);
   }
 
   private getActions(
     transition: StateTransition<TContext, TEvent>,
     currentContext: TContext,
-    eventObject: TEvent,
+    _event: SCXML.Event<TEvent>,
     prevState?: State<TContext>
   ): Array<ActionObject<TContext, TEvent>> {
     const prevConfig = prevState
@@ -986,9 +985,7 @@ class StateNode<
           done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
           done(
             parent.id,
-            sn.data
-              ? mapContext(sn.data, currentContext, eventObject)
-              : undefined
+            sn.data ? mapContext(sn.data, currentContext, _event) : undefined
           )
         );
 
@@ -1050,9 +1047,10 @@ class StateNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent>,
-    event: TEvent | TEvent['type'],
+    event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema> {
+    const _event = toSCXMLEvent(event);
     let currentState: State<TContext, TEvent>;
 
     if (state instanceof State) {
@@ -1071,17 +1069,17 @@ class StateNode<
       );
     }
 
-    const eventObject = toEventObject(event);
-    const eventType = eventObject.type;
-
-    if (!IS_PRODUCTION && eventType === WILDCARD) {
+    if (!IS_PRODUCTION && _event.name === WILDCARD) {
       throw new Error("An event cannot have the wildcard type ('*')");
     }
 
     if (this.strict) {
-      if (this.events.indexOf(eventType) === -1 && !isBuiltInEvent(eventType)) {
+      if (
+        this.events.indexOf(_event.name) === -1 &&
+        !isBuiltInEvent(_event.name)
+      ) {
         throw new Error(
-          `Machine '${this.id}' does not accept event '${eventType}'`
+          `Machine '${this.id}' does not accept event '${_event.name}'`
         );
       }
     }
@@ -1089,7 +1087,7 @@ class StateNode<
     const stateTransition = this._transition(
       currentState.value,
       currentState,
-      eventObject
+      _event
     ) || {
       transitions: [],
       configuration: [],
@@ -1109,19 +1107,24 @@ class StateNode<
 
     stateTransition.configuration = [...resolvedConfig];
 
-    return this.resolveTransition(stateTransition, currentState, eventObject);
+    return this.resolveTransition(stateTransition, currentState, _event);
   }
 
   private resolveRaisedTransition(
     state: State<TContext, TEvent>,
-    raisedEvent: TEvent | NullEvent,
-    eventObject: TEvent
+    _event: SCXML.Event<TEvent> | NullEvent,
+    originalEvent: SCXML.Event<TEvent>
   ): State<TContext, TEvent> {
     const currentActions = state.actions;
 
-    state = this.transition(state, raisedEvent as TEvent, state.context);
+    state = this.transition(
+      state,
+      _event as SCXML.Event<TEvent>,
+      state.context
+    );
     // Save original event to state
-    state.event = eventObject;
+    state._event = originalEvent;
+    state.event = originalEvent.data;
     state.actions.unshift(...currentActions);
     return state;
   }
@@ -1129,7 +1132,7 @@ class StateNode<
   private resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
-    _eventObject?: TEvent,
+    _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context!
   ): State<TContext, TEvent> {
     const { configuration } = stateTransition;
@@ -1149,11 +1152,10 @@ class StateNode<
         : undefined
       : undefined;
     const currentContext = currentState ? currentState.context : context;
-    const eventObject = _eventObject || (initEvent as TEvent);
     const actions = this.getActions(
       stateTransition,
       currentContext,
-      eventObject,
+      _event,
       currentState
     );
     const activities = currentState ? { ...currentState.activities } : {};
@@ -1177,7 +1179,7 @@ class StateNode<
     const updatedContext = assignActions.length
       ? this.options.updater(
           currentContext,
-          eventObject,
+          _event,
           assignActions,
           currentState
         )
@@ -1187,12 +1189,12 @@ class StateNode<
       otherActions.map(actionObject => {
         switch (actionObject.type) {
           case actionTypes.raise:
-            return actionObject;
+            return resolveRaise(actionObject as RaiseAction<TEvent>);
           case actionTypes.send:
             const sendAction = resolveSend(
               actionObject as SendAction<TContext, TEvent>,
               updatedContext,
-              eventObject,
+              _event,
               this.machine.options.delays
             ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
@@ -1211,13 +1213,13 @@ class StateNode<
             return resolveLog(
               actionObject as LogAction<TContext, TEvent>,
               updatedContext,
-              eventObject
+              _event
             );
           case ActionTypes.Pure:
             return (
               (actionObject as PureAction<TContext, TEvent>).get(
                 updatedContext,
-                eventObject
+                _event.data
               ) || []
             );
           default:
@@ -1228,7 +1230,11 @@ class StateNode<
 
     const [raisedEvents, nonRaisedActions] = partition(
       resolvedActions,
-      (action): action is RaisedEvent<TEvent> | TEvent =>
+      (
+        action
+      ): action is
+        | RaiseActionObject<TEvent>
+        | SendActionObject<TContext, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
           (action as SendActionObject<TContext, TEvent>).to ===
@@ -1252,8 +1258,7 @@ class StateNode<
     const nextState = new State<TContext, TEvent>({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
-      event: eventObject,
-      _event: toSCXMLEvent(eventObject),
+      _event,
       historyValue: resolvedStateValue
         ? historyValue
           ? updateHistoryValue(historyValue, resolvedStateValue)
@@ -1276,7 +1281,7 @@ class StateNode<
         : currentState
         ? currentState.meta
         : undefined,
-      events: resolvedStateValue ? (raisedEvents as TEvent[]) : [],
+      events: [],
       configuration: resolvedStateValue
         ? stateTransition.configuration
         : currentState
@@ -1285,7 +1290,7 @@ class StateNode<
     });
 
     nextState.changed =
-      eventObject.type === actionTypes.update || !!assignActions.length;
+      _event.name === actionTypes.update || !!assignActions.length;
 
     // Dispose of penultimate histories to prevent memory leaks
     const { history } = nextState;
@@ -1306,15 +1311,16 @@ class StateNode<
         {
           type: actionTypes.nullEvent
         },
-        eventObject
+        _event
       );
     }
 
     while (raisedEvents.length) {
+      const raisedEvent = raisedEvents.shift()!;
       maybeNextState = this.resolveRaisedTransition(
         maybeNextState,
-        raisedEvents.shift()!.event,
-        eventObject
+        raisedEvent._event,
+        _event
       );
     }
 

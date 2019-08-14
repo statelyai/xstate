@@ -1,5 +1,5 @@
 import { EventObject, StateNode, StateValue } from '.';
-import { keys, flatten, mapContext } from './utils';
+import { keys, flatten } from './utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -189,21 +189,4 @@ export function isInFinalState(
   }
 
   return false;
-}
-
-export function getDoneData<TContext>(
-  context: TContext,
-  event: EventObject
-): any {
-  if (this.stateNode.type === 'compound') {
-    const childNode = this.nodes[keys(this.nodes)[0]];
-
-    if (!childNode.stateNode.data) {
-      return undefined;
-    }
-
-    return mapContext(childNode.stateNode.data, context, event);
-  }
-
-  return undefined;
 }
