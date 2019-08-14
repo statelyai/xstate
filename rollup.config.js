@@ -1,24 +1,43 @@
 import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
+import renameExtensions from '@betit/rollup-plugin-rename-extensions';
 import fileSize from 'rollup-plugin-filesize';
 
-const createConfig = ({ input, output, target = undefined }) => ({
+const createTsPlugin = ({ declaration = true, target } = {}) =>
+  typescript({
+    clean: true,
+    tsconfigOverride: {
+      compilerOptions: {
+        declaration,
+        ...(target && { target })
+      }
+    }
+  });
+
+const createNpmConfig = ({ input, output }) => ({
+  input,
+  output,
+  preserveModules: true,
+  plugins: [
+    createTsPlugin(),
+    // temporary solution until rollup/rollup#2847 gets resolved
+    renameExtensions({
+      mappings: {
+        '.ts': '.js'
+      }
+    })
+  ]
+});
+
+const createUmdConfig = ({ input, output, target }) => ({
   input,
   output,
   plugins: [
     rollupReplace({
       'process.env.NODE_ENV': JSON.stringify('production')
     }),
-    typescript({
-      clean: true,
-      tsconfigOverride: {
-        compilerOptions: {
-          declaration: false,
-          ...(target ? { target } : {})
-        }
-      }
-    }),
+    createTsPlugin({ declaration: false, target }),
     terser({
       toplevel: true
     }),
@@ -27,7 +46,20 @@ const createConfig = ({ input, output, target = undefined }) => ({
 });
 
 export default [
-  createConfig({
+  createNpmConfig({
+    input: 'src/index.ts',
+    output: [
+      {
+        dir: 'es',
+        format: 'esm'
+      },
+      {
+        dir: 'lib',
+        format: 'cjs'
+      }
+    ]
+  }),
+  createUmdConfig({
     input: 'src/index.ts',
     output: {
       file: 'dist/xstate.js',
@@ -35,7 +67,7 @@ export default [
       name: 'XState'
     }
   }),
-  createConfig({
+  createUmdConfig({
     input: 'src/interpreter.ts',
     output: {
       file: 'dist/xstate.interpreter.js',
@@ -43,7 +75,7 @@ export default [
       name: 'XStateInterpreter'
     }
   }),
-  createConfig({
+  createUmdConfig({
     input: 'src/index.ts',
     output: {
       file: 'dist/xstate.web.js',

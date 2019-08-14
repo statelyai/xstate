@@ -5,7 +5,9 @@
     "outDir": "./lib",
     "rootDir": "./src"
   },
-  "references": [{
-    "path": "../.."
-  }]
+  "references": [
+    {
+      "path": "../.."
+    }
+  ]
 }
