@@ -18,6 +18,7 @@ import {
   ActivityDefinition,
   SpecialTargets,
   RaiseAction,
+  RaiseActionObject,
   DoneEvent,
   ErrorPlatformEvent,
   DoneEventObject,
@@ -27,7 +28,8 @@ import {
   LogExpr,
   LogAction,
   LogActionObject,
-  DelayFunctionMap
+  DelayFunctionMap,
+  SCXML
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -41,9 +43,7 @@ import { isArray } from './utils';
 
 export { actionTypes };
 
-export const initEvent = { type: actionTypes.init } as {
-  type: ActionTypes.Init;
-};
+export const initEvent = toSCXMLEvent({ type: actionTypes.init });
 
 export function getActionFunction<TContext, TEvent extends EventObject>(
   actionType: ActionType,
@@ -153,6 +153,15 @@ export function raise<TContext, TEvent extends EventObject>(
   };
 }
 
+export function resolveRaise<TEvent extends EventObject>(
+  action: RaiseAction<TEvent>
+): RaiseActionObject<TEvent> {
+  return {
+    type: actionTypes.raise,
+    _event: toSCXMLEvent(action.event)
+  };
+}
+
 /**
  * Sends an event. This returns an action that will be read by an interpreter to
  * send the event in the next step, after the current step is finished executing.
@@ -184,38 +193,41 @@ export function send<TContext, TEvent extends EventObject>(
 export function resolveSend<TContext, TEvent extends EventObject>(
   action: SendAction<TContext, TEvent>,
   ctx: TContext,
-  event: TEvent,
+  _event: SCXML.Event<TEvent>,
   delaysMap?: DelayFunctionMap<TContext, TEvent>
 ): SendActionObject<TContext, TEvent> {
   const meta = {
-    _event: toSCXMLEvent(event)
+    _event
   };
 
   // TODO: helper function for resolving Expr
-  const resolvedEvent = isFunction(action.event)
-    ? action.event(ctx, event, meta)
-    : action.event;
+  const resolvedEvent = toSCXMLEvent(
+    isFunction(action.event)
+      ? action.event(ctx, _event.data, meta)
+      : action.event
+  );
 
   let resolvedDelay: number | string | undefined;
   if (isString(action.delay)) {
     const configDelay = delaysMap && delaysMap[action.delay];
     resolvedDelay = isFunction(configDelay)
-      ? configDelay(ctx, event, meta)
+      ? configDelay(ctx, _event.data, meta)
       : configDelay || action.delay;
   } else {
     resolvedDelay = isFunction(action.delay)
-      ? action.delay(ctx, event, meta)
+      ? action.delay(ctx, _event.data, meta)
       : action.delay;
   }
 
   const resolvedTarget = isFunction(action.to)
-    ? action.to(ctx, event, meta)
+    ? action.to(ctx, _event.data, meta)
     : action.to;
 
   return {
     ...action,
     to: resolvedTarget,
-    event: resolvedEvent,
+    _event: resolvedEvent,
+    event: resolvedEvent.data,
     delay: resolvedDelay
   };
 }
@@ -284,12 +296,12 @@ export function log<TContext, TEvent extends EventObject>(
 export const resolveLog = <TContext, TEvent extends EventObject>(
   action: LogAction<TContext, TEvent>,
   ctx: TContext,
-  event: TEvent
+  _event: SCXML.Event<TEvent>
 ): LogActionObject<TContext, TEvent> => ({
   // TODO: remove .expr from resulting object
   ...action,
-  value: action.expr(ctx, event, {
-    _event: toSCXMLEvent(event)
+  value: action.expr(ctx, _event.data, {
+    _event
   })
 });
 

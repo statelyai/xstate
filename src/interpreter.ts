@@ -22,11 +22,13 @@ import {
   DoneEvent,
   Unsubscribable,
   MachineOptions,
-  ActionFunctionMap
+  ActionFunctionMap,
+  SCXML,
+  EventData
 } from './types';
 import { State, bindActionToState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction } from './actions';
+import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -232,10 +234,13 @@ export class Interpreter<
     actionsConfig?: MachineOptions<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
-      this.exec(action, state.context, state.event, actionsConfig);
+      this.exec(action, state.context, state._event, actionsConfig);
     }
   }
-  private update(state: State<TContext, TEvent>, event: TEvent): void {
+  private update(
+    state: State<TContext, TEvent>,
+    _event: SCXML.Event<TEvent>
+  ): void {
     // Update state
     this._state = state;
 
@@ -246,7 +251,7 @@ export class Interpreter<
 
     // Dev tools
     if (this.devTools) {
-      this.devTools.send(event, state);
+      this.devTools.send(_event.data, state);
     }
 
     // Execute listeners
@@ -277,7 +282,7 @@ export class Interpreter<
 
       const doneData =
         finalChildStateNode && finalChildStateNode.data
-          ? mapContext(finalChildStateNode.data, state.context, event)
+          ? mapContext(finalChildStateNode.data, state.context, _event)
           : undefined;
 
       for (const listener of this.doneListeners) {
@@ -416,7 +421,7 @@ export class Interpreter<
       this.attachDev();
     }
     this.scheduler.initialize(() => {
-      this.update(resolvedState, { type: actionTypes.init } as TEvent);
+      this.update(resolvedState, initEvent as SCXML.Event<TEvent>);
     });
     return this;
   }
@@ -468,45 +473,46 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send = (
-    event: SingleOrArray<TEvent | TEvent['type']>,
-    payload?: Record<string, any> & { type?: never }
+    event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
+    payload?: EventData
   ): State<TContext, TEvent> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
     }
 
-    const eventObject = toEventObject(event, payload);
+    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
+
     if (!this.initialized && this.options.deferEvents) {
       // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `Event "${eventObject.type}" was sent to uninitialized service "${
+          `Event "${_event.name}" was sent to uninitialized service "${
             this.machine.id
           }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-            event
+            _event.data
           )}`
         );
       }
     } else if (!this.initialized) {
       throw new Error(
-        `Event "${eventObject.type}" was sent to uninitialized service "${
+        `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
           // tslint:disable-next-line:max-line-length
         }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: ${JSON.stringify(
-          eventObject
+          _event.data
         )}`
       );
     }
 
     this.scheduler.schedule(() => {
       // Forward copy of event to child interpreters
-      this.forward(eventObject);
+      this.forward(_event);
 
-      const nextState = this.nextState(eventObject);
+      const nextState = this.nextState(_event);
 
-      this.update(nextState, eventObject);
+      this.update(nextState, _event);
     });
 
     return this._state!; // TODO: deprecate (should return void)
@@ -537,18 +543,18 @@ export class Interpreter<
       let nextState = this.state;
       for (const event of events) {
         const { changed } = nextState;
-        const eventObject = toEventObject(event);
+        const _event = toSCXMLEvent(event);
         const actions = nextState.actions.map(a =>
           bindActionToState(a, nextState)
         ) as Array<ActionObject<TContext, TEvent>>;
-        nextState = this.machine.transition(nextState, eventObject);
+        nextState = this.machine.transition(nextState, _event);
         nextState.actions.unshift(...actions);
         nextState.changed = nextState.changed || !!changed;
 
-        this.forward(eventObject);
+        this.forward(_event);
       }
 
-      this.update(nextState, toEventObject(events[events.length - 1]));
+      this.update(nextState, toSCXMLEvent(events[events.length - 1]));
     });
   }
 
@@ -561,7 +567,10 @@ export class Interpreter<
     return this.send.bind(this, event);
   }
 
-  public sendTo = (event: TEvent, to: string | number | Actor) => {
+  private sendTo = (
+    event: SCXML.Event<TEvent>,
+    to: string | number | Actor
+  ) => {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
     const target = isParent
@@ -587,13 +596,10 @@ export class Interpreter<
       return;
     }
 
-    // add SCXML event
-    const eventWithSCXML = {
+    target.send({
       ...event,
-      __scxml: toSCXMLEvent(event, { origin: this.id })
-    };
-
-    target.send(eventWithSCXML);
+      origin: this.id
+    });
   };
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -602,29 +608,27 @@ export class Interpreter<
    *
    * @param event The event to determine the next state
    */
-  public nextState(event: TEvent | TEvent['type']): State<TContext, TEvent> {
-    const eventObject = toEventObject(event);
+  public nextState(
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ): State<TContext, TEvent> {
+    const _event = toSCXMLEvent(event);
 
     if (
-      eventObject.type.indexOf(actionTypes.errorPlatform) === 0 &&
+      _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
       !this.state.nextEvents.some(
         nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
-      throw (eventObject as TEvent).data;
+      throw _event.data.data;
     }
 
     const nextState = withServiceScope(this, () => {
-      return this.machine.transition(
-        this.state,
-        eventObject,
-        this.state.context
-      );
+      return this.machine.transition(this.state, _event, this.state.context);
     });
 
     return nextState;
   }
-  private forward(event: TEvent): void {
+  private forward(event: SCXML.Event<TEvent>): void {
     for (const id of this.forwardTo) {
       const child = this.children.get(id);
 
@@ -641,9 +645,9 @@ export class Interpreter<
     this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(
       () => {
         if (sendAction.to) {
-          this.sendTo(sendAction.event, sendAction.to);
+          this.sendTo(sendAction._event, sendAction.to);
         } else {
-          this.send(sendAction.event);
+          this.send(sendAction._event);
         }
       },
       sendAction.delay as number
@@ -656,7 +660,7 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext, TEvent>,
     context: TContext,
-    event: TEvent,
+    _event: SCXML.Event<TEvent>,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
     const actionOrExec =
@@ -669,7 +673,7 @@ export class Interpreter<
 
     if (exec) {
       // @ts-ignore (TODO: fix for TypeDoc)
-      return exec(context, event, { action, state: this.state });
+      return exec(context, _event.data, { action, state: this.state });
     }
 
     switch (action.type) {
@@ -681,9 +685,9 @@ export class Interpreter<
           return;
         } else {
           if (sendAction.to) {
-            this.sendTo(sendAction.event, sendAction.to);
+            this.sendTo(sendAction._event, sendAction.to);
           } else {
-            this.send(sendAction.event);
+            this.send(sendAction._event);
           }
         }
         break;
@@ -738,7 +742,7 @@ export class Interpreter<
           }
 
           const source = isFunction(serviceCreator)
-            ? serviceCreator(context, event)
+            ? serviceCreator(context, _event.data)
             : serviceCreator;
 
           if (isPromiseLike(source)) {
@@ -751,7 +755,7 @@ export class Interpreter<
             // TODO: try/catch here
             this.spawnMachine(
               data
-                ? source.withContext(mapContext(data, context, event as TEvent))
+                ? source.withContext(mapContext(data, context, _event))
                 : source,
               {
                 id,
@@ -976,7 +980,7 @@ export class Interpreter<
 
     const actor = {
       id,
-      send: event => listeners.forEach(listener => listener(event)),
+      send: _event => listeners.forEach(listener => listener(_event.data)),
       subscribe: next => {
         listeners.add(next);
 

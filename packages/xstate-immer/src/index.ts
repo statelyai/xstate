@@ -1,4 +1,4 @@
-import { EventObject, ActionObject } from 'xstate';
+import { EventObject, ActionObject, SCXML } from 'xstate';
 import { produce, Draft } from 'immer';
 import { actionTypes } from 'xstate/lib/actions';
 
@@ -23,7 +23,7 @@ export function assign<TContext, TEvent extends EventObject = EventObject>(
 
 export function updater<TContext, TEvent extends EventObject>(
   context: TContext,
-  event: TEvent,
+  _event: SCXML.Event<TEvent>,
   assignActions: Array<ImmerAssignAction<TContext, TEvent>>
 ): TContext {
   const updatedContext = context
@@ -33,7 +33,7 @@ export function updater<TContext, TEvent extends EventObject>(
           TEvent
         >;
 
-        const update = produce(acc, interim => void assignment(interim, event));
+        const update = produce(acc, interim => void assignment(interim, _event.data));
 
         return update;
       }, context)

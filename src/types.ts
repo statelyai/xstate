@@ -40,6 +40,8 @@ export interface ActionObject<TContext, TEvent extends EventObject> {
 
 export type DefaultContext = Record<string, any> | undefined;
 
+export type EventData = Record<string, any> & { type?: never };
+
 /**
  * The specified string event types or the specified event objects.
  */
@@ -198,7 +200,7 @@ export type InvokeCallback = (
  *
  * For Promises, the only events emitted to the parent will be:
  * - `done.invoke.<id>` with the `data` containing the resolved payload when the promise resolves, or:
- * - `error.execution` with the `data` containing the caught error, and `src` containing the service `id`.
+ * - `error.platform.<id>` with the `data` containing the caught error, and `src` containing the service `id`.
  *
  * For callback handlers, the `sender` will be provided, which will send events to the parent service.
  *
@@ -695,6 +697,11 @@ export interface RaiseAction<TEvent extends EventObject> {
   event: TEvent['type'];
 }
 
+export interface RaiseActionObject<TEvent extends EventObject> {
+  type: ActionTypes.Raise;
+  _event: SCXML.Event<TEvent>;
+}
+
 export interface DoneInvokeEvent<TData> extends EventObject {
   data: TData;
 }
@@ -769,6 +776,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
 export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
   to: string | number | Actor | undefined;
+  _event: SCXML.Event<TEvent>;
   event: TEvent;
   delay?: number | string;
   id: string | number;
@@ -840,7 +848,7 @@ export type Updater<
   >
 > = (
   context: TContext,
-  event: TEvent,
+  _event: SCXML.Event<TEvent>,
   assignActions: TAssignAction[],
   state?: State<TContext, TEvent>
 ) => TContext;
@@ -961,7 +969,6 @@ export interface StateLike<TContext> {
 export interface StateConfig<TContext, TEvent extends EventObject> {
   value: StateValue;
   context: TContext;
-  event: TEvent;
   _event: SCXML.Event<TEvent>;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;

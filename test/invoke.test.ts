@@ -432,7 +432,7 @@ describe('invoke', () => {
         },
         success: {
           id: 'success',
-          type: 'final',
+          type: 'final'
         }
       },
       on: {

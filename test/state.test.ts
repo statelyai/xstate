@@ -289,7 +289,9 @@ describe('State', () => {
     it('should preserve the given State if there are no actions', () => {
       const naturallyInertState = State.from('foo');
 
-      expect(State.inert(naturallyInertState, undefined)).toEqual(naturallyInertState);
+      expect(State.inert(naturallyInertState, undefined)).toEqual(
+        naturallyInertState
+      );
     });
   });
 
@@ -313,10 +315,10 @@ describe('State', () => {
       expect(nextState.event).toEqual({ type: 'TO_TWO', foo: 'bar' });
     });
 
-    it('the .event prop should be the initial event for the initial state', () => {
+    it('the ._event prop should be the initial event for the initial state', () => {
       const { initialState } = machine;
 
-      expect(initialState.event).toEqual(initEvent);
+      expect(initialState._event).toEqual(initEvent);
     });
   });
 
@@ -337,9 +339,7 @@ describe('State', () => {
         foo: 'bar'
       });
 
-      expect(
-        nextState._event
-      ).toEqual(
+      expect(nextState._event).toEqual(
         toSCXMLEvent({ type: 'TO_TWO', foo: 'bar' })
       );
     });
@@ -353,10 +353,9 @@ describe('State', () => {
     it('the ._event prop should be the SCXML event (SCXML metadata) that caused the transition', () => {
       const { initialState } = machine;
 
-      const nextState = machine.transition(initialState, {
-        type: 'TO_TWO',
-        foo: 'bar',
-        __scxml: toSCXMLEvent(
+      const nextState = machine.transition(
+        initialState,
+        toSCXMLEvent(
           {
             type: 'TO_TWO',
             foo: 'bar'
@@ -365,11 +364,9 @@ describe('State', () => {
             sendid: 'test'
           }
         )
-      });
+      );
 
-      expect(
-        nextState._event
-      ).toEqual(
+      expect(nextState._event).toEqual(
         toSCXMLEvent(
           { type: 'TO_TWO', foo: 'bar' },
           {
@@ -393,11 +390,7 @@ describe('State', () => {
     it('should return all state paths as strings', () => {
       const twoState = machine.transition('one', 'TO_TWO');
 
-      expect(twoState.toStrings()).toEqual([
-        'two',
-        'two.deep',
-        'two.deep.foo'
-      ]);
+      expect(twoState.toStrings()).toEqual(['two', 'two.deep', 'two.deep.foo']);
     });
 
     it('should keep reference to state instance after destructuring', () => {
