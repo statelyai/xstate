@@ -71,7 +71,7 @@ export function getEventEdges<
   node: StateNode<TContext, any, TEvent>,
   event: string
 ): Array<Edge<TContext, TEvent>> {
-  const transitions: TransitionDefinition<TContext, TEvent>[] =
+  const transitions: Array<TransitionDefinition<TContext, TEvent>> =
     node.definition.on[event];
 
   return flatten(

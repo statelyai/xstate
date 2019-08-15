@@ -147,14 +147,14 @@ function mapActions<
         return actions.raise<TContext, TEvent>(element.attributes!
           .event! as string);
       case 'assign':
-        return actions.assign<TContext, TEvent>((context, event, meta) => {
+        return actions.assign<TContext, TEvent>((context, e, meta) => {
           const fnBody = `
             return {'${element.attributes!.location}': ${
             element.attributes!.expr
           }};
           `;
 
-          return evaluateExecutableContent(context, event, meta, fnBody);
+          return evaluateExecutableContent(context, e, meta, fnBody);
         });
       case 'send':
         const { event, eventexpr, target } = element.attributes!;
@@ -209,12 +209,12 @@ function mapActions<
         const label = element.attributes!.label;
 
         return actions.log<TContext, TEvent>(
-          (context, event, meta) => {
+          (context, e, meta) => {
             const fnBody = `
               return ${element.attributes!.expr};
             `;
 
-            return evaluateExecutableContent(context, event, meta, fnBody);
+            return evaluateExecutableContent(context, e, meta, fnBody);
           },
           label !== undefined ? String(label) : undefined
         );
