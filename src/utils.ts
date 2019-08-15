@@ -7,7 +7,6 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  ActionTypes,
   HistoryValue,
   AssignAction,
   Condition,
@@ -16,7 +15,8 @@ import {
   StateMachine,
   ConditionPredicate,
   SCXML,
-  StateLike
+  StateLike,
+  EventData
 } from './types';
 import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -295,10 +295,10 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
 export function mapContext<TContext, TEvent extends EventObject>(
   mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
   context: TContext,
-  event: TEvent
+  _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return (mapper as Mapper<TContext, TEvent>)(context, event);
+    return (mapper as Mapper<TContext, TEvent>)(context, _event.data);
   }
 
   const result = {} as any;
@@ -307,7 +307,7 @@ export function mapContext<TContext, TEvent extends EventObject>(
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
-      result[key] = subMapper(context, event);
+      result[key] = subMapper(context, _event.data);
     } else {
       result[key] = subMapper;
     }
@@ -317,24 +317,7 @@ export function mapContext<TContext, TEvent extends EventObject>(
 }
 
 export function isBuiltInEvent(eventType: EventType): boolean {
-  // check if event is a "done" event
-  if (
-    eventType.indexOf(ActionTypes.DoneState) === 0 ||
-    eventType.indexOf(ActionTypes.DoneInvoke) === 0
-  ) {
-    return true;
-  }
-
-  // check if event is an "error" event
-  if (
-    eventType === ActionTypes.ErrorCommunication ||
-    eventType === ActionTypes.ErrorExecution ||
-    eventType.indexOf(ActionTypes.ErrorPlatform) === 0
-  ) {
-    return true;
-  }
-
-  return false;
+  return /^(done|error)\./.test(eventType);
 }
 
 export function isPromiseLike(value: any): value is PromiseLike<any> {
@@ -404,12 +387,10 @@ export function updateHistoryValue(
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
-  event: TEvent,
+  _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>
 ): TContext {
-  const _event = toSCXMLEvent(event);
-
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
@@ -423,13 +404,13 @@ export function updateContext<TContext, TEvent extends EventObject>(
         let partialUpdate: Partial<TContext> = {};
 
         if (isFunction(assignment)) {
-          partialUpdate = assignment(acc, event, meta);
+          partialUpdate = assignment(acc, _event.data, meta);
         } else {
           for (const key of keys(assignment)) {
             const propAssignment = assignment[key];
 
             partialUpdate[key] = isFunction(propAssignment)
-              ? propAssignment(acc, event, meta)
+              ? propAssignment(acc, _event.data, meta)
               : propAssignment;
           }
         }
@@ -543,42 +524,26 @@ export const uniqueId = (() => {
 })();
 
 export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent> | SCXML.Event<TEvent>,
-  payload?: Record<string, any> & { type?: never }
+  event: Event<TEvent>,
+  payload?: EventData
   // id?: TEvent['type']
 ): TEvent {
   if (isString(event) || typeof event === 'number') {
-    const eventObject = { type: event };
-
-    if (payload) {
-      Object.assign(eventObject, payload);
-    }
-
-    return eventObject as TEvent;
+    return { type: event, ...payload } as TEvent;
   }
 
-  return event as TEvent;
+  return event;
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
   event: Event<TEvent> | SCXML.Event<TEvent>,
-  scxmlEvent: Partial<SCXML.Event<TEvent>> = {}
+  scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
-  if (!isString(event)) {
-    if (event.$$type === 'scxml') {
-      return event as SCXML.Event<TEvent>;
-    }
-
-    if ('__scxml' in event) {
-      return event.__scxml as SCXML.Event<TEvent>;
-    }
+  if (!isString(event) && event.$$type === 'scxml') {
+    return event as SCXML.Event<TEvent>;
   }
 
-  const eventObject = toEventObject(event);
-
-  if (eventObject.__scxml) {
-    return eventObject.__scxml as SCXML.Event<TEvent>;
-  }
+  const eventObject = toEventObject(event as Event<TEvent>);
 
   return {
     name: eventObject.type,

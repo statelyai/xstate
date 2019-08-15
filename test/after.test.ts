@@ -1,5 +1,6 @@
 import { Machine, interpret } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
+import { toSCXMLEvent } from '../src/utils';
 
 const lightMachine = Machine({
   id: 'light',
@@ -34,7 +35,10 @@ describe('delayed transitions', () => {
     expect(nextState.value).toEqual('yellow');
     expect(nextState.actions).toEqual([
       cancel(after(1000, 'light.green')),
-      send(after(1000, 'light.yellow'), { delay: 1000 })
+      {
+        ...send(after(1000, 'light.yellow'), { delay: 1000 }),
+        _event: toSCXMLEvent(after(1000, 'light.yellow'))
+      }
     ]);
   });
 
