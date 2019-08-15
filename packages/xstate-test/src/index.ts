@@ -1,18 +1,21 @@
-import { getShortestPaths } from '../node_modules/@xstate/graph';
-import { StateMachine, EventObject, State } from 'xstate';
+import {
+  getShortestPaths,
+  getSimplePaths
+} from '../node_modules/@xstate/graph';
+import { StateMachine, EventObject, State, StateValue } from 'xstate';
 
-interface TestPlan {
+interface TestPlan<T> {
   state: State<any>;
   paths: Array<{
     weight: number;
-    path: Array<{
+    segments: Array<{
       state: State<any>;
       event: EventObject;
-      test: () => Promise<void>;
-      exec: () => Promise<void>;
+      test: (testContext: T) => Promise<void>;
+      exec: (testContext: T) => Promise<void>;
     }>;
   }>;
-  test: () => Promise<void>;
+  test: (testContext: T) => Promise<void>;
 }
 
 interface EventSample {
@@ -20,24 +23,27 @@ interface EventSample {
   [prop: string]: any;
 }
 
-interface TestModelOptions {
+interface TestModelOptions<T> {
   events: {
     [eventType: string]: {
-      exec: (context: any, event: EventObject) => Promise<any>;
+      exec: (testContext: T, event: EventObject) => Promise<any>;
       samples?: EventSample[];
     };
   };
 }
 
-export class TestModel {
+export class TestModel<T> {
   constructor(
-    public machine: StateMachine<any, any, any>,
-    public options: TestModelOptions
+    public machine: StateMachine<any, { meta: { test: string } }, any>,
+    public options: TestModelOptions<T>
   ) {}
 
-  public shortestPaths(): TestPlan[] {
+  public shortestPaths(
+    options?: Parameters<typeof getShortestPaths>[1]
+  ): Array<TestPlan<T>> {
     const shortestPaths = getShortestPaths(this.machine, {
-      events: getEventSamples(this.options.events)
+      ...options,
+      events: getEventSamples<T>(this.options.events)
     });
 
     return Object.keys(shortestPaths).map(key => {
@@ -45,15 +51,15 @@ export class TestModel {
 
       return {
         ...testPlan,
-        test: () => TestModel.test(testPlan.state),
+        test: testContext => this.test(testPlan.state, testContext),
         paths: [
           {
             weight: testPlan.weight || 0,
-            path: testPlan.path.map(segment => {
+            segments: testPlan.path.map(segment => {
               return {
                 ...segment,
-                test: () => TestModel.test(segment.state),
-                exec: () => this.exec(segment.event, segment.state)
+                test: testContext => this.test(segment.state, testContext),
+                exec: testContext => this.exec(segment.event, testContext)
               };
             })
           }
@@ -62,27 +68,75 @@ export class TestModel {
     });
   }
 
-  public static async test(state: State<any, any>) {
+  public shortestPathsTo(stateValue: StateValue): Array<TestPlan<T>> {
+    let minWeight = Infinity;
+    let shortestPlans: Array<TestPlan<T>> = [];
+
+    const plans = this.shortestPaths().filter(path =>
+      path.state.matches(stateValue)
+    );
+
+    for (const plan of plans) {
+      const currWeight = plan.paths[0].weight;
+      if (currWeight < minWeight) {
+        minWeight = currWeight;
+        shortestPlans = [plan];
+      } else if (currWeight === minWeight) {
+        shortestPlans.push(plan);
+      }
+    }
+
+    return shortestPlans;
+  }
+
+  public simplePaths(): Array<TestPlan<T>> {
+    const simplePaths = getSimplePaths(this.machine, {
+      events: getEventSamples(this.options.events)
+    });
+
+    return Object.keys(simplePaths).map(key => {
+      const testPlan = simplePaths[key];
+
+      return {
+        ...testPlan,
+        test: testContext => this.test(testPlan.state, testContext),
+        paths: testPlan.paths.map(segments => {
+          return {
+            weight: 0,
+            segments: segments.map(segment => {
+              return {
+                ...segment,
+                test: testContext => this.test(segment.state, testContext),
+                exec: testContext => this.exec(segment.event, testContext)
+              };
+            })
+          };
+        })
+      };
+    });
+  }
+
+  public async test(state: State<any, any>, testContext: T) {
     for (const key of Object.keys(state.meta)) {
       const stateNodeMeta = state.meta[key];
       if (typeof stateNodeMeta.test === 'function') {
-        await stateNodeMeta.test();
+        await stateNodeMeta.test(testContext);
       }
     }
   }
 
-  public async exec(event: EventObject, state: State<any, any>) {
+  public async exec(event: EventObject, testContext: T) {
     const testEvent = this.options.events[event.type];
 
     if (!testEvent) {
       throw new Error(`no event configured for ${event.type}`);
     }
 
-    await testEvent.exec(state.context, event);
+    await testEvent.exec(testContext, event);
   }
 }
 
-function getEventSamples(eventsOptions: TestModelOptions['events']) {
+function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
   const result = {};
 
   Object.keys(eventsOptions).forEach(key => {
@@ -102,9 +156,9 @@ function getEventSamples(eventsOptions: TestModelOptions['events']) {
   return result;
 }
 
-export function createModel(
+export function createModel<TestContext>(
   machine: StateMachine<any, any, any>,
-  options: TestModelOptions
+  options: TestModelOptions<TestContext>
 ) {
   return new TestModel(machine, options);
 }

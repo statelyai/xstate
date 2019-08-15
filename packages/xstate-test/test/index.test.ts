@@ -2,10 +2,10 @@
 import { createModel } from '../src';
 import { Machine, assign } from 'xstate';
 
-const dieHardMachine = Machine<{ 3: number; 5: number }>(
+const dieHardMachine = Machine<{ three: number; five: number }>(
   {
     initial: 'pending',
-    context: { 3: 0, 5: 0 },
+    context: { three: 0, five: 0 },
     states: {
       pending: {
         on: {
@@ -31,100 +31,147 @@ const dieHardMachine = Machine<{ 3: number; 5: number }>(
           EMPTY_5: {
             actions: 'empty5'
           }
+        },
+        meta: {
+          test: async ({ jugs }) => {
+            expect(jugs.five).not.toEqual(4);
+          }
         }
       },
-      success: {}
+      success: {
+        type: 'final',
+        meta: {
+          test: async ({ jugs }) => {
+            expect(jugs.five).toEqual(4);
+          }
+        }
+      }
     }
   },
   {
     actions: {
       pour3to5: assign(ctx => {
-        const poured = Math.min(5 - ctx[5], ctx[3]);
+        const poured = Math.min(5 - ctx.five, ctx.three);
 
         return {
-          3: ctx[3] - poured,
-          5: ctx[5] + poured
+          three: ctx.three - poured,
+          five: ctx.five + poured
         };
       }),
       pour5to3: assign(ctx => {
-        const poured = Math.min(3 - ctx[3], ctx[5]);
+        const poured = Math.min(3 - ctx.three, ctx.five);
 
-        return {
-          3: ctx[3] + poured,
-          5: ctx[5] - poured
+        const res = {
+          three: ctx.three + poured,
+          five: ctx.five - poured
         };
+
+        return res;
       }),
-      fill3: assign({ 3: 3 }),
-      fill5: assign({ 5: 5 }),
-      empty3: assign({ 3: 0 }),
-      empty5: assign({ 5: 0 })
+      fill3: assign({ three: 3 }),
+      fill5: assign({ five: 5 }),
+      empty3: assign({ three: 0 }),
+      empty5: assign({ five: 0 })
     },
     guards: {
-      weHave4Gallons: ctx => ctx[5] === 4
+      weHave4Gallons: ctx => ctx.five === 4
     }
   }
 );
 
-describe('blah', () => {
-  it('loads the page', async () => {
-    await page.goto('http://localhost:3000');
-  });
+class Jugs {
+  public three = 0;
+  public five = 0;
 
-  const testModel = createModel(dieHardMachine, {
+  public fillThree() {
+    this.three = 3;
+  }
+  public fillFive() {
+    this.five = 5;
+  }
+  public emptyThree() {
+    this.three = 0;
+  }
+  public emptyFive() {
+    this.five = 0;
+  }
+  public transferThree() {
+    const poured = Math.min(5 - this.five, this.three);
+
+    this.three = this.three - poured;
+    this.five = this.five + poured;
+  }
+  public transferFive() {
+    const poured = Math.min(3 - this.three, this.five);
+
+    this.three = this.three + poured;
+    this.five = this.five - poured;
+  }
+}
+
+describe('blah', () => {
+  const testJugs = new Jugs();
+
+  const testModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
     events: {
       POUR_3_TO_5: {
         exec: async () => {
-          await page.click('[data-testid="transfer-3-button"]');
+          await testJugs.transferThree();
         }
       },
       POUR_5_TO_3: {
         exec: async () => {
-          await page.click('[data-testid="transfer-5-button"]');
+          await testJugs.transferFive();
         }
       },
       EMPTY_3: {
         exec: async () => {
-          await page.click('[data-testid="empty-3-button"]');
+          await testJugs.emptyThree();
         }
       },
       EMPTY_5: {
         exec: async () => {
-          await page.click('[data-testid="empty-5-button"]');
+          await testJugs.emptyFive();
         }
       },
       FILL_3: {
         exec: async () => {
-          await page.click('[data-testid="fill-3-button"]');
+          await testJugs.fillThree();
         }
       },
       FILL_5: {
         exec: async () => {
-          await page.click('[data-testid="fill-5-button"]');
+          await testJugs.fillFive();
         }
       }
     }
   });
 
   testModel
-    .shortestPaths()
-    .filter(plan => {
-      return plan.state.matches('success');
-    })
-    .forEach(plan => {
+    .shortestPathsTo('success') // ...
+    .forEach((plan, i) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
-      )}`, async () => {
-        plan.paths[0].path.forEach(segment => {
-          it(`goes to ${JSON.stringify(segment.state.value)}`, async () => {
-            await segment.test();
-          });
+      )} (${i})`, () => {
+        plan.paths.forEach((path, i) => {
+          describe(`path ${i}`, () => {
+            path.segments.forEach(segment => {
+              it(`goes to ${JSON.stringify(
+                segment.state.value
+              )} ${JSON.stringify(segment.state.context)}`, async () => {
+                await segment.test({ jugs: testJugs });
+              });
 
-          it(`executes ${JSON.stringify(segment.event)}`, async () => {
-            await segment.exec();
+              it(`executes ${JSON.stringify(segment.event)}`, async () => {
+                await segment.exec({ jugs: testJugs });
+              });
+            });
+
+            it('finalizes', async () => {
+              await plan.test({ jugs: testJugs });
+            });
           });
         });
       });
     });
-
-  console.log(testModel);
 });
