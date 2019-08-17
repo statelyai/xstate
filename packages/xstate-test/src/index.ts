@@ -23,6 +23,8 @@ interface EventSample {
   [prop: string]: any;
 }
 
+type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
+
 interface TestModelOptions<T> {
   events: {
     [eventType: string]: {
@@ -32,13 +34,13 @@ interface TestModelOptions<T> {
   };
 }
 
-export class TestModel<T> {
+export class TestModel<T, TContext> {
   constructor(
-    public machine: StateMachine<any, { meta: { test: string } }, any>,
+    public machine: StateMachine<TContext, any, any>,
     public options: TestModelOptions<T>
   ) {}
 
-  public shortestPaths(
+  public getShortestPaths(
     options?: Parameters<typeof getShortestPaths>[1]
   ): Array<TestPlan<T>> {
     const shortestPaths = getShortestPaths(this.machine, {
@@ -68,13 +70,13 @@ export class TestModel<T> {
     });
   }
 
-  public shortestPathsTo(stateValue: StateValue): Array<TestPlan<T>> {
+  public getShortestPathsTo(
+    stateValue: StateValue | StatePredicate<TContext>
+  ): Array<TestPlan<T>> {
     let minWeight = Infinity;
     let shortestPlans: Array<TestPlan<T>> = [];
 
-    const plans = this.shortestPaths().filter(path =>
-      path.state.matches(stateValue)
-    );
+    const plans = this.filterPathsTo(stateValue, this.getShortestPaths());
 
     for (const plan of plans) {
       const currWeight = plan.paths[0].weight;
@@ -89,8 +91,22 @@ export class TestModel<T> {
     return shortestPlans;
   }
 
-  public simplePaths(): Array<TestPlan<T>> {
+  private filterPathsTo(
+    stateValue: StateValue | StatePredicate<TContext>,
+    testPlans: Array<TestPlan<T>>
+  ): Array<TestPlan<T>> {
+    const predicate =
+      typeof stateValue === 'function'
+        ? plan => stateValue(plan.state)
+        : plan => plan.state.matches(stateValue);
+    return testPlans.filter(predicate);
+  }
+
+  public getSimplePaths(
+    options?: Parameters<typeof getSimplePaths>[1]
+  ): Array<TestPlan<T>> {
     const simplePaths = getSimplePaths(this.machine, {
+      ...options,
       events: getEventSamples(this.options.events)
     });
 
@@ -114,6 +130,12 @@ export class TestModel<T> {
         })
       };
     });
+  }
+
+  public getSimplePathsTo(
+    stateValue: StateValue | StatePredicate<TContext>
+  ): Array<TestPlan<T>> {
+    return this.filterPathsTo(stateValue, this.getSimplePaths());
   }
 
   public async test(state: State<any, any>, testContext: T) {
@@ -156,9 +178,9 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
   return result;
 }
 
-export function createModel<TestContext>(
-  machine: StateMachine<any, any, any>,
+export function createModel<TestContext, TContext = any>(
+  machine: StateMachine<TContext, any, any>,
   options: TestModelOptions<TestContext>
-) {
-  return new TestModel(machine, options);
+): TestModel<TestContext, TContext> {
+  return new TestModel<TestContext, TContext>(machine, options);
 }

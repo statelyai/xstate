@@ -109,52 +109,52 @@ class Jugs {
   }
 }
 
-describe('blah', () => {
-  const testJugs = new Jugs();
-
-  const testModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
-    events: {
-      POUR_3_TO_5: {
-        exec: async () => {
-          await testJugs.transferThree();
-        }
-      },
-      POUR_5_TO_3: {
-        exec: async () => {
-          await testJugs.transferFive();
-        }
-      },
-      EMPTY_3: {
-        exec: async () => {
-          await testJugs.emptyThree();
-        }
-      },
-      EMPTY_5: {
-        exec: async () => {
-          await testJugs.emptyFive();
-        }
-      },
-      FILL_3: {
-        exec: async () => {
-          await testJugs.fillThree();
-        }
-      },
-      FILL_5: {
-        exec: async () => {
-          await testJugs.fillFive();
-        }
+const testModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
+  events: {
+    POUR_3_TO_5: {
+      exec: async ({ jugs }) => {
+        await jugs.transferThree();
+      }
+    },
+    POUR_5_TO_3: {
+      exec: async ({ jugs }) => {
+        await jugs.transferFive();
+      }
+    },
+    EMPTY_3: {
+      exec: async ({ jugs }) => {
+        await jugs.emptyThree();
+      }
+    },
+    EMPTY_5: {
+      exec: async ({ jugs }) => {
+        await jugs.emptyFive();
+      }
+    },
+    FILL_3: {
+      exec: async ({ jugs }) => {
+        await jugs.fillThree();
+      }
+    },
+    FILL_5: {
+      exec: async ({ jugs }) => {
+        await jugs.fillFive();
       }
     }
-  });
+  }
+});
 
+describe('testing a model (shortestPathsTo)', () => {
   testModel
-    .shortestPathsTo('success') // ...
-    .forEach((plan, i) => {
+    .getShortestPathsTo('success') // ...
+    .forEach((plan, planIndex) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
-      )} (${i})`, () => {
-        plan.paths.forEach((path, i) => {
-          describe(`path ${i}`, () => {
+      )} (${planIndex})`, () => {
+        const testJugs = new Jugs();
+
+        plan.paths.forEach((path, pathIndex) => {
+          describe(`path ${pathIndex}`, () => {
             path.segments.forEach(segment => {
               it(`goes to ${JSON.stringify(
                 segment.state.value
@@ -174,4 +174,71 @@ describe('blah', () => {
         });
       });
     });
+});
+
+describe('testing a model (simplePathsTo)', () => {
+  testModel
+    .getSimplePathsTo('success') // ...
+    .forEach(plan => {
+      describe(`reaches state ${JSON.stringify(
+        plan.state.value
+      )} (${JSON.stringify(plan.state.context)})`, () => {
+        plan.paths.forEach((path, pathIndex) => {
+          describe(`path ${pathIndex}`, () => {
+            const testJugs = new Jugs();
+
+            path.segments.forEach(segment => {
+              it(`goes to ${JSON.stringify(
+                segment.state.value
+              )} ${JSON.stringify(segment.state.context)}`, async () => {
+                await segment.test({ jugs: testJugs });
+              });
+
+              it(`executes ${JSON.stringify(segment.event)}`, async () => {
+                await segment.exec({ jugs: testJugs });
+              });
+            });
+
+            it('finalizes', async () => {
+              await plan.test({ jugs: testJugs });
+            });
+          });
+        });
+      });
+    });
+});
+
+describe('testing a model (simplePathsTo + predicate)', () => {
+  const plans = testModel.getSimplePathsTo(state => {
+    return state.matches('success') && state.context.three === 0;
+  });
+
+  // ...
+  plans.forEach(plan => {
+    describe(`reaches state ${JSON.stringify(
+      plan.state.value
+    )} (${JSON.stringify(plan.state.context)})`, () => {
+      plan.paths.forEach((path, pathIndex) => {
+        describe(`path ${pathIndex}`, () => {
+          const testJugs = new Jugs();
+
+          path.segments.forEach(segment => {
+            it(`goes to ${JSON.stringify(segment.state.value)} ${JSON.stringify(
+              segment.state.context
+            )}`, async () => {
+              await segment.test({ jugs: testJugs });
+            });
+
+            it(`executes ${JSON.stringify(segment.event)}`, async () => {
+              await segment.exec({ jugs: testJugs });
+            });
+          });
+
+          it('finalizes', async () => {
+            await plan.test({ jugs: testJugs });
+          });
+        });
+      });
+    });
+  });
 });
