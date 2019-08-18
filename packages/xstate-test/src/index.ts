@@ -4,16 +4,18 @@ import {
 } from '../node_modules/@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 
+interface TestSegment<T> {
+  state: State<any>;
+  event: EventObject;
+  test: (testContext: T) => Promise<void>;
+  exec: (testContext: T) => Promise<void>;
+}
+
 interface TestPlan<T> {
   state: State<any>;
   paths: Array<{
     weight: number;
-    segments: Array<{
-      state: State<any>;
-      event: EventObject;
-      test: (testContext: T) => Promise<void>;
-      exec: (testContext: T) => Promise<void>;
-    }>;
+    segments: Array<TestSegment<T>>;
   }>;
   test: (testContext: T) => Promise<void>;
 }
@@ -34,7 +36,17 @@ interface TestModelOptions<T> {
   };
 }
 
+interface TestModelCoverage {
+  stateNodes: Map<string, number>;
+  transitions: Map<string, Map<EventObject, number>>;
+}
+
 export class TestModel<T, TContext> {
+  public coverage: TestModelCoverage = {
+    stateNodes: new Map(),
+    transitions: new Map()
+  };
+
   constructor(
     public machine: StateMachine<TContext, any, any>,
     public options: TestModelOptions<T>
@@ -139,9 +151,17 @@ export class TestModel<T, TContext> {
   }
 
   public async test(state: State<any, any>, testContext: T) {
-    for (const key of Object.keys(state.meta)) {
-      const stateNodeMeta = state.meta[key];
+    for (const id of Object.keys(state.meta)) {
+      const stateNodeMeta = state.meta[id];
       if (typeof stateNodeMeta.test === 'function') {
+        // console.log('fn');
+        this.coverage.stateNodes.set(
+          id,
+          (this.coverage.stateNodes.get(id) || 0) + 1
+        );
+
+        // console.log([...this.coverage.stateNodes.keys()]);
+
         await stateNodeMeta.test(testContext);
       }
     }
@@ -155,6 +175,19 @@ export class TestModel<T, TContext> {
     }
 
     await testEvent.exec(testContext, event);
+  }
+
+  public getCoverage(): { stateNodes: Record<string, number> } {
+    const coverage = {
+      stateNodes: {}
+    };
+
+    for (const key of this.coverage.stateNodes.keys()) {
+      console.log(key);
+      coverage.stateNodes[key] = this.coverage.stateNodes.get(key);
+    }
+
+    return coverage;
   }
 }
 

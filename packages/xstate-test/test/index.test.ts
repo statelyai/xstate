@@ -4,6 +4,7 @@ import { Machine, assign } from 'xstate';
 
 const dieHardMachine = Machine<{ three: number; five: number }>(
   {
+    id: 'dieHard',
     initial: 'pending',
     context: { three: 0, five: 0 },
     states: {
@@ -240,5 +241,14 @@ describe('testing a model (simplePathsTo + predicate)', () => {
         });
       });
     });
+  });
+});
+
+describe('coverage', () => {
+  it('reports state node coverage', () => {
+    const coverage = testModel.getCoverage();
+
+    expect(coverage.stateNodes['dieHard.pending']).toBeGreaterThan(0);
+    expect(coverage.stateNodes['dieHard.success']).toBeGreaterThan(0);
   });
 });
