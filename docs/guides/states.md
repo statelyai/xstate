@@ -255,7 +255,7 @@ function mergeMeta(meta) {
 
 const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
 
-console.log(mergeMeta(meta));
+console.log(mergeMeta(failureTimeoutState.meta));
 // => {
 //   alert: 'Uh oh.',
 //   message: 'The request timed out.'
