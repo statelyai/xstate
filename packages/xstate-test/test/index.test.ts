@@ -110,7 +110,7 @@ class Jugs {
   }
 }
 
-const testModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
+const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
   events: {
     POUR_3_TO_5: {
       exec: async ({ jugs }) => {
@@ -146,7 +146,7 @@ const testModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
 });
 
 describe('testing a model (shortestPathsTo)', () => {
-  testModel
+  dieHardModel
     .getShortestPathsTo('success') // ...
     .forEach((plan, planIndex) => {
       describe(`reaches state ${JSON.stringify(
@@ -178,7 +178,7 @@ describe('testing a model (shortestPathsTo)', () => {
 });
 
 describe('testing a model (simplePathsTo)', () => {
-  testModel
+  dieHardModel
     .getSimplePathsTo('success') // ...
     .forEach(plan => {
       describe(`reaches state ${JSON.stringify(
@@ -210,7 +210,7 @@ describe('testing a model (simplePathsTo)', () => {
 });
 
 describe('testing a model (simplePathsTo + predicate)', () => {
-  const plans = testModel.getSimplePathsTo(state => {
+  const plans = dieHardModel.getSimplePathsTo(state => {
     return state.matches('success') && state.context.three === 0;
   });
 
@@ -246,7 +246,7 @@ describe('testing a model (simplePathsTo + predicate)', () => {
 
 describe('coverage', () => {
   it('reports state node coverage', () => {
-    const coverage = testModel.getCoverage();
+    const coverage = dieHardModel.getCoverage();
 
     expect(coverage.stateNodes['dieHard.pending']).toBeGreaterThan(0);
     expect(coverage.stateNodes['dieHard.success']).toBeGreaterThan(0);

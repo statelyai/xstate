@@ -183,7 +183,6 @@ export class TestModel<T, TContext> {
     };
 
     for (const key of this.coverage.stateNodes.keys()) {
-      console.log(key);
       coverage.stateNodes[key] = this.coverage.stateNodes.get(key);
     }
 
