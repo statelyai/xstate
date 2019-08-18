@@ -34,6 +34,9 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
           }
         },
         meta: {
+          description: state => {
+            return `pending with (${state.context.three}, ${state.context.five})`;
+          },
           test: async ({ jugs }) => {
             expect(jugs.five).not.toEqual(4);
           }
@@ -42,6 +45,7 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
       success: {
         type: 'final',
         meta: {
+          description: 'succeeds with 4 gallons',
           test: async ({ jugs }) => {
             expect(jugs.five).toEqual(4);
           }
@@ -157,9 +161,7 @@ describe('testing a model (shortestPathsTo)', () => {
         plan.paths.forEach((path, pathIndex) => {
           describe(`path ${pathIndex}`, () => {
             path.segments.forEach(segment => {
-              it(`goes to ${JSON.stringify(
-                segment.state.value
-              )} ${JSON.stringify(segment.state.context)}`, async () => {
+              it(segment.description, async () => {
                 await segment.test({ jugs: testJugs });
               });
 
@@ -168,7 +170,7 @@ describe('testing a model (shortestPathsTo)', () => {
               });
             });
 
-            it('finalizes', async () => {
+            it(plan.description, async () => {
               await plan.test({ jugs: testJugs });
             });
           });
@@ -200,7 +202,7 @@ describe('testing a model (simplePathsTo)', () => {
               });
             });
 
-            it('finalizes', async () => {
+            it('reaches the final state', async () => {
               await plan.test({ jugs: testJugs });
             });
           });
@@ -235,7 +237,7 @@ describe('testing a model (simplePathsTo + predicate)', () => {
             });
           });
 
-          it('finalizes', async () => {
+          it('reaches the final state', async () => {
             await plan.test({ jugs: testJugs });
           });
         });

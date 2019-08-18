@@ -4,9 +4,16 @@ import {
 } from '../node_modules/@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 
+interface TestMeta<T> {
+  test?: (testContext: T) => Promise<void>;
+  description?: string | ((state: State<any, any>) => string);
+  skip?: boolean;
+}
+
 interface TestSegment<T> {
   state: State<any>;
   event: EventObject;
+  description: string;
   test: (testContext: T) => Promise<void>;
   exec: (testContext: T) => Promise<void>;
 }
@@ -17,6 +24,7 @@ interface TestPlan<T> {
     weight: number;
     segments: Array<TestSegment<T>>;
   }>;
+  description: string;
   test: (testContext: T) => Promise<void>;
 }
 
@@ -66,12 +74,14 @@ export class TestModel<T, TContext> {
       return {
         ...testPlan,
         test: testContext => this.test(testPlan.state, testContext),
+        description: getDescription(testPlan.state),
         paths: [
           {
             weight: testPlan.weight || 0,
             segments: testPlan.path.map(segment => {
               return {
                 ...segment,
+                description: getDescription(segment.state),
                 test: testContext => this.test(segment.state, testContext),
                 exec: testContext => this.exec(segment.event, testContext)
               };
@@ -128,12 +138,14 @@ export class TestModel<T, TContext> {
       return {
         ...testPlan,
         test: testContext => this.test(testPlan.state, testContext),
+        description: getDescription(testPlan.state),
         paths: testPlan.paths.map(segments => {
           return {
             weight: 0,
             segments: segments.map(segment => {
               return {
                 ...segment,
+                description: getDescription(segment.state),
                 test: testContext => this.test(segment.state, testContext),
                 exec: testContext => this.exec(segment.event, testContext)
               };
@@ -152,15 +164,12 @@ export class TestModel<T, TContext> {
 
   public async test(state: State<any, any>, testContext: T) {
     for (const id of Object.keys(state.meta)) {
-      const stateNodeMeta = state.meta[id];
-      if (typeof stateNodeMeta.test === 'function') {
-        // console.log('fn');
+      const stateNodeMeta = state.meta[id] as TestMeta<T>;
+      if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
         this.coverage.stateNodes.set(
           id,
           (this.coverage.stateNodes.get(id) || 0) + 1
         );
-
-        // console.log([...this.coverage.stateNodes.keys()]);
 
         await stateNodeMeta.test(testContext);
       }
@@ -188,6 +197,21 @@ export class TestModel<T, TContext> {
 
     return coverage;
   }
+}
+
+function getDescription<T>(state: State<any, any>): string {
+  return Object.keys(state.meta)
+    .map(id => {
+      const { description } = state.meta[id] as TestMeta<T>;
+
+      return typeof description === 'function'
+        ? description(state)
+        : description ||
+            `state: ${JSON.stringify(state.value)} (${JSON.stringify(
+              state.context
+            )})`;
+    })
+    .join('\n');
 }
 
 function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
