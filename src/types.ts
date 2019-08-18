@@ -728,7 +728,9 @@ export interface UpdateObject extends EventObject {
 
 export type DoneEvent = DoneEventObject & string;
 
-export type NullEvent = { type: ActionTypes.NullEvent };
+export interface NullEvent {
+  type: ActionTypes.NullEvent;
+}
 
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

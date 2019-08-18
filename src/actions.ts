@@ -455,3 +455,19 @@ export function pure<TContext, TEvent extends EventObject>(
     get: getActions
   };
 }
+
+/**
+ * Forwards (sends) an event to a specified service.
+ *
+ * @param target The target service to forward the event to.
+ * @param options Options to pass into the send event.
+ */
+export function forwardTo<TContext, TEvent extends EventObject>(
+  target: Required<SendActionOptions<TContext, TEvent>>['to'],
+  options?: SendActionOptions<TContext, TEvent>
+): SendAction<TContext, TEvent> {
+  return send<TContext, TEvent>((_, event) => event, {
+    ...options,
+    to: target
+  });
+}

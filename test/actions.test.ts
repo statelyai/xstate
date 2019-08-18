@@ -1,5 +1,5 @@
-import { Machine, assign, interpret } from '../src/index';
-import { pure } from '../src/actions';
+import { Machine, assign, interpret, spawn } from '../src/index';
+import { pure, sendParent, forwardTo } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -833,5 +833,96 @@ describe('purely defined actions', () => {
       { type: 'EVENT', item: { id: 2 }, index: 1 },
       { type: 'EVENT', item: { id: 3 }, index: 2 }
     ]);
+  });
+});
+
+describe('forwardTo()', () => {
+  it('should forward an event to a service', done => {
+    const child = Machine({
+      id: 'child',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            EVENT: {
+              actions: sendParent('SUCCESS'),
+              cond: (_, e) => e.value === 42
+            }
+          }
+        }
+      }
+    });
+
+    const parent = Machine({
+      id: 'parent',
+      initial: 'first',
+      states: {
+        first: {
+          invoke: { src: child, id: 'myChild' },
+          on: {
+            EVENT: {
+              actions: forwardTo('myChild')
+            },
+            SUCCESS: 'last'
+          }
+        },
+        last: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(parent)
+      .onDone(() => done())
+      .start();
+
+    service.send('EVENT', { value: 42 });
+  });
+
+  it('should forward an event to a service (dynamic)', done => {
+    const child = Machine({
+      id: 'child',
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            EVENT: {
+              actions: sendParent('SUCCESS'),
+              cond: (_, e) => e.value === 42
+            }
+          }
+        }
+      }
+    });
+
+    const parent = Machine<{ child: any }>({
+      id: 'parent',
+      initial: 'first',
+      context: {
+        child: null
+      },
+      states: {
+        first: {
+          entry: assign({
+            child: () => spawn(child)
+          }),
+          on: {
+            EVENT: {
+              actions: forwardTo(ctx => ctx.child)
+            },
+            SUCCESS: 'last'
+          }
+        },
+        last: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(parent)
+      .onDone(() => done())
+      .start();
+
+    service.send('EVENT', { value: 42 });
   });
 });
