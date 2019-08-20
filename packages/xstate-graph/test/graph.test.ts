@@ -1,16 +1,11 @@
-import { Machine, StateNode, State, PathMap } from 'xstate';
+import { Machine, StateNode, State } from 'xstate';
 import {
   getNodes,
-  getEdges,
   adjacencyMap,
   getSimplePaths,
   getShortestPaths
 } from '../src/index';
-import {
-  getSimplePathsAsArray,
-  PathsMap,
-  getValueAdjacencyMap
-} from '../src/graph';
+import { getSimplePathsAsArray, getValueAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
 // tslint:disable-next-line:no-var-requires
 
@@ -154,178 +149,6 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('getEdges()', () => {
-    const getStringSortCriteria = (a: string, b: string): number => {
-      if (a === b) {
-        return 0;
-      }
-
-      const sorted = [a, b].sort();
-      return sorted[0] === a ? -1 : 1;
-    };
-
-    const getFormattedEdges = (machine: Parameters<typeof getEdges>[0]) =>
-      getEdges(machine)
-        .map(edge => ({
-          event: edge.event,
-          source: edge.source.id,
-          target: edge.target.id,
-          actions: edge.actions
-        }))
-        .sort((edgeA, edgeB) => {
-          for (let property of ['source', 'event', 'target']) {
-            const criteria = getStringSortCriteria(
-              edgeA[property],
-              edgeB[property]
-            );
-
-            if (criteria !== 0) {
-              return criteria;
-            }
-          }
-
-          return 0;
-        });
-
-    it('should return an array of all directed edges', () => {
-      const edges = getEdges(lightMachine);
-      expect(
-        edges.every(edge => {
-          return (
-            typeof edge.event === 'string' &&
-            edge.source instanceof StateNode &&
-            edge.target instanceof StateNode
-          );
-        })
-      ).toBe(true);
-
-      expect(getFormattedEdges(lightMachine)).toEqual(
-        [
-          {
-            source: 'light.green',
-            event: 'POWER_OUTAGE',
-            target: 'light.red.flashing',
-            actions: [],
-          },
-          {
-            source: 'light.green',
-            event: 'PUSH_BUTTON',
-            target: 'light.green',
-            actions: ['doNothing'],
-          },
-          {
-            source: 'light.green',
-            event: 'TIMER',
-            target: 'light.yellow',
-            actions: [],
-          },
-          {
-            source: 'light.red',
-            event: 'POWER_OUTAGE',
-            target: 'light.red.flashing',
-            actions: [],
-          },
-          {
-            source: 'light.red',
-            event: 'TIMER',
-            target: 'light.green',
-            actions: [],
-          },
-          {
-            source: 'light.red.wait',
-            event: 'PED_COUNTDOWN',
-            target: 'light.red.stop',
-            actions: [],
-          },
-          {
-            source: 'light.red.walk',
-            event: 'PED_COUNTDOWN',
-            target: 'light.red.wait',
-            actions: ['startCountdown'],
-          },
-          {
-            source: 'light.yellow',
-            event: 'POWER_OUTAGE',
-            target: 'light.red.flashing',
-            actions: [],
-          },
-          {
-            source: 'light.yellow',
-            event: 'TIMER',
-            target: 'light.red',
-            actions: [],
-          },
-        ]
-      );
-    });
-
-    it('should return an array of all directed edges (parallel)', () => {
-      const edges = getEdges(parallelMachine);
-      expect(
-        edges.every(edge => {
-          return (
-            typeof edge.event === 'string' &&
-            edge.source instanceof StateNode &&
-            edge.target instanceof StateNode
-          );
-        })
-      ).toBe(true);
-
-      expect(getFormattedEdges(parallelMachine)).toEqual(
-        [
-          {
-            source: 'p.a.a1',
-            event: '2',
-            target: 'p.a.a2',
-            actions: [],
-          },
-          {
-            source: 'p.a.a1',
-            event: '3',
-            target: 'p.a.a3',
-            actions: [],
-          },
-          {
-            source: 'p.a.a2',
-            event: '1',
-            target: 'p.a.a1',
-            actions: [],
-          },
-          {
-            source: 'p.a.a2',
-            event: '3',
-            target: 'p.a.a3',
-            actions: [],
-          },
-          {
-            source: 'p.b.b1',
-            event: '2',
-            target: 'p.b.b2',
-            actions: [],
-          },
-          {
-            source: 'p.b.b1',
-            event: '3',
-            target: 'p.b.b3',
-            actions: [],
-          },
-          {
-            source: 'p.b.b2',
-            event: '1',
-            target: 'p.b.b1',
-            actions: [],
-          },
-          {
-            source: 'p.b.b2',
-            event: '3',
-            target: 'p.b.b3',
-            actions: [],
-          },
-        ]
-      );
-    });
-  });
-
   describe('adjacencyMap()', () => {
     it('should return a flattened adjacency map', () => {
       expect(adjacencyMap(lightMachine)).toEqual({
@@ -390,7 +213,7 @@ describe('@xstate/graph', () => {
   });
 
   describe('getShortestPaths()', () => {
-    function formatPaths(pathMap: PathMap<any, any>): any {
+    function formatPaths(pathMap): any {
       Object.keys(pathMap).forEach(key => {
         const data = pathMap[key] as any;
         data.state = {
@@ -590,7 +413,7 @@ describe('@xstate/graph', () => {
   });
 
   describe('getSimplePaths()', () => {
-    function formatPaths(pathsMap: PathsMap<any, any>): any {
+    function formatPaths(pathsMap): any {
       Object.keys(pathsMap).forEach(key => {
         const data = pathsMap[key] as any;
         data.state = { value: data.state.value, context: data.state.context };
