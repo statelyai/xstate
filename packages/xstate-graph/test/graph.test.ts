@@ -1,5 +1,5 @@
 import { Machine, StateNode } from 'xstate';
-import { getNodes, getSimplePaths, getShortestPaths } from '../src/index';
+import { getStateNodes, getSimplePaths, getShortestPaths } from '../src/index';
 import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
 
@@ -114,7 +114,7 @@ describe('@xstate/graph', () => {
 
   describe('getNodes()', () => {
     it('should return an array of all nodes', () => {
-      const nodes = getNodes(lightMachine);
+      const nodes = getStateNodes(lightMachine);
       expect(nodes.every(node => node instanceof StateNode)).toBe(true);
       expect(nodes.map(node => node.id).sort()).toEqual([
         'light.green',
@@ -128,7 +128,7 @@ describe('@xstate/graph', () => {
     });
 
     it('should return an array of all nodes (parallel)', () => {
-      const nodes = getNodes(parallelMachine);
+      const nodes = getStateNodes(parallelMachine);
       expect(nodes.every(node => node instanceof StateNode)).toBe(true);
       expect(nodes.map(node => node.id).sort()).toEqual([
         'p.a',

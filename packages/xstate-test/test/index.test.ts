@@ -288,4 +288,72 @@ describe('coverage', () => {
     expect(coverage.stateNodes['dieHard.pending']).toBeGreaterThan(0);
     expect(coverage.stateNodes['dieHard.success']).toBeGreaterThan(0);
   });
+
+  it('tests missing state node coverage', async () => {
+    const machine = Machine({
+      id: 'missing',
+      initial: 'first',
+      states: {
+        first: {
+          on: { NEXT: 'third' },
+          meta: {
+            test: () => true
+          }
+        },
+        second: {
+          meta: {
+            test: () => true
+          }
+        },
+        third: {
+          initial: 'one',
+          states: {
+            one: {
+              meta: {
+                test: () => true
+              }
+            },
+            two: {
+              meta: {
+                test: () => true
+              }
+            },
+            three: {
+              meta: {
+                test: () => true
+              }
+            }
+          },
+          meta: {
+            test: () => true
+          }
+        }
+      }
+    });
+
+    const testModel = createModel(machine, {
+      events: {
+        NEXT: () => {
+          /* ... */
+        }
+      }
+    });
+    const plans = testModel.getShortestPaths();
+
+    for (const plan of plans) {
+      for (const path of plan.paths) {
+        await path.test(undefined);
+      }
+    }
+
+    try {
+      testModel.testCoverage();
+    } catch (err) {
+      expect(err.message).toEqual(expect.stringContaining('missing.second'));
+      expect(err.message).toEqual(expect.stringContaining('missing.third.two'));
+      expect(err.message).toEqual(
+        expect.stringContaining('missing.third.three')
+      );
+    }
+  });
 });

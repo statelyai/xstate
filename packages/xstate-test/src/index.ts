@@ -1,7 +1,4 @@
-import {
-  getShortestPaths,
-  getSimplePaths
-} from '../node_modules/@xstate/graph';
+import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import { StatePathsMap } from '@xstate/graph/lib/types';
 import chalk from 'chalk';
@@ -240,6 +237,7 @@ export class TestModel<T, TContext> {
                     : JSON.stringify(path.state.context)
                 }`;
 
+                let hasFailed = false;
                 err.message +=
                   '\nPath:\n' +
                   testPathResult.segments
@@ -254,15 +252,17 @@ export class TestModel<T, TContext> {
                       const eventString = `${JSON.stringify(s.segment.event)}`;
 
                       const stateResult = `\tState: ${
-                        s.state.error
-                          ? chalk.redBright(stateString)
+                        hasFailed
+                          ? chalk.gray(stateString)
+                          : s.state.error
+                          ? ((hasFailed = true), chalk.redBright(stateString))
                           : chalk.greenBright(stateString)
                       }`;
                       const eventResult = `\tEvent: ${
-                        s.event.error
-                          ? chalk.red(eventString)
-                          : s.state.error
-                          ? chalk.grey(eventString)
+                        hasFailed
+                          ? chalk.gray(eventString)
+                          : s.event.error
+                          ? ((hasFailed = true), chalk.red(eventString))
                           : chalk.green(eventString)
                       }`;
 
@@ -270,7 +270,9 @@ export class TestModel<T, TContext> {
                     })
                     .concat(
                       `\tState: ${
-                        testPathResult.state.error
+                        hasFailed
+                          ? chalk.gray(targetStateString)
+                          : testPathResult.state.error
                           ? chalk.red(targetStateString)
                           : chalk.green(targetStateString)
                       }`
@@ -305,6 +307,10 @@ export class TestModel<T, TContext> {
   public getEventExecutor(event: EventObject): EventExecutor<T> {
     const testEvent = this.options.events[event.type];
 
+    if (!testEvent) {
+      throw new Error(`Missing config for event "${event.type}".`);
+    }
+
     if (typeof testEvent === 'function') {
       return testEvent;
     }
@@ -323,8 +329,12 @@ export class TestModel<T, TContext> {
   }
 
   public getCoverage(): { stateNodes: Record<string, number> } {
+    const stateNodes = getStateNodes(this.machine);
     const coverage = {
-      stateNodes: {}
+      stateNodes: stateNodes.reduce((acc, stateNode) => {
+        acc[stateNode.id] = 0;
+        return acc;
+      }, {})
     };
 
     for (const key of this.coverage.stateNodes.keys()) {
@@ -332,6 +342,20 @@ export class TestModel<T, TContext> {
     }
 
     return coverage;
+  }
+
+  public testCoverage(): void {
+    const coverage = this.getCoverage();
+    const missingStateNodes = Object.keys(coverage.stateNodes).filter(id => {
+      return !coverage.stateNodes[id];
+    });
+
+    if (missingStateNodes.length) {
+      throw new Error(
+        'Missing coverage for state nodes:\n' +
+          missingStateNodes.map(id => `\t${id}`).join('\n')
+      );
+    }
   }
 }
 
