@@ -4,9 +4,10 @@ import {
 } from '../node_modules/@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import { StatePathsMap } from '@xstate/graph/lib/types';
+import chalk from 'chalk';
 
 interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext>) => Promise<void>;
+  test?: (testContext: T, state: State<TContext>) => Promise<void> | void;
   description?: string | ((state: State<TContext>) => string);
   skip?: boolean;
 }
@@ -19,6 +20,18 @@ interface TestSegment<T> {
   exec: (testContext: T) => Promise<void>;
 }
 
+interface TestStateResult {
+  error: null | Error;
+}
+
+interface TestSegmentResult {
+  segment: TestSegment<any>;
+  state: TestStateResult;
+  event: {
+    error: null | Error;
+  };
+}
+
 interface TestPath<T> {
   weight: number;
   segments: Array<TestSegment<T>>;
@@ -26,7 +39,12 @@ interface TestPath<T> {
    * Tests and executes each segment in `segments` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (testContext: T) => Promise<void>;
+  test: (testContext: T) => Promise<TestPathResult>;
+}
+
+interface TestPathResult {
+  segments: TestSegmentResult[];
+  state: TestStateResult;
 }
 
 interface TestPlan<T, TContext> {
@@ -48,12 +66,19 @@ interface EventSample {
 
 type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
 
+type EventExecutor<T> = (
+  testContext: T,
+  event: EventObject
+) => Promise<any> | void;
+
 interface TestModelOptions<T> {
   events: {
-    [eventType: string]: {
-      exec: (testContext: T, event: EventObject) => Promise<any>;
-      samples?: EventSample[];
-    };
+    [eventType: string]:
+      | EventExecutor<T>
+      | {
+          exec: EventExecutor<T>;
+          samples?: EventSample[];
+        };
   };
 }
 
@@ -67,11 +92,20 @@ export class TestModel<T, TContext> {
     stateNodes: new Map(),
     transitions: new Map()
   };
+  public options: TestModelOptions<T>;
+  public static defaultOptions: TestModelOptions<any> = {
+    events: {}
+  };
 
   constructor(
     public machine: StateMachine<TContext, any, any>,
-    public options: TestModelOptions<T>
-  ) {}
+    options?: Partial<TestModelOptions<T>>
+  ) {
+    this.options = {
+      ...TestModel.defaultOptions,
+      ...options
+    };
+  }
 
   public getShortestPaths(
     options?: Parameters<typeof getShortestPaths>[1]
@@ -157,12 +191,96 @@ export class TestModel<T, TContext> {
             ...path,
             segments,
             test: async testContext => {
-              for (const segment of segments) {
-                await segment.test(testContext);
-                await segment.exec(testContext);
+              const testPathResult: TestPathResult = {
+                segments: [],
+                state: {
+                  error: null
+                }
+              };
+
+              try {
+                for (const segment of segments) {
+                  const testSegmentResult: TestSegmentResult = {
+                    segment,
+                    state: { error: null },
+                    event: { error: null }
+                  };
+
+                  testPathResult.segments.push(testSegmentResult);
+
+                  try {
+                    await segment.test(testContext);
+                  } catch (err) {
+                    testSegmentResult.state.error = err;
+
+                    throw err;
+                  }
+
+                  try {
+                    await segment.exec(testContext);
+                  } catch (err) {
+                    testSegmentResult.event.error = err;
+
+                    throw err;
+                  }
+                }
+
+                try {
+                  await this.testState(testPlan.state, testContext);
+                } catch (err) {
+                  testPathResult.state.error = err;
+                  throw err;
+                }
+              } catch (err) {
+                const targetStateString = `${JSON.stringify(
+                  path.state.value
+                )} ${
+                  path.state.context === undefined
+                    ? ''
+                    : JSON.stringify(path.state.context)
+                }`;
+
+                err.message +=
+                  '\nPath:\n' +
+                  testPathResult.segments
+                    .map(s => {
+                      const stateString = `${JSON.stringify(
+                        s.segment.state.value
+                      )} ${
+                        s.segment.state.context === undefined
+                          ? ''
+                          : JSON.stringify(s.segment.state.context)
+                      }`;
+                      const eventString = `${JSON.stringify(s.segment.event)}`;
+
+                      const stateResult = `\tState: ${
+                        s.state.error
+                          ? chalk.redBright(stateString)
+                          : chalk.greenBright(stateString)
+                      }`;
+                      const eventResult = `\tEvent: ${
+                        s.event.error
+                          ? chalk.red(eventString)
+                          : s.state.error
+                          ? chalk.grey(eventString)
+                          : chalk.green(eventString)
+                      }`;
+
+                      return [stateResult, eventResult].join('\n');
+                    })
+                    .concat(
+                      `\tState: ${
+                        testPathResult.state.error
+                          ? chalk.red(targetStateString)
+                          : chalk.green(targetStateString)
+                      }`
+                    )
+                    .join('\n\n');
+
+                throw err;
               }
 
-              await this.testState(testPlan.state, testContext);
+              return testPathResult;
             }
           };
         })
@@ -184,14 +302,24 @@ export class TestModel<T, TContext> {
     }
   }
 
-  public async executeEvent(event: EventObject, testContext: T) {
+  public getEventExecutor(event: EventObject): EventExecutor<T> {
     const testEvent = this.options.events[event.type];
 
-    if (!testEvent) {
+    if (typeof testEvent === 'function') {
+      return testEvent;
+    }
+
+    return testEvent.exec;
+  }
+
+  public async executeEvent(event: EventObject, testContext: T) {
+    const executor = this.getEventExecutor(event);
+
+    if (!executor) {
       throw new Error(`no event configured for ${event.type}`);
     }
 
-    await testEvent.exec(testContext, event);
+    await executor(testContext, event);
   }
 
   public getCoverage(): { stateNodes: Record<string, number> } {
@@ -226,9 +354,17 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
   const result = {};
 
   Object.keys(eventsOptions).forEach(key => {
-    const eventOptions = eventsOptions[key];
-    result[key] = eventOptions.samples
-      ? eventOptions.samples.map(sample => ({
+    const eventConfig = eventsOptions[key];
+    if (typeof eventConfig === 'function') {
+      return [
+        {
+          type: key
+        }
+      ];
+    }
+
+    result[key] = eventConfig.samples
+      ? eventConfig.samples.map(sample => ({
           type: key,
           ...sample
         }))
@@ -244,7 +380,7 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
 
 export function createModel<TestContext, TContext = any>(
   machine: StateMachine<TContext, any, any>,
-  options: TestModelOptions<TestContext>
+  options?: TestModelOptions<TestContext>
 ): TestModel<TestContext, TContext> {
   return new TestModel<TestContext, TContext>(machine, options);
 }

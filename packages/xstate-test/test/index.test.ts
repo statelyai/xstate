@@ -218,18 +218,63 @@ describe('path.test()', () => {
     return state.matches('success') && state.context.three === 0;
   });
 
-  // ...
   plans.forEach(plan => {
     describe(`reaches state ${JSON.stringify(
       plan.state.value
     )} (${JSON.stringify(plan.state.context)})`, () => {
       plan.paths.forEach((path, pathIndex) => {
         describe(`path ${pathIndex}`, () => {
-          const testJugs = new Jugs();
-
           it(`reaches the target state`, () => {
+            const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
           });
+        });
+      });
+    });
+  });
+});
+
+describe('error path trace', () => {
+  describe('should return trace for failed state', () => {
+    const machine = Machine({
+      initial: 'first',
+      states: {
+        first: {
+          on: { NEXT: 'second' }
+        },
+        second: {
+          on: { NEXT: 'third' }
+        },
+        third: {
+          meta: {
+            test: () => {
+              throw new Error('test error');
+            }
+          }
+        }
+      }
+    });
+
+    const testModel = createModel(machine, {
+      events: {
+        NEXT: () => {
+          /* noop */
+        }
+      }
+    });
+
+    testModel.getShortestPathsTo('third').forEach(plan => {
+      plan.paths.forEach(path => {
+        it('should show an error path trace', async () => {
+          try {
+            await path.test(undefined);
+          } catch (err) {
+            expect(err.message).toEqual(expect.stringContaining('test error'));
+            expect(err.message).toMatchSnapshot('error path trace');
+            return;
+          }
+
+          throw new Error('Should have failed');
         });
       });
     });
