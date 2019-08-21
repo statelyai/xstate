@@ -2,87 +2,16 @@ import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import { StatePathsMap } from '@xstate/graph/lib/types';
 import chalk from 'chalk';
-
-interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext>) => Promise<void> | void;
-  description?: string | ((state: State<TContext>) => string);
-  skip?: boolean;
-}
-
-interface TestSegment<T> {
-  state: State<any>;
-  event: EventObject;
-  description: string;
-  test: (testContext: T) => Promise<void>;
-  exec: (testContext: T) => Promise<void>;
-}
-
-interface TestStateResult {
-  error: null | Error;
-}
-
-interface TestSegmentResult {
-  segment: TestSegment<any>;
-  state: TestStateResult;
-  event: {
-    error: null | Error;
-  };
-}
-
-interface TestPath<T> {
-  weight: number;
-  segments: Array<TestSegment<T>>;
-  /**
-   * Tests and executes each segment in `segments` sequentially, and then
-   * tests the postcondition that the `state` is reached.
-   */
-  test: (testContext: T) => Promise<TestPathResult>;
-}
-
-interface TestPathResult {
-  segments: TestSegmentResult[];
-  state: TestStateResult;
-}
-
-interface TestPlan<T, TContext> {
-  state: State<TContext>;
-  paths: Array<TestPath<T>>;
-  description: string;
-  /**
-   * Tests the postcondition that the `state` is reached.
-   *
-   * This should be tested after navigating any path in `paths`.
-   */
-  test: (testContext: T) => Promise<void>;
-}
-
-interface EventSample {
-  type: never;
-  [prop: string]: any;
-}
-
-type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
-
-type EventExecutor<T> = (
-  testContext: T,
-  event: EventObject
-) => Promise<any> | void;
-
-interface TestModelOptions<T> {
-  events: {
-    [eventType: string]:
-      | EventExecutor<T>
-      | {
-          exec: EventExecutor<T>;
-          samples?: EventSample[];
-        };
-  };
-}
-
-interface TestModelCoverage {
-  stateNodes: Map<string, number>;
-  transitions: Map<string, Map<EventObject, number>>;
-}
+import {
+  TestModelCoverage,
+  TestModelOptions,
+  TestPlan,
+  StatePredicate,
+  TestPathResult,
+  TestSegmentResult,
+  TestMeta,
+  EventExecutor
+} from './types';
 
 export class TestModel<T, TContext> {
   public coverage: TestModelCoverage = {
