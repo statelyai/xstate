@@ -1,13 +1,4 @@
-import {
-  State,
-  EventObject,
-  StateValue,
-  StateNode,
-  Condition,
-  Action,
-  MetaObject,
-  TransitionDefinition
-} from 'xstate';
+import { State, EventObject, StateValue } from 'xstate';
 
 export interface TransitionMap {
   state: StateValue | undefined;
@@ -23,32 +14,34 @@ export interface AdjacencyMap<TContext, TEvent extends EventObject> {
   >;
 }
 
-export interface Edge<
-  TContext,
-  TEvent extends EventObject,
-  TEventType extends TEvent['type'] = string
-> {
-  event: TEventType;
-  source: StateNode<TContext, any, TEvent>;
-  target: StateNode<TContext, any, TEvent>;
-  cond?: Condition<
-    TContext,
-    TEvent & {
-      type: TEventType;
-    }
-  >;
-  actions: Array<Action<TContext, TEvent>>;
-  meta?: MetaObject;
-  transition: TransitionDefinition<TContext, TEvent>;
-}
-
-export interface PathsItem<TContext, TEvent extends EventObject> {
+export interface StatePaths<TContext, TEvent extends EventObject> {
+  /**
+   * The target state.
+   */
   state: State<TContext, TEvent>;
-  paths: Array<Path<TContext, TEvent>>;
+  /**
+   * The paths that reach the target state.
+   */
+  paths: Array<StatePath<TContext, TEvent>>;
 }
 
-export interface PathsMap<TContext, TEvent extends EventObject> {
-  [key: string]: PathsItem<TContext, TEvent>;
+export interface StatePath<TContext, TEvent extends EventObject> {
+  /**
+   * The ending state of the path.
+   */
+  state: State<TContext, TEvent>;
+  /**
+   * The ordered array of state-event pairs (segments) which reach the ending `state`.
+   */
+  segments: Segments<TContext, TEvent>;
+  /**
+   * The combined weight of all segments in the path.
+   */
+  weight: number;
+}
+
+export interface StatePathsMap<TContext, TEvent extends EventObject> {
+  [key: string]: StatePaths<TContext, TEvent>;
 }
 export interface Segment<TContext, TEvent extends EventObject> {
   /**
@@ -64,28 +57,3 @@ export interface Segment<TContext, TEvent extends EventObject> {
 export type Segments<TContext, TEvent extends EventObject> = Array<
   Segment<TContext, TEvent>
 >;
-
-export interface Path<TContext, TEvent extends EventObject> {
-  /**
-   * The ending state of the path.
-   */
-  state: State<TContext, TEvent>;
-  /**
-   * The ordered array of state-event pairs (segments) which reach the ending `state`.
-   */
-  segments: Segments<TContext, TEvent>;
-  /**
-   * The combined weight of all segments in the path.
-   */
-  weight: number;
-}
-
-export interface PathItem<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent>;
-  path: Segments<TContext, TEvent>;
-  weight?: number;
-}
-
-export interface PathMap<TContext, TEvent extends EventObject> {
-  [key: string]: PathItem<TContext, TEvent>;
-}

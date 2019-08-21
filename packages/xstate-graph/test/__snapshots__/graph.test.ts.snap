@@ -1,9 +1,490 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`@xstate/graph getShortestPaths() should represent conditional paths based on context: shortest paths conditional 1`] = `
+Object {
+  "\\"bar\\" | {\\"id\\":\\"foo\\"}": Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "id": "whatever",
+              "type": "EVENT",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "xstate.init",
+                },
+                "name": "xstate.init",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": undefined,
+              "context": Object {
+                "id": "foo",
+              },
+              "event": Object {
+                "type": "xstate.init",
+              },
+              "events": Array [],
+              "history": undefined,
+              "historyValue": undefined,
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "pending",
+            },
+          },
+        ],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "id": "whatever",
+              "type": "EVENT",
+            },
+            "name": "EVENT",
+            "type": "external",
+          },
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "context": Object {
+            "id": "foo",
+          },
+          "event": Object {
+            "id": "whatever",
+            "type": "EVENT",
+          },
+          "events": Array [],
+          "history": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "xstate.init",
+              },
+              "name": "xstate.init",
+              "type": "external",
+            },
+            "actions": Array [],
+            "activities": Object {},
+            "changed": undefined,
+            "context": Object {
+              "id": "foo",
+            },
+            "event": Object {
+              "type": "xstate.init",
+            },
+            "events": Array [],
+            "historyValue": undefined,
+            "matches": [Function],
+            "meta": Object {},
+            "toStrings": [Function],
+            "value": "pending",
+          },
+          "historyValue": Object {
+            "current": "bar",
+            "states": Object {
+              "bar": undefined,
+              "foo": undefined,
+              "pending": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "bar",
+        },
+        "weight": 1,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "id": "whatever",
+          "type": "EVENT",
+        },
+        "name": "EVENT",
+        "type": "external",
+      },
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "context": Object {
+        "id": "foo",
+      },
+      "event": Object {
+        "id": "whatever",
+        "type": "EVENT",
+      },
+      "events": Array [],
+      "history": Object {
+        "_event": Object {
+          "$$type": "scxml",
+          "data": Object {
+            "type": "xstate.init",
+          },
+          "name": "xstate.init",
+          "type": "external",
+        },
+        "actions": Array [],
+        "activities": Object {},
+        "changed": undefined,
+        "context": Object {
+          "id": "foo",
+        },
+        "event": Object {
+          "type": "xstate.init",
+        },
+        "events": Array [],
+        "historyValue": undefined,
+        "matches": [Function],
+        "meta": Object {},
+        "toStrings": [Function],
+        "value": "pending",
+      },
+      "historyValue": Object {
+        "current": "bar",
+        "states": Object {
+          "bar": undefined,
+          "foo": undefined,
+          "pending": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "bar",
+    },
+  },
+  "\\"foo\\" | {\\"id\\":\\"foo\\"}": Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "STATE",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "xstate.init",
+                },
+                "name": "xstate.init",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": undefined,
+              "context": Object {
+                "id": "foo",
+              },
+              "event": Object {
+                "type": "xstate.init",
+              },
+              "events": Array [],
+              "history": undefined,
+              "historyValue": undefined,
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "pending",
+            },
+          },
+        ],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "STATE",
+            },
+            "name": "STATE",
+            "type": "external",
+          },
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "context": Object {
+            "id": "foo",
+          },
+          "event": Object {
+            "type": "STATE",
+          },
+          "events": Array [],
+          "history": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "xstate.init",
+              },
+              "name": "xstate.init",
+              "type": "external",
+            },
+            "actions": Array [],
+            "activities": Object {},
+            "changed": undefined,
+            "context": Object {
+              "id": "foo",
+            },
+            "event": Object {
+              "type": "xstate.init",
+            },
+            "events": Array [],
+            "historyValue": undefined,
+            "matches": [Function],
+            "meta": Object {},
+            "toStrings": [Function],
+            "value": "pending",
+          },
+          "historyValue": Object {
+            "current": "foo",
+            "states": Object {
+              "bar": undefined,
+              "foo": undefined,
+              "pending": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "foo",
+        },
+        "weight": 1,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "STATE",
+        },
+        "name": "STATE",
+        "type": "external",
+      },
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "context": Object {
+        "id": "foo",
+      },
+      "event": Object {
+        "type": "STATE",
+      },
+      "events": Array [],
+      "history": Object {
+        "_event": Object {
+          "$$type": "scxml",
+          "data": Object {
+            "type": "xstate.init",
+          },
+          "name": "xstate.init",
+          "type": "external",
+        },
+        "actions": Array [],
+        "activities": Object {},
+        "changed": undefined,
+        "context": Object {
+          "id": "foo",
+        },
+        "event": Object {
+          "type": "xstate.init",
+        },
+        "events": Array [],
+        "historyValue": undefined,
+        "matches": [Function],
+        "meta": Object {},
+        "toStrings": [Function],
+        "value": "pending",
+      },
+      "historyValue": Object {
+        "current": "foo",
+        "states": Object {
+          "bar": undefined,
+          "foo": undefined,
+          "pending": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "foo",
+    },
+  },
+  "\\"pending\\" | {\\"id\\":\\"foo\\"}": Object {
+    "paths": Array [
+      Object {
+        "segments": Array [],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "xstate.init",
+            },
+            "name": "xstate.init",
+            "type": "external",
+          },
+          "actions": Array [],
+          "activities": Object {},
+          "changed": undefined,
+          "context": Object {
+            "id": "foo",
+          },
+          "event": Object {
+            "type": "xstate.init",
+          },
+          "events": Array [],
+          "history": undefined,
+          "historyValue": undefined,
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "pending",
+        },
+        "weight": 0,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "xstate.init",
+        },
+        "name": "xstate.init",
+        "type": "external",
+      },
+      "actions": Array [],
+      "activities": Object {},
+      "changed": undefined,
+      "context": Object {
+        "id": "foo",
+      },
+      "event": Object {
+        "type": "xstate.init",
+      },
+      "events": Array [],
+      "history": undefined,
+      "historyValue": undefined,
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "pending",
+    },
+  },
+}
+`;
+
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states (parallel): shortest paths parallel 1`] = `
 Object {
   "{\\"a\\":\\"a1\\",\\"b\\":\\"b1\\"}": Object {
-    "path": Array [],
+    "paths": Array [
+      Object {
+        "segments": Array [],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "1",
+            },
+            "name": "1",
+            "type": "external",
+          },
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "context": undefined,
+          "event": Object {
+            "type": "1",
+          },
+          "events": Array [],
+          "history": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "2",
+              },
+              "name": "2",
+              "type": "external",
+            },
+            "actions": Array [],
+            "activities": Object {},
+            "changed": true,
+            "context": undefined,
+            "event": Object {
+              "type": "2",
+            },
+            "events": Array [],
+            "historyValue": Object {
+              "current": Object {
+                "a": "a2",
+                "b": "b2",
+              },
+              "states": Object {
+                "a": Object {
+                  "current": "a2",
+                  "states": Object {
+                    "a1": undefined,
+                    "a2": undefined,
+                    "a3": undefined,
+                  },
+                },
+                "b": Object {
+                  "current": "b2",
+                  "states": Object {
+                    "b1": undefined,
+                    "b2": undefined,
+                    "b3": undefined,
+                  },
+                },
+              },
+            },
+            "matches": [Function],
+            "meta": Object {},
+            "toStrings": [Function],
+            "value": Object {
+              "a": "a2",
+              "b": "b2",
+            },
+          },
+          "historyValue": Object {
+            "current": Object {
+              "a": "a1",
+              "b": "b1",
+            },
+            "states": Object {
+              "a": Object {
+                "current": "a1",
+                "states": Object {
+                  "a1": undefined,
+                  "a2": undefined,
+                  "a3": undefined,
+                },
+              },
+              "b": Object {
+                "current": "b1",
+                "states": Object {
+                  "b1": undefined,
+                  "b2": undefined,
+                  "b3": undefined,
+                },
+              },
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": Object {
+            "a": "a1",
+            "b": "b1",
+          },
+        },
+        "weight": 0,
+      },
+    ],
     "state": Object {
       "_event": Object {
         "$$type": "scxml",
@@ -102,21 +583,122 @@ Object {
         "b": "b1",
       },
     },
-    "weight": 0,
   },
   "{\\"a\\":\\"a2\\",\\"b\\":\\"b2\\"}": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "2",
-        },
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "2",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "1",
+                },
+                "name": "1",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "1",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "2",
+                  },
+                  "name": "2",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "2",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "a": "a2",
+                    "b": "b2",
+                  },
+                  "states": Object {
+                    "a": Object {
+                      "current": "a2",
+                      "states": Object {
+                        "a1": undefined,
+                        "a2": undefined,
+                        "a3": undefined,
+                      },
+                    },
+                    "b": Object {
+                      "current": "b2",
+                      "states": Object {
+                        "b1": undefined,
+                        "b2": undefined,
+                        "b3": undefined,
+                      },
+                    },
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "a": "a2",
+                  "b": "b2",
+                },
+              },
+              "historyValue": Object {
+                "current": Object {
+                  "a": "a1",
+                  "b": "b1",
+                },
+                "states": Object {
+                  "a": Object {
+                    "current": "a1",
+                    "states": Object {
+                      "a1": undefined,
+                      "a2": undefined,
+                      "a3": undefined,
+                    },
+                  },
+                  "b": Object {
+                    "current": "b1",
+                    "states": Object {
+                      "b1": undefined,
+                      "b2": undefined,
+                      "b3": undefined,
+                    },
+                  },
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": Object {
+                "a": "a1",
+                "b": "b1",
+              },
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
-              "type": "1",
+              "type": "2",
             },
-            "name": "1",
+            "name": "2",
             "type": "external",
           },
           "actions": Array [],
@@ -124,66 +706,43 @@ Object {
           "changed": true,
           "context": undefined,
           "event": Object {
-            "type": "1",
+            "type": "2",
           },
           "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
               "data": Object {
-                "type": "2",
+                "type": "xstate.init",
               },
-              "name": "2",
+              "name": "xstate.init",
               "type": "external",
             },
             "actions": Array [],
             "activities": Object {},
-            "changed": true,
+            "changed": undefined,
             "context": undefined,
             "event": Object {
-              "type": "2",
+              "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "a": "a2",
-                "b": "b2",
-              },
-              "states": Object {
-                "a": Object {
-                  "current": "a2",
-                  "states": Object {
-                    "a1": undefined,
-                    "a2": undefined,
-                    "a3": undefined,
-                  },
-                },
-                "b": Object {
-                  "current": "b2",
-                  "states": Object {
-                    "b1": undefined,
-                    "b2": undefined,
-                    "b3": undefined,
-                  },
-                },
-              },
-            },
+            "historyValue": undefined,
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": Object {
-              "a": "a2",
-              "b": "b2",
+              "a": "a1",
+              "b": "b1",
             },
           },
           "historyValue": Object {
             "current": Object {
-              "a": "a1",
-              "b": "b1",
+              "a": "a2",
+              "b": "b2",
             },
             "states": Object {
               "a": Object {
-                "current": "a1",
+                "current": "a2",
                 "states": Object {
                   "a1": undefined,
                   "a2": undefined,
@@ -191,7 +750,7 @@ Object {
                 },
               },
               "b": Object {
-                "current": "b1",
+                "current": "b2",
                 "states": Object {
                   "b1": undefined,
                   "b2": undefined,
@@ -204,10 +763,11 @@ Object {
           "meta": Object {},
           "toStrings": [Function],
           "value": Object {
-            "a": "a1",
-            "b": "b1",
+            "a": "a2",
+            "b": "b2",
           },
         },
+        "weight": 1,
       },
     ],
     "state": Object {
@@ -285,21 +845,122 @@ Object {
         "b": "b2",
       },
     },
-    "weight": 1,
   },
   "{\\"a\\":\\"a3\\",\\"b\\":\\"b3\\"}": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "3",
-        },
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "3",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "1",
+                },
+                "name": "1",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "1",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "2",
+                  },
+                  "name": "2",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "2",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "a": "a2",
+                    "b": "b2",
+                  },
+                  "states": Object {
+                    "a": Object {
+                      "current": "a2",
+                      "states": Object {
+                        "a1": undefined,
+                        "a2": undefined,
+                        "a3": undefined,
+                      },
+                    },
+                    "b": Object {
+                      "current": "b2",
+                      "states": Object {
+                        "b1": undefined,
+                        "b2": undefined,
+                        "b3": undefined,
+                      },
+                    },
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "a": "a2",
+                  "b": "b2",
+                },
+              },
+              "historyValue": Object {
+                "current": Object {
+                  "a": "a1",
+                  "b": "b1",
+                },
+                "states": Object {
+                  "a": Object {
+                    "current": "a1",
+                    "states": Object {
+                      "a1": undefined,
+                      "a2": undefined,
+                      "a3": undefined,
+                    },
+                  },
+                  "b": Object {
+                    "current": "b1",
+                    "states": Object {
+                      "b1": undefined,
+                      "b2": undefined,
+                      "b3": undefined,
+                    },
+                  },
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": Object {
+                "a": "a1",
+                "b": "b1",
+              },
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
-              "type": "1",
+              "type": "3",
             },
-            "name": "1",
+            "name": "3",
             "type": "external",
           },
           "actions": Array [],
@@ -307,7 +968,7 @@ Object {
           "changed": true,
           "context": undefined,
           "event": Object {
-            "type": "1",
+            "type": "3",
           },
           "events": Array [],
           "history": Object {
@@ -361,12 +1022,12 @@ Object {
           },
           "historyValue": Object {
             "current": Object {
-              "a": "a1",
-              "b": "b1",
+              "a": "a3",
+              "b": "b3",
             },
             "states": Object {
               "a": Object {
-                "current": "a1",
+                "current": "a3",
                 "states": Object {
                   "a1": undefined,
                   "a2": undefined,
@@ -374,7 +1035,7 @@ Object {
                 },
               },
               "b": Object {
-                "current": "b1",
+                "current": "b3",
                 "states": Object {
                   "b1": undefined,
                   "b2": undefined,
@@ -387,10 +1048,11 @@ Object {
           "meta": Object {},
           "toStrings": [Function],
           "value": Object {
-            "a": "a1",
-            "b": "b1",
+            "a": "a3",
+            "b": "b3",
           },
         },
+        "weight": 1,
       },
     ],
     "state": Object {
@@ -491,7 +1153,6 @@ Object {
         "b": "b3",
       },
     },
-    "weight": 1,
   },
 }
 `;
@@ -499,7 +1160,92 @@ Object {
 exports[`@xstate/graph getShortestPaths() should return a mapping of shortest paths to all states: shortest paths 1`] = `
 Object {
   "\\"green\\"": Object {
-    "path": Array [],
+    "paths": Array [
+      Object {
+        "segments": Array [],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "TIMER",
+            },
+            "name": "TIMER",
+            "type": "external",
+          },
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "context": undefined,
+          "event": Object {
+            "type": "TIMER",
+          },
+          "events": Array [],
+          "history": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "PED_COUNTDOWN",
+              },
+              "name": "PED_COUNTDOWN",
+              "type": "external",
+            },
+            "actions": Array [],
+            "activities": Object {},
+            "changed": true,
+            "context": undefined,
+            "event": Object {
+              "type": "PED_COUNTDOWN",
+            },
+            "events": Array [],
+            "historyValue": Object {
+              "current": Object {
+                "red": "stop",
+              },
+              "states": Object {
+                "green": undefined,
+                "red": Object {
+                  "current": "stop",
+                  "states": Object {
+                    "flashing": undefined,
+                    "stop": undefined,
+                    "wait": undefined,
+                    "walk": undefined,
+                  },
+                },
+                "yellow": undefined,
+              },
+            },
+            "matches": [Function],
+            "meta": Object {},
+            "toStrings": [Function],
+            "value": Object {
+              "red": "stop",
+            },
+          },
+          "historyValue": Object {
+            "current": "green",
+            "states": Object {
+              "green": undefined,
+              "red": Object {
+                "current": "stop",
+                "states": Object {
+                  "flashing": undefined,
+                  "stop": undefined,
+                  "wait": undefined,
+                  "walk": undefined,
+                },
+              },
+              "yellow": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "green",
+        },
+        "weight": 0,
+      },
+    ],
     "state": Object {
       "_event": Object {
         "$$type": "scxml",
@@ -580,14 +1326,97 @@ Object {
       "toStrings": [Function],
       "value": "green",
     },
-    "weight": 0,
   },
   "\\"yellow\\"": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "TIMER",
-        },
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "PED_COUNTDOWN",
+                  },
+                  "name": "PED_COUNTDOWN",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "red": "stop",
+                  },
+                  "states": Object {
+                    "green": undefined,
+                    "red": Object {
+                      "current": "stop",
+                      "states": Object {
+                        "flashing": undefined,
+                        "stop": undefined,
+                        "wait": undefined,
+                        "walk": undefined,
+                      },
+                    },
+                    "yellow": undefined,
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "red": "stop",
+                },
+              },
+              "historyValue": Object {
+                "current": "green",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "stop",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "green",
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
@@ -605,54 +1434,12 @@ Object {
             "type": "TIMER",
           },
           "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "actions": Array [],
-            "activities": Object {},
-            "changed": true,
-            "context": undefined,
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
-            "matches": [Function],
-            "meta": Object {},
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
           "historyValue": Object {
-            "current": "green",
+            "current": "yellow",
             "states": Object {
               "green": undefined,
               "red": Object {
-                "current": "stop",
+                "current": "walk",
                 "states": Object {
                   "flashing": undefined,
                   "stop": undefined,
@@ -666,8 +1453,9 @@ Object {
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
-          "value": "green",
+          "value": "yellow",
         },
+        "weight": 1,
       },
     ],
     "state": Object {
@@ -708,21 +1496,104 @@ Object {
       "toStrings": [Function],
       "value": "yellow",
     },
-    "weight": 1,
   },
   "{\\"red\\":\\"flashing\\"}": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "POWER_OUTAGE",
-        },
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "POWER_OUTAGE",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "PED_COUNTDOWN",
+                  },
+                  "name": "PED_COUNTDOWN",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "red": "stop",
+                  },
+                  "states": Object {
+                    "green": undefined,
+                    "red": Object {
+                      "current": "stop",
+                      "states": Object {
+                        "flashing": undefined,
+                        "stop": undefined,
+                        "wait": undefined,
+                        "walk": undefined,
+                      },
+                    },
+                    "yellow": undefined,
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "red": "stop",
+                },
+              },
+              "historyValue": Object {
+                "current": "green",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "stop",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "green",
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
-              "type": "TIMER",
+              "type": "POWER_OUTAGE",
             },
-            "name": "TIMER",
+            "name": "POWER_OUTAGE",
             "type": "external",
           },
           "actions": Array [],
@@ -730,57 +1601,17 @@ Object {
           "changed": true,
           "context": undefined,
           "event": Object {
-            "type": "TIMER",
+            "type": "POWER_OUTAGE",
           },
           "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "actions": Array [],
-            "activities": Object {},
-            "changed": true,
-            "context": undefined,
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
-            "matches": [Function],
-            "meta": Object {},
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
           "historyValue": Object {
-            "current": "green",
+            "current": Object {
+              "red": "flashing",
+            },
             "states": Object {
               "green": undefined,
               "red": Object {
-                "current": "stop",
+                "current": "flashing",
                 "states": Object {
                   "flashing": undefined,
                   "stop": undefined,
@@ -794,8 +1625,11 @@ Object {
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
-          "value": "green",
+          "value": Object {
+            "red": "flashing",
+          },
         },
+        "weight": 1,
       },
     ],
     "state": Object {
@@ -840,21 +1674,246 @@ Object {
         "red": "flashing",
       },
     },
-    "weight": 1,
   },
   "{\\"red\\":\\"stop\\"}": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "TIMER",
-        },
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "PED_COUNTDOWN",
+                  },
+                  "name": "PED_COUNTDOWN",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "red": "stop",
+                  },
+                  "states": Object {
+                    "green": undefined,
+                    "red": Object {
+                      "current": "stop",
+                      "states": Object {
+                        "flashing": undefined,
+                        "stop": undefined,
+                        "wait": undefined,
+                        "walk": undefined,
+                      },
+                    },
+                    "yellow": undefined,
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "red": "stop",
+                },
+              },
+              "historyValue": Object {
+                "current": "green",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "stop",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "green",
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": "yellow",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "walk",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "yellow",
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "PED_COUNTDOWN",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": Object {
+                  "red": "walk",
+                },
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "walk",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": Object {
+                "red": "walk",
+              },
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "PED_COUNTDOWN",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "name": "PED_COUNTDOWN",
+                "type": "external",
+              },
+              "actions": Array [
+                Object {
+                  "exec": undefined,
+                  "type": "startCountdown",
+                },
+              ],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "PED_COUNTDOWN",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": Object {
+                  "red": "wait",
+                },
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "wait",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": Object {
+                "red": "wait",
+              },
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
             "data": Object {
-              "type": "TIMER",
+              "type": "PED_COUNTDOWN",
             },
-            "name": "TIMER",
+            "name": "PED_COUNTDOWN",
             "type": "external",
           },
           "actions": Array [],
@@ -862,53 +1921,13 @@ Object {
           "changed": true,
           "context": undefined,
           "event": Object {
-            "type": "TIMER",
+            "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "actions": Array [],
-            "activities": Object {},
-            "changed": true,
-            "context": undefined,
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
-            "matches": [Function],
-            "meta": Object {},
-            "toStrings": [Function],
-            "value": Object {
+          "historyValue": Object {
+            "current": Object {
               "red": "stop",
             },
-          },
-          "historyValue": Object {
-            "current": "green",
             "states": Object {
               "green": undefined,
               "red": Object {
@@ -926,103 +1945,236 @@ Object {
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
-          "value": "green",
-        },
-      },
-      Object {
-        "event": Object {
-          "type": "TIMER",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
-          "value": "yellow",
-        },
-      },
-      Object {
-        "event": Object {
-          "type": "PED_COUNTDOWN",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
           "value": Object {
-            "red": "walk",
+            "red": "stop",
           },
         },
+        "weight": 4,
       },
-      Object {
-        "event": Object {
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
           "type": "PED_COUNTDOWN",
         },
+        "name": "PED_COUNTDOWN",
+        "type": "external",
+      },
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "context": undefined,
+      "event": Object {
+        "type": "PED_COUNTDOWN",
+      },
+      "events": Array [],
+      "historyValue": Object {
+        "current": Object {
+          "red": "stop",
+        },
+        "states": Object {
+          "green": undefined,
+          "red": Object {
+            "current": "stop",
+            "states": Object {
+              "flashing": undefined,
+              "stop": undefined,
+              "wait": undefined,
+              "walk": undefined,
+            },
+          },
+          "yellow": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": Object {
+        "red": "stop",
+      },
+    },
+  },
+  "{\\"red\\":\\"wait\\"}": Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "PED_COUNTDOWN",
+                  },
+                  "name": "PED_COUNTDOWN",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "red": "stop",
+                  },
+                  "states": Object {
+                    "green": undefined,
+                    "red": Object {
+                      "current": "stop",
+                      "states": Object {
+                        "flashing": undefined,
+                        "stop": undefined,
+                        "wait": undefined,
+                        "walk": undefined,
+                      },
+                    },
+                    "yellow": undefined,
+                  },
+                },
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "red": "stop",
+                },
+              },
+              "historyValue": Object {
+                "current": "green",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "stop",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "green",
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": "yellow",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "walk",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "yellow",
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "PED_COUNTDOWN",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": Object {
+                  "red": "walk",
+                },
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "walk",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": Object {
+                "red": "walk",
+              },
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
@@ -1070,228 +2222,7 @@ Object {
             "red": "wait",
           },
         },
-      },
-    ],
-    "state": Object {
-      "_event": Object {
-        "$$type": "scxml",
-        "data": Object {
-          "type": "PED_COUNTDOWN",
-        },
-        "name": "PED_COUNTDOWN",
-        "type": "external",
-      },
-      "actions": Array [],
-      "activities": Object {},
-      "changed": true,
-      "context": undefined,
-      "event": Object {
-        "type": "PED_COUNTDOWN",
-      },
-      "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "stop",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "stop",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
-      "matches": [Function],
-      "meta": Object {},
-      "toStrings": [Function],
-      "value": Object {
-        "red": "stop",
-      },
-    },
-    "weight": 4,
-  },
-  "{\\"red\\":\\"wait\\"}": Object {
-    "path": Array [
-      Object {
-        "event": Object {
-          "type": "TIMER",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
-              },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "actions": Array [],
-            "activities": Object {},
-            "changed": true,
-            "context": undefined,
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
-            "matches": [Function],
-            "meta": Object {},
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
-          "historyValue": Object {
-            "current": "green",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
-          "value": "green",
-        },
-      },
-      Object {
-        "event": Object {
-          "type": "TIMER",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
-          "value": "yellow",
-        },
-      },
-      Object {
-        "event": Object {
-          "type": "PED_COUNTDOWN",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
-              "type": "TIMER",
-            },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
-          "value": Object {
-            "red": "walk",
-          },
-        },
+        "weight": 3,
       },
     ],
     "state": Object {
@@ -1341,99 +2272,140 @@ Object {
         "red": "wait",
       },
     },
-    "weight": 3,
   },
   "{\\"red\\":\\"walk\\"}": Object {
-    "path": Array [
+    "paths": Array [
       Object {
-        "event": Object {
-          "type": "TIMER",
-        },
-        "state": Object {
-          "_event": Object {
-            "$$type": "scxml",
-            "data": Object {
+        "segments": Array [
+          Object {
+            "event": Object {
               "type": "TIMER",
             },
-            "name": "TIMER",
-            "type": "external",
-          },
-          "actions": Array [],
-          "activities": Object {},
-          "changed": true,
-          "context": undefined,
-          "event": Object {
-            "type": "TIMER",
-          },
-          "events": Array [],
-          "history": Object {
-            "_event": Object {
-              "$$type": "scxml",
-              "data": Object {
-                "type": "PED_COUNTDOWN",
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
               },
-              "name": "PED_COUNTDOWN",
-              "type": "external",
-            },
-            "actions": Array [],
-            "activities": Object {},
-            "changed": true,
-            "context": undefined,
-            "event": Object {
-              "type": "PED_COUNTDOWN",
-            },
-            "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
               },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
+              "events": Array [],
+              "history": Object {
+                "_event": Object {
+                  "$$type": "scxml",
+                  "data": Object {
+                    "type": "PED_COUNTDOWN",
+                  },
+                  "name": "PED_COUNTDOWN",
+                  "type": "external",
+                },
+                "actions": Array [],
+                "activities": Object {},
+                "changed": true,
+                "context": undefined,
+                "event": Object {
+                  "type": "PED_COUNTDOWN",
+                },
+                "events": Array [],
+                "historyValue": Object {
+                  "current": Object {
+                    "red": "stop",
+                  },
                   "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
+                    "green": undefined,
+                    "red": Object {
+                      "current": "stop",
+                      "states": Object {
+                        "flashing": undefined,
+                        "stop": undefined,
+                        "wait": undefined,
+                        "walk": undefined,
+                      },
+                    },
+                    "yellow": undefined,
                   },
                 },
-                "yellow": undefined,
-              },
-            },
-            "matches": [Function],
-            "meta": Object {},
-            "toStrings": [Function],
-            "value": Object {
-              "red": "stop",
-            },
-          },
-          "historyValue": Object {
-            "current": "green",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
+                "matches": [Function],
+                "meta": Object {},
+                "toStrings": [Function],
+                "value": Object {
+                  "red": "stop",
                 },
               },
-              "yellow": undefined,
+              "historyValue": Object {
+                "current": "green",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "stop",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "green",
             },
           },
-          "matches": [Function],
-          "meta": Object {},
-          "toStrings": [Function],
-          "value": "green",
-        },
-      },
-      Object {
-        "event": Object {
-          "type": "TIMER",
-        },
+          Object {
+            "event": Object {
+              "type": "TIMER",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "TIMER",
+                },
+                "name": "TIMER",
+                "type": "external",
+              },
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "context": undefined,
+              "event": Object {
+                "type": "TIMER",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": "yellow",
+                "states": Object {
+                  "green": undefined,
+                  "red": Object {
+                    "current": "walk",
+                    "states": Object {
+                      "flashing": undefined,
+                      "stop": undefined,
+                      "wait": undefined,
+                      "walk": undefined,
+                    },
+                  },
+                  "yellow": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "yellow",
+            },
+          },
+        ],
         "state": Object {
           "_event": Object {
             "$$type": "scxml",
@@ -1452,7 +2424,9 @@ Object {
           },
           "events": Array [],
           "historyValue": Object {
-            "current": "yellow",
+            "current": Object {
+              "red": "walk",
+            },
             "states": Object {
               "green": undefined,
               "red": Object {
@@ -1470,8 +2444,11 @@ Object {
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
-          "value": "yellow",
+          "value": Object {
+            "red": "walk",
+          },
         },
+        "weight": 2,
       },
     ],
     "state": Object {
@@ -1516,7 +2493,6 @@ Object {
         "red": "walk",
       },
     },
-    "weight": 2,
   },
 }
 `;

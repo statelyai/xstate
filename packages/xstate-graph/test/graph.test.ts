@@ -1,4 +1,4 @@
-import { Machine, StateNode, State } from 'xstate';
+import { Machine, StateNode } from 'xstate';
 import { getNodes, getSimplePaths, getShortestPaths } from '../src/index';
 import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
@@ -159,7 +159,7 @@ describe('@xstate/graph', () => {
       expect(
         getShortestPaths(lightMachine)[
           JSON.stringify(lightMachine.initialState.value)
-        ].path
+        ].paths[0].segments
       ).toHaveLength(0);
     });
 
@@ -173,50 +173,9 @@ describe('@xstate/graph', () => {
           EVENT: [{ type: 'EVENT', id: 'whatever' }],
           STATE: [{ type: 'STATE' }]
         }
-      }) as any;
-      Object.keys(paths).forEach(key => {
-        expect(paths[key].state).toBeInstanceOf(State);
-        const data = paths[key];
-
-        data.state = {
-          value: data.state.value,
-          context: data.state.context
-        };
-        data.path.forEach(segment => {
-          segment.state = {
-            value: segment.state.value,
-            context: segment.state.context
-          };
-        });
       });
 
-      expect(paths).toEqual({
-        '"pending" | {"id":"foo"}': {
-          state: { value: 'pending', context: { id: 'foo' } },
-          weight: 0,
-          path: []
-        },
-        '"bar" | {"id":"foo"}': {
-          state: { value: 'bar', context: { id: 'foo' } },
-          weight: 1,
-          path: [
-            {
-              state: { value: 'pending', context: { id: 'foo' } },
-              event: { type: 'EVENT', id: 'whatever' }
-            }
-          ]
-        },
-        '"foo" | {"id":"foo"}': {
-          state: { value: 'foo', context: { id: 'foo' } },
-          weight: 1,
-          path: [
-            {
-              state: { value: 'pending', context: { id: 'foo' } },
-              event: { type: 'STATE' }
-            }
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('shortest paths conditional');
     });
   });
 
