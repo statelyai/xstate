@@ -73,7 +73,7 @@ export class TestModel<T, TContext> {
 
       return {
         ...testPlan,
-        test: testContext => this.test(testPlan.state, testContext),
+        test: testContext => this.testState(testPlan.state, testContext),
         description: getDescription(testPlan.state),
         paths: [
           {
@@ -82,7 +82,7 @@ export class TestModel<T, TContext> {
               return {
                 ...segment,
                 description: getDescription(segment.state),
-                test: testContext => this.test(segment.state, testContext),
+                test: testContext => this.testState(segment.state, testContext),
                 exec: testContext => this.exec(segment.event, testContext)
               };
             })
@@ -137,7 +137,7 @@ export class TestModel<T, TContext> {
 
       return {
         ...testPlan,
-        test: testContext => this.test(testPlan.state, testContext),
+        test: testContext => this.testState(testPlan.state, testContext),
         description: getDescription(testPlan.state),
         paths: testPlan.paths.map(path => {
           return {
@@ -146,7 +146,7 @@ export class TestModel<T, TContext> {
               return {
                 ...segment,
                 description: getDescription(segment.state),
-                test: testContext => this.test(segment.state, testContext),
+                test: testContext => this.testState(segment.state, testContext),
                 exec: testContext => this.exec(segment.event, testContext)
               };
             })
@@ -162,7 +162,7 @@ export class TestModel<T, TContext> {
     return this.filterPathsTo(stateValue, this.getSimplePaths());
   }
 
-  public async test(state: State<any, any>, testContext: T) {
+  public async testState(state: State<any, any>, testContext: T) {
     for (const id of Object.keys(state.meta)) {
       const stateNodeMeta = state.meta[id] as TestMeta<T>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
