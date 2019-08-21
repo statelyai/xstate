@@ -13,11 +13,7 @@ export interface TransitionMap {
   state: StateValue | undefined;
 }
 
-export interface AdjacencyMap {
-  [stateId: string]: Record<string, TransitionMap>;
-}
-
-export interface ValueAdjacencyMap<TContext, TEvent extends EventObject> {
+export interface AdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<
     string,
     {
@@ -48,7 +44,7 @@ export interface Edge<
 
 export interface PathsItem<TContext, TEvent extends EventObject> {
   state: State<TContext, TEvent>;
-  paths: Array<Array<Segment<TContext, TEvent>>>;
+  paths: Array<Path<TContext, TEvent>>;
 }
 
 export interface PathsMap<TContext, TEvent extends EventObject> {

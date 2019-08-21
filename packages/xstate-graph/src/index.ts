@@ -1,17 +1,13 @@
 import {
   getNodes,
-  getEdges,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,
-  serializeState,
-  adjacencyMap
+  serializeState
 } from './graph';
 
 export {
-  adjacencyMap,
   getNodes,
-  getEdges,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,

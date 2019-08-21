@@ -4,18 +4,10 @@ import {
   DefaultContext,
   Event,
   EventObject,
-  StateMachine,
-  StateValue
+  StateMachine
 } from 'xstate';
 import { flatten, keys, toEventObject } from 'xstate/lib/utils';
-import {
-  PathMap,
-  PathsMap,
-  Segment,
-  PathsItem,
-  ValueAdjacencyMap,
-  AdjacencyMap
-} from './types';
+import { PathMap, PathsMap, PathsItem, AdjacencyMap, Segments } from './types';
 
 const EMPTY_MAP = {};
 
@@ -30,36 +22,6 @@ export function getNodes(node: StateNode): StateNode[] {
   }, []);
 
   return nodes;
-}
-
-export function adjacencyMap<TContext = DefaultContext>(
-  node: StateNode<TContext>,
-  context?: TContext
-): AdjacencyMap {
-  const adjacency: AdjacencyMap = {};
-
-  const events = node.events;
-
-  function findAdjacencies(stateValue: StateValue) {
-    const stateKey = JSON.stringify(stateValue);
-
-    if (adjacency[stateKey]) {
-      return;
-    }
-
-    adjacency[stateKey] = {};
-
-    for (const event of events) {
-      const nextState = node.transition(stateValue, event, context);
-      adjacency[stateKey][event as string] = { state: nextState.value };
-
-      findAdjacencies(nextState.value);
-    }
-  }
-
-  findAdjacencies(node.initialState.value);
-
-  return adjacency;
 }
 
 export function serializeState<TContext>(state: State<TContext>): string {
@@ -95,13 +57,13 @@ const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
   eventSerializer: serializeEvent
 };
 
-export function getValueAdjacencyMap<
+export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
   node: StateNode<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-): ValueAdjacencyMap<TContext, TEvent> {
+): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
     ...defaultValueAdjMapOptions,
     ...options
@@ -113,7 +75,7 @@ export function getValueAdjacencyMap<
   }
   Object.assign(events, optionsWithDefaults.events);
 
-  const adjacency: ValueAdjacencyMap<TContext, TEvent> = {};
+  const adjacency: AdjacencyMap<TContext, TEvent> = {};
 
   function findAdjacencies(state: State<TContext, TEvent>) {
     const { nextEvents } = state;
@@ -178,7 +140,7 @@ export function getShortestPaths<
     ...options
   } as ValueAdjMapOptions<TContext, TEvent>;
 
-  const adjacency = getValueAdjacencyMap<TContext, TEvent>(
+  const adjacency = getAdjacencyMap<TContext, TEvent>(
     machine,
     optionsWithDefaults
   );
@@ -338,13 +300,14 @@ export function getSimplePaths<
     return EMPTY_MAP;
   }
 
-  const adjacency = getValueAdjacencyMap(machine, optionsWithDefaults);
+  const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();
-  const path: Array<Segment<TContext, TEvent>> = [];
+  const path: Segments<TContext, TEvent> = [];
   const paths: PathsMap<TContext, TEvent> = {};
 
-  function util(fromStateSerial: string, toStateSerial: string) {
+  function util(fromState: State<TContext, TEvent>, toStateSerial: string) {
+    const fromStateSerial = stateSerializer(fromState);
     visited.add(fromStateSerial);
 
     if (fromStateSerial === toStateSerial) {
@@ -354,7 +317,11 @@ export function getSimplePaths<
           paths: []
         };
       }
-      paths[toStateSerial].paths.push([...path]);
+      paths[toStateSerial].paths.push({
+        state: fromState,
+        weight: path.length,
+        segments: [...path]
+      });
     } else {
       for (const subEvent of keys(adjacency[fromStateSerial])) {
         const nextSegment = adjacency[fromStateSerial][subEvent];
@@ -371,7 +338,7 @@ export function getSimplePaths<
             state: stateMap.get(fromStateSerial)!,
             event: deserializeEventString(subEvent)
           });
-          util(nextStateSerial, toStateSerial);
+          util(nextSegment.state, toStateSerial);
         }
       }
     }
@@ -384,7 +351,7 @@ export function getSimplePaths<
   stateMap.set(initialStateSerial, machine.initialState);
 
   for (const nextStateSerial of keys(adjacency)) {
-    util(initialStateSerial, nextStateSerial);
+    util(machine.initialState, nextStateSerial);
   }
 
   return paths;

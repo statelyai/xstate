@@ -1,13 +1,7 @@
 import { Machine, StateNode, State } from 'xstate';
-import {
-  getNodes,
-  adjacencyMap,
-  getSimplePaths,
-  getShortestPaths
-} from '../src/index';
-import { getSimplePathsAsArray, getValueAdjacencyMap } from '../src/graph';
+import { getNodes, getSimplePaths, getShortestPaths } from '../src/index';
+import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
-// tslint:disable-next-line:no-var-requires
 
 describe('@xstate/graph', () => {
   const pedestrianStates = {
@@ -149,202 +143,16 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('adjacencyMap()', () => {
-    it('should return a flattened adjacency map', () => {
-      expect(adjacencyMap(lightMachine)).toEqual({
-        '"green"': {
-          TIMER: { state: 'yellow' },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'green' },
-          PUSH_BUTTON: { state: 'green' }
-        },
-        '"yellow"': {
-          TIMER: { state: { red: 'walk' } },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: 'yellow' },
-          PUSH_BUTTON: { state: 'yellow' }
-        },
-        '{"red":"walk"}': {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'wait' } },
-          PUSH_BUTTON: { state: { red: 'walk' } }
-        },
-        '{"red":"flashing"}': {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'flashing' } },
-          PUSH_BUTTON: { state: { red: 'flashing' } }
-        },
-        '{"red":"wait"}': {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } },
-          PUSH_BUTTON: { state: { red: 'wait' } }
-        },
-        '{"red":"stop"}': {
-          TIMER: { state: 'green' },
-          POWER_OUTAGE: { state: { red: 'flashing' } },
-          PED_COUNTDOWN: { state: { red: 'stop' } },
-          PUSH_BUTTON: { state: { red: 'stop' } }
-        }
-      });
-    });
-
-    it('should return a flattened adjacency map (parallel)', () => {
-      expect(adjacencyMap(parallelMachine)).toEqual({
-        '{"a":"a1","b":"b1"}': {
-          '1': { state: { a: 'a1', b: 'b1' } },
-          '2': { state: { a: 'a2', b: 'b2' } },
-          '3': { state: { a: 'a3', b: 'b3' } }
-        },
-        '{"a":"a2","b":"b2"}': {
-          '1': { state: { a: 'a1', b: 'b1' } },
-          '2': { state: { a: 'a2', b: 'b2' } },
-          '3': { state: { a: 'a3', b: 'b3' } }
-        },
-        '{"a":"a3","b":"b3"}': {
-          '1': { state: { a: 'a3', b: 'b3' } },
-          '2': { state: { a: 'a3', b: 'b3' } },
-          '3': { state: { a: 'a3', b: 'b3' } }
-        }
-      });
-    });
-  });
-
   describe('getShortestPaths()', () => {
-    function formatPaths(pathMap): any {
-      Object.keys(pathMap).forEach(key => {
-        const data = pathMap[key] as any;
-        data.state = {
-          value: data.state.value,
-          context: data.state.context
-        };
-        data.path.forEach(segment => {
-          segment.state = {
-            value: segment.state.value,
-            context: segment.state.context
-          };
-        });
-      });
-      return pathMap;
-    }
-
     it('should return a mapping of shortest paths to all states', () => {
       const paths = getShortestPaths(lightMachine) as any;
 
-      expect(formatPaths(paths)).toEqual({
-        '"green"': {
-          state: { value: 'green', context: undefined },
-          weight: 0,
-          path: []
-        },
-        '"yellow"': {
-          state: { value: 'yellow', context: undefined },
-          weight: 1,
-          path: [
-            {
-              state: { value: 'green', context: undefined },
-              event: { type: 'TIMER' }
-            }
-          ]
-        },
-        '{"red":"flashing"}': {
-          state: { value: { red: 'flashing' }, context: undefined },
-          weight: 1,
-          path: [
-            {
-              state: { value: 'green', context: undefined },
-              event: { type: 'POWER_OUTAGE' }
-            }
-          ]
-        },
-        '{"red":"walk"}': {
-          state: { value: { red: 'walk' }, context: undefined },
-          weight: 2,
-          path: [
-            {
-              state: { value: 'green', context: undefined },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { value: 'yellow', context: undefined },
-              event: { type: 'TIMER' }
-            }
-          ]
-        },
-        '{"red":"wait"}': {
-          state: { value: { red: 'wait' }, context: undefined },
-          weight: 3,
-          path: [
-            {
-              state: { value: 'green', context: undefined },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { value: 'yellow', context: undefined },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { value: { red: 'walk' }, context: undefined },
-              event: { type: 'PED_COUNTDOWN' }
-            }
-          ]
-        },
-        '{"red":"stop"}': {
-          state: { value: { red: 'stop' }, context: undefined },
-          weight: 4,
-          path: [
-            {
-              state: { value: 'green', context: undefined },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { value: 'yellow', context: undefined },
-              event: { type: 'TIMER' }
-            },
-            {
-              state: { value: { red: 'walk' }, context: undefined },
-              event: { type: 'PED_COUNTDOWN' }
-            },
-            {
-              state: { value: { red: 'wait' }, context: undefined },
-              event: { type: 'PED_COUNTDOWN' }
-            }
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('shortest paths');
     });
 
     it('should return a mapping of shortest paths to all states (parallel)', () => {
       const paths = getShortestPaths(parallelMachine) as any;
-      expect(formatPaths(paths)).toEqual({
-        '{"a":"a1","b":"b1"}': {
-          state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-          weight: 0,
-          path: []
-        },
-        '{"a":"a2","b":"b2"}': {
-          state: { value: { a: 'a2', b: 'b2' }, context: undefined },
-          weight: 1,
-          path: [
-            {
-              state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-              event: { type: '2' }
-            }
-          ]
-        },
-        '{"a":"a3","b":"b3"}': {
-          state: { value: { a: 'a3', b: 'b3' }, context: undefined },
-          weight: 1,
-          path: [
-            {
-              state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-              event: { type: '3' }
-            }
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('shortest paths parallel');
     });
 
     it('the initial state should have a zero-length path', () => {
@@ -413,175 +221,10 @@ describe('@xstate/graph', () => {
   });
 
   describe('getSimplePaths()', () => {
-    function formatPaths(pathsMap): any {
-      Object.keys(pathsMap).forEach(key => {
-        const data = pathsMap[key] as any;
-        data.state = { value: data.state.value, context: data.state.context };
-        data.paths.forEach(path => {
-          path.forEach(segment => {
-            segment.state = {
-              value: segment.state.value,
-              context: segment.state.context
-            };
-          });
-        });
-      });
-
-      return pathsMap;
-    }
-
     it('should return a mapping of arrays of simple paths to all states', () => {
       const paths = getSimplePaths(lightMachine) as any;
 
-      expect(formatPaths(paths)).toEqual({
-        '"green"': {
-          state: { value: 'green', context: undefined },
-          paths: [[]]
-        },
-        '"yellow"': {
-          state: { value: 'yellow', context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              }
-            ]
-          ]
-        },
-        '{"red":"walk"}': {
-          state: { value: { red: 'walk' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              }
-            ]
-          ]
-        },
-        '{"red":"wait"}': {
-          state: { value: { red: 'wait' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              }
-            ]
-          ]
-        },
-        '{"red":"stop"}': {
-          state: { value: { red: 'stop' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              }
-            ]
-          ]
-        },
-        '{"red":"flashing"}': {
-          state: { value: { red: 'flashing' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'stop' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ]
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('simple paths');
     });
 
     const equivMachine = Machine({
@@ -594,73 +237,23 @@ describe('@xstate/graph', () => {
 
     it('should return a mapping of simple paths to all states (parallel)', () => {
       const paths = getSimplePaths(parallelMachine);
-      expect(formatPaths(paths)).toEqual({
-        '{"a":"a1","b":"b1"}': {
-          state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-          paths: [[]]
-        },
-        '{"a":"a2","b":"b2"}': {
-          state: { value: { a: 'a2', b: 'b2' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-                event: { type: '2' }
-              }
-            ]
-          ]
-        },
-        '{"a":"a3","b":"b3"}': {
-          state: { value: { a: 'a3', b: 'b3' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-                event: { type: '2' }
-              },
-              {
-                state: { value: { a: 'a2', b: 'b2' }, context: undefined },
-                event: { type: '3' }
-              }
-            ],
-            [
-              {
-                state: { value: { a: 'a1', b: 'b1' }, context: undefined },
-                event: { type: '3' }
-              }
-            ]
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('simple paths parallel');
     });
 
     it('should return multiple paths for equivalent transitions', () => {
       const paths = getSimplePaths(equivMachine);
-      expect(formatPaths(paths)).toEqual({
-        '"a"': { state: { value: 'a', context: undefined }, paths: [[]] },
-        '"b"': {
-          state: { value: 'b', context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'a', context: undefined },
-                event: { type: 'FOO' }
-              }
-            ],
-            [
-              {
-                state: { value: 'a', context: undefined },
-                event: { type: 'BAR' }
-              }
-            ]
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('simple paths equal transitions');
     });
 
     it('should return a single empty path for the initial state', () => {
-      expect(getSimplePaths(lightMachine)['"green"'].paths).toEqual([[]]);
-      expect(getSimplePaths(equivMachine)['"a"'].paths).toEqual([[]]);
+      expect(getSimplePaths(lightMachine)['"green"'].paths).toHaveLength(1);
+      expect(
+        getSimplePaths(lightMachine)['"green"'].paths[0].segments
+      ).toHaveLength(0);
+      expect(getSimplePaths(equivMachine)['"a"'].paths).toHaveLength(1);
+      expect(
+        getSimplePaths(equivMachine)['"a"'].paths[0].segments
+      ).toHaveLength(0);
     });
 
     it('should return value-based paths', () => {
@@ -692,224 +285,16 @@ describe('@xstate/graph', () => {
         }
       });
 
-      expect(formatPaths(paths)).toEqual({
-        '"start" | {"count":0}': {
-          state: { value: 'start', context: { count: 0 } },
-          paths: [[]]
-        },
-        '"start" | {"count":1}': {
-          state: { value: 'start', context: { count: 1 } },
-          paths: [
-            [
-              {
-                state: { value: 'start', context: { count: 0 } },
-                event: { type: 'INC', value: 1 }
-              }
-            ]
-          ]
-        },
-        '"start" | {"count":2}': {
-          state: { value: 'start', context: { count: 2 } },
-          paths: [
-            [
-              {
-                state: { value: 'start', context: { count: 0 } },
-                event: { type: 'INC', value: 1 }
-              },
-              {
-                state: { value: 'start', context: { count: 1 } },
-                event: { type: 'INC', value: 1 }
-              }
-            ]
-          ]
-        },
-        '"finish" | {"count":3}': {
-          state: { value: 'finish', context: { count: 3 } },
-          paths: [
-            [
-              {
-                state: { value: 'start', context: { count: 0 } },
-                event: { type: 'INC', value: 1 }
-              },
-              {
-                state: { value: 'start', context: { count: 1 } },
-                event: { type: 'INC', value: 1 }
-              },
-              {
-                state: { value: 'start', context: { count: 2 } },
-                event: { type: 'INC', value: 1 }
-              }
-            ]
-          ]
-        }
-      });
+      expect(paths).toMatchSnapshot('simple paths context');
     });
   });
 
   describe('getSimplePathsAsArray()', () => {
     it('should return an array of shortest paths to all states', () => {
-      const pathsArray = getSimplePathsAsArray(lightMachine) as any;
-      pathsArray.forEach(pathData => {
-        pathData.state = {
-          value: pathData.state.value,
-          context: pathData.state.context
-        };
-        pathData.paths.forEach(path => {
-          path.forEach(segment => {
-            segment.state = {
-              value: segment.state.value,
-              context: segment.state.context
-            };
-          });
-        });
-      });
+      const pathsArray = getSimplePathsAsArray(lightMachine);
 
-      expect(pathsArray).toEqual([
-        { state: { value: 'green', context: undefined }, paths: [[]] },
-        {
-          state: { value: 'yellow', context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              }
-            ]
-          ]
-        },
-        {
-          state: { value: { red: 'walk' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              }
-            ]
-          ]
-        },
-        {
-          state: { value: { red: 'wait' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              }
-            ]
-          ]
-        },
-        {
-          state: { value: { red: 'stop' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              }
-            ]
-          ]
-        },
-        {
-          state: { value: { red: 'flashing' }, context: undefined },
-          paths: [
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'stop' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'PED_COUNTDOWN' }
-              },
-              {
-                state: { value: { red: 'wait' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: { red: 'walk' }, context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'TIMER' }
-              },
-              {
-                state: { value: 'yellow', context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ],
-            [
-              {
-                state: { value: 'green', context: undefined },
-                event: { type: 'POWER_OUTAGE' }
-              }
-            ]
-          ]
-        }
-      ]);
+      expect(Array.isArray(pathsArray)).toBeTruthy();
+      expect(pathsArray).toMatchSnapshot('simple paths array');
     });
   });
 
@@ -936,7 +321,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getValueAdjacencyMap(counterMachine, {
+      const adj = getAdjacencyMap(counterMachine, {
         filter: state => state.context.count >= 0 && state.context.count <= 5,
         stateSerializer: state => {
           const ctx = { count: state.context.count };
