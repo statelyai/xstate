@@ -139,10 +139,10 @@ export class TestModel<T, TContext> {
         ...testPlan,
         test: testContext => this.test(testPlan.state, testContext),
         description: getDescription(testPlan.state),
-        paths: testPlan.paths.map(segments => {
+        paths: testPlan.paths.map(path => {
           return {
-            weight: 0,
-            segments: segments.map(segment => {
+            ...path,
+            segments: path.segments.map(segment => {
               return {
                 ...segment,
                 description: getDescription(segment.state),
