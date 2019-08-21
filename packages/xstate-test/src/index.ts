@@ -3,10 +3,11 @@ import {
   getSimplePaths
 } from '../node_modules/@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
+import { StatePathsMap } from '@xstate/graph/lib/types';
 
-interface TestMeta<T> {
-  test?: (testContext: T) => Promise<void>;
-  description?: string | ((state: State<any, any>) => string);
+interface TestMeta<T, TContext> {
+  test?: (testContext: T, state: State<TContext>) => Promise<void>;
+  description?: string | ((state: State<TContext>) => string);
   skip?: boolean;
 }
 
@@ -18,13 +19,25 @@ interface TestSegment<T> {
   exec: (testContext: T) => Promise<void>;
 }
 
-interface TestPlan<T> {
-  state: State<any>;
-  paths: Array<{
-    weight: number;
-    segments: Array<TestSegment<T>>;
-  }>;
+interface TestPath<T> {
+  weight: number;
+  segments: Array<TestSegment<T>>;
+  /**
+   * Tests and executes each segment in `segments` sequentially, and then
+   * tests the postcondition that the `state` is reached.
+   */
+  test: (testContext: T) => Promise<void>;
+}
+
+interface TestPlan<T, TContext> {
+  state: State<TContext>;
+  paths: Array<TestPath<T>>;
   description: string;
+  /**
+   * Tests the postcondition that the `state` is reached.
+   *
+   * This should be tested after navigating any path in `paths`.
+   */
   test: (testContext: T) => Promise<void>;
 }
 
@@ -62,41 +75,20 @@ export class TestModel<T, TContext> {
 
   public getShortestPaths(
     options?: Parameters<typeof getShortestPaths>[1]
-  ): Array<TestPlan<T>> {
+  ): Array<TestPlan<T, TContext>> {
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
       events: getEventSamples<T>(this.options.events)
-    });
+    }) as StatePathsMap<TContext, any>;
 
-    return Object.keys(shortestPaths).map(key => {
-      const testPlan = shortestPaths[key];
-
-      return {
-        ...testPlan,
-        test: testContext => this.testState(testPlan.state, testContext),
-        description: getDescription(testPlan.state),
-        paths: [
-          {
-            weight: testPlan.weight || 0,
-            segments: testPlan.path.map(segment => {
-              return {
-                ...segment,
-                description: getDescription(segment.state),
-                test: testContext => this.testState(segment.state, testContext),
-                exec: testContext => this.exec(segment.event, testContext)
-              };
-            })
-          }
-        ]
-      };
-    });
+    return this.getTestPlans(shortestPaths);
   }
 
   public getShortestPathsTo(
     stateValue: StateValue | StatePredicate<TContext>
-  ): Array<TestPlan<T>> {
+  ): Array<TestPlan<T, TContext>> {
     let minWeight = Infinity;
-    let shortestPlans: Array<TestPlan<T>> = [];
+    let shortestPlans: Array<TestPlan<T, TContext>> = [];
 
     const plans = this.filterPathsTo(stateValue, this.getShortestPaths());
 
@@ -115,8 +107,8 @@ export class TestModel<T, TContext> {
 
   private filterPathsTo(
     stateValue: StateValue | StatePredicate<TContext>,
-    testPlans: Array<TestPlan<T>>
-  ): Array<TestPlan<T>> {
+    testPlans: Array<TestPlan<T, TContext>>
+  ): Array<TestPlan<T, TContext>> {
     const predicate =
       typeof stateValue === 'function'
         ? plan => stateValue(plan.state)
@@ -126,57 +118,73 @@ export class TestModel<T, TContext> {
 
   public getSimplePaths(
     options?: Parameters<typeof getSimplePaths>[1]
-  ): Array<TestPlan<T>> {
+  ): Array<TestPlan<T, TContext>> {
     const simplePaths = getSimplePaths(this.machine, {
       ...options,
       events: getEventSamples(this.options.events)
-    });
+    }) as StatePathsMap<TContext, any>;
 
-    return Object.keys(simplePaths).map(key => {
-      const testPlan = simplePaths[key];
+    return this.getTestPlans(simplePaths);
+  }
+
+  public getSimplePathsTo(
+    stateValue: StateValue | StatePredicate<TContext>
+  ): Array<TestPlan<T, TContext>> {
+    return this.filterPathsTo(stateValue, this.getSimplePaths());
+  }
+
+  public getTestPlans(
+    statePathsMap: StatePathsMap<TContext, any>
+  ): Array<TestPlan<T, TContext>> {
+    return Object.keys(statePathsMap).map(key => {
+      const testPlan = statePathsMap[key];
 
       return {
         ...testPlan,
         test: testContext => this.testState(testPlan.state, testContext),
         description: getDescription(testPlan.state),
         paths: testPlan.paths.map(path => {
+          const segments = path.segments.map(segment => {
+            return {
+              ...segment,
+              description: getDescription(segment.state),
+              test: testContext => this.testState(segment.state, testContext),
+              exec: testContext => this.executeEvent(segment.event, testContext)
+            };
+          });
+
           return {
             ...path,
-            segments: path.segments.map(segment => {
-              return {
-                ...segment,
-                description: getDescription(segment.state),
-                test: testContext => this.testState(segment.state, testContext),
-                exec: testContext => this.exec(segment.event, testContext)
-              };
-            })
+            segments,
+            test: async testContext => {
+              for (const segment of segments) {
+                await segment.test(testContext);
+                await segment.exec(testContext);
+              }
+
+              await this.testState(testPlan.state, testContext);
+            }
           };
         })
       };
     });
   }
 
-  public getSimplePathsTo(
-    stateValue: StateValue | StatePredicate<TContext>
-  ): Array<TestPlan<T>> {
-    return this.filterPathsTo(stateValue, this.getSimplePaths());
-  }
-
-  public async testState(state: State<any, any>, testContext: T) {
+  public async testState(state: State<TContext>, testContext: T) {
     for (const id of Object.keys(state.meta)) {
-      const stateNodeMeta = state.meta[id] as TestMeta<T>;
+      const stateNodeMeta = state.meta[id] as TestMeta<T, TContext>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
         this.coverage.stateNodes.set(
           id,
           (this.coverage.stateNodes.get(id) || 0) + 1
         );
 
-        await stateNodeMeta.test(testContext);
+        await stateNodeMeta.test(testContext, state);
       }
     }
   }
 
-  public async exec(event: EventObject, testContext: T) {
+  public async executeEvent(event: EventObject, testContext: T) {
     const testEvent = this.options.events[event.type];
 
     if (!testEvent) {
@@ -199,10 +207,10 @@ export class TestModel<T, TContext> {
   }
 }
 
-function getDescription<T>(state: State<any, any>): string {
+function getDescription<T, TContext>(state: State<TContext>): string {
   return Object.keys(state.meta)
     .map(id => {
-      const { description } = state.meta[id] as TestMeta<T>;
+      const { description } = state.meta[id] as TestMeta<T, TContext>;
 
       return typeof description === 'function'
         ? description(state)

@@ -37,8 +37,10 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
           description: state => {
             return `pending with (${state.context.three}, ${state.context.five})`;
           },
-          test: async ({ jugs }) => {
+          test: async ({ jugs }, state) => {
             expect(jugs.five).not.toEqual(4);
+            expect(jugs.three).toEqual(state.context.three);
+            expect(jugs.five).toEqual(state.context.five);
           }
         }
       },
@@ -211,7 +213,7 @@ describe('testing a model (simplePathsTo)', () => {
     });
 });
 
-describe('testing a model (simplePathsTo + predicate)', () => {
+describe('path.test()', () => {
   const plans = dieHardModel.getSimplePathsTo(state => {
     return state.matches('success') && state.context.three === 0;
   });
@@ -225,20 +227,8 @@ describe('testing a model (simplePathsTo + predicate)', () => {
         describe(`path ${pathIndex}`, () => {
           const testJugs = new Jugs();
 
-          path.segments.forEach(segment => {
-            it(`goes to ${JSON.stringify(segment.state.value)} ${JSON.stringify(
-              segment.state.context
-            )}`, async () => {
-              await segment.test({ jugs: testJugs });
-            });
-
-            it(`executes ${JSON.stringify(segment.event)}`, async () => {
-              await segment.exec({ jugs: testJugs });
-            });
-          });
-
-          it('reaches the final state', async () => {
-            await plan.test({ jugs: testJugs });
+          it(`reaches the target state`, () => {
+            return path.test({ jugs: testJugs });
           });
         });
       });
