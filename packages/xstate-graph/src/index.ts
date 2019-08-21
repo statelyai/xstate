@@ -1,5 +1,5 @@
 import {
-  getNodes,
+  getStateNodes,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,
@@ -7,7 +7,7 @@ import {
 } from './graph';
 
 export {
-  getNodes,
+  getStateNodes,
   getSimplePaths,
   getShortestPaths,
   serializeEvent,

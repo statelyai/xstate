@@ -11,13 +11,17 @@ import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
 
 const EMPTY_MAP = {};
 
-export function getNodes(node: StateNode): StateNode[] {
-  const { states } = node;
+/**
+ * Returns all state nodes of the given `node`.
+ * @param stateNode State node to recursively get child state nodes from
+ */
+export function getStateNodes(stateNode: StateNode): StateNode[] {
+  const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
-    const subState = states[stateKey];
-    const subNodes = getNodes(states[stateKey]);
+    const childStateNode = states[stateKey];
+    const childStateNodes = getStateNodes(childStateNode);
 
-    accNodes.push(subState, ...subNodes);
+    accNodes.push(childStateNode, ...childStateNodes);
     return accNodes;
   }, []);
 
