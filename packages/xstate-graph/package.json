@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "1.0.0-rc1",
+  "version": "1.0.0-rc1.1",
   "description": "XState graph utilities",
   "keywords": [
     "state",
