@@ -33,7 +33,7 @@ export class TestModel<T, TContext> {
     };
   }
 
-  public getShortestPaths(
+  public getShortestPathPlans(
     options?: Parameters<typeof getShortestPaths>[1]
   ): Array<TestPlan<T, TContext>> {
     const shortestPaths = getShortestPaths(this.machine, {
@@ -44,13 +44,13 @@ export class TestModel<T, TContext> {
     return this.getTestPlans(shortestPaths);
   }
 
-  public getShortestPathsTo(
+  public getShortestPathPlansTo(
     stateValue: StateValue | StatePredicate<TContext>
   ): Array<TestPlan<T, TContext>> {
     let minWeight = Infinity;
     let shortestPlans: Array<TestPlan<T, TContext>> = [];
 
-    const plans = this.filterPathsTo(stateValue, this.getShortestPaths());
+    const plans = this.filterPathsTo(stateValue, this.getShortestPathPlans());
 
     for (const plan of plans) {
       const currWeight = plan.paths[0].weight;
@@ -76,7 +76,7 @@ export class TestModel<T, TContext> {
     return testPlans.filter(predicate);
   }
 
-  public getSimplePaths(
+  public getSimplePathPlans(
     options?: Parameters<typeof getSimplePaths>[1]
   ): Array<TestPlan<T, TContext>> {
     const simplePaths = getSimplePaths(this.machine, {
@@ -87,10 +87,10 @@ export class TestModel<T, TContext> {
     return this.getTestPlans(simplePaths);
   }
 
-  public getSimplePathsTo(
+  public getSimplePathPlansTo(
     stateValue: StateValue | StatePredicate<TContext>
   ): Array<TestPlan<T, TContext>> {
-    return this.filterPathsTo(stateValue, this.getSimplePaths());
+    return this.filterPathsTo(stateValue, this.getSimplePathPlans());
   }
 
   public getTestPlans(
@@ -98,124 +98,127 @@ export class TestModel<T, TContext> {
   ): Array<TestPlan<T, TContext>> {
     return Object.keys(statePathsMap).map(key => {
       const testPlan = statePathsMap[key];
-
-      return {
-        ...testPlan,
-        test: testContext => this.testState(testPlan.state, testContext),
-        description: getDescription(testPlan.state),
-        paths: testPlan.paths.map(path => {
-          const segments = path.segments.map(segment => {
-            return {
-              ...segment,
-              description: getDescription(segment.state),
-              test: testContext => this.testState(segment.state, testContext),
-              exec: testContext => this.executeEvent(segment.event, testContext)
-            };
-          });
-
+      const paths = testPlan.paths.map(path => {
+        const segments = path.segments.map(segment => {
           return {
-            ...path,
-            segments,
-            test: async testContext => {
-              const testPathResult: TestPathResult = {
-                segments: [],
-                state: {
-                  error: null
-                }
-              };
+            ...segment,
+            description: getDescription(segment.state),
+            test: testContext => this.testState(segment.state, testContext),
+            exec: testContext => this.executeEvent(segment.event, testContext)
+          };
+        });
 
-              try {
-                for (const segment of segments) {
-                  const testSegmentResult: TestSegmentResult = {
-                    segment,
-                    state: { error: null },
-                    event: { error: null }
-                  };
+        return {
+          ...path,
+          segments,
+          test: async testContext => {
+            const testPathResult: TestPathResult = {
+              segments: [],
+              state: {
+                error: null
+              }
+            };
 
-                  testPathResult.segments.push(testSegmentResult);
+            try {
+              for (const segment of segments) {
+                const testSegmentResult: TestSegmentResult = {
+                  segment,
+                  state: { error: null },
+                  event: { error: null }
+                };
 
-                  try {
-                    await segment.test(testContext);
-                  } catch (err) {
-                    testSegmentResult.state.error = err;
+                testPathResult.segments.push(testSegmentResult);
 
-                    throw err;
-                  }
+                try {
+                  await segment.test(testContext);
+                } catch (err) {
+                  testSegmentResult.state.error = err;
 
-                  try {
-                    await segment.exec(testContext);
-                  } catch (err) {
-                    testSegmentResult.event.error = err;
-
-                    throw err;
-                  }
+                  throw err;
                 }
 
                 try {
-                  await this.testState(testPlan.state, testContext);
+                  await segment.exec(testContext);
                 } catch (err) {
-                  testPathResult.state.error = err;
+                  testSegmentResult.event.error = err;
+
                   throw err;
                 }
-              } catch (err) {
-                const targetStateString = `${JSON.stringify(
-                  path.state.value
-                )} ${
-                  path.state.context === undefined
-                    ? ''
-                    : JSON.stringify(path.state.context)
-                }`;
-
-                let hasFailed = false;
-                err.message +=
-                  '\nPath:\n' +
-                  testPathResult.segments
-                    .map(s => {
-                      const stateString = `${JSON.stringify(
-                        s.segment.state.value
-                      )} ${
-                        s.segment.state.context === undefined
-                          ? ''
-                          : JSON.stringify(s.segment.state.context)
-                      }`;
-                      const eventString = `${JSON.stringify(s.segment.event)}`;
-
-                      const stateResult = `\tState: ${
-                        hasFailed
-                          ? chalk.gray(stateString)
-                          : s.state.error
-                          ? ((hasFailed = true), chalk.redBright(stateString))
-                          : chalk.greenBright(stateString)
-                      }`;
-                      const eventResult = `\tEvent: ${
-                        hasFailed
-                          ? chalk.gray(eventString)
-                          : s.event.error
-                          ? ((hasFailed = true), chalk.red(eventString))
-                          : chalk.green(eventString)
-                      }`;
-
-                      return [stateResult, eventResult].join('\n');
-                    })
-                    .concat(
-                      `\tState: ${
-                        hasFailed
-                          ? chalk.gray(targetStateString)
-                          : testPathResult.state.error
-                          ? chalk.red(targetStateString)
-                          : chalk.green(targetStateString)
-                      }`
-                    )
-                    .join('\n\n');
-
-                throw err;
               }
 
-              return testPathResult;
+              try {
+                await this.testState(testPlan.state, testContext);
+              } catch (err) {
+                testPathResult.state.error = err;
+                throw err;
+              }
+            } catch (err) {
+              const targetStateString = `${JSON.stringify(path.state.value)} ${
+                path.state.context === undefined
+                  ? ''
+                  : JSON.stringify(path.state.context)
+              }`;
+
+              let hasFailed = false;
+              err.message +=
+                '\nPath:\n' +
+                testPathResult.segments
+                  .map(s => {
+                    const stateString = `${JSON.stringify(
+                      s.segment.state.value
+                    )} ${
+                      s.segment.state.context === undefined
+                        ? ''
+                        : JSON.stringify(s.segment.state.context)
+                    }`;
+                    const eventString = `${JSON.stringify(s.segment.event)}`;
+
+                    const stateResult = `\tState: ${
+                      hasFailed
+                        ? chalk.gray(stateString)
+                        : s.state.error
+                        ? ((hasFailed = true), chalk.redBright(stateString))
+                        : chalk.greenBright(stateString)
+                    }`;
+                    const eventResult = `\tEvent: ${
+                      hasFailed
+                        ? chalk.gray(eventString)
+                        : s.event.error
+                        ? ((hasFailed = true), chalk.red(eventString))
+                        : chalk.green(eventString)
+                    }`;
+
+                    return [stateResult, eventResult].join('\n');
+                  })
+                  .concat(
+                    `\tState: ${
+                      hasFailed
+                        ? chalk.gray(targetStateString)
+                        : testPathResult.state.error
+                        ? chalk.red(targetStateString)
+                        : chalk.green(targetStateString)
+                    }`
+                  )
+                  .join('\n\n');
+
+              throw err;
             }
-          };
-        })
-      };
+
+            return testPathResult;
+          }
+        };
+      });
+
+      return {
+        ...testPlan,
+        test: async testContext => {
+          for (const path of paths) {
+            await path.test(testContext);
+          }
+        },
+        description: getDescription(testPlan.state),
+        paths
+      } as TestPlan<T, TContext>;
     });
   }
 
@@ -233,7 +236,7 @@ export class TestModel<T, TContext> {
     }
   }
 
-  public getEventExecutor(event: EventObject): EventExecutor<T> {
+  public getEventExecutor(event: EventObject): EventExecutor<T> | undefined {
     const testEvent = this.options.events[event.type];
 
     if (!testEvent) {
@@ -250,11 +253,9 @@ export class TestModel<T, TContext> {
   public async executeEvent(event: EventObject, testContext: T) {
     const executor = this.getEventExecutor(event);
 
-    if (!executor) {
-      throw new Error(`no event configured for ${event.type}`);
+    if (executor) {
+      await executor(testContext, event);
     }
-
-    await executor(testContext, event);
   }
 
   public getCoverage(): { stateNodes: Record<string, number> } {
@@ -316,8 +317,8 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
       ];
     }
 
-    result[key] = eventConfig.samples
-      ? eventConfig.samples.map(sample => ({
+    result[key] = eventConfig.cases
+      ? eventConfig.cases.map(sample => ({
           type: key,
           ...sample
         }))

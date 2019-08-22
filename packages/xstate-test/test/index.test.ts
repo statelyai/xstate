@@ -153,28 +153,28 @@ const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
 
 describe('testing a model (shortestPathsTo)', () => {
   dieHardModel
-    .getShortestPathsTo('success') // ...
+    .getShortestPathPlansTo('success') // ...
     .forEach((plan, planIndex) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
       )} (${planIndex})`, () => {
-        const testJugs = new Jugs();
-
         plan.paths.forEach((path, pathIndex) => {
-          describe(`path ${pathIndex}`, () => {
-            path.segments.forEach(segment => {
-              it(segment.description, async () => {
-                await segment.test({ jugs: testJugs });
-              });
+          it(`path ${pathIndex}`, () => {
+            const testJugs = new Jugs();
+            return path.test({ jugs: testJugs });
+            // path.segments.forEach(segment => {
+            //   it(segment.description, async () => {
+            //     await segment.test({ jugs: testJugs });
+            //   });
 
-              it(`executes ${JSON.stringify(segment.event)}`, async () => {
-                await segment.exec({ jugs: testJugs });
-              });
-            });
+            //   it(`executes ${JSON.stringify(segment.event)}`, async () => {
+            //     await segment.exec({ jugs: testJugs });
+            //   });
+            // });
 
-            it(plan.description, async () => {
-              await plan.test({ jugs: testJugs });
-            });
+            // it(plan.description, async () => {
+            //   await plan.test({ jugs: testJugs });
+            // });
           });
         });
       });
@@ -183,30 +183,15 @@ describe('testing a model (shortestPathsTo)', () => {
 
 describe('testing a model (simplePathsTo)', () => {
   dieHardModel
-    .getSimplePathsTo('success') // ...
+    .getSimplePathPlansTo('success') // ...
     .forEach(plan => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
       )} (${JSON.stringify(plan.state.context)})`, () => {
         plan.paths.forEach((path, pathIndex) => {
-          describe(`path ${pathIndex}`, () => {
+          it(`path ${pathIndex}`, () => {
             const testJugs = new Jugs();
-
-            path.segments.forEach(segment => {
-              it(`goes to ${JSON.stringify(
-                segment.state.value
-              )} ${JSON.stringify(segment.state.context)}`, async () => {
-                await segment.test({ jugs: testJugs });
-              });
-
-              it(`executes ${JSON.stringify(segment.event)}`, async () => {
-                await segment.exec({ jugs: testJugs });
-              });
-            });
-
-            it('reaches the final state', async () => {
-              await plan.test({ jugs: testJugs });
-            });
+            return path.test({ jugs: testJugs });
           });
         });
       });
@@ -214,7 +199,7 @@ describe('testing a model (simplePathsTo)', () => {
 });
 
 describe('path.test()', () => {
-  const plans = dieHardModel.getSimplePathsTo(state => {
+  const plans = dieHardModel.getSimplePathPlansTo(state => {
     return state.matches('success') && state.context.three === 0;
   });
 
@@ -263,7 +248,7 @@ describe('error path trace', () => {
       }
     });
 
-    testModel.getShortestPathsTo('third').forEach(plan => {
+    testModel.getShortestPathPlansTo('third').forEach(plan => {
       plan.paths.forEach(path => {
         it('should show an error path trace', async () => {
           try {
@@ -338,7 +323,7 @@ describe('coverage', () => {
         }
       }
     });
-    const plans = testModel.getShortestPaths();
+    const plans = testModel.getShortestPathPlans();
 
     for (const plan of plans) {
       for (const path of plan.paths) {
@@ -355,5 +340,100 @@ describe('coverage', () => {
         expect.stringContaining('missing.third.three')
       );
     }
+  });
+});
+
+describe('events', () => {
+  it('should do samples', async () => {
+    const feedbackMachine = Machine({
+      id: 'feedback',
+      initial: 'question',
+      states: {
+        question: {
+          on: {
+            CLICK_GOOD: 'thanks',
+            CLICK_BAD: 'form',
+            CLOSE: 'closed',
+            ESC: 'closed'
+          },
+          meta: {
+            test: () => {
+              // ...
+            }
+          }
+        },
+        form: {
+          on: {
+            SUBMIT: [
+              {
+                target: 'whatever',
+                cond: (_, e) => e.value.length
+              },
+              {
+                target: 'closed'
+              }
+            ]
+            // CLOSE: 'closed',
+            // ESC: 'closed'
+          },
+          meta: {
+            test: () => {
+              // ...
+            }
+          }
+        },
+        thanks: {
+          on: {
+            CLOSE: 'closed',
+            ESC: 'closed'
+          },
+          meta: {
+            test: () => {
+              // ...
+            }
+          }
+        },
+        closed: {
+          type: 'final',
+          meta: {
+            test: () => {
+              // ...
+            }
+          }
+        },
+        whatever: {
+          meta: {
+            test: () => {
+              // ...
+            }
+          }
+        }
+      }
+    });
+
+    const testModel = createModel(feedbackMachine, {
+      events: {
+        CLICK_BAD: () => {
+          /* ... */
+        },
+        CLICK_GOOD: () => {
+          /* ... */
+        },
+        CLOSE: () => {
+          /* ... */
+        },
+        SUBMIT: {
+          cases: [{ value: 'something' }, { value: '' }]
+        }
+      }
+    });
+
+    const testPlans = testModel.getShortestPathPlans();
+
+    for (const plan of testPlans) {
+      await plan.test(undefined);
+    }
+
+    return testModel.testCoverage();
   });
 });

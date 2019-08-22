@@ -45,8 +45,8 @@ export interface TestPlan<T, TContext> {
    */
   test: (testContext: T) => Promise<void>;
 }
-interface EventSample {
-  type: never;
+interface EventCase {
+  type?: never;
   [prop: string]: any;
 }
 export type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
@@ -59,8 +59,8 @@ export interface TestModelOptions<T> {
     [eventType: string]:
       | EventExecutor<T>
       | {
-          exec: EventExecutor<T>;
-          samples?: EventSample[];
+          exec?: EventExecutor<T>;
+          cases?: EventCase[];
         };
   };
 }

@@ -41,7 +41,6 @@
   "devDependencies": {
     "@types/jest": "^24.0.11",
     "@types/jest-environment-puppeteer": "^4.0.0",
-    "@xstate/graph": "^0.2.1",
     "jest": "^24.8.0",
     "jest-environment-puppeteer": "^4.3.0",
     "jest-puppeteer": "^4.3.0",
@@ -51,5 +50,7 @@
     "typescript": "^3.5.3",
     "xstate": "^4.6.7"
   },
-  "dependencies": {}
+  "dependencies": {
+    "@xstate/graph": "^1.0.0-rc1"
+  }
 }
