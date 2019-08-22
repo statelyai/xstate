@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "0.2.1",
+  "version": "1.0.0-rc1",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -33,7 +33,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.5.0"
+    "xstate": "^4.7.0"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",
@@ -41,5 +41,6 @@
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.0.2",
     "typescript": "^3.5.3"
-  }
+  },
+  "dependencies": {}
 }

@@ -6,8 +6,18 @@ import {
   EventObject,
   StateMachine
 } from 'xstate';
-import { flatten, keys, toEventObject } from 'xstate/lib/utils';
+import { flatten, keys } from 'xstate/lib/utils';
 import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
+
+export function toEventObject<TEvent extends EventObject>(
+  event: Event<TEvent>
+): TEvent {
+  if (typeof event === 'string' || typeof event === 'number') {
+    return { type: event } as TEvent;
+  }
+
+  return event;
+}
 
 const EMPTY_MAP = {};
 
