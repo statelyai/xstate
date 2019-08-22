@@ -623,7 +623,7 @@ export class Interpreter<
         nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
-      throw _event.data.data;
+      throw (_event.data as any).data;
     }
 
     const nextState = withServiceScope(this, () => {
