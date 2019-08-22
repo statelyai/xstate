@@ -596,10 +596,14 @@ export class Interpreter<
       return;
     }
 
-    target.send({
-      ...event,
-      origin: this.id
-    });
+    if ('machine' in target) {
+      (target as Interpreter<TContext, TStateSchema, TEvent>).send({
+        ...event,
+        origin: this.id
+      });
+    } else {
+      target.send(event.data);
+    }
   };
   /**
    * Returns the next state given the interpreter's current state and the event.
