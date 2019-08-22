@@ -119,7 +119,9 @@ describe('deterministic machine', () => {
 
     it('should throw an error if not given an event', () => {
       // @ts-ignore
-      expect(() => (lightMachine.transition as any)('red', undefined)).toThrow();
+      expect(() =>
+        (lightMachine.transition as any)('red', undefined)
+      ).toThrow();
     });
 
     it('should transition to nested states as target', () => {
@@ -141,7 +143,9 @@ describe('deterministic machine', () => {
 
   describe('machine.transition() with nested states', () => {
     it('should properly transition a nested state', () => {
-      expect(lightMachine.transition('red.walk', 'PED_COUNTDOWN').value).toEqual({ red: 'wait' });
+      expect(
+        lightMachine.transition('red.walk', 'PED_COUNTDOWN').value
+      ).toEqual({ red: 'wait' });
     });
 
     it('should transition from initial nested states', () => {
@@ -157,14 +161,18 @@ describe('deterministic machine', () => {
     });
 
     it('should bubble up events that nested states cannot handle', () => {
-      expect(lightMachine.transition('red.stop', 'TIMER').value).toEqual('green');
+      expect(lightMachine.transition('red.stop', 'TIMER').value).toEqual(
+        'green'
+      );
     });
 
     it('should not transition from illegal events', () => {
       expect(lightMachine.transition('red.walk', 'FAKE').value).toEqual({
         red: 'walk'
       });
-      expect(lightMachine.transition('red.walk', 'FAKE').actions).toHaveLength(0);
+      expect(lightMachine.transition('red.walk', 'FAKE').actions).toHaveLength(
+        0
+      );
 
       expect(deepMachine.transition('a1', 'FAKE').value).toEqual({
         a1: { a2: { a3: 'a4' } }
@@ -207,7 +215,9 @@ describe('deterministic machine', () => {
     });
 
     it('should work with substate nodes that have the same key', () => {
-      expect(machine.transition(machine.initialState, 'NEXT').value).toEqual('test');
+      expect(machine.transition(machine.initialState, 'NEXT').value).toEqual(
+        'test'
+      );
     });
   });
 

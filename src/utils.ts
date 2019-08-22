@@ -16,7 +16,11 @@ import {
   ConditionPredicate,
   SCXML,
   StateLike,
-  EventData
+  EventData,
+  TransitionConfig,
+  TransitionConfigTargetShortcut,
+  NullEvent,
+  SingleOrArray
 } from './types';
 import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -282,14 +286,18 @@ export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
 }
 
-export function toArray<T>(value: T[] | T | undefined): T[] {
+export function toArrayStrict<T>(value: T[] | T): T[] {
   if (isArray(value)) {
     return value;
   }
+  return [value];
+}
+
+export function toArray<T>(value: T[] | T | undefined): T[] {
   if (value === undefined) {
     return [];
   }
-  return [value];
+  return toArrayStrict(value);
 }
 
 export function mapContext<TContext, TEvent extends EventObject>(
@@ -552,4 +560,50 @@ export function toSCXMLEvent<TEvent extends EventObject>(
     type: 'external',
     ...scxmlEvent
   };
+}
+
+export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
+  event: TEvent['type'] | NullEvent['type'] | '*',
+  configLike: SingleOrArray<
+    | TransitionConfig<TContext, TEvent>
+    | TransitionConfigTargetShortcut<TContext, TEvent>
+  >
+): Array<
+  TransitionConfig<TContext, TEvent> & {
+    event: TEvent['type'] | NullEvent['type'] | '*';
+  }
+> {
+  const transitions = toArrayStrict(configLike).map(transitionLike => {
+    if (
+      typeof transitionLike === 'undefined' ||
+      typeof transitionLike === 'string' ||
+      isMachine(transitionLike)
+    ) {
+      return { target: transitionLike, event };
+    }
+
+    return { ...transitionLike, event };
+  });
+
+  if (!IS_PRODUCTION) {
+    const hasNonLastUnguardedTarget = transitions
+      .slice(0, -1)
+      .some(
+        transition =>
+          isString(transition.target) ||
+          isMachine(transition.target) ||
+          (!('cond' in transition) && !('in' in transition))
+      );
+
+    const eventText =
+      event.length === 0 ? 'the transient event' : `event '${event}'`;
+
+    warn(
+      !hasNonLastUnguardedTarget,
+      `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
+        `Make sure that the default transition is the last one defined.`
+    );
+  }
+
+  return transitions;
 }
