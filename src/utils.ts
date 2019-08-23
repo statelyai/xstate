@@ -539,7 +539,7 @@ export function toSCXMLEvent<TEvent extends EventObject>(
   event: Event<TEvent> | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
-  if (!isString(event) && event.$$type === 'scxml') {
+  if (!isString(event) && '$$type' in event && event.$$type === 'scxml') {
     return event as SCXML.Event<TEvent>;
   }
 

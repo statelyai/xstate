@@ -15,11 +15,6 @@ export interface EventObject {
    * The type of event that is sent.
    */
   type: string;
-  /**
-   * The unique ID that identifies this specific event instance.
-   */
-  id?: string | number;
-  [other: string]: any;
 }
 
 /**

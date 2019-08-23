@@ -761,7 +761,15 @@ describe('action meta', () => {
 });
 
 describe('purely defined actions', () => {
-  const dynamicMachine = Machine({
+  type Ctx = {
+    items: Array<{ id: number }>;
+  };
+  type Events =
+    | { type: 'SINGLE'; id: number }
+    | { type: 'NONE'; id: number }
+    | { type: 'EACH' };
+
+  const dynamicMachine = Machine<Ctx, Events>({
     id: 'dynamic',
     initial: 'idle',
     context: {
@@ -794,7 +802,11 @@ describe('purely defined actions', () => {
           },
           EACH: {
             actions: pure<any, any>(ctx =>
-              ctx.items.map((item, index) => ({ type: 'EVENT', item, index }))
+              ctx.items.map((item, index) => ({
+                type: 'EVENT',
+                item,
+                index
+              }))
             )
           }
         }
@@ -809,7 +821,11 @@ describe('purely defined actions', () => {
     });
 
     expect(nextState.actions).toEqual([
-      { type: 'SINGLE_EVENT', length: 3, id: 3 }
+      {
+        type: 'SINGLE_EVENT',
+        length: 3,
+        id: 3
+      }
     ]);
   });
 
@@ -829,16 +845,28 @@ describe('purely defined actions', () => {
     );
 
     expect(nextState.actions).toEqual([
-      { type: 'EVENT', item: { id: 1 }, index: 0 },
-      { type: 'EVENT', item: { id: 2 }, index: 1 },
-      { type: 'EVENT', item: { id: 3 }, index: 2 }
+      {
+        type: 'EVENT',
+        item: { id: 1 },
+        index: 0
+      },
+      {
+        type: 'EVENT',
+        item: { id: 2 },
+        index: 1
+      },
+      {
+        type: 'EVENT',
+        item: { id: 3 },
+        index: 2
+      }
     ]);
   });
 });
 
 describe('forwardTo()', () => {
   it('should forward an event to a service', done => {
-    const child = Machine({
+    const child = Machine<void, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
@@ -880,7 +908,7 @@ describe('forwardTo()', () => {
   });
 
   it('should forward an event to a service (dynamic)', done => {
-    const child = Machine({
+    const child = Machine<void, { type: 'EVENT'; value: number }>({
       id: 'child',
       initial: 'active',
       states: {
