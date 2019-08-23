@@ -108,9 +108,24 @@ export class TestModel<T, TContext> {
           };
         });
 
+        function formatEvent(event: EventObject): string {
+          const { type, ...other } = event;
+
+          const propertyString = Object.keys(other).length
+            ? ` (${JSON.stringify(other)})`
+            : '';
+
+          return `${type}${propertyString}`;
+        }
+
+        const eventsString = path.segments
+          .map(s => formatEvent(s.event))
+          .join(' → ');
+
         return {
           ...path,
           segments,
+          description: `via ${eventsString}`,
           test: async testContext => {
             const testPathResult: TestPathResult = {
               segments: [],
@@ -216,7 +231,7 @@ export class TestModel<T, TContext> {
             await path.test(testContext);
           }
         },
-        description: getDescription(testPlan.state),
+        description: `reaches ${getDescription(testPlan.state)}`,
         paths
       } as TestPlan<T, TContext>;
     });

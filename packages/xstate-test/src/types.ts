@@ -24,6 +24,7 @@ export interface TestSegmentResult {
 interface TestPath<T> {
   weight: number;
   segments: Array<TestSegment<T>>;
+  description: string;
   /**
    * Tests and executes each segment in `segments` sequentially, and then
    * tests the postcondition that the `state` is reached.

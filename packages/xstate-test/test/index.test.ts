@@ -47,7 +47,7 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
       success: {
         type: 'final',
         meta: {
-          description: 'succeeds with 4 gallons',
+          description: '4 gallons',
           test: async ({ jugs }) => {
             expect(jugs.five).toEqual(4);
           }
@@ -154,27 +154,12 @@ const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
 describe('testing a model (shortestPathsTo)', () => {
   dieHardModel
     .getShortestPathPlansTo('success') // ...
-    .forEach((plan, planIndex) => {
-      describe(`reaches state ${JSON.stringify(
-        plan.state.value
-      )} (${planIndex})`, () => {
-        plan.paths.forEach((path, pathIndex) => {
-          it(`path ${pathIndex}`, () => {
+    .forEach(plan => {
+      describe(plan.description, () => {
+        plan.paths.forEach(path => {
+          it(path.description, () => {
             const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
-            // path.segments.forEach(segment => {
-            //   it(segment.description, async () => {
-            //     await segment.test({ jugs: testJugs });
-            //   });
-
-            //   it(`executes ${JSON.stringify(segment.event)}`, async () => {
-            //     await segment.exec({ jugs: testJugs });
-            //   });
-            // });
-
-            // it(plan.description, async () => {
-            //   await plan.test({ jugs: testJugs });
-            // });
           });
         });
       });
@@ -188,8 +173,8 @@ describe('testing a model (simplePathsTo)', () => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
       )} (${JSON.stringify(plan.state.context)})`, () => {
-        plan.paths.forEach((path, pathIndex) => {
-          it(`path ${pathIndex}`, () => {
+        plan.paths.forEach(path => {
+          it(path.description, () => {
             const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
           });
@@ -207,8 +192,8 @@ describe('path.test()', () => {
     describe(`reaches state ${JSON.stringify(
       plan.state.value
     )} (${JSON.stringify(plan.state.context)})`, () => {
-      plan.paths.forEach((path, pathIndex) => {
-        describe(`path ${pathIndex}`, () => {
+      plan.paths.forEach(path => {
+        describe(path.description, () => {
           it(`reaches the target state`, () => {
             const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
@@ -366,19 +351,36 @@ describe('events', () => {
           on: {
             SUBMIT: [
               {
-                target: 'whatever',
+                target: 'thanks',
                 cond: (_, e) => e.value.length
               },
               {
-                target: 'closed'
+                target: '.invalid'
               }
-            ]
-            // CLOSE: 'closed',
-            // ESC: 'closed'
+            ],
+            CLOSE: 'closed',
+            ESC: 'closed'
           },
           meta: {
             test: () => {
               // ...
+            }
+          },
+          initial: 'valid',
+          states: {
+            valid: {
+              meta: {
+                test: () => {
+                  // noop
+                }
+              }
+            },
+            invalid: {
+              meta: {
+                test: () => {
+                  // noop
+                }
+              }
             }
           }
         },
@@ -395,13 +397,6 @@ describe('events', () => {
         },
         closed: {
           type: 'final',
-          meta: {
-            test: () => {
-              // ...
-            }
-          }
-        },
-        whatever: {
           meta: {
             test: () => {
               // ...
