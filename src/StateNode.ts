@@ -381,6 +381,7 @@ class StateNode<
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
       .map(activity => toActivityDefinition(activity));
+    this.transition = this.transition.bind(this);
   }
 
   private _init(): void {
@@ -1294,7 +1295,7 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    let isTransient = stateNodes.some(stateNode => stateNode._transient);
+    const isTransient = stateNodes.some(stateNode => stateNode._transient);
 
     if (isTransient) {
       maybeNextState = this.resolveRaisedTransition(
