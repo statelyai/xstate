@@ -308,13 +308,13 @@ function getDescription<T, TContext>(state: State<TContext>): string {
   return Object.keys(state.meta)
     .map(id => {
       const { description } = state.meta[id] as TestMeta<T, TContext>;
+      const contextString =
+        state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 
       return typeof description === 'function'
         ? description(state)
         : description ||
-            `state: ${JSON.stringify(state.value)} (${JSON.stringify(
-              state.context
-            )})`;
+            `state: ${JSON.stringify(state.value)} ${contextString}`;
     })
     .join('\n');
 }
