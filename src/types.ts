@@ -15,7 +15,6 @@ export interface EventObject {
    * The type of event that is sent.
    */
   type: string;
-  [key: string]: any;
 }
 
 /**
@@ -311,7 +310,7 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> = {
     | StateNode<TContext, any, TEvent>
     | TransitionConfig<
         TContext,
-        TEvent extends { type: K } ? TEvent : EventObject
+        K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
       >
   >;
 };
@@ -492,7 +491,7 @@ export interface StateNodeDefinition<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
+> {
   id: string;
   version: string | undefined;
   key: string;

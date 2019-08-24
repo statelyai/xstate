@@ -58,7 +58,7 @@ export function deserializeEventString<TEvent extends EventObject>(
 }
 
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
-  events: { [K in TEvent['type']]: Array<TEvent & { type: K }> };
+  events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
   filter: (state: State<TContext>) => boolean;
   stateSerializer: (state: State<TContext>) => string;
   eventSerializer: (event: TEvent) => string;

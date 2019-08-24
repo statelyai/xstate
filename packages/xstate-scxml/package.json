@@ -32,7 +32,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "dependencies": {
-    "xstate": "^4.5.0"
+    "xstate": "^4.7.0-rc1"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",

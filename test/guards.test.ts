@@ -1,11 +1,19 @@
 import { Machine, interpret } from '../src';
 
 describe('guard conditions', () => {
-  // type LightMachineEvents =
-  //   | { type: 'TIMER'; elapsed: number }
-  //   | { type: 'EMERGENCY'; isEmergency: boolean };
+  type LightMachineCtx = {
+    elapsed: number;
+  };
+  type LightMachineEvents =
+    | { type: 'TIMER'; elapsed: number }
+    | {
+        type: 'EMERGENCY';
+        isEmergency?: boolean;
+      }
+    | { type: 'TIMER_COND_OBJ' }
+    | { type: 'BAD_COND' };
 
-  const lightMachine = Machine<{ elapsed: number }>(
+  const lightMachine = Machine<LightMachineCtx, LightMachineEvents>(
     {
       key: 'light',
       initial: 'green',
@@ -24,7 +32,7 @@ describe('guard conditions', () => {
             ],
             EMERGENCY: {
               target: 'red',
-              cond: (_, event) => event.isEmergency
+              cond: (_, event) => !!event.isEmergency
             }
           }
         },
@@ -44,7 +52,10 @@ describe('guard conditions', () => {
         },
         red: {
           on: {
-            BAD_COND: { target: 'red', cond: 'doesNotExist' }
+            BAD_COND: {
+              target: 'red',
+              cond: 'doesNotExist'
+            }
           }
         }
       }
@@ -72,14 +83,18 @@ describe('guard conditions', () => {
 
   it('should transition if condition based on event is met', () => {
     expect(
-      lightMachine.transition('green', { type: 'EMERGENCY', isEmergency: true })
-        .value
+      lightMachine.transition('green', {
+        type: 'EMERGENCY',
+        isEmergency: true
+      }).value
     ).toEqual('red');
   });
 
   it('should not transition if condition based on event is not met', () => {
     expect(
-      lightMachine.transition('green', { type: 'EMERGENCY' }).value
+      lightMachine.transition('green', {
+        type: 'EMERGENCY'
+      }).value
     ).toEqual('green');
   });
 
@@ -216,7 +231,9 @@ describe('guard conditions', () => {
 });
 
 describe('custom guards', () => {
-  const machine = Machine(
+  type Ctx = { count: number };
+  type Events = { type: 'EVENT'; value: number };
+  const machine = Machine<Ctx, Events>(
     {
       id: 'custom',
       initial: 'inactive',
@@ -242,7 +259,7 @@ describe('custom guards', () => {
     },
     {
       guards: {
-        custom: (ctx, e, meta) => {
+        custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
           const { prop, compare, op } = meta.cond as any; // TODO: fix
           if (op === 'greaterThan') {
             return ctx[prop] + e.value > compare;
