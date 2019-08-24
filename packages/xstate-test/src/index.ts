@@ -302,6 +302,14 @@ export class TestModel<T, TContext> {
       );
     }
   }
+
+  public withEvents(
+    eventMap: TestModelOptions<T>['events']
+  ): TestModel<T, TContext> {
+    return new TestModel<T, TContext>(this.machine, {
+      events: eventMap
+    });
+  }
 }
 
 function getDescription<T, TContext>(state: State<TContext>): string {

@@ -116,37 +116,35 @@ class Jugs {
   }
 }
 
-const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine, {
-  events: {
-    POUR_3_TO_5: {
-      exec: async ({ jugs }) => {
-        await jugs.transferThree();
-      }
-    },
-    POUR_5_TO_3: {
-      exec: async ({ jugs }) => {
-        await jugs.transferFive();
-      }
-    },
-    EMPTY_3: {
-      exec: async ({ jugs }) => {
-        await jugs.emptyThree();
-      }
-    },
-    EMPTY_5: {
-      exec: async ({ jugs }) => {
-        await jugs.emptyFive();
-      }
-    },
-    FILL_3: {
-      exec: async ({ jugs }) => {
-        await jugs.fillThree();
-      }
-    },
-    FILL_5: {
-      exec: async ({ jugs }) => {
-        await jugs.fillFive();
-      }
+const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine).withEvents({
+  POUR_3_TO_5: {
+    exec: async ({ jugs }) => {
+      await jugs.transferThree();
+    }
+  },
+  POUR_5_TO_3: {
+    exec: async ({ jugs }) => {
+      await jugs.transferFive();
+    }
+  },
+  EMPTY_3: {
+    exec: async ({ jugs }) => {
+      await jugs.emptyThree();
+    }
+  },
+  EMPTY_5: {
+    exec: async ({ jugs }) => {
+      await jugs.emptyFive();
+    }
+  },
+  FILL_3: {
+    exec: async ({ jugs }) => {
+      await jugs.fillThree();
+    }
+  },
+  FILL_5: {
+    exec: async ({ jugs }) => {
+      await jugs.fillFive();
     }
   }
 });
@@ -225,11 +223,9 @@ describe('error path trace', () => {
       }
     });
 
-    const testModel = createModel(machine, {
-      events: {
-        NEXT: () => {
-          /* noop */
-        }
+    const testModel = createModel(machine).withEvents({
+      NEXT: () => {
+        /* noop */
       }
     });
 
@@ -301,11 +297,9 @@ describe('coverage', () => {
       }
     });
 
-    const testModel = createModel(machine, {
-      events: {
-        NEXT: () => {
-          /* ... */
-        }
+    const testModel = createModel(machine).withEvents({
+      NEXT: () => {
+        /* ... */
       }
     });
     const plans = testModel.getShortestPathPlans();
@@ -406,20 +400,18 @@ describe('events', () => {
       }
     });
 
-    const testModel = createModel(feedbackMachine, {
-      events: {
-        CLICK_BAD: () => {
-          /* ... */
-        },
-        CLICK_GOOD: () => {
-          /* ... */
-        },
-        CLOSE: () => {
-          /* ... */
-        },
-        SUBMIT: {
-          cases: [{ value: 'something' }, { value: '' }]
-        }
+    const testModel = createModel(feedbackMachine).withEvents({
+      CLICK_BAD: () => {
+        /* ... */
+      },
+      CLICK_GOOD: () => {
+        /* ... */
+      },
+      CLOSE: () => {
+        /* ... */
+      },
+      SUBMIT: {
+        cases: [{ value: 'something' }, { value: '' }]
       }
     });
 

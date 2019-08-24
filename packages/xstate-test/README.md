@@ -76,12 +76,10 @@ import { createModel } from '@xstate/graph';
 
 const toggleMachine = Machine(/* ... */);
 
-const toggleModel = createModel(toggleMachine, {
-  events: {
-    TOGGLE: {
-      exec: async page => {
-        await page.click('input');
-      }
+const toggleModel = createModel(toggleMachine).withEvents({
+  TOGGLE: {
+    exec: async page => {
+      await page.click('input');
     }
   }
 });
