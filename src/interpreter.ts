@@ -597,11 +597,13 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
+      // Send SCXML events to machines
       (target as Interpreter<TContext, TStateSchema, TEvent>).send({
         ...event,
         origin: this.id
       });
     } else {
+      // Send normal events to other targets
       target.send(event.data);
     }
   };
@@ -984,7 +986,7 @@ export class Interpreter<
 
     const actor = {
       id,
-      send: _event => listeners.forEach(listener => listener(_event.data)),
+      send: event => listeners.forEach(listener => listener(event)),
       subscribe: next => {
         listeners.add(next);
 
