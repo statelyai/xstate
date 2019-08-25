@@ -3,9 +3,11 @@ import {
   StateMachine,
   ActionObject,
   TransitionDefinition,
-  StateNode
+  StateNode,
+  ActionType
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
+import { actionTypes } from 'xstate/lib/actions';
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {
@@ -22,10 +24,29 @@ export function functionToExpr(fn: Function): string {
   return `_x.eval(${fn.toString()})`;
 }
 
+function actionToSCXML(action: ActionObject<any, any>): XMLElement {
+  const { type, ...attributes } = action;
+
+  const actionTypeMap: Record<ActionType, string> = {
+    [actionTypes.raise]: 'raise'
+  };
+
+  const name = actionTypeMap[action.type];
+
+  return {
+    type: 'element',
+    name,
+    attributes
+  };
+}
+
 export function transitionToSCXML(
   transition: TransitionDefinition<any, any>
 ): XMLElement {
   // console.log(transition.cond!.predicate);
+
+  const elements = transition.actions.map(actionToSCXML);
+
   return {
     type: 'element',
     name: 'transition',
@@ -38,7 +59,8 @@ export function transitionToSCXML(
         .map(stateNode => stateNode.id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
-    })
+    }),
+    elements: elements.length ? elements : undefined
   };
 }
 
@@ -131,7 +153,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 }
 
 export function toSCXML(machine: StateMachine<any, any, any>): string {
-  const { states } = machine;
+  const { states, initial } = machine;
 
   return js2xml(
     {
@@ -141,7 +163,8 @@ export function toSCXML(machine: StateMachine<any, any, any>): string {
           name: 'scxml',
           attributes: {
             xmlns: 'http://www.w3.org/2005/07/scxml',
-            'xmlns:xi': 'http://www.w3.org/2001/XInclude',
+            initial,
+            // 'xmlns:xi': 'http://www.w3.org/2001/XInclude',
             version: '1.0',
             datamodel: 'ecmascript'
           },

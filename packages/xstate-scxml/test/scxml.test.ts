@@ -80,7 +80,7 @@ const lightMachine = Machine({
   }
 });
 
-describe('transition to SCXML ', () => {
+xdescribe('transition to SCXML', () => {
   it('converts a simple transition', () => {
     const transition = lightMachine.states.green.on.TIMER;
 
