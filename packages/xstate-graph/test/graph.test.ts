@@ -257,7 +257,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('valueAdjacencyMap', () => {
+  describe('getAdjacencyMap', () => {
     it('should map adjacencies', () => {
       const counterMachine = Machine<{ count: number; other: string }>({
         id: 'counter',

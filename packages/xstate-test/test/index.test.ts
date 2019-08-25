@@ -424,3 +424,32 @@ describe('events', () => {
     return testModel.testCoverage();
   });
 });
+
+describe('state limiting', () => {
+  it('should limit states with filter option', () => {
+    const machine = Machine<{ count: number }>({
+      initial: 'counting',
+      context: { count: 0 },
+      states: {
+        counting: {
+          on: {
+            INC: {
+              actions: assign({
+                count: ctx => ctx.count + 1
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const testModel = createModel(machine);
+    const testPlans = testModel.getShortestPathPlans({
+      filter: state => {
+        return state.context.count < 5;
+      }
+    });
+
+    expect(testPlans).toHaveLength(5);
+  });
+});
