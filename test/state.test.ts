@@ -225,7 +225,8 @@ describe('State', () => {
         'INTERNAL',
         'MACHINE_EVENT',
         'TO_THREE',
-        'TO_TWO'
+        'TO_TWO',
+        'TO_TWO_MAYBE'
       ]);
 
       expect(
@@ -395,10 +396,21 @@ describe('State', () => {
         machine.transition(initialState, 'TO_TWO').transitions
       ).toContainEqual(expect.objectContaining({ eventType: 'TO_TWO' }));
     });
+
+    it('should have condition in the transition', () => {
+      expect(
+        machine.transition(initialState, 'TO_TWO_MAYBE').transitions
+      ).toContainEqual(
+        expect.objectContaining({
+          eventType: 'TO_TWO_MAYBE',
+          cond: expect.objectContaining({ name: 'maybe' })
+        })
+      );
+    });
   });
 
   describe('State.prototype.matches', () => {
-    it('should keep reference to state instance after destcurting', () => {
+    it('should keep reference to state instance after destructuring', () => {
       const { initialState } = machine;
       const { matches } = initialState;
 
