@@ -12,6 +12,7 @@ import {
   TestMeta,
   EventExecutor
 } from './types';
+import { ValueAdjMapOptions } from '@xstate/graph/lib/graph';
 
 export class TestModel<T, TContext> {
   public coverage: TestModelCoverage = {
@@ -34,7 +35,7 @@ export class TestModel<T, TContext> {
   }
 
   public getShortestPathPlans(
-    options?: Parameters<typeof getShortestPaths>[1]
+    options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<T, TContext>> {
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
@@ -77,7 +78,7 @@ export class TestModel<T, TContext> {
   }
 
   public getSimplePathPlans(
-    options?: Parameters<typeof getSimplePaths>[1]
+    options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<T, TContext>> {
     const simplePaths = getSimplePaths(this.machine, {
       ...options,
@@ -301,6 +302,14 @@ export class TestModel<T, TContext> {
           missingStateNodes.map(id => `\t${id}`).join('\n')
       );
     }
+  }
+
+  public withEvents(
+    eventMap: TestModelOptions<T>['events']
+  ): TestModel<T, TContext> {
+    return new TestModel<T, TContext>(this.machine, {
+      events: eventMap
+    });
   }
 }
 

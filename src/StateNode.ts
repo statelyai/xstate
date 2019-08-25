@@ -381,6 +381,7 @@ class StateNode<
     this.activities = toArray(_config.activities)
       .concat(this.invoke)
       .map(activity => toActivityDefinition(activity));
+    this.transition = this.transition.bind(this);
   }
 
   private _init(): void {
@@ -511,13 +512,13 @@ class StateNode<
           delayRef = delay;
         }
 
-        const event = after(delayRef, this.id);
+        const eventType = after(delayRef, this.id);
 
-        this.onEntry.push(send(event, { delay }));
-        this.onExit.push(cancel(event));
+        this.onEntry.push(send(eventType, { delay }));
+        this.onExit.push(cancel(eventType));
 
         return {
-          event,
+          eventType,
           ...delayedTransition,
           source: this,
           target: target === undefined ? undefined : this.resolveTarget(target),
@@ -540,10 +541,10 @@ class StateNode<
         >)[delayKey];
 
         const delay = isNaN(+delayKey) ? delayKey : +delayKey;
-        const event = after(delay, this.id);
+        const eventType = after(delay, this.id);
 
-        this.onEntry.push(send<TContext, TEvent>(event, { delay }));
-        this.onExit.push(cancel(event));
+        this.onEntry.push(send<TContext, TEvent>(eventType, { delay }));
+        this.onExit.push(cancel(eventType));
 
         if (isString(delayedTransition)) {
           return [
@@ -551,7 +552,7 @@ class StateNode<
               source: this,
               target: this.resolveTarget(delayedTransition),
               delay,
-              event,
+              eventType,
               actions: []
             }
           ];
@@ -560,7 +561,7 @@ class StateNode<
         const delayedTransitions = toArray(delayedTransition);
 
         return delayedTransitions.map(transition => ({
-          event,
+          eventType,
           delay,
           ...transition,
           source: this,
@@ -1277,7 +1278,8 @@ class StateNode<
         ? stateTransition.configuration
         : currentState
         ? currentState.configuration
-        : []
+        : [],
+      transitions: stateTransition.transitions
     });
 
     nextState.changed =
@@ -1294,7 +1296,7 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    let isTransient = stateNodes.some(stateNode => stateNode._transient);
+    const isTransient = stateNodes.some(stateNode => stateNode._transient);
 
     if (isTransient) {
       maybeNextState = this.resolveRaisedTransition(
@@ -1904,7 +1906,7 @@ class StateNode<
         source: this,
         actions: [],
         internal: target === undefined || internal,
-        event
+        eventType: event
       };
     }
 
@@ -1919,7 +1921,7 @@ class StateNode<
       target: isTargetless ? undefined : formattedTargets,
       source: this,
       internal: (isTargetless && internal === undefined) || internal,
-      event
+      eventType: event
     };
   }
   private formatTransitions(): TransitionsDefinition<TContext, TEvent> {
@@ -1958,7 +1960,9 @@ class StateNode<
         event
       ) => {
         if (value === undefined) {
-          return [{ target: undefined, event, actions: [], internal: true }];
+          return [
+            { target: undefined, eventType: event, actions: [], internal: true }
+          ];
         }
 
         const transitions = toArray(value);
@@ -2014,9 +2018,9 @@ class StateNode<
     ) as TransitionsDefinition<TContext, TEvent>;
 
     for (const delayedTransition of delayedTransitions) {
-      formattedTransitions[delayedTransition.event] =
-        formattedTransitions[delayedTransition.event] || [];
-      formattedTransitions[delayedTransition.event].push(
+      formattedTransitions[delayedTransition.eventType] =
+        formattedTransitions[delayedTransition.eventType] || [];
+      formattedTransitions[delayedTransition.eventType].push(
         delayedTransition as TransitionDefinition<
           TContext,
           TEvent | EventObject

@@ -74,6 +74,7 @@ module.exports = {
           'packages/xstate-react/',
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
+          'packages/xstate-test/',
           'packages/xstate-immer/'
         ]
       },

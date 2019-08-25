@@ -259,7 +259,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('valueAdjacencyMap', () => {
+  describe('getAdjacencyMap', () => {
     it('should map adjacencies', () => {
       type Ctx = {
         count: number;

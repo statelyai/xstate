@@ -9,7 +9,8 @@ import {
   StateConfig,
   SCXML,
   StateSchema,
-  ExtractStateValue
+  ExtractStateValue,
+  TransitionDefinition
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -105,6 +106,10 @@ export class State<
   // @ts-ignore - getter for this gets configured in constructor so this property can stay non-enumerable
   public nextEvents: EventType[];
   /**
+   * The transition definitions that resulted in this state.
+   */
+  public transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
    * @param context
@@ -125,7 +130,8 @@ export class State<
           activities: stateValue.activities,
           meta: {},
           events: [],
-          configuration: [] // TODO: fix
+          configuration: [], // TODO: fix,
+          transitions: []
         });
       }
 
@@ -144,7 +150,8 @@ export class State<
       activities: undefined,
       meta: undefined,
       events: [],
-      configuration: []
+      configuration: [],
+      transitions: []
     });
   }
   /**
@@ -178,7 +185,8 @@ export class State<
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
-        configuration: stateValue.configuration
+        configuration: stateValue.configuration,
+        transitions: []
       });
     }
 
@@ -211,6 +219,7 @@ export class State<
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;
+    this.transitions = config.transitions;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
@@ -241,7 +250,7 @@ export class State<
   }
 
   public toJSON() {
-    const { configuration, ...jsonValues } = this;
+    const { configuration, transitions, ...jsonValues } = this;
 
     return jsonValues;
   }
