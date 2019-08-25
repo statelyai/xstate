@@ -4,13 +4,14 @@ import {
   DefaultContext,
   MachineConfig,
   StateSchema,
-  EventObject
+  EventObject,
+  AnyEventObject
 } from './types';
 import { StateNode } from './StateNode';
 
 export function Machine<
   TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
@@ -19,7 +20,7 @@ export function Machine<
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
@@ -28,7 +29,7 @@ export function Machine<
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,

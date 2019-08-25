@@ -17,6 +17,10 @@ export interface EventObject {
   type: string;
 }
 
+export interface AnyEventObject extends EventObject {
+  [key: string]: any;
+}
+
 /**
  * The full definition of an action, with a string `type` and an
  * `exec` implementation function.
