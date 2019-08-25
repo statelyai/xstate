@@ -878,7 +878,7 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
-  event: string;
+  eventType: string;
 }
 
 export interface DelayedTransitionDefinition<
@@ -975,6 +975,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   events?: TEvent[];
   configuration: Array<StateNode<TContext>>;
+  transitions: Array<TransitionDefinition<TContext, TEvent>>;
 }
 
 export interface StateSchema<TC = any> {

@@ -22,6 +22,12 @@ const machine = Machine({
           actions: ['doSomething']
         },
         TO_TWO: 'two',
+        TO_TWO_MAYBE: {
+          target: 'two',
+          cond: function maybe() {
+            return true;
+          }
+        },
         TO_THREE: 'three',
         FORBIDDEN_EVENT: undefined
       }
@@ -374,6 +380,20 @@ describe('State', () => {
           }
         )
       );
+    });
+  });
+
+  describe('.transitions', () => {
+    const { initialState } = machine;
+
+    it('should have no transitions for the initial state', () => {
+      expect(initialState.transitions).toHaveLength(0);
+    });
+
+    it('should have transitions for the sent event', () => {
+      expect(
+        machine.transition(initialState, 'TO_TWO').transitions
+      ).toContainEqual(expect.objectContaining({ eventType: 'TO_TWO' }));
     });
   });
 

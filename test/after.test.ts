@@ -47,7 +47,9 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map(t => t.event)).toEqual([after(1000, greenNode.id)]);
+    expect(transitions.map(t => t.eventType)).toEqual([
+      after(1000, greenNode.id)
+    ]);
   });
 
   it('should be able to transition with delay from nested initial state', done => {
