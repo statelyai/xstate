@@ -43,6 +43,6 @@
     "immer": "^2.1.5",
     "lerna-alias": "3.0.3-0",
     "typescript": "^3.5.3",
-    "xstate": "^4.6.0"
+    "xstate": "^4.7.0-rc1"
   }
 }

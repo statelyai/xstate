@@ -375,7 +375,10 @@ describe('invoke', () => {
   });
 
   it('should start services (machine as invoke config)', done => {
-    const machineInvokeMachine = Machine({
+    const machineInvokeMachine = Machine<
+      void,
+      { type: 'SUCCESS'; data: number }
+    >({
       id: 'machine-invoke',
       initial: 'pending',
       states: {
@@ -410,7 +413,10 @@ describe('invoke', () => {
   });
 
   it('should start deeply nested service (machine as invoke config)', done => {
-    const machineInvokeMachine = Machine({
+    const machineInvokeMachine = Machine<
+      void,
+      { type: 'SUCCESS'; data: number }
+    >({
       id: 'parent',
       initial: 'a',
       states: {
@@ -1084,14 +1090,22 @@ describe('invoke', () => {
       });
 
       it('should be able to specify a Promise as a service', done => {
-        const promiseMachine = Machine(
+        type BeginEvent = {
+          type: 'BEGIN';
+          payload: boolean;
+        };
+        const promiseMachine = Machine<{ foo: boolean }, BeginEvent>(
           {
             id: 'promise',
             initial: 'pending',
-            context: { foo: true },
+            context: {
+              foo: true
+            },
             states: {
               pending: {
-                on: { BEGIN: 'first' }
+                on: {
+                  BEGIN: 'first'
+                }
               },
               first: {
                 invoke: {
@@ -1106,7 +1120,7 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: (ctx, e) => {
+              somePromise: (ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
                 });
@@ -1118,21 +1132,41 @@ describe('invoke', () => {
         interpret(promiseMachine)
           .onDone(() => done())
           .start()
-          .send({ type: 'BEGIN', payload: true });
+          .send({
+            type: 'BEGIN',
+            payload: true
+          });
       });
     });
   });
 
   describe('with callbacks', () => {
     it('should be able to specify a callback as a service', done => {
-      const callbackMachine = Machine<any, any>(
+      type BeginEvent = {
+        type: 'BEGIN';
+        payload: boolean;
+      };
+      type CallbackEvent = {
+        type: 'CALLBACK';
+        data: number;
+      };
+      const callbackMachine = Machine<
+        {
+          foo: boolean;
+        },
+        BeginEvent | CallbackEvent
+      >(
         {
           id: 'callback',
           initial: 'pending',
-          context: { foo: true },
+          context: {
+            foo: true
+          },
           states: {
             pending: {
-              on: { BEGIN: 'first' }
+              on: {
+                BEGIN: 'first'
+              }
             },
             first: {
               invoke: {
@@ -1152,11 +1186,22 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e) => cb => {
+            someCallback: (ctx, e: BeginEvent) => (
+              cb: (ev: CallbackEvent) => void
+            ) => {
               if (ctx.foo && e.payload) {
-                cb({ type: 'CALLBACK', data: 40 });
-                cb({ type: 'CALLBACK', data: 41 });
-                cb({ type: 'CALLBACK', data: 42 });
+                cb({
+                  type: 'CALLBACK',
+                  data: 40
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 41
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 42
+                });
               }
             }
           }
@@ -1166,7 +1211,10 @@ describe('invoke', () => {
       interpret(callbackMachine)
         .onDone(() => done())
         .start()
-        .send({ type: 'BEGIN', payload: true });
+        .send({
+          type: 'BEGIN',
+          payload: true
+        });
     });
 
     it('should transition correctly if callback function sends an event', () => {
@@ -1704,7 +1752,8 @@ describe('invoke', () => {
     const infinite$ = interval(10);
 
     it('should work with an infinite observable', done => {
-      const obsMachine = Machine<{ count: number | undefined }>({
+      type Events = { type: 'COUNT'; value: number };
+      const obsMachine = Machine<{ count: number | undefined }, Events>({
         id: 'obs',
         initial: 'counting',
         context: { count: undefined },
@@ -1740,10 +1789,19 @@ describe('invoke', () => {
     });
 
     it('should work with a finite observable', done => {
-      const obsMachine = Machine<{ count: number | undefined }>({
+      type Ctx = {
+        count: number | undefined;
+      };
+      type Events = {
+        type: 'COUNT';
+        value: number;
+      };
+      const obsMachine = Machine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',
-        context: { count: undefined },
+        context: {
+          count: undefined
+        },
         states: {
           counting: {
             invoke: {
@@ -1751,7 +1809,10 @@ describe('invoke', () => {
                 infinite$.pipe(
                   take(5),
                   map(value => {
-                    return { type: 'COUNT', value };
+                    return {
+                      type: 'COUNT',
+                      value
+                    };
                   })
                 ),
               onDone: {
@@ -1760,7 +1821,11 @@ describe('invoke', () => {
               }
             },
             on: {
-              COUNT: { actions: assign({ count: (_, e) => e.value }) }
+              COUNT: {
+                actions: assign({
+                  count: (_, e) => e.value
+                })
+              }
             }
           },
           counted: {
@@ -1777,7 +1842,14 @@ describe('invoke', () => {
     });
 
     it('should receive an emitted error', done => {
-      const obsMachine = Machine<{ count: number | undefined }>({
+      type Ctx = {
+        count: number | undefined;
+      };
+      type Events = {
+        type: 'COUNT';
+        value: number;
+      };
+      const obsMachine = Machine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',
         context: { count: undefined },

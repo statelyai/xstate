@@ -67,7 +67,7 @@ describe('spawning machines', () => {
       },
       SET_COMPLETE: {
         actions: send('SET_COMPLETE', {
-          to: (ctx, e) => {
+          to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
             return ctx.todoRefs[e.id as string];
           }
         })
@@ -189,7 +189,7 @@ describe('spawning promises', () => {
         on: {
           [doneInvoke('my-promise')]: {
             target: 'success',
-            cond: (_, e) => e.data === 'response'
+            cond: (_, e) => (e as any).data === 'response'
           }
         }
       },
@@ -251,7 +251,8 @@ describe('spawning callbacks', () => {
 });
 
 describe('spawning observables', () => {
-  const observableMachine = Machine<any>({
+  type Events = { type: 'INT'; value: number };
+  const observableMachine = Machine<any, Events>({
     id: 'observable',
     initial: 'idle',
     context: {

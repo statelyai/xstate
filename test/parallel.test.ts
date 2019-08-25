@@ -634,7 +634,8 @@ describe('parallel states', () => {
   });
 
   xit('should handle simultaneous orthogonal transitions', () => {
-    const simultaneousMachine = Machine<{ value: string }>({
+    type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
+    const simultaneousMachine = Machine<{ value: string }, Events>({
       id: 'yamlEditor',
       type: 'parallel',
       context: {
@@ -880,7 +881,9 @@ describe('parallel states', () => {
         'go to dashboard'
       );
 
-      expect(dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })).toBe(true);
+      expect(
+        dashboardState.matches({ Menu: 'Opened', Pages: 'Dashboard' })
+      ).toBe(true);
     });
 
     // https://github.com/davidkpiano/xstate/issues/531

@@ -144,7 +144,14 @@ describe('interpreter', () => {
         initialDelay: number;
       }
 
-      const delayExprMachine = Machine<DelayExprMachineCtx>({
+      type DelayExpMachineEvents =
+        | { type: 'ACTIVATE'; wait: number }
+        | { type: 'FINISH' };
+
+      const delayExprMachine = Machine<
+        DelayExprMachineCtx,
+        DelayExpMachineEvents
+      >({
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -158,7 +165,12 @@ describe('interpreter', () => {
           },
           pending: {
             onEntry: send('FINISH', {
-              delay: (ctx, e) => ctx.initialDelay + ('wait' in e ? e.wait : 0)
+              delay: (ctx, e) =>
+                ctx.initialDelay +
+                ('wait' in e
+                  ? (e as Extract<DelayExpMachineEvents, { type: 'ACTIVATE' }>)
+                      .wait
+                  : 0)
             }),
             on: {
               FINISH: 'finished'
@@ -199,7 +211,19 @@ describe('interpreter', () => {
         initialDelay: number;
       }
 
-      const delayExprMachine = Machine<DelayExprMachineCtx>({
+      type DelayExpMachineEvents =
+        | {
+            type: 'ACTIVATE';
+            wait: number;
+          }
+        | {
+            type: 'FINISH';
+          };
+
+      const delayExprMachine = Machine<
+        DelayExprMachineCtx,
+        DelayExpMachineEvents
+      >({
         id: 'delayExpr',
         context: {
           initialDelay: 100
@@ -213,13 +237,20 @@ describe('interpreter', () => {
           },
           pending: {
             onEntry: send('FINISH', {
-              delay: (ctx, _, { _event }) => ctx.initialDelay + _event.data.wait
+              delay: (ctx, _, { _event }) =>
+                ctx.initialDelay +
+                (_event.data as Extract<
+                  DelayExpMachineEvents,
+                  { type: 'ACTIVATE' }
+                >).wait
             }),
             on: {
               FINISH: 'finished'
             }
           },
-          finished: { type: 'final' }
+          finished: {
+            type: 'final'
+          }
         }
       });
 
@@ -731,7 +762,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     interface Ctx {
       password: string;
     }
-    const machine = Machine<Ctx>({
+    type Events = { type: 'NEXT'; password: string };
+    const machine = Machine<Ctx, Events>({
       id: 'sendexpr',
       initial: 'start',
       context: {
@@ -796,6 +828,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     interface Ctx {
       password: string;
     }
+    type Events = {
+      type: 'NEXT';
+      password: string;
+    };
     const childMachine = Machine<Ctx>({
       id: 'child',
       initial: 'start',
@@ -804,12 +840,15 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       states: {
         start: {
-          onEntry: sendParent(ctx => ({ type: 'NEXT', password: ctx.password }))
+          onEntry: sendParent(ctx => ({
+            type: 'NEXT',
+            password: ctx.password
+          }))
         }
       }
     });
 
-    const parentMachine = Machine<Ctx>({
+    const parentMachine = Machine<Ctx, Events>({
       id: 'parent',
       initial: 'start',
       states: {

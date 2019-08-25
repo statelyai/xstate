@@ -48,7 +48,7 @@
     "puppeteer": "^1.19.0",
     "ts-jest": "^24.0.2",
     "typescript": "^3.5.3",
-    "xstate": "^4.6.7"
+    "xstate": "^4.7.0-rc1"
   },
   "dependencies": {
     "@xstate/graph": "^1.0.0-rc1.1"
