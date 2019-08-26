@@ -1,8 +1,24 @@
-import { Machine, State } from '../src/index';
+import { Machine, State, StateFrom } from '../src/index';
 import { initEvent, assign } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
-const machine = Machine({
+type Events =
+  | { type: 'BAR_EVENT' }
+  | { type: 'DEEP_EVENT' }
+  | { type: 'EXTERNAL' }
+  | { type: 'FOO_EVENT' }
+  | { type: 'FORBIDDEN_EVENT' }
+  | { type: 'INERT' }
+  | { type: 'INTERNAL' }
+  | { type: 'MACHINE_EVENT' }
+  | { type: 'P31' }
+  | { type: 'P32' }
+  | { type: 'THREE_EVENT' }
+  | { type: 'TO_THREE' }
+  | { type: 'TO_TWO'; foo: string }
+  | { type: 'TO_TWO_MAYBE' };
+
+const machine = Machine<any, Events>({
   initial: 'one',
   states: {
     one: {
@@ -121,6 +137,7 @@ describe('State', () => {
 
     it('normal state transitions with unknown event should be unchanged', () => {
       const twoState = machine.transition(machine.initialState, 'TO_TWO');
+      // @ts-ignore
       const changedState = machine.transition(twoState, 'UNKNOWN_EVENT');
       expect(changedState.changed).toBe(false);
     });
@@ -172,7 +189,18 @@ describe('State', () => {
     });
 
     it('should not escape targetless child state nodes', () => {
-      const toggleMachine = Machine({
+      interface Ctx {
+        value: string;
+      }
+      type ToggleEvents =
+        | {
+            type: 'CHANGE';
+            value: string;
+          }
+        | {
+            type: 'SAVE';
+          };
+      const toggleMachine = Machine<Ctx, ToggleEvents>({
         id: 'input',
         context: { value: '' },
         type: 'parallel',
@@ -270,7 +298,9 @@ describe('State', () => {
       const { initialState } = machine;
       const jsonInitialState = JSON.parse(JSON.stringify(initialState));
 
-      const stateFromConfig = State.create<any>(jsonInitialState);
+      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
+        typeof machine
+      >;
 
       expect(machine.transition(stateFromConfig, 'TO_TWO').value).toEqual({
         two: { deep: 'foo' }

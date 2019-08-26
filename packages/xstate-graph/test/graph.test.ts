@@ -216,7 +216,14 @@ describe('@xstate/graph', () => {
     });
 
     it('should return value-based paths', () => {
-      const countMachine = Machine<{ count: number }>({
+      interface Ctx {
+        count: number;
+      }
+      interface Events {
+        type: 'INC';
+        value: number;
+      }
+      const countMachine = Machine<Ctx, Events>({
         id: 'count',
         initial: 'start',
         context: {
@@ -259,7 +266,13 @@ describe('@xstate/graph', () => {
 
   describe('getAdjacencyMap', () => {
     it('should map adjacencies', () => {
-      const counterMachine = Machine<{ count: number; other: string }>({
+      interface Ctx {
+        count: number;
+        other: string;
+      }
+      type Events = { type: 'INC'; value: number } | { type: 'DEC' };
+
+      const counterMachine = Machine<Ctx, Events>({
         id: 'counter',
         initial: 'empty',
         context: { count: 0, other: 'something' },

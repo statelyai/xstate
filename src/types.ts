@@ -628,6 +628,10 @@ export interface StateMachine<
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }
 
+export type StateFrom<
+  TMachine extends StateMachine<any, any, any>
+> = ReturnType<TMachine['transition']>;
+
 export interface ActionMap<TContext, TEvent extends EventObject> {
   onEntry: Array<Action<TContext, TEvent>>;
   actions: Array<Action<TContext, TEvent>>;
@@ -976,6 +980,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  children: Record<string, ActivityActionObject<TContext, TEvent>>;
 }
 
 export interface StateSchema<TC = any> {

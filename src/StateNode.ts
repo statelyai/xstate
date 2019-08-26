@@ -68,7 +68,8 @@ import {
   SpecialTargets,
   RaiseAction,
   SCXML,
-  RaiseActionObject
+  RaiseActionObject,
+  ActivityActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -171,7 +172,7 @@ class StateNode<
    */
   public states: StateNodesConfig<TContext, TStateSchema, TEvent>;
   /**
-   * The type of history exhibited. Can be:
+   * The type of history on this state node. Can be:
    *
    *  - `'shallow'` - recalls only top-level historical state value
    *  - `'deep'` - recalls historical state value at all levels
@@ -1233,6 +1234,20 @@ class StateNode<
             SpecialTargets.Internal)
     );
 
+    const invokeActions = resolvedActions.filter(action => {
+      return (
+        action.type === actionTypes.start &&
+        (action as ActivityActionObject<TContext, TEvent>).activity.type ===
+          actionTypes.invoke
+      );
+    }) as Array<ActivityActionObject<TContext, TEvent>>;
+
+    const children = invokeActions.reduce((acc, action) => {
+      acc[action.activity.id] = action;
+
+      return acc;
+    }, {});
+
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)
       : [];
@@ -1279,7 +1294,8 @@ class StateNode<
         : currentState
         ? currentState.configuration
         : [],
-      transitions: stateTransition.transitions
+      transitions: stateTransition.transitions,
+      children
     });
 
     nextState.changed =

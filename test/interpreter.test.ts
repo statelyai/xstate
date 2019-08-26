@@ -815,6 +815,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       states: {
         start: {
           invoke: {
+            id: 'child',
             src: childMachine,
             data: {
               password: 'foo'
@@ -835,6 +836,11 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
+        .onTransition(state => {
+          if (state.matches('start')) {
+            expect(state.children).toHaveProperty('child');
+          }
+        })
         .onDone(() => done())
         .start();
     });

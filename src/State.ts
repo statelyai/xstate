@@ -10,7 +10,8 @@ import {
   SCXML,
   StateSchema,
   ExtractStateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  ActivityActionObject
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -110,6 +111,10 @@ export class State<
    */
   public transitions: Array<TransitionDefinition<TContext, TEvent>>;
   /**
+   * An object mapping actor IDs to spawned actors/invoked services.
+   */
+  public children: Record<string, ActivityActionObject<TContext, TEvent>>;
+  /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
    * @param context
@@ -131,7 +136,8 @@ export class State<
           meta: {},
           events: [],
           configuration: [], // TODO: fix,
-          transitions: []
+          transitions: [],
+          children: {}
         });
       }
 
@@ -151,7 +157,8 @@ export class State<
       meta: undefined,
       events: [],
       configuration: [],
-      transitions: []
+      transitions: [],
+      children: {}
     });
   }
   /**
@@ -186,7 +193,8 @@ export class State<
         history: stateValue.history,
         activities: stateValue.activities,
         configuration: stateValue.configuration,
-        transitions: []
+        transitions: [],
+        children: {}
       });
     }
 
@@ -220,6 +228,7 @@ export class State<
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;
     this.transitions = config.transitions;
+    this.children = config.children;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
