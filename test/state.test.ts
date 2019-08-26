@@ -202,7 +202,9 @@ describe('State', () => {
           };
       const toggleMachine = Machine<Ctx, ToggleEvents>({
         id: 'input',
-        context: { value: '' },
+        context: {
+          value: ''
+        },
         type: 'parallel',
         states: {
           edit: {
@@ -224,8 +226,13 @@ describe('State', () => {
             },
             on: {
               CHANGE: [
-                { target: '.valid', cond: () => true },
-                { target: '.invalid' }
+                {
+                  target: '.valid',
+                  cond: () => true
+                },
+                {
+                  target: '.invalid'
+                }
               ]
             }
           }

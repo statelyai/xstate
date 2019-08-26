@@ -275,7 +275,10 @@ describe('@xstate/graph', () => {
       const counterMachine = Machine<Ctx, Events>({
         id: 'counter',
         initial: 'empty',
-        context: { count: 0, other: 'something' },
+        context: {
+          count: 0,
+          other: 'something'
+        },
         states: {
           empty: {
             on: {
@@ -284,9 +287,15 @@ describe('@xstate/graph', () => {
                 cond: ctx => ctx.count === 5
               },
               INC: {
-                actions: assign({ count: (ctx, e) => ctx.count + e.value })
+                actions: assign({
+                  count: (ctx, e) => ctx.count + e.value
+                })
               },
-              DEC: { actions: assign({ count: ctx => ctx.count - 1 }) }
+              DEC: {
+                actions: assign({
+                  count: ctx => ctx.count - 1
+                })
+              }
             }
           },
           full: {}
@@ -296,7 +305,9 @@ describe('@xstate/graph', () => {
       const adj = getAdjacencyMap(counterMachine, {
         filter: state => state.context.count >= 0 && state.context.count <= 5,
         stateSerializer: state => {
-          const ctx = { count: state.context.count };
+          const ctx = {
+            count: state.context.count
+          };
           return JSON.stringify(state.value) + ' | ' + JSON.stringify(ctx);
         },
         events: {

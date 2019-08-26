@@ -81,7 +81,10 @@ describe('delayed transitions', () => {
   });
 
   describe('delay expressions', () => {
-    const delayExprMachine = Machine(
+    type Events =
+      | { type: 'ACTIVATE'; delay: number }
+      | { type: 'NOEXPR'; delay: number };
+    const delayExprMachine = Machine<{ delay: number }, Events>(
       {
         id: 'delayExpr',
         initial: 'inactive',

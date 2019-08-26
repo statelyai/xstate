@@ -324,7 +324,13 @@ describe('coverage', () => {
 
 describe('events', () => {
   it('should do samples', async () => {
-    const feedbackMachine = Machine({
+    type Events =
+      | { type: 'CLICK_BAD' }
+      | { type: 'CLICK_GOOD' }
+      | { type: 'CLOSE' }
+      | { type: 'ESC' }
+      | { type: 'SUBMIT'; value: string };
+    const feedbackMachine = Machine<void, Events>({
       id: 'feedback',
       initial: 'question',
       states: {
@@ -346,7 +352,7 @@ describe('events', () => {
             SUBMIT: [
               {
                 target: 'thanks',
-                cond: (_, e) => e.value.length
+                cond: (_, e) => !!e.value.length
               },
               {
                 target: '.invalid'
