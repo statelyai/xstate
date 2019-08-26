@@ -72,7 +72,7 @@ const toggleMachine = Machine({
 
 ```js
 import { Machine } from 'xstate';
-import { createModel } from '@xstate/graph';
+import { createModel } from '@xstate/test';
 
 const toggleMachine = Machine(/* ... */);
 
