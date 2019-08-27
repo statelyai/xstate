@@ -15,7 +15,8 @@ type Events =
   | { type: 'P32' }
   | { type: 'THREE_EVENT' }
   | { type: 'TO_THREE' }
-  | { type: 'TO_TWO'; foo: string };
+  | { type: 'TO_TWO'; foo: string }
+  | { type: 'TO_TWO_MAYBE' };
 
 const machine = Machine<any, Events>({
   initial: 'one',

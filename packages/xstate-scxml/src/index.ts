@@ -51,7 +51,7 @@ export function transitionToSCXML(
     type: 'element',
     name: 'transition',
     attributes: cleanAttributes({
-      event: transition.event,
+      event: transition.eventType,
       cond: transition.cond
         ? functionToExpr(transition.cond.predicate)
         : undefined,
