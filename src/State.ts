@@ -253,7 +253,7 @@ export class State<
 
     return valueKeys.concat(
       ...valueKeys.map(key =>
-        this.toStrings(stateValue[key]).map(s => key + delimiter + s)
+        this.toStrings(stateValue[key], delimiter).map(s => key + delimiter + s)
       )
     );
   }
