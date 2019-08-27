@@ -71,7 +71,7 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
         stop: {
           on: {
             // Transient transition
-            '': { target: 'green' }
+            '': { target: '#light.green' }
           }
         }
       }
