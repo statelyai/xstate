@@ -28,8 +28,7 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "prebuild": "npm run clean",
-    "build": "tsc",
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "build": "tsc"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
@@ -40,7 +39,7 @@
     "xstate": "^4.6.0"
   },
   "devDependencies": {
-    "immer": "^2.1.5",
+    "immer": "^3.2.0",
     "lerna-alias": "3.0.3-0",
     "typescript": "^3.5.3",
     "xstate": "^4.7.0-rc1"
