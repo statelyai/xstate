@@ -8,6 +8,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { doneInvoke } from '../../../src/actions';
+import { useState } from 'react';
 
 afterEach(cleanup);
 
@@ -168,5 +169,59 @@ describe('useMachine hook', () => {
     const { getByTestId } = render(<Spawner />);
     await waitForElement(() => getByTestId('success'));
     done();
+  });
+
+  it('actions should not have stale data', async done => {
+    const toggleMachine = Machine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: 'doAction'
+        }
+      }
+    });
+
+    const Toggle = () => {
+      const [ext, setExt] = useState(false);
+
+      const doAction = React.useCallback(() => {
+        expect(ext).toBeTruthy();
+        done();
+      }, [ext]);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          doAction
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={_ => {
+              setExt(true);
+            }}
+          ></button>
+          <button
+            data-testid="button"
+            onClick={_ => {
+              send('TOGGLE');
+            }}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Toggle />);
+
+    const button = getByTestId('button');
+    const extButton = getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
   });
 });
