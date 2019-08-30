@@ -51,6 +51,7 @@
     "xstate": "^4.7.0-rc1"
   },
   "dependencies": {
-    "@xstate/graph": "^1.0.0-rc1.1"
+    "@xstate/graph": "^1.0.0-rc1.1",
+    "chalk": "^2.4.2"
   }
 }
