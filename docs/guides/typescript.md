@@ -22,7 +22,7 @@ interface LightStateSchema {
 type LightEvent =
   | { type: 'TIMER' }
   | { type: 'POWER_OUTAGE' }
-  | { type: 'PED_COUNTDOWN'; duration: number };
+  | { type: 'PED_COUNTDOWN', duration: number };
 
 // The context (extended state) of the machine
 interface LightContext {
