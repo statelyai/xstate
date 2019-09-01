@@ -1,6 +1,7 @@
 // nothing yet
 import { createModel } from '../src';
 import { Machine, assign } from 'xstate';
+import stripAnsi from 'strip-ansi';
 
 const dieHardMachine = Machine<{ three: number; five: number }>(
   {
@@ -236,7 +237,7 @@ describe('error path trace', () => {
             await path.test(undefined);
           } catch (err) {
             expect(err.message).toEqual(expect.stringContaining('test error'));
-            expect(err.message).toMatchSnapshot('error path trace');
+            expect(stripAnsi(err.message)).toMatchSnapshot('error path trace');
             return;
           }
 

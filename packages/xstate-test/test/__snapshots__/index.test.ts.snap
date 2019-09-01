@@ -3,11 +3,11 @@
 exports[`error path trace should return trace for failed state should show an error path trace: error path trace 1`] = `
 "test error
 Path:
-	State: [92m\\"first\\" [39m
-	Event: [32m{\\"type\\":\\"NEXT\\"}[39m
+	State: \\"first\\" 
+	Event: {\\"type\\":\\"NEXT\\"}
 
-	State: [92m\\"second\\" [39m
-	Event: [32m{\\"type\\":\\"NEXT\\"}[39m
+	State: \\"second\\" 
+	Event: {\\"type\\":\\"NEXT\\"}
 
-	State: [31m\\"third\\" [39m"
+	State: \\"third\\" "
 `;
