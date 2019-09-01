@@ -580,7 +580,6 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  updater: Updater<TContext, TEvent>;
 }
 export interface MachineConfig<
   TContext,
@@ -843,20 +842,6 @@ export type Mapper<TContext, TEvent extends EventObject> = (
 export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
   [key: string]: ((context: TContext, event: TEvent) => any) | any;
 }>;
-
-export type Updater<
-  TContext,
-  TEvent extends EventObject,
-  TAssignAction extends AnyAssignAction<TContext, TEvent> = AnyAssignAction<
-    TContext,
-    TEvent
-  >
-> = (
-  context: TContext,
-  _event: SCXML.Event<TEvent>,
-  assignActions: TAssignAction[],
-  state?: State<TContext, TEvent>
-) => TContext;
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

@@ -226,62 +226,6 @@ describe('assign', () => {
   });
 });
 
-describe('custom updater', () => {
-  const updates: number[] = [];
-  interface UpdaterContext {
-    count: number;
-  }
-  const updaterMachine = Machine<UpdaterContext>(
-    {
-      id: 'updater',
-      initial: 'active',
-      context: { count: 0 },
-      states: {
-        active: {
-          on: {
-            EVENT: {
-              actions: [
-                assign({
-                  count: ctx => ctx.count + 2
-                }),
-                assign({
-                  count: ctx => ctx.count * 2
-                })
-              ]
-            }
-          }
-        }
-      }
-    },
-    {
-      updater: (ctx, _, actions) => {
-        const newCtx = { ...ctx };
-        actions.forEach(action => {
-          Object.keys(action.assignment).forEach(key => {
-            newCtx[key] = (action.assignment[key] as (
-              _ctx: typeof ctx
-            ) => number)(newCtx);
-
-            // Custom functionality
-            updates.push(newCtx[key]);
-          });
-        });
-
-        return newCtx;
-      }
-    }
-  );
-
-  it('should allow a custom updater to update state context', () => {
-    const newState = updaterMachine.transition(
-      updaterMachine.initialState,
-      'EVENT'
-    );
-    expect(newState.context).toEqual({ count: 4 });
-    expect(updates).toEqual([2, 4]);
-  });
-});
-
 describe('assign meta', () => {
   const machine = Machine<{ count: number }>({
     id: 'assign',
