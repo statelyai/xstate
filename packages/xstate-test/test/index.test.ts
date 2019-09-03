@@ -459,3 +459,61 @@ describe('state limiting', () => {
     expect(testPlans).toHaveLength(5);
   });
 });
+
+describe('plan description', () => {
+  const machine = Machine({
+    id: 'test',
+    initial: 'atomic',
+    context: { count: 0 },
+    states: {
+      atomic: {
+        on: { NEXT: 'compound' }
+      },
+      compound: {
+        initial: 'child',
+        states: {
+          child: {
+            on: {
+              NEXT: 'childWithMeta'
+            }
+          },
+          childWithMeta: {
+            meta: {
+              description: 'child with meta'
+            }
+          }
+        },
+        on: {
+          NEXT: 'parallel'
+        }
+      },
+      parallel: {
+        type: 'parallel',
+        states: {
+          one: {},
+          two: {
+            meta: {
+              description: 'two description'
+            }
+          }
+        }
+      }
+    }
+  });
+
+  const testModel = createModel(machine);
+  const testPlans = testModel.getShortestPathPlans();
+
+  it('should give a description for every plan', () => {
+    const planDescriptions = testPlans.map(plan => plan.description);
+
+    expect(planDescriptions).toMatchInlineSnapshot(`
+      Array [
+        "reaches state: \\"#test.atomic\\" ({\\"count\\":0})",
+        "reaches state: \\"#test.compound.child\\" ({\\"count\\":0})",
+        "reaches state: \\"child with meta\\" ({\\"count\\":0})",
+        "reaches states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
+      ]
+    `);
+  });
+});

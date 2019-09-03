@@ -314,18 +314,29 @@ export class TestModel<T, TContext> {
 }
 
 function getDescription<T, TContext>(state: State<TContext>): string {
-  return Object.keys(state.meta)
-    .map(id => {
-      const { description } = state.meta[id] as TestMeta<T, TContext>;
-      const contextString =
-        state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
+  const contextString =
+    state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
+
+  const stateStrings = state.configuration
+    .filter(sn => sn.type === 'atomic')
+    .map(({ id }) => {
+      const meta = state.meta[id] as TestMeta<T, TContext>;
+      if (!meta) {
+        return `"#${id}"`;
+      }
+
+      const { description } = meta;
 
       return typeof description === 'function'
         ? description(state)
-        : description ||
-            `state: ${JSON.stringify(state.value)} ${contextString}`;
-    })
-    .join('\n');
+        : `"${description}"` || `"${JSON.stringify(state.value)}"`;
+    });
+
+  return (
+    `state${stateStrings.length === 1 ? '' : 's'}: ` +
+    stateStrings.join(', ') +
+    ` ${contextString}`
+  );
 }
 
 function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
