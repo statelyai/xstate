@@ -118,7 +118,6 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   services: {},
   activities: {},
   delays: {},
-  updater: updateContext
 });
 
 class StateNode<
@@ -1170,12 +1169,7 @@ class StateNode<
     );
 
     const updatedContext = assignActions.length
-      ? this.options.updater(
-          currentContext,
-          _event,
-          assignActions,
-          currentState
-        )
+      ? updateContext(currentContext, _event, assignActions, currentState)
       : currentContext;
 
     const resolvedActions = flatten(

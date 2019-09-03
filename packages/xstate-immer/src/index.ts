@@ -1,7 +1,6 @@
 import {
   EventObject,
   ActionObject,
-  SCXML,
   AssignAction,
   assign as xstateAssign
 } from 'xstate';
@@ -23,30 +22,6 @@ export function assign<TContext, TEvent extends EventObject = EventObject>(
   return xstateAssign((context, event) => {
     return produce(context, draft => void assignment(draft, event));
   });
-}
-
-export function updater<TContext, TEvent extends EventObject>(
-  context: TContext,
-  _event: SCXML.Event<TEvent>,
-  assignActions: Array<ImmerAssignAction<TContext, TEvent>>
-): TContext {
-  const updatedContext = context
-    ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as ImmerAssignAction<
-          TContext,
-          TEvent
-        >;
-
-        const update = produce(
-          acc,
-          interim => void assignment(interim, _event.data)
-        );
-
-        return update;
-      }, context)
-    : context;
-
-  return updatedContext as TContext;
 }
 
 interface PatchEventObject extends EventObject {
