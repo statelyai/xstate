@@ -187,3 +187,7 @@ const Loader = () => {
   );
 };
 ```
+
+## Resources
+
+[State Machines in React](https://gedd.ski/post/state-machines-in-react/)
