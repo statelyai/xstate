@@ -157,7 +157,7 @@ describe('delayed transitions', () => {
       expect(sendActions[0].delay).toEqual(1000 + 500);
     });
 
-    it('should send the expression (string) as delay if expression not found', () => {
+    it('should set delay to undefined if expression not found', () => {
       const { initialState } = delayExprMachine;
       const activeState = delayExprMachine.transition(initialState, {
         type: 'NOEXPR',
@@ -170,7 +170,7 @@ describe('delayed transitions', () => {
 
       expect(sendActions.length).toBe(1);
 
-      expect(sendActions[0].delay).toEqual('nonExistantDelay');
+      expect(sendActions[0].delay).toEqual(undefined);
     });
   });
 });

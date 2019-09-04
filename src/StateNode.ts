@@ -117,7 +117,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: {},
   services: {},
   activities: {},
-  delays: {},
+  delays: {}
 });
 
 class StateNode<
@@ -506,15 +506,19 @@ class StateNode<
         let delayRef: string | number;
 
         if (isFunction(delay)) {
+          // TODO: util function
           delayRef = `${this.id}:delay[${i}]`;
-          this.options.delays[delayRef] = delay; // TODO: util function
+          this.machine.options.delays = {
+            ...this.machine.options.delays,
+            [delayRef]: delay
+          };
         } else {
           delayRef = delay;
         }
 
         const eventType = after(delayRef, this.id);
 
-        this.onEntry.push(send(eventType, { delay }));
+        this.onEntry.push(send(eventType, { delay: delayRef }));
         this.onExit.push(cancel(eventType));
 
         return {

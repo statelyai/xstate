@@ -782,7 +782,7 @@ export interface SendActionObject<TContext, TEvent extends EventObject>
   to: string | number | Actor | undefined;
   _event: SCXML.Event<TEvent>;
   event: TEvent;
-  delay?: number | string;
+  delay?: number;
   id: string | number;
 }
 
