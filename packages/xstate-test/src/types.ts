@@ -35,35 +35,104 @@ export interface TestPathResult {
   segments: TestSegmentResult[];
   state: TestStateResult;
 }
-export interface TestPlan<T, TContext> {
+
+/**
+ * A collection of `paths` used to verify that the SUT reaches
+ * the target `state`.
+ */
+export interface TestPlan<TTestContext, TContext> {
+  /**
+   * The target state.
+   */
   state: State<TContext>;
-  paths: Array<TestPath<T>>;
+  /**
+   * The paths that reach the target `state`.
+   */
+  paths: Array<TestPath<TTestContext>>;
+  /**
+   * The description of the target `state` to be reached.
+   */
   description: string;
   /**
    * Tests the postcondition that the `state` is reached.
    *
    * This should be tested after navigating any path in `paths`.
    */
-  test: (testContext: T) => Promise<void>;
+  test: (
+    /**
+     * The test context used for verifying the SUT.
+     */
+    testContext: TTestContext
+  ) => Promise<void> | void;
 }
+
+/**
+ * A sample event object payload (_without_ the `type` property).
+ *
+ * @example
+ *
+ * ```js
+ * {
+ *   value: 'testValue',
+ *   other: 'something',
+ *   id: 42
+ * }
+ * ```
+ */
 interface EventCase {
   type?: never;
   [prop: string]: any;
 }
+
 export type StatePredicate<TContext> = (state: State<TContext, any>) => boolean;
+/**
+ * Executes an effect using the `testContext` and `event`
+ * that triggers the represented `event`.
+ */
 export type EventExecutor<T> = (
+  /**
+   * The testing context used to execute the effect
+   */
   testContext: T,
+  /**
+   * The represented event that will be triggered when executed
+   */
   event: EventObject
 ) => Promise<any> | void;
+
+export interface TestEventConfig<TTestContext> {
+  /**
+   * Executes an effect that triggers the represented event.
+   *
+   * @example
+   *
+   * ```js
+   * exec: async (page, event) => {
+   *   await page.type('.foo', event.value);
+   * }
+   * ```
+   */
+  exec?: EventExecutor<TTestContext>;
+  /**
+   * Sample event object payloads _without_ the `type` property.
+   *
+   * @example
+   *
+   * ```js
+   * cases: [
+   *   { value: 'foo' },
+   *   { value: '' }
+   * ]
+   * ```
+   */
+  cases?: EventCase[];
+}
+
+export interface TestEventsConfig<T> {
+  [eventType: string]: EventExecutor<T> | TestEventConfig<T>;
+}
 export interface TestModelOptions<T> {
-  events: {
-    [eventType: string]:
-      | EventExecutor<T>
-      | {
-          exec?: EventExecutor<T>;
-          cases?: EventCase[];
-        };
-  };
+  events: TestEventsConfig<T>;
 }
 export interface TestModelCoverage {
   stateNodes: Map<string, number>;

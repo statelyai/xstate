@@ -117,16 +117,22 @@ describe('toggle', () => {
 
 Creates an abstract testing model based on the `machine` passed in.
 
-**Arguments**
-
 | Argument   | Type             | Description                                    |
 | ---------- | ---------------- | ---------------------------------------------- |
 | `machine`  | StateMachine     | The machine used to create the abstract model. |
 | `options?` | TestModelOptions | Options to customize the abstract model        |
 
+**Options**
+
+- `events` ()
+
+**Returns**
+
+A `TestModel` instance.
+
 **Methods**
 
-`.withEvents(eventsMap)`
+#### `model.withEvents(eventsMap)`
 
 Provides testing details for each event. Each key in `eventsMap` is an object whose keys are event types and properties describe the execution and test cases for each event:
 

@@ -14,19 +14,39 @@ import {
 } from './types';
 import { ValueAdjMapOptions } from '@xstate/graph/lib/graph';
 
-export class TestModel<T, TContext> {
+/**
+ * Creates a test model that represents an abstract model of a
+ * system under test (SUT).
+ *
+ * The test model is used to generate test plans, which are used to
+ * verify that states in the `machine` are reachable in the SUT.
+ *
+ * @example
+ *
+ * ```js
+ * const toggleModel = createModel(toggleMachine).withEvents({
+ *   TOGGLE: {
+ *     exec: async page => {
+ *       await page.click('input');
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ */
+export class TestModel<TTestContext, TContext> {
   public coverage: TestModelCoverage = {
     stateNodes: new Map(),
     transitions: new Map()
   };
-  public options: TestModelOptions<T>;
+  public options: TestModelOptions<TTestContext>;
   public static defaultOptions: TestModelOptions<any> = {
     events: {}
   };
 
   constructor(
     public machine: StateMachine<TContext, any, any>,
-    options?: Partial<TestModelOptions<T>>
+    options?: Partial<TestModelOptions<TTestContext>>
   ) {
     this.options = {
       ...TestModel.defaultOptions,
@@ -36,10 +56,10 @@ export class TestModel<T, TContext> {
 
   public getShortestPathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
-  ): Array<TestPlan<T, TContext>> {
+  ): Array<TestPlan<TTestContext, TContext>> {
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
-      events: getEventSamples<T>(this.options.events)
+      events: getEventSamples<TTestContext>(this.options.events)
     }) as StatePathsMap<TContext, any>;
 
     return this.getTestPlans(shortestPaths);
@@ -47,9 +67,9 @@ export class TestModel<T, TContext> {
 
   public getShortestPathPlansTo(
     stateValue: StateValue | StatePredicate<TContext>
-  ): Array<TestPlan<T, TContext>> {
+  ): Array<TestPlan<TTestContext, TContext>> {
     let minWeight = Infinity;
-    let shortestPlans: Array<TestPlan<T, TContext>> = [];
+    let shortestPlans: Array<TestPlan<TTestContext, TContext>> = [];
 
     const plans = this.filterPathsTo(stateValue, this.getShortestPathPlans());
 
@@ -68,8 +88,8 @@ export class TestModel<T, TContext> {
 
   private filterPathsTo(
     stateValue: StateValue | StatePredicate<TContext>,
-    testPlans: Array<TestPlan<T, TContext>>
-  ): Array<TestPlan<T, TContext>> {
+    testPlans: Array<TestPlan<TTestContext, TContext>>
+  ): Array<TestPlan<TTestContext, TContext>> {
     const predicate =
       typeof stateValue === 'function'
         ? plan => stateValue(plan.state)
@@ -79,7 +99,7 @@ export class TestModel<T, TContext> {
 
   public getSimplePathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
-  ): Array<TestPlan<T, TContext>> {
+  ): Array<TestPlan<TTestContext, TContext>> {
     const simplePaths = getSimplePaths(this.machine, {
       ...options,
       events: getEventSamples(this.options.events)
@@ -90,13 +110,13 @@ export class TestModel<T, TContext> {
 
   public getSimplePathPlansTo(
     stateValue: StateValue | StatePredicate<TContext>
-  ): Array<TestPlan<T, TContext>> {
+  ): Array<TestPlan<TTestContext, TContext>> {
     return this.filterPathsTo(stateValue, this.getSimplePathPlans());
   }
 
   public getTestPlans(
     statePathsMap: StatePathsMap<TContext, any>
-  ): Array<TestPlan<T, TContext>> {
+  ): Array<TestPlan<TTestContext, TContext>> {
     return Object.keys(statePathsMap).map(key => {
       const testPlan = statePathsMap[key];
       const paths = testPlan.paths.map(path => {
@@ -234,13 +254,13 @@ export class TestModel<T, TContext> {
         },
         description: `reaches ${getDescription(testPlan.state)}`,
         paths
-      } as TestPlan<T, TContext>;
+      } as TestPlan<TTestContext, TContext>;
     });
   }
 
-  public async testState(state: State<TContext>, testContext: T) {
+  public async testState(state: State<TContext>, testContext: TTestContext) {
     for (const id of Object.keys(state.meta)) {
-      const stateNodeMeta = state.meta[id] as TestMeta<T, TContext>;
+      const stateNodeMeta = state.meta[id] as TestMeta<TTestContext, TContext>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
         this.coverage.stateNodes.set(
           id,
@@ -252,7 +272,9 @@ export class TestModel<T, TContext> {
     }
   }
 
-  public getEventExecutor(event: EventObject): EventExecutor<T> | undefined {
+  public getEventExecutor(
+    event: EventObject
+  ): EventExecutor<TTestContext> | undefined {
     const testEvent = this.options.events[event.type];
 
     if (!testEvent) {
@@ -266,7 +288,7 @@ export class TestModel<T, TContext> {
     return testEvent.exec;
   }
 
-  public async executeEvent(event: EventObject, testContext: T) {
+  public async executeEvent(event: EventObject, testContext: TTestContext) {
     const executor = this.getEventExecutor(event);
 
     if (executor) {
@@ -305,9 +327,9 @@ export class TestModel<T, TContext> {
   }
 
   public withEvents(
-    eventMap: TestModelOptions<T>['events']
-  ): TestModel<T, TContext> {
-    return new TestModel<T, TContext>(this.machine, {
+    eventMap: TestModelOptions<TTestContext>['events']
+  ): TestModel<TTestContext, TContext> {
+    return new TestModel<TTestContext, TContext>(this.machine, {
       events: eventMap
     });
   }
@@ -367,6 +389,30 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
   return result;
 }
 
+/**
+ * Creates a test model that represents an abstract model of a
+ * system under test (SUT).
+ *
+ * The test model is used to generate test plans, which are used to
+ * verify that states in the `machine` are reachable in the SUT.
+ *
+ * @example
+ *
+ * ```js
+ * const toggleModel = createModel(toggleMachine).withEvents({
+ *   TOGGLE: {
+ *     exec: async page => {
+ *       await page.click('input');
+ *     }
+ *   }
+ * });
+ * ```
+ *
+ * @param machine The state machine used to represent the abstract model.
+ * @param options Options for the created test model:
+ * - `events`: an object mapping string event types (e.g., `SUBMIT`)
+ * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
+ */
 export function createModel<TestContext, TContext = any>(
   machine: StateMachine<TContext, any, any>,
   options?: TestModelOptions<TestContext>
