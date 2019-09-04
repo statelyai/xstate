@@ -180,7 +180,7 @@ const Loader = () => {
         <Loader.Idle />
       ) : current.matches({ loading: 'user' }) ? (
         <Loader.LoadingUser />
-      ) : current.matches({ loading: 'frends' }) ? (
+      ) : current.matches({ loading: 'friends' }) ? (
         <Loader.LoadingFriends />
       ) : null}
     </div>
