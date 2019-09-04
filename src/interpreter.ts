@@ -815,6 +815,8 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
+    delete this.state.children[childId];
+
     if (isFunction(child.stop)) {
       child.stop();
     }

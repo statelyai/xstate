@@ -1244,7 +1244,9 @@ class StateNode<
 
         return acc;
       },
-      {} as Record<string, Actor>
+      currentState
+        ? { ...currentState.children }
+        : ({} as Record<string, Actor>)
     );
 
     const stateNodes = resolvedStateValue

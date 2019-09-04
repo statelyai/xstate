@@ -1562,6 +1562,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           }
         })
         .onDone(() => {
+          expect(service.state.children).not.toHaveProperty('childActor');
           done();
         });
 
@@ -1599,11 +1600,15 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       };
       let subscription;
 
-      const service = interpret(parentMachine).onTransition(state => {
-        if (state.children.childActor && !subscription) {
-          subscription = state.children.childActor.subscribe(subscriber);
-        }
-      });
+      const service = interpret(parentMachine)
+        .onTransition(state => {
+          if (state.children.childActor && !subscription) {
+            subscription = state.children.childActor.subscribe(subscriber);
+          }
+        })
+        .onDone(() => {
+          expect(service.state.children).not.toHaveProperty('childActor');
+        });
 
       service.start();
     });
@@ -1642,15 +1647,19 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       };
       let subscription;
 
-      const service = interpret(parentMachine).onTransition(state => {
-        if (
-          state.matches('active') &&
-          state.children.childActor &&
-          !subscription
-        ) {
-          subscription = state.children.childActor.subscribe(subscriber);
-        }
-      });
+      const service = interpret(parentMachine)
+        .onTransition(state => {
+          if (
+            state.matches('active') &&
+            state.children.childActor &&
+            !subscription
+          ) {
+            subscription = state.children.childActor.subscribe(subscriber);
+          }
+        })
+        .onDone(() => {
+          expect(service.state.children).not.toHaveProperty('childActor');
+        });
 
       service.start();
     });
