@@ -741,6 +741,11 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
+export interface InvokeActionObject<TContext, TEvent extends EventObject>
+  extends ActivityActionObject<TContext, TEvent> {
+  activity: InvokeDefinition<TContext, TEvent>;
+}
+
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
   TContext,
   TEvent,
@@ -968,7 +973,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, ActivityActionObject<TContext, TEvent>>;
+  children: Record<string, Actor>;
 }
 
 export interface StateSchema<TC = any> {

@@ -1090,10 +1090,10 @@ describe('invoke', () => {
       });
 
       it('should be able to specify a Promise as a service', done => {
-        type BeginEvent = {
+        interface BeginEvent {
           type: 'BEGIN';
           payload: boolean;
-        };
+        }
         const promiseMachine = Machine<{ foo: boolean }, BeginEvent>(
           {
             id: 'promise',
@@ -1142,14 +1142,14 @@ describe('invoke', () => {
 
   describe('with callbacks', () => {
     it('should be able to specify a callback as a service', done => {
-      type BeginEvent = {
+      interface BeginEvent {
         type: 'BEGIN';
         payload: boolean;
-      };
-      type CallbackEvent = {
+      }
+      interface CallbackEvent {
         type: 'CALLBACK';
         data: number;
-      };
+      }
       const callbackMachine = Machine<
         {
           foo: boolean;
@@ -1752,7 +1752,10 @@ describe('invoke', () => {
     const infinite$ = interval(10);
 
     it('should work with an infinite observable', done => {
-      type Events = { type: 'COUNT'; value: number };
+      interface Events {
+        type: 'COUNT';
+        value: number;
+      }
       const obsMachine = Machine<{ count: number | undefined }, Events>({
         id: 'obs',
         initial: 'counting',
@@ -1789,13 +1792,13 @@ describe('invoke', () => {
     });
 
     it('should work with a finite observable', done => {
-      type Ctx = {
+      interface Ctx {
         count: number | undefined;
-      };
-      type Events = {
+      }
+      interface Events {
         type: 'COUNT';
         value: number;
-      };
+      }
       const obsMachine = Machine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',
@@ -1842,13 +1845,13 @@ describe('invoke', () => {
     });
 
     it('should receive an emitted error', done => {
-      type Ctx = {
+      interface Ctx {
         count: number | undefined;
-      };
-      type Events = {
+      }
+      interface Events {
         type: 'COUNT';
         value: number;
-      };
+      }
       const obsMachine = Machine<Ctx, Events>({
         id: 'obs',
         initial: 'counting',

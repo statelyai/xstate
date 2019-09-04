@@ -69,7 +69,8 @@ import {
   RaiseAction,
   SCXML,
   RaiseActionObject,
-  ActivityActionObject
+  ActivityActionObject,
+  InvokeActionObject
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -102,6 +103,7 @@ import {
   getAllStateNodes,
   isInFinalState
 } from './stateUtils';
+import { Actor, createInvocableActor } from './Actor';
 
 const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
@@ -117,7 +119,7 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   guards: {},
   services: {},
   activities: {},
-  delays: {},
+  delays: {}
 });
 
 class StateNode<
@@ -1234,13 +1236,16 @@ class StateNode<
         (action as ActivityActionObject<TContext, TEvent>).activity.type ===
           actionTypes.invoke
       );
-    }) as Array<ActivityActionObject<TContext, TEvent>>;
+    }) as Array<InvokeActionObject<TContext, TEvent>>;
 
-    const children = invokeActions.reduce((acc, action) => {
-      acc[action.activity.id] = action;
+    const children = invokeActions.reduce(
+      (acc, action) => {
+        acc[action.activity.id] = createInvocableActor(action.activity);
 
-      return acc;
-    }, {});
+        return acc;
+      },
+      {} as Record<string, Actor>
+    );
 
     const stateNodes = resolvedStateValue
       ? this.getStateNodes(resolvedStateValue)

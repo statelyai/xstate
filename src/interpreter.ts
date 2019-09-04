@@ -234,7 +234,7 @@ export class Interpreter<
     actionsConfig?: MachineOptions<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
-      this.exec(action, state.context, state._event, actionsConfig);
+      this.exec(action, state, actionsConfig);
     }
   }
   private update(
@@ -276,7 +276,7 @@ export class Interpreter<
 
     if (this.state.configuration && isDone) {
       // get final child state node
-      const finalChildStateNode = state.configuration!.find(
+      const finalChildStateNode = state.configuration.find(
         sn => sn.type === 'final' && sn.parent === this.machine
       );
 
@@ -507,7 +507,7 @@ export class Interpreter<
     }
 
     this.scheduler.schedule(() => {
-      // Forward copy of event to child interpreters
+      // Forward copy of event to child actors
       this.forward(_event);
 
       const nextState = this.nextState(_event);
@@ -665,10 +665,10 @@ export class Interpreter<
   }
   private exec(
     action: ActionObject<TContext, TEvent>,
-    context: TContext,
-    _event: SCXML.Event<TEvent>,
+    state: State<TContext, TEvent>,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
+    const { context, _event } = state;
     const actionOrExec =
       getActionFunction(action.type, actionFunctionMap) || action.exec;
     const exec = isFunction(actionOrExec)
@@ -752,14 +752,17 @@ export class Interpreter<
             : serviceCreator;
 
           if (isPromiseLike(source)) {
-            this.spawnPromise(Promise.resolve(source), id);
+            this.state.children[id] = this.spawnPromise(
+              Promise.resolve(source),
+              id
+            );
           } else if (isFunction(source)) {
-            this.spawnCallback(source, id);
+            this.state.children[id] = this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
-            this.spawnObservable(source, id);
+            this.state.children[id] = this.spawnObservable(source, id);
           } else if (isMachine(source)) {
             // TODO: try/catch here
-            this.spawnMachine(
+            this.state.children[id] = this.spawnMachine(
               data
                 ? source.withContext(mapContext(data, context, _event))
                 : source,

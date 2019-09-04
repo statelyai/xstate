@@ -8,11 +8,14 @@ import {
   send,
   sendParent,
   EventObject,
-  StateValue
+  StateValue,
+  AnyEventObject
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
+import { interval } from 'rxjs';
+import { map } from 'rxjs/operators';
 
 const lightMachine = Machine({
   id: 'light',
@@ -762,7 +765,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     interface Ctx {
       password: string;
     }
-    type Events = { type: 'NEXT'; password: string };
+    interface Events {
+      type: 'NEXT';
+      password: string;
+    }
     const machine = Machine<Ctx, Events>({
       id: 'sendexpr',
       initial: 'start',
@@ -792,7 +798,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     });
 
     it('should be able to raise event using special target', () => {
-      const machine = Machine({
+      const raiseMachine = Machine({
         initial: 'foo',
         states: {
           foo: {
@@ -813,7 +819,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       let state: State<any>;
 
-      interpret(machine)
+      interpret(raiseMachine)
         .onTransition(s => {
           state = s;
         })
@@ -828,10 +834,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     interface Ctx {
       password: string;
     }
-    type Events = {
+    interface Events {
       type: 'NEXT';
       password: string;
-    };
+    }
     const childMachine = Machine<Ctx>({
       id: 'child',
       initial: 'start',
@@ -878,6 +884,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         .onTransition(state => {
           if (state.matches('start')) {
             expect(state.children).toHaveProperty('child');
+            expect(typeof state.children.child.send).toBe('function');
           }
         })
         .onDone(() => done())
@@ -1512,6 +1519,140 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(machine);
       expect(() => service.start()).not.toThrow();
+    });
+  });
+
+  describe('children', () => {
+    it('state.children should reference invoked child actors (machine)', done => {
+      const childMachine = Machine({
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              FIRE: {
+                actions: sendParent('FIRED')
+              }
+            }
+          }
+        }
+      });
+
+      const parentMachine = Machine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: childMachine
+            },
+            on: {
+              FIRED: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parentMachine)
+        .onTransition(state => {
+          if (state.matches('active') && state.children.childActor) {
+            state.children.childActor.send({ type: 'FIRE' });
+          }
+        })
+        .onDone(() => {
+          done();
+        });
+
+      service.start();
+    });
+
+    it('state.children should reference invoked child actors (promise)', done => {
+      const parentMachine = Machine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: () =>
+                new Promise(res => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                }),
+              onDone: {
+                target: 'success',
+                cond: (_, e) => e.data === 42
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const subscriber = data => {
+        expect(data).toEqual(42);
+        done();
+      };
+      let subscription;
+
+      const service = interpret(parentMachine).onTransition(state => {
+        if (state.children.childActor && !subscription) {
+          subscription = state.children.childActor.subscribe(subscriber);
+        }
+      });
+
+      service.start();
+    });
+
+    it('state.children should reference invoked child actors (observable)', done => {
+      const interval$ = interval(10);
+
+      const parentMachine = Machine({
+        initial: 'active',
+        states: {
+          active: {
+            invoke: {
+              id: 'childActor',
+              src: () =>
+                interval$.pipe(map(value => ({ type: 'FIRED', value })))
+            },
+            on: {
+              FIRED: {
+                target: 'success',
+                cond: (_, e: AnyEventObject) => {
+                  return e.value === 3;
+                }
+              }
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const subscriber = data => {
+        if (data.value === 3) {
+          done();
+        }
+      };
+      let subscription;
+
+      const service = interpret(parentMachine).onTransition(state => {
+        if (
+          state.matches('active') &&
+          state.children.childActor &&
+          !subscription
+        ) {
+          subscription = state.children.childActor.subscribe(subscriber);
+        }
+      });
+
+      service.start();
     });
   });
 });
