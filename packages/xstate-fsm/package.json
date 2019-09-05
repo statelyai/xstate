@@ -42,6 +42,6 @@
     "lerna-alias": "3.0.3-0",
     "rollup": "^1.11.3",
     "ts-jest": "^24.0.2",
-    "typescript": "^3.5.3"
+    "typescript": "^3.6.2"
   }
 }
