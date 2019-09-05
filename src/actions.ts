@@ -207,12 +207,12 @@ export function resolveSend<TContext, TEvent extends EventObject>(
       : action.event
   );
 
-  let resolvedDelay: number | string | undefined;
+  let resolvedDelay: number | undefined;
   if (isString(action.delay)) {
     const configDelay = delaysMap && delaysMap[action.delay];
     resolvedDelay = isFunction(configDelay)
       ? configDelay(ctx, _event.data, meta)
-      : configDelay || action.delay;
+      : configDelay;
   } else {
     resolvedDelay = isFunction(action.delay)
       ? action.delay(ctx, _event.data, meta)
