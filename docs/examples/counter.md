@@ -50,8 +50,8 @@ With [guards](../guides/guards.md), we can model min and max by preventing trans
 ```js
 // ...
 
-const isNotMax = context => context <= 10;
-const isNotMin = context => context >= 0;
+const isNotMax = context => context.count < 10;
+const isNotMin = context => context.count >= 0;
 
 const counterMachine = Machine({
   initial: 'active',
