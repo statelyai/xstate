@@ -293,7 +293,7 @@ const defaultLogExpr = <TContext, TEvent extends EventObject>(
  * @param label The label to give to the logged expression.
  */
 export function log<TContext, TEvent extends EventObject>(
-  expr: LogExpr<TContext, TEvent> = defaultLogExpr,
+  expr: string | LogExpr<TContext, TEvent> = defaultLogExpr,
   label?: string
 ): LogAction<TContext, TEvent> {
   return {
@@ -310,9 +310,11 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
 ): LogActionObject<TContext, TEvent> => ({
   // TODO: remove .expr from resulting object
   ...action,
-  value: action.expr(ctx, _event.data, {
-    _event
-  })
+  value: isString(action.expr)
+    ? action.expr
+    : action.expr(ctx, _event.data, {
+        _event
+      })
 });
 
 /**

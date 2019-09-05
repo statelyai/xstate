@@ -1,5 +1,5 @@
 import { Machine, assign, interpret, spawn } from '../src/index';
-import { pure, sendParent, forwardTo } from '../src/actions';
+import { pure, sendParent, forwardTo, log } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -761,9 +761,9 @@ describe('action meta', () => {
 });
 
 describe('purely defined actions', () => {
-  type Ctx = {
+  interface Ctx {
     items: Array<{ id: number }>;
-  };
+  }
   type Events =
     | { type: 'SINGLE'; id: number }
     | { type: 'NONE'; id: number }
@@ -952,5 +952,48 @@ describe('forwardTo()', () => {
       .start();
 
     service.send('EVENT', { value: 42 });
+  });
+});
+
+describe('log()', () => {
+  const logMachine = Machine<{ count: number }>({
+    id: 'log',
+    initial: 'string',
+    context: {
+      count: 42
+    },
+    states: {
+      string: {
+        entry: log('some string', 'string label'),
+        on: {
+          EXPR: {
+            actions: log(ctx => `expr ${ctx.count}`, 'expr label')
+          }
+        }
+      }
+    }
+  });
+
+  it('should log a string', () => {
+    expect(logMachine.initialState.actions[0]).toMatchInlineSnapshot(`
+      Object {
+        "expr": "some string",
+        "label": "string label",
+        "type": "xstate.log",
+        "value": "some string",
+      }
+    `);
+  });
+
+  it('should log an expression', () => {
+    const nextState = logMachine.transition(logMachine.initialState, 'EXPR');
+    expect(nextState.actions[0]).toMatchInlineSnapshot(`
+      Object {
+        "expr": [Function],
+        "label": "expr label",
+        "type": "xstate.log",
+        "value": "expr 42",
+      }
+    `);
   });
 });

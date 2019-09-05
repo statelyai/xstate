@@ -761,7 +761,7 @@ export type LogExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
 export interface LogAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   label: string | undefined;
-  expr: LogExpr<TContext, TEvent>;
+  expr: string | LogExpr<TContext, TEvent>;
 }
 
 export interface LogActionObject<TContext, TEvent extends EventObject>
