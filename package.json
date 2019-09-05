@@ -39,7 +39,7 @@
     "postversion": "git push --follow-tags",
     "prepublishOnly": "npm run build && npm run build:npm",
     "publish:next": "npm version prerelease && npm publish --tag next",
-    "typedoc": "typedoc src/index.ts --excludePrivate --mode file --out ./api --target es6",
+    "typedoc": "typedoc --excludePrivate --mode file --out ./api --target es6",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && vuepress dev docs",
