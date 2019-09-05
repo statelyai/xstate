@@ -39,7 +39,6 @@ import {
   AssignAction,
   DelayedTransitionDefinition,
   ActivityDefinition,
-  StateTypes,
   StateNodeConfig,
   StateSchema,
   TransitionsDefinition,
@@ -148,7 +147,7 @@ class StateNode<
    *  - `'history'` - history state node
    *  - `'final'` - final state node
    */
-  public type: StateTypes;
+  public type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
    * The string path from the root machine node to this node.
    */

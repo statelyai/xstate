@@ -401,7 +401,7 @@ export interface StateNodeConfig<
    *  - `'history'` - history state node
    *  - `'final'` - final state node
    */
-  type?: StateTypes;
+  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
    * The initial context (extended state) of the machine.
    */
@@ -499,7 +499,7 @@ export interface StateNodeDefinition<
   id: string;
   version: string | undefined;
   key: string;
-  type: StateTypes;
+  type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;

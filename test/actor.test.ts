@@ -251,7 +251,11 @@ describe('spawning callbacks', () => {
 });
 
 describe('spawning observables', () => {
-  type Events = { type: 'INT'; value: number };
+  interface Events {
+    type: 'INT';
+    value: number;
+  }
+
   const observableMachine = Machine<any, Events>({
     id: 'observable',
     initial: 'idle',
