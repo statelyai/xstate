@@ -62,7 +62,7 @@
     "@betit/rollup-plugin-rename-extensions": "0.0.5",
     "@scion-scxml/test-framework": "^2.0.15",
     "@types/jest": "^24.0.15",
-    "@types/node": "^8.10.38",
+    "@types/node": "^12.7.4",
     "@vuepress/plugin-google-analytics": "^1.0.2",
     "babel-cli": "^6.26.0",
     "babel-core": "^6.26.3",
