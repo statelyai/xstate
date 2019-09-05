@@ -21,7 +21,7 @@ const pedestrianStates = {
       }
     },
     stop: {
-      type: 'final',
+      type: 'final' as const,
       data: {
         foo: 'bar'
       }
