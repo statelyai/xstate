@@ -522,7 +522,7 @@ class StateNode<
 
             return toArray(resolvedTransition).map(transition => ({
               ...transition,
-              delay
+              delay: !isNaN(+delay) ? +delay : delay
             }));
           })
         );
@@ -538,15 +538,12 @@ class StateNode<
           ...this.machine.options.delays,
           [delayRef]: delay
         };
-      } else if (!isNaN(+delay)) {
-        delayRef = +delay;
       } else {
         delayRef = delay;
       }
 
       const eventType = after(delayRef, this.id);
 
-      // TODO: check if using delayRef here (instead of delay) has fixed a bug
       this.onEntry.push(send(eventType, { delay: delayRef }));
       this.onExit.push(cancel(eventType));
 
