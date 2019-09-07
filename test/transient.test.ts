@@ -343,4 +343,22 @@ describe('transient states (eventless transitions)', () => {
     const state = machine.transition('a', 'FOO');
     expect(state.value).toBe('e');
   });
+
+  it('should select eventless transition for array `.on` config', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { FOO: 'b' }
+        },
+        b: {
+          on: [{ event: '', target: 'pass' }]
+        },
+        pass: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('pass');
+  });
 });

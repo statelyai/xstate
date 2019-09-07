@@ -329,7 +329,13 @@ class StateNode<
     this.history =
       _config.history === true ? 'shallow' : _config.history || false;
 
-    this._transient = !!(_config.on && _config.on[NULL_EVENT]);
+    this._transient = !_config.on
+      ? false
+      : Array.isArray(_config.on)
+      ? _config.on.some(({ event }: { event: string }) => {
+          return event === NULL_EVENT;
+        })
+      : NULL_EVENT in _config.on;
     this.strict = !!_config.strict;
 
     // TODO: deprecate (entry)
