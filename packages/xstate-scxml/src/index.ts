@@ -7,7 +7,6 @@ import {
   ActionType
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
-import { actionTypes } from 'xstate/lib/actions';
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {
@@ -28,7 +27,7 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
   const { type, ...attributes } = action;
 
   const actionTypeMap: Record<ActionType, string> = {
-    [actionTypes.raise]: 'raise'
+    'xstate.raise': 'raise'
   };
 
   const name = actionTypeMap[action.type];
