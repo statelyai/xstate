@@ -361,4 +361,41 @@ describe('transient states (eventless transitions)', () => {
     const state = machine.transition('a', 'FOO');
     expect(state.value).toBe('pass');
   });
+
+  it('should not select wildcard for eventless transition', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { FOO: 'b' }
+        },
+        b: {
+          on: { '*': 'fail' }
+        },
+        fail: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('b');
+  });
+
+  it('should not select wildcard for eventless transition (array `.on`)', () => {
+    const machine = Machine({
+      initial: 'a',
+      states: {
+        a: {
+          on: { FOO: 'b' }
+        },
+        b: {
+          on: [{ event: '*', target: 'fail' }, { event: '', target: 'pass' }]
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const state = machine.transition('a', 'FOO');
+    expect(state.value).toBe('pass');
+  });
 });
