@@ -56,22 +56,27 @@ describe('@xstate/graph', () => {
     }
   });
 
-  const condMachine = Machine<
-    { id: string },
-    any,
-    { type: 'EVENT'; id: string } | { type: 'STATE' }
-  >({
+  type CondMachineCtx = { id: string };
+  type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
+
+  const condMachine = Machine<CondMachineCtx, CondMachineEvents>({
     key: 'cond',
     initial: 'pending',
     states: {
       pending: {
         on: {
           EVENT: [
-            { target: 'foo', cond: (_, e) => e.id === 'foo' },
+            {
+              target: 'foo',
+              cond: (_, e) => e.id === 'foo'
+            },
             { target: 'bar' }
           ],
           STATE: [
-            { target: 'foo', cond: s => s.id === 'foo' },
+            {
+              target: 'foo',
+              cond: s => s.id === 'foo'
+            },
             { target: 'bar' }
           ]
         }
@@ -168,12 +173,27 @@ describe('@xstate/graph', () => {
     });
 
     it('should represent conditional paths based on context', () => {
-      const paths = getShortestPaths(condMachine.withContext({ id: 'foo' }), {
-        events: {
-          EVENT: [{ type: 'EVENT', id: 'whatever' }],
-          STATE: [{ type: 'STATE' }]
+      // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
+      const paths = getShortestPaths<CondMachineCtx, CondMachineEvents>(
+        condMachine.withContext({
+          id: 'foo'
+        }),
+        {
+          events: {
+            EVENT: [
+              {
+                type: 'EVENT',
+                id: 'whatever'
+              }
+            ],
+            STATE: [
+              {
+                type: 'STATE'
+              }
+            ]
+          }
         }
-      });
+      );
 
       expect(paths).toMatchSnapshot('shortest paths conditional');
     });
@@ -237,7 +257,9 @@ describe('@xstate/graph', () => {
                 cond: ctx => ctx.count === 3
               },
               INC: {
-                actions: assign({ count: ctx => ctx.count + 1 })
+                actions: assign({
+                  count: ctx => ctx.count + 1
+                })
               }
             }
           },
@@ -302,7 +324,8 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const adj = getAdjacencyMap(counterMachine, {
+      // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
+      const adj = getAdjacencyMap<Ctx, Events>(counterMachine, {
         filter: state => state.context.count >= 0 && state.context.count <= 5,
         stateSerializer: state => {
           const ctx = {
