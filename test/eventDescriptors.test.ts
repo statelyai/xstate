@@ -20,4 +20,24 @@ describe('event descriptors', () => {
     service.send('BAR');
     expect(service.state.value).toBe('C');
   });
+
+  it('should select wildcard over explicit event type for array `.on` config (according to document order)', () => {
+    const machine = Machine({
+      initial: 'A',
+      states: {
+        A: {
+          on: [
+            { event: '*', target: 'pass' },
+            { event: 'NEXT', target: 'fail' }
+          ]
+        },
+        fail: {},
+        pass: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send('NEXT');
+    expect(service.state.value).toBe('pass');
+  });
 });
