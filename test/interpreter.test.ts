@@ -1459,6 +1459,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       let count: number;
       const intervalService = interpret(intervalMachine).start();
 
+      expect(isObservable(intervalService)).toBeTruthy();
+
       intervalService.subscribe(
         state => (count = state.context.count),
         undefined,
@@ -1470,28 +1472,46 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     });
 
     it('should be unsubscribable', done => {
-      let count: number;
-      const intervalService = interpret(intervalMachine).start();
-
-      expect(isObservable(intervalService)).toBeTruthy();
-
-      const subscription = intervalService.subscribe(
-        state => (count = state.context.count),
-        undefined,
-        () => {
-          expect(count).toEqual(5);
-          done();
+      const context = { count: 0 };
+      const machine = Machine<typeof context>({
+        context,
+        initial: 'active',
+        states: {
+          active: {
+            on: {
+              INC: {
+                actions: assign({ count: ctx => ctx.count + 1 })
+              },
+              '': {
+                target: 'finished',
+                cond: ctx => ctx.count >= 5
+              }
+            }
+          },
+          finished: {
+            type: 'final'
+          }
         }
+      });
+
+      let count: number;
+      const service = interpret(machine)
+        .onDone(() => {
+          expect(count).toEqual(2);
+          done();
+        })
+        .start();
+
+      const subscription = service.subscribe(
+        state => (count = state.context.count)
       );
 
-      setTimeout(() => {
-        subscription.unsubscribe();
-      }, 15);
-
-      setTimeout(() => {
-        expect(count).toEqual(1);
-        done();
-      }, 500);
+      service.send('INC');
+      service.send('INC');
+      subscription.unsubscribe();
+      service.send('INC');
+      service.send('INC');
+      service.send('INC');
     });
   });
 
