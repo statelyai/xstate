@@ -265,6 +265,18 @@ class StateNode<
     transitions: undefined as
       | TransitionDefinition<TContext, TEvent>[]
       | undefined,
+    candidates: {} as {
+      [K in TEvent['type'] | NullEvent['type'] | '*']:
+        | Array<
+            TransitionDefinition<
+              TContext,
+              K extends TEvent['type']
+                ? Extract<TEvent, { type: K }>
+                : EventObject
+            >
+          >
+        | undefined;
+    },
     delayedTransitions: undefined as
       | Array<DelayedTransitionDefinition<TContext, TEvent>>
       | undefined
@@ -531,6 +543,24 @@ class StateNode<
     );
   }
 
+  private getCandidates(eventName: TEvent['type'] | NullEvent['type'] | '*') {
+    if (this.__cache.candidates[eventName]) {
+      return this.__cache.candidates[eventName];
+    }
+
+    const transient = eventName === NULL_EVENT;
+
+    const candidates = this.transitions.filter(transition => {
+      const sameEventType = transition.eventType === eventName;
+      // null events should only match against eventless transitions
+      return transient
+        ? sameEventType
+        : sameEventType || transition.eventType === WILDCARD;
+    }) as any;
+    this.__cache.candidates[eventName] = candidates;
+    return candidates;
+  }
+
   /**
    * All delayed transitions from the config.
    */
@@ -773,25 +803,13 @@ class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
-    const eventName = _event.name as TEvent['type'];
-    const isTransientEvent = eventName === NULL_EVENT;
-
+    const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
     let nextStateNodes: Array<StateNode<TContext>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of this.transitions) {
-      const candidateType = candidate.eventType;
-      const isDifferentEventType = candidateType !== eventName;
-      // null events should only match against eventless transitions
-      const shouldSkip = isTransientEvent
-        ? isDifferentEventType
-        : isDifferentEventType && candidateType !== WILDCARD;
-
-      if (shouldSkip) {
-        continue;
-      }
+    for (const candidate of this.getCandidates(eventName)) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
