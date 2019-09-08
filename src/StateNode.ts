@@ -120,6 +120,33 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   delays: {}
 });
 
+const validateArrayifiedTransitions = <TContext>(
+  stateNode: StateNode<any, any, any>,
+  event: string,
+  transitions: Array<
+    TransitionConfig<TContext, EventObject> & {
+      event: string;
+    }
+  >
+) => {
+  const hasNonLastUnguardedTarget = transitions
+    .slice(0, -1)
+    .some(
+      transition =>
+        isString(transition.target) ||
+        isMachine(transition.target) ||
+        (!('cond' in transition) && !('in' in transition))
+    );
+  const eventText =
+    event === NULL_EVENT ? 'the transient event' : `event '${event}'`;
+
+  warn(
+    !hasNonLastUnguardedTarget,
+    `One or more transitions for ${eventText} on state '${stateNode.id}' are unreachable. ` +
+      `Make sure that the default transition is the last one defined.`
+  );
+};
+
 class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
@@ -1915,32 +1942,6 @@ class StateNode<
     };
   }
   private formatTransitions(): TransitionDefinition<TContext, TEvent>[] {
-    const validateMappedTransitions = (
-      event: string,
-      transitions: Array<
-        TransitionConfig<TContext, EventObject> & {
-          event: string;
-        }
-      >
-    ) => {
-      const hasNonLastUnguardedTarget = transitions
-        .slice(0, -1)
-        .some(
-          transition =>
-            isString(transition.target) ||
-            isMachine(transition.target) ||
-            (!('cond' in transition) && !('in' in transition))
-        );
-      const eventText =
-        event === NULL_EVENT ? 'the transient event' : `event '${event}'`;
-
-      warn(
-        !hasNonLastUnguardedTarget,
-        `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
-          `Make sure that the default transition is the last one defined.`
-      );
-    };
-
     let onConfig: Array<
       TransitionConfig<TContext, EventObject> & {
         event: string;
@@ -1960,14 +1961,14 @@ class StateNode<
       onConfig = flatten(
         keys(strictOnConfigs)
           .map(key => {
-            const mapped = toTransitionConfigArray<TContext, EventObject>(
+            const arrayified = toTransitionConfigArray<TContext, EventObject>(
               key,
               strictOnConfigs![key as string]
             );
             if (!IS_PRODUCTION) {
-              validateMappedTransitions(key, mapped);
+              validateArrayifiedTransitions(this, key, arrayified);
             }
-            return mapped;
+            return arrayified;
           })
           .concat(
             toTransitionConfigArray(WILDCARD, wildcardConfigs as SingleOrArray<
