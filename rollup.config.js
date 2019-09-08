@@ -1,7 +1,6 @@
 import typescript from 'rollup-plugin-typescript2';
 import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
-import renameExtensions from '@betit/rollup-plugin-rename-extensions';
 import fileSize from 'rollup-plugin-filesize';
 
 const createTsPlugin = ({ declaration = true, target } = {}) =>
@@ -19,15 +18,7 @@ const createNpmConfig = ({ input, output }) => ({
   input,
   output,
   preserveModules: true,
-  plugins: [
-    createTsPlugin(),
-    // temporary solution until rollup/rollup#2847 gets resolved
-    renameExtensions({
-      mappings: {
-        '.ts': '.js'
-      }
-    })
-  ]
+  plugins: [createTsPlugin()]
 });
 
 const createUmdConfig = ({ input, output, target }) => ({
