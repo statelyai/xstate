@@ -1915,15 +1915,69 @@ class StateNode<
     };
   }
   private formatTransitions(): TransitionDefinition<TContext, TEvent>[] {
-    const onConfig = !this.config.on
-      ? []
-      : Array.isArray(this.config.on)
-      ? this.config.on
-      : flatten(
-          keys(this.config.on).map(key =>
-            toTransitionConfigArray(key, this.config.on![key as string])
-          )
+    const validateMappedTransitions = (
+      event: string,
+      transitions: Array<
+        TransitionConfig<TContext, EventObject> & {
+          event: string;
+        }
+      >
+    ) => {
+      const hasNonLastUnguardedTarget = transitions
+        .slice(0, -1)
+        .some(
+          transition =>
+            isString(transition.target) ||
+            isMachine(transition.target) ||
+            (!('cond' in transition) && !('in' in transition))
         );
+      const eventText =
+        event === NULL_EVENT ? 'the transient event' : `event '${event}'`;
+
+      warn(
+        !hasNonLastUnguardedTarget,
+        `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
+          `Make sure that the default transition is the last one defined.`
+      );
+    };
+
+    let onConfig: Array<
+      TransitionConfig<TContext, EventObject> & {
+        event: string;
+      }
+    >;
+
+    if (!this.config.on) {
+      onConfig = [];
+    } else if (Array.isArray(this.config.on)) {
+      onConfig = this.config.on;
+    } else {
+      const {
+        [WILDCARD]: wildcardConfigs = [],
+        ...strictOnConfigs
+      } = this.config.on;
+
+      onConfig = flatten(
+        keys(strictOnConfigs)
+          .map(key => {
+            const mapped = toTransitionConfigArray<TContext, EventObject>(
+              key,
+              strictOnConfigs![key as string]
+            );
+            if (!IS_PRODUCTION) {
+              validateMappedTransitions(key, mapped);
+            }
+            return mapped;
+          })
+          .concat(
+            toTransitionConfigArray(WILDCARD, wildcardConfigs as SingleOrArray<
+              TransitionConfig<TContext, EventObject> & {
+                event: '*';
+              }
+            >)
+          )
+      );
+    }
 
     const doneConfig = this.config.onDone
       ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
@@ -1955,7 +2009,7 @@ class StateNode<
     const delayedTransitions = this.after;
 
     let formattedTransitions = flatten(
-      [...onConfig, ...doneConfig, ...invokeConfig].map(
+      [...doneConfig, ...invokeConfig, ...onConfig].map(
         (
           transitionConfig: TransitionConfig<TContext, TEvent> & {
             event: TEvent['type'] | NullEvent['type'] | '*';

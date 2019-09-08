@@ -585,25 +585,25 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
     return { ...transitionLike, event };
   });
 
-  if (!IS_PRODUCTION) {
-    const hasNonLastUnguardedTarget = transitions
-      .slice(0, -1)
-      .some(
-        transition =>
-          isString(transition.target) ||
-          isMachine(transition.target) ||
-          (!('cond' in transition) && !('in' in transition))
-      );
+  // if (!IS_PRODUCTION) {
+  //   const hasNonLastUnguardedTarget = transitions
+  //     .slice(0, -1)
+  //     .some(
+  //       transition =>
+  //         isString(transition.target) ||
+  //         isMachine(transition.target) ||
+  //         (!('cond' in transition) && !('in' in transition))
+  //     );
 
-    const eventText =
-      event.length === 0 ? 'the transient event' : `event '${event}'`;
+  //   const eventText =
+  //     event.length === 0 ? 'the transient event' : `event '${event}'`;
 
-    warn(
-      !hasNonLastUnguardedTarget,
-      `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
-        `Make sure that the default transition is the last one defined.`
-    );
-  }
+  //   warn(
+  //     !hasNonLastUnguardedTarget,
+  //     `One or more transitions for ${eventText} on state '${this.id}' are unreachable. ` +
+  //       `Make sure that the default transition is the last one defined.`
+  //   );
+  // }
 
   return transitions;
 }
