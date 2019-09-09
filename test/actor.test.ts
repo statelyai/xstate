@@ -408,7 +408,7 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign(() => ({
+            entry: assign((): { serverRef: Actor } => ({
               serverRef: spawn(pongActorMachine, { autoForward: false })
             })),
             on: {
