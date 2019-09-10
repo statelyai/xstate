@@ -5,8 +5,12 @@ import { useService } from '../src';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
-    type TodoCtx = { completed: boolean };
-    type TodosCtx = { todos: Array<Interpreter<TodoCtx>> };
+    interface TodoCtx {
+      completed: boolean;
+    }
+    interface TodosCtx {
+      todos: Array<Interpreter<TodoCtx>>;
+    }
 
     const todoMachine = Machine<TodoCtx>({
       context: {
@@ -33,7 +37,7 @@ describe('useService', () => {
         CREATE: {
           actions: assign(ctx => ({
             ...ctx,
-            todos: ctx.todos.concat(spawn(todoMachine))
+            todos: ctx.todos.concat(spawn(todoMachine) as Interpreter<TodoCtx>)
           }))
         }
       }
