@@ -1173,7 +1173,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TContext>(
   entity: StateMachine<TContext, any, any>,
   nameOrOptions?: string | SpawnOptions
-): Actor<State<TContext>>;
+): Interpreter<TContext>;
 export function spawn<TContext>(
   entity: Exclude<Spawnable<TContext>, StateMachine<any, any, any>>,
   nameOrOptions?: string | SpawnOptions
