@@ -538,22 +538,13 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
   data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
 }
 
-export interface CompoundStateNodeConfig<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
-  parallel?: boolean;
-  states: StateNodeConfig<TContext, TStateSchema, TEvent>['states'];
-}
-
-export type SimpleOrCompoundStateNodeConfig<
+export type SimpleOrStateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | CompoundStateNodeConfig<TContext, TStateSchema, TEvent>;
+  | StateNodeConfig<TContext, TStateSchema, TEvent>;
 
 export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
@@ -585,7 +576,7 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
-> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvent> {
+> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
    * The initial context (extended state)
    */
@@ -600,13 +591,13 @@ export interface StandardMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
-> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvent> {}
+> extends StateNodeConfig<TContext, TStateSchema, TEvent> {}
 
 export interface ParallelMachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
-> extends CompoundStateNodeConfig<TContext, TStateSchema, TEvent> {
+> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   initial?: undefined;
   type?: 'parallel';
 }

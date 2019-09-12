@@ -41,3 +41,17 @@ export function Machine<
     initialContext
   ) as StateMachine<TContext, TStateSchema, TEvent>;
 }
+
+export function createMachine<
+  TContext,
+  TEvent extends EventObject = AnyEventObject
+>(
+  config: MachineConfig<TContext, any, TEvent>,
+  options?: Partial<MachineOptions<TContext, TEvent>>
+): StateMachine<TContext, any, TEvent> {
+  return new StateNode<TContext, any, TEvent>(config, options) as StateMachine<
+    TContext,
+    any,
+    TEvent
+  >;
+}
