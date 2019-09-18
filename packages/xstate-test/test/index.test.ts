@@ -324,7 +324,7 @@ describe('coverage', () => {
 });
 
 describe('events', () => {
-  it('should do samples', async () => {
+  it('should allow for representing many cases', async () => {
     type Events =
       | { type: 'CLICK_BAD' }
       | { type: 'CLICK_GOOD' }
@@ -429,6 +429,28 @@ describe('events', () => {
     }
 
     return testModel.testCoverage();
+  });
+
+  it('should not throw an error for unimplemented events', () => {
+    const testMachine = Machine({
+      initial: 'idle',
+      states: {
+        idle: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {}
+      }
+    });
+
+    const testModel = createModel(testMachine);
+
+    const testPlans = testModel.getShortestPathPlans();
+
+    expect(async () => {
+      for (const plan of testPlans) {
+        await plan.test(undefined);
+      }
+    }).not.toThrow();
   });
 });
 

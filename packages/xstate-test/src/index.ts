@@ -278,7 +278,9 @@ export class TestModel<TTestContext, TContext> {
     const testEvent = this.options.events[event.type];
 
     if (!testEvent) {
-      throw new Error(`Missing config for event "${event.type}".`);
+      // tslint:disable-next-line:no-console
+      console.warn(`Missing config for event "${event.type}".`);
+      return undefined;
     }
 
     if (typeof testEvent === 'function') {
