@@ -29,7 +29,7 @@ describe('useService', () => {
       }
     });
 
-    const todosMachine = Machine<TodosCtx, { type: 'CREATE' }>({
+    const todosMachine = Machine<TodosCtx, any, { type: 'CREATE' }>({
       context: { todos: [] },
       initial: 'working',
       states: { working: {} },
@@ -37,7 +37,7 @@ describe('useService', () => {
         CREATE: {
           actions: assign(ctx => ({
             ...ctx,
-            todos: ctx.todos.concat(spawn(todoMachine) as Interpreter<TodoCtx>)
+            todos: ctx.todos.concat(spawn(todoMachine))
           }))
         }
       }
