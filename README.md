@@ -3,7 +3,7 @@
   <br />
   <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
   <br />
-  <sub>JavaScript state machines and statecharts</sub>
+    <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
   <br />
   </a>
@@ -20,10 +20,12 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 
 ## Packages
 
-- [🔬 @xstate/fsm](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm) - Minimal finite state machine library
-- [📉 @xstate/graph](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
-- [⚛️ @xstate/react](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
-- [✅ @xstate/test](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
+- 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
+- 🔜 `xstate@next` - Release candidate for XState 4.7
+- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm) - Minimal finite state machine library
+- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
 
 ## Super quick start
 
@@ -60,7 +62,7 @@ toggleService.send('TOGGLE');
 
 - [Visualizer](#visualizer)
 - [Why? (info about statecharts)](#why)
-- [Installation](#installation)
+- [Installation](https://xstate.js.org/docs/guides/installation.html)
 - [Finite State Machines](#finite-state-machines)
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
