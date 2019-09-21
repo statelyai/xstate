@@ -17,7 +17,7 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
   "license": "MIT",
-  "main": "lib/index.js",
+  "main": "dist/xstate.fsm.js",
   "sideEffects": false,
   "files": [
     "dist",
