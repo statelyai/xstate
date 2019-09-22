@@ -26,7 +26,7 @@
     "clean:packages": "lerna run --parallel clean",
     "clean:monorepo": "npm run clean:packages && lerna clean --yes",
     "test": "jest --projects ./ ./packages/*/",
-    "test:core": "jest",
+    "test:core": "tsc && jest",
     "prettify": "prettier --config ./.prettierrc --write ./{lib,es,src,test}/**/*.ts",
     "ci": "npm run build && npm run test",
     "dev": "node ./scripts/dev.js",
