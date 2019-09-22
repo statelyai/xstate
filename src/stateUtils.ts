@@ -10,6 +10,9 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
+export const isLeafNode = (stateNode: StateNode<any, any, any>) =>
+  stateNode.type === 'atomic' || stateNode.type === 'final';
+
 export function getChildren<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
@@ -20,9 +23,8 @@ export function getAllStateNodes<TC, TE extends EventObject>(
   stateNode: StateNode<TC, any, TE>
 ): Array<StateNode<TC, any, TE>> {
   const stateNodes = [stateNode];
-  const isLeaf = stateNode.type === 'atomic' || stateNode.type === 'final';
 
-  if (isLeaf) {
+  if (isLeafNode(stateNode)) {
     return stateNodes;
   }
 
@@ -108,7 +110,7 @@ function getValueFromAdj<TC, TE extends EventObject>(
   if (baseNode.type === 'compound') {
     const childStateNode = childStateNodes[0];
     if (childStateNode) {
-      if (childStateNode.type === 'atomic' || childStateNode.type === 'final') {
+      if (isLeafNode(childStateNode)) {
         return childStateNode.key;
       }
     } else {
