@@ -100,7 +100,8 @@ import {
   has,
   getChildren,
   getAllStateNodes,
-  isInFinalState
+  isInFinalState,
+  isLeafNode
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
 
@@ -1488,32 +1489,6 @@ class StateNode<
     }
   }
 
-  private get resolvedStateValue(): StateValue {
-    const { key } = this;
-
-    if (this.type === 'parallel') {
-      return {
-        [key]: mapFilterValues<StateNode<TContext, any, TEvent>, StateValue>(
-          this.states,
-          stateNode => stateNode.resolvedStateValue[stateNode.key],
-          stateNode => !(stateNode.type === 'history')
-        )
-      };
-    }
-
-    if (this.initial === undefined) {
-      // If leaf node, value is just the state node's key
-      return key;
-    }
-
-    if (!this.states[this.initial]) {
-      throw new Error(`Initial state '${this.initial}' not found on '${key}'`);
-    }
-
-    return {
-      [key]: this.states[this.initial].resolvedStateValue
-    };
-  }
   private getResolvedPath(stateIdentifier: string): string[] {
     if (isStateId(stateIdentifier)) {
       const stateNode = this.machine.idMap[
@@ -1534,15 +1509,27 @@ class StateNode<
       return this.__cache.initialStateValue;
     }
 
-    const initialStateValue = (this.type === 'parallel'
-      ? mapFilterValues(
-          this.states as Record<string, StateNode<TContext, any, TEvent>>,
-          state => state.initialStateValue || EMPTY_OBJECT,
-          stateNode => !(stateNode.type === 'history')
-        )
-      : isString(this.resolvedStateValue)
-      ? undefined
-      : this.resolvedStateValue[this.key]) as StateValue;
+    let initialStateValue: StateValue | undefined;
+
+    if (this.type === 'parallel') {
+      initialStateValue = mapFilterValues(
+        this.states as Record<string, StateNode<TContext, any, TEvent>>,
+        state => state.initialStateValue || EMPTY_OBJECT,
+        stateNode => !(stateNode.type === 'history')
+      );
+    } else if (this.initial !== undefined) {
+      if (!this.states[this.initial]) {
+        throw new Error(
+          `Initial state '${this.initial}' not found on '${this.key}'`
+        );
+      }
+
+      initialStateValue = (isLeafNode(this.states[this.initial])
+        ? this.initial
+        : {
+            [this.initial]: this.states[this.initial].initialStateValue
+          }) as StateValue;
+    }
 
     this.__cache.initialStateValue = initialStateValue;
 
@@ -1647,7 +1634,7 @@ class StateNode<
       : [relativeStateId];
   }
   public get initialStateNodes(): Array<StateNode<TContext, any, TEvent>> {
-    if (this.type === 'atomic' || this.type === 'final') {
+    if (isLeafNode(this)) {
       return [this];
     }
 
