@@ -1585,7 +1585,7 @@ class StateNode<
         TContext,
         TEvent
       >;
-      if (historyConfig.target && isString(historyConfig.target)) {
+      if (isString(historyConfig.target)) {
         target = isStateId(historyConfig.target)
           ? pathToStateValue(
               this.machine
@@ -1660,8 +1660,7 @@ class StateNode<
    * @param historyValue
    */
   public getFromRelativePath(
-    relativePath: string[],
-    historyValue?: HistoryValue
+    relativePath: string[]
   ): Array<StateNode<TContext, any, TEvent>> {
     if (!relativePath.length) {
       return [this];
@@ -1678,7 +1677,7 @@ class StateNode<
     const childStateNode = this.getStateNode(stateKey);
 
     if (childStateNode.type === 'history') {
-      return childStateNode.resolveHistory(historyValue);
+      return childStateNode.resolveHistory();
     }
 
     if (!this.states[stateKey]) {
@@ -1687,10 +1686,7 @@ class StateNode<
       );
     }
 
-    return this.states[stateKey].getFromRelativePath(
-      childStatePath,
-      historyValue
-    );
+    return this.states[stateKey].getFromRelativePath(childStatePath);
   }
 
   private historyValue(
@@ -1740,9 +1736,10 @@ class StateNode<
     const parent = this.parent!;
 
     if (!historyValue) {
-      return this.target
+      const historyTarget = this.target;
+      return historyTarget
         ? flatten(
-            toStatePaths(this.target).map(relativeChildPath =>
+            toStatePaths(historyTarget).map(relativeChildPath =>
               parent.getFromRelativePath(relativeChildPath)
             )
           )
