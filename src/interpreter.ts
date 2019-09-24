@@ -962,19 +962,22 @@ export class Interpreter<
   }
   private spawnCallback(callback: InvokeCallback, id: string): Actor {
     let canceled = false;
+    const receivers = new Set<(e: EventObject) => void>();
+    const listeners = new Set<(e: EventObject) => void>();
+
     const receive = (e: TEvent) => {
+      listeners.forEach(listener => listener(e));
       if (canceled) {
         return;
       }
       this.send(e);
     };
-    const listeners = new Set<(e: EventObject) => void>();
 
     let callbackStop;
 
     try {
       callbackStop = callback(receive, newListener => {
-        listeners.add(newListener);
+        receivers.add(newListener);
       });
     } catch (err) {
       this.send(error(id, err) as any);
@@ -988,7 +991,7 @@ export class Interpreter<
 
     const actor = {
       id,
-      send: event => listeners.forEach(listener => listener(event)),
+      send: event => receivers.forEach(receiver => receiver(event)),
       subscribe: next => {
         listeners.add(next);
 
