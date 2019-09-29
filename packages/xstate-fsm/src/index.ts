@@ -147,3 +147,31 @@ export function FSM<
     }
   };
 }
+
+type StateListener<T extends StateMachine.State<any, any, any>> = (
+  state: T
+) => void;
+
+export function interpret<
+  TContext,
+  TEvent extends EventObject = any,
+  TState extends Typestate<TContext> = any
+>(machine: StateMachine.Machine<TContext, TEvent, TState>) {
+  let state = machine.initialState;
+  const listeners = new Set<StateListener<typeof state>>();
+
+  return {
+    send: (event: TEvent | TEvent['type']): void => {
+      state = machine.transition(state, event);
+      listeners.forEach(listener => listener(state));
+    },
+    subscribe: (listener: StateListener<typeof state>) => {
+      listeners.add(listener);
+      listener(state);
+
+      return {
+        unsubscribe: () => listeners.delete(listener)
+      };
+    }
+  };
+}

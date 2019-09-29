@@ -1,4 +1,4 @@
-import { FSM, assign } from '../src';
+import { FSM, assign, interpret } from '../src';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -141,5 +141,39 @@ describe('@xstate/fsm', () => {
     if (nextState.matches('yellow')) {
       expect(nextState.context.go).toBeFalsy();
     }
+  });
+});
+
+describe('interpreter', () => {
+  const toggleMachine = FSM({
+    initial: 'active',
+    states: {
+      active: {
+        on: { TOGGLE: 'inactive' }
+      },
+      inactive: {}
+    }
+  });
+
+  it('listeners should immediately get the initial state', done => {
+    const toggleService = interpret(toggleMachine);
+
+    toggleService.subscribe(state => {
+      if (state.matches('active')) {
+        done();
+      }
+    });
+  });
+
+  it('listeners should subscribe to state changes', done => {
+    const toggleService = interpret(toggleMachine);
+
+    toggleService.subscribe(state => {
+      if (state.matches('inactive')) {
+        done();
+      }
+    });
+
+    toggleService.send('TOGGLE');
   });
 });
