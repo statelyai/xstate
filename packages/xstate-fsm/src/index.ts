@@ -1,68 +1,12 @@
-export type SingleOrArray<T> = T[] | T;
-export interface EventObject {
-  type: string;
-  [key: string]: any;
-}
-
-export namespace FSM {
-  export type Action<TContext, TEvent extends EventObject> =
-    | TEvent['type']
-    | FSM.ActionObject<TContext, TEvent>
-    | ((context: TContext, event: TEvent) => void);
-
-  export interface ActionObject<TContext, TEvent> {
-    type: string;
-    exec?: (context: TContext, event: TEvent) => void;
-    [key: string]: any;
-  }
-
-  export type AssignAction = 'xstate.assign';
-
-  export type Transition<TContext, TEvent extends EventObject> =
-    | string
-    | {
-        target?: string;
-        actions?: SingleOrArray<Action<TContext, TEvent>>;
-        cond?: (context: TContext, event: TEvent) => boolean;
-      };
-  export interface State<TContext, TEvent> {
-    value: string;
-    context: TContext;
-    actions: Array<ActionObject<TContext, TEvent>>;
-    changed?: boolean | undefined;
-  }
-
-  export interface Config<TContext, TEvent extends EventObject> {
-    id?: string;
-    initial: string;
-    context?: TContext;
-    states: {
-      [key: string]: {
-        on?: {
-          [event: string]: SingleOrArray<FSM.Transition<TContext, TEvent>>;
-        };
-        exit?: SingleOrArray<FSM.Action<TContext, TEvent>>;
-        entry?: SingleOrArray<FSM.Action<TContext, TEvent>>;
-      };
-    };
-  }
-
-  export interface Machine<TContext, TEvent extends EventObject> {
-    initialState: FSM.State<TContext, TEvent>;
-    transition: (
-      state: string | FSM.State<TContext, TEvent>,
-      event: string | Record<string, any> & { type: string }
-    ) => FSM.State<TContext, TEvent>;
-  }
-}
+import { StateMachine, EventObject, Typestate } from './types';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-const assignActionType: FSM.AssignAction = 'xstate.assign';
+const assignActionType: StateMachine.AssignAction = 'xstate.assign';
 
-export function assign(assignment: any): FSM.ActionObject<any, any> {
+export function assign(assignment: any): StateMachine.ActionObject<any, any> {
   return {
     type: assignActionType,
     assignment
@@ -74,7 +18,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
   action:
     | string
     | ((context: TContext, event: TEvent) => void)
-    | FSM.ActionObject<TContext, TEvent>
+    | StateMachine.ActionObject<TContext, TEvent>
 ) {
   return typeof action === 'string'
     ? { type: action }
@@ -90,20 +34,24 @@ const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 export function FSM<
   TContext extends object,
-  TEvent extends EventObject = EventObject
->(fsmConfig: FSM.Config<TContext, TEvent>): FSM.Machine<TContext, TEvent> {
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  fsmConfig: StateMachine.Config<TContext, TEvent>
+): StateMachine.Machine<TContext, TEvent, TState> {
   return {
     initialState: {
       value: fsmConfig.initial,
       actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
         toActionObject
       ),
-      context: fsmConfig.context!
+      context: fsmConfig.context!,
+      matches: sv => sv === fsmConfig.initial
     },
     transition: (
-      state: string | FSM.State<TContext, TEvent>,
+      state: string | StateMachine.State<TContext, TEvent, TState>,
       event: string | Record<string, any> & { type: string }
-    ): FSM.State<TContext, TEvent> => {
+    ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
@@ -125,12 +73,18 @@ export function FSM<
 
       if (stateConfig.on) {
         const transitions = ([] as Array<
-          FSM.Transition<TContext, TEvent>
+          StateMachine.Transition<TContext, TEvent>
         >).concat(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return { value, context, actions: [], changed: false };
+            return {
+              value,
+              context,
+              actions: [],
+              changed: false,
+              matches: sv => value === sv
+            };
           }
 
           const { target, actions = [], cond = () => true } =
@@ -148,7 +102,7 @@ export function FSM<
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(Boolean)
-              .map<FSM.ActionObject<TContext, TEvent>>(toActionObject)
+              .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
                 if (action.type === assignActionType) {
                   assigned = true;
@@ -175,14 +129,21 @@ export function FSM<
               value: nextValue,
               context: nextContext,
               actions: allActions,
-              changed: nextValue !== value || allActions.length > 0 || assigned
+              changed: nextValue !== value || allActions.length > 0 || assigned,
+              matches: sv => nextValue === sv
             };
           }
         }
       }
 
       // No transitions match
-      return { value, context, actions: [], changed: false };
+      return {
+        value,
+        context,
+        actions: [],
+        changed: false,
+        matches: sv => value === sv
+      };
     }
   };
 }

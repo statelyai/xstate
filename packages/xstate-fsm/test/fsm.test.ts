@@ -1,10 +1,31 @@
 import { FSM, assign } from '../src';
 
 describe('@xstate/fsm', () => {
-  const lightFSM = FSM({
+  interface LightContext {
+    count: number;
+    foo: string | undefined;
+    go: boolean;
+  }
+
+  type LightEvent =
+    | { type: 'TIMER' }
+    | { type: 'INC' }
+    | { type: 'EMERGENCY'; value: number };
+
+  type LightState =
+    | {
+        value: 'green';
+        context: LightContext & { go: true };
+      }
+    | {
+        value: 'yellow';
+        context: LightContext & { go: false };
+      };
+
+  const lightFSM = FSM<LightContext, LightEvent, LightState>({
     id: 'light',
     initial: 'green',
-    context: { count: 0, foo: 'bar' },
+    context: { count: 0, foo: 'bar', go: true },
     states: {
       green: {
         entry: 'enterGreen',
@@ -23,6 +44,7 @@ describe('@xstate/fsm', () => {
         }
       },
       yellow: {
+        entry: assign({ go: false }),
         on: {
           INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
           EMERGENCY: {
@@ -50,12 +72,13 @@ describe('@xstate/fsm', () => {
     ]);
     expect(nextState.context).toEqual({
       count: 2,
-      foo: 'static++'
+      foo: 'static++',
+      go: false
     });
   });
 
   it('should stay on the same state for undefined transitions', () => {
-    const nextState = lightFSM.transition('green', 'FAKE');
+    const nextState = lightFSM.transition('green', 'FAKE' as any);
     expect(nextState.value).toBe('green');
     expect(nextState.actions).toEqual([]);
   });
@@ -95,7 +118,28 @@ describe('@xstate/fsm', () => {
     expect(lightFSM.transition('yellow', 'INC').changed).toBe(true);
   });
 
-  it('should not be changed on unkonwn transitions', () => {
-    expect(lightFSM.transition('yellow', 'UNKNOWN').changed).toBe(false);
+  it('should not be changed on unknown transitions', () => {
+    expect(lightFSM.transition('yellow', 'UNKNOWN' as any).changed).toBe(false);
+  });
+
+  it('should match initialState', () => {
+    const { initialState } = lightFSM;
+
+    expect(initialState.matches('green')).toBeTruthy();
+
+    if (initialState.matches('green')) {
+      expect(initialState.context.go).toBeTruthy();
+    }
+  });
+
+  it('should match transition states', () => {
+    const { initialState } = lightFSM;
+    const nextState = lightFSM.transition(initialState, 'TIMER');
+
+    expect(nextState.matches('yellow')).toBeTruthy();
+
+    if (nextState.matches('yellow')) {
+      expect(nextState.context.go).toBeFalsy();
+    }
   });
 });
