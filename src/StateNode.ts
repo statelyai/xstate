@@ -835,8 +835,8 @@ class StateNode<
     if (!nextStateNodes.length) {
       return {
         transitions: [selectedTransition],
-        entrySet: selectedTransition.internal ? [] : [this],
-        exitSet: selectedTransition.internal ? [] : [this],
+        entrySet: [],
+        exitSet: [],
         configuration: state.value ? [this] : [],
         source: state,
         actions

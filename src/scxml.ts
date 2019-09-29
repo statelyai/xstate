@@ -404,18 +404,20 @@ function scxmlToMachine(
   )[0];
 
   const extState = dataModelEl
-    ? dataModelEl.elements!.reduce((acc, element) => {
-        if (element.attributes!.src) {
-          throw new Error(
-            "Conversion of `src` attribute on datamodel's <data> elements is not supported."
-          );
-        }
-        acc[element.attributes!.id!] = element.attributes!.expr
-          ? // tslint:disable-next-line:no-eval
-            eval(`(${element.attributes!.expr})`)
-          : undefined;
-        return acc;
-      }, {})
+    ? dataModelEl
+        .elements!.filter(element => element.name === 'data')
+        .reduce((acc, element) => {
+          if (element.attributes!.src) {
+            throw new Error(
+              "Conversion of `src` attribute on datamodel's <data> elements is not supported."
+            );
+          }
+          acc[element.attributes!.id!] = element.attributes!.expr
+            ? // tslint:disable-next-line:no-eval
+              eval(`(${element.attributes!.expr})`)
+            : undefined;
+          return acc;
+        }, {})
     : undefined;
 
   return Machine({
