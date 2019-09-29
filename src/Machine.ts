@@ -5,7 +5,8 @@ import {
   MachineConfig,
   StateSchema,
   EventObject,
-  AnyEventObject
+  AnyEventObject,
+  Typestate
 } from './types';
 import { StateNode } from './StateNode';
 
@@ -44,14 +45,14 @@ export function Machine<
 
 export function createMachine<
   TContext,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject = AnyEventObject,
+  TState extends Typestate<TContext> = any
 >(
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent> {
-  return new StateNode<TContext, any, TEvent>(config, options) as StateMachine<
-    TContext,
-    any,
-    TEvent
-  >;
+): StateMachine<TContext, any, TEvent, TState> {
+  return new StateNode<TContext, any, TEvent, TState>(
+    config,
+    options
+  ) as StateMachine<TContext, any, TEvent, TState>;
 }

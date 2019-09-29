@@ -615,8 +615,9 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
 export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNode<TContext, TStateSchema, TEvent> {
+  TEvent extends EventObject,
+  TState extends Typestate<TContext> = Typestate<TContext>
+> extends StateNode<TContext, TStateSchema, TEvent, TState> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }
@@ -943,6 +944,11 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 export interface StateMeta<TContext, TEvent extends EventObject> {
   state: State<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
+}
+
+export interface Typestate<TContext> {
+  value: StateValue;
+  context: TContext;
 }
 
 export interface StateLike<TContext> {

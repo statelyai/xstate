@@ -1,52 +1,61 @@
 import { State, matchState, matchesState, Machine } from '../src';
+import { createMachine } from '../src/Machine';
 
 describe('matchState()', () => {
   it('should match a value from a pattern with the state (simple)', () => {
     const simpleState = State.from('a', undefined);
 
-    expect(matchState(
-      simpleState,
-      [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
+        _ => false
+      )
+    ).toBeTruthy();
   });
 
   it('should match a value from a pattern with the state value', () => {
-    expect(matchState(
-      'a',
-      [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        'a',
+        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
+        _ => false
+      )
+    ).toBeTruthy();
   });
 
   it('should match a value from a pattern with the state (compound)', () => {
     const simpleState = State.from({ a: 'b' }, undefined);
 
-    expect(matchState(
-      simpleState,
-      [
-        ['b', () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b' }, () => true],
-        ['a', () => false]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          ['b', () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b' }, () => true],
+          ['a', () => false]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
   });
 
   it('should match a value from a pattern with the state (compound, ancestor)', () => {
     const simpleState = State.from({ a: 'b' }, undefined);
 
-    expect(matchState(
-      simpleState,
-      [
-        ['b', () => false],
-        [{ a: { b: 'c' } }, () => false],
-        ['a', () => true],
-        [{ a: 'b' }, () => false]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          ['b', () => false],
+          [{ a: { b: 'c' } }, () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
   });
 
   it('should match a value from a pattern with the state (parallel)', () => {
@@ -55,99 +64,117 @@ describe('matchState()', () => {
       undefined
     );
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        ['a', () => true],
-        [{ a: 'b' }, () => false]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ a: 'b' }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ a: 'b' }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ a: 'b', c: {} }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ a: 'b', c: {} }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ a: 'b', c: { d: 'e' } }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ a: 'b', c: { d: 'e' } }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ a: 'b', c: { d: 'e', f: 'g' } }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ a: 'b', c: { d: 'e', f: 'g' } }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ c: {} }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ c: {} }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ c: { d: 'e' } }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ c: { d: 'e' } }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
 
-    expect(matchState(
-      simpleState,
-      [
-        [{ a: {}, b: {} }, () => false],
-        [{ a: { b: 'c' } }, () => false],
-        [{ a: 'b', c: 'e' }, () => false],
-        [{ c: { d: 'e', f: 'g' } }, () => true]
-      ],
-      _ => false
-    )).toBeTruthy();
+    expect(
+      matchState(
+        simpleState,
+        [
+          [{ a: {}, b: {} }, () => false],
+          [{ a: { b: 'c' } }, () => false],
+          [{ a: 'b', c: 'e' }, () => false],
+          [{ c: { d: 'e', f: 'g' } }, () => true]
+        ],
+        _ => false
+      )
+    ).toBeTruthy();
   });
 
   it('should fallback to default if no pattern matched', () => {
     const simpleState = State.from('a', undefined);
 
-    expect(matchState(simpleState, [['b', () => false]], _ => true)).toBeTruthy();
+    expect(
+      matchState(simpleState, [['b', () => false]], _ => true)
+    ).toBeTruthy();
   });
 });
 
@@ -166,17 +193,23 @@ describe('matchesState()', () => {
   });
 
   it('should return true if two parallel states are equivalent', () => {
-    expect(matchesState(
-      { a: { b1: 'foo', b2: 'bar' } },
-      { a: { b1: 'foo', b2: 'bar' } }
-    )).toBeTruthy();
+    expect(
+      matchesState(
+        { a: { b1: 'foo', b2: 'bar' } },
+        { a: { b1: 'foo', b2: 'bar' } }
+      )
+    ).toBeTruthy();
 
-    expect(matchesState(
-      { a: { b1: 'foo', b2: 'bar' }, b: { b3: 'baz', b4: 'quo' } },
-      { a: { b1: 'foo', b2: 'bar' }, b: { b3: 'baz', b4: 'quo' } }
-    )).toBeTruthy();
+    expect(
+      matchesState(
+        { a: { b1: 'foo', b2: 'bar' }, b: { b3: 'baz', b4: 'quo' } },
+        { a: { b1: 'foo', b2: 'bar' }, b: { b3: 'baz', b4: 'quo' } }
+      )
+    ).toBeTruthy();
 
-    expect(matchesState({ a: 'foo', b: 'bar' }, { a: 'foo', b: 'bar' })).toBeTruthy();
+    expect(
+      matchesState({ a: 'foo', b: 'bar' }, { a: 'foo', b: 'bar' })
+    ).toBeTruthy();
   });
 
   it('should return true if a state is a substate of a superstate', () => {
@@ -188,16 +221,20 @@ describe('matchesState()', () => {
   it('should return true if a state value is a substate of a superstate value', () => {
     expect(matchesState('b', { b: 'b1' })).toBeTruthy();
 
-    expect(matchesState({ foo: 'bar' }, { foo: { bar: { baz: 'quo' } } })).toBeTruthy();
+    expect(
+      matchesState({ foo: 'bar' }, { foo: { bar: { baz: 'quo' } } })
+    ).toBeTruthy();
   });
 
   it('should return true if a parallel state value is a substate of a superstate value', () => {
     expect(matchesState('b', { b: 'b1', c: 'c1' })).toBeTruthy();
 
-    expect(matchesState(
-      { foo: 'bar', fooAgain: 'barAgain' },
-      { foo: { bar: { baz: 'quo' } }, fooAgain: { barAgain: 'baz' } }
-    )).toBeTruthy();
+    expect(
+      matchesState(
+        { foo: 'bar', fooAgain: 'barAgain' },
+        { foo: { bar: { baz: 'quo' } }, fooAgain: { barAgain: 'baz' } }
+      )
+    ).toBeTruthy();
   });
 
   it('should return false if two states are not equivalent', () => {
@@ -225,7 +262,9 @@ describe('matchesState()', () => {
   it('should return false if a state value is not a substate of a superstate value', () => {
     expect(!matchesState('a', { b: 'b1' })).toBeTruthy();
 
-    expect(!matchesState({ foo: { false: 'baz' } }, { foo: { bar: { baz: 'quo' } } })).toBeTruthy();
+    expect(
+      !matchesState({ foo: { false: 'baz' } }, { foo: { bar: { baz: 'quo' } } })
+    ).toBeTruthy();
   });
 
   it('should mix/match string state values and object state values', () => {
@@ -257,32 +296,23 @@ describe('matches() method', () => {
     expect(machine.initialState.matches('fake')).toBeFalsy();
   });
 
-  it('should compile with typed matches', () => {
+  it('should compile with typed matches (createMachine)', () => {
     interface TestContext {
       count?: number;
       user?: { name: string };
     }
 
-    interface TestStateSchema {
-      states: {
-        loading: {
-          context: TestContext & { count: number; user: undefined };
-          states: {
-            one: {
-              states: {
-                foo: {};
-              };
-            };
-            two: {};
-          };
+    type TestState =
+      | {
+          value: 'loading';
+          context: { count: number; user: undefined };
+        }
+      | {
+          value: 'loaded';
+          context: { user: { name: string } };
         };
-        loaded: {
-          context: TestContext & { user: { name: string } };
-        };
-      };
-    }
 
-    const machine = Machine<TestContext, TestStateSchema>({
+    const machine = createMachine<TestContext, any, TestState>({
       initial: 'loading',
       states: {
         loading: {
@@ -299,7 +329,7 @@ describe('matches() method', () => {
     const init = machine.initialState;
 
     if (init.matches('loaded')) {
-      const { name } = init.context.user;
+      const name = init.context.user.name;
 
       // never called - it's okay if the name is undefined
       expect(name).toBeTruthy();

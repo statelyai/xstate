@@ -9,8 +9,8 @@ import {
   StateConfig,
   SCXML,
   StateSchema,
-  ExtractStateValue,
-  TransitionDefinition
+  TransitionDefinition,
+  Typestate
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -76,7 +76,8 @@ export function bindActionToState<TC, TE extends EventObject>(
 export class State<
   TContext,
   TEvent extends EventObject = EventObject,
-  TStateSchema extends StateSchema<TContext> = any
+  TStateSchema extends StateSchema<TContext> = any,
+  TState extends Typestate<TContext> = any
 > {
   public value: StateValue;
   public context: TContext;
@@ -268,19 +269,11 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<
-    TSV extends ExtractStateValue<TStateSchema> | keyof TStateSchema['states']
-  >(
+  public matches<TSV extends TState['value']>(
     parentStateValue: TSV
-  ): this is State<TContext, TEvent, TStateSchema> & {
-    context: TContext &
-      (TStateSchema['states'] extends Record<string, any>
-        ? TSV extends keyof TStateSchema['states']
-          ? TStateSchema['states'][TSV]['context']
-          : TStateSchema['states'][keyof TSV &
-              keyof TStateSchema['states']]['context']
-        : TContext);
-  } {
+  ): this is TState extends { value: TSV }
+    ? State<TState['context'], TEvent, TStateSchema, TState>
+    : never {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 }

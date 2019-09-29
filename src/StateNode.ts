@@ -69,7 +69,8 @@ import {
   SCXML,
   RaiseActionObject,
   ActivityActionObject,
-  InvokeActionObject
+  InvokeActionObject,
+  Typestate
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -125,7 +126,8 @@ const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
 class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = Typestate<TContext>
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -1047,7 +1049,7 @@ class StateNode<
     state: StateValue | State<TContext, TEvent>,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema> {
+  ): State<TContext, TEvent, TStateSchema, TState> {
     const _event = toSCXMLEvent(event);
     let currentState: State<TContext, TEvent>;
 
@@ -1109,10 +1111,10 @@ class StateNode<
   }
 
   private resolveRaisedTransition(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TStateSchema, TState>,
     _event: SCXML.Event<TEvent> | NullEvent,
     originalEvent: SCXML.Event<TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TStateSchema, TState> {
     const currentActions = state.actions;
 
     state = this.transition(
@@ -1132,7 +1134,7 @@ class StateNode<
     currentState?: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context!
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TStateSchema, TState> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
@@ -1267,7 +1269,7 @@ class StateNode<
       {} as Record<string, string>
     );
 
-    const nextState = new State<TContext, TEvent>({
+    const nextState = new State<TContext, TEvent, TStateSchema, TState>({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       _event,
@@ -1539,7 +1541,7 @@ class StateNode<
   public getInitialState(
     stateValue: StateValue,
     context?: TContext
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TStateSchema, TState> {
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1561,7 +1563,7 @@ class StateNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema> {
+  public get initialState(): State<TContext, TEvent, TStateSchema, TState> {
     this._init();
     const { initialStateValue } = this;
 
