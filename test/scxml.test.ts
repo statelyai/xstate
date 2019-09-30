@@ -291,7 +291,7 @@ const testGroups = {
     // 'test496.txml',
     // 'test500.txml',
     // 'test501.txml',
-    // 'test503.txml',
+    'test503.txml',
     // 'test504.txml',
     // 'test505.txml',
     // 'test506.txml',

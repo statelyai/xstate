@@ -536,7 +536,7 @@ describe('onEntry/onExit actions', () => {
           },
           two: {
             exit: () => {
-              actual.push('exitted two');
+              actual.push('exited two');
             }
           }
         }
@@ -553,6 +553,38 @@ describe('onEntry/onExit actions', () => {
           done();
         })
         .catch(done);
+    });
+
+    it("shouldn't exit (and reenter) state on targetless delayed transition", done => {
+      const actual: string[] = [];
+
+      const machine = Machine({
+        initial: 'one',
+        states: {
+          one: {
+            entry: () => {
+              actual.push('entered one');
+            },
+            exit: () => {
+              actual.push('exited one');
+            },
+            after: {
+              10: {
+                actions: () => {
+                  actual.push('got FOO');
+                }
+              }
+            }
+          }
+        }
+      });
+
+      interpret(machine).start();
+
+      setTimeout(() => {
+        expect(actual).toEqual(['entered one', 'got FOO']);
+        done();
+      }, 50);
     });
   });
 });
