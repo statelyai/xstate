@@ -30,7 +30,7 @@ const nextState = fetchMachine.transition('pending', 'FULFILL');
 
 ## State nodes
 
-In XState, a **state node** specifies a state configuration, and are defined on the machine's `states` property. Substate nodes are recursively defined in the same way.
+In XState, a **state node** specifies a state configuration. They are defined on the machine's `states` property. Likewise, sub-state nodes are hierarchically defined on the `states` property of a state node.
 
 The state determined from `machine.transition(state, event)` represents a combination of state nodes. For example, in the machine below, there's a `success` state node and an `items` substate node. The state value `{ success: 'items' }` represents the combination of those state nodes.
 
