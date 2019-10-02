@@ -123,7 +123,12 @@ const testGroups = {
   ],
   // script: ['test0', 'test1', 'test2'], // <script/> conversion not implemented
   // 'script-src': ['test0', 'test1', 'test2', 'test3'], // <script/> conversion not implemented
-  // 'scxml-prefix-event-name-matching': ['star0', 'test0', 'test1'], // prefix event matching not implemented yet
+  'scxml-prefix-event-name-matching': [
+    'star0'
+    // prefix event matching not implemented yet
+    // 'test0',
+    // 'test1'
+  ],
   // 'send-data': ['send1'],
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
@@ -291,7 +296,7 @@ const testGroups = {
     // 'test496.txml',
     // 'test500.txml',
     // 'test501.txml',
-    // 'test503.txml',
+    'test503.txml',
     // 'test504.txml',
     // 'test505.txml',
     // 'test506.txml',

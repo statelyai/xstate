@@ -307,23 +307,37 @@ export type StatesDefinition<
   >;
 };
 
-export type TransitionsConfig<TContext, TEvent extends EventObject> = {
+export type TransitionConfigTargetShortcut<
+  TContext,
+  TEvent extends EventObject
+> = string | undefined | StateNode<TContext, any, TEvent>;
+
+type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
   [K in TEvent['type'] | NullEvent['type'] | '*']?: SingleOrArray<
-    | string
-    | number
-    | StateNode<TContext, any, TEvent>
-    | TransitionConfig<
+    | TransitionConfigTargetShortcut<TContext, TEvent>
+    | (TransitionConfig<
         TContext,
         K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-      >
+      > & {
+        event?: undefined;
+      })
   >;
 };
 
-export type TransitionsDefinition<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type']]: Array<
-    TransitionDefinition<TContext, Extract<TEvent, { type: K }>>
-  >;
-};
+type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
+  {
+    [K in TEvent['type'] | NullEvent['type'] | '*']: TransitionConfig<
+      TContext,
+      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
+    > & {
+      event: K;
+    };
+  }[TEvent['type'] | NullEvent['type'] | '*']
+>;
+
+export type TransitionsConfig<TContext, TEvent extends EventObject> =
+  | TransitionsConfigMap<TContext, TEvent>
+  | TransitionsConfigArray<TContext, TEvent>;
 
 export type InvokeConfig<TContext, TEvent extends EventObject> =
   | {
@@ -503,7 +517,8 @@ export interface StateNodeDefinition<
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
-  on: TransitionsDefinition<TContext, TEvent>;
+  on: TransitionDefinitionMap<TContext, TEvent>;
+  transitions: Array<TransitionDefinition<TContext, TEvent>>;
   onEntry: Array<ActionObject<TContext, TEvent>>;
   onExit: Array<ActionObject<TContext, TEvent>>;
   activities: Array<ActivityDefinition<TContext, TEvent>>;
@@ -867,8 +882,17 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
-  eventType: string;
+  eventType: TEvent['type'] | NullEvent['type'] | '*';
 }
+
+export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {
+  [K in TEvent['type'] | NullEvent['type'] | '*']: Array<
+    TransitionDefinition<
+      TContext,
+      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
+    >
+  >;
+};
 
 export interface DelayedTransitionDefinition<
   TContext,
