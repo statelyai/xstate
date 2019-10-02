@@ -164,6 +164,7 @@ export class Interpreter<
 
   // Dev Tools
   private devTools?: any;
+  private xstateDevtoolsExtension?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -249,6 +250,9 @@ export class Interpreter<
     // Dev tools
     if (this.devTools) {
       this.devTools.send(_event.data, state);
+    }
+    if (this.xstateDevtoolsExtension) {
+      this.xstateDevtoolsExtension.send(state);
     }
 
     // Execute listeners
@@ -908,6 +912,9 @@ export class Interpreter<
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
             }
+            if (this.xstateDevtoolsExtension) {
+              this.xstateDevtoolsExtension.send(this.state);
+            }
             if (this.machine.strict) {
               // it would be better to always stop the state machine if unhandled
               // exception/promise rejection happens but because we don't want to
@@ -1136,6 +1143,18 @@ export class Interpreter<
         }
       });
       this.devTools.init(this.state);
+    }
+    if (
+      this.options.devTools &&
+      typeof window !== 'undefined' &&
+      (window as any).__XSTATE_DEVTOOLS_EXTENSION__
+    ) {
+      this.xstateDevtoolsExtension = (window as any).__XSTATE_DEVTOOLS_EXTENSION__.connect(
+        {
+          machine: this.machine,
+          state: this.machine.initialState
+        }
+      );
     }
   }
   public toJSON() {
