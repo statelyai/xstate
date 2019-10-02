@@ -1,6 +1,131 @@
-import { Machine } from 'xstate';
+import { Machine, StateNode, State, interpret } from 'xstate';
 import { xml2js } from 'xml-js';
-import { transitionToSCXML } from '../src';
+import { transitionToSCXML, toSCXML } from '../src';
+import { toMachine } from 'xstate/lib/scxml';
+import { pathsToStateValue } from 'xstate/lib/utils';
+import { SimulatedClock } from 'xstate/lib/SimulatedClock';
+import * as fs from 'fs';
+
+interface SCIONTest {
+  initialConfiguration: string[];
+  events: Array<{
+    after?: number;
+    event: { name: string };
+    nextConfiguration: string[];
+  }>;
+}
+
+async function runTestToCompletion(
+  machine: StateNode,
+  test: SCIONTest
+): Promise<void> {
+  if (!test.events.length && test.initialConfiguration[0] === 'pass') {
+    // await runW3TestToCompletion(machine);
+    return;
+  }
+
+  const r = pathsToStateValue(
+    test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+  );
+
+  const resolvedStateValue = machine.resolve(r);
+
+  let done = false;
+  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
+
+  const service = interpret(machine, {
+    clock: new SimulatedClock()
+  })
+    .onTransition(state => {
+      nextState = state;
+    })
+    .onDone(() => {
+      done = true;
+    })
+    .start(nextState);
+
+  // @ts-ignore
+  service._state = nextState;
+
+  test.events.forEach(({ event, nextConfiguration, after }) => {
+    if (done) {
+      return;
+    }
+    if (after) {
+      (service.clock as SimulatedClock).increment(after);
+    }
+    service.send(event.name);
+
+    const stateIds = machine
+      .getStateNodes(nextState)
+      .map(stateNode => stateNode.id);
+
+    expect(stateIds).toContain(nextConfiguration[0]);
+  });
+}
+
+const testGroups = {
+  actionSend: ['send1']
+  // assign: ['assign_obj_literal']
+};
+
+describe('scxml', () => {
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
+
+  testGroupKeys.forEach(testGroupName => {
+    testGroups[testGroupName].forEach(testName => {
+      const scxmlDefinition = toSCXML(
+        require(`./fixtures/${testGroupName}/${testName}`).default
+      );
+
+      const scxmlTest = JSON.parse(
+        fs.readFileSync(
+          require.resolve(
+            `@scion-scxml/test-framework/test/${testGroupName}/${testName}.json`
+          ),
+          {
+            encoding: 'utf-8'
+          }
+        )
+      ) as SCIONTest;
+
+      it(`${testGroupName}/${testName}`, async () => {
+        const machine = toMachine(scxmlDefinition, {
+          delimiter: '$'
+        });
+
+        await runTestToCompletion(machine, scxmlTest);
+      });
+    });
+  });
+});
+
+xdescribe('toSCXML', () => {
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
+
+  testGroupKeys.forEach(testGroupName => {
+    testGroups[testGroupName].forEach(testName => {
+      const scxmlSource = `@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
+      const scxmlDefinition = fs.readFileSync(require.resolve(scxmlSource), {
+        encoding: 'utf-8'
+      });
+
+      const machine = require(`./fixtures/${testGroupName}/${testName}`)
+        .default;
+
+      it(`${testGroupName}/${testName}`, () => {
+        expect(xml2js(toSCXML(machine))).toEqual(
+          xml2js(scxmlDefinition, {
+            ignoreComment: true,
+            ignoreDeclaration: true
+          })
+        );
+      });
+    });
+  });
+});
 
 const pedestrianStates = {
   initial: 'walk',
