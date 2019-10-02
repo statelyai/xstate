@@ -36,25 +36,6 @@ function indexedRecord<T extends {}>(
   return record;
 }
 
-function indexedAggregateRecord<T extends {}>(
-  items: T[],
-  identifier: string | ((item: T) => string)
-): Record<string, T[]> {
-  const record: Record<string, T[]> = {};
-
-  const identifierFn = isString(identifier)
-    ? item => item[identifier]
-    : identifier;
-
-  items.forEach(item => {
-    const key = identifierFn(item);
-
-    (record[key] = record[key] || ([] as T[])).push(item);
-  });
-
-  return record;
-}
-
 function executableContent(elements: XMLElement[]) {
   const transition: any = {
     actions: mapActions(elements)
@@ -307,40 +288,29 @@ function toConfig(
       initial = stateElements[0].attributes!.id;
     }
 
-    const on: Record<string, any> = mapValues(
-      indexedAggregateRecord(
-        transitionElements,
-        item => (item.attributes ? item.attributes.event || '' : '') as string
-      ),
-      (values: XMLElement[]) => {
-        return values.map(value => {
-          const targets = getAttribute(value, 'target');
-          const internal = getAttribute(value, 'type') === 'internal';
+    const on = transitionElements.map(value => {
+      const event = getAttribute(value, 'event') || '';
+      const targets = getAttribute(value, 'target');
+      const internal = getAttribute(value, 'type') === 'internal';
 
-          return {
-            target: getTargets(targets),
-            ...(value.elements ? executableContent(value.elements) : undefined),
-            ...(value.attributes && value.attributes.cond
-              ? {
-                  cond: (context, event, meta) => {
-                    const fnBody = `
+      return {
+        event,
+        target: getTargets(targets),
+        ...(value.elements ? executableContent(value.elements) : undefined),
+        ...(value.attributes && value.attributes.cond
+          ? {
+              cond: (context, event, meta) => {
+                const fnBody = `
                       return ${value.attributes!.cond as string};
                     `;
 
-                    return evaluateExecutableContent(
-                      context,
-                      event,
-                      meta,
-                      fnBody
-                    );
-                  }
-                }
-              : undefined),
-            internal
-          };
-        });
-      }
-    );
+                return evaluateExecutableContent(context, event, meta, fnBody);
+              }
+            }
+          : undefined),
+        internal
+      };
+    });
 
     const onEntry = onEntryElement
       ? mapActions(onEntryElement.elements!)
