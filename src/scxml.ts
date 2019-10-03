@@ -63,7 +63,7 @@ function delayToMs(delay?: string | number): number | undefined {
   const millisecondsMatch = delay.match(/(\d+)ms/);
 
   if (millisecondsMatch) {
-    return parseInt(millisecondsMatch[1]);
+    return parseInt(millisecondsMatch[1], 10);
   }
 
   const secondsMatch = delay.match(/(\d*)(\.?)(\d+)s/);
@@ -71,12 +71,15 @@ function delayToMs(delay?: string | number): number | undefined {
   if (secondsMatch) {
     const hasDecimal = !!secondsMatch[2];
     if (!hasDecimal) {
-      return parseInt(secondsMatch[3]) * 1000;
+      return parseInt(secondsMatch[3], 10) * 1000;
     }
     const secondsPart = !!secondsMatch[1]
-      ? parseInt(secondsMatch[1]) * 1000
+      ? parseInt(secondsMatch[1], 10) * 1000
       : 0;
-    const millisecondsPart = parseInt((secondsMatch[3] as any).padEnd(3, '0'));
+    const millisecondsPart = parseInt(
+      (secondsMatch[3] as any).padEnd(3, '0'),
+      10
+    );
 
     if (millisecondsPart >= 1000) {
       throw new Error(`Can't parse "${delay} delay."`);
@@ -299,12 +302,12 @@ function toConfig(
         ...(value.elements ? executableContent(value.elements) : undefined),
         ...(value.attributes && value.attributes.cond
           ? {
-              cond: (context, event, meta) => {
+              cond: (context, _event, meta) => {
                 const fnBody = `
                       return ${value.attributes!.cond as string};
                     `;
 
-                return evaluateExecutableContent(context, event, meta, fnBody);
+                return evaluateExecutableContent(context, _event, meta, fnBody);
               }
             }
           : undefined),
