@@ -65,8 +65,21 @@ async function runTestToCompletion(
 }
 
 const testGroups = {
-  actionSend: ['send1']
-  // assign: ['assign_obj_literal']
+  actionSend: [
+    'send1',
+    'send2',
+    'send3',
+    'send4',
+    'send4b',
+    'send7',
+    'send7b',
+    'send8',
+    'send8b',
+    'send9'
+  ],
+  assign: [
+    // 'assign_obj_literal'
+  ]
 };
 
 describe('scxml', () => {

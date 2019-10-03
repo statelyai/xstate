@@ -32,10 +32,23 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 
   const name = actionTypeMap[action.type];
 
+  if (name) {
+    return {
+      type: 'element',
+      name,
+      attributes
+    };
+  }
+
   return {
     type: 'element',
-    name,
-    attributes
+    name: 'script',
+    elements: [
+      {
+        type: 'text',
+        text: JSON.stringify(action)
+      }
+    ]
   };
 }
 
@@ -87,16 +100,7 @@ function actionsToSCXML(
     type: 'element',
     name,
     elements: actions.map<XMLElement>(action => {
-      return {
-        type: 'element',
-        name: 'script',
-        elements: [
-          {
-            type: 'text',
-            text: JSON.stringify(action)
-          }
-        ]
-      };
+      return actionToSCXML(action);
     })
   };
 }
