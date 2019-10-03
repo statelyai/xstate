@@ -163,32 +163,38 @@ describe('multiple', () => {
 
     it.skip('should reject two targets in the same region', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_SAME_REGION')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_SAME_REGION')
+      ).toThrow();
     });
 
     it.skip('should reject targets inside and outside a region', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS')
+      ).toThrow();
     });
 
     it.skip('should reject two targets in different regions', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_2')
+      ).toThrow();
     });
 
     it.skip('should reject two targets in different regions at different levels', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
+      ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at top level', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_3')
+      ).toThrow();
     });
 
     it.skip('should reject two deep targets in different regions at different levels', () => {
       expect(() =>
-        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4')).toThrow();
+        machine.transition(stateSimple, 'BROKEN_DIFFERENT_REGIONS_4')
+      ).toThrow();
     });
   });
 });

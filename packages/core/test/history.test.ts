@@ -138,13 +138,17 @@ describe('deep history states', () => {
     it('should go to the deep history (explicit)', () => {
       // on.second.B.P -> off
       const stateOff = historyMachine.transition(state2BP, 'POWER');
-      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({ on: { second: { B: 'P' } } });
+      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+        on: { second: { B: 'P' } }
+      });
     });
 
     it('should go to the deepest history', () => {
       // on.second.B.Q -> off
       const stateOff = historyMachine.transition(state2BQ, 'POWER');
-      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({ on: { second: { B: 'Q' } } });
+      expect(historyMachine.transition(stateOff, 'DEEP_POWER').value).toEqual({
+        on: { second: { B: 'Q' } }
+      });
     });
   });
 });
@@ -265,21 +269,27 @@ describe('parallel history states', () => {
 
     it('should re-enter multiple history states', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
-      expect(historyMachine.transition(stateOff, 'PARALLEL_HISTORY').value).toEqual({
+      expect(
+        historyMachine.transition(stateOff, 'PARALLEL_HISTORY').value
+      ).toEqual({
         on: { A: { C: 'D' }, K: { M: 'N' } }
       });
     });
 
     it('should re-enter a parallel with partial history', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
-      expect(historyMachine.transition(stateOff, 'PARALLEL_SOME_HISTORY').value).toEqual({
+      expect(
+        historyMachine.transition(stateOff, 'PARALLEL_SOME_HISTORY').value
+      ).toEqual({
         on: { A: { C: 'D' }, K: { M: 'N' } }
       });
     });
 
     it('should re-enter a parallel with full history', () => {
       const stateOff = historyMachine.transition(stateACEKMO, 'POWER');
-      expect(historyMachine.transition(stateOff, 'PARALLEL_DEEP_HISTORY').value).toEqual({
+      expect(
+        historyMachine.transition(stateOff, 'PARALLEL_DEEP_HISTORY').value
+      ).toEqual({
         on: { A: { C: 'E' }, K: { M: 'O' } }
       });
     });
@@ -418,6 +428,8 @@ describe('multistage history states', () => {
     const offState = pcWithTurboButtonMachine.transition(onTurboState, 'POWER');
     const loadingState = pcWithTurboButtonMachine.transition(offState, 'POWER');
 
-    expect(pcWithTurboButtonMachine.transition(loadingState, 'STARTED').value).toEqual({ running: 'turbo' });
+    expect(
+      pcWithTurboButtonMachine.transition(loadingState, 'STARTED').value
+    ).toEqual({ running: 'turbo' });
   });
 });

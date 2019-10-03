@@ -1,44 +1,22 @@
 {
-  "name": "xstate",
-  "version": "4.7.0-rc3",
+  "name": "xstate-monorepo",
+  "private": true,
   "description": "Finite State Machines and Statecharts for the Modern Web.",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
-  "sideEffects": false,
-  "files": [
-    "dist",
-    "lib",
-    "es"
-  ],
-  "keywords": [
-    "statechart",
-    "state machine",
-    "finite state machine",
-    "finite automata",
-    "scxml",
-    "state",
-    "interpreter"
-  ],
+  "workspaces": {
+    "packages": [
+      "packages/*"
+    ]
+  },
   "scripts": {
-    "bootstrap": "npm install && lerna bootstrap --ignore-scripts",
-    "clean": "rm -rf lib es dist *.tsbuildinfo",
+    "preinstall": "node ./scripts/ensure-yarn.js",
     "clean:packages": "lerna run --parallel clean",
-    "clean:monorepo": "npm run clean:packages && lerna clean --yes",
-    "test": "jest --projects ./ ./packages/*/",
-    "test:core": "tsc && jest",
-    "prettify": "prettier --config ./.prettierrc --write ./{lib,es,src,test}/**/*.ts",
-    "ci": "npm run build && npm run test",
-    "dev": "node ./scripts/dev.js",
+    "clean": "npm run clean:packages && lerna clean --yes && rm -rf node_modules",
     "build": "tsc -b ./tsconfig.monorepo.json",
-    "build:npm": "rollup -c && npm run annotate:es",
-    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
-    "preversion": "npm run test",
-    "version": "npm run build",
-    "postversion": "git push --follow-tags",
-    "prepublishOnly": "npm run build && npm run build:npm",
-    "publish:next": "npm version prerelease && npm publish --tag next",
-    "typedoc": "typedoc --excludePrivate --mode file --out ./api --target es6",
+    "test": "jest",
+    "test:core": "npm test --prefix packages/core",
+    "dev": "node ./scripts/dev.js",
+    "ci": "npm run build && npm run test",
+    "typedoc": "typedoc --excludePrivate --mode file --out ./api --target es6 ./packages/core/src",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && vuepress dev docs",
@@ -58,13 +36,9 @@
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
-    "@scion-scxml/test-framework": "^2.0.15",
     "@types/jest": "^24.0.15",
     "@types/node": "^12.7.4",
     "@vuepress/plugin-google-analytics": "^1.0.2",
-    "babel-plugin-annotate-pure-calls": "^0.4.0",
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^2.5.0",
@@ -77,27 +51,14 @@
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mermaid": "^8.2.3",
-    "mocha": "^3.5.3",
-    "nyc": "^14.1.1",
     "prettier": "^1.18.2",
-    "rollup": "^1.21.0",
-    "rollup-plugin-filesize": "^6.2.0",
-    "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-terser": "^5.1.1",
-    "rollup-plugin-typescript2": "^0.24.1",
-    "rollup-plugin-uglify": "^6.0.2",
-    "rxjs": "^6.5.1",
-    "source-map-support": "^0.5.12",
     "spawn-command": "0.0.2-1",
-    "ts-jest": "^24.0.2",
-    "tslib": "^1.10.0",
     "tslint": "^5.11.0",
     "typedoc": "^0.15.0",
     "typescript": "^3.6.2",
     "vuepress": "^1.0.1",
     "vuepress-plugin-export": "^0.2.0",
-    "webpack-dev-middleware": "^3.6.0",
-    "xml-js": "^1.6.8"
+    "webpack-dev-middleware": "^3.6.0"
   },
   "husky": {
     "hooks": {
@@ -105,7 +66,7 @@
     }
   },
   "lint-staged": {
-    "*.{ts,json,md}": [
+    "*.{ts,tsx,js,json,md}": [
       "prettier --write",
       "git add"
     ]

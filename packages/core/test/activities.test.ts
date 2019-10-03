@@ -101,9 +101,7 @@ describe('activities', () => {
   it('identifies start activities', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER');
     expect(nextState.activities.activateCrosswalkLight).toBeTruthy();
-    expect(nextState.actions).toEqual([
-      start('activateCrosswalkLight')
-    ]);
+    expect(nextState.actions).toEqual([start('activateCrosswalkLight')]);
   });
 
   it('identifies start activities for child states and active activities', () => {
@@ -136,7 +134,7 @@ describe('activities', () => {
 
     expect(nextState.actions).toEqual([
       stop('activateCrosswalkLight'),
-      start('fadeInGreen'),
+      start('fadeInGreen')
     ]);
   });
 });

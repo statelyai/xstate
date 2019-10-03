@@ -1,13 +1,12 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn } from 'xstate';
+import { Machine, assign, Interpreter, spawn, doneInvoke } from 'xstate';
 import {
   render,
   fireEvent,
   cleanup,
   waitForElement
 } from '@testing-library/react';
-import { doneInvoke } from '../../../src/actions';
 import { useState } from 'react';
 
 afterEach(cleanup);
@@ -205,13 +204,13 @@ describe('useMachine hook', () => {
             onClick={_ => {
               setExt(true);
             }}
-          ></button>
+          />
           <button
             data-testid="button"
             onClick={_ => {
               send('TOGGLE');
             }}
-          ></button>
+          />
         </>
       );
     };

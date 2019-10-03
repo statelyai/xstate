@@ -14,7 +14,8 @@ import {
   assign,
   after,
   done,
-  respond
+  respond,
+  doneInvoke
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
@@ -46,7 +47,8 @@ export {
   interpret,
   Interpreter,
   matchState,
-  spawn
+  spawn,
+  doneInvoke
 };
 
 export * from './types';

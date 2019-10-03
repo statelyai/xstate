@@ -92,18 +92,20 @@ const lightMachine = Machine({
 
 describe('transition "in" check', () => {
   it('should transition if string state path matches current state value', () => {
-    expect(machine.transition(
-      {
-        a: 'a1',
-        b: {
-          b2: {
-            foo: 'foo2',
-            bar: 'bar1'
+    expect(
+      machine.transition(
+        {
+          a: 'a1',
+          b: {
+            b2: {
+              foo: 'foo2',
+              bar: 'bar1'
+            }
           }
-        }
-      },
-      'EVENT1'
-    ).value).toEqual({
+        },
+        'EVENT1'
+      ).value
+    ).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -115,18 +117,20 @@ describe('transition "in" check', () => {
   });
 
   it('should transition if state node ID matches current state value', () => {
-    expect(machine.transition(
-      {
-        a: 'a1',
-        b: {
-          b2: {
-            foo: 'foo2',
-            bar: 'bar1'
+    expect(
+      machine.transition(
+        {
+          a: 'a1',
+          b: {
+            b2: {
+              foo: 'foo2',
+              bar: 'bar1'
+            }
           }
-        }
-      },
-      'EVENT3'
-    ).value).toEqual({
+        },
+        'EVENT3'
+      ).value
+    ).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -145,18 +149,20 @@ describe('transition "in" check', () => {
   });
 
   it('should not transition if state value matches current state value', () => {
-    expect(machine.transition(
-      {
-        a: 'a1',
-        b: {
-          b2: {
-            foo: 'foo2',
-            bar: 'bar1'
+    expect(
+      machine.transition(
+        {
+          a: 'a1',
+          b: {
+            b2: {
+              foo: 'foo2',
+              bar: 'bar1'
+            }
           }
-        }
-      },
-      'EVENT2'
-    ).value).toEqual({
+        },
+        'EVENT2'
+      ).value
+    ).toEqual({
       a: 'a2',
       b: {
         b2: {
@@ -168,10 +174,12 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (match)', () => {
-    expect(machine.transition(
-      { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
-      'EVENT_DEEP'
-    ).value).toEqual({
+    expect(
+      machine.transition(
+        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar1' } } },
+        'EVENT_DEEP'
+      ).value
+    ).toEqual({
       a: 'a1',
       b: {
         b2: {
@@ -183,10 +191,12 @@ describe('transition "in" check', () => {
   });
 
   it('matching should be relative to grandparent (no match)', () => {
-    expect(machine.transition(
-      { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
-      'EVENT_DEEP'
-    ).value).toEqual({
+    expect(
+      machine.transition(
+        { a: 'a1', b: { b2: { foo: 'foo1', bar: 'bar2' } } },
+        'EVENT_DEEP'
+      ).value
+    ).toEqual({
       a: 'a1',
       b: {
         b2: {

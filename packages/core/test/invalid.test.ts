@@ -48,7 +48,9 @@ describe('invalid or resolved states', () => {
   });
 
   it("should resolve transitioning from regions that don't exist (remove region)", () => {
-    expect(machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value).toEqual({
+    expect(
+      machine.transition({ A: 'A1', B: 'B1', Z: 'Z1' }, 'E').value
+    ).toEqual({
       A: 'A1',
       B: 'B1'
     });
