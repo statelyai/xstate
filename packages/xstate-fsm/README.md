@@ -213,6 +213,8 @@ An object that represents the state of a machine with the following schema:
 
 Creates an instance of an interpreted machine, also known as a **service**. This is a stateful representation of the running machine, which you can subscribe to, send events to, start, and stop.
 
+Actions will also be executed by the interpreter.
+
 | Argument  | Type         | Description                    |
 | --------- | ------------ | ------------------------------ |
 | `machine` | StateMachine | The machine to be interpreted. |

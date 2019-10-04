@@ -176,4 +176,35 @@ describe('interpreter', () => {
 
     toggleService.send('TOGGLE');
   });
+
+  it('should execute actions', done => {
+    let executed = false;
+
+    const actionMachine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            TOGGLE: {
+              target: 'inactive',
+              actions: () => {
+                executed = true;
+              }
+            }
+          }
+        },
+        inactive: {}
+      }
+    });
+
+    const actionService = interpret(actionMachine).start();
+
+    actionService.subscribe(() => {
+      if (executed) {
+        done();
+      }
+    });
+
+    actionService.send('TOGGLE');
+  });
 });

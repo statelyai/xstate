@@ -36,6 +36,12 @@ function createMatcher(value) {
   return stateValue => value === stateValue;
 }
 
+function toEventObject<TEvent extends EventObject>(
+  event: TEvent['type'] | TEvent
+): TEvent {
+  return (typeof event === 'string' ? { type: event } : event) as TEvent;
+}
+
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -60,9 +66,7 @@ export function createMachine<
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = (typeof event === 'string'
-        ? { type: event }
-        : event) as TEvent;
+      const eventObject = toEventObject(event);
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION) {
@@ -167,6 +171,9 @@ export function interpret<
         return;
       }
       state = machine.transition(state, event);
+      state.actions.forEach(
+        ({ exec }) => exec && exec(state.context, toEventObject(event))
+      );
       listeners.forEach(listener => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
