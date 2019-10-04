@@ -1,4 +1,13 @@
-# @xstate/fsm
+<p align="center">
+  <a href="https://xstate.js.org">
+  <br />
+  <img src="https://i.imgur.com/j4x2zzX.png" alt="XState FSM" width="200"/>
+  <br />
+    <sub><strong>XState for Finite State Machines</strong></sub>
+  <br />
+  <br />
+  </a>
+</p>
 
 This package contains a minimal, 1kb implementation of [XState](https://xstate.js.org/docs) for **finite state machines**.
 
