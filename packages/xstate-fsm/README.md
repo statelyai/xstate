@@ -1,6 +1,6 @@
 # @xstate/fsm
 
-This package contains a minimal implementation of XState for finite state machines.
+This package contains a minimal, 1kb implementation of [XState](https://xstate.js.org/docs) for **finite state machines**.
 
 **Features:**
 
@@ -17,16 +17,20 @@ If you want to use statechart features such as nested states, parallel states, h
 
 ## Super quick start
 
+**Installation**
+
 ```bash
 npm i @xstate/fsm
 ```
 
-```js
-import { FSM } from '@xstate/fsm';
+**Usage (machine):**
 
-// Stateless FSM definition
+```js
+import { createMachine } from '@xstate/fsm';
+
+// Stateless finite state machine definition
 // machine.transition(...) is a pure function.
-const toggleFSM = FSM({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -35,22 +39,59 @@ const toggleFSM = FSM({
   }
 });
 
-const { initialState } = toggleFSM;
+const { initialState } = toggleMachine;
 
-const toggledState = toggleFSM.transition(initialState, 'TOGGLE');
+const toggledState = toggleMachine.transition(initialState, 'TOGGLE');
 toggledState.value;
 // => 'active'
 
-const untoggledState = toggleFSM.transition(toggledState, 'TOGGLE');
+const untoggledState = toggleMachine.transition(toggledState, 'TOGGLE');
 untoggledState.value;
 // => 'inactive'
 ```
 
+**Usage (service):**
+
+```js
+import { createMachine, interpret } from '@xstate/fsm';
+
+const toggleMachine = createMachine({
+  /* ... */
+});
+
+const toggleService = interpret(toggleMachine).start();
+
+toggleService.subscribe(state => {
+  console.log(state.value);
+});
+
+toggleService.send('TOGGLE');
+// => logs 'active'
+
+toggleService.send('TOGGLE');
+// => logs 'inactive'
+
+toggleService.stop();
+```
+
 ## API
 
-### `FSM(config)`
+### `createMachine(config)`
 
-Creates a new finite state machine (FSM) from the config, which has this schema:
+Creates a new finite state machine from the config.
+
+| Argument | Type               | Description                                 |
+| -------- | ------------------ | ------------------------------------------- |
+| `config` | object (see below) | The config object for creating the machine. |
+
+**Returns:**
+
+A `Machine`, which provides:
+
+- `machine.initialState`: the machine's resolved initial state
+- `machine.transition(state, event)`: a pure transition function that returns the next state given the current `state` and `event`
+
+The machine config has this schema:
 
 ### Machine config
 
@@ -93,12 +134,191 @@ Object syntax:
 - `type` (string) - the action type.
 - `exec?` (function) - the action function to execute.
 
-## Usage
+### `machine.initialState`
+
+The resolved initial state of the `machine`.
+
+### `machine.transition(state, event)`
+
+A pure transition function that returns the next state given the current `state` and `event`.
+
+The state can be a `string` state name, or a `State` object (the return type of `machine.transition(...)`).
+
+| Argument | Type                                | Description                                                      |
+| -------- | ----------------------------------- | ---------------------------------------------------------------- |
+| `state`  | `string` or `State` object          | The current state to transition from                             |
+| `event`  | `string` or `{ type: string, ... }` | The event that transitions the current `state` to the next state |
+
+**Returns:**
+
+A `State` object, which represents the next state.
+
+**Example:**
 
 ```js
-import { FSM, assign } from '@xstate/fsm';
+// string state name and
+const yellowState = machine.transition('green', 'TIMER');
+// => { value: 'yellow', ... }
 
-const lightFSM = FSM({
+const redState = machine.transition(yellowState, 'TIMER');
+// => { value: 'red', ... }
+
+const greenState = machine.transition(yellowState, { type: 'TIMER' });
+// => { value: 'green', ... }
+```
+
+### State
+
+An object that represents the state of a machine with the following schema:
+
+- `value` (string) - the finite state value
+- `context` (object) - the extended state (context)
+- `actions` (array) - an array of action objects representing the side-effects (actions) to be executed
+- `changed` (boolean) - whether this state is changed from the previous state (`true` if the `state.value` and `state.context` are the same, and there are no side-effects)
+- `matches(value)` (boolean) - whether this state's value matches (i.e., is equal to) the `value`. This is useful for typestate checking.
+
+### `interpret(machine)`
+
+Creates an instance of an interpreted machine, also known as a **service**. This is a stateful representation of the running machine, which you can subscribe to, send events to, start, and stop.
+
+| Argument  | Type         | Description                    |
+| --------- | ------------ | ------------------------------ |
+| `machine` | StateMachine | The machine to be interpreted. |
+
+**Example:**
+
+```js
+import { createMachine, interpret } from '@xstate/fsm';
+
+const machine = createMachine({
+  /* ... */
+});
+
+const service = interpret(machine);
+
+const subscription = service.subscribe(state => {
+  console.log(state);
+});
+
+service.start();
+
+service.send('SOME_EVENT');
+service.send({ type: 'ANOTHER_EVENT' });
+
+// unsubscribes single subscription
+subscription.unsubscribe();
+
+// unsubscribes all subscriptions and stops interpretation
+service.stop();
+```
+
+### `service.subscribe(stateListener)`
+
+A service (created from `interpret(machine)`) can be subscribed to via the `.subscribe(...)` method. The subscription will be notified of all state changes (including the initial state) and can be unsubscribed.
+
+| Argument        | Type              | Description                                                                                     |
+| --------------- | ----------------- | ----------------------------------------------------------------------------------------------- |
+| `stateListener` | `(state) => void` | The listener that is called with the interpreted machine's current `state` whenever it changes. |
+
+**Returns:**
+
+A subscription object with an `unsubscribe` method.
+
+### `service.send(event)`
+
+Sends an `event` to the interpreted machine. The event can be a string (e.g., `"EVENT"`) or an object with a `type` property (e.g., `{ type: "EVENT" }`).
+
+| Argument | Type                                | Description                                      |
+| -------- | ----------------------------------- | ------------------------------------------------ |
+| `event`  | `string` or `{ type: string, ... }` | The event to be sent to the interpreted machine. |
+
+### `service.start()`
+
+Starts the interpreted machine.
+
+Events sent to the interpreted machine will not trigger any transitions until the service is started. All listeners (via `service.subscribe(listener)`) will receive the `machine.initialState`.
+
+### `service.stop()`
+
+Stops the interpreted machine.
+
+Events sent to a stopped service will no longer trigger any transitions. All listeners (via `service.subscribe(listener)`) will be unsubscribed.
+
+## TypeScript
+
+A machine can be strictly typed by passing in 3 generic types:
+
+- `TContext` - the machine's `context`
+- `TEvent` - all events that the machine accepts
+- `TState` - all states that the machine can be in
+
+The `TContext` type should be an `object` that represents all possible combined types of `state.context`.
+
+The `TEvent` type should be the union of all event objects that the machine can accept, where each event object has a `{ type: string }` property, as well as any other properties that may be present.
+
+The `TState` type should be the union of all typestates (value and contexts) that the machine can be in, where each typestate has:
+
+- `value` (string) - the value (name) of the state
+- `context` (object) - an object that extends `TContext` and narrows the shape of the context to what it should be in this state.
+
+**Example:**
+
+```ts
+interface User {
+  name: string;
+}
+
+interface UserContext {
+  user?: User;
+  error?: string;
+}
+
+type UserEvent =
+  | { type: 'FETCH'; id: string }
+  | { type: 'RESOLVE'; user: User }
+  | { type: 'REJECT'; error: string };
+
+type UserState =
+  | {
+      value: 'idle';
+      context: UserContext & {
+        user: undefined;
+        error: undefined;
+      };
+    }
+  | {
+      value: 'loading';
+      context: UserContext;
+    }
+  | {
+      value: 'success';
+      context: UserContext & { user: User; error: undefined };
+    }
+  | {
+      value: 'failure';
+      context: UserContext & { user: undefined; error: string };
+    };
+
+const userMachine = createMachine<UserContext, UserEvent, UserState>({
+  /* ... */
+});
+
+const userService = interpret(userMachine);
+
+userService.subscribe(state => {
+  if (state.matches('success')) {
+    // from UserState, `user` will be defined
+    state.context.user.name;
+  }
+});
+```
+
+## Example
+
+```js
+import { createMachine, assign } from '@xstate/fsm';
+
+const lightMachine = createMachine({
   id: 'light',
   initial: 'green',
   context: { redLights: 0 },
@@ -125,16 +345,22 @@ const lightFSM = FSM({
   }
 });
 
-const { initialState } = lightFSM;
-// {
+const lightService = interpret(lightMachine);
+
+lightService.subscribe(state => {
+  console.log(state);
+});
+
+lightService.start();
+// => logs {
 //   value: 'green',
 //   context: { redLights: 0 },
 //   actions: [],
 //   changed: undefined
 // }
 
-const yellowState = lightFSM.transition(initialState, 'TIMER');
-// {
+lightService.send('TIMER');
+// => logs {
 //   value: 'yellow',
 //   context: { redLights: 0 },
 //   actions: [
@@ -143,8 +369,8 @@ const yellowState = lightFSM.transition(initialState, 'TIMER');
 //   changed: true
 // }
 
-const redState = lightFSM.transition(yellowState, 'TIMER');
-// {
+lightService.send('TIMER');
+// => logs {
 //   value: 'red',
 //   context: { redLights: 1 },
 //   actions: [],
