@@ -11,6 +11,19 @@
 
 This package contains a minimal, 1kb implementation of [XState](https://xstate.js.org/docs) for **finite state machines**.
 
+**Features:**
+
+- Finite states (non-nested)
+- Initial state
+- Transitions (object or strings)
+- Context
+- Entry actions
+- Exit actions
+- Transition actions
+- `state.changed`
+
+If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/davidkpiano/xstate).
+
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
 <!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
 
@@ -33,19 +46,6 @@ This package contains a minimal, 1kb implementation of [XState](https://xstate.j
 - [Example](#example)
 
 <!-- END doctoc generated TOC please keep comment here to allow auto update -->
-
-**Features:**
-
-- Finite states (non-nested)
-- Initial state
-- Transitions (object or strings)
-- Context
-- Entry actions
-- Exit actions
-- Transition actions
-- `state.changed`
-
-If you want to use statechart features such as nested states, parallel states, history states, activities, invoked services, delayed transitions, transient transitions, etc. please use [`XState`](https://github.com/davidkpiano/xstate).
 
 ## Super quick start
 
