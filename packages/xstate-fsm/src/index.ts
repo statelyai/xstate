@@ -17,7 +17,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
   // tslint:disable-next-line:ban-types
   action:
     | string
-    | ((context: TContext, event: TEvent) => void)
+    | StateMachine.ActionFunction<TContext, TEvent>
     | StateMachine.ActionObject<TContext, TEvent>
 ) {
   return typeof action === 'string'
@@ -31,6 +31,10 @@ function toActionObject<TContext, TEvent extends EventObject>(
 }
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
+
+function createMatcher(value) {
+  return stateValue => value === stateValue;
+}
 
 export function FSM<
   TContext extends object,
@@ -46,7 +50,7 @@ export function FSM<
         toActionObject
       ),
       context: fsmConfig.context!,
-      matches: sv => sv === fsmConfig.initial
+      matches: createMatcher(fsmConfig.initial)
     },
     transition: (
       state: string | StateMachine.State<TContext, TEvent, TState>,
@@ -72,9 +76,7 @@ export function FSM<
       }
 
       if (stateConfig.on) {
-        const transitions = ([] as Array<
-          StateMachine.Transition<TContext, TEvent>
-        >).concat(stateConfig.on[eventObject.type]);
+        const transitions = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
@@ -83,7 +85,7 @@ export function FSM<
               context,
               actions: [],
               changed: false,
-              matches: sv => value === sv
+              matches: createMatcher(value)
             };
           }
 
@@ -101,7 +103,7 @@ export function FSM<
             let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
-              .filter(Boolean)
+              .filter(a => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
                 if (action.type === assignActionType) {
@@ -130,7 +132,7 @@ export function FSM<
               context: nextContext,
               actions: allActions,
               changed: nextValue !== value || allActions.length > 0 || assigned,
-              matches: sv => nextValue === sv
+              matches: createMatcher(nextValue)
             };
           }
         }
@@ -142,36 +144,46 @@ export function FSM<
         context,
         actions: [],
         changed: false,
-        matches: sv => value === sv
+        matches: createMatcher(value)
       };
     }
   };
 }
 
-type StateListener<T extends StateMachine.State<any, any, any>> = (
-  state: T
-) => void;
-
 export function interpret<
   TContext,
   TEvent extends EventObject = any,
   TState extends Typestate<TContext> = any
->(machine: StateMachine.Machine<TContext, TEvent, TState>) {
+>(
+  machine: StateMachine.Machine<TContext, TEvent, TState>
+): StateMachine.Service<TContext, TEvent, TState> {
   let state = machine.initialState;
-  const listeners = new Set<StateListener<typeof state>>();
+  let started = false;
+  const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
-  return {
+  const service = {
     send: (event: TEvent | TEvent['type']): void => {
+      if (!started) {
+        return;
+      }
       state = machine.transition(state, event);
       listeners.forEach(listener => listener(state));
     },
-    subscribe: (listener: StateListener<typeof state>) => {
+    subscribe: (listener: StateMachine.StateListener<typeof state>) => {
       listeners.add(listener);
       listener(state);
 
       return {
         unsubscribe: () => listeners.delete(listener)
       };
-    }
+    },
+    start: () => ((started = true), service),
+    stop: () => (
+      (started = false),
+      listeners.forEach(listener => listeners.delete(listener)),
+      service
+    )
   };
+
+  return service;
 }

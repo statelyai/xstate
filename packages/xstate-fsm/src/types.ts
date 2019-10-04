@@ -16,6 +16,11 @@ export namespace StateMachine {
     [key: string]: any;
   }
 
+  export type ActionFunction<TContext, TEvent extends EventObject> = (
+    context: TContext,
+    event: TEvent
+  ) => void;
+
   export type AssignAction = 'xstate.assign';
 
   export type Transition<TContext, TEvent extends EventObject> =
@@ -65,6 +70,25 @@ export namespace StateMachine {
       state: string | StateMachine.State<TContext, TEvent, TState>,
       event: TEvent['type'] | TEvent
     ) => StateMachine.State<TContext, TEvent, TState>;
+  }
+
+  export type StateListener<T extends StateMachine.State<any, any, any>> = (
+    state: T
+  ) => void;
+
+  export interface Service<
+    TContext,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext> = any
+  > {
+    send: (event: TEvent | TEvent['type']) => void;
+    subscribe: (
+      listener: StateListener<State<TContext, TEvent, TState>>
+    ) => {
+      unsubscribe: () => void;
+    };
+    start: () => Service<TContext, TEvent, TState>;
+    stop: () => Service<TContext, TEvent, TState>;
   }
 }
 

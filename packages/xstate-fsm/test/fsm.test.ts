@@ -156,7 +156,7 @@ describe('interpreter', () => {
   });
 
   it('listeners should immediately get the initial state', done => {
-    const toggleService = interpret(toggleMachine);
+    const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe(state => {
       if (state.matches('active')) {
@@ -166,7 +166,7 @@ describe('interpreter', () => {
   });
 
   it('listeners should subscribe to state changes', done => {
-    const toggleService = interpret(toggleMachine);
+    const toggleService = interpret(toggleMachine).start();
 
     toggleService.subscribe(state => {
       if (state.matches('inactive')) {
