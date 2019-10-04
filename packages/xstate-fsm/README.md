@@ -11,6 +11,29 @@
 
 This package contains a minimal, 1kb implementation of [XState](https://xstate.js.org/docs) for **finite state machines**.
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Super quick start](#super-quick-start)
+- [API](#api)
+  - [`createMachine(config)`](#createmachineconfig)
+  - [Machine config](#machine-config)
+  - [State config](#state-config)
+  - [Transition config](#transition-config)
+  - [Action config](#action-config)
+  - [`machine.initialState`](#machineinitialstate)
+  - [`machine.transition(state, event)`](#machinetransitionstate-event)
+  - [State](#state)
+  - [`interpret(machine)`](#interpretmachine)
+  - [`service.subscribe(stateListener)`](#servicesubscribestatelistener)
+  - [`service.send(event)`](#servicesendevent)
+  - [`service.start()`](#servicestart)
+  - [`service.stop()`](#servicestop)
+- [TypeScript](#typescript)
+- [Example](#example)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 **Features:**
 
 - Finite states (non-nested)
