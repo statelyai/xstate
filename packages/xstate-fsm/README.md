@@ -9,7 +9,7 @@
   </a>
 </p>
 
-This package contains a minimal, 1kb implementation of [XState](https://xstate.js.org/docs) for **finite state machines**.
+This package contains a minimal, 1kb implementation of [XState](https://github.com/davidkpiano/xstate) for **finite state machines**.
 
 **Features:**
 
