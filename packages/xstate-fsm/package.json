@@ -18,6 +18,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm#readme",
   "license": "MIT",
   "main": "dist/xstate.fsm.js",
+  "types": "dist/index.d.ts",
   "sideEffects": false,
   "files": [
     "dist",
