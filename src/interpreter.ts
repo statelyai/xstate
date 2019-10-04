@@ -249,7 +249,10 @@ export class Interpreter<
 
     // Dev tools
     if (this.browserExtensionsManager) {
-      this.browserExtensionsManager.update({ state: state, event: _event });
+      this.browserExtensionsManager.update({
+        state: state,
+        event: _event.data
+      });
     }
 
     // Execute listeners
