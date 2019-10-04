@@ -47,6 +47,7 @@ import {
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
+import BrowserExtensionsManager from './BrowserExtensionsManager';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -163,8 +164,7 @@ export class Interpreter<
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
-  private devTools?: any;
-  private xstateDevtoolsExtension?: any;
+  private browserExtensionsManager?: any;
 
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
@@ -248,11 +248,8 @@ export class Interpreter<
     }
 
     // Dev tools
-    if (this.devTools) {
-      this.devTools.send(_event.data, state);
-    }
-    if (this.xstateDevtoolsExtension) {
-      this.xstateDevtoolsExtension.send(state);
+    if (this.browserExtensionsManager) {
+      this.browserExtensionsManager.update({ state: state, event: _event });
     }
 
     // Execute listeners
@@ -909,11 +906,11 @@ export class Interpreter<
             this.send(errorEvent as any);
           } catch (error) {
             this.reportUnhandledExceptionOnInvocation(errorData, error, id);
-            if (this.devTools) {
-              this.devTools.send(errorEvent, this.state);
-            }
-            if (this.xstateDevtoolsExtension) {
-              this.xstateDevtoolsExtension.send(this.state);
+            if (this.browserExtensionsManager) {
+              this.browserExtensionsManager.update({
+                event: errorEvent,
+                state: this.state
+              });
             }
             if (this.machine.strict) {
               // it would be better to always stop the state machine if unhandled
@@ -1116,45 +1113,12 @@ export class Interpreter<
     }
   }
   private attachDev() {
-    if (
-      this.options.devTools &&
-      typeof window !== 'undefined' &&
-      (window as any).__REDUX_DEVTOOLS_EXTENSION__
-    ) {
-      const devToolsOptions =
-        typeof this.options.devTools === 'object'
-          ? this.options.devTools
-          : undefined;
-      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
-        name: this.id,
-        autoPause: true,
-        stateSanitizer: (state: State<any, any>): object => {
-          return {
-            value: state.value,
-            context: state.context,
-            actions: state.actions
-          };
-        },
-        ...devToolsOptions,
-        features: {
-          jump: false,
-          skip: false,
-          ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
-        }
+    if (this.options.devTools) {
+      this.browserExtensionsManager = new BrowserExtensionsManager({
+        devToolsOptions: this.options.devTools,
+        id: this.id,
+        machine: this.machine
       });
-      this.devTools.init(this.state);
-    }
-    if (
-      this.options.devTools &&
-      typeof window !== 'undefined' &&
-      (window as any).__XSTATE_DEVTOOLS_EXTENSION__
-    ) {
-      this.xstateDevtoolsExtension = (window as any).__XSTATE_DEVTOOLS_EXTENSION__.connect(
-        {
-          machine: this.machine,
-          state: this.machine.initialState
-        }
-      );
     }
   }
   public toJSON() {
