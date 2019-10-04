@@ -36,7 +36,7 @@ function createMatcher(value) {
   return stateValue => value === stateValue;
 }
 
-export function FSM<
+export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any

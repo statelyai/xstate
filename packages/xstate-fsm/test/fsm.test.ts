@@ -1,4 +1,4 @@
-import { FSM, assign, interpret } from '../src';
+import { createMachine, assign, interpret } from '../src';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -22,7 +22,7 @@ describe('@xstate/fsm', () => {
         context: LightContext & { go: false };
       };
 
-  const lightFSM = FSM<LightContext, LightEvent, LightState>({
+  const lightFSM = createMachine<LightContext, LightEvent, LightState>({
     id: 'light',
     initial: 'green',
     context: { count: 0, foo: 'bar', go: true },
@@ -145,7 +145,7 @@ describe('@xstate/fsm', () => {
 });
 
 describe('interpreter', () => {
-  const toggleMachine = FSM({
+  const toggleMachine = createMachine({
     initial: 'active',
     states: {
       active: {

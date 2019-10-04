@@ -27,7 +27,7 @@ export default [
     output: {
       file: 'dist/xstate.fsm.js',
       format: 'umd',
-      name: 'FSM'
+      name: 'XStateFSM'
     }
   }),
   createConfig({
@@ -35,7 +35,7 @@ export default [
     output: {
       file: 'dist/xstate.fsm.compat.js',
       format: 'umd',
-      name: 'FSM'
+      name: 'XStateFSM'
     },
     tsconfig: 'tsconfig.compat.json'
   })
