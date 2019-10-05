@@ -80,6 +80,44 @@ describe('delayed transitions', () => {
       .start();
   });
 
+  it('parent state should enter child state without re-entering self (relative target)', done => {
+    const actual: string[] = [];
+    const machine = Machine({
+      initial: 'one',
+      states: {
+        one: {
+          initial: 'two',
+          entry: () => actual.push('entered one'),
+          states: {
+            two: {
+              entry: () => actual.push('entered two')
+            },
+            three: {
+              entry: () => actual.push('entered three'),
+              on: {
+                '': '#end'
+              }
+            }
+          },
+          after: {
+            10: '.three'
+          }
+        },
+        end: {
+          id: 'end',
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(machine)
+      .onDone(() => {
+        expect(actual).toEqual(['entered one', 'entered two', 'entered three']);
+        done();
+      })
+      .start();
+  });
+
   describe('delay expressions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }

@@ -572,7 +572,6 @@ class StateNode<
     DelayedTransitionDefinition<TContext, TEvent>
   > {
     const afterConfig = this.config.after;
-    const { guards } = this.machine.options;
 
     if (!afterConfig) {
       return [];
@@ -595,7 +594,7 @@ class StateNode<
         );
 
     return delayedTransitions.map((delayedTransition, i) => {
-      const { delay, target } = delayedTransition;
+      const { delay } = delayedTransition;
       let delayRef: string | number;
 
       if (isFunction(delay)) {
@@ -615,14 +614,11 @@ class StateNode<
       this.onExit.push(cancel(eventType));
 
       return {
-        eventType,
-        ...delayedTransition,
-        source: this,
-        target: this.resolveTarget(normalizeTarget(target)),
-        cond: toGuard(delayedTransition.cond, guards),
-        actions: toArray(delayedTransition.actions).map(action =>
-          toActionObject(action)
-        )
+        ...this.formatTransition({
+          ...delayedTransition,
+          event: eventType
+        } as any),
+        delay
       };
     });
   }
