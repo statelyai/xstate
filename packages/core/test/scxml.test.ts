@@ -1,5 +1,6 @@
 import * as fs from 'fs';
 import * as path from 'path';
+import * as pkgUp from 'pkg-up';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
@@ -11,6 +12,10 @@ import { pathsToStateValue } from '../src/utils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
+
+const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
+  cwd: require.resolve('@scion-scxml/test-framework')
+}) as string);
 
 const testGroups = {
   actionSend: [
@@ -414,7 +419,7 @@ describe('scxml', () => {
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1
           ? `./fixtures/scxml/${testGroupName}/${testName}.scxml`
-          : `../node_modules/@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
+          : `${TEST_FRAMEWORK}/test/${testGroupName}/${testName}.scxml`;
       const scxmlDefinition = fs.readFileSync(
         path.resolve(__dirname, scxmlSource),
         { encoding: 'utf-8' }
@@ -423,7 +428,7 @@ describe('scxml', () => {
         fs.readFileSync(
           path.resolve(
             __dirname,
-            `../node_modules/@scion-scxml/test-framework/test/${testGroupName}/${testName}.json`
+            `${TEST_FRAMEWORK}/test/${testGroupName}/${testName}.json`
           ),
           { encoding: 'utf-8' }
         )

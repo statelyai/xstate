@@ -24,7 +24,9 @@ describe('patterns', () => {
 
       expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[0]);
 
-      expect(sequenceMachine.transition(seq[seq.length - 1], 'NEXT').value).toEqual(seq[seq.length - 1]);
+      expect(
+        sequenceMachine.transition(seq[seq.length - 1], 'NEXT').value
+      ).toEqual(seq[seq.length - 1]);
 
       expect(sequenceMachine.transition(seq[0], 'PREV').value).toEqual(seq[0]);
     });
@@ -44,7 +46,9 @@ describe('patterns', () => {
 
       expect(sequenceMachine.transition(seq[1], 'PREV').value).toEqual(seq[1]);
 
-      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[1]);
+      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
+        seq[1]
+      );
 
       expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[0]);
     });
@@ -60,7 +64,9 @@ describe('patterns', () => {
         })
       });
 
-      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[1]);
+      expect(sequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
+        seq[1]
+      );
 
       expect(sequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[1]);
 
@@ -72,9 +78,13 @@ describe('patterns', () => {
         })
       });
 
-      expect(backSequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(seq[0]);
+      expect(backSequenceMachine.transition(seq[0], 'FORWARD').value).toEqual(
+        seq[0]
+      );
 
-      expect(backSequenceMachine.transition(seq[1], 'BACK').value).toEqual(seq[0]);
+      expect(backSequenceMachine.transition(seq[1], 'BACK').value).toEqual(
+        seq[0]
+      );
     });
   });
 });

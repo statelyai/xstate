@@ -4,8 +4,8 @@ Thank you for your interest in contributing to XState! This project is made poss
 
 ## Environment
 
-- Ensure you have the latest version of Node and NPM.
-- Run `npm install` to install all needed dev dependencies.
+- Ensure you have the latest version of Node and Yarn.
+- Run `yarn` to install all needed dev dependencies.
 
 ## Making Changes
 
