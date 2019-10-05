@@ -461,6 +461,7 @@ export class Interpreter<
 
     this.scheduler.clear();
     this.initialized = false;
+    this.browserExtensionsManager.disconnect()
 
     return this;
   }

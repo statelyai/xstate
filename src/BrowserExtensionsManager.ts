@@ -50,4 +50,10 @@ export default class BrowserExtensionsManager {
       this.xstateDevtoolsObject.send(state);
     }
   }
+
+  disconnect() {
+    if (this.xstateDevtoolsObject) {
+      this.xstateDevtoolsObject.disconnect()
+    }
+  }
 }
