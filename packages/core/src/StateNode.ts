@@ -23,7 +23,8 @@ import {
   isMachine,
   toSCXMLEvent,
   mapContext,
-  toTransitionConfigArray
+  toTransitionConfigArray,
+  normalizeTarget
 } from './utils';
 import {
   Event,
@@ -93,7 +94,7 @@ import {
   resolveRaise
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { DEFAULT_GUARD_TYPE } from './constants';
+import { DEFAULT_GUARD_TYPE, STATE_DELIMITER } from './constants';
 import {
   getValue,
   getConfiguration,
@@ -105,10 +106,8 @@ import {
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
 
-const STATE_DELIMITER = '.';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
-const TARGETLESS_KEY = '';
 const WILDCARD = '*';
 
 const EMPTY_OBJECT = {};
@@ -144,7 +143,9 @@ const validateArrayifiedTransitions = <TContext>(
 
   warn(
     !hasNonLastUnguardedTarget,
-    `One or more transitions for ${eventText} on state '${stateNode.id}' are unreachable. ` +
+    `One or more transitions for ${eventText} on state '${
+      stateNode.id
+    }' are unreachable. ` +
       `Make sure that the default transition is the last one defined.`
   );
 };
@@ -278,7 +279,7 @@ class StateNode<
                 : EventObject
             >
           >
-        | undefined;
+        | undefined
     },
     delayedTransitions: undefined as
       | Array<DelayedTransitionDefinition<TContext, TEvent>>
@@ -583,7 +584,7 @@ class StateNode<
           keys(afterConfig).map(delay => {
             const configTransition = afterConfig[delay];
             const resolvedTransition = isString(configTransition)
-              ? { target: this.resolveTarget(configTransition) }
+              ? { target: configTransition }
               : configTransition;
 
             return toArray(resolvedTransition).map(transition => ({
@@ -617,7 +618,7 @@ class StateNode<
         eventType,
         ...delayedTransition,
         source: this,
-        target: target === undefined ? undefined : this.resolveTarget(target),
+        target: this.resolveTarget(normalizeTarget(target)),
         cond: toGuard(delayedTransition.cond, guards),
         actions: toArray(delayedTransition.actions).map(action =>
           toActionObject(action)
@@ -955,7 +956,9 @@ class StateNode<
 
     if (!condFn) {
       throw new Error(
-        `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
+        `Guard '${guard.type}' is not implemented on machine '${
+          this.machine.id
+        }'.`
       );
     }
 
@@ -1222,7 +1225,9 @@ class StateNode<
                 !isString(actionObject.delay) ||
                   typeof sendAction.delay === 'number',
                 // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${this.machine.id}'`
+                `No delay reference for delay expression '${
+                  actionObject.delay
+                }' was found on machine '${this.machine.id}'`
               );
             }
 
@@ -1392,7 +1397,9 @@ class StateNode<
 
     if (!this.states) {
       throw new Error(
-        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`
+        `Unable to retrieve child state '${stateKey}' from '${
+          this.id
+        }'; no child states exist.`
       );
     }
 
@@ -1424,7 +1431,9 @@ class StateNode<
 
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${
+          this.id
+        }'`
       );
     }
 
@@ -1845,73 +1854,27 @@ class StateNode<
     return Array.from(events);
   }
   private resolveTarget(
-    _target: SingleOrArray<string | StateNode<TContext>>,
-    internal: boolean = false
-  ): Array<StateNode<TContext>> {
-    const targets = toArray(_target);
-    return flatten(
-      targets.map(target => {
-        if (!isString(target)) {
-          return [target];
-        }
-
-        const isInternalTarget = target[0] === this.delimiter;
-        internal = internal === undefined ? isInternalTarget : internal;
-
-        // If internal target is defined on machine,
-        // do not include machine key on target
-        if (isInternalTarget && !this.parent) {
-          return [this.getStateNodeByPath(target.slice(1))];
-        }
-
-        const resolvedTarget = isInternalTarget ? this.key + target : target;
-
-        if (this.parent) {
-          try {
-            const targetStateNode = this.parent.getStateNodeByPath(
-              resolvedTarget
-            );
-            return [targetStateNode];
-          } catch (err) {
-            throw new Error(
-              `Invalid transition definition for state node '${this.id}':\n${err.message}`
-            );
-          }
-        } else {
-          return [this.getStateNodeByPath(resolvedTarget)];
-        }
-      })
-    );
-  }
-
-  private formatTransition(
-    transitionConfig: TransitionConfig<TContext, TEvent> & {
-      event: TEvent['type'] | NullEvent['type'] | '*';
+    _target: Array<string | StateNode<TContext>> | undefined
+  ): Array<StateNode<TContext>> | undefined {
+    if (_target === undefined) {
+      // an undefined target signals that the state node should not transition from that state when receiving that event
+      return undefined;
     }
-  ): TransitionDefinition<TContext, TEvent> {
-    let internal =
-      'internal' in transitionConfig ? transitionConfig.internal : undefined;
-    const targets = toArray(transitionConfig.target);
-    const { guards } = this.machine.options;
 
-    // Format targets to their full string path
-    const formattedTargets = targets.map(_target => {
-      if (!isString(_target)) {
-        return _target;
+    return _target.map(target => {
+      if (!isString(target)) {
+        return target;
       }
 
-      const isInternalTarget = _target[0] === this.delimiter;
-      internal = internal === undefined ? isInternalTarget : internal;
+      const isInternalTarget = target[0] === this.delimiter;
 
       // If internal target is defined on machine,
       // do not include machine key on target
-      if (isInternalTarget) {
-        return this.getStateNodeByPath(_target.slice(1));
+      if (isInternalTarget && !this.parent) {
+        return this.getStateNodeByPath(target.slice(1));
       }
 
-      const resolvedTarget = isInternalTarget
-        ? this.key + _target
-        : `${_target}`;
+      const resolvedTarget = isInternalTarget ? this.key + target : target;
 
       if (this.parent) {
         try {
@@ -1921,28 +1884,42 @@ class StateNode<
           return targetStateNode;
         } catch (err) {
           throw new Error(
-            // tslint:disable-next-line:max-line-length
-            `Invalid transition definition for state node '${this.id}' on event '${transitionConfig.event}':\n${err.message}`
+            `Invalid transition definition for state node '${this.id}':\n${
+              err.message
+            }`
           );
         }
       } else {
         return this.getStateNodeByPath(resolvedTarget);
       }
     });
+  }
 
-    // Check if there is no target (targetless)
-    // An undefined transition signals that the state node should not transition from that event.
-    const isTargetless =
-      transitionConfig.target === undefined ||
-      transitionConfig.target === TARGETLESS_KEY;
+  private formatTransition(
+    transitionConfig: TransitionConfig<TContext, TEvent> & {
+      event: TEvent['type'] | NullEvent['type'] | '*';
+    }
+  ): TransitionDefinition<TContext, TEvent> {
+    const normalizedTarget = normalizeTarget(transitionConfig.target);
+    const internal =
+      'internal' in transitionConfig
+        ? transitionConfig.internal
+        : normalizedTarget
+        ? normalizedTarget.some(
+            target => isString(target) && target[0] === this.delimiter
+          )
+        : true;
+    const { guards } = this.machine.options;
+
+    const target = this.resolveTarget(normalizedTarget);
 
     return {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond, guards),
-      target: isTargetless ? undefined : formattedTargets,
+      target,
       source: this,
-      internal: (isTargetless && internal === undefined) || internal,
+      internal,
       eventType: transitionConfig.event
     };
   }

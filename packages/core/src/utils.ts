@@ -22,8 +22,13 @@ import {
   NullEvent,
   SingleOrArray
 } from './types';
-import { STATE_DELIMITER, DEFAULT_GUARD_TYPE } from './constants';
+import {
+  STATE_DELIMITER,
+  DEFAULT_GUARD_TYPE,
+  TARGETLESS_KEY
+} from './constants';
 import { IS_PRODUCTION } from './environment';
+import { StateNode } from './StateNode';
 import { State } from '.';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -586,4 +591,13 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   });
 
   return transitions;
+}
+
+export function normalizeTarget<TContext>(
+  target: SingleOrArray<string | StateNode<TContext>> | undefined
+): Array<string | StateNode<TContext>> | undefined {
+  if (target === undefined || target === TARGETLESS_KEY) {
+    return undefined;
+  }
+  return toArray(target);
 }
