@@ -1139,11 +1139,7 @@ class StateNode<
   ): State<TContext, TEvent, TStateSchema, TState> {
     const currentActions = state.actions;
 
-    state = this.transition(
-      state,
-      _event as SCXML.Event<TEvent>,
-      state.context
-    );
+    state = this.transition(state, _event as SCXML.Event<TEvent>);
     // Save original event to state
     state._event = originalEvent;
     state.event = originalEvent.data;

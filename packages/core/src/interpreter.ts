@@ -200,7 +200,9 @@ export class Interpreter<
       warn(
         this.initialized,
         // tslint:disable-next-line:max-line-length
-        `Attempted to read initial state from uninitialized service '${this.id}'. Make sure the service is started first.`
+        `Attempted to read initial state from uninitialized service '${
+          this.id
+        }'. Make sure the service is started first.`
       );
     }
 
@@ -213,7 +215,9 @@ export class Interpreter<
     if (!IS_PRODUCTION) {
       warn(
         this.initialized,
-        `Attempted to read state from uninitialized service '${this.id}'. Make sure the service is started first.`
+        `Attempted to read state from uninitialized service '${
+          this.id
+        }'. Make sure the service is started first.`
       );
     }
 
@@ -532,7 +536,9 @@ export class Interpreter<
     } else if (!this.initialized) {
       throw new Error(
         // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${
+          this.machine.id
+        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
 
@@ -587,7 +593,9 @@ export class Interpreter<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `Service '${this.id}' has no parent: unable to send event ${event.type}`
+          `Service '${this.id}' has no parent: unable to send event ${
+            event.type
+          }`
         );
       }
       return;
@@ -626,7 +634,7 @@ export class Interpreter<
     }
 
     const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.state, _event, this.state.context);
+      return this.machine.transition(this.state, _event);
     });
 
     return nextState;
@@ -637,7 +645,9 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event}' from interpreter '${
+            this.id
+          }' to nonexistant child '${id}'.`
         );
       }
 
@@ -723,7 +733,9 @@ export class Interpreter<
             warn(
               !('forward' in activity),
               // tslint:disable-next-line:max-line-length
-              `\`forward\` property is deprecated (found in invocation of '${activity.src}' in in machine '${this.machine.id}'). ` +
+              `\`forward\` property is deprecated (found in invocation of '${
+                activity.src
+              }' in in machine '${this.machine.id}'). ` +
                 `Please use \`autoForward\` instead.`
             );
           }
@@ -738,7 +750,9 @@ export class Interpreter<
             if (!IS_PRODUCTION) {
               warn(
                 false,
-                `No service found for invocation '${activity.src}' in machine '${this.machine.id}'.`
+                `No service found for invocation '${
+                  activity.src
+                }' in machine '${this.machine.id}'.`
               );
             }
             return;
