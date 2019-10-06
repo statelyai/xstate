@@ -265,6 +265,58 @@ nextState.actions;
 // => []
 ```
 
+## Respond Action <Badge text="4.7+" />
+
+The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
+
+This uses [SCXML events](./events.md#scxml-events) internally to get the `origin` from the event and set the `target` of the `send()` action to the `origin`.
+
+| Argument   | Type                                     | Description                             |
+| ---------- | ---------------------------------------- | --------------------------------------- |
+| `event`    | string, event object, or send expression | The event to send back to the sender    |
+| `options?` | send options object                      | Options to pass into the `send()` event |
+
+**Example:**
+
+This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
+
+```js
+const authServerMachine = Machine({
+  initial: 'waitingForCode',
+  states: {
+    waitingForCode: {
+      on: {
+        CODE: {
+          actions: respond('TOKEN', { delay: 10 })
+        }
+      }
+    }
+  }
+});
+
+const authClientMachine = Machine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { AUTH: 'authorizing' }
+    },
+    authorizing: {
+      invoke: {
+        id: 'auth-server',
+        src: authServerMachine
+      },
+      entry: send('CODE', { to: 'auth-server' }),
+      on: {
+        TOKEN: 'authorized'
+      }
+    },
+    authorized: {
+      type: 'final'
+    }
+  }
+});
+```
+
 ## Log Action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
