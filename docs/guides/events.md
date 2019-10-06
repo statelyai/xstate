@@ -135,3 +135,39 @@ console.log(personMachine.initialState.value);
 ```
 
 <iframe src="https://xstate.js.org/viz/?gist=2f9f2f4bd5dcd5ff262c7f2a7e9199aa&embed=1"></iframe>
+
+## SCXML
+
+Events in SCXML contain information relevant to the source of the event, and have a different schema than event objects in XState. Internally, event objects are converted to SCXML events for compatibility.
+
+SCXML events include:
+
+- `name` - a character string giving the name of the event. This is equivalent to the `.type` property of an XState event.
+- `type` - the event type: `'platform'`, `'external'`, or `'internal'`.
+  - `platform` events are raised by the platform itself, such as error events.
+  - `internal` events are raised by `raise(...)` actions or by `send(...)` actions with `target: '_internal'`.
+  - `external` events describe all other events.
+- `sendid` - the send ID of the triggering `send(...)` action.
+- `origin` - a string that allows the receiver of this event to `send(...)` a response event back to the origin.
+- `origintype` - used with `origin`
+- `invokeid` - the invoke ID of the invocation that triggered the child service.
+- `data` - any data that the sending entity chose to include with this event. This is equivalent to an XState event object.
+
+The SCXML event form of all XState events is present in the `_event` property of action and guard meta objects (third argument):
+
+```js {3,4,8,9}
+// ...
+{
+  actions: {
+    someAction: (context, event, { _event }) => {
+      console.log(_event); // SCXML event
+    };
+  },
+  guards: {
+    someGuard: (context, event, { _event }) => {
+      console.log(_event); // SCXML event
+    }
+  }
+}
+// ..
+```
