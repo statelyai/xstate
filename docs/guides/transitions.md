@@ -381,6 +381,57 @@ const settingsMachine = Machine({
 });
 ```
 
+## Wildcard Descriptors
+
+A transition that is specified with a wildcard event descriptor (`"*"`) is activated by _any event_. This means that any event will match the transition that has `on: { "*": ... }`, and if the guards pass, that transition will be taken.
+
+Explicit event descriptors will always be chosen over wildcard event descriptors, unless the transitions are specified in an array. In that case, the order of the transitions determines which transition gets chosen.
+
+```js {3,8}
+// For SOME_EVENT, the explicit transition to "here" will be taken
+on: {
+  "*": "elsewhere",
+  "SOME_EVENT": "here"
+}
+
+// For SOME_EVENT, the wildcard transition to "elsewhere" will be taken
+on: [
+  { event: "*", target: "elsewhere" },
+  { event: "SOME_EVENT", target: "here" },
+]
+```
+
+::: tip
+
+Wildcard descriptors do _not_ behave the same way as [transient transitions](#transient-transitions) (with null event descriptors). Whereas transient transitions will be taken immediately whenever the state is active, wildcard transitions still need some event to be sent to its state to be triggered.
+
+:::
+
+**Example:**
+
+```js {7,8}
+const quietMachine = Machine({
+  id: 'quiet',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        WHISPER: undefined,
+        // On any event besides a WHISPER, transition to the 'disturbed' state
+        '*': 'disturbed'
+      }
+    },
+    disturbed: {}
+  }
+});
+
+quietMachine.transition(quietMachine.initialState, 'WHISPER');
+// => State { value: 'idle' }
+
+quietMachine.transition(quietMachine.initialState, 'SOME_EVENT');
+// => State { value: 'disturbed' }
+```
+
 ## SCXML
 
 The event-target mappings defined on the `on: { ... }` property of state nodes is synonymous to the SCXML `<transition>` element:
