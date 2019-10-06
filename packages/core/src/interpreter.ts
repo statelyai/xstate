@@ -626,7 +626,7 @@ export class Interpreter<
     }
 
     const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.state, _event, this.state.context);
+      return this.machine.transition(this.state, _event);
     });
 
     return nextState;
