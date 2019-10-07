@@ -96,11 +96,16 @@ Each action object has two properties (and others, that you can specify):
 
 The `exec` function takes three arguments:
 
-- `context` - the current machine context
-- `event` - the event that caused the transition
-- `actionMeta` <Badge text="4.4+"/> - an object containing meta data about the action, including:
-  - `action` - the original action object
-  - `state` - the resolved machine state, after transition
+| Argument     | Type         | Description                                                 |
+| ------------ | ------------ | ----------------------------------------------------------- |
+| `context`    | TContext     | The current machine context                                 |
+| `event`      | event object | The event that caused the transition                        |
+| `actionMeta` | meta object  | An object containing meta data about the action (see below) |
+
+The `actionMeta` object includes the following properties:
+
+- `action` - the original action object
+- `state` - the resolved machine state, after transition
 
 The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. This behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
 
@@ -115,6 +120,17 @@ When interpreting statecharts, the order of actions should not necessarily matte
 ## Send Action
 
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+
+| Argument   | Type                                       | Description                                                   |
+| ---------- | ------------------------------------------ | ------------------------------------------------------------- |
+| `event`    | string or event object or event expression | The event to send to the specified `options.target` (or self) |
+| `options?` | send options (see below)                   | Options for sending the event.                                |
+
+The send `options` argument is an object containing:
+
+- `id?` - the send ID (used for cancellation).
+- `to?` - the target of the event (defaults to self).
+- `delay?` - the timeout (milliseconds) before sending the event, if it is not canceled before the timeout.
 
 ::: warning
 The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
@@ -231,6 +247,10 @@ entry: assign({
 ## Raise Action
 
 The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
+
+| Argument | Type                   | Description         |
+| -------- | ---------------------- | ------------------- |
+| `event`  | string or event object | The event to raise. |
 
 ```js
 import { Machine, actions } from 'xstate';
