@@ -12,7 +12,7 @@ yarn add xstate@latest --save
 
 ## CDN
 
-You can include XState directly from the [unpkg CDN](https://unpkg.com/xstate@4/dist):
+You can include XState directly from the [unpkg CDN](https://unpkg.com/xstate@4/dist/):
 
 - XState core: [https://unpkg.com/xstate@4/dist/xstate.js](https://unpkg.com/xstate@4/dist/xstate.js)
 - XState web: [https://unpkg.com/xstate@4/dist/xstate.web.js](https://unpkg.com/xstate@4/dist/xstate.web.js)
