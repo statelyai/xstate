@@ -114,14 +114,14 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 
   const elements: XMLElement[] = [];
 
-  const { onEntry, onExit } = stateNode;
+  const { entry, exit } = stateNode;
 
-  if (onEntry.length) {
-    elements.push(actionsToSCXML('onentry', onEntry));
+  if (entry.length) {
+    elements.push(actionsToSCXML('onentry', entry));
   }
 
-  if (onExit.length) {
-    elements.push(actionsToSCXML('onexit', onExit));
+  if (exit.length) {
+    elements.push(actionsToSCXML('onexit', exit));
   }
 
   const transitionElements = flatten(
