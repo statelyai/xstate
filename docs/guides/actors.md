@@ -119,7 +119,7 @@ const someActorRef = spawn(someMachine);
 
 Different types of values can be spawned as actors.
 
-## Sending events to actors
+## Sending Events to Actors
 
 With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
@@ -361,7 +361,7 @@ someService.onTransition(state => {
 By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
 :::
 
-## Sending Updates
+## Sending Updates <Badge text="4.7+" />
 
 For actors that are not synchronized with the parent, the actor can send an explicit event to its parent machine via `sendUpdate()`:
 

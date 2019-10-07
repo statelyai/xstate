@@ -317,6 +317,46 @@ const authClientMachine = Machine({
 });
 ```
 
+See [📖 Sending Responses](./actors.md#sending-responses) for more details.
+
+## Forward To Action <Badge text="4.7+">
+
+The `forwardTo()` action creator creates a [`send()` action](#send-action) that forwards the most recent event to the specified service via its ID.
+
+| Argument | Type                                    | Description                                          |
+| -------- | --------------------------------------- | ---------------------------------------------------- |
+| `target` | string or function that returns service | The target service to send the most recent event to. |
+
+**Example:**
+
+```js
+import { Machine, forwardTo, interpret } from 'xstate';
+
+function alertService(_, receive) {
+  receive(event => {
+    if (event.type === 'ALERT') {
+      alert(event.message);
+    }
+  });
+}
+
+const parentMachine = Machine({
+  id: 'parent',
+  invoke: {
+    id: 'alerter',
+    src: () => alertService
+  },
+  on: {
+    ALERT: { actions: forwardTo('alerter') }
+  }
+});
+
+const parentService = interpret(parentMachine).start();
+
+parentService.send('ALERT', { message: 'hello world' });
+// => alerts "hello world"
+```
+
 ## Log Action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
