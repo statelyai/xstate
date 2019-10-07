@@ -130,6 +130,30 @@ console.log(closedState.value);
 // => 'closed'
 ```
 
+## Event Descriptors
+
+An event descriptor is a string describing the event type that the transition will match. Often, this is equivalent to the `event.type` property on the `event` object sent to the machine:
+
+```js
+// ...
+{
+  on: {
+    // "CLICK" is the event descriptor.
+    // This transition matches events with { type: 'CLICK' }
+    CLICK: 'someState',
+    // "SUBMIT" is the event descriptor.
+    // This transition matches events with { type: 'SUBMIT' }
+    SUBMIT: 'anotherState'
+  }
+}
+// ...
+```
+
+Other event descriptors include:
+
+- [Null event descriptors](#transient-transitions) (`""`), which match no events (i.e., "null" events) and represent transitions taken immediately after the state is entered
+- [Wildcard event descriptors](#wildcard-descriptors) (`"*"`), which match any event if the event is not matched explicitly by any other transition in the state
+
 ## Self Transitions
 
 A self-transition is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
