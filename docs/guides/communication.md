@@ -157,7 +157,7 @@ If the `onError` transition is missing and the Promise is rejected, the error wi
 
 :::
 
-## Invoking Callbacks <Badge text="4.2"/>
+## Invoking Callbacks
 
 Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
 
@@ -230,7 +230,7 @@ interpret(pingPongMachine)
 
 [Observables](https://github.com/tc39/proposal-observable) are streams of values emitted over time. Think of them as an array/collection whose values are emitted asynchronously, instead of all at once. There are many implementations of observables in JavaScript; the most popular one is [RxJS](https://github.com/ReactiveX/rxjs).
 
-Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events.  The observable is unsubscribed when the state where it is invoked is exited.
+Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes `context` and `event` as arguments and returns an observable stream of events. The observable is unsubscribed when the state where it is invoked is exited.
 
 ```js
 import { Machine, interpret } from 'xstate';
@@ -659,6 +659,30 @@ describe('userMachine', () => {
   });
 });
 ```
+
+## Referencing Services <Badge text="4.7+" />
+
+Services (and [actors](./actors.md), which are spawned services) can be referenced directly on the [state object](./states.md) from the `.children` property. The `state.children` object is a mapping of service IDs (keys) to those service instances (values):
+
+```js
+const machine = Machine({
+  // ...
+  invoke: [
+    { id: 'notifier', src: createNotifier },
+    { id: 'logger', src: createLogger }
+  ]
+  // ...
+});
+
+const service = invoke(machine)
+  .onTransition(state => {
+    state.children.notifier; // service from createNotifier()
+    state.children.logger; // service from createLogger()
+  })
+  .start();
+```
+
+When JSON serialized, the `state.children` object is a mapping of service IDs (keys) to objects containing meta data about that service.
 
 ## Quick Reference
 

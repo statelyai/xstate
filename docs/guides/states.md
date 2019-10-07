@@ -123,6 +123,30 @@ console.log(state.toStrings());
 
 This is useful for representing the current state in string-based environments, such as in CSS classes or data-attributes.
 
+### `state.children`
+
+This is an object mapping spawned service/actor IDs to their instances. See [📖 Referencing Services](./communication.md#referencing-services) for more details.
+
+**Example:**
+
+```js
+const machine = Machine({
+  // ...
+  invoke: [
+    { id: 'notifier', src: createNotifier },
+    { id: 'logger', src: createLogger }
+  ]
+  // ...
+});
+
+const service = invoke(machine)
+  .onTransition(state => {
+    state.children.notifier; // service from createNotifier()
+    state.children.logger; // service from createLogger()
+  })
+  .start();
+```
+
 ## Persisting State
 
 As mentioned, a `State` object can be persisted by serializing it to a string JSON format:

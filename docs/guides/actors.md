@@ -41,7 +41,7 @@ All the existing invoked service patterns fit this interface:
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
 
-## Spawning actors
+## Spawning Actors
 
 Just as in Actor-model-based languages like [Akka](https://doc.akka.io/docs/akka/current/guide/introduction.html) or [Erlang](http://www.erlang.org/docs), actors are spawned and referenced in `context` (as the result of an `assign(...)` action).
 
