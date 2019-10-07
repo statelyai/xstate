@@ -68,7 +68,7 @@ nextState.context;
 // => { count: 1 }
 ```
 
-## Initial context
+## Initial Context
 
 The initial context is specified on the `context` property of the `Machine`:
 
@@ -122,8 +122,6 @@ const someContext = { count: 42, time: Date.now() };
 const dynamicCounterMachine = counterMachine.withContext(someContext);
 ```
 
-## Initial Context
-
 The initial context of a machine can be retrieved from its initial state:
 
 ```js
@@ -133,9 +131,13 @@ dynamicCounterMachine.initialState.context;
 
 This is preferred to accessing `machine.context` directly, since the initial state is computed with initial `assign(...)` actions and transient transitions, if any.
 
-## Assigning To Context With `assign`
+## Assign Action
 
 The `assign()` action is used to update the machine's `context`. It takes the context "assigner", which represents how values in the current context should be assigned.
+
+| Argument   | Type               | Description                                                                                |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `assigner` | object or function | The object assigner or function assigner which assigns values to the `context` (see below) |
 
 The "assigner" can be an object (recommended):
 
@@ -171,19 +173,24 @@ Or it can be a function that returns the updated state:
 // ...
 ```
 
-Both the property assigner and context assigner function signatures above are given 3 arguments:
+Both the property assigner and context assigner function signatures above are given 3 arguments: the `context`, `event`, and `meta`:
 
-- `context` (TContext): the current context (extended state) of the machine
-- `event` (EventObject): the event that caused the `assign` action
-- `meta` <Badge text="4.7+" /> (AssignMeta): an object with meta data containing:
-  - `state` - the current state in a normal transition (`undefined` for the initial state transition)
-  - `action` - the assign action
+| Argument                     | Type        | Description                                         |
+| ---------------------------- | ----------- | --------------------------------------------------- |
+| `context`                    | TContext    | The current context (extended state) of the machine |
+| `event`                      | EventObject | The event that triggered the `assign` action        |
+| `meta` <Badge text="4.7+" /> | AssignMeta  | an object with meta data (see below)                |
+
+The `meta` object contains:
+
+- `state` - the current state in a normal transition (`undefined` for the initial state transition)
+- `action` - the assign action|
 
 ::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
 :::
 
-## Action order
+## Action Order
 
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
 
