@@ -361,10 +361,12 @@ parentService.send('ALERT', { message: 'hello world' });
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
 
-- `expr` (optional) - a function that takes the `context` and `event` as arguments and returns a value to be logged
-- `label` (optional) - a string to label the logged message
+| Argument | Type               | Description                                                                                                     |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `expr?`  | string or function | A plain string or a function that takes the `context` and `event` as arguments and returns a value to be logged |
+| `label?` | string             | A string to label the logged message                                                                            |
 
-```js {13-16,27-33}
+```js {9,14-17,28-34}
 import { Machine, actions } from 'xstate';
 const { log } = actions;
 
@@ -374,6 +376,7 @@ const loggingMachine = Machine({
   initial: 'start',
   states: {
     start: {
+      entry: log('started!'),
       on: {
         FINISH: {
           target: 'end',
