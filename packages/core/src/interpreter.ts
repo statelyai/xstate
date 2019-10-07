@@ -42,7 +42,8 @@ import {
   uniqueId,
   isMachine,
   toEventObject,
-  toSCXMLEvent
+  toSCXMLEvent,
+  reportUnhandledExceptionOnInvocation
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -904,7 +905,7 @@ export class Interpreter<
             // Send "error.platform.id" to this (parent).
             this.send(errorEvent as any);
           } catch (error) {
-            this.reportUnhandledExceptionOnInvocation(errorData, error, id);
+            reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
             }
@@ -1082,32 +1083,7 @@ export class Interpreter<
       }
     });
   }
-  private reportUnhandledExceptionOnInvocation(
-    originalError: any,
-    currentError: any,
-    id: string
-  ) {
-    if (!IS_PRODUCTION) {
-      const originalStackTrace = originalError.stack
-        ? ` Stacktrace was '${originalError.stack}'`
-        : '';
-      if (originalError === currentError) {
-        // tslint:disable-next-line:no-console
-        console.error(
-          `Missing onError handler for invocation '${id}', error was '${originalError}'.${originalStackTrace}`
-        );
-      } else {
-        const stackTrace = currentError.stack
-          ? ` Stacktrace was '${currentError.stack}'`
-          : '';
-        // tslint:disable-next-line:no-console
-        console.error(
-          `Missing onError handler and/or unhandled exception/promise rejection for invocation '${id}'. ` +
-            `Original error: '${originalError}'. ${originalStackTrace} Current error is '${currentError}'.${stackTrace}`
-        );
-      }
-    }
-  }
+
   private attachDev() {
     if (
       this.options.devTools &&
