@@ -705,7 +705,7 @@ const machine = Machine({
         },
         id: 'some-id',
         // (optional) forward machine events to invoked service
-        forward: true,
+        autoForward: true,
         // (optional) the transition when the invoked promise/observable/machine is done
         onDone: { target: /* ... */ },
         // (optional) the transition when an error from the invoked service occurs
@@ -823,7 +823,7 @@ The `invoke` property is synonymous to the SCXML `<invoke>` element:
     invoke: {
       src: 'someSource',
       id: 'someID',
-      forward: true,
+      autoForward: true,
       onDone: 'success',
       onError: 'failure'
     }
