@@ -21,8 +21,10 @@
   "types": "dist/index.d.ts",
   "sideEffects": false,
   "files": [
-    "dist",
-    "lib"
+    "dist/**/*.js",
+    "dist/**/*.d.ts",
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
