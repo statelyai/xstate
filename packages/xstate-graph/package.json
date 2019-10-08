@@ -16,7 +16,8 @@
   "main": "lib/index.js",
   "sideEffects": false,
   "files": [
-    "lib"
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
   ],
   "repository": {
     "type": "git",

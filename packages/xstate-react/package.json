@@ -22,7 +22,8 @@
     "test": "test"
   },
   "files": [
-    "lib"
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
   ],
   "repository": {
     "type": "git",

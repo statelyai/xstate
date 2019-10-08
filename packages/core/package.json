@@ -8,8 +8,10 @@
   "sideEffects": false,
   "files": [
     "dist",
-    "lib",
-    "es"
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "keywords": [
     "statechart",
