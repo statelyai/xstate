@@ -47,13 +47,13 @@ export default class BrowserExtensionsManager {
       this.reduxDevtoolsObject.send(event, state);
     }
     if (this.xstateDevtoolsObject) {
-      this.xstateDevtoolsObject.send(state);
+      this.xstateDevtoolsObject.send({ state, event });
     }
   }
 
   disconnect() {
     if (this.xstateDevtoolsObject) {
-      this.xstateDevtoolsObject.disconnect()
+      this.xstateDevtoolsObject.disconnect();
     }
   }
 }
