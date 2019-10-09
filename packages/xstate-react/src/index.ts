@@ -98,7 +98,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
   }
 
   // Keep track of the current machine state
-  const [current, setCurrent] = useState(service.initialState);
+  const [current, setCurrent] = useState(() => service.initialState);
 
   useEffect(() => {
     // Start the service when the component mounts.
