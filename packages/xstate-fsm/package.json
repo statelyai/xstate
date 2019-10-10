@@ -19,6 +19,7 @@
   "license": "MIT",
   "main": "dist/xstate.fsm.js",
   "types": "dist/index.d.ts",
+  "module": "es/index.js",
   "sideEffects": false,
   "files": [
     "dist/**/*.js",
