@@ -1110,7 +1110,7 @@ export class Interpreter<
           skip: false,
           ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
         }
-      });
+      }, this.machine);
       this.devTools.init(this.state);
     }
   }
