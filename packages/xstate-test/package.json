@@ -17,6 +17,9 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "browser": {
+    "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
+  },
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
