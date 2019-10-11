@@ -30,7 +30,7 @@
     "preversion": "npm run test",
     "version": "npm run build",
     "postversion": "git push --follow-tags",
-    "prepublishOnly": "npm run build && npm run build:npm",
+    "prepublishOnly": "npm run build",
     "publish:next": "npm version prerelease && npm publish --tag next"
   },
   "repository": {
