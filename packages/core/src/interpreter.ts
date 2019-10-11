@@ -1094,23 +1094,26 @@ export class Interpreter<
         typeof this.options.devTools === 'object'
           ? this.options.devTools
           : undefined;
-      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect({
-        name: this.id,
-        autoPause: true,
-        stateSanitizer: (state: State<any, any>): object => {
-          return {
-            value: state.value,
-            context: state.context,
-            actions: state.actions
-          };
+      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
+        {
+          name: this.id,
+          autoPause: true,
+          stateSanitizer: (state: State<any, any>): object => {
+            return {
+              value: state.value,
+              context: state.context,
+              actions: state.actions
+            };
+          },
+          ...devToolsOptions,
+          features: {
+            jump: false,
+            skip: false,
+            ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
+          }
         },
-        ...devToolsOptions,
-        features: {
-          jump: false,
-          skip: false,
-          ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
-        }
-      });
+        this.machine
+      );
       this.devTools.init(this.state);
     }
   }
