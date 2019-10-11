@@ -323,6 +323,12 @@ Just like transitions, transient transitions can be specified as a single transi
 
 Null events are always "sent" for every transition, internal or external.
 
+::: warning
+
+Transient transitions will be run for every event while the statechart is in the state on which they are defined, so it is important that they use a `target` value instead of simply raising events to avoid creating infinite event loops.
+
+:::
+
 ## Forbidden Transitions
 
 In XState, a "forbidden" transition is one that specifies that no state transition should occur with the specified event. That is, nothing should happen on a forbidden transition, and the event should not be handled by parent state nodes.
