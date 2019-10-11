@@ -1,7 +1,7 @@
 import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import { StatePathsMap } from '@xstate/graph/lib/types';
-import chalk from 'chalk';
+import slimChalk from './slimChalk';
 import {
   TestModelCoverage,
   TestModelOptions,
@@ -211,17 +211,18 @@ export class TestModel<TTestContext, TContext> {
 
                     const stateResult = `\tState: ${
                       hasFailed
-                        ? chalk.gray(stateString)
+                        ? slimChalk('gray', stateString)
                         : s.state.error
-                        ? ((hasFailed = true), chalk.redBright(stateString))
-                        : chalk.greenBright(stateString)
+                        ? ((hasFailed = true),
+                          slimChalk('redBright', stateString))
+                        : slimChalk('greenBright', stateString)
                     }`;
                     const eventResult = `\tEvent: ${
                       hasFailed
-                        ? chalk.gray(eventString)
+                        ? slimChalk('gray', eventString)
                         : s.event.error
-                        ? ((hasFailed = true), chalk.red(eventString))
-                        : chalk.green(eventString)
+                        ? ((hasFailed = true), slimChalk('red', eventString))
+                        : slimChalk('green', eventString)
                     }`;
 
                     return [stateResult, eventResult].join('\n');
@@ -229,10 +230,10 @@ export class TestModel<TTestContext, TContext> {
                   .concat(
                     `\tState: ${
                       hasFailed
-                        ? chalk.gray(targetStateString)
+                        ? slimChalk('gray', targetStateString)
                         : testPathResult.state.error
-                        ? chalk.red(targetStateString)
-                        : chalk.green(targetStateString)
+                        ? slimChalk('red', targetStateString)
+                        : slimChalk('green', targetStateString)
                     }`
                   )
                   .join('\n\n');
