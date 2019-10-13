@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays` and `updates` (NOTE: `context` option is not implemented yet, use `withContext` or `withConfig` instead for the meantime).
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate` and `updates` (NOTE: `context` option is not implemented yet, use `withContext` or `withConfig` instead for the meantime).
 
 **Returns** a tuple of `[current, send, service]`:
 
@@ -69,6 +69,19 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
+
+### `useActor(actor)` <Badge text="0.8+"/>
+
+A [React hook](https://reactjs.org/hooks) that subscribes to messages (events) from actors, and can send messages (events) to actors.
+
+**Arguments**
+
+- `actor` - An actor-like object, which has `.subscribe(listener)` and `.send(event)` methods.
+
+**Returns** a tuple of `[current, send]`:
+
+- `current` - Represents the current message sent from the actor.
+- `send` - A function that sends events to the actor.
 
 ## Configuring Machines <Badge text="0.7+"/>
 
@@ -187,3 +200,7 @@ const Loader = () => {
   );
 };
 ```
+
+## Resources
+
+[State Machines in React](https://gedd.ski/post/state-machines-in-react/)

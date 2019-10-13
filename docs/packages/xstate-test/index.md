@@ -117,12 +117,18 @@ describe('toggle', () => {
 
 Creates an abstract testing model based on the `machine` passed in.
 
-**Arguments**
-
 | Argument   | Type             | Description                                    |
 | ---------- | ---------------- | ---------------------------------------------- |
 | `machine`  | StateMachine     | The machine used to create the abstract model. |
 | `options?` | TestModelOptions | Options to customize the abstract model        |
+
+**Options**
+
+- `events` ()
+
+**Returns**
+
+A `TestModel` instance.
 
 **Methods**
 
