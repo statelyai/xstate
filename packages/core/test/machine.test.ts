@@ -166,6 +166,35 @@ describe('machine', () => {
     });
   });
 
+  describe('machine function context', () => {
+    const testMachineConfig = {
+      initial: 'active',
+      context: () => ({
+        foo: { bar: 'baz' }
+      }),
+      states: {
+        active: {}
+      }
+    };
+
+    it('context from a function should be lazily evaluated', () => {
+      const testMachine1 = Machine(testMachineConfig);
+      const testMachine2 = Machine(testMachineConfig);
+
+      expect(testMachine1.initialState.context).not.toBe(
+        testMachine2.initialState.context
+      );
+
+      expect(testMachine1.initialState.context).toEqual({
+        foo: { bar: 'baz' }
+      });
+
+      expect(testMachine2.initialState.context).toEqual({
+        foo: { bar: 'baz' }
+      });
+    });
+  });
+
   describe('machine.resolveState()', () => {
     const resolveMachine = Machine({
       id: 'resolve',

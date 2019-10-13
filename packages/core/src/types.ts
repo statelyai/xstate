@@ -414,8 +414,10 @@ export interface StateNodeConfig<
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
    * The initial context (extended state) of the machine.
+   *
+   * Can be an object or a function that returns an object.
    */
-  context?: TContext;
+  context?: TContext | (() => TContext);
   /**
    * Indicates whether the state node is a history state node, and what
    * type of history:
@@ -591,7 +593,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext;
+  context?: TContext | (() => TContext);
   /**
    * The machine's own version.
    */
