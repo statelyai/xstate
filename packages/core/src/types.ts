@@ -384,10 +384,6 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
     }
   | StateMachine<any, any, any>;
 
-export type InvokesConfig<TContext, TEvent extends EventObject> = SingleOrArray<
-  InvokeConfig<TContext, TEvent>
->;
-
 export interface StateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
@@ -433,7 +429,7 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: InvokesConfig<TContext, TEvent>;
+  invoke?: SingleOrArray<InvokeConfig<TContext, TEvent>>;
   /**
    * The mapping of event types to their potential transition(s).
    */

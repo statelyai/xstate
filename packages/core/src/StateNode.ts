@@ -152,7 +152,7 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = Typestate<TContext>
+  TState extends Typestate<TContext> = any
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.

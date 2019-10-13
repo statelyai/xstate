@@ -36,11 +36,11 @@ export function Machine<
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext: TContext | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
-  return new StateNode<TContext, TStateSchema, TEvent>(
+  return new StateNode<TContext, TStateSchema, TEvent, any>(
     config,
     options,
     initialContext
-  ) as StateMachine<TContext, TStateSchema, TEvent>;
+  ) as StateMachine<TContext, TStateSchema, TEvent, any>;
 }
 
 export function createMachine<
