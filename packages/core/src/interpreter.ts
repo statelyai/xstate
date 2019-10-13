@@ -865,7 +865,7 @@ export class Interpreter<
 
     childService
       .onDone(doneEvent => {
-        this.send(doneEvent as any);
+        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
       })
       .start();
 
@@ -895,7 +895,9 @@ export class Interpreter<
     promise.then(
       response => {
         if (!canceled) {
-          this.send(doneInvoke(id, response) as any);
+          this.send(
+            toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
+          );
         }
       },
       errorData => {
@@ -903,7 +905,7 @@ export class Interpreter<
           const errorEvent = error(id, errorData);
           try {
             // Send "error.platform.id" to this (parent).
-            this.send(errorEvent as any);
+            this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
           } catch (error) {
             reportUnhandledExceptionOnInvocation(errorData, error, id);
             if (this.devTools) {
@@ -1023,13 +1025,13 @@ export class Interpreter<
   ): Actor {
     const subscription = source.subscribe(
       value => {
-        this.send(value);
+        this.send(toSCXMLEvent(value, { origin: id }));
       },
       err => {
-        this.send(error(id, err) as any);
+        this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {
-        this.send(doneInvoke(id) as any);
+        this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
       }
     );
 
@@ -1056,10 +1058,10 @@ export class Interpreter<
         : undefined;
 
     if (!implementation) {
-      // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
         warn(false, `No implementation found for activity '${activity.type}'`);
       }
+      // tslint:disable-next-line:no-console
       return;
     }
 
