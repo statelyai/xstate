@@ -103,6 +103,12 @@ const withServiceScope = (() => {
   };
 })();
 
+enum InterpreterStatus {
+  NotStarted,
+  Running,
+  Stopped
+}
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -152,6 +158,7 @@ export class Interpreter<
    * Whether the service is started.
    */
   public initialized = false;
+  private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
   public parent?: Interpreter<any>;
@@ -198,10 +205,8 @@ export class Interpreter<
   public get state(): State<TContext, TEvent> {
     if (!IS_PRODUCTION) {
       warn(
-        this.initialized,
-        `Attempted to read state from uninitialized service '${
-          this.id
-        }'. Make sure the service is started first.`
+        this._status !== InterpreterStatus.NotStarted,
+        `Attempted to read state from uninitialized service '${this.id}'. Make sure the service is started first.`
       );
     }
 
@@ -385,12 +390,13 @@ export class Interpreter<
   public start(
     initialState?: State<TContext, TEvent> | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent> {
-    if (this.initialized) {
+    if (this._status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
     }
 
     this.initialized = true;
+    this._status = InterpreterStatus.Running;
 
     const resolvedState = withServiceScope(this, () => {
       return initialState === undefined
@@ -445,6 +451,7 @@ export class Interpreter<
 
     this.scheduler.clear();
     this.initialized = false;
+    this._status = InterpreterStatus.Stopped;
 
     return this;
   }
@@ -461,6 +468,11 @@ export class Interpreter<
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
   ): State<TContext, TEvent> => {
+    if (this._status === InterpreterStatus.Stopped) {
+      // do nothing
+      return this.state;
+    }
+
     if (isArray(event)) {
       this.batch(event);
       return this.state;
@@ -468,7 +480,10 @@ export class Interpreter<
 
     const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
 
-    if (!this.initialized && this.options.deferEvents) {
+    if (
+      this._status === InterpreterStatus.NotStarted &&
+      this.options.deferEvents
+    ) {
       // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
         warn(
@@ -480,7 +495,7 @@ export class Interpreter<
           )}`
         );
       }
-    } else if (!this.initialized) {
+    } else if (this._status !== InterpreterStatus.Running) {
       throw new Error(
         `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
@@ -505,7 +520,10 @@ export class Interpreter<
   };
 
   private batch(events: Array<TEvent | TEvent['type']>): void {
-    if (!this.initialized && this.options.deferEvents) {
+    if (
+      this._status === InterpreterStatus.NotStarted &&
+      this.options.deferEvents
+    ) {
       // tslint:disable-next-line:no-console
       if (!IS_PRODUCTION) {
         warn(
@@ -517,12 +535,10 @@ export class Interpreter<
           )}`
         );
       }
-    } else if (!this.initialized) {
+    } else if (this._status !== InterpreterStatus.Running) {
       throw new Error(
         // tslint:disable-next-line:max-line-length
-        `${events.length} event(s) were sent to uninitialized service "${
-          this.machine.id
-        }". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
+        `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
       );
     }
 
@@ -577,9 +593,7 @@ export class Interpreter<
       if (!IS_PRODUCTION) {
         warn(
           false,
-          `Service '${this.id}' has no parent: unable to send event ${
-            event.type
-          }`
+          `Service '${this.id}' has no parent: unable to send event ${event.type}`
         );
       }
       return;
@@ -629,9 +643,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event}' from interpreter '${
-            this.id
-          }' to nonexistant child '${id}'.`
+          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -717,9 +729,7 @@ export class Interpreter<
             warn(
               !('forward' in activity),
               // tslint:disable-next-line:max-line-length
-              `\`forward\` property is deprecated (found in invocation of '${
-                activity.src
-              }' in in machine '${this.machine.id}'). ` +
+              `\`forward\` property is deprecated (found in invocation of '${activity.src}' in in machine '${this.machine.id}'). ` +
                 `Please use \`autoForward\` instead.`
             );
           }
@@ -734,9 +744,7 @@ export class Interpreter<
             if (!IS_PRODUCTION) {
               warn(
                 false,
-                `No service found for invocation '${
-                  activity.src
-                }' in machine '${this.machine.id}'.`
+                `No service found for invocation '${activity.src}' in machine '${this.machine.id}'.`
               );
             }
             return;

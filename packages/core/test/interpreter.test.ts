@@ -1183,6 +1183,37 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         done();
       }, 60);
     });
+
+    it('should not execute transitions after being stopped', done => {
+      let called = false;
+
+      const testMachine = Machine({
+        initial: 'waiting',
+        states: {
+          waiting: {
+            on: {
+              TRIGGER: 'active'
+            }
+          },
+          active: {
+            entry: () => {
+              called = true;
+            }
+          }
+        }
+      });
+
+      const service = interpret(testMachine).start();
+
+      service.stop();
+
+      service.send('TRIGGER');
+
+      setTimeout(() => {
+        expect(called).toBeFalsy();
+        done();
+      }, 10);
+    });
   });
 
   describe('off()', () => {
