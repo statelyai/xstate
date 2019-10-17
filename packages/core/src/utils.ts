@@ -30,6 +30,7 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State } from '.';
+import { Actor } from './Actor';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -522,6 +523,14 @@ export function isObservable<T>(
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
     return '__xstatenode' in value;
+  } catch (e) {
+    return false;
+  }
+}
+
+export function isActor(value: any): value is Actor {
+  try {
+    return 'send' in value && typeof value.send === 'function';
   } catch (e) {
     return false;
   }

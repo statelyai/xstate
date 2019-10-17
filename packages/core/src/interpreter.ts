@@ -48,6 +48,7 @@ import {
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
+import { guardian } from './guardian';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -163,6 +164,7 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
+  private _id: string;
   public children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
@@ -198,6 +200,8 @@ export class Interpreter<
     this.scheduler = new Scheduler({
       deferEvents: this.options.deferEvents
     });
+
+    this._id = guardian.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
@@ -580,7 +584,7 @@ export class Interpreter<
       ? this.parent
       : isActor(to)
       ? to
-      : this.children.get(to);
+      : this.children.get(to) || guardian.get(to as string);
 
     if (!target) {
       if (!isParent) {
@@ -603,7 +607,7 @@ export class Interpreter<
       // Send SCXML events to machines
       (target as Interpreter<TContext, TStateSchema, TEvent>).send({
         ...event,
-        origin: this.id
+        origin: this._id
       });
     } else {
       // Send normal events to other targets
@@ -833,6 +837,8 @@ export class Interpreter<
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity, name);
+    } else if (isActor(entity)) {
+      return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
     } else if (isMachine(entity)) {
@@ -1053,6 +1059,11 @@ export class Interpreter<
     };
 
     this.children.set(id, actor);
+
+    return actor;
+  }
+  private spawnActor<T extends Actor>(actor: T): T {
+    this.children.set(actor.id, actor);
 
     return actor;
   }

@@ -143,9 +143,7 @@ const validateArrayifiedTransitions = <TContext>(
 
   warn(
     !hasNonLastUnguardedTarget,
-    `One or more transitions for ${eventText} on state '${
-      stateNode.id
-    }' are unreachable. ` +
+    `One or more transitions for ${eventText} on state '${stateNode.id}' are unreachable. ` +
       `Make sure that the default transition is the last one defined.`
   );
 };
@@ -279,7 +277,7 @@ class StateNode<
                 : EventObject
             >
           >
-        | undefined
+        | undefined;
     },
     delayedTransitions: undefined as
       | Array<DelayedTransitionDefinition<TContext, TEvent>>
@@ -952,9 +950,7 @@ class StateNode<
 
     if (!condFn) {
       throw new Error(
-        `Guard '${guard.type}' is not implemented on machine '${
-          this.machine.id
-        }'.`
+        `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
       );
     }
 
@@ -1217,9 +1213,7 @@ class StateNode<
                 !isString(actionObject.delay) ||
                   typeof sendAction.delay === 'number',
                 // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${
-                  actionObject.delay
-                }' was found on machine '${this.machine.id}'`
+                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${this.machine.id}'`
               );
             }
 
@@ -1389,9 +1383,7 @@ class StateNode<
 
     if (!this.states) {
       throw new Error(
-        `Unable to retrieve child state '${stateKey}' from '${
-          this.id
-        }'; no child states exist.`
+        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`
       );
     }
 
@@ -1423,9 +1415,7 @@ class StateNode<
 
     if (!stateNode) {
       throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${
-          this.id
-        }'`
+        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
       );
     }
 
@@ -1876,9 +1866,7 @@ class StateNode<
           return targetStateNode;
         } catch (err) {
           throw new Error(
-            `Invalid transition definition for state node '${this.id}':\n${
-              err.message
-            }`
+            `Invalid transition definition for state node '${this.id}':\n${err.message}`
           );
         }
       } else {
@@ -1898,7 +1886,7 @@ class StateNode<
         ? transitionConfig.internal
         : normalizedTarget
         ? normalizedTarget.some(
-            target => isString(target) && target[0] === this.delimiter
+            _target => isString(_target) && _target[0] === this.delimiter
           )
         : true;
     const { guards } = this.machine.options;

@@ -5,7 +5,8 @@ import {
   sendParent,
   raise,
   doneInvoke,
-  sendUpdate
+  sendUpdate,
+  respond
 } from '../src/actions';
 import { Actor } from '../src/Actor';
 import { interval } from 'rxjs';
@@ -297,6 +298,57 @@ describe('spawning observables', () => {
     });
 
     observableService.start();
+  });
+});
+
+describe('spawning actors', () => {
+  it('should treat an interpreter as an actor', done => {
+    const existingMachine = Machine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {
+          entry: respond('EXISTING.DONE')
+        }
+      }
+    });
+
+    const existingService = interpret(existingMachine).start();
+
+    const parentMachine = Machine<any>({
+      initial: 'pending',
+      context: {
+        existingRef: undefined as any
+      },
+      states: {
+        pending: {
+          entry: assign({
+            // No need to spawn an existing service:
+            // existingRef: () => spawn(existingService)
+            existingRef: existingService
+          }),
+          on: {
+            'EXISTING.DONE': 'success'
+          },
+          after: {
+            100: {
+              actions: send('ACTIVATE', { to: ctx => ctx.existingRef })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentService = interpret(parentMachine).onDone(() => {
+      done();
+    });
+
+    parentService.start();
   });
 });
 
