@@ -723,9 +723,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     expect(logs.length).toBe(4);
     expect(logs).toEqual([
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: 'child' },
+      { event: 'PONG', origin: expect.stringMatching(/.+/) },
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: 'child' }
+      { event: 'PONG', origin: expect.stringMatching(/.+/) }
     ]);
   });
 

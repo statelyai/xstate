@@ -297,9 +297,9 @@ describe('assign meta', () => {
   });
 
   it('should provide meta._event to assigner', () => {
-    type Ctx = {
+    interface Ctx {
       eventLog: Array<{ event: string; origin: string | undefined }>;
-    };
+    }
 
     const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
       eventLog: ctx.eventLog.concat({
@@ -357,9 +357,9 @@ describe('assign meta', () => {
     expect(state.context).toEqual({
       eventLog: [
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: 'child' },
+        { event: 'PONG', origin: expect.stringMatching(/.+/) },
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: 'child' }
+        { event: 'PONG', origin: expect.stringMatching(/.+/) }
       ]
     });
   });

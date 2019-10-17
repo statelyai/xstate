@@ -24,7 +24,7 @@ describe('SCXML events', () => {
             EVENT: {
               target: 'success',
               cond: (_, __, { _event }) => {
-                return _event.origin === 'child';
+                return !!(_event.origin && _event.origin.length > 0);
               }
             }
           }
