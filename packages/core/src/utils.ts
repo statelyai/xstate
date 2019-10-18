@@ -529,11 +529,7 @@ export function isMachine(value: any): value is StateMachine<any, any, any> {
 }
 
 export function isActor(value: any): value is Actor {
-  try {
-    return 'send' in value && typeof value.send === 'function';
-  } catch (e) {
-    return false;
-  }
+  return !!value && typeof value.send === 'function';
 }
 
 export const uniqueId = (() => {

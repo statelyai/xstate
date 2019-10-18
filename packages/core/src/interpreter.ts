@@ -48,7 +48,7 @@ import {
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
-import { guardian } from './guardian';
+import { registry } from './registry';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -201,7 +201,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this._id = guardian.register(this as Actor);
+    this._id = registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
@@ -584,7 +584,7 @@ export class Interpreter<
       ? this.parent
       : isActor(to)
       ? to
-      : this.children.get(to) || guardian.get(to as string);
+      : this.children.get(to) || registry.get(to as string);
 
     if (!target) {
       if (!isParent) {

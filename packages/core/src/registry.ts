@@ -5,13 +5,13 @@ const idMap = new Map<Actor, string>();
 
 let pidIndex = 0;
 
-export interface Guardian {
+export interface Registry {
   register(actor: Actor): string;
   get(id: string): Actor | undefined;
   lookup(actor: Actor): string | undefined;
 }
 
-export const guardian: Guardian = {
+export const registry: Registry = {
   register(actor) {
     const id = `x:${pidIndex++}`;
     children.set(id, actor);
