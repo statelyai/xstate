@@ -124,6 +124,36 @@ describe('machine', () => {
     });
   });
 
+  describe('machine.config', () => {
+    it('state node config should reference original machine config', () => {
+      const machine = Machine({
+        initial: 'one',
+        states: {
+          one: {
+            initial: 'deep',
+            states: {
+              deep: {}
+            }
+          }
+        }
+      });
+
+      const oneState = machine.getStateNodeByPath(['one']);
+
+      expect(oneState.config).toBe(machine.config.states!.one);
+
+      const deepState = machine.getStateNodeByPath(['one', 'deep']);
+
+      expect(deepState.config).toBe(machine.config.states!.one.states!.deep);
+
+      deepState.config.meta = 'testing meta';
+
+      expect(machine.config.states!.one.states!.deep.meta).toEqual(
+        'testing meta'
+      );
+    });
+  });
+
   describe('machine.withConfig', () => {
     it('should override guards and actions', () => {
       const differentMachine = configMachine.withConfig({

@@ -584,6 +584,14 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, ServiceConfig<TContext>>;
   delays: DelayFunctionMap<TContext, TEvent>;
+  /**
+   * @private
+   */
+  _parent?: StateNode<TContext, any, TEvent>;
+  /**
+   * @private
+   */
+  _key?: string;
 }
 export interface MachineConfig<
   TContext,

@@ -251,11 +251,6 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
-  /**
-   * The raw config used to create the machine.
-   */
-  public config: StateNodeConfig<TContext, TStateSchema, TEvent>;
-
   public __xstatenode: true = true;
 
   private __cache = {
@@ -287,62 +282,60 @@ class StateNode<
   private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
 
   constructor(
-    _config: StateNodeConfig<TContext, TStateSchema, TEvent>,
+    /**
+     * The raw config used to create the machine.
+     */
+    public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
     options?: Partial<MachineOptions<TContext, TEvent>>,
     /**
      * The initial extended state
      */
     public context?: Readonly<TContext>
   ) {
-    const { parent, ...config } = _config;
-    this.config = config;
-    this.parent = parent;
-    this.options = {
-      ...createDefaultOptions<TContext>(),
-      ...options
-    };
-    this.key = _config.key || _config.id || '(machine)';
+    this.options = Object.assign(createDefaultOptions<TContext>(), options);
+    this.parent = this.options._parent;
+    this.key =
+      this.config.key || this.options._key || this.config.id || '(machine)';
     this.machine = this.parent ? this.parent.machine : this;
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.delimiter =
-      _config.delimiter ||
+      this.config.delimiter ||
       (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      _config.id || [this.machine.key, ...this.path].join(this.delimiter);
+      this.config.id || [this.machine.key, ...this.path].join(this.delimiter);
     this.version = this.parent
       ? this.parent.version
-      : (_config as MachineConfig<TContext, TStateSchema, TEvent>).version;
+      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).version;
     this.type =
-      _config.type ||
-      (_config.parallel
+      this.config.type ||
+      (this.config.parallel
         ? 'parallel'
-        : _config.states && keys(_config.states).length
+        : this.config.states && keys(this.config.states).length
         ? 'compound'
-        : _config.history
+        : this.config.history
         ? 'history'
         : 'atomic');
 
     if (!IS_PRODUCTION) {
       warn(
-        !('parallel' in _config),
+        !('parallel' in this.config),
         `The "parallel" property is deprecated and will be removed in version 4.1. ${
-          _config.parallel
+          this.config.parallel
             ? `Replace with \`type: 'parallel'\``
             : `Use \`type: '${this.type}'\``
         } in the config for state node '${this.id}' instead.`
       );
     }
 
-    this.initial = _config.initial;
+    this.initial = this.config.initial;
 
-    this.states = (_config.states
+    this.states = (this.config.states
       ? mapValues(
-          _config.states,
+          this.config.states,
           (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
-            const stateNode = new StateNode({
-              ...stateConfig,
-              key,
-              parent: this
+            const stateNode = new StateNode(stateConfig, {
+              _parent: this,
+              _key: key
             });
             Object.assign(this.idMap, {
               [stateNode.id]: stateNode,
@@ -356,10 +349,10 @@ class StateNode<
     // Document order
     let order = 0;
 
-    function dfs(sn: StateNode): void {
-      sn.order = order++;
+    function dfs(stateNode: StateNode): void {
+      stateNode.order = order++;
 
-      for (const child of getChildren(sn)) {
+      for (const child of getChildren(stateNode)) {
         dfs(child);
       }
     }
@@ -368,31 +361,31 @@ class StateNode<
 
     // History config
     this.history =
-      _config.history === true ? 'shallow' : _config.history || false;
+      this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this._transient = !_config.on
+    this._transient = !this.config.on
       ? false
-      : Array.isArray(_config.on)
-      ? _config.on.some(({ event }: { event: string }) => {
+      : Array.isArray(this.config.on)
+      ? this.config.on.some(({ event }: { event: string }) => {
           return event === NULL_EVENT;
         })
-      : NULL_EVENT in _config.on;
-    this.strict = !!_config.strict;
+      : NULL_EVENT in this.config.on;
+    this.strict = !!this.config.strict;
 
     // TODO: deprecate (entry)
-    this.onEntry = toArray(_config.entry || _config.onEntry).map(action =>
-      toActionObject(action)
+    this.onEntry = toArray(this.config.entry || this.config.onEntry).map(
+      action => toActionObject(action)
     );
     // TODO: deprecate (exit)
-    this.onExit = toArray(_config.exit || _config.onExit).map(action =>
+    this.onExit = toArray(this.config.exit || this.config.onExit).map(action =>
       toActionObject(action)
     );
-    this.meta = _config.meta;
+    this.meta = this.config.meta;
     this.data =
       this.type === 'final'
-        ? (_config as FinalStateNodeConfig<TContext, TEvent>).data
+        ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    this.invoke = toArray(_config.invoke).map((invokeConfig, i) => {
+    this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
       if (isMachine(invokeConfig)) {
         this.machine.options.services = {
           [invokeConfig.id]: invokeConfig,
@@ -426,7 +419,7 @@ class StateNode<
         };
       }
     });
-    this.activities = toArray(_config.activities)
+    this.activities = toArray(this.config.activities)
       .concat(this.invoke)
       .map(activity => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
