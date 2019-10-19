@@ -21,6 +21,8 @@ jobs:
       - name: Install dependencies
         run: yarn install
       - name: Build
-        run: npm run build
+        run: yarn build
       - name: Test
-        run: npm test
+        run: yarn test
+      - name: Docs
+        run: yarn docs:publish
