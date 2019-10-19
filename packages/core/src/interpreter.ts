@@ -164,7 +164,11 @@ export class Interpreter<
   // Actor
   public parent?: Interpreter<any>;
   public id: string;
-  private _id: string;
+
+  /**
+   * The globally unique process ID for this invocation.
+   */
+  public pid: string;
   public children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
@@ -201,7 +205,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this._id = registry.register(this as Actor);
+    this.pid = registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
@@ -607,7 +611,7 @@ export class Interpreter<
       // Send SCXML events to machines
       (target as Interpreter<TContext, TStateSchema, TEvent>).send({
         ...event,
-        origin: this._id
+        origin: this.pid
       });
     } else {
       // Send normal events to other targets

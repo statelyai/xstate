@@ -301,7 +301,7 @@ describe('spawning observables', () => {
   });
 });
 
-describe('spawning actors', () => {
+describe('communicating with spawned actors', () => {
   it('should treat an interpreter as an actor', done => {
     const existingMachine = Machine({
       initial: 'inactive',
@@ -329,6 +329,48 @@ describe('spawning actors', () => {
             // existingRef: () => spawn(existingService)
             existingRef: existingService
           }),
+          on: {
+            'EXISTING.DONE': 'success'
+          },
+          after: {
+            100: {
+              actions: send('ACTIVATE', { to: ctx => ctx.existingRef })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const parentService = interpret(parentMachine).onDone(() => {
+      done();
+    });
+
+    parentService.start();
+  });
+
+  it('should be able to communicate with arbitrary actors if pid is known', done => {
+    const existingMachine = Machine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { ACTIVATE: 'active' }
+        },
+        active: {
+          entry: respond('EXISTING.DONE')
+        }
+      }
+    });
+
+    const existingService = interpret(existingMachine).start();
+
+    const parentMachine = Machine<any>({
+      initial: 'pending',
+      states: {
+        pending: {
+          entry: send('ACTIVATE', { to: existingService.pid }),
           on: {
             'EXISTING.DONE': 'success'
           },
