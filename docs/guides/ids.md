@@ -100,6 +100,26 @@ const lightMachine = Machine({
 - IDs are useful for SCXML compatibility, and conversion to/from SCXML will make use of IDs extensively.
 - Make sure that all IDs are unique in order to prevent naming conflicts. This is naturally enforced by the automatically generated IDs.
 
+::: warning
+Do not mix custom identifiers with relative identifiers. For example, if the `red` state node above has a custom `"redLight"` ID and a child `walking` state node, e.g.:
+
+```js
+// ...
+red: {
+  id: 'redLight',
+  initial: 'walking',
+  states: {
+    // ID still resolves to 'light.red.walking'
+    walking: {/* ... */},
+    // ...
+  }
+}
+// ...
+```
+
+Then you cannot target the `'walking'` state via `'#redLight.walking'`, because its ID is resolved to `'#light.red.walking'`. A target that starts with `'#'` will always refer to the _exact match_ for the `'#[state node ID]'`.
+:::
+
 ## Avoiding strings
 
 If you don't want to use strings for identifying states, [object getters](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Functions/get) can be used to directly reference the target state:
