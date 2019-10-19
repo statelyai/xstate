@@ -155,7 +155,7 @@ SCXML events include:
 
 The SCXML event form of all XState events is present in the `_event` property of action and guard meta objects (third argument):
 
-```js {3,4,8,9}
+```js {4-5,9-10}
 // ...
 {
   actions: {
