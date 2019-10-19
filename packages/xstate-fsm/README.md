@@ -1,3 +1,5 @@
+# @xstate/fsm
+
 <p align="center">
   <a href="https://xstate.js.org">
   <br />

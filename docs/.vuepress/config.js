@@ -25,7 +25,12 @@ module.exports = {
     sidebar: [
       {
         title: 'About',
-        children: ['/about/concepts', '/about/goals', '/about/showcase']
+        children: [
+          '/about/concepts',
+          '/about/goals',
+          '/about/showcase',
+          '/about/tutorials'
+        ]
       },
       {
         title: 'Guides',
