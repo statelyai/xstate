@@ -19,7 +19,9 @@ and returns either `true` or `false`, which signifies whether the transition sho
 Guards are specified on the `.cond` property of a transition, as a string or guard object with a `{ type: '...' }` property:
 
 ```js {15-16,30-34}
-import { Machine } from 'xstate';
+const searchValid = (context, event) => {
+  return context.canSearch && event.query && event.query.length > 0;
+};
 
 const searchMachine = Machine(
   {
@@ -31,11 +33,19 @@ const searchMachine = Machine(
     states: {
       idle: {
         on: {
-          SEARCH: {
-            target: 'searching',
-            // Only transition to 'searching' if the guard (cond) evaluates to true
-            cond: 'searchValid' // or { type: 'searchValid' }
-          }
+          SEARCH: [
+            {
+              target: 'searching',
+              // Only transition to 'searching' if the guard (cond) evaluates to true
+              cond: searchValid // or { type: 'searchValid' }
+            },
+            { target: '.invalid' }
+          ]
+        },
+        initial: 'normal',
+        states: {
+          normal: {},
+          invalid: {}
         }
       },
       searching: {
@@ -49,13 +59,15 @@ const searchMachine = Machine(
   },
   {
     guards: {
-      searchValid: (context, event) => {
-        return context.canSearch && event.query && event.query.length > 0;
-      }
+      searchValid // optional, if the implementation doesn't change
     }
   }
 );
 ```
+
+Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "something" }` below:
+
+<iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
 
 If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
 
@@ -237,6 +249,8 @@ doorService.send('OPEN');
 // => 'opened'
 // (since context.isAdmin === true)
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=8526f72c3041b38f7d7ba808c812df06&embed=1"></iframe>
 
 ::: warning
 The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.
