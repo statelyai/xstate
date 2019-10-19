@@ -24,5 +24,3 @@ jobs:
         run: yarn build
       - name: Test
         run: yarn test
-      - name: Docs
-        run: yarn docs:publish
