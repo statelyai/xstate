@@ -352,8 +352,8 @@ Then, in the UI framework (React, in this case), a `<Subreddit>` component can b
 const Subreddit = ({ name }) => {
   // Only create the machine based on the subreddit name once
   const subredditMachine = useMemo(() => {
-    createSubredditMachine(name);
-  }, []);
+    return createSubredditMachine(name);
+  }, [name]);
 
   const [current, send] = useMachine(subredditMachine);
 
@@ -370,7 +370,7 @@ const Subreddit = ({ name }) => {
 
   return (
     <section
-      data-machine={service.machine.id}
+      data-machine={subredditMachine.id}
       data-state={current.toStrings().join(' ')}
     >
       {current.matches('loading') && <div>Loading posts...</div>}
