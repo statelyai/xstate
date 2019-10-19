@@ -19,7 +19,7 @@ The Reddit app we're creating can be modeled with two top-level states:
 - `'idle'` - no subreddit selected yet (the initial state)
 - `'selected'` - a subreddit is selected
 
-```js
+```js {6-9}
 import { Machine } from 'xstate';
 
 const redditMachine = Machine({
@@ -32,9 +32,9 @@ const redditMachine = Machine({
 });
 ```
 
-We also need somewhere to store the selected subreddit, so let's put that in [`context`](../guides/context.md):
+We also need somewhere to store the selected `subreddit`, so let's put that in [`context`](../guides/context.md):
 
-```js
+```js {6-8}
 // ...
 
 const redditMachine = Machine({
@@ -49,7 +49,7 @@ const redditMachine = Machine({
 });
 ```
 
-Since a subreddit can be selected at any time, we can create a top-level transition for a `'SELECT'` event, which signals that a subreddit was selected by the user. This event can have a payload that has a subreddit `.name`:
+Since a subreddit can be selected at any time, we can create a top-level transition for a `'SELECT'` event, which signals that a subreddit was selected by the user. This event will have a payload that has the selected subreddit name in `.name`:
 
 ```js
 // sample SELECT event
@@ -64,7 +64,7 @@ This event will be handled at the top-level, so that whenever the `'SELECT'` eve
 - [transition](../guides/transitions.md) to its child `'.selected'` state (notice the dot, which indicates a [relative target](../guides/ids.md#relative-targets))
 - [assign](../guides/context.md#updating-context-with-assign) `context.subreddit` to the `event.name`
 
-```js
+```js {10-17}
 const redditMachine = Machine({
   id: 'reddit',
   initial: 'idle',
@@ -89,7 +89,7 @@ const redditMachine = Machine({
 
 When a subreddit is selected (that is, when the machine is in the `'selected'` state due to a `'SELECT'` event), the machine should start loading the subreddit data. To do this, we [invoke a Promise](../guides/invoke.md#invoking-promises) that will resolve with the selected subreddit data:
 
-```js
+```js {1-7,14-17}
 function invokeFetchSubreddit(context) {
   const { subreddit } = context;
 
@@ -129,7 +129,7 @@ When the `'selected'` state is entered, `invokeFetchSubreddit(...)` will be call
 
 This is where it's helpful to have [nested (hierarchical) states](../guides/hierarchical.md). We can make 3 child states that represent when the subreddit is `'loading'`, `'loaded'` or `'failed'` (pick names appropriate to your use-cases):
 
-```js
+```js {8-17}
 const redditMachine = Machine({
   /* ... */
   states: {
@@ -158,9 +158,9 @@ const redditMachine = Machine({
 
 Notice how we moved the `invoke` config to the `'loading'` state. This is useful because if we want to change the app logic in the future to have some sort of `'paused'` or `'canceled'` child state, the invoked promise will automatically be "canceled" since it's no longer in the `'loading'` state where it was invoked.
 
-When the promise resolves, a special `'done.invoke.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. You can assign this data in `context`:
+When the promise resolves, a special `'done.invoke.<invoke ID>'` event will be sent to the machine, containing the resolved data as `event.data`. For convenience, XState maps the `onDone` property within the `invoke` object to this special event. You can assign the resolved data to `context.posts`:
 
-```js
+```js {18-20}
 const redditMachine = Machine({
   /* ... */
   context: {
@@ -312,7 +312,11 @@ const createSubredditMachine = subreddit => {
           REFRESH: 'loading'
         }
       },
-      failure: {}
+      failure: {
+        on: {
+          RETRY: 'loading'
+        }
+      }
     }
   });
 };
@@ -320,7 +324,7 @@ const createSubredditMachine = subreddit => {
 
 Notice how a lot of the logic in the original `redditMachine` was moved to the `subredditMachine`. That allows us to isolate logic to their specific domains and make the `redditMachine` more general, without being concerned with subreddit loading logic:
 
-```js
+```js {9}
 const redditMachine = Machine({
   id: 'reddit',
   initial: 'idle',
@@ -353,34 +357,47 @@ const Subreddit = ({ name }) => {
 
   const [current, send] = useMachine(subredditMachine);
 
-  if (current.matches('loading')) {
-    return <div>Loading posts...</div>;
-  }
-
   if (current.matches('failure')) {
-    return <div>Failed to load posts.</div>;
+    return (
+      <div>
+        Failed to load posts.{' '}
+        <button onClick={_ => send('RETRY')}>Retry?</button>
+      </div>
+    );
   }
 
   const { subreddit, posts, lastUpdated } = current.context;
 
   return (
-    <div>
-      <h2>{subreddit}</h2>
-      <strong>Last updated: {lastUpdated}</strong>
-      <button onClick={_ => send('REFRESH')}>Refresh</button>
-      <ul>
-        {posts.map(post => {
-          return <li key={post.id}>{post.title}</li>;
-        })}
-      </ul>
-    </div>
+    <section
+      data-machine={service.machine.id}
+      data-state={current.toStrings().join(' ')}
+    >
+      {current.matches('loading') && <div>Loading posts...</div>}
+      {posts && (
+        <>
+          <header>
+            <h2>{subreddit}</h2>
+            <small>
+              Last updated: {lastUpdated}{' '}
+              <button onClick={_ => send('REFRESH')}>Refresh</button>
+            </small>
+          </header>
+          <ul>
+            {posts.map(post => {
+              return <li key={post.id}>{post.title}</li>;
+            })}
+          </ul>
+        </>
+      )}
+    </section>
   );
 };
 ```
 
 And the overall app can use that `<Subreddit>` component:
 
-```jsx
+```jsx {8}
 const App = () => {
   const [current, send] = useMachine(redditMachine);
   const { subreddit } = current.context;
@@ -422,7 +439,7 @@ The `context` of the `redditMachine` needs to be modeled to:
 - maintain a mapping of subreddits to their spawned actors
 - keep track of which subreddit is currently visible
 
-```js
+```js {4,5}
 const redditMachine = Machine({
   // ...
   context: {
@@ -447,33 +464,32 @@ const redditMachine = Machine({
   },
   // ...
   on: {
-    SELECT: [
-      // Use the existing subreddit actor if one doesn't exist
-      {
-        target: '.selected',
-        actions: assign({
-          subreddit: (context, event) => context.subreddits[event.name]
-        }),
-        cond: (context, event) => context.subreddits[event.name] !== undefined
-      },
-      // Otherwise, spawn a new subreddit actor and
-      // save it in the subreddits object
-      {
-        target: '.selected',
-        actions: [
-          assign({
-            subreddit: (context, event) =>
-              spawn(createSubredditMachine(event.name))
-          }),
-          assign({
-            subreddits: (context, event) => ({
-              ...context.subreddits,
-              [event.name]: context.subreddit
-            })
-          })
-        ]
-      }
-    ]
+    SELECT: {
+      target: '.selected',
+      actions: assign((context, event) => {
+        // Use the existing subreddit actor if one doesn't exist
+        let subreddit = context.subreddits[event.name];
+
+        if (subreddit) {
+          return {
+            ...context,
+            subreddit
+          };
+        }
+
+        // Otherwise, spawn a new subreddit actor and
+        // save it in the subreddits object
+        subreddit = spawn(createSubredditMachine(event.name));
+
+        return {
+          subreddits: {
+            ...context.subreddits,
+            [event.name]: subreddit
+          },
+          subreddit
+        };
+      })
+    }
   }
 });
 ```
@@ -485,7 +501,7 @@ Now that we have each subreddit encapsulated in its own "live" actor with its ow
 ::: tip
 In React, change detection is done by reference, and changes to props/state cause rerenders. An actor's reference never changes, but its internal state may change. This makes actors ideal for when top-level state needs to maintain references to spawned actors, but should _not_ rerender when a spawned actor changes (unless explicitly told to do so via an event sent to the parent).
 
-In other words, spawned child actors updating will _not_ cause rerenders. 🎉
+In other words, spawned child actors updating will _not_ cause unnecessary rerenders. 🎉
 :::
 
 ```jsx
@@ -518,4 +534,6 @@ The differences between using the actor model above and just using machines with
 
 - The data flow and logic hierarchy live in the XState services, not in the components. This is important when the subreddit needs to continue loading, even when its `<Subreddit>` component may be unmounted.
 - The UI framework layer (e.g., React) becomes a plain view layer; logic and side-effects are not tied directly to the UI, except where it is appropriate.
-- The `redditMachine` -> `subredditMachine` actor hierarchy is "self-sustaining", and allows for the logic to be transferred to any UI framework, or even no framework at all!
+- The `redditMachine` → `subredditMachine` actor hierarchy is "self-sustaining", and allows for the logic to be transferred to any UI framework, or even no framework at all!
+
+<iframe src="https://codesandbox.io/embed/xstate-react-reddit-example-with-actors-5g9nu?fontsize=14" title="XState React Reddit Example with Actors" allow="geolocation; microphone; camera; midi; vr; accelerometer; gyroscope; payment; ambient-light-sensor; encrypted-media; usb" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>

@@ -5,12 +5,6 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   markdown: {
     toc: { includeLevel: [2, 3] }
-    // lineNumbers: true
-    // config: md => {
-    //   md.use(mdCodesandboxPlugin, {
-    //     directory: 'sandboxes',
-    //   })
-    // }
   },
   themeConfig: {
     lastUpdated: 'Last Updated',
@@ -32,10 +26,6 @@ module.exports = {
       {
         title: 'About',
         children: ['/about/concepts', '/about/goals', '/about/showcase']
-      },
-      {
-        title: 'Tutorials',
-        children: ['/tutorials/reddit']
       },
       {
         title: 'Guides',
@@ -63,6 +53,10 @@ module.exports = {
           '/guides/interpretation',
           '/guides/typescript'
         ]
+      },
+      {
+        title: 'Tutorials',
+        children: ['/tutorials/reddit']
       },
       {
         title: 'Recipes',

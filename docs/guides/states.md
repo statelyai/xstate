@@ -37,7 +37,7 @@ A `State` object instance is JSON-serializable and has the following properties:
 
 - `value` - the current state value (e.g., `{red: 'walk'}`)
 - `context` - the current [context](./context.md) of this state
-- `event` <Badge text="4.2.1+"/> - the event object that triggered the transition to this state
+- `event` - the event object that triggered the transition to this state
 - `actions` - an array of [actions](./actions.md) to be executed
 - `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
 - `history` - the previous `State` instance

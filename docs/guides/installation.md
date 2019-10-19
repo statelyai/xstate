@@ -10,6 +10,23 @@ npm install xstate@latest --save
 yarn add xstate@latest --save
 ```
 
+## Exports
+
+The important exports are as follows:
+
+```js {2-9}
+import {
+  Machine,
+  State,
+  actions,
+  assign,
+  send,
+  sendParent,
+  interpret,
+  spawn
+} from 'xstate';
+```
+
 ## CDN
 
 You can include XState directly from the [unpkg CDN](https://unpkg.com/xstate@4/dist/):
