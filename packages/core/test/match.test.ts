@@ -1,5 +1,10 @@
-import { State, matchState, matchesState, Machine } from '../src';
-import { createMachine } from '../src/Machine';
+import {
+  State,
+  matchState,
+  matchesState,
+  Machine,
+  createMachine
+} from '../src';
 
 describe('matchState()', () => {
   it('should match a value from a pattern with the state (simple)', () => {
