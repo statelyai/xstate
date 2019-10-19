@@ -32,6 +32,32 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
 - `data` - (optional, used only when invoking machines) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
 
+::: warning
+Don't get the `onDone` property on a state confused with `invoke.onDone` - they are similar transitions, but refer to different things.
+
+- The `onDone` property on a [state node](./statenodes.md) refers to the compound state node reaching a [final state](./final.md).
+- The `invoke.onDone` property refers to the invocation (`invoke.src`) being done.
+
+```js {5,13}
+// ...
+loading: {
+  invoke: {
+    src: someSrc,
+    onDone: {/* ... */} // refers to `someSrc` being done
+  },
+  initial: 'loadFoo',
+  states: {
+    loadFoo: {/* ... */},
+    loadBar: {/* ... */},
+    loadingComplete: { type: 'final' }
+  },
+  onDone: 'loaded' // refers to 'loading.loadingComplete' being reached
+}
+// ...
+```
+
+:::
+
 ## Invoking Promises
 
 Since every promise can be modeled as a state machine, XState can invoke promises as-is. Promises can either:
