@@ -351,7 +351,7 @@ describe('communicating with spawned actors', () => {
     parentService.start();
   });
 
-  it('should be able to communicate with arbitrary actors if pid is known', done => {
+  it('should be able to communicate with arbitrary actors if sessionId is known', done => {
     const existingMachine = Machine({
       initial: 'inactive',
       states: {
@@ -370,7 +370,7 @@ describe('communicating with spawned actors', () => {
       initial: 'pending',
       states: {
         pending: {
-          entry: send('ACTIVATE', { to: existingService.pid }),
+          entry: send('ACTIVATE', { to: existingService.sessionId }),
           on: {
             'EXISTING.DONE': 'success'
           },

@@ -168,7 +168,7 @@ export class Interpreter<
   /**
    * The globally unique process ID for this invocation.
    */
-  public pid: string;
+  public sessionId: string;
   public children: Map<string | number, Actor> = new Map();
   private forwardTo: Set<string> = new Set();
 
@@ -183,7 +183,8 @@ export class Interpreter<
    */
   constructor(
     public machine: StateMachine<TContext, TStateSchema, TEvent>,
-    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
+    options: Partial<InterpreterOptions> = Interpreter.defaultOptions,
+    sessionId?: string
   ) {
     const resolvedOptions: InterpreterOptions = {
       ...Interpreter.defaultOptions,
@@ -205,7 +206,8 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.pid = registry.register(this as Actor);
+    this.sessionId =
+      sessionId !== undefined ? sessionId : registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
     return this.machine.initialState;
@@ -611,7 +613,7 @@ export class Interpreter<
       // Send SCXML events to machines
       (target as Interpreter<TContext, TStateSchema, TEvent>).send({
         ...event,
-        origin: this.pid
+        origin: this.sessionId
       });
     } else {
       // Send normal events to other targets

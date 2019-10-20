@@ -3,7 +3,7 @@ import { Actor } from './Actor';
 const children = new Map<string, Actor>();
 const idMap = new Map<Actor, string>();
 
-let pidIndex = 0;
+let sessionIdIndex = 0;
 
 export interface Registry {
   register(actor: Actor): string;
@@ -13,7 +13,7 @@ export interface Registry {
 
 export const registry: Registry = {
   register(actor) {
-    const id = `x:${pidIndex++}`;
+    const id = `x:${sessionIdIndex++}`;
     children.set(id, actor);
     idMap.set(actor, id);
 
