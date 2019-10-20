@@ -1280,6 +1280,8 @@ class StateNode<
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       _event,
+      // Persist _sessionid between states
+      _sessionid: currentState ? currentState._sessionid : null,
       historyValue: resolvedStateValue
         ? historyValue
           ? updateHistoryValue(historyValue, resolvedStateValue)

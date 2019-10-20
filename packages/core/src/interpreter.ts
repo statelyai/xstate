@@ -241,6 +241,9 @@ export class Interpreter<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): void {
+    // Attach session ID to state
+    state._sessionid = this.sessionId;
+
     // Update state
     this._state = state;
 

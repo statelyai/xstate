@@ -89,6 +89,7 @@ export class State<
   public events: TEvent[] = [];
   public event: TEvent;
   public _event: SCXML.Event<TEvent>;
+  public _sessionid: string | null;
   /**
    * Indicates whether the state has changed from the previous state. A state is considered "changed" if:
    *
@@ -130,6 +131,7 @@ export class State<
           value: stateValue.value,
           context: context as TC,
           _event: stateValue._event,
+          _sessionid: null,
           historyValue: stateValue.historyValue,
           history: stateValue.history,
           actions: [],
@@ -151,6 +153,7 @@ export class State<
       value: stateValue,
       context: context as TC,
       _event,
+      _sessionid: null,
       historyValue: undefined,
       history: undefined,
       actions: [],
@@ -190,6 +193,7 @@ export class State<
         value: stateValue.value,
         context,
         _event,
+        _sessionid: null,
         historyValue: stateValue.historyValue,
         history: stateValue.history,
         activities: stateValue.activities,
@@ -218,6 +222,7 @@ export class State<
     this.value = config.value;
     this.context = config.context;
     this._event = config._event;
+    this._sessionid = config._sessionid;
     this.event = this._event.data;
     this.historyValue = config.historyValue;
     this.history = config.history;
