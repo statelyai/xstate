@@ -1,6 +1,6 @@
 import { Machine, actions } from 'xstate';
 
-export default Machine({
+export default Machine<any>({
   initial: 'a',
   states: {
     a: {
