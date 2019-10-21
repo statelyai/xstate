@@ -21,7 +21,7 @@ const createNpmConfig = ({ input, output }) => ({
   plugins: [createTsPlugin()]
 });
 
-const createUmdConfig = ({ input, output, target }) => ({
+const createUmdConfig = ({ input, output, target = undefined }) => ({
   input,
   output,
   plugins: [
@@ -43,10 +43,6 @@ export default [
       {
         dir: 'es',
         format: 'esm'
-      },
-      {
-        dir: 'lib',
-        format: 'cjs'
       }
     ]
   }),

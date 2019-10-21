@@ -25,7 +25,7 @@
   "scripts": {
     "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
     "test": "jest",
-    "build": "rollup -c && npm run annotate:es",
+    "build": "tsc && rollup -c && npm run annotate:es",
     "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
     "preversion": "npm run test",
     "version": "npm run build",

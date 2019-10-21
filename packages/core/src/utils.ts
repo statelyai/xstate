@@ -263,7 +263,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   return result;
 }
 
-export const pathsToStateValue = (paths: string[][]): StateValue => {
+export function pathsToStateValue(paths: string[][]): StateValue {
   const result: StateValue = {};
 
   if (paths && paths.length === 1 && paths[0].length === 1) {
@@ -286,7 +286,7 @@ export const pathsToStateValue = (paths: string[][]): StateValue => {
   }
 
   return result;
-};
+}
 
 export function flatten<T>(array: Array<T | T[]>): T[] {
   return ([] as T[]).concat(...array);
