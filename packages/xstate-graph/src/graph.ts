@@ -331,24 +331,6 @@ interface StackElement<TContext, TEvent extends EventObject> {
   path: Segments<TContext, TEvent>;
   revisits: number;
 }
-function duplicate_strings(arra1) {
-  const object = {};
-  const result: string[] = [];
-
-  arra1.forEach(item => {
-    if (!object[item]) {
-      object[item] = 0;
-    }
-    object[item] += 1;
-  });
-
-  for (const prop in object) {
-    if (object[prop] >= 2) {
-      result.push(prop);
-    }
-  }
-  return result;
-}
 
 export function getAlternatePaths<
   TContext = DefaultContext,
@@ -363,7 +345,7 @@ export function getAlternatePaths<
     ...options
   } as unknown) as ValueAlternatePathOptions<TContext, TEvent>;
 
-  const { stateSerializer, eventSerializer, maxRevisits } = optionsWithDefaults;
+  const { stateSerializer, maxRevisits } = optionsWithDefaults;
 
   if (!machine.states) {
     return EMPTY_MAP;
@@ -404,10 +386,6 @@ export function getAlternatePaths<
           stackElement.revisits += 1;
         }
 
-        if ('"green"' === nextStateSerial) {
-          console.log('green');
-        }
-
         const step: Segment<TContext, TEvent> = {
           state: stateMap.get(fromStateSerial)!,
           event: deserializeEventString(subEvent)
@@ -423,24 +401,6 @@ export function getAlternatePaths<
           };
           newStackElement.visited.add(nextStateSerial);
           stack.push(newStackElement);
-
-          const dups = duplicate_strings(
-            stack.map(s =>
-              s.path.reduce(
-                (acc, p) =>
-                  acc +
-                  ':' +
-                  stateSerializer(p.state) +
-                  ',' +
-                  eventSerializer(p.event),
-                ''
-              )
-            )
-          );
-          if (dups.length > 0) {
-            console.log(dups);
-          }
-
           state2state(nextSegment.state, toStateSerial, newStackElement);
         } else {
           // last one
@@ -463,26 +423,7 @@ export function getAlternatePaths<
     visited: new Set<string>()
   });
 
-  let iteration;
-  let oldSegments = 0;
-  let segments = 0;
-  do {
-    iteration = stack.filter(s => s.revisits <= maxRevisits);
-    if (iteration.length === 0) {
-      continue;
-    }
-    iteration.forEach(stackElement => {
-      state2state(
-        stateMap.get(stackElement.lastState)!,
-        finalState,
-        stackElement
-      );
-    });
-    oldSegments = segments;
-    segments = stack.reduce((acc, s) => acc + s.path.length, 0);
-    // tslint:disable-next-line:no-console
-    console.log(segments);
-  } while (iteration.length !== 0 && oldSegments !== segments);
+  state2state(stateMap.get(stack[0].lastState)!, finalState, stack[0]);
 
   const finalStateNode = stateMap.get(finalState)!;
   const result: StatePathsMap<TContext, TEvent> = {};

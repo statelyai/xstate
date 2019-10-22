@@ -1,5 +1,1539 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`@xstate/graph getAlternatePaths() should return a mapping of arrays of paths to target state with max revisits: alternate paths 1`] = `
+Array [
+  Object {
+    "segments": Array [],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": Object {
+          "red": "flashing",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+]
+`;
+
+exports[`@xstate/graph getAlternatePaths() should return a mapping of arrays of paths to target state: alternate paths 1`] = `
+Array [
+  Object {
+    "segments": Array [],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "stop",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "PED_COUNTDOWN",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "wait",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "yellow",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": Object {
+          "red": "walk",
+        },
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "TIMER",
+        },
+        "state": "green",
+      },
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "yellow",
+      },
+    ],
+  },
+  Object {
+    "segments": Array [
+      Object {
+        "event": Object {
+          "type": "POWER_OUTAGE",
+        },
+        "state": "green",
+      },
+    ],
+  },
+]
+`;
+
 exports[`@xstate/graph getAlternatePaths() should return a mapping of arrays of simple paths to all states: alternate paths 1`] = `
 Object {
   "red": Object {

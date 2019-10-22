@@ -1,4 +1,9 @@
-import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
+import {
+  getShortestPaths,
+  getSimplePaths,
+  getStateNodes,
+  getAlternatePaths
+} from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import { StatePathsMap } from '@xstate/graph/lib/types';
 import slimChalk from './slimChalk';
@@ -106,6 +111,22 @@ export class TestModel<TTestContext, TContext> {
     }) as StatePathsMap<TContext, any>;
 
     return this.getTestPlans(simplePaths);
+  }
+
+  public getAlternatePathPlans(
+    stateValue: string,
+    options?: Partial<ValueAdjMapOptions<TContext, any>>
+  ): Array<TestPlan<TTestContext, TContext>> {
+    const alternatePaths = getAlternatePaths(
+      this.machine,
+      '"' + stateValue + '"',
+      {
+        ...options,
+        events: getEventSamples(this.options.events)
+      }
+    ) as StatePathsMap<TContext, any>;
+
+    return this.getTestPlans(alternatePaths);
   }
 
   public getSimplePathPlansTo(
