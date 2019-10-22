@@ -7,7 +7,13 @@ import {
   StateMachine
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
-import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
+import {
+  StatePathsMap,
+  StatePaths,
+  AdjacencyMap,
+  Segments,
+  Segment
+} from './types';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -59,8 +65,8 @@ export function deserializeEventString<TEvent extends EventObject>(
 
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext>) => boolean;
-  stateSerializer: (state: State<TContext>) => string;
+  filter: (state: State<TContext, TEvent>) => boolean;
+  stateSerializer: (state: State<TContext, TEvent>) => string;
   eventSerializer: (event: TEvent) => string;
 }
 
@@ -71,6 +77,19 @@ const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
   eventSerializer: serializeEvent
 };
 
+// tslint:disable-next-line:max-line-length
+export interface ValueAlternatePathOptions<
+  TContext,
+  TEvent extends EventObject
+> extends ValueAdjMapOptions<TContext, TEvent> {
+  maxRevisits: number;
+}
+
+const defaultValueAlternatePathOptions: ValueAlternatePathOptions<any, any> = {
+  ...defaultValueAdjMapOptions,
+  maxRevisits: 0
+};
+
 export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
@@ -78,10 +97,10 @@ export function getAdjacencyMap<
   node: StateNode<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): AdjacencyMap<TContext, TEvent> {
-  const optionsWithDefaults = {
+  const optionsWithDefaults = ({
     ...defaultValueAdjMapOptions,
     ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+  } as unknown) as ValueAdjMapOptions<TContext, TEvent>;
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
   const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
   for (const event of node.events) {
@@ -147,12 +166,12 @@ export function getShortestPaths<
     // return EMPTY_MAP;
     return EMPTY_MAP;
   }
-  const optionsWithDefaults = {
+  const optionsWithDefaults = ({
     events: {},
     stateSerializer: serializeState,
     eventSerializer: serializeEvent,
     ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+  } as unknown) as ValueAdjMapOptions<TContext, TEvent>;
 
   const adjacency = getAdjacencyMap<TContext, TEvent>(
     machine,
@@ -238,10 +257,10 @@ export function getSimplePaths<
   machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
-  const optionsWithDefaults = {
+  const optionsWithDefaults = ({
     ...defaultValueAdjMapOptions,
     ...options
-  };
+  } as unknown) as ValueAdjMapOptions<TContext, TEvent>;
 
   const { stateSerializer } = optionsWithDefaults;
 
@@ -251,7 +270,7 @@ export function getSimplePaths<
 
   const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
-  const visited = new Set();
+  const visited = new Set<string>();
   const path: Segments<TContext, TEvent> = [];
   const paths: StatePathsMap<TContext, TEvent> = {};
 
@@ -304,6 +323,181 @@ export function getSimplePaths<
   }
 
   return paths;
+}
+
+interface StackElement<TContext, TEvent extends EventObject> {
+  visited: Set<string>;
+  lastState: string;
+  path: Segments<TContext, TEvent>;
+  revisits: number;
+}
+function duplicate_strings(arra1) {
+  const object = {};
+  const result: string[] = [];
+
+  arra1.forEach(item => {
+    if (!object[item]) {
+      object[item] = 0;
+    }
+    object[item] += 1;
+  });
+
+  for (const prop in object) {
+    if (object[prop] >= 2) {
+      result.push(prop);
+    }
+  }
+  return result;
+}
+
+export function getAlternatePaths<
+  TContext = DefaultContext,
+  TEvent extends EventObject = EventObject
+>(
+  machine: StateMachine<TContext, any, TEvent>,
+  finalState: string,
+  options?: Partial<ValueAlternatePathOptions<TContext, TEvent>>
+): StatePathsMap<TContext, TEvent> {
+  const optionsWithDefaults = ({
+    ...defaultValueAlternatePathOptions,
+    ...options
+  } as unknown) as ValueAlternatePathOptions<TContext, TEvent>;
+
+  const { stateSerializer, eventSerializer, maxRevisits } = optionsWithDefaults;
+
+  if (!machine.states) {
+    return EMPTY_MAP;
+  }
+
+  const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
+  const stateMap = new Map<string, State<TContext, TEvent>>();
+  const stack: Array<StackElement<TContext, TEvent>> = [];
+
+  function state2state(
+    fromState: State<TContext, TEvent>,
+    toStateSerial: string,
+    stackElement: StackElement<TContext, TEvent>
+  ) {
+    const fromStateSerial = stateSerializer(fromState);
+    stackElement.visited.add(fromStateSerial);
+
+    if (fromStateSerial !== toStateSerial) {
+      const max = keys(adjacency[fromStateSerial]).length;
+      let i = max;
+      for (const subEvent of keys(adjacency[fromStateSerial])) {
+        const nextSegment = adjacency[fromStateSerial][subEvent];
+        i--;
+
+        if (!nextSegment) {
+          continue;
+        }
+        const nextStateSerial = stateSerializer(nextSegment.state);
+        if (!stateMap.has(nextStateSerial)) {
+          stateMap.set(nextStateSerial, nextSegment.state);
+        }
+
+        if (stackElement.visited.has(nextStateSerial)) {
+          if (stackElement.revisits >= maxRevisits) {
+            // stackElement.revisits += 1; // marks stack as nonsuccessful
+            continue;
+          }
+          stackElement.revisits += 1;
+        }
+
+        if ('"green"' === nextStateSerial) {
+          console.log('green');
+        }
+
+        const step: Segment<TContext, TEvent> = {
+          state: stateMap.get(fromStateSerial)!,
+          event: deserializeEventString(subEvent)
+        };
+        if (i !== max) {
+          const path = [...stackElement.path];
+          path.push(step);
+          const newStackElement = {
+            revisits: stackElement.revisits,
+            lastState: nextStateSerial,
+            path,
+            visited: new Set<string>(stackElement.visited)
+          };
+          newStackElement.visited.add(nextStateSerial);
+          stack.push(newStackElement);
+
+          const dups = duplicate_strings(
+            stack.map(s =>
+              s.path.reduce(
+                (acc, p) =>
+                  acc +
+                  ':' +
+                  stateSerializer(p.state) +
+                  ',' +
+                  eventSerializer(p.event),
+                ''
+              )
+            )
+          );
+          if (dups.length > 0) {
+            console.log(dups);
+          }
+
+          state2state(nextSegment.state, toStateSerial, newStackElement);
+        } else {
+          // last one
+          stackElement.visited.add(nextStateSerial);
+          stackElement.lastState = nextStateSerial;
+          stackElement.path.push(step);
+          state2state(nextSegment.state, toStateSerial, stackElement);
+        }
+      }
+    }
+  }
+
+  const initialStateSerial = stateSerializer(machine.initialState);
+  stateMap.set(initialStateSerial, machine.initialState);
+
+  stack.push({
+    revisits: 0,
+    lastState: initialStateSerial,
+    path: [],
+    visited: new Set<string>()
+  });
+
+  let iteration;
+  let oldSegments = 0;
+  let segments = 0;
+  do {
+    iteration = stack.filter(s => s.revisits <= maxRevisits);
+    if (iteration.length === 0) {
+      continue;
+    }
+    iteration.forEach(stackElement => {
+      state2state(
+        stateMap.get(stackElement.lastState)!,
+        finalState,
+        stackElement
+      );
+    });
+    oldSegments = segments;
+    segments = stack.reduce((acc, s) => acc + s.path.length, 0);
+    // tslint:disable-next-line:no-console
+    console.log(segments);
+  } while (iteration.length !== 0 && oldSegments !== segments);
+
+  const finalStateNode = stateMap.get(finalState)!;
+  const result: StatePathsMap<TContext, TEvent> = {};
+  result[finalState] = {
+    state: finalStateNode,
+    paths: stack
+      .filter(s => s.revisits <= maxRevisits)
+      .map(s => ({
+        state: finalStateNode,
+        segments: s.path,
+        weight: stack.length
+      }))
+  };
+
+  return result;
 }
 
 export function getSimplePathsAsArray<

@@ -1,5 +1,14 @@
 // Jest Snapshot v1, https://goo.gl/fbAQLP
 
+exports[`@xstate/graph getAlternatePaths() should return a mapping of arrays of simple paths to all states: alternate paths 1`] = `
+Object {
+  "red": Object {
+    "paths": Array [],
+    "state": undefined,
+  },
+}
+`;
+
 exports[`@xstate/graph getShortestPaths() should represent conditional paths based on context: shortest paths conditional 1`] = `
 Object {
   "\\"bar\\" | {\\"id\\":\\"foo\\"}": Object {
@@ -2551,6 +2560,15 @@ Object {
         "red": "walk",
       },
     },
+  },
+}
+`;
+
+exports[`@xstate/graph getSimplePaths() should return a mapping of arrays of simple paths to all states: alternate paths 1`] = `
+Object {
+  "red": Object {
+    "paths": Array [],
+    "state": undefined,
   },
 }
 `;
