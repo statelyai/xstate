@@ -14,7 +14,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             INC: {
-              actions: assign(ctx => ctx.count++)
+              actions: assign<typeof context>(ctx => ctx.count++)
             }
           }
         }
