@@ -71,7 +71,7 @@ const todosMachine = Machine({
           {
             todo: event.todo,
             // add a new todoMachine actor with a unique name
-            ref: spawn(todoMachine, `todo-${event.id}`)
+            ref: () => spawn(todoMachine, `todo-${event.id}`)
           }
         ]
       })
