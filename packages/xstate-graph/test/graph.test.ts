@@ -206,15 +206,20 @@ describe('@xstate/graph', () => {
 
   describe('getAlternatePaths()', () => {
     it('should return a mapping of arrays of paths to target state', () => {
-      const finalState = '"red"';
-      const paths = getAlternatePaths(lightMachine, finalState)[
-        finalState
-      ].paths.map(p => ({
-        segments: p.segments.map(s => ({
-          event: s.event,
-          state: s.state.value
-        }))
-      }));
+      const alternatePaths = getAlternatePaths(lightMachine, 'red');
+      const paths = {};
+
+      for (const a in alternatePaths) {
+        if (!alternatePaths.hasOwnProperty(a)) {
+          continue;
+        }
+        paths[a] = alternatePaths[a].paths.map(p => ({
+          segments: p.segments.map(s => ({
+            event: s.event,
+            state: s.state.value
+          }))
+        }));
+      }
 
       expect(paths).toMatchSnapshot('alternate paths');
     });

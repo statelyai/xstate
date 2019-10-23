@@ -4,7 +4,8 @@ import {
   DefaultContext,
   Event,
   EventObject,
-  StateMachine
+  StateMachine,
+  StateValue
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
 import {
@@ -325,7 +326,7 @@ export function getSimplePaths<
   return paths;
 }
 
-interface StackElement<TContext, TEvent extends EventObject> {
+interface AlternatePath<TContext, TEvent extends EventObject> {
   visited: Set<string>;
   lastState: string;
   path: Segments<TContext, TEvent>;
@@ -337,7 +338,7 @@ export function getAlternatePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  finalState: string,
+  finalState: StateValue,
   options?: Partial<ValueAlternatePathOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
   const optionsWithDefaults = ({
@@ -353,17 +354,17 @@ export function getAlternatePaths<
 
   const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
-  const stack: Array<StackElement<TContext, TEvent>> = [];
+  const paths: Array<AlternatePath<TContext, TEvent>> = [];
 
   function state2state(
     fromState: State<TContext, TEvent>,
-    toStateSerial: string,
-    stackElement: StackElement<TContext, TEvent>
+    toStateSerial: StateValue,
+    alternatePath: AlternatePath<TContext, TEvent>
   ) {
     const fromStateSerial = stateSerializer(fromState);
-    stackElement.visited.add(fromStateSerial);
+    alternatePath.visited.add(fromStateSerial);
 
-    if (fromStateSerial !== toStateSerial) {
+    if (!fromState.matches(toStateSerial)) {
       const max = keys(adjacency[fromStateSerial]).length;
       let i = max;
       for (const subEvent of keys(adjacency[fromStateSerial])) {
@@ -378,12 +379,12 @@ export function getAlternatePaths<
           stateMap.set(nextStateSerial, nextSegment.state);
         }
 
-        if (stackElement.visited.has(nextStateSerial)) {
-          if (stackElement.revisits >= maxRevisits) {
+        if (alternatePath.visited.has(nextStateSerial)) {
+          if (alternatePath.revisits >= maxRevisits) {
             // stackElement.revisits += 1; // marks stack as nonsuccessful
             continue;
           }
-          stackElement.revisits += 1;
+          alternatePath.revisits += 1;
         }
 
         const step: Segment<TContext, TEvent> = {
@@ -391,23 +392,23 @@ export function getAlternatePaths<
           event: deserializeEventString(subEvent)
         };
         if (i !== max) {
-          const path = [...stackElement.path];
+          const path = [...alternatePath.path];
           path.push(step);
-          const newStackElement = {
-            revisits: stackElement.revisits,
+          const newAlternatePath = {
+            revisits: alternatePath.revisits,
             lastState: nextStateSerial,
             path,
-            visited: new Set<string>(stackElement.visited)
+            visited: new Set<string>(alternatePath.visited)
           };
-          newStackElement.visited.add(nextStateSerial);
-          stack.push(newStackElement);
-          state2state(nextSegment.state, toStateSerial, newStackElement);
+          newAlternatePath.visited.add(nextStateSerial);
+          paths.push(newAlternatePath);
+          state2state(nextSegment.state, toStateSerial, newAlternatePath);
         } else {
           // last one
-          stackElement.visited.add(nextStateSerial);
-          stackElement.lastState = nextStateSerial;
-          stackElement.path.push(step);
-          state2state(nextSegment.state, toStateSerial, stackElement);
+          alternatePath.visited.add(nextStateSerial);
+          alternatePath.lastState = nextStateSerial;
+          alternatePath.path.push(step);
+          state2state(nextSegment.state, toStateSerial, alternatePath);
         }
       }
     }
@@ -416,27 +417,33 @@ export function getAlternatePaths<
   const initialStateSerial = stateSerializer(machine.initialState);
   stateMap.set(initialStateSerial, machine.initialState);
 
-  stack.push({
+  paths.push({
     revisits: 0,
     lastState: initialStateSerial,
     path: [],
     visited: new Set<string>()
   });
 
-  state2state(stateMap.get(stack[0].lastState)!, finalState, stack[0]);
+  state2state(stateMap.get(paths[0].lastState)!, finalState, paths[0]);
 
-  const finalStateNode = stateMap.get(finalState)!;
   const result: StatePathsMap<TContext, TEvent> = {};
-  result[finalState] = {
-    state: finalStateNode,
-    paths: stack
-      .filter(s => s.revisits <= maxRevisits)
-      .map(s => ({
-        state: finalStateNode,
-        segments: s.path,
-        weight: stack.length
-      }))
-  };
+
+  paths
+    .filter(p => p.revisits <= maxRevisits)
+    .forEach(path => {
+      const pathState = stateMap.get(path.lastState)!;
+      if (!pathState.matches(finalState)) {
+        return;
+      }
+      if (!result[path.lastState]) {
+        result[path.lastState] = { paths: [], state: pathState };
+      }
+      result[path.lastState].paths.push({
+        state: pathState,
+        segments: path.path,
+        weight: path.path.length
+      });
+    });
 
   return result;
 }

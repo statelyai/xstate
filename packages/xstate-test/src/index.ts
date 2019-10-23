@@ -17,7 +17,10 @@ import {
   TestMeta,
   EventExecutor
 } from './types';
-import { ValueAdjMapOptions } from '@xstate/graph/lib/graph';
+import {
+  ValueAdjMapOptions,
+  ValueAlternatePathOptions
+} from '@xstate/graph/lib/graph';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -114,17 +117,13 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getAlternatePathPlans(
-    stateValue: string,
-    options?: Partial<ValueAdjMapOptions<TContext, any>>
+    stateValue: StateValue,
+    options?: Partial<ValueAlternatePathOptions<TContext, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
-    const alternatePaths = getAlternatePaths(
-      this.machine,
-      '"' + stateValue + '"',
-      {
-        ...options,
-        events: getEventSamples(this.options.events)
-      }
-    ) as StatePathsMap<TContext, any>;
+    const alternatePaths = getAlternatePaths(this.machine, stateValue, {
+      ...options,
+      events: getEventSamples(this.options.events)
+    }) as StatePathsMap<TContext, any>;
 
     return this.getTestPlans(alternatePaths);
   }
@@ -360,6 +359,10 @@ export class TestModel<TTestContext, TContext> {
 }
 
 function getDescription<T, TContext>(state: State<TContext>): string {
+  if (state === undefined) {
+    return 'undefined';
+  }
+
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 
