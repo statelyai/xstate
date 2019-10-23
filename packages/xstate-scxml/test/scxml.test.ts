@@ -19,16 +19,13 @@ async function runTestToCompletion(
   machine: StateNode,
   test: SCIONTest
 ): Promise<void> {
-  if (!test.events.length && test.initialConfiguration[0] === 'pass') {
-    // await runW3TestToCompletion(machine);
-    return;
-  }
+  const stateValue = test.events.length
+    ? pathsToStateValue(
+        test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+      )
+    : machine.initialState.value;
 
-  const r = pathsToStateValue(
-    test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
-  );
-
-  const resolvedStateValue = machine.resolve(r);
+  const resolvedStateValue = machine.resolve(stateValue);
 
   let done = false;
   let nextState: State<any> = machine.getInitialState(resolvedStateValue);
@@ -62,6 +59,11 @@ async function runTestToCompletion(
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });
+
+  if (!test.events.length) {
+    const stateIds = machine.getStateNodes(nextState).map(sn => sn.id);
+    expect(stateIds).toContain(test.initialConfiguration[0]);
+  }
 }
 
 const testGroups = {
@@ -78,7 +80,8 @@ const testGroups = {
     'send9'
   ],
   assign: [
-    // 'assign_obj_literal'
+    // 'assign_obj_literal',
+    // 'assign_invalid'
   ]
 };
 
