@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate` and `updates` (NOTE: `context` option is not implemented yet, use `withContext` or `withConfig` instead for the meantime).
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** a tuple of `[current, send, service]`:
 
@@ -199,6 +199,27 @@ const Loader = () => {
     </div>
   );
 };
+```
+
+## Persisted and Rehydrated State
+
+You can persist and rehydrate state with `useMachine(...)` via `options.state`:
+
+```js
+// ...
+
+// Get the persisted state config object from somewhere, e.g. localStorage
+const persistedState = JSON.parse(localStorage.get('some-persisted-state-key'));
+
+const App = () => {
+  const [current, send] = useMachine(someMachine, {
+    state: persistedState // provide persisted state config object here
+  });
+
+  // current will initially be that persisted state, not the machine's initialState
+
+  return (/* ... */)
+}
 ```
 
 ## Resources

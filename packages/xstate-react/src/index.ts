@@ -6,19 +6,25 @@ import {
   State,
   Interpreter,
   InterpreterOptions,
-  MachineOptions
+  MachineOptions,
+  StateConfig
 } from 'xstate';
 import { Actor } from 'xstate/lib/Actor';
 
-interface UseMachineOptions<TContext> {
+interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
-   * If provided, will be merged with machine's context.
+   * If provided, will be merged with machine's `context`.
    */
   context?: Partial<TContext>;
   /**
    * If `true`, service will start immediately (before mount).
    */
   immediate: boolean;
+  /**
+   * The state to rehydrate the machine to. The machine will
+   * start at this state instead of its `initialState`.
+   */
+  state?: StateConfig<TContext, TEvent>;
 }
 
 const defaultOptions = {
@@ -28,7 +34,7 @@ const defaultOptions = {
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext>> &
+    Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = defaultOptions
 ): [
   State<TContext, TEvent>,
@@ -43,6 +49,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     services,
     delays,
     immediate,
+    state: rehydratedState,
     ...interpreterOptions
   } = options;
 
@@ -97,13 +104,19 @@ export function useMachine<TContext, TEvent extends EventObject>(
     service.start();
   }
 
+  const initialState = rehydratedState
+    ? State.create(rehydratedState)
+    : service.initialState;
+
   // Keep track of the current machine state
-  const [current, setCurrent] = useState(() => service.initialState);
+  const [current, setCurrent] = useState(() => initialState);
 
   useEffect(() => {
     // Start the service when the component mounts.
     // Note: the service will start only if it hasn't started already.
-    service.start();
+    //
+    // If a rehydrated state was provided, use the resolved `initialState`.
+    service.start(rehydratedState ? initialState : undefined);
 
     return () => {
       // Stop the service when the component unmounts

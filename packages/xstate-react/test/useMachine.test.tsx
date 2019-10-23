@@ -1,6 +1,6 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn, doneInvoke } from 'xstate';
+import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
 import {
   render,
   fireEvent,
@@ -41,13 +41,23 @@ describe('useMachine hook', () => {
     }
   });
 
-  const Fetcher = ({
-    onFetch = () => new Promise(res => res('some data'))
+  const persistedFetchState = fetchMachine.transition(
+    'loading',
+    doneInvoke('fetchData', 'persisted data')
+  );
+
+  const Fetcher: React.FC<{
+    onFetch: () => Promise<any>;
+    persistedState?: State<any, any>;
+  }> = ({
+    onFetch = () => new Promise(res => res('some data')),
+    persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       services: {
         fetchData: onFetch
-      }
+      },
+      state: persistedState
     });
 
     switch (current.value) {
@@ -76,6 +86,35 @@ describe('useMachine hook', () => {
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('fake data');
+  });
+
+  it('should work with the useMachine hook (rehydrated state)', async () => {
+    const { getByText, getByTestId } = render(
+      <Fetcher
+        onFetch={() => new Promise(res => res('fake data'))}
+        persistedState={persistedFetchState}
+      />
+    );
+
+    await waitForElement(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('persisted data');
+  });
+
+  it('should work with the useMachine hook (rehydrated state config)', async () => {
+    const persistedFetchStateConfig = JSON.parse(
+      JSON.stringify(persistedFetchState)
+    );
+    const { getByText, getByTestId } = render(
+      <Fetcher
+        onFetch={() => new Promise(res => res('fake data'))}
+        persistedState={persistedFetchStateConfig}
+      />
+    );
+
+    await waitForElement(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('persisted data');
   });
 
   it('should provide the service', () => {
