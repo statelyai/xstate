@@ -98,7 +98,54 @@ describe('useMachine hook', () => {
         execute: false
       });
 
+      expect(service.initialized).toBe(false);
       expect(service.options.execute).toBe(false);
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should start the service immediately if the immediate option is enabled', () => {
+    const testMachine = Machine({
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Test = () => {
+      const [, , service] = useMachine(testMachine, { immediate: true });
+
+      expect(service.initialized).toBe(true);
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should support the immediate option when the initial state has a transient transition', () => {
+    const testMachine = Machine({
+      initial: 'idle',
+      states: {
+        bootstrap: {
+          on: {
+            '': {
+              target: 'idle'
+            }
+          }
+        },
+        idle: {}
+      }
+    });
+
+    const Test = () => {
+      const [state, , service] = useMachine(testMachine, { immediate: true });
+
+      expect(service.initialized).toBe(true);
+      expect(state.value).toBe('idle');
 
       return null;
     };
