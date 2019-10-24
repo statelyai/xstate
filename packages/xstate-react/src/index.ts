@@ -71,16 +71,12 @@ export function useMachine<TContext, TEvent extends EventObject>(
   const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
 
   // Create the service only once
-  if (serviceRef.current === null) {
+  const creatingService = serviceRef.current === null
+  if (creatingService) {
     serviceRef.current = interpret(
       machineRef.current,
       interpreterOptions
-    ).onTransition(state => {
-      // Update the current machine state when a transition occurs
-      if (state.changed) {
-        setCurrent(state);
-      }
-    });
+    )
   }
 
   const service = serviceRef.current;
@@ -93,12 +89,21 @@ export function useMachine<TContext, TEvent extends EventObject>(
   }, [actions]);
 
   // Start service immediately (before mount) if specified in options
-  if (immediate) {
+  if (creatingService && immediate) {
     service.start();
   }
 
   // Keep track of the current machine state
   const [current, setCurrent] = useState(() => service.initialState);
+
+  if (creatingService) {
+    service.onTransition(state => {
+      // Update the current machine state when a transition occurs
+      if (state.changed) {
+        setCurrent(state);
+      }
+    });
+  }
 
   useEffect(() => {
     // Start the service when the component mounts.
