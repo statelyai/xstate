@@ -71,12 +71,9 @@ export function useMachine<TContext, TEvent extends EventObject>(
   const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
 
   // Create the service only once
-  const creatingService = serviceRef.current === null
-  if (creatingService) {
-    serviceRef.current = interpret(
-      machineRef.current,
-      interpreterOptions
-    )
+  const creatingService = serviceRef.current === null;
+  if (serviceRef.current === null) {
+    serviceRef.current = interpret(machineRef.current, interpreterOptions);
   }
 
   const service = serviceRef.current;
