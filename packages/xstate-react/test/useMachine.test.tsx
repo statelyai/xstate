@@ -128,7 +128,7 @@ describe('useMachine hook', () => {
 
   it('should support the immediate option when the initial state has a transient transition', () => {
     const testMachine = Machine({
-      initial: 'idle',
+      initial: 'bootstrap',
       states: {
         bootstrap: {
           on: {
