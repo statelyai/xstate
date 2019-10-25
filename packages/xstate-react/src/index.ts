@@ -92,13 +92,13 @@ export function useMachine<TContext, TEvent extends EventObject>(
     Object.assign(service.machine.options.actions, actions);
   }, [actions]);
 
+  // Keep track of the current machine state
+  const [current, setCurrent] = useState(() => service.initialState);
+
   // Start service immediately (before mount) if specified in options
   if (immediate) {
     service.start();
   }
-
-  // Keep track of the current machine state
-  const [current, setCurrent] = useState(() => service.initialState);
 
   useEffect(() => {
     // Start the service when the component mounts.
