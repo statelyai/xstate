@@ -29,7 +29,8 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "prebuild": "npm run clean",
-    "build": "tsc"
+    "build": "tsc",
+    "test": "jest"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
