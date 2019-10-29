@@ -352,7 +352,7 @@ userService.subscribe(state => {
 ## Example
 
 ```js
-import { createMachine, assign } from '@xstate/fsm';
+import { createMachine, assign, interpret } from '@xstate/fsm';
 
 const lightMachine = createMachine({
   id: 'light',
