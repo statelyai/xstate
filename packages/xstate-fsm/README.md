@@ -386,14 +386,14 @@ const lightService = interpret(lightMachine);
 lightService.subscribe(state => {
   console.log(state);
 });
-
-lightService.start();
 // => logs {
 //   value: 'green',
 //   context: { redLights: 0 },
 //   actions: [],
 //   changed: undefined
 // }
+
+lightService.start();
 
 lightService.send('TIMER');
 // => logs {
