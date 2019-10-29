@@ -4,9 +4,13 @@ function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-const assignActionType: StateMachine.AssignAction = 'xstate.assign';
+const assignActionType: StateMachine.AssignActionType = 'xstate.assign';
 
-export function assign(assignment: any): StateMachine.ActionObject<any, any> {
+export function assign<TContext, TEvent extends EventObject = EventObject>(
+  assignment:
+    | StateMachine.Assigner<TContext, TEvent>
+    | StateMachine.PropertyAssigner<TContext, TEvent>
+): StateMachine.AssignAction<TContext, TEvent> {
   return {
     type: assignActionType,
     assignment

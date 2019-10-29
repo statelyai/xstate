@@ -8,6 +8,7 @@ export namespace StateMachine {
   export type Action<TContext, TEvent extends EventObject> =
     | string
     | StateMachine.ActionObject<TContext, TEvent>
+    | StateMachine.AssignAction<TContext, TEvent>
     | ((context: TContext, event: TEvent) => void);
 
   export interface ActionObject<TContext, TEvent> {
@@ -21,7 +22,26 @@ export namespace StateMachine {
     event: TEvent
   ) => void;
 
-  export type AssignAction = 'xstate.assign';
+  export type AssignActionType = 'xstate.assign';
+
+  export interface AssignAction<TContext, TEvent extends EventObject>
+    extends ActionObject<TContext, TEvent> {
+    type: AssignActionType;
+    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  }
+
+  export type Assigner<TContext, TEvent extends EventObject> = (
+    context: TContext,
+    event: TEvent
+  ) => Partial<TContext>;
+
+  export type PropertyAssigner<TContext, TEvent extends EventObject> = Partial<
+    {
+      [K in keyof TContext]:
+        | ((context: TContext, event: TEvent) => TContext[K])
+        | TContext[K];
+    }
+  >;
 
   export type Transition<TContext, TEvent extends EventObject> =
     | string
