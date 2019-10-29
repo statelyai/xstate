@@ -1,5 +1,7 @@
 import { StateMachine, EventObject, Typestate } from './types';
 
+export { StateMachine, EventObject };
+
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
