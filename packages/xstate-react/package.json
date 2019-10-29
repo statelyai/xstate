@@ -49,6 +49,7 @@
     "@types/jsdom": "^12.2.3",
     "@types/react": "^16.9.0",
     "@types/react-dom": "^16.8.5",
+    "@xstate/fsm": "1.0.3",
     "jest": "^24.8.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",

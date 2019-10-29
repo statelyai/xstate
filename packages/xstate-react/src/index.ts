@@ -9,8 +9,6 @@ import {
   MachineOptions,
   StateConfig
 } from 'xstate';
-import { Actor } from 'xstate/lib/Actor';
-
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * If provided, will be merged with machine's `context`.
@@ -158,22 +156,4 @@ export function useService<TContext, TEvent extends EventObject>(
   return [current, service.send, service];
 }
 
-export function useActor<TC, TE extends EventObject>(
-  actor?: Actor<TC, TE>
-): [TC | undefined, Actor<TC, TE>['send']] {
-  const [current, setCurrent] = useState<TC | undefined>(undefined);
-  const actorRef = useRef<Actor<TC, TE> | undefined>(actor);
-
-  useEffect(() => {
-    if (actor) {
-      actorRef.current = actor;
-      const sub = actor.subscribe(setCurrent);
-
-      return () => {
-        sub.unsubscribe();
-      };
-    }
-  }, [actor]);
-
-  return [current, actorRef.current ? actorRef.current.send : () => void 0];
-}
+export { useActor } from './useActor';

@@ -391,6 +391,10 @@
   dependencies:
     "@types/yargs-parser" "*"
 
+"@xstate/fsm@1.0.3":
+  version "1.0.3"
+  resolved "https://registry.yarnpkg.com/@xstate/fsm/-/fsm-1.0.3.tgz#3042aaf09e7dc6a478d6d23e0b8b39855bc4f1ba"
+
 abab@^2.0.0:
   version "2.0.2"
   resolved "https://registry.yarnpkg.com/abab/-/abab-2.0.2.tgz#a2fba1b122c69a85caa02d10f9270c7219709a9d"
@@ -3251,7 +3255,7 @@ xmlchars@^2.1.1:
   version "2.2.0"
   resolved "https://registry.yarnpkg.com/xmlchars/-/xmlchars-2.2.0.tgz#060fe1bcb7f9c76fe2a17db86a9bc3ab894210cb"
 
-xstate@next:
+xstate@^4.7.0-rc1:
   version "4.7.0-rc5"
   resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.7.0-rc5.tgz#e5fdc6b46c67b4997934930d3fc2b678e66a1aff"
 
