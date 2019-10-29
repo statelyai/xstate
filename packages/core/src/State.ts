@@ -278,7 +278,7 @@ export class State<
     parentStateValue: TSV
   ): this is TState extends { value: TSV }
     ? State<TState['context'], TEvent, TStateSchema, TState>
-    : never {
+    : State<TContext, TEvent, TStateSchema, TState> {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 }

@@ -117,7 +117,7 @@ const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
 };
 ```
 
-## Typestates <Badge text="4.7+" />
+## Typestates (coming soon) <Badge text="4.7+" />
 
 Typestates are a concept that narrow down the shape of the overall state `context` based on the state `value`. This can be helpful in preventing impossible states and narrowing down what the `context` should be in a given state, without having to write excessive assertions.
 
