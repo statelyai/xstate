@@ -3,6 +3,7 @@ import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine, createMachine } from './Machine';
+import { Actor } from './Actor';
 import {
   raise,
   send,
@@ -37,6 +38,7 @@ const actions = {
 };
 
 export {
+  Actor,
   Machine,
   StateNode,
   State,
