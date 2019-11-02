@@ -14,7 +14,7 @@ import {
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
-import { interval } from 'rxjs';
+import { interval, from, InteropObservable } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 const lightMachine = Machine({
@@ -1502,10 +1502,30 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       );
     });
 
+    it('should be interoperable with RxJS, etc. via Symbol.observable', done => {
+      let count = 0;
+      const intervalService = interpret(intervalMachine).start();
+
+      expect(() => {
+        const state$ = from(intervalService as InteropObservable<any>);
+
+        state$.subscribe(
+          () => {
+            count += 1;
+          },
+          undefined,
+          () => {
+            expect(count).toEqual(5);
+            done();
+          }
+        );
+      }).not.toThrow();
+    });
+
     it('should be unsubscribable', done => {
-      const context = { count: 0 };
-      const machine = Machine<typeof context>({
-        context,
+      const countContext = { count: 0 };
+      const machine = Machine<typeof countContext>({
+        context: countContext,
         initial: 'active',
         states: {
           active: {

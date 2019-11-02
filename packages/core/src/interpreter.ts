@@ -24,7 +24,8 @@ import {
   MachineOptions,
   ActionFunctionMap,
   SCXML,
-  EventData
+  EventData,
+  Observer
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -43,7 +44,8 @@ import {
   isMachine,
   toEventObject,
   toSCXMLEvent,
-  reportUnhandledExceptionOnInvocation
+  reportUnhandledExceptionOnInvocation,
+  createSymbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -306,27 +308,52 @@ export class Interpreter<
     this.listeners.add(listener);
     return this;
   }
+  public subscribe(observer: Observer<State<TContext, TEvent>>): Unsubscribable;
   public subscribe(
     nextListener?: (state: State<TContext, TEvent>) => void,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
+  ): Unsubscribable;
+  public subscribe(
+    nextListenerOrObserver?:
+      | ((state: State<TContext, TEvent>) => void)
+      | Observer<State<TContext, TEvent>>,
+    // @ts-ignore
+    errorListener?: (error: any) => void,
+    completeListener?: () => void
   ): Unsubscribable {
-    if (nextListener) {
-      this.onTransition(nextListener);
+    if (!nextListenerOrObserver) {
+      return { unsubscribe: () => void 0 };
     }
 
-    if (completeListener) {
-      this.onDone(completeListener);
+    let listener: (state: State<TContext, TEvent>) => void;
+    let resolvedCompleteListener = completeListener;
+
+    if (typeof nextListenerOrObserver === 'function') {
+      listener = nextListenerOrObserver;
+    } else {
+      listener = nextListenerOrObserver.next.bind(nextListenerOrObserver);
+      resolvedCompleteListener = nextListenerOrObserver.complete.bind(
+        nextListenerOrObserver
+      );
+    }
+
+    this.listeners.add(listener);
+
+    if (resolvedCompleteListener) {
+      this.onDone(resolvedCompleteListener);
     }
 
     return {
       unsubscribe: () => {
-        nextListener && this.listeners.delete(nextListener);
-        completeListener && this.doneListeners.delete(completeListener);
+        listener && this.listeners.delete(listener);
+        resolvedCompleteListener &&
+          this.doneListeners.delete(resolvedCompleteListener);
       }
     };
   }
+
   /**
    * Adds an event listener that is notified whenever an event is sent to the running interpreter.
    * @param listener The event listener
@@ -1148,6 +1175,14 @@ export class Interpreter<
     return {
       id: this.id
     };
+  }
+
+  public [createSymbolObservable()]() {
+    return this;
+  }
+
+  public [Symbol.observable]() {
+    return this;
   }
 }
 

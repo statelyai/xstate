@@ -1116,3 +1116,9 @@ export interface Subscribable<T> {
     complete?: () => void
   ): Unsubscribable;
 }
+
+export interface Observer<T> {
+  next: (value: T) => void;
+  error: (err: any) => void;
+  complete: () => void;
+}

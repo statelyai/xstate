@@ -1,37 +1,17 @@
 # Usage with RxJS
 
-The [interpreted machine](../guides/interpretation.md) (i.e., `service`) can be used as an event emitter. With RxJS, the `fromEventPattern()` Observable creator can be used to turn the `service` into an observable stream of `currentState` objects:
+The [interpreted machine](../guides/interpretation.md) (i.e., `service`) is subscribable.
 
 ```js
 import { Machine, interpret } from 'xstate';
-import { fromEventPattern, merge } from 'rxjs';
+import { from } from 'rxjs';
 
-const machine = Machine({
-  /* machine definition */
-});
+const machine = Machine(/* ... */);
+const service = interpret(machine).start();
 
-const service = interpret(machine);
-
-const state$ = fromEventPattern(
-  handler => {
-    service
-      // Listen for state transitions
-      .onTransition(handler)
-      // Start the service
-      .start();
-
-    return service;
-  },
-  (handler, service) => service.stop()
-);
-
-// observable stream of events from various sources
-const event$ = merge(/* ... */);
+const state$ = from(service);
 
 state$.subscribe(state => {
-  // Logs the current state
-  console.log(state);
+  // ...
 });
-
-event$.subscribe(event => service.send(event));
 ```

@@ -520,6 +520,24 @@ export function isObservable<T>(
   }
 }
 
+export function createSymbolObservable(): symbol | string {
+  let result;
+
+  if (typeof Symbol === 'function') {
+    if (Symbol.observable) {
+      result = Symbol.observable;
+    } else {
+      result = Symbol('observable');
+      // @ts-ignore
+      Symbol.observable = result;
+    }
+  } else {
+    result = '@@observable';
+  }
+
+  return result;
+}
+
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {
     return '__xstatenode' in value;
