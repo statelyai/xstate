@@ -3,10 +3,12 @@ import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine, createMachine } from './Machine';
+import { Actor } from './Actor';
 import {
   raise,
   send,
   sendParent,
+  sendUpdate,
   log,
   cancel,
   start,
@@ -24,6 +26,7 @@ const actions = {
   raise,
   send,
   sendParent,
+  sendUpdate,
   log,
   cancel,
   start,
@@ -35,6 +38,7 @@ const actions = {
 };
 
 export {
+  Actor,
   Machine,
   StateNode,
   State,
@@ -44,6 +48,7 @@ export {
   assign,
   send,
   sendParent,
+  sendUpdate,
   interpret,
   Interpreter,
   matchState,
