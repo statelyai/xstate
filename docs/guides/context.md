@@ -243,7 +243,7 @@ const counterMachine = Machine({
               count: context => context.count + 1,
               prevCount: context => context.count
             }), // count === 1, prevCount === 0
-            assign({ count: context => context + 1 }), // count === 2
+            assign({ count: context => context.count + 1 }), // count === 2
             context => console.log(`After: ${context.count}`)
           ]
         }
