@@ -170,7 +170,7 @@ export function resolveRaise<TEvent extends EventObject>(
  * @param options Options to pass into the send event:
  *  - `id` - The unique send event identifier (used with `cancel()`).
  *  - `delay` - The number of milliseconds to delay the sending of the event.
- *  - `target` - The target of this event (by default, the machine the event was sent from).
+ *  - `to` - The target of this event (by default, the machine the event was sent from).
  */
 export function send<TContext, TEvent extends EventObject>(
   event: Event<TEvent> | SendExpr<TContext, TEvent>,
