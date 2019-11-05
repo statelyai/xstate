@@ -9,6 +9,9 @@
   "references": [
     {
       "path": "../core"
+    },
+    {
+      "path": "../xstate-fsm"
     }
   ]
 }
