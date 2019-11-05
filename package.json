@@ -9,6 +9,7 @@
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
+    "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest",
     "test:core": "npm test --prefix packages/core",

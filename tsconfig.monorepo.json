@@ -5,6 +5,9 @@
       "path": "./packages/core"
     },
     {
+      "path": "./packages/xstate-analytics"
+    },
+    {
       "path": "./packages/xstate-fsm"
     },
     {
