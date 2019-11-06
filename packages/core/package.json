@@ -6,6 +6,10 @@
   "module": "es/index.js",
   "types": "lib/index.d.ts",
   "sideEffects": false,
+  "funding": {
+    "type": "opencollective",
+    "url": "https://opencollective.com/xstate"
+  },
   "files": [
     "dist",
     "lib/**/*.js",
