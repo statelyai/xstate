@@ -42,7 +42,7 @@
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.0.2",
     "typescript": "^3.6.2",
-    "xstate": "^4.7.0-rc1"
+    "xstate": "next"
   },
   "dependencies": {}
 }
