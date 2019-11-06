@@ -2,6 +2,15 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.8.1]
+
+- Services are now kept up to date
+
+## [0.8.0]
+
+- The `useActor()` hook is now available.
+- Support for persisted states
+
 ## [0.7.1]
 
 - Actions passed into `useMachine(..., { actions: { ... } })` will now be kept up-to-date and no longer reference stale data.

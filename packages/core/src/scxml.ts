@@ -302,12 +302,30 @@ function toConfig(
         ...(value.elements ? executableContent(value.elements) : undefined),
         ...(value.attributes && value.attributes.cond
           ? {
-              cond: (context, _event, meta) => {
-                const fnBody = `
-                      return ${value.attributes!.cond as string};
-                    `;
+              cond: () => {
+                try {
+                  // @ts-ignore
+                  // tslint:disable-next-line:no-eval
+                  const expr = eval(value.attributes!.cond);
+                  if (typeof expr === 'function') {
+                    return expr;
+                  }
+                } catch (e) {
+                  // glup
+                }
 
-                return evaluateExecutableContent(context, _event, meta, fnBody);
+                return (context, _event, meta) => {
+                  const fnBody = `
+                        return ${value.attributes!.cond as string};
+                      `;
+
+                  return evaluateExecutableContent(
+                    context,
+                    _event,
+                    meta,
+                    fnBody
+                  );
+                };
               }
             }
           : undefined),
