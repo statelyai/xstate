@@ -2,6 +2,7 @@ import { Machine, assign } from 'xstate';
 import { log } from 'xstate/lib/actions';
 
 export default Machine<any>({
+  initial: 'a',
   context: {
     i: undefined
   },

@@ -28,7 +28,10 @@ async function runTestToCompletion(
   const resolvedStateValue = machine.resolve(stateValue);
 
   let done = false;
-  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
+  let nextState: State<any> = machine.getInitialState(
+    resolvedStateValue,
+    machine.initialState.context
+  );
 
   const service = interpret(machine, {
     clock: new SimulatedClock()
@@ -42,7 +45,7 @@ async function runTestToCompletion(
     .start(nextState);
 
   // @ts-ignore
-  service._state = nextState;
+  // service._state = nextState;
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
@@ -80,8 +83,12 @@ const testGroups = {
     'send9'
   ],
   assign: [
-    // 'assign_obj_literal',
-    // 'assign_invalid'
+    'assign_obj_literal'
+    // 'assign_invalid', // TODO: error handling for assign()
+  ],
+  'assign-current-small-step': [
+    'test0'
+    // 'test1',
   ]
 };
 
@@ -91,9 +98,9 @@ describe('scxml', () => {
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
-      const scxmlDefinition = toSCXML(
-        require(`./fixtures/${testGroupName}/${testName}`).default
-      );
+      const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
+        .default;
+      const scxmlDefinition = toSCXML(originalMachine);
 
       const scxmlTest = JSON.parse(
         fs.readFileSync(
@@ -106,42 +113,46 @@ describe('scxml', () => {
         )
       ) as SCIONTest;
 
+      it(`${testGroupName}/${testName} (sanity)`, async () => {
+        await runTestToCompletion(originalMachine, scxmlTest);
+      });
+
       it(`${testGroupName}/${testName}`, async () => {
         const machine = toMachine(scxmlDefinition, {
           delimiter: '$'
         });
 
         await runTestToCompletion(machine, scxmlTest);
-      });
+      }, 2000);
     });
   });
 });
 
-xdescribe('toSCXML', () => {
-  const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
+// xdescribe('toSCXML', () => {
+//   const testGroupKeys = Object.keys(testGroups);
+//   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
-  testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
-      const scxmlSource = `@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
-      const scxmlDefinition = fs.readFileSync(require.resolve(scxmlSource), {
-        encoding: 'utf-8'
-      });
+//   testGroupKeys.forEach(testGroupName => {
+//     testGroups[testGroupName].forEach(testName => {
+//       const scxmlSource = `@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
+//       const scxmlDefinition = fs.readFileSync(require.resolve(scxmlSource), {
+//         encoding: 'utf-8'
+//       });
 
-      const machine = require(`./fixtures/${testGroupName}/${testName}`)
-        .default;
+//       const machine = require(`./fixtures/${testGroupName}/${testName}`)
+//         .default;
 
-      it(`${testGroupName}/${testName}`, () => {
-        expect(xml2js(toSCXML(machine))).toEqual(
-          xml2js(scxmlDefinition, {
-            ignoreComment: true,
-            ignoreDeclaration: true
-          })
-        );
-      });
-    });
-  });
-});
+//       it(`${testGroupName}/${testName}`, () => {
+//         expect(xml2js(toSCXML(machine))).toEqual(
+//           xml2js(scxmlDefinition, {
+//             ignoreComment: true,
+//             ignoreDeclaration: true
+//           })
+//         );
+//       });
+//     });
+//   });
+// });
 
 const pedestrianStates = {
   initial: 'walk',

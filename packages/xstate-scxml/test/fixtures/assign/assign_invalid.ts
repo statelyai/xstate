@@ -1,5 +1,5 @@
 import { Machine, assign } from 'xstate';
-import { log, raise } from 'xstate/lib/actions';
+import { log } from 'xstate/lib/actions';
 
 export default Machine<any>({
   initial: 'uber',
@@ -20,7 +20,6 @@ export default Machine<any>({
         s1: {
           entry: [
             log('Starting session', 'TEST'),
-            // raise('error.execution'),
             assign({
               // tslint:disable-next-line:no-eval
               o1: () => eval('{p1: "v1"')

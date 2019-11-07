@@ -20,7 +20,7 @@ function cleanAttributes(attributes: Attributes): Attributes {
 
 // tslint:disable-next-line:ban-types
 export function functionToExpr(fn: Function): string {
-  return `_x.eval(${fn.toString()})`;
+  return fn.toString();
 }
 
 function actionToSCXML(action: ActionObject<any, any>): XMLElement {

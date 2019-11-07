@@ -1,6 +1,7 @@
 import { Machine, assign } from 'xstate';
 
 export default Machine<any>({
+  initial: 'a',
   context: {
     x: undefined
   },
