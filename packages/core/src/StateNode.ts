@@ -1057,7 +1057,7 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent>,
+    state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TState> {

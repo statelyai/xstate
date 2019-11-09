@@ -139,6 +139,18 @@ describe('deterministic machine', () => {
     it('should throw an error for transitions from invalid substates', () => {
       expect(() => testMachine.transition('a.fake', 'T')).toThrow();
     });
+
+    it('should use the machine.initialState when an undefined state is given', () => {
+      expect(lightMachine.transition(undefined, 'TIMER').value).toEqual(
+        'yellow'
+      );
+    });
+
+    it('should use the machine.initialState when an undefined state is given (unhandled event)', () => {
+      expect(lightMachine.transition(undefined, 'TIMER').value).toEqual(
+        'yellow'
+      );
+    });
   });
 
   describe('machine.transition() with nested states', () => {
