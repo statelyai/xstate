@@ -665,7 +665,7 @@ class StateNode<
   public handles(event: Event<TEvent>): boolean {
     const eventType = getEventType<TEvent>(event);
 
-    return this.events.indexOf(eventType) !== -1;
+    return this.events.includes(eventType);
   }
 
   /**
@@ -1085,10 +1085,7 @@ class StateNode<
     }
 
     if (this.strict) {
-      if (
-        this.events.indexOf(_event.name) === -1 &&
-        !isBuiltInEvent(_event.name)
-      ) {
+      if (!this.events.includes(_event.name) && !isBuiltInEvent(_event.name)) {
         throw new Error(
           `Machine '${this.id}' does not accept event '${_event.name}'`
         );

@@ -325,8 +325,8 @@ function toConfig(
 
     const invoke = invokeElements.map(element => {
       if (
-        ['scxml', 'http://www.w3.org/TR/scxml/'].indexOf(element.attributes!
-          .type as string) === -1
+        !['scxml', 'http://www.w3.org/TR/scxml/'].includes(element.attributes!
+          .type as string)
       ) {
         throw new Error(
           'Currently only converting invoke elements of type SCXML is supported.'
