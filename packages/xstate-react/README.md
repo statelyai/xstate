@@ -288,7 +288,7 @@ You can persist and rehydrate state with `useMachine(...)` via `options.state`:
 // ...
 
 // Get the persisted state config object from somewhere, e.g. localStorage
-const persistedState = JSON.parse(localStorage.get('some-persisted-state-key'));
+const persistedState = JSON.parse(localStorage.getItem('some-persisted-state-key'));
 
 const App = () => {
   const [current, send] = useMachine(someMachine, {

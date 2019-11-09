@@ -6,7 +6,7 @@ There are many developers and teams using XState [in the wild](https://github.co
 - The [Service Workies game](https://serviceworkies.com/) has many levels whose flows are controlled by XState.
   - https://twitter.com/geddski/status/1090404900318502912
 - "At [bridge21.com](https://bridge21.com) we are re-writing our site using XState 3 and react-automata. It's a game changer.
-- [KongHQ](konghq.com/products/kong-manager) has it "...deployed to production in Kong to handle form states (error, loading, modal, fetch machines etc.) [in our Vue app](konghq.com/products/kong-manager)"
+- [KongHQ](https://konghq.com/products/kong-manager) has it "...deployed to production in Kong to handle form states (error, loading, modal, fetch machines etc.) [in our Vue app](https://konghq.com/products/kong-manager)"
 - "Using XState 4 extensively in [4D Healthware](https://www.4dhealthware.com/)'s frontend app.
 - "We are using XState at [Meru Health](https://www.meruhealth.com/) in our React Native app for managing many interactions.
   - There is also a relevant [presentation of using XState at React Helsinki](https://www.facebook.com/fraktio/videos/780228525664779/?t=4263)

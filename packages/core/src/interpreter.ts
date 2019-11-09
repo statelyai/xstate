@@ -212,7 +212,7 @@ export class Interpreter<
       sessionId !== undefined ? sessionId : registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
-    return this.machine.initialState;
+    return withServiceScope(this, () => this.machine.initialState);
   }
   public get state(): State<TContext, TEvent> {
     if (!IS_PRODUCTION) {
@@ -1186,8 +1186,8 @@ export class Interpreter<
   }
 }
 
-export type Spawnable<TContext> =
-  | StateMachine<TContext, any, any>
+export type Spawnable<TContext, TEvent extends EventObject = EventObject> =
+  | StateMachine<TContext, any, TEvent>
   | Promise<TContext>
   | InvokeCallback
   | Subscribable<TContext>;
@@ -1214,18 +1214,18 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
-export function spawn<TContext>(
-  entity: StateMachine<TContext, any, any>,
+export function spawn<TContext, TEvent extends EventObject = EventObject>(
+  entity: StateMachine<TContext, any, TEvent>,
   nameOrOptions?: string | SpawnOptions
-): Interpreter<TContext>;
+): Interpreter<TContext, any, TEvent>;
 export function spawn<TContext>(
   entity: Exclude<Spawnable<TContext>, StateMachine<any, any, any>>,
   nameOrOptions?: string | SpawnOptions
 ): Actor<TContext>;
-export function spawn<TContext>(
-  entity: Spawnable<TContext>,
+export function spawn<TContext, TEvent extends EventObject = EventObject>(
+  entity: Spawnable<TContext, TEvent>,
   nameOrOptions?: string | SpawnOptions
-) {
+): Actor<TContext, TEvent> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, service => {
