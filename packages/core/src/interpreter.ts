@@ -212,7 +212,7 @@ export class Interpreter<
       sessionId !== undefined ? sessionId : registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
-    return this.machine.initialState;
+    return withServiceScope(this, () => this.machine.initialState);
   }
   public get state(): State<TContext, TEvent> {
     if (!IS_PRODUCTION) {
