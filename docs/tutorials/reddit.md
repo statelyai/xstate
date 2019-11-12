@@ -537,4 +537,18 @@ The differences between using the actor model above and just using machines with
 - The UI framework layer (e.g., React) becomes a plain view layer; logic and side-effects are not tied directly to the UI, except where it is appropriate.
 - The `redditMachine` → `subredditMachine` actor hierarchy is "self-sustaining", and allows for the logic to be transferred to any UI framework, or even no framework at all!
 
+## React Demo
+
 <iframe src="https://codesandbox.io/embed/xstate-react-reddit-example-with-actors-5g9nu?fontsize=14" title="XState React Reddit Example with Actors" allow="geolocation; microphone; camera; midi; vr; accelerometer; gyroscope; payment; ambient-light-sensor; encrypted-media; usb" style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;" sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"></iframe>
+
+## Vue Demo
+
+Unsurprisingly, the same machines can be used in a Vue app that exhibits the exact same behavior (thanks to [Chris Hannaby](https://github.com/chrishannaby)):
+
+<iframe
+  src="https://codesandbox.io/embed/xstate-vue-reddit-example-with-actors-uvu14?fontsize=14"
+  style="width:100%; height:500px; border:0; border-radius: 4px; overflow:hidden;"
+  title="XState Vue Reddit Example with Actors"
+  allow="geolocation; microphone; camera; midi; vr; accelerometer; gyroscope; payment; ambient-light-sensor; encrypted-media; usb"
+  sandbox="allow-modals allow-forms allow-popups allow-scripts allow-same-origin"
+></iframe>
