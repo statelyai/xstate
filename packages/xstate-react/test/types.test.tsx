@@ -24,7 +24,7 @@ describe('useService', () => {
           }
         },
         done: {
-          entry: assign({ completed: true })
+          entry: assign<TodoCtx>({ completed: true })
         }
       }
     });
