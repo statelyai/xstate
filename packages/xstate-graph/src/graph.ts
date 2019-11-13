@@ -435,6 +435,9 @@ export function getAlternatePaths<
       if (!pathState.matches(finalState)) {
         return;
       }
+      if (pathState === undefined) {
+        throw Error('empty pathState' + JSON.stringify(path));
+      }
       if (!result[path.lastState]) {
         result[path.lastState] = { paths: [], state: pathState };
       }

@@ -224,15 +224,22 @@ describe('@xstate/graph', () => {
       expect(paths).toMatchSnapshot('alternate paths');
     });
     it('should return a mapping of arrays of paths to target state with max revisits', () => {
-      const finalState = '"red"';
-      const paths = getAlternatePaths(lightMachine, finalState, {
+      const alternatePaths = getAlternatePaths(lightMachine, 'red', {
         maxRevisits: 2
-      })[finalState].paths.map(p => ({
-        segments: p.segments.map(s => ({
-          event: s.event,
-          state: s.state.value
-        }))
-      }));
+      });
+      const paths = {};
+
+      for (const a in alternatePaths) {
+        if (!alternatePaths.hasOwnProperty(a)) {
+          continue;
+        }
+        paths[a] = alternatePaths[a].paths.map(p => ({
+          segments: p.segments.map(s => ({
+            event: s.event,
+            state: s.state.value
+          }))
+        }));
+      }
 
       expect(paths).toMatchSnapshot('alternate paths');
     });
