@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "0.8.1",
+  "version": "1.0.0-rc.0",
   "description": "XState tools for React",
   "keywords": [
     "state",
