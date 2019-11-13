@@ -304,7 +304,8 @@ const createSubredditMachine = subreddit => {
               posts: (_, event) => event.data,
               lastUpdated: () => Date.now()
             })
-          }
+          },
+          onError: 'failure'
         }
       },
       loaded: {
