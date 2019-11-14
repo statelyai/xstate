@@ -88,9 +88,9 @@ const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
  * @private
  */
 const withServiceScope = (() => {
-  const serviceStack = [] as Array<Interpreter<any, any>>;
+  const serviceStack = [] as Array<Interpreter<any, any, any>>;
 
-  return <T, TService extends Interpreter<any, any>>(
+  return <T, TService extends Interpreter<any, any, any>>(
     service: TService | undefined,
     fn: (service: TService) => T
   ) => {
@@ -442,7 +442,7 @@ export class Interpreter<
       return initialState === undefined
         ? this.machine.initialState
         : isState(initialState)
-        ? this.machine.resolveState(initialState)
+        ? this.machine.resolveState(initialState as State<TContext, TEvent>)
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
           );

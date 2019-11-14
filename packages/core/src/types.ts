@@ -68,7 +68,9 @@ export type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
-  | AssignAction<Required<TContext>, TEvent>;
+  | AssignAction<Required<TContext>, TEvent>
+  | SendAction<TContext, TEvent>
+  | RaiseAction<TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -134,9 +136,10 @@ export type Condition<TContext, TEvent extends EventObject> =
   | ConditionPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
 
-export type TransitionTarget<TContext> = SingleOrArray<
-  string | StateNode<TContext, any>
->;
+export type TransitionTarget<
+  TContext,
+  TEvent extends EventObject
+> = SingleOrArray<string | StateNode<TContext, any, TEvent>>;
 
 export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
@@ -147,13 +150,13 @@ export interface TransitionConfig<TContext, TEvent extends EventObject> {
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
-  target?: TransitionTarget<TContext>;
+  target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
 }
 
 export interface TargetTransitionConfig<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: TransitionTarget<TContext>; // TODO: just make this non-optional
+  target: TransitionTarget<TContext, TEvent>; // TODO: just make this non-optional
 }
 
 export type ConditionalTransitionConfig<
@@ -670,9 +673,9 @@ export interface ActivityMap {
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext>>;
-  entrySet: Array<StateNode<TContext>>;
-  exitSet: Array<StateNode<TContext>>;
+  configuration: Array<StateNode<TContext, any, TEvent>>;
+  entrySet: Array<StateNode<TContext, any, TEvent>>;
+  exitSet: Array<StateNode<TContext, any, TEvent>>;
   /**
    * The source state that preceded the transition.
    */
@@ -884,7 +887,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: Array<StateNode<TContext>> | undefined;
+  target: Array<StateNode<TContext, any, TEvent>> | undefined;
   source: StateNode<TContext, any, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
@@ -999,7 +1002,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];
-  configuration: Array<StateNode<TContext>>;
+  configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, Actor>;
 }

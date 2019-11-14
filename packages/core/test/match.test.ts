@@ -338,6 +338,8 @@ describe('matches() method', () => {
 
       // never called - it's okay if the name is undefined
       expect(name).toBeTruthy();
+    } else if (init.matches('loading')) {
+      expect(init).toBeTruthy();
     }
   });
 });

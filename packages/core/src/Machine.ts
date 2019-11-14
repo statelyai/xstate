@@ -11,7 +11,7 @@ import {
 import { StateNode } from './StateNode';
 
 export function Machine<
-  TContext = any,
+  TContext = unknown,
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,

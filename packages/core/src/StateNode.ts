@@ -357,7 +357,7 @@ class StateNode<
       }
     }
 
-    dfs(this);
+    dfs(this as StateNode);
 
     // History config
     this.history =
@@ -797,7 +797,7 @@ class StateNode<
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-    let nextStateNodes: Array<StateNode<TContext>> = [];
+    let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     for (const candidate of this.getCandidates(eventName)) {
@@ -879,14 +879,14 @@ class StateNode<
   }
 
   private nodesFromChild(
-    childStateNode: StateNode<TContext>
-  ): Array<StateNode<TContext>> {
+    childStateNode: StateNode<TContext, any, TEvent>
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (childStateNode.escapes(this)) {
       return [];
     }
 
-    const nodes: Array<StateNode<TContext>> = [];
-    let marker: StateNode<TContext> | undefined = childStateNode;
+    const nodes: Array<StateNode<TContext, any, TEvent>> = [];
+    let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
 
     while (marker && marker !== this) {
       nodes.push(marker);
@@ -901,7 +901,7 @@ class StateNode<
    * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
    * this state node, it does not escape.
    */
-  private escapes(stateNode: StateNode): boolean {
+  private escapes(stateNode: StateNode<TContext, any, TEvent>): boolean {
     if (this === stateNode) {
       return false;
     }
@@ -1631,10 +1631,10 @@ class StateNode<
    * @param resolve Whether state nodes should resolve to initial child state nodes
    */
   public getRelativeStateNodes(
-    relativeStateId: StateNode<TContext>,
+    relativeStateId: StateNode<TContext, any, TEvent>,
     historyValue?: HistoryValue,
     resolve: boolean = true
-  ): Array<StateNode<TContext>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     return resolve
       ? relativeStateId.type === 'history'
         ? relativeStateId.resolveHistory(historyValue)
@@ -1828,8 +1828,8 @@ class StateNode<
     return Array.from(events);
   }
   private resolveTarget(
-    _target: Array<string | StateNode<TContext>> | undefined
-  ): Array<StateNode<TContext>> | undefined {
+    _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
+  ): Array<StateNode<TContext, any, TEvent>> | undefined {
     if (_target === undefined) {
       // an undefined target signals that the state node should not transition from that state when receiving that event
       return undefined;

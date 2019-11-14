@@ -77,7 +77,7 @@ const counterMachine = Machine<CounterContext>({
         SET_MAYBE: [
           {
             actions: [
-              assign({
+              assign<CounterContext>({
                 maybe: 'defined'
               })
             ]

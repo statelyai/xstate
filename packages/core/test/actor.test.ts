@@ -114,7 +114,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: () => spawn(serverMachine)
+            server: () => spawn(serverMachine) as Actor
           }),
           raise('SUCCESS')
         ],
@@ -429,7 +429,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref: undefined | Actor }>({
+    const nullActorMachine = Machine<{ ref?: Actor }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -502,7 +502,8 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign((): { serverRef: Actor } => ({
+            entry: assign(ctx => ({
+              ...ctx,
               serverRef: spawn(pongActorMachine, { autoForward: false })
             })),
             on: {
@@ -660,7 +661,7 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign({
-              ref: () => spawn(syncChildMachine, { sync: true })
+              ref: () => spawn(syncChildMachine, { sync: true }) as Actor
             })
           }
         }
@@ -705,7 +706,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption)
+                ref: () => spawn(syncChildMachine, falseSyncOption) as Actor
               })
             }
           }
@@ -757,7 +758,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption)
+                ref: () => spawn(syncChildMachine, falseSyncOption) as Actor
               })
             }
           }
