@@ -53,7 +53,7 @@
     "spawn-command": "0.0.2-1",
     "ts-jest": "^24.1.0",
     "tslint": "^5.11.0",
-    "typedoc": "^0.15.0",
+    "typedoc": "^0.15.1",
     "typescript": "^3.6.4",
     "vuepress": "^1.2.0",
     "vuepress-plugin-export": "^0.2.0",
