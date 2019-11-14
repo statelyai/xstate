@@ -274,22 +274,6 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  // public matches<
-  //   TSV extends TState['value'],
-  //   TT extends TState extends { value: TSV } ? TState : never
-  // >(
-  //   parentStateValue: TSV
-  // ): this is State<
-  //   TT extends never ? TContext : TState['context'],
-  //   // (TState & { value: TSV })['context'],
-  //   TEvent,
-  //   // @ts-ignore
-  //   TStateSchema,
-  //   TState
-  // > {
-  //   return matchesState(parentStateValue as StateValue, this.value);
-  // }
-
   public matches<TSV extends TState['value']>(
     parentStateValue: TSV
   ): this is TState extends { value: TSV }
