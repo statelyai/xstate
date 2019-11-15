@@ -20,7 +20,7 @@
     "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && cd docs && vuepress dev .",
     "docs:pdf": "npm run docs:build && cd docs && vuepress export .",
-    "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md",
+    "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md && cpy 'packages/*/docs/*.md' docs --parents",
     "docs:build": "npm run docs:readme && npm run docs:packages && cd docs && vuepress build .",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
   },
