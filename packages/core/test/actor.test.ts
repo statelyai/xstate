@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, Interpreter } from '../src';
+import { Machine, spawn, interpret } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
+import { Actor, ServiceActor } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -652,7 +652,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Actor;
+        ref?: ServiceActor<any, any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -660,8 +660,8 @@ describe('actors', () => {
         context: {},
         states: {
           same: {
-            entry: assign({
-              ref: () => spawn(syncChildMachine, { sync: true }) as Actor
+            entry: assign<SyncMachineContext>({
+              ref: () => spawn(syncChildMachine, { sync: true })
             })
           }
         }
@@ -671,7 +671,7 @@ describe('actors', () => {
         .onTransition(state => {
           if (
             state.context.ref &&
-            (state.context.ref as Interpreter<any>).state.matches('inactive')
+            state.context.ref.state.matches('inactive')
           ) {
             expect(state.changed).toBe(true);
             done();
@@ -697,7 +697,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor;
+          ref?: ServiceActor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -706,7 +706,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption) as Actor
+                ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
           }
@@ -716,7 +716,7 @@ describe('actors', () => {
           .onTransition(state => {
             if (
               state.context.ref &&
-              (state.context.ref as Interpreter<any>).state.matches('inactive')
+              state.context.ref.state.matches('inactive')
             ) {
               expect(state.changed).toBe(false);
             }
@@ -724,11 +724,9 @@ describe('actors', () => {
           .start();
 
         setTimeout(() => {
-          expect(
-            (service.state.context.ref! as Interpreter<any>).state.matches(
-              'inactive'
-            )
-          ).toBe(true);
+          expect(service.state.context.ref!.state.matches('inactive')).toBe(
+            true
+          );
           done();
         }, 20);
       });
@@ -749,7 +747,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor;
+          ref?: ServiceActor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -758,7 +756,7 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption) as Actor
+                ref: () => spawn(syncChildMachine, falseSyncOption)
               })
             }
           }
@@ -768,7 +766,7 @@ describe('actors', () => {
           .onTransition(state => {
             if (
               state.context.ref &&
-              (state.context.ref as Interpreter<any>).state.matches('inactive')
+              state.context.ref.state.matches('inactive')
             ) {
               expect(state.changed).toBe(true);
               done();
