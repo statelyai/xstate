@@ -152,11 +152,6 @@ Object syntax:
 
 ### Action config
 
-String syntax:
-
-- (string) - the action type.
-  - Resolves to `{ type: actionType, exec: undefined }`
-
 Function syntax:
 
 - (function) - the action function to execute. Resolves to `{ type: actionFn.name, exec: actionFn }` and the function takes the following arguments:
@@ -167,6 +162,28 @@ Object syntax:
 
 - `type` (string) - the action type.
 - `exec?` (function) - the action function to execute.
+
+String syntax:
+
+- (string) - the action type.
+  - Resolves to `{ type: actionType, exec: undefined }`
+
+<details>
+  <summary>Why use a string or object for defining actions?</summary>
+
+Using the string or object syntax is useful for handling actions in a custom way, rather than baking in the implementation details to your machine:
+
+```js
+const nextState = machine.transition(/* ... */);
+
+nextState.actions.forEach(action => {
+  if (action.type === 'focus') {
+    // do focus
+  }
+});
+```
+
+</details>
 
 ### `machine.initialState`
 
