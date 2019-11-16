@@ -81,7 +81,7 @@ const fetchMachine = Machine({
 
 <iframe src="https://xstate.js.org/viz/?gist=932f6d193fa9d51afe31b236acf291c9&embed=1"></iframe>
 
-## State node types
+## State Node Types
 
 There are five different kinds of state nodes:
 
@@ -166,7 +166,7 @@ const machine = Machine({
 
 Explicitly specifying the `type` as `'atomic'`, `'compound'`, `'parallel'`, `'history'`, or `'final'` is helpful with regard to analysis and type-checking in TypeScript. However, it is only required for parallel, history, and final states.
 
-## Transient state nodes
+## Transient State Nodes
 
 A transient state node is a "pass-through" state node that immediately transitions to another state node; that is, a machine does not stay in a transient state. Transient state nodes are useful for determining which state the machine should really go to from a previous state based on conditions. They are most similar to [choice pseudostates](https://www.uml-diagrams.org/state-machine-diagrams.html#choice-pseudostate) in UML.
 
@@ -212,3 +212,62 @@ const timeOfDayService = interpret(timeOfDayMachine
 ```
 
 <iframe src="https://xstate.js.org/viz/?gist=ca6a3f84f585c3e9cd6aadc3ae00b886&embed=1"></iframe>
+
+## State Node Meta Data
+
+Meta data, which is static data that describes relevant properties of any [state node](./statenodes.md), can be specified on the `.meta` property of the state node:
+
+```js {17-19,22-24,30-32,35-37,40-42}
+const fetchMachine = Machine({
+  id: 'fetch',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { FETCH: 'loading' }
+    },
+    loading: {
+      after: {
+        3000: 'failure.timeout'
+      },
+      on: {
+        RESOLVE: 'success',
+        REJECT: 'failure',
+        TIMEOUT: 'failure.timeout' // manual timeout
+      },
+      meta: {
+        message: 'Loading...'
+      }
+    },
+    success: {
+      meta: {
+        message: 'The request succeeded!'
+      }
+    },
+    failure: {
+      initial: 'rejection',
+      states: {
+        rejection: {
+          meta: {
+            message: 'The request failed.'
+          }
+        },
+        timeout: {
+          meta: {
+            message: 'The request timed out.'
+          }
+        }
+      },
+      meta: {
+        alert: 'Uh oh.'
+      }
+    }
+  }
+});
+```
+
+The current state of the machine collects the `.meta` data of all of the state nodes represented by the state value, and places them on an object where:
+
+- The keys are the [state node IDs](./ids.md)
+- The values are the state node `.meta` values
+
+See [state meta data](./states.md#state-meta-data) for usage and more information.
