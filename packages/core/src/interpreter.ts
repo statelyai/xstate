@@ -584,15 +584,16 @@ export class Interpreter<
 
     this.scheduler.schedule(() => {
       let nextState = this.state;
+      let batchChanged = false;
       for (const event of events) {
-        const { changed } = nextState;
         const _event = toSCXMLEvent(event);
         const actions = nextState.actions.map(a =>
           bindActionToState(a, nextState)
         ) as Array<ActionObject<TContext, TEvent>>;
         nextState = this.machine.transition(nextState, _event);
         nextState.actions.unshift(...actions);
-        nextState.changed = nextState.changed || !!changed;
+        batchChanged = nextState.changed || !!batchChanged;
+        nextState.changed = batchChanged;
 
         this.forward(_event);
       }

@@ -909,6 +909,20 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       }
     });
 
+    const countMachineNoActions = Machine<{ count: number }>({
+      id: 'count',
+      initial: 'even',
+      context: { count: 0 },
+      states: {
+        even: {
+          on: { ODD: 'odd' }
+        },
+        odd: {
+          on: { EVEN: 'even' }
+        }
+      }
+    });
+
     it('should batch send events', done => {
       let transitions = 0;
       const evenCounts: number[] = [];
@@ -978,7 +992,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const countService = interpret(countMachine)
         .onTransition(state => {
           transitions++;
-
           if (transitions === 2) {
             expect(state.changed).toBe(false);
             done();
@@ -987,6 +1000,40 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         .start();
 
       countService.send(['foo', 'bar']);
+    });
+
+    it('state changed property should be true if a subsequent send call changes the state', done => {
+      let transitions = 0;
+
+      const countService = interpret(countMachineNoActions)
+        .onTransition(state => {
+          transitions++;
+          if (transitions === 3) {
+            expect(state.changed).toBe(true);
+            done();
+          }
+        })
+        .start();
+
+      countService.send(['ODD']);
+      countService.send(['EVEN']);
+    });
+
+    it('state changed property should be false if a subsequent send call did not actually change the state', done => {
+      let transitions = 0;
+
+      const countService = interpret(countMachineNoActions)
+        .onTransition(state => {
+          transitions++;
+          if (transitions === 3) {
+            expect(state.changed).toBe(false);
+            done();
+          }
+        })
+        .start();
+
+      countService.send(['ODD']);
+      countService.send(['ODD']);
     });
   });
 
