@@ -80,19 +80,21 @@ export function createMachine<
           );
         }
       }
+  
+      const transitionFailure = {
+        value,
+        context,
+        actions: [],
+        changed: false,
+        matches: createMatcher(value)
+      };
 
       if (stateConfig.on) {
         const transitions = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return {
-              value,
-              context,
-              actions: [],
-              changed: false,
-              matches: createMatcher(value)
-            };
+            return transitionFailure
           }
 
           const { target, actions = [], cond = () => true } =
@@ -145,13 +147,7 @@ export function createMachine<
       }
 
       // No transitions match
-      return {
-        value,
-        context,
-        actions: [],
-        changed: false,
-        matches: createMatcher(value)
-      };
+      return transitionFailure
     }
   };
 }
