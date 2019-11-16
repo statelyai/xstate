@@ -44,7 +44,9 @@ export function stateValuesEqual(
   );
 }
 
-export function isState(state: object | string): state is State<any> {
+export function isState<TContext, TEvent extends EventObject>(
+  state: object | string
+): state is State<TContext, TEvent> {
   if (isString(state)) {
     return false;
   }

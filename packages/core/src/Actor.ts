@@ -16,6 +16,7 @@ export interface Actor<
     id: string;
   };
   meta?: InvokeDefinition<TContext, TEvent>;
+  state?: any;
 }
 
 export function createNullActor(id: string): Actor {

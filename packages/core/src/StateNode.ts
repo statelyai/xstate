@@ -349,7 +349,7 @@ class StateNode<
     // Document order
     let order = 0;
 
-    function dfs(stateNode: StateNode): void {
+    function dfs(stateNode: StateNode<TContext, any, TEvent>): void {
       stateNode.order = order++;
 
       for (const child of getChildren(stateNode)) {
@@ -357,7 +357,7 @@ class StateNode<
       }
     }
 
-    dfs(this as StateNode);
+    dfs(this);
 
     // History config
     this.history =
