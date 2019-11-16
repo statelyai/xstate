@@ -69,5 +69,6 @@
       "prettier --write",
       "git add"
     ]
-  }
+  },
+  "version": "1.19.1"
 }
