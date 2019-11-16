@@ -340,7 +340,7 @@ describe('matches() method', () => {
       expect(name).toBeTruthy();
     } else if (init.matches('loading')) {
       // Make sure init isn't "never" - if it is, tests will fail to compile
-      expect(init.context).toBeTruthy();
+      expect(init).toBeTruthy();
     }
   });
 });

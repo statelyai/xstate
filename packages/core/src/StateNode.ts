@@ -1609,20 +1609,6 @@ class StateNode<
     return target;
   }
 
-  public getStates(stateValue: StateValue): Array<StateNode<TContext>> {
-    if (isString(stateValue)) {
-      return [this.states[stateValue]];
-    }
-
-    const stateNodes: Array<StateNode<TContext>> = [];
-
-    for (const key of keys(stateValue)) {
-      stateNodes.push(...this.states[key].getStates(stateValue[key]));
-    }
-
-    return stateNodes;
-  }
-
   /**
    * Returns the leaf nodes from a state path relative to this state node.
    *
