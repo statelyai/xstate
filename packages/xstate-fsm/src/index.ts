@@ -97,7 +97,7 @@ export function createMachine<
             return transitionFailure
           }
 
-          const { target, actions = [], cond = () => true } =
+          const { target = value, actions = [], cond = () => true } =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
@@ -105,9 +105,7 @@ export function createMachine<
           let nextContext = context;
 
           if (cond(context, eventObject)) {
-            const nextStateConfig = target
-              ? fsmConfig.states[target]
-              : stateConfig;
+            const nextStateConfig = fsmConfig.states[target]
             let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
@@ -134,13 +132,13 @@ export function createMachine<
                 }
                 return true;
               });
-            const nextValue = target ? target : value;
+
             return {
-              value: nextValue,
+              value: target,
               context: nextContext,
               actions: allActions,
-              changed: nextValue !== value || allActions.length > 0 || assigned,
-              matches: createMatcher(nextValue)
+              changed: target !== value || allActions.length > 0 || assigned,
+              matches: createMatcher(target)
             };
           }
         }
