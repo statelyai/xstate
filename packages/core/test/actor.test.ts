@@ -101,7 +101,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Actor;
+    server?: ServiceActor<any, any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -114,7 +114,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: () => spawn(serverMachine) as Actor
+            server: () => spawn(serverMachine)
           }),
           raise('SUCCESS')
         ],
@@ -123,10 +123,7 @@ describe('spawning machines', () => {
         }
       },
       sendPing: {
-        entry: [
-          send('PING', { to: ctx => ctx.server as Actor }),
-          raise('SUCCESS')
-        ],
+        entry: [send('PING', { to: ctx => ctx.server }), raise('SUCCESS')],
         on: {
           SUCCESS: 'waitPong'
         }
@@ -190,7 +187,7 @@ describe('spawning promises', () => {
         on: {
           [doneInvoke('my-promise')]: {
             target: 'success',
-            cond: (_, e) => (e as any).data === 'response'
+            cond: (_, e) => e.data === 'response'
           }
         }
       },
