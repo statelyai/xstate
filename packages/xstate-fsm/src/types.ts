@@ -1,7 +1,6 @@
 export type SingleOrArray<T> = T[] | T;
 export interface EventObject {
   type: string;
-  [key: string]: any;
 }
 
 export namespace StateMachine {

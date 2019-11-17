@@ -44,6 +44,20 @@ function toEventObject<TEvent extends EventObject>(
   return (typeof event === 'string' ? { type: event } : event) as TEvent;
 }
 
+function createUnchangedState<
+  TC,
+  TE extends EventObject,
+  TS extends Typestate<TC>
+>(value: string, context: TC): StateMachine.State<TC, TE, TS> {
+  return {
+    value,
+    context,
+    actions: [],
+    changed: false,
+    matches: createMatcher(value)
+  };
+}
+
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -80,21 +94,13 @@ export function createMachine<
           );
         }
       }
-  
-      const transitionFailure = {
-        value,
-        context,
-        actions: [],
-        changed: false,
-        matches: createMatcher(value)
-      };
 
       if (stateConfig.on) {
         const transitions = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return transitionFailure
+            return createUnchangedState(value, context);
           }
 
           const { target = value, actions = [], cond = () => true } =
@@ -105,7 +111,7 @@ export function createMachine<
           let nextContext = context;
 
           if (cond(context, eventObject)) {
-            const nextStateConfig = fsmConfig.states[target]
+            const nextStateConfig = fsmConfig.states[target];
             let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
@@ -145,7 +151,7 @@ export function createMachine<
       }
 
       // No transitions match
-      return transitionFailure
+      return createUnchangedState(value, context);
     }
   };
 }
