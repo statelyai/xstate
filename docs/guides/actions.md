@@ -199,7 +199,7 @@ const machine = Machine({
 
 ### Send Targets
 
-An event sent from a `send(...)` action can be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
+An event sent from a `send(...)` action creator can signify that it should be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
 
 ```js
 // ...
@@ -209,7 +209,7 @@ invoke: {
   // ...
 },
 // ...
-// Send { type: 'SOME_EVENT' } to the invoked service
+// Indicates to send { type: 'SOME_EVENT' } to the invoked service
 actions: send('SOME_EVENT', { to: 'some-service-id' })
 ```
 
@@ -243,6 +243,23 @@ entry: assign({
   })
 }
 ```
+
+::: warning
+Again, the `send(...)` function is an action creator and **will not imperatively send an event.** Instead, it returns an action object that describes where the event will be sent to:
+
+```js
+console.log(send('SOME_EVENT', { to: 'child' }));
+// logs:
+// {
+//   type: 'xstate.send',
+//   to: 'child',
+//   event: {
+//     type: 'SOME_EVENT'
+//   }
+// }
+```
+
+:::
 
 ## Raise Action
 
