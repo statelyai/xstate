@@ -175,9 +175,9 @@ export function nextEvents<TC, TE extends EventObject>(
   return flatten([...new Set(configuration.map(sn => sn.ownEvents))]);
 }
 
-export function isInFinalState(
-  configuration: StateNode[],
-  stateNode: StateNode
+export function isInFinalState<TC, TE extends EventObject>(
+  configuration: Array<StateNode<TC, any, TE>>,
+  stateNode: StateNode<TC, any, TE>
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(

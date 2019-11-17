@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, Interpreter } from '../src';
+import { Machine, spawn, interpret } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
+import { Actor, ServiceActor } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -101,7 +101,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Actor;
+    server?: ServiceActor<any, any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -123,10 +123,7 @@ describe('spawning machines', () => {
         }
       },
       sendPing: {
-        entry: [
-          send('PING', { to: ctx => ctx.server as Actor }),
-          raise('SUCCESS')
-        ],
+        entry: [send('PING', { to: ctx => ctx.server }), raise('SUCCESS')],
         on: {
           SUCCESS: 'waitPong'
         }
@@ -190,7 +187,7 @@ describe('spawning promises', () => {
         on: {
           [doneInvoke('my-promise')]: {
             target: 'success',
-            cond: (_, e) => (e as any).data === 'response'
+            cond: (_, e) => e.data === 'response'
           }
         }
       },
@@ -429,7 +426,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref: undefined | Actor }>({
+    const nullActorMachine = Machine<{ ref?: Actor }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -502,7 +499,8 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign((): { serverRef: Actor } => ({
+            entry: assign(ctx => ({
+              ...ctx,
               serverRef: spawn(pongActorMachine, { autoForward: false })
             })),
             on: {
@@ -651,7 +649,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Actor;
+        ref?: ServiceActor<any, any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -659,7 +657,7 @@ describe('actors', () => {
         context: {},
         states: {
           same: {
-            entry: assign({
+            entry: assign<SyncMachineContext>({
               ref: () => spawn(syncChildMachine, { sync: true })
             })
           }
@@ -670,7 +668,7 @@ describe('actors', () => {
         .onTransition(state => {
           if (
             state.context.ref &&
-            (state.context.ref as Interpreter<any>).state.matches('inactive')
+            state.context.ref.state.matches('inactive')
           ) {
             expect(state.changed).toBe(true);
             done();
@@ -696,7 +694,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor;
+          ref?: ServiceActor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -715,7 +713,7 @@ describe('actors', () => {
           .onTransition(state => {
             if (
               state.context.ref &&
-              (state.context.ref as Interpreter<any>).state.matches('inactive')
+              state.context.ref.state.matches('inactive')
             ) {
               expect(state.changed).toBe(false);
             }
@@ -723,11 +721,9 @@ describe('actors', () => {
           .start();
 
         setTimeout(() => {
-          expect(
-            (service.state.context.ref! as Interpreter<any>).state.matches(
-              'inactive'
-            )
-          ).toBe(true);
+          expect(service.state.context.ref!.state.matches('inactive')).toBe(
+            true
+          );
           done();
         }, 20);
       });
@@ -748,7 +744,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor;
+          ref?: ServiceActor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -767,7 +763,7 @@ describe('actors', () => {
           .onTransition(state => {
             if (
               state.context.ref &&
-              (state.context.ref as Interpreter<any>).state.matches('inactive')
+              state.context.ref.state.matches('inactive')
             ) {
               expect(state.changed).toBe(true);
               done();

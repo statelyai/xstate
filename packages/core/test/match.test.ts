@@ -338,6 +338,9 @@ describe('matches() method', () => {
 
       // never called - it's okay if the name is undefined
       expect(name).toBeTruthy();
+    } else if (init.matches('loading')) {
+      // Make sure init isn't "never" - if it is, tests will fail to compile
+      expect(init).toBeTruthy();
     }
   });
 });

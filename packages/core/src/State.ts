@@ -44,7 +44,9 @@ export function stateValuesEqual(
   );
 }
 
-export function isState(state: object | string): state is State<any> {
+export function isState<TContext, TEvent extends EventObject>(
+  state: object | string
+): state is State<TContext, TEvent> {
   if (isString(state)) {
     return false;
   }
@@ -102,7 +104,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext>>;
+  public configuration: Array<StateNode<TContext, any, TEvent>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -276,12 +278,9 @@ export class State<
    */
   public matches<TSV extends TState['value']>(
     parentStateValue: TSV
-  ): this is State<
-    (TState & { value: TSV })['context'],
-    TEvent,
-    TStateSchema,
-    TState
-  > {
+  ): this is TState extends { value: TSV }
+    ? State<TState['context'], TEvent, TStateSchema, TState>
+    : never {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 }

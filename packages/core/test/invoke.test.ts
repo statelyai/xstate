@@ -948,7 +948,7 @@ describe('invoke', () => {
       });
 
       it('should assign the resolved data when invoked with a promise factory', done => {
-        const promiseMachine = Machine({
+        const promiseMachine = Machine<{ count: number }>({
           id: 'promise',
           context: { count: 0 },
           initial: 'pending',
@@ -981,7 +981,7 @@ describe('invoke', () => {
       });
 
       it('should assign the resolved data when invoked with a promise service', done => {
-        const promiseMachine = Machine(
+        const promiseMachine = Machine<{ count: number }>(
           {
             id: 'promise',
             context: { count: 0 },
@@ -1498,7 +1498,7 @@ describe('invoke', () => {
     it('should call onDone when resolved (async)', done => {
       let state: any;
 
-      const asyncWithDoneMachine = Machine({
+      const asyncWithDoneMachine = Machine<{ result?: any }>({
         id: 'async',
         initial: 'fetch',
         context: { result: undefined },

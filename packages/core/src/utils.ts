@@ -611,14 +611,18 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
     }
 
     return { ...transitionLike, event };
-  });
+  }) as Array<
+    TransitionConfig<TContext, TEvent> & {
+      event: TEvent['type'] | NullEvent['type'] | '*';
+    } // TODO: fix 'as' (remove)
+  >;
 
   return transitions;
 }
 
-export function normalizeTarget<TContext>(
-  target: SingleOrArray<string | StateNode<TContext>> | undefined
-): Array<string | StateNode<TContext>> | undefined {
+export function normalizeTarget<TContext, TEvent extends EventObject>(
+  target: SingleOrArray<string | StateNode<TContext, any, TEvent>> | undefined
+): Array<string | StateNode<TContext, any, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
