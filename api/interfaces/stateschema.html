@@ -59,13 +59,21 @@
 					<a href="stateschema.html">StateSchema</a>
 				</li>
 			</ul>
-			<h1>Interface StateSchema</h1>
+			<h1>Interface StateSchema&lt;TC&gt;</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>TC</h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -78,37 +86,56 @@
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="stateschema.html#meta" class="tsd-kind-icon">meta</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="stateschema.html#states" class="tsd-kind-icon">states</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="stateschema.html#context" class="tsd-kind-icon">context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="stateschema.html#meta" class="tsd-kind-icon">meta</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="stateschema.html#states" class="tsd-kind-icon">states</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="context" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> context</h3>
+					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1012">types.ts:1012</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="meta" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> meta</h3>
 					<div class="tsd-signature tsd-kind-icon">meta<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L949">types.ts:949</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1011">types.ts:1011</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="states" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> states</h3>
-					<div class="tsd-signature tsd-kind-icon">states<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">number</span><span class="tsd-signature-symbol">, </span><a href="stateschema.html" class="tsd-signature-type">StateSchema</a><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">states<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">object</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L950">types.ts:950</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1013">types.ts:1013</a></li>
 						</ul>
 					</aside>
+					<div class="tsd-type-declaration">
+						<h4>Type declaration</h4>
+						<ul class="tsd-parameters">
+							<li class="tsd-parameter-index-signature">
+								<h5><span class="tsd-signature-symbol">[</span>key: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><a href="stateschema.html" class="tsd-signature-type">StateSchema</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">&gt;</span></h5>
+							</li>
+						</ul>
+					</div>
 				</section>
 			</section>
 		</div>
@@ -124,13 +151,16 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-is-external">
+					<li class="current tsd-kind-interface tsd-has-type-parameter">
 						<a href="stateschema.html" class="tsd-kind-icon">State<wbr>Schema</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="stateschema.html#context" class="tsd-kind-icon">context</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="stateschema.html#meta" class="tsd-kind-icon">meta</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="stateschema.html#states" class="tsd-kind-icon">states</a>
 							</li>
 						</ul>
@@ -154,6 +184,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -202,7 +233,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>

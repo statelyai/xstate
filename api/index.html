@@ -69,20 +69,31 @@
 						<br />
 						<img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
 						<br />
-						<sub>JavaScript state machines and statecharts</sub>
+						<sub><strong>JavaScript state machines and statecharts</strong></sub>
 						<br />
 						<br />
 					</a>
 				</p>
-				<p><a href="https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1"><img src="https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate" alt="Build Status"></a>
-					<a href="https://badge.fury.io/js/xstate"><img src="https://badge.fury.io/js/xstate.svg" alt="npm version"></a>
+				<p><a href="https://badge.fury.io/js/xstate"><img src="https://badge.fury.io/js/xstate.svg" alt="npm version"></a>
 					<a href="https://gitter.im/statecharts/statecharts"><img src="https://badges.gitter.im/gitterHQ/gitter.png" alt="Statecharts gitter chat"></a>
 				<img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" /></p>
 				<p>JavaScript and TypeScript <a href="https://en.wikipedia.org/wiki/Finite-state_machine">finite state machines</a> and <a href="http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf">statecharts</a> for the modern web.</p>
-				<p>📖 <a href="https://xstate.js.org/docs">Read the documentation</a></p>
-				<p>Adheres to the <a href="https://www.w3.org/TR/scxml/">SCXML specification</a>.</p>
-				<p><a href="./migration.md"><strong>Version 3.x to 4 Migration Guide</strong></a></p>
-				<h2 id="super-quick-start">Super quick start</h2>
+				<p>📖 <a href="https://xstate.js.org/docs">Read the documentation</a>
+				📑 Adheres to the <a href="https://www.w3.org/TR/scxml/">SCXML specification</a>.</p>
+				<a href="#packages" id="packages" style="color: inherit; text-decoration: none;">
+					<h2>Packages</h2>
+				</a>
+				<ul>
+					<li>🤖 <code>xstate</code> - Core finite state machine and statecharts library + interpreter</li>
+					<li>🔜 <code>xstate@next</code> - Release candidate for XState 4.7</li>
+					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm">🔬 <code>@xstate/fsm</code></a> - Minimal finite state machine library</li>
+					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph">📉 <code>@xstate/graph</code></a> - Graph traversal utilities for XState</li>
+					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react">⚛️ <code>@xstate/react</code></a> - React hooks and utilities for using XState in React applications</li>
+					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test">✅ <code>@xstate/test</code></a> - Model-based testing utilities for XState</li>
+				</ul>
+				<a href="#super-quick-start" id="super-quick-start" style="color: inherit; text-decoration: none;">
+					<h2>Super quick start</h2>
+				</a>
 				<pre><code class="language-bash">npm install xstate</code></pre>
 				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine, interpret } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
 
@@ -111,16 +122,20 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 				<ul>
 					<li><a href="#visualizer">Visualizer</a></li>
 					<li><a href="#why">Why? (info about statecharts)</a></li>
-					<li><a href="#installation">Installation</a></li>
+					<li><a href="https://xstate.js.org/docs/guides/installation.html">Installation</a></li>
 					<li><a href="#finite-state-machines">Finite State Machines</a></li>
 					<li><a href="#hierarchical-nested-state-machines">Hierarchical (Nested) State Machines</a></li>
 					<li><a href="#parallel-state-machines">Parallel State Machines</a></li>
 					<li><a href="#history-states">History States</a></li>
 				</ul>
-				<h2 id="visualizer">Visualizer</h2>
-				<p><strong><a href="https://statecharts.github.io/xstate-viz">:new: Preview and simulate your statecharts in the XState visualizer (beta)!</a></strong></p>
-				<p><a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a></p>
-				<h2 id="why-">Why?</h2>
+				<a href="#visualizer" id="visualizer" style="color: inherit; text-decoration: none;">
+					<h2>Visualizer</h2>
+				</a>
+				<p><strong><a href="https://xstate.js.org/viz">Visualize, simulate, and share your statecharts in XState Viz!</a></strong></p>
+				<p><a href="https://xstate.js.org/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a></p>
+				<a href="#why" id="why" style="color: inherit; text-decoration: none;">
+					<h2>Why?</h2>
+				</a>
 				<p>Statecharts are a formalism for modeling stateful, reactive systems. This is useful for declaratively describing the <em>behavior</em> of your application, from the individual components to the overall application logic.</p>
 				<p>Read <a href="http://slides.com/davidkhourshid/finite-state-machines">📽 the slides</a> (<a href="https://www.youtube.com/watch?v=VU1NKX6Qkxc">🎥 video</a>) or check out these resources for learning about the importance of finite state machines and statecharts in user interfaces:</p>
 				<ul>
@@ -130,7 +145,9 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 					<li><a href="https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d">Pure UI Control</a> by Adam Solove</li>
 					<li><a href="https://spectrum.chat/statecharts">Spectrum - Statecharts Community</a></li>
 				</ul>
-				<h2 id="finite-state-machines">Finite State Machines</h2>
+				<a href="#finite-state-machines" id="finite-state-machines" style="color: inherit; text-decoration: none;">
+					<h2>Finite State Machines</h2>
+				</a>
 				<img src="https://imgur.com/rqqmkJh.png" alt="Light Machine" width="300" />
 				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
 
@@ -161,7 +178,9 @@ toggleService.send(<span class="hljs-string">'TOGGLE'</span>);
 <span class="hljs-keyword">const</span> nextState = lightMachine.transition(currentState, <span class="hljs-string">'TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; 'yellow'</span></code></pre>
-				<h2 id="hierarchical-nested-state-machines">Hierarchical (Nested) State Machines</h2>
+				<a href="#hierarchical-nested-state-machines" id="hierarchical-nested-state-machines" style="color: inherit; text-decoration: none;">
+					<h2>Hierarchical (Nested) State Machines</h2>
+				</a>
 				<img src="https://imgur.com/GDZAeB9.png" alt="Hierarchical Light Machine" width="300" />
 				<pre><code class="language-js"><span class="hljs-keyword">import</span> { Machine } <span class="hljs-keyword">from</span> <span class="hljs-string">'xstate'</span>;
 
@@ -229,7 +248,9 @@ lightMachine.transition(waitState, <span class="hljs-string">'PED_TIMER'</span>)
 lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-string">'stop'</span> }, <span class="hljs-string">'TIMER'</span>).value;
 
 <span class="hljs-comment">// =&gt; 'green'</span></code></pre>
-				<h2 id="parallel-state-machines">Parallel State Machines</h2>
+				<a href="#parallel-state-machines" id="parallel-state-machines" style="color: inherit; text-decoration: none;">
+					<h2>Parallel State Machines</h2>
+				</a>
 				<img src="https://imgur.com/GKd4HwR.png" width="300" alt="Parallel state machine" />
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> wordMachine = Machine({
   <span class="hljs-attr">id</span>: <span class="hljs-string">'word'</span>,
@@ -310,7 +331,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 <span class="hljs-comment">//   underline: 'on',</span>
 <span class="hljs-comment">//   list: 'bullets'</span>
 <span class="hljs-comment">// }</span></code></pre>
-				<h2 id="history-states">History States</h2>
+				<a href="#history-states" id="history-states" style="color: inherit; text-decoration: none;">
+					<h2>History States</h2>
+				</a>
 				<img src="https://imgur.com/I4QsQsz.png" width="300" alt="Machine with history state" />
 				<pre><code class="language-js"><span class="hljs-keyword">const</span> paymentMachine = Machine({
   <span class="hljs-attr">id</span>: <span class="hljs-string">'payment'</span>,
@@ -348,7 +371,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 <span class="hljs-keyword">const</span> previousState = paymentMachine.transition(reviewState, <span class="hljs-string">'PREVIOUS'</span>).value;
 
 <span class="hljs-comment">// =&gt; { method: 'check' }</span></code></pre>
-				<h2 id="sponsors">Sponsors</h2>
+				<a href="#sponsors" id="sponsors" style="color: inherit; text-decoration: none;">
+					<h2>Sponsors</h2>
+				</a>
 				<p>Huge thanks to the following companies for sponsoring <code>xstate</code>. You can sponsor further <code>xstate</code> development <a href="https://opencollective.com/xstate">on OpenCollective</a>.</p>
 				<p><a href="https://tipe.io" title="Tipe.io"><img src="https://cdn.tipe.io/tipe/tipe-logo.svg?w=240" style="background:#613DEF" /></a>
 				<a href="https://webflow.com" title="Webflow"><img src="https://uploads-ssl.webflow.com/583347ca8f6c7ee058111b3b/5b03bde0971fdd75d75b5591_webflow.png" height="100" /></a></p>
@@ -360,690 +385,864 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class="globals  ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
-					<li class="label tsd-is-external">
-						<span>Externals</span>
-					</li>
-					<li class=" tsd-kind-module tsd-is-external">
+					<li class=" tsd-kind-module">
 						<a href="modules/scxml.html">SCXML</a>
 					</li>
 				</ul>
 			</nav>
 			<nav class="tsd-navigation secondary menu-sticky">
 				<ul class="before-current">
-					<li class=" tsd-kind-enum tsd-is-external">
+					<li class=" tsd-kind-enum">
 						<a href="enums/actiontypes.html" class="tsd-kind-icon">Action<wbr>Types</a>
 					</li>
-					<li class=" tsd-kind-enum tsd-is-external">
+					<li class=" tsd-kind-enum tsd-is-not-exported">
+						<a href="enums/interpreterstatus.html" class="tsd-kind-icon">Interpreter<wbr>Status</a>
+					</li>
+					<li class=" tsd-kind-enum">
 						<a href="enums/specialtargets.html" class="tsd-kind-icon">Special<wbr>Targets</a>
 					</li>
-					<li class=" tsd-kind-class tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-class tsd-has-type-parameter">
 						<a href="classes/interpreter.html" class="tsd-kind-icon">Interpreter</a>
 					</li>
-					<li class=" tsd-kind-class tsd-is-external">
+					<li class=" tsd-kind-class">
 						<a href="classes/scheduler.html" class="tsd-kind-icon">Scheduler</a>
 					</li>
-					<li class=" tsd-kind-class tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-class">
+						<a href="classes/simulatedclock.html" class="tsd-kind-icon">Simulated<wbr>Clock</a>
+					</li>
+					<li class=" tsd-kind-class tsd-has-type-parameter">
 						<a href="classes/state.html" class="tsd-kind-icon">State</a>
 					</li>
-					<li class=" tsd-kind-class tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-class tsd-has-type-parameter tsd-is-not-exported">
 						<a href="classes/statenode.html" class="tsd-kind-icon">State<wbr>Node</a>
 					</li>
-					<li class=" tsd-kind-class tsd-is-external">
-						<a href="classes/statetree.html" class="tsd-kind-icon">State<wbr>Tree</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/actionmap.html" class="tsd-kind-icon">Action<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/actionmeta.html" class="tsd-kind-icon">Action<wbr>Meta</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/actionobject.html" class="tsd-kind-icon">Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/activityactionobject.html" class="tsd-kind-icon">Activity<wbr>Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/activitydefinition.html" class="tsd-kind-icon">Activity<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/activitymap.html" class="tsd-kind-icon">Activity<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/actor.html" class="tsd-kind-icon">Actor</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/adjacencymap.html" class="tsd-kind-icon">Adjacency<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/anyassignaction.html" class="tsd-kind-icon">Any<wbr>Assign<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/anyeventobject.html" class="tsd-kind-icon">Any<wbr>Event<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/assignaction.html" class="tsd-kind-icon">Assign<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/assignmeta.html" class="tsd-kind-icon">Assign<wbr>Meta</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/atomicstatenodeconfig.html" class="tsd-kind-icon">Atomic<wbr>State<wbr>Node<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/cancelaction.html" class="tsd-kind-icon">Cancel<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/clock.html" class="tsd-kind-icon">Clock</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="interfaces/compoundstatenodeconfig.html" class="tsd-kind-icon">Compound<wbr>State<wbr>Node<wbr>Config</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/delay.html" class="tsd-kind-icon">Delay</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/delayedtransitiondefinition.html" class="tsd-kind-icon">Delayed<wbr>Transition<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/doneeventobject.html" class="tsd-kind-icon">Done<wbr>Event<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/doneinvokeevent.html" class="tsd-kind-icon">Done<wbr>Invoke<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/edge.html" class="tsd-kind-icon">Edge</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/entryexiteffectmap.html" class="tsd-kind-icon">Entry<wbr>Exit<wbr>Effect<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/entryexitstatearrays.html" class="tsd-kind-icon">Entry<wbr>Exit<wbr>State<wbr>Arrays</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/entryexitstates.html" class="tsd-kind-icon">Entry<wbr>Exit<wbr>States</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/errorexecutionevent.html" class="tsd-kind-icon">Error<wbr>Execution<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/errorplatformevent.html" class="tsd-kind-icon">Error<wbr>Platform<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/eventobject.html" class="tsd-kind-icon">Event<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/finalstatenodeconfig.html" class="tsd-kind-icon">Final<wbr>State<wbr>Node<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/guardmeta.html" class="tsd-kind-icon">Guard<wbr>Meta</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/guardpredicate.html" class="tsd-kind-icon">Guard<wbr>Predicate</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/historystatenode.html" class="tsd-kind-icon">History<wbr>State<wbr>Node</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/historystatenodeconfig.html" class="tsd-kind-icon">History<wbr>State<wbr>Node<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/historyvalue.html" class="tsd-kind-icon">History<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/interpreteroptions.html" class="tsd-kind-icon">Interpreter<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/invokeactionobject.html" class="tsd-kind-icon">Invoke<wbr>Action<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/invokedefinition.html" class="tsd-kind-icon">Invoke<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/invokedpromiseoptions.html" class="tsd-kind-icon">Invoked<wbr>Promise<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/logaction.html" class="tsd-kind-icon">Log<wbr>Action</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/logactionobject.html" class="tsd-kind-icon">Log<wbr>Action<wbr>Object</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/machineconfig.html" class="tsd-kind-icon">Machine<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/machineoptions.html" class="tsd-kind-icon">Machine<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/nodesandedges.html" class="tsd-kind-icon">Nodes<wbr>And<wbr>Edges</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/nullevent.html" class="tsd-kind-icon">Null<wbr>Event</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/observer.html" class="tsd-kind-icon">Observer</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/parallelmachineconfig.html" class="tsd-kind-icon">Parallel<wbr>Machine<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/pathitem.html" class="tsd-kind-icon">Path<wbr>Item</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/pathmap.html" class="tsd-kind-icon">Path<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/pathsitem.html" class="tsd-kind-icon">Paths<wbr>Item</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/pathsmap.html" class="tsd-kind-icon">Paths<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/promisemachineschema.html" class="tsd-kind-icon">Promise<wbr>Machine<wbr>Schema</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/pureaction.html" class="tsd-kind-icon">Pure<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="interfaces/raiseevent.html" class="tsd-kind-icon">Raise<wbr>Event</a>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/raiseaction.html" class="tsd-kind-icon">Raise<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="interfaces/raisedevent.html" class="tsd-kind-icon">Raised<wbr>Event</a>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/raiseactionobject.html" class="tsd-kind-icon">Raise<wbr>Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/registry.html" class="tsd-kind-icon">Registry</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/scxmleventmeta.html" class="tsd-kind-icon">SCXMLEvent<wbr>Meta</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
 						<a href="interfaces/scheduleroptions.html" class="tsd-kind-icon">Scheduler<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/scxmltomachineoptions.html" class="tsd-kind-icon">Scxml<wbr>ToMachine<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/segment.html" class="tsd-kind-icon">Segment</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/sendaction.html" class="tsd-kind-icon">Send<wbr>Action</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/sendactionobject.html" class="tsd-kind-icon">Send<wbr>Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/sendactionoptions.html" class="tsd-kind-icon">Send<wbr>Action<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-not-exported">
+						<a href="interfaces/sequencepatternoptions.html" class="tsd-kind-icon">Sequence<wbr>Pattern<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
+						<a href="interfaces/simulatedtimeout.html" class="tsd-kind-icon">Simulated<wbr>Timeout</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-is-not-exported">
 						<a href="interfaces/spawnoptions.html" class="tsd-kind-icon">Spawn<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/standardmachineconfig.html" class="tsd-kind-icon">Standard<wbr>Machine<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/stateconfig.html" class="tsd-kind-icon">State<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="interfaces/stateinterface.html" class="tsd-kind-icon">State<wbr>Interface</a>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/statelike.html" class="tsd-kind-icon">State<wbr>Like</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/statemachine.html" class="tsd-kind-icon">State<wbr>Machine</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/statemeta.html" class="tsd-kind-icon">State<wbr>Meta</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/statenodeconfig.html" class="tsd-kind-icon">State<wbr>Node<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/statenodedefinition.html" class="tsd-kind-icon">State<wbr>Node<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/stateschema.html" class="tsd-kind-icon">State<wbr>Schema</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/statetransition.html" class="tsd-kind-icon">State<wbr>Transition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
-						<a href="interfaces/statetreeoptions.html" class="tsd-kind-icon">State<wbr>Tree<wbr>Options</a>
-					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/statevaluemap.html" class="tsd-kind-icon">State<wbr>Value<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/subscribable.html" class="tsd-kind-icon">Subscribable</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/targettransitionconfig.html" class="tsd-kind-icon">Target<wbr>Transition<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/transitionconfig.html" class="tsd-kind-icon">Transition<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/transitiondata.html" class="tsd-kind-icon">Transition<wbr>Data</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/transitiondefinition.html" class="tsd-kind-icon">Transition<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/transitionmap.html" class="tsd-kind-icon">Transition<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/typestate.html" class="tsd-kind-icon">Typestate</a>
+					</li>
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/unsubscribable.html" class="tsd-kind-icon">Unsubscribable</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-external">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/updateobject.html" class="tsd-kind-icon">Update<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/valueadjacencymap.html" class="tsd-kind-icon">Value<wbr>Adjacency<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#action" class="tsd-kind-icon">Action</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#actionfunction" class="tsd-kind-icon">Action<wbr>Function</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#actionfunctionmap" class="tsd-kind-icon">Action<wbr>Function<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#actiontype" class="tsd-kind-icon">Action<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#actions" class="tsd-kind-icon">Actions</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#activity" class="tsd-kind-icon">Activity</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#activityconfig" class="tsd-kind-icon">Activity<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
 						<a href="globals.html#adjlist" class="tsd-kind-icon">Adj<wbr>List</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#anystatenodedefinition" class="tsd-kind-icon">Any<wbr>State<wbr>Node<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#assigner" class="tsd-kind-icon">Assigner</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#builtinevent" class="tsd-kind-icon">Built<wbr>InEvent</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#condition" class="tsd-kind-icon">Condition</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#conditionpredicate" class="tsd-kind-icon">Condition<wbr>Predicate</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#conditionaltransitionconfig" class="tsd-kind-icon">Conditional<wbr>Transition<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
 						<a href="globals.html#configuration" class="tsd-kind-icon">Configuration</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#contextlistener" class="tsd-kind-icon">Context<wbr>Listener</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#defaultcontext" class="tsd-kind-icon">Default<wbr>Context</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#defaultguardtype" class="tsd-kind-icon">Default<wbr>Guard<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#delayconfig" class="tsd-kind-icon">Delay<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#delayexpr" class="tsd-kind-icon">Delay<wbr>Expr</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#delayfunctionmap" class="tsd-kind-icon">Delay<wbr>Function<wbr>Map</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#delayedtransitions" class="tsd-kind-icon">Delayed<wbr>Transitions</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#disposeactivityfunction" class="tsd-kind-icon">Dispose<wbr>Activity<wbr>Function</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#doneevent" class="tsd-kind-icon">Done<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#event" class="tsd-kind-icon">Event</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#eventdata" class="tsd-kind-icon">Event<wbr>Data</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#eventlistener" class="tsd-kind-icon">Event<wbr>Listener</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#eventtype" class="tsd-kind-icon">Event<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#expr" class="tsd-kind-icon">Expr</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#exprwithmeta" class="tsd-kind-icon">Expr<wbr>With<wbr>Meta</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#extractstatevalue" class="tsd-kind-icon">Extract<wbr>State<wbr>Value</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#guard" class="tsd-kind-icon">Guard</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#invokecallback" class="tsd-kind-icon">Invoke<wbr>Callback</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#invokeconfig" class="tsd-kind-icon">Invoke<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#invokecreator" class="tsd-kind-icon">Invoke<wbr>Creator</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#invokesconfig" class="tsd-kind-icon">Invokes<wbr>Config</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#listener" class="tsd-kind-icon">Listener</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#logexpr" class="tsd-kind-icon">Log<wbr>Expr</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#mapper" class="tsd-kind-icon">Mapper</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#metaobject" class="tsd-kind-icon">Meta<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#omnievent" class="tsd-kind-icon">Omni<wbr>Event</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#omnieventobject" class="tsd-kind-icon">Omni<wbr>Event<wbr>Object</a>
-					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#propertyassigner" class="tsd-kind-icon">Property<wbr>Assigner</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#propertymapper" class="tsd-kind-icon">Property<wbr>Mapper</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#receiver" class="tsd-kind-icon">Receiver</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#sendexpr" class="tsd-kind-icon">Send<wbr>Expr</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#sender" class="tsd-kind-icon">Sender</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#serviceconfig" class="tsd-kind-icon">Service<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#simpleorcompoundstatenodeconfig" class="tsd-kind-icon">Simple<wbr>OrCompound<wbr>State<wbr>Node<wbr>Config</a>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#simpleorstatenodeconfig" class="tsd-kind-icon">Simple<wbr>OrState<wbr>Node<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#singleorarray" class="tsd-kind-icon">Single<wbr>OrArray</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#spawnable" class="tsd-kind-icon">Spawnable</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#statefrom" class="tsd-kind-icon">State<wbr>From</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#statekey" class="tsd-kind-icon">State<wbr>Key</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#statelistener" class="tsd-kind-icon">State<wbr>Listener</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#statenodesconfig" class="tsd-kind-icon">State<wbr>Nodes<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#statepatterntuple" class="tsd-kind-icon">State<wbr>Pattern<wbr>Tuple</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#statetypes" class="tsd-kind-icon">State<wbr>Types</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-is-external">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#statevalue" class="tsd-kind-icon">State<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#statesconfig" class="tsd-kind-icon">States<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#statesdefinition" class="tsd-kind-icon">States<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transition" class="tsd-kind-icon">Transition</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#transitionconfigtargetshortcut" class="tsd-kind-icon">Transition<wbr>Config<wbr>Target<wbr>Shortcut</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#transitiondefinitionmap" class="tsd-kind-icon">Transition<wbr>Definition<wbr>Map</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitiontarget" class="tsd-kind-icon">Transition<wbr>Target</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitiontargets" class="tsd-kind-icon">Transition<wbr>Targets</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitionsconfig" class="tsd-kind-icon">Transitions<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#transitionsdefinition" class="tsd-kind-icon">Transitions<wbr>Definition</a>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#transitionsconfigarray" class="tsd-kind-icon">Transitions<wbr>Config<wbr>Array</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
-						<a href="globals.html#updater" class="tsd-kind-icon">Updater</a>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#transitionsconfigmap" class="tsd-kind-icon">Transitions<wbr>Config<wbr>Map</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#valuefromstategetter" class="tsd-kind-icon">Value<wbr>From<wbr>State<wbr>Getter</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#default_guard_type" class="tsd-kind-icon">DEFAULT_<wbr>GUARD_<wbr>TYPE</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#empty_activity_map" class="tsd-kind-icon">EMPTY_<wbr>ACTIVITY_<wbr>MAP</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
 						<a href="globals.html#empty_object" class="tsd-kind-icon">EMPTY_<wbr>OBJECT</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#is_production" class="tsd-kind-icon">IS_<wbr>PRODUCTION</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
 						<a href="globals.html#null_event" class="tsd-kind-icon">NULL_<wbr>EVENT</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#state_delimiter" class="tsd-kind-icon">STATE_<wbr>DELIMITER</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
 						<a href="globals.html#state_identifier" class="tsd-kind-icon">STATE_<wbr>IDENTIFIER</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#targetless_key" class="tsd-kind-icon">TARGETLESS_<wbr>KEY</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#wildcard" class="tsd-kind-icon">WILDCARD</a>
+					</li>
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#after" class="tsd-kind-icon">after</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#children" class="tsd-kind-icon">children</a>
+					</li>
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#donestate" class="tsd-kind-icon">done<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#errorexecution" class="tsd-kind-icon">error<wbr>Execution</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#errorplatform" class="tsd-kind-icon">error<wbr>Platform</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#idmap" class="tsd-kind-icon">id<wbr>Map</a>
+					</li>
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#init" class="tsd-kind-icon">init</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#initevent" class="tsd-kind-icon">init<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#invoke" class="tsd-kind-icon">invoke</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#log" class="tsd-kind-icon">log</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#nullevent" class="tsd-kind-icon">null<wbr>Event</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#raise" class="tsd-kind-icon">raise</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#send" class="tsd-kind-icon">send</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-variable tsd-is-not-exported">
+						<a href="globals.html#sessionidindex" class="tsd-kind-icon">session<wbr>IdIndex</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#start" class="tsd-kind-icon">start</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#stop" class="tsd-kind-icon">stop</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#uniqueid" class="tsd-kind-icon">unique<wbr>Id</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-external">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#update" class="tsd-kind-icon">update</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-private tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-variable tsd-is-private tsd-is-not-exported">
 						<a href="globals.html#withservicescope" class="tsd-kind-icon">with<wbr>Service<wbr>Scope</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#machine" class="tsd-kind-icon">Machine</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#assign" class="tsd-kind-icon">assign</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#bindactiontostate" class="tsd-kind-icon">bind<wbr>Action<wbr>ToState</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#cancel" class="tsd-kind-icon">cancel</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
 						<a href="globals.html#createdefaultoptions" class="tsd-kind-icon">create<wbr>Default<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#createinvocableactor" class="tsd-kind-icon">create<wbr>Invocable<wbr>Actor</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#createmachine" class="tsd-kind-icon">create<wbr>Machine</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
 						<a href="globals.html#createnullactor" class="tsd-kind-icon">create<wbr>Null<wbr>Actor</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#createsymbolobservable" class="tsd-kind-icon">create<wbr>Symbol<wbr>Observable</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#defaultlogexpr" class="tsd-kind-icon">default<wbr>Log<wbr>Expr</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#delaytoms" class="tsd-kind-icon">delay<wbr>ToMs</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#done" class="tsd-kind-icon">done</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#doneinvoke" class="tsd-kind-icon">done<wbr>Invoke</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#each" class="tsd-kind-icon">each</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#error" class="tsd-kind-icon">error</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#evaluateexecutablecontent" class="tsd-kind-icon">evaluate<wbr>Executable<wbr>Content</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#executablecontent" class="tsd-kind-icon">executable<wbr>Content</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#flatten" class="tsd-kind-icon">flatten</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#forwardto" class="tsd-kind-icon">forward<wbr>To</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getactionfunction" class="tsd-kind-icon">get<wbr>Action<wbr>Function</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#getactiontype" class="tsd-kind-icon">get<wbr>Action<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getadjlist" class="tsd-kind-icon">get<wbr>Adj<wbr>List</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#getallstatenodes" class="tsd-kind-icon">get<wbr>All<wbr>State<wbr>Nodes</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#getattribute" class="tsd-kind-icon">get<wbr>Attribute</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getchildren" class="tsd-kind-icon">get<wbr>Children</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getconfiguration" class="tsd-kind-icon">get<wbr>Configuration</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#geteventtype" class="tsd-kind-icon">get<wbr>Event<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#gettargets" class="tsd-kind-icon">get<wbr>Targets</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getvalue" class="tsd-kind-icon">get<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
 						<a href="globals.html#getvaluefromadj" class="tsd-kind-icon">get<wbr>Value<wbr>From<wbr>Adj</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#has" class="tsd-kind-icon">has</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#indexedrecord" class="tsd-kind-icon">indexed<wbr>Record</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#interpret" class="tsd-kind-icon">interpret</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#isactionobject" class="tsd-kind-icon">is<wbr>Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isactor" class="tsd-kind-icon">is<wbr>Actor</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isarray" class="tsd-kind-icon">is<wbr>Array</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isbuiltinevent" class="tsd-kind-icon">is<wbr>Built<wbr>InEvent</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isfunction" class="tsd-kind-icon">is<wbr>Function</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#isinfinalstate" class="tsd-kind-icon">is<wbr>InFinal<wbr>State</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#isleafnode" class="tsd-kind-icon">is<wbr>Leaf<wbr>Node</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#ismachine" class="tsd-kind-icon">is<wbr>Machine</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#isobservable" class="tsd-kind-icon">is<wbr>Observable</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#ispromiselike" class="tsd-kind-icon">is<wbr>Promise<wbr>Like</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#isstate" class="tsd-kind-icon">is<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-is-not-exported">
 						<a href="globals.html#isstateid" class="tsd-kind-icon">is<wbr>State<wbr>Id</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#isstatelike" class="tsd-kind-icon">is<wbr>State<wbr>Like</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isstring" class="tsd-kind-icon">is<wbr>String</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#keys" class="tsd-kind-icon">keys</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#mapactions" class="tsd-kind-icon">map<wbr>Actions</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#mapcontext" class="tsd-kind-icon">map<wbr>Context</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#mapfiltervalues" class="tsd-kind-icon">map<wbr>Filter<wbr>Values</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#mapstate" class="tsd-kind-icon">map<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#mapvalues" class="tsd-kind-icon">map<wbr>Values</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#matchstate" class="tsd-kind-icon">match<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#matchesstate" class="tsd-kind-icon">matches<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#nestedpath" class="tsd-kind-icon">nested<wbr>Path</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#nextevents" class="tsd-kind-icon">next<wbr>Events</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#normalizetarget" class="tsd-kind-icon">normalize<wbr>Target</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#partition" class="tsd-kind-icon">partition</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#path" class="tsd-kind-icon">path</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#pathtostatevalue" class="tsd-kind-icon">path<wbr>ToState<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#pathstostatevalue" class="tsd-kind-icon">paths<wbr>ToState<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#pure" class="tsd-kind-icon">pure</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#reportunhandledexceptiononinvocation" class="tsd-kind-icon">report<wbr>Unhandled<wbr>Exception<wbr>OnInvocation</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#resolvelog" class="tsd-kind-icon">resolve<wbr>Log</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#resolveraise" class="tsd-kind-icon">resolve<wbr>Raise</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#resolvesend" class="tsd-kind-icon">resolve<wbr>Send</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-is-not-exported">
 						<a href="globals.html#resolvespawnoptions" class="tsd-kind-icon">resolve<wbr>Spawn<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#respond" class="tsd-kind-icon">respond</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#scxmltomachine" class="tsd-kind-icon">scxml<wbr>ToMachine</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#sendparent" class="tsd-kind-icon">send<wbr>Parent</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#sendupdate" class="tsd-kind-icon">send<wbr>Update</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#sequence" class="tsd-kind-icon">sequence</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#spawn" class="tsd-kind-icon">spawn</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#statevaluesequal" class="tsd-kind-icon">state<wbr>Values<wbr>Equal</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toactionobject" class="tsd-kind-icon">to<wbr>Action<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toactionobjects" class="tsd-kind-icon">to<wbr>Action<wbr>Objects</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toactivitydefinition" class="tsd-kind-icon">to<wbr>Activity<wbr>Definition</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toarray" class="tsd-kind-icon">to<wbr>Array</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#toarraystrict" class="tsd-kind-icon">to<wbr>Array<wbr>Strict</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
+						<a href="globals.html#toconfig" class="tsd-kind-icon">to<wbr>Config</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toeventobject" class="tsd-kind-icon">to<wbr>Event<wbr>Object</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toguard" class="tsd-kind-icon">to<wbr>Guard</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#tomachine" class="tsd-kind-icon">to<wbr>Machine</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#toscxmlevent" class="tsd-kind-icon">toSCXMLEvent</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#tostatepath" class="tsd-kind-icon">to<wbr>State<wbr>Path</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#tostatepaths" class="tsd-kind-icon">to<wbr>State<wbr>Paths</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#tostatevalue" class="tsd-kind-icon">to<wbr>State<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-external">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#totransitionconfigarray" class="tsd-kind-icon">to<wbr>Transition<wbr>Config<wbr>Array</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#toggle" class="tsd-kind-icon">toggle</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#updatecontext" class="tsd-kind-icon">update<wbr>Context</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#updatehistorystates" class="tsd-kind-icon">update<wbr>History<wbr>States</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#updatehistoryvalue" class="tsd-kind-icon">update<wbr>History<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+						<a href="globals.html#validatearrayifiedtransitions" class="tsd-kind-icon">validate<wbr>Arrayified<wbr>Transitions</a>
+					</li>
+					<li class=" tsd-kind-function tsd-is-not-exported">
 						<a href="globals.html#warn" class="tsd-kind-icon">warn</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal tsd-is-not-exported">
 						<a href="globals.html#default_spawn_options" class="tsd-kind-icon">DEFAULT_<wbr>SPAWN_<wbr>OPTIONS</a>
 					</li>
 					<li class=" tsd-kind-object-literal tsd-is-not-exported">
 						<a href="globals.html#actions" class="tsd-kind-icon">actions</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-external tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal tsd-is-not-exported">
 						<a href="globals.html#defaultoptions" class="tsd-kind-icon">default<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-external tsd-is-not-exported">
-						<a href="globals.html#defaultstatetreeoptions" class="tsd-kind-icon">default<wbr>State<wbr>Tree<wbr>Options</a>
+					<li class=" tsd-kind-object-literal tsd-is-not-exported">
+						<a href="globals.html#defaultsequencepatternoptions" class="tsd-kind-icon">default<wbr>Sequence<wbr>Pattern<wbr>Options</a>
+					</li>
+					<li class=" tsd-kind-object-literal">
+						<a href="globals.html#registry" class="tsd-kind-icon">registry</a>
 					</li>
 				</ul>
 			</nav>
@@ -1062,6 +1261,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -1110,7 +1310,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="assets/js/main.js"></script>

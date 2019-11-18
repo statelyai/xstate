@@ -62,13 +62,21 @@
 					<a href="scxml.event.html">Event</a>
 				</li>
 			</ul>
-			<h1>Interface Event</h1>
+			<h1>Interface Event&lt;TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
@@ -81,43 +89,43 @@
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external"><a href="scxml.event.html#__type" class="tsd-kind-icon">$$type</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#data" class="tsd-kind-icon">data</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#invokeid" class="tsd-kind-icon">invokeid</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#name" class="tsd-kind-icon">name</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#origin" class="tsd-kind-icon">origin</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#origintype" class="tsd-kind-icon">origintype</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#sendid" class="tsd-kind-icon">sendid</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="scxml.event.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-private"><a href="scxml.event.html#__type" class="tsd-kind-icon">$$type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#data" class="tsd-kind-icon">data</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#invokeid" class="tsd-kind-icon">invokeid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#name" class="tsd-kind-icon">name</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#origin" class="tsd-kind-icon">origin</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#origintype" class="tsd-kind-icon">origintype</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#sendid" class="tsd-kind-icon">sendid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxml.event.html#type" class="tsd-kind-icon">type</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-private">
 					<a name="__type" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagPrivate">Private</span> $$type</h3>
 					<div class="tsd-signature tsd-kind-icon">$$type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"scxml"</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1042">types.ts:1042</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1107">types.ts:1107</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="data" class="tsd-anchor"></a>
 					<h3>data</h3>
-					<div class="tsd-signature tsd-kind-icon">data<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<div class="tsd-signature tsd-kind-icon">data<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1038">types.ts:1038</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1103">types.ts:1103</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -130,13 +138,13 @@
 						and must place an error &#39;error.execution&#39; in the internal event queue.</p>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="invokeid" class="tsd-anchor"></a>
-					<h3>invokeid</h3>
-					<div class="tsd-signature tsd-kind-icon">invokeid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> invokeid</h3>
+					<div class="tsd-signature tsd-kind-icon">invokeid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1029">types.ts:1029</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1094">types.ts:1094</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -147,13 +155,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="name" class="tsd-anchor"></a>
 					<h3>name</h3>
 					<div class="tsd-signature tsd-kind-icon">name<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L992">types.ts:992</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1057">types.ts:1057</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -166,13 +174,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="origin" class="tsd-anchor"></a>
-					<h3>origin</h3>
-					<div class="tsd-signature tsd-kind-icon">origin<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> origin</h3>
+					<div class="tsd-signature tsd-kind-icon">origin<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1015">types.ts:1015</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1080">types.ts:1080</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -185,13 +193,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="origintype" class="tsd-anchor"></a>
-					<h3>origintype</h3>
-					<div class="tsd-signature tsd-kind-icon">origintype<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> origintype</h3>
+					<div class="tsd-signature tsd-kind-icon">origintype<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1023">types.ts:1023</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1088">types.ts:1088</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -204,13 +212,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="sendid" class="tsd-anchor"></a>
-					<h3>sendid</h3>
-					<div class="tsd-signature tsd-kind-icon">sendid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> sendid</h3>
+					<div class="tsd-signature tsd-kind-icon">sendid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L1007">types.ts:1007</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1072">types.ts:1072</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -223,13 +231,13 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="type" class="tsd-anchor"></a>
 					<h3>type</h3>
 					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">"platform"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"internal"</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">"external"</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L999">types.ts:999</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L1064">types.ts:1064</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -249,10 +257,7 @@
 					<li class="globals  ">
 						<a href="../globals.html"><em>Globals</em></a>
 					</li>
-					<li class="label tsd-is-external">
-						<span>Externals</span>
-					</li>
-					<li class="current tsd-kind-module tsd-is-external">
+					<li class="current tsd-kind-module">
 						<a href="../modules/scxml.html">SCXML</a>
 					</li>
 				</ul>
@@ -261,31 +266,31 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-is-external">
+					<li class="current tsd-kind-interface tsd-parent-kind-module tsd-has-type-parameter">
 						<a href="scxml.event.html" class="tsd-kind-icon">Event</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-private tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-private">
 								<a href="scxml.event.html#__type" class="tsd-kind-icon">$$type</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#data" class="tsd-kind-icon">data</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#invokeid" class="tsd-kind-icon">invokeid</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#name" class="tsd-kind-icon">name</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#origin" class="tsd-kind-icon">origin</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#origintype" class="tsd-kind-icon">origintype</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#sendid" class="tsd-kind-icon">sendid</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
 								<a href="scxml.event.html#type" class="tsd-kind-icon">type</a>
 							</li>
 						</ul>
@@ -309,6 +314,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -357,7 +363,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>

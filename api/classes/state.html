@@ -59,7 +59,7 @@
 					<a href="state.html">State</a>
 				</li>
 			</ul>
-			<h1>Class State&lt;TContext, TEvent&gt;</h1>
+			<h1>Class State&lt;TContext, TEvent, TStateSchema, TState&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -75,6 +75,12 @@
 					<li>
 						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="../interfaces/eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
+					<li>
+						<h4>TStateSchema<span class="tsd-signature-symbol">: </span><a href="../interfaces/stateschema.html" class="tsd-signature-type">StateSchema</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
+					<li>
+						<h4>TState<span class="tsd-signature-symbol">: </span><a href="../interfaces/typestate.html" class="tsd-signature-type">Typestate</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></h4>
+					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-hierarchy">
@@ -85,71 +91,64 @@
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel">
-				<h3>Implements</h3>
-				<ul class="tsd-hierarchy">
-					<li><a href="../interfaces/stateinterface.html" class="tsd-signature-type">StateInterface</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></li>
-				</ul>
-			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Constructors</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-external"><a href="state.html#constructor" class="tsd-kind-icon">constructor</a></li>
+								<li class="tsd-kind-constructor tsd-parent-kind-class"><a href="state.html#constructor" class="tsd-kind-icon">constructor</a></li>
 							</ul>
 						</section>
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#actions" class="tsd-kind-icon">actions</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#activities" class="tsd-kind-icon">activities</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#changed" class="tsd-kind-icon">changed</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#context" class="tsd-kind-icon">context</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#event" class="tsd-kind-icon">event</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#events" class="tsd-kind-icon">events</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#history" class="tsd-kind-icon">history</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#historyvalue" class="tsd-kind-icon">history<wbr>Value</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#meta" class="tsd-kind-icon">meta</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#tree" class="tsd-kind-icon">tree</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-class tsd-is-external"><a href="state.html#value" class="tsd-kind-icon">value</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#_event" class="tsd-kind-icon">_event</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#_sessionid" class="tsd-kind-icon">_sessionid</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#actions" class="tsd-kind-icon">actions</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#activities" class="tsd-kind-icon">activities</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#changed" class="tsd-kind-icon">changed</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#children" class="tsd-kind-icon">children</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#configuration" class="tsd-kind-icon">configuration</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#context" class="tsd-kind-icon">context</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#event" class="tsd-kind-icon">event</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#events" class="tsd-kind-icon">events</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#history" class="tsd-kind-icon">history</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#historyvalue" class="tsd-kind-icon">history<wbr>Value</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#meta" class="tsd-kind-icon">meta</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#nextevents" class="tsd-kind-icon">next<wbr>Events</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#transitions" class="tsd-kind-icon">transitions</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-class"><a href="state.html#value" class="tsd-kind-icon">value</a></li>
 							</ul>
 						</section>
-						<section class="tsd-index-section tsd-is-external">
-							<h3>Accessors</h3>
-							<ul class="tsd-index-list">
-								<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-external"><a href="state.html#inert" class="tsd-kind-icon">inert</a></li>
-								<li class="tsd-kind-get-signature tsd-parent-kind-class tsd-is-external"><a href="state.html#nextevents" class="tsd-kind-icon">next<wbr>Events</a></li>
-							</ul>
-						</section>
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Methods</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="state.html#matches" class="tsd-kind-icon">matches</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-is-external"><a href="state.html#tostrings" class="tsd-kind-icon">to<wbr>Strings</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external"><a href="state.html#create" class="tsd-kind-icon">create</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external"><a href="state.html#from" class="tsd-kind-icon">from</a></li>
-								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external"><a href="state.html#inert-1" class="tsd-kind-icon">inert</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter"><a href="state.html#matches" class="tsd-kind-icon">matches</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="state.html#tojson" class="tsd-kind-icon">toJSON</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class"><a href="state.html#tostrings" class="tsd-kind-icon">to<wbr>Strings</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static"><a href="state.html#create" class="tsd-kind-icon">create</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static"><a href="state.html#from" class="tsd-kind-icon">from</a></li>
+								<li class="tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static"><a href="state.html#inert" class="tsd-kind-icon">inert</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Constructors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-constructor tsd-parent-kind-class">
 					<a name="constructor" class="tsd-anchor"></a>
 					<h3>constructor</h3>
-					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+					<ul class="tsd-signatures tsd-kind-constructor tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">new <wbr>State<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../interfaces/stateconfig.html" class="tsd-signature-type">StateConfig</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L153">State.ts:153</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L209">State.ts:209</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -168,38 +167,55 @@
 					</ul>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="_event" class="tsd-anchor"></a>
+					<h3>_event</h3>
+					<div class="tsd-signature tsd-kind-icon">_event<span class="tsd-signature-symbol">:</span> <a href="../interfaces/scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L93">State.ts:93</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="_sessionid" class="tsd-anchor"></a>
+					<h3>_sessionid</h3>
+					<div class="tsd-signature tsd-kind-icon">_sessionid<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">null</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L94">State.ts:94</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="actions" class="tsd-anchor"></a>
 					<h3>actions</h3>
 					<div class="tsd-signature tsd-kind-icon">actions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#actions">actions</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L50">State.ts:50</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L88">State.ts:88</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="activities" class="tsd-anchor"></a>
 					<h3>activities</h3>
 					<div class="tsd-signature tsd-kind-icon">activities<span class="tsd-signature-symbol">:</span> <a href="../interfaces/activitymap.html" class="tsd-signature-type">ActivityMap</a><span class="tsd-signature-symbol"> =&nbsp;EMPTY_ACTIVITY_MAP</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#activities">activities</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L51">State.ts:51</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L89">State.ts:89</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="changed" class="tsd-anchor"></a>
 					<h3>changed</h3>
 					<div class="tsd-signature tsd-kind-icon">changed<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#changed">changed</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L63">State.ts:63</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L103">State.ts:103</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -213,160 +229,150 @@
 						<p>An initial state (with no history) will return <code>undefined</code>.</p>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="context" class="tsd-anchor"></a>
-					<h3>context</h3>
-					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TContext</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="children" class="tsd-anchor"></a>
+					<h3>children</h3>
+					<div class="tsd-signature tsd-kind-icon">children<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Record</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">, </span><a href="../interfaces/actor.html" class="tsd-signature-type">Actor</a><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#context">context</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L47">State.ts:47</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="event" class="tsd-anchor"></a>
-					<h3>event</h3>
-					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <a href="../globals.html#omnieventobject" class="tsd-signature-type">OmniEventObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#event">event</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L54">State.ts:54</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="events" class="tsd-anchor"></a>
-					<h3>events</h3>
-					<div class="tsd-signature tsd-kind-icon">events<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#events">events</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L53">State.ts:53</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="history" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> history</h3>
-					<div class="tsd-signature tsd-kind-icon">history<span class="tsd-signature-symbol">:</span> <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#history">history</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L49">State.ts:49</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="historyvalue" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> history<wbr>Value</h3>
-					<div class="tsd-signature tsd-kind-icon">history<wbr>Value<span class="tsd-signature-symbol">:</span> <a href="../interfaces/historyvalue.html" class="tsd-signature-type">HistoryValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#historyvalue">historyValue</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L48">State.ts:48</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="meta" class="tsd-anchor"></a>
-					<h3>meta</h3>
-					<div class="tsd-signature tsd-kind-icon">meta<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#meta">meta</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L52">State.ts:52</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
-					<a name="tree" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> tree</h3>
-					<div class="tsd-signature tsd-kind-icon">tree<span class="tsd-signature-symbol">:</span> <a href="statetree.html" class="tsd-signature-type">StateTree</a></div>
-					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#tree">tree</a></p>
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L67">State.ts:67</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L120">State.ts:120</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
 						<div class="lead">
-							<p>The state node tree representation of the state value.</p>
+							<p>An object mapping actor IDs to spawned actors/invoked services.</p>
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="configuration" class="tsd-anchor"></a>
+					<h3>configuration</h3>
+					<div class="tsd-signature tsd-kind-icon">configuration<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L107">State.ts:107</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The enabled state nodes representative of the state value.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="context" class="tsd-anchor"></a>
+					<h3>context</h3>
+					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TContext</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L85">State.ts:85</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="event" class="tsd-anchor"></a>
+					<h3>event</h3>
+					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L92">State.ts:92</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="events" class="tsd-anchor"></a>
+					<h3>events</h3>
+					<div class="tsd-signature tsd-kind-icon">events<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[]</span><span class="tsd-signature-symbol"> =&nbsp;[]</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L91">State.ts:91</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="history" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> history</h3>
+					<div class="tsd-signature tsd-kind-icon">history<span class="tsd-signature-symbol">:</span> <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L87">State.ts:87</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="historyvalue" class="tsd-anchor"></a>
+					<h3><span class="tsd-flag ts-flagOptional">Optional</span> history<wbr>Value</h3>
+					<div class="tsd-signature tsd-kind-icon">history<wbr>Value<span class="tsd-signature-symbol">:</span> <a href="../interfaces/historyvalue.html" class="tsd-signature-type">HistoryValue</a><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L86">State.ts:86</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="meta" class="tsd-anchor"></a>
+					<h3>meta</h3>
+					<div class="tsd-signature tsd-kind-icon">meta<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L90">State.ts:90</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="nextevents" class="tsd-anchor"></a>
+					<h3>next<wbr>Events</h3>
+					<div class="tsd-signature tsd-kind-icon">next<wbr>Events<span class="tsd-signature-symbol">:</span> <a href="../globals.html#eventtype" class="tsd-signature-type">EventType</a><span class="tsd-signature-symbol">[]</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L112">State.ts:112</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The next events that will cause a transition from the current state.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
+					<a name="transitions" class="tsd-anchor"></a>
+					<h3>transitions</h3>
+					<div class="tsd-signature tsd-kind-icon">transitions<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../interfaces/transitiondefinition.html" class="tsd-signature-type">TransitionDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L116">State.ts:116</a></li>
+						</ul>
+					</aside>
+					<div class="tsd-comment tsd-typography">
+						<div class="lead">
+							<p>The transition definitions that resulted in this state.</p>
+						</div>
+					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-class">
 					<a name="value" class="tsd-anchor"></a>
 					<h3>value</h3>
 					<div class="tsd-signature tsd-kind-icon">value<span class="tsd-signature-symbol">:</span> <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></div>
 					<aside class="tsd-sources">
-						<p>Implementation of <a href="../interfaces/stateinterface.html">StateInterface</a>.<a href="../interfaces/stateinterface.html#value">value</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L46">State.ts:46</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L84">State.ts:84</a></li>
 						</ul>
 					</aside>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
-				<h2>Accessors</h2>
-				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-					<a name="inert" class="tsd-anchor"></a>
-					<h3>inert</h3>
-					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> inert<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L151">State.ts:151</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>Returns a new <code>State</code> instance that is equal to this state no actions (side-effects).</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h4>
-						</li>
-					</ul>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-					<a name="nextevents" class="tsd-anchor"></a>
-					<h3>next<wbr>Events</h3>
-					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> nextEvents<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../globals.html#eventtype" class="tsd-signature-type">EventType</a><span class="tsd-signature-symbol">[]</span></li>
-					</ul>
-					<ul class="tsd-descriptions">
-						<li class="tsd-description">
-							<aside class="tsd-sources">
-								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L188">State.ts:188</a></li>
-								</ul>
-							</aside>
-							<div class="tsd-comment tsd-typography">
-								<div class="lead">
-									<p>The next events that will cause a transition from the current state.</p>
-								</div>
-							</div>
-							<h4 class="tsd-returns-title">Returns <a href="../globals.html#eventtype" class="tsd-signature-type">EventType</a><span class="tsd-signature-symbol">[]</span></h4>
-						</li>
-					</ul>
-				</section>
-			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Methods</h2>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
 					<a name="matches" class="tsd-anchor"></a>
 					<h3>matches</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">matches<span class="tsd-signature-symbol">(</span>parentStateValue<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">boolean</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
+						<li class="tsd-signature tsd-kind-icon">matches&lt;TSV&gt;<span class="tsd-signature-symbol">(</span>parentStateValue<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TSV</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">this</span><span class="tsd-signature-symbol"> is </span><span class="tsd-signature-type">TState extends { value: TSV; } ? State&lt;TState[&quot;context&quot;], TEvent, TStateSchema, TState&gt; : never</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L221">State.ts:221</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L279">State.ts:279</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -374,29 +380,54 @@
 									<p>Whether the current state value is a subset of the given parent state value.</p>
 								</div>
 							</div>
+							<h4 class="tsd-type-parameters-title">Type parameters</h4>
+							<ul class="tsd-type-parameters">
+								<li>
+									<h4>TSV<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TState[&quot;value&quot;]</span></h4>
+								</li>
+							</ul>
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>parentStateValue: <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h5>
+									<h5>parentStateValue: <span class="tsd-signature-type">TSV</span></h5>
 									<div class="tsd-comment tsd-typography">
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">boolean</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">this</span><span class="tsd-signature-symbol"> is </span><span class="tsd-signature-type">TState extends { value: TSV; } ? State&lt;TState[&quot;context&quot;], TEvent, TStateSchema, TState&gt; : never</span></h4>
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
+					<a name="tojson" class="tsd-anchor"></a>
+					<h3>toJSON</h3>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
+						<li class="tsd-signature tsd-kind-icon">toJSON<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">object</span></li>
+					</ul>
+					<ul class="tsd-descriptions">
+						<li class="tsd-description">
+							<aside class="tsd-sources">
+								<ul>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L269">State.ts:269</a></li>
+								</ul>
+							</aside>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">object</span></h4>
+							<ul class="tsd-parameters">
+							</ul>
+						</li>
+					</ul>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class">
 					<a name="tostrings" class="tsd-anchor"></a>
 					<h3>to<wbr>Strings</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-is-external">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class">
 						<li class="tsd-signature tsd-kind-icon">to<wbr>Strings<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">?: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, delimiter<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">[]</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L201">State.ts:201</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L253">State.ts:253</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -420,17 +451,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 					<a name="create" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> create</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">create&lt;TC, TE&gt;<span class="tsd-signature-symbol">(</span>config<span class="tsd-signature-symbol">: </span><a href="../interfaces/stateconfig.html" class="tsd-signature-type">StateConfig</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L114">State.ts:114</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L174">State.ts:174</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -460,17 +491,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 					<a name="from" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> from</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 						<li class="tsd-signature tsd-kind-icon">from&lt;TC, TE&gt;<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, context<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L73">State.ts:73</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L126">State.ts:126</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -502,17 +533,17 @@
 						</li>
 					</ul>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
-					<a name="inert-1" class="tsd-anchor"></a>
+				<section class="tsd-panel tsd-member tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
+					<a name="inert" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagStatic">Static</span> inert</h3>
-					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
-						<li class="tsd-signature tsd-kind-icon">inert&lt;TC, TE&gt;<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span></li>
+					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
+						<li class="tsd-signature tsd-kind-icon">inert&lt;TC, TE&gt;<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, context<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/State.ts#L124">State.ts:124</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/State.ts#L184">State.ts:184</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -532,7 +563,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5>stateValue: <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h5>
+									<h5>stateValue: <a href="state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TC</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TE</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h5>
 								</li>
 								<li>
 									<h5>context: <span class="tsd-signature-type">TC</span></h5>
@@ -558,65 +589,77 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-class tsd-has-type-parameter tsd-is-external">
+					<li class="current tsd-kind-class tsd-has-type-parameter">
 						<a href="state.html" class="tsd-kind-icon">State</a>
 						<ul>
-							<li class=" tsd-kind-constructor tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-constructor tsd-parent-kind-class">
 								<a href="state.html#constructor" class="tsd-kind-icon">constructor</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#_event" class="tsd-kind-icon">_event</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#_sessionid" class="tsd-kind-icon">_sessionid</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#actions" class="tsd-kind-icon">actions</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#activities" class="tsd-kind-icon">activities</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#changed" class="tsd-kind-icon">changed</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#children" class="tsd-kind-icon">children</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#configuration" class="tsd-kind-icon">configuration</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#context" class="tsd-kind-icon">context</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#event" class="tsd-kind-icon">event</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#events" class="tsd-kind-icon">events</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#history" class="tsd-kind-icon">history</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#historyvalue" class="tsd-kind-icon">history<wbr>Value</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#meta" class="tsd-kind-icon">meta</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
-								<a href="state.html#tree" class="tsd-kind-icon">tree</a>
-							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-class tsd-is-external">
-								<a href="state.html#value" class="tsd-kind-icon">value</a>
-							</li>
-							<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
-								<a href="state.html#inert" class="tsd-kind-icon">inert</a>
-							</li>
-							<li class=" tsd-kind-get-signature tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
 								<a href="state.html#nextevents" class="tsd-kind-icon">next<wbr>Events</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#transitions" class="tsd-kind-icon">transitions</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-class">
+								<a href="state.html#value" class="tsd-kind-icon">value</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter">
 								<a href="state.html#matches" class="tsd-kind-icon">matches</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-is-external">
+							<li class=" tsd-kind-method tsd-parent-kind-class">
+								<a href="state.html#tojson" class="tsd-kind-icon">toJSON</a>
+							</li>
+							<li class=" tsd-kind-method tsd-parent-kind-class">
 								<a href="state.html#tostrings" class="tsd-kind-icon">to<wbr>Strings</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 								<a href="state.html#create" class="tsd-kind-icon">create</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
 								<a href="state.html#from" class="tsd-kind-icon">from</a>
 							</li>
-							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static tsd-is-external">
-								<a href="state.html#inert-1" class="tsd-kind-icon">inert</a>
+							<li class=" tsd-kind-method tsd-parent-kind-class tsd-has-type-parameter tsd-is-static">
+								<a href="state.html#inert" class="tsd-kind-icon">inert</a>
 							</li>
 						</ul>
 					</li>
@@ -639,6 +682,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -687,7 +731,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>

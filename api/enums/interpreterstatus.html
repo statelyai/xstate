@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>RaisedEvent | xstate</title>
+	<title>InterpreterStatus | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,65 +56,60 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="raisedevent.html">RaisedEvent</a>
+					<a href="interpreterstatus.html">InterpreterStatus</a>
 				</li>
 			</ul>
-			<h1>Interface RaisedEvent&lt;TEvent&gt;</h1>
+			<h1>Enumeration InterpreterStatus</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
-			<section class="tsd-panel tsd-type-parameters">
-				<h3>Type parameters</h3>
-				<ul class="tsd-type-parameters">
-					<li>
-						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
-					</li>
-				</ul>
-			</section>
-			<section class="tsd-panel tsd-hierarchy">
-				<h3>Hierarchy</h3>
-				<ul class="tsd-hierarchy">
-					<li>
-						<span class="target">RaisedEvent</span>
-					</li>
-				</ul>
-			</section>
 			<section class="tsd-panel-group tsd-index-group">
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
-							<h3>Properties</h3>
+						<section class="tsd-index-section tsd-is-not-exported">
+							<h3>Enumeration members</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="raisedevent.html#event" class="tsd-kind-icon">event</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="raisedevent.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported"><a href="interpreterstatus.html#notstarted" class="tsd-kind-icon">Not<wbr>Started</a></li>
+								<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported"><a href="interpreterstatus.html#running" class="tsd-kind-icon">Running</a></li>
+								<li class="tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported"><a href="interpreterstatus.html#stopped" class="tsd-kind-icon">Stopped</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
-				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="event" class="tsd-anchor"></a>
-					<h3>event</h3>
-					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span></div>
+			<section class="tsd-panel-group tsd-member-group tsd-is-not-exported">
+				<h2>Enumeration members</h2>
+				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+					<a name="notstarted" class="tsd-anchor"></a>
+					<h3>Not<wbr>Started</h3>
+					<div class="tsd-signature tsd-kind-icon">Not<wbr>Started<span class="tsd-signature-symbol">:</span> </div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L678">types.ts:678</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/interpreter.ts#L112">interpreter.ts:112</a></li>
 						</ul>
 					</aside>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="type" class="tsd-anchor"></a>
-					<h3>type</h3>
-					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <a href="../enums/actiontypes.html#raise" class="tsd-signature-type">Raise</a></div>
+				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+					<a name="running" class="tsd-anchor"></a>
+					<h3>Running</h3>
+					<div class="tsd-signature tsd-kind-icon">Running<span class="tsd-signature-symbol">:</span> </div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L677">types.ts:677</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/interpreter.ts#L113">interpreter.ts:113</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+					<a name="stopped" class="tsd-anchor"></a>
+					<h3>Stopped</h3>
+					<div class="tsd-signature tsd-kind-icon">Stopped<span class="tsd-signature-symbol">:</span> </div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/interpreter.ts#L114">interpreter.ts:114</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -132,14 +127,17 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="raisedevent.html" class="tsd-kind-icon">Raised<wbr>Event</a>
+					<li class="current tsd-kind-enum tsd-is-not-exported">
+						<a href="interpreterstatus.html" class="tsd-kind-icon">Interpreter<wbr>Status</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="raisedevent.html#event" class="tsd-kind-icon">event</a>
+							<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+								<a href="interpreterstatus.html#notstarted" class="tsd-kind-icon">Not<wbr>Started</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="raisedevent.html#type" class="tsd-kind-icon">type</a>
+							<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+								<a href="interpreterstatus.html#running" class="tsd-kind-icon">Running</a>
+							</li>
+							<li class=" tsd-kind-enum-member tsd-parent-kind-enum tsd-is-not-exported">
+								<a href="interpreterstatus.html#stopped" class="tsd-kind-icon">Stopped</a>
 							</li>
 						</ul>
 					</li>
@@ -162,6 +160,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -210,7 +209,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>

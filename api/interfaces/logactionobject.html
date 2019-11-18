@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>RaiseEvent | xstate</title>
+	<title>LogActionObject | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,10 +56,10 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="raiseevent.html">RaiseEvent</a>
+					<a href="logactionobject.html">LogActionObject</a>
 				</li>
 			</ul>
-			<h1>Interface RaiseEvent&lt;TContext, TEvent&gt;</h1>
+			<h1>Interface LogActionObject&lt;TContext, TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -81,16 +81,16 @@
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="actionobject.html" class="tsd-signature-type">ActionObject</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="logaction.html" class="tsd-signature-type">LogAction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
-								<span class="target">RaiseEvent</span>
+								<span class="target">LogActionObject</span>
 							</li>
 						</ul>
 					</li>
 				</ul>
 			</section>
-			<section class="tsd-panel tsd-kind-interface tsd-has-type-parameter tsd-is-external">
+			<section class="tsd-panel tsd-kind-interface tsd-has-type-parameter">
 				<h3 class="tsd-before-signature">Indexable</h3>
 				<div class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">[</span>other: <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol">]: </span><span class="tsd-signature-type">any</span></div>
 			</section>
@@ -98,37 +98,29 @@
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="raiseevent.html#event" class="tsd-kind-icon">event</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="raiseevent.html#exec" class="tsd-kind-icon">exec</a></li>
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external"><a href="raiseevent.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="logactionobject.html#exec" class="tsd-kind-icon">exec</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="logactionobject.html#expr" class="tsd-kind-icon">expr</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="logactionobject.html#label" class="tsd-kind-icon">label</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-inherited"><a href="logactionobject.html#type" class="tsd-kind-icon">type</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="logactionobject.html#value" class="tsd-kind-icon">value</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="event" class="tsd-anchor"></a>
-					<h3>event</h3>
-					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <a href="../globals.html#event" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
-					<aside class="tsd-sources">
-						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L682">types.ts:682</a></li>
-						</ul>
-					</aside>
-				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="exec" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> exec</h3>
 					<div class="tsd-signature tsd-kind-icon">exec<span class="tsd-signature-symbol">:</span> <a href="../globals.html#actionfunction" class="tsd-signature-type">ActionFunction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#exec">exec</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L38">types.ts:38</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L36">types.ts:36</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -137,14 +129,36 @@
 						</div>
 					</div>
 				</section>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="expr" class="tsd-anchor"></a>
+					<h3>expr</h3>
+					<div class="tsd-signature tsd-kind-icon">expr<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><a href="../globals.html#logexpr" class="tsd-signature-type">LogExpr</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="logaction.html">LogAction</a>.<a href="logaction.html#expr">expr</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L780">types.ts:780</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+					<a name="label" class="tsd-anchor"></a>
+					<h3>label</h3>
+					<div class="tsd-signature tsd-kind-icon">label<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span></div>
+					<aside class="tsd-sources">
+						<p>Inherited from <a href="logaction.html">LogAction</a>.<a href="logaction.html#label">label</a></p>
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L779">types.ts:779</a></li>
+						</ul>
+					</aside>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="type" class="tsd-anchor"></a>
 					<h3>type</h3>
 					<div class="tsd-signature tsd-kind-icon">type<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/types.ts#L34">types.ts:34</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L32">types.ts:32</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -152,6 +166,16 @@
 							<p>The type of action that is executed.</p>
 						</div>
 					</div>
+				</section>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="value" class="tsd-anchor"></a>
+					<h3>value</h3>
+					<div class="tsd-signature tsd-kind-icon">value<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">any</span></div>
+					<aside class="tsd-sources">
+						<ul>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L785">types.ts:785</a></li>
+						</ul>
+					</aside>
 				</section>
 			</section>
 		</div>
@@ -167,17 +191,23 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-has-type-parameter tsd-is-external">
-						<a href="raiseevent.html" class="tsd-kind-icon">Raise<wbr>Event</a>
+					<li class="current tsd-kind-interface tsd-has-type-parameter">
+						<a href="logactionobject.html" class="tsd-kind-icon">Log<wbr>Action<wbr>Object</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="raiseevent.html#event" class="tsd-kind-icon">event</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="logactionobject.html#exec" class="tsd-kind-icon">exec</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="raiseevent.html#exec" class="tsd-kind-icon">exec</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="logactionobject.html#expr" class="tsd-kind-icon">expr</a>
 							</li>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited tsd-is-external">
-								<a href="raiseevent.html#type" class="tsd-kind-icon">type</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="logactionobject.html#label" class="tsd-kind-icon">label</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
+								<a href="logactionobject.html#type" class="tsd-kind-icon">type</a>
+							</li>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="logactionobject.html#value" class="tsd-kind-icon">value</a>
 							</li>
 						</ul>
 					</li>
@@ -200,6 +230,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -248,7 +279,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>

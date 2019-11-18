@@ -3,7 +3,7 @@
 <head>
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
-	<title>StateTreeOptions | xstate</title>
+	<title>SCXMLEventMeta | xstate</title>
 	<meta name="description" content="">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
@@ -56,21 +56,29 @@
 					<a href="../globals.html">Globals</a>
 				</li>
 				<li>
-					<a href="statetreeoptions.html">StateTreeOptions</a>
+					<a href="scxmleventmeta.html">SCXMLEventMeta</a>
 				</li>
 			</ul>
-			<h1>Interface StateTreeOptions</h1>
+			<h1>Interface SCXMLEventMeta&lt;TEvent&gt;</h1>
 		</div>
 	</div>
 </header>
 <div class="container container-main">
 	<div class="row">
 		<div class="col-8 col-content">
+			<section class="tsd-panel tsd-type-parameters">
+				<h3>Type parameters</h3>
+				<ul class="tsd-type-parameters">
+					<li>
+						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
+				</ul>
+			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<span class="target">StateTreeOptions</span>
+						<span class="target">SCXMLEventMeta</span>
 					</li>
 				</ul>
 			</section>
@@ -78,24 +86,24 @@
 				<h2>Index</h2>
 				<section class="tsd-panel tsd-index-panel">
 					<div class="tsd-index-content">
-						<section class="tsd-index-section tsd-is-external">
+						<section class="tsd-index-section ">
 							<h3>Properties</h3>
 							<ul class="tsd-index-list">
-								<li class="tsd-kind-property tsd-parent-kind-interface tsd-is-external"><a href="statetreeoptions.html#resolved" class="tsd-kind-icon">resolved</a></li>
+								<li class="tsd-kind-property tsd-parent-kind-interface"><a href="scxmleventmeta.html#_event" class="tsd-kind-icon">_event</a></li>
 							</ul>
 						</section>
 					</div>
 				</section>
 			</section>
-			<section class="tsd-panel-group tsd-member-group tsd-is-external">
+			<section class="tsd-panel-group tsd-member-group ">
 				<h2>Properties</h2>
-				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-					<a name="resolved" class="tsd-anchor"></a>
-					<h3><span class="tsd-flag ts-flagOptional">Optional</span> resolved</h3>
-					<div class="tsd-signature tsd-kind-icon">resolved<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
+				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
+					<a name="_event" class="tsd-anchor"></a>
+					<h3>_event</h3>
+					<div class="tsd-signature tsd-kind-icon">_event<span class="tsd-signature-symbol">:</span> <a href="scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/163fc4d7/src/StateTree.ts#L21">StateTree.ts:21</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L974">types.ts:974</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -113,11 +121,11 @@
 				<ul class="before-current">
 				</ul>
 				<ul class="current">
-					<li class="current tsd-kind-interface tsd-is-external">
-						<a href="statetreeoptions.html" class="tsd-kind-icon">State<wbr>Tree<wbr>Options</a>
+					<li class="current tsd-kind-interface tsd-has-type-parameter">
+						<a href="scxmleventmeta.html" class="tsd-kind-icon">SCXMLEvent<wbr>Meta</a>
 						<ul>
-							<li class=" tsd-kind-property tsd-parent-kind-interface tsd-is-external">
-								<a href="statetreeoptions.html#resolved" class="tsd-kind-icon">resolved</a>
+							<li class=" tsd-kind-property tsd-parent-kind-interface">
+								<a href="scxmleventmeta.html#_event" class="tsd-kind-icon">_event</a>
 							</li>
 						</ul>
 					</li>
@@ -140,6 +148,7 @@
 				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
 				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
 				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
+				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
@@ -188,7 +197,7 @@
 	</div>
 </footer>
 <div class="container tsd-generator">
-	<p>Generated using <a href="http://typedoc.org/" target="_blank">TypeDoc</a></p>
+	<p>Generated using <a href="https://typedoc.org/" target="_blank">TypeDoc</a></p>
 </div>
 <div class="overlay"></div>
 <script src="../assets/js/main.js"></script>
