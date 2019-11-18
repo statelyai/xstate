@@ -123,7 +123,7 @@ describe('spawning machines', () => {
         }
       },
       sendPing: {
-        entry: [send('PING', { to: ctx => ctx.server }), raise('SUCCESS')],
+        entry: [send('PING', { to: ctx => ctx.server! }), raise('SUCCESS')],
         on: {
           SUCCESS: 'waitPong'
         }

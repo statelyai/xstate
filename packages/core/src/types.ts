@@ -98,7 +98,7 @@ export type ExtractStateValue<
   : {
       [K in keyof TSS]?:
         | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
-        | ExtractStateValue<TSS[K]>;
+        | ExtractStateValue<TSS[K]>
     };
 
 export interface HistoryValue {
@@ -283,7 +283,7 @@ export type StateNodesConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >;
+  >
 };
 
 export type StatesConfig<
@@ -295,7 +295,7 @@ export type StatesConfig<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >;
+  >
 };
 
 export type StatesDefinition<
@@ -307,7 +307,7 @@ export type StatesDefinition<
     TContext,
     TStateSchema['states'][K],
     TEvent
-  >;
+  >
 };
 
 export type TransitionConfigTargetShortcut<
@@ -324,7 +324,7 @@ type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
       > & {
         event?: undefined;
       })
-  >;
+  >
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
@@ -334,7 +334,7 @@ type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
       K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
     > & {
       event: K;
-    };
+    }
   }[TEvent['type'] | NullEvent['type'] | '*']
 >;
 
@@ -564,7 +564,7 @@ export type SimpleOrStateNodeConfig<
 
 export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
-  ActionObject<TContext, TEvent> | ActionFunction<TContext, TEvent>
+  Action<TContext, TEvent> & object
 >;
 
 export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
@@ -852,7 +852,7 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = {
         event: TEvent,
         meta: AssignMeta<TContext, TEvent>
       ) => TContext[K])
-    | TContext[K];
+    | TContext[K]
 };
 
 export type Mapper<TContext, TEvent extends EventObject> = (
@@ -900,7 +900,7 @@ export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {
       TContext,
       K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
     >
-  >;
+  >
 };
 
 export interface DelayedTransitionDefinition<

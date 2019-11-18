@@ -3,7 +3,35 @@ import { createModel } from '../src';
 import { Machine, assign } from 'xstate';
 import stripAnsi from 'strip-ansi';
 
-const dieHardMachine = Machine<{ three: number; five: number }>(
+interface DieHardContext {
+  three: number;
+  five: number;
+}
+
+const pour3to5 = assign<DieHardContext>(ctx => {
+  const poured = Math.min(5 - ctx.five, ctx.three);
+
+  return {
+    three: ctx.three - poured,
+    five: ctx.five + poured
+  };
+});
+const pour5to3 = assign<DieHardContext>(ctx => {
+  const poured = Math.min(3 - ctx.three, ctx.five);
+
+  const res = {
+    three: ctx.three + poured,
+    five: ctx.five - poured
+  };
+
+  return res;
+});
+const fill3 = assign<DieHardContext>({ three: 3 });
+const fill5 = assign<DieHardContext>({ five: 5 });
+const empty3 = assign<DieHardContext>({ three: 0 });
+const empty5 = assign<DieHardContext>({ five: 0 });
+
+const dieHardMachine = Machine<DieHardContext>(
   {
     id: 'dieHard',
     initial: 'pending',
@@ -16,27 +44,29 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
             cond: 'weHave4Gallons'
           },
           POUR_3_TO_5: {
-            actions: 'pour3to5'
+            actions: pour3to5
           },
           POUR_5_TO_3: {
-            actions: 'pour5to3'
+            actions: pour5to3
           },
           FILL_3: {
-            actions: 'fill3'
+            actions: fill3
           },
           FILL_5: {
-            actions: 'fill5'
+            actions: fill5
           },
           EMPTY_3: {
-            actions: 'empty3'
+            actions: empty3
           },
           EMPTY_5: {
-            actions: 'empty5'
+            actions: empty5
           }
         },
         meta: {
           description: state => {
-            return `pending with (${state.context.three}, ${state.context.five})`;
+            return `pending with (${state.context.three}, ${
+              state.context.five
+            })`;
           },
           test: async ({ jugs }, state) => {
             expect(jugs.five).not.toEqual(4);
@@ -57,30 +87,6 @@ const dieHardMachine = Machine<{ three: number; five: number }>(
     }
   },
   {
-    actions: {
-      pour3to5: assign(ctx => {
-        const poured = Math.min(5 - ctx.five, ctx.three);
-
-        return {
-          three: ctx.three - poured,
-          five: ctx.five + poured
-        };
-      }),
-      pour5to3: assign(ctx => {
-        const poured = Math.min(3 - ctx.three, ctx.five);
-
-        const res = {
-          three: ctx.three + poured,
-          five: ctx.five - poured
-        };
-
-        return res;
-      }),
-      fill3: assign({ three: 3 }),
-      fill5: assign({ five: 5 }),
-      empty3: assign({ three: 0 }),
-      empty5: assign({ five: 0 })
-    },
     guards: {
       weHave4Gallons: ctx => ctx.five === 4
     }
