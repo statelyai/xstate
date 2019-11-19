@@ -46,7 +46,7 @@ const searchMachine = Machine(
             {
               target: 'searching',
               // Only transition to 'searching' if the guard (cond) evaluates to true
-              cond: searchValid // or { type: 'searchValid' }
+              cond: 'searchValid' // or { type: 'searchValid' }
             },
             { target: '.invalid' }
           ]
