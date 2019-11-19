@@ -511,7 +511,16 @@ In other words, spawned child actors updating will _not_ cause unnecessary reren
 const Subreddit = ({ service }) => {
   const [current, send] = useService(service);
 
-  // ... same code as previous Subreddit component
+  /* ... */
+
+  return (
+    <section
+      data-machine={service.machine.id}
+      data-state={current.toStrings().join(" ")}
+    >
+      {/* ... same code as previous Subreddit component */}
+    </section>
+  )
 };
 ```
 
