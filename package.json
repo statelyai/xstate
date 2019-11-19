@@ -15,7 +15,7 @@
     "test:core": "npm test --prefix packages/core",
     "dev": "node ./scripts/dev.js",
     "ci": "npm run build && npm run test",
-    "typedoc": "typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./packages/core/src",
+    "typedoc": "cd ./packages/core && typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./src",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:readme": "cpy 'README.md' docs",
     "docs:dev": "npm run docs:packages && cd docs && vuepress dev .",
