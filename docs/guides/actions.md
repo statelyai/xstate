@@ -58,6 +58,53 @@ const triggerMachine = Machine(
 );
 ```
 
+<details>
+  <summary>
+    When should I use transition vs. entry/exit actions?
+  </summary>
+
+It depends! They mean different things:
+
+- An entry/exit actions means "execute this action **on any transition that enters/exits this state**". Use entry/exit actions when the action is only dependent on the state node that it's in, and not on previous/next state nodes or events.
+
+```js
+// ...
+{
+  idle: {
+    on: {
+      LOAD: 'loading'
+    }
+  },
+  loading: {
+    // this action is executed whenever the 'loading' state is entered
+    entry: 'fetchData'
+  }
+}
+// ...
+```
+
+- A transition actions mean "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+
+```js
+// ...
+{
+  idle: {
+    on: {
+      LOAD: {
+        target: 'loading',
+        // this action is executed only on this transition
+        actions: 'fetchData'
+    }
+  },
+  loading: {
+    // ...
+  }
+}
+// ...
+```
+
+</details>
+
 ::: tip
 Action implementations can be quickly prototyped by specifying the action function directly in the machine config:
 
@@ -104,8 +151,10 @@ The `exec` function takes three arguments:
 
 The `actionMeta` object includes the following properties:
 
-- `action` - the original action object
-- `state` - the resolved machine state, after transition
+| Property | Type          | Description                                  |
+| -------- | ------------- | -------------------------------------------- |
+| `action` | action object | The original action object                   |
+| `state`  | State         | The resolved machine state, after transition |
 
 The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. This behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
 
@@ -128,9 +177,11 @@ The `send(event)` action creator creates a special "send" action object that tel
 
 The send `options` argument is an object containing:
 
-- `id?` - the send ID (used for cancellation).
-- `to?` - the target of the event (defaults to self).
-- `delay?` - the timeout (milliseconds) before sending the event, if it is not canceled before the timeout.
+| Property | Type   | Description                                                                                   |
+| -------- | ------ | --------------------------------------------------------------------------------------------- |
+| `id?`    | string | The send ID (used for cancellation)                                                           |
+| `to?`    | string | The target of the event (defaults to self)                                                    |
+| `delay?` | number | The timeout (milliseconds) before sending the event, if it is not canceled before the timeout |
 
 ::: warning
 The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
@@ -356,7 +407,7 @@ const authClientMachine = Machine({
 
 See [📖 Sending Responses](./actors.md#sending-responses) for more details.
 
-## Forward To Action <Badge text="4.7+">
+## Forward To Action <Badge text="4.7+" />
 
 The `forwardTo()` action creator creates a [`send()` action](#send-action) that forwards the most recent event to the specified service via its ID.
 
