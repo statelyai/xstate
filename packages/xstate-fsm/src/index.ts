@@ -48,9 +48,14 @@ function createUnchangedState<
   TC,
   TE extends EventObject,
   TS extends Typestate<TC>
->(value: string, context: TC): StateMachine.State<TC, TE, TS> {
+>(
+  value: string,
+  config: StateMachine.StateConfig<TC, TE>,
+  context: TC
+): StateMachine.State<TC, TE, TS> {
   return {
     value,
+    config,
     context,
     actions: [],
     changed: false,
@@ -69,6 +74,7 @@ export function createMachine<
     config: fsmConfig,
     initialState: {
       value: fsmConfig.initial,
+      config: fsmConfig.states[fsmConfig.initial],
       actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
         toActionObject
       ),
@@ -101,7 +107,7 @@ export function createMachine<
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return createUnchangedState(value, context);
+            return createUnchangedState(value, stateConfig, context);
           }
 
           const { target = value, actions = [], cond = () => true } =
@@ -142,6 +148,7 @@ export function createMachine<
 
             return {
               value: target,
+              config: nextStateConfig,
               context: nextContext,
               actions: allActions,
               changed: target !== value || allActions.length > 0 || assigned,
@@ -152,7 +159,7 @@ export function createMachine<
       }
 
       // No transitions match
-      return createUnchangedState(value, context);
+      return createUnchangedState(value, stateConfig, context);
     }
   };
 }

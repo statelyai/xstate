@@ -29,8 +29,13 @@ export namespace StateMachine {
         actions?: SingleOrArray<Action<TContext, TEvent>>;
         cond?: (context: TContext, event: TEvent) => boolean;
       };
-  export interface State<TContext, TEvent, TState extends Typestate<TContext>> {
+  export interface State<
+    TContext,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext>
+  > {
     value: string;
+    config: StateConfig<TContext, TEvent>;
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
     changed?: boolean | undefined;
@@ -44,19 +49,21 @@ export namespace StateMachine {
     initial: string;
     context?: TContext;
     states: {
-      [key: string]: {
-        on?: {
-          [K in TEvent['type']]?: SingleOrArray<
-            StateMachine.Transition<
-              TContext,
-              TEvent extends { type: K } ? TEvent : never
-            >
-          >;
-        };
-        exit?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
-        entry?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
-      };
+      [key: string]: StateConfig<TContext, TEvent>;
     };
+  }
+
+  export interface StateConfig<TContext, TEvent extends EventObject> {
+    on?: {
+      [K in TEvent['type']]?: SingleOrArray<
+        StateMachine.Transition<
+          TContext,
+          TEvent extends { type: K } ? TEvent : never
+        >
+      >;
+    };
+    exit?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
+    entry?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
   }
 
   export interface Machine<

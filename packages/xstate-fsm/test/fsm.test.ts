@@ -68,11 +68,13 @@ describe('@xstate/fsm', () => {
     const { initialState } = lightFSM;
 
     expect(initialState.value).toEqual('green');
+    expect(initialState.config).toEqual(lightConfig.states.green);
     expect(initialState.actions).toEqual([{ type: 'enterGreen' }]);
   });
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');
+    expect(nextState.config).toEqual(lightConfig.states.yellow);
     expect(nextState.actions.map(action => action.type)).toEqual([
       'exitGreen',
       'g-y 1',
@@ -88,6 +90,7 @@ describe('@xstate/fsm', () => {
   it('should stay on the same state for undefined transitions', () => {
     const nextState = lightFSM.transition('green', 'FAKE' as any);
     expect(nextState.value).toBe('green');
+    expect(nextState.config).toEqual(lightConfig.states.green);
     expect(nextState.actions).toEqual([]);
   });
 
