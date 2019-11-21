@@ -1,0 +1,43 @@
+{
+  "name": "@xstate/viz",
+  "version": "0.1.0",
+  "license": "MIT",
+  "author": "David Khourshid",
+  "main": "dist/index.js",
+  "module": "dist/viz.esm.js",
+  "typings": "dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "start": "tsdx watch",
+    "build": "tsdx build",
+    "test": "tsdx test --env=jsdom",
+    "lint": "tsdx lint"
+  },
+  "peerDependencies": {
+    "react": ">=16"
+  },
+  "husky": {
+    "hooks": {
+      "pre-commit": "tsdx lint"
+    }
+  },
+  "prettier": {
+    "printWidth": 80,
+    "semi": true,
+    "singleQuote": true,
+    "trailingComma": "es5"
+  },
+  "devDependencies": {
+    "@types/jest": "^24.0.23",
+    "@types/react": "^16.9.11",
+    "@types/react-dom": "^16.9.4",
+    "husky": "^3.1.0",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "tsdx": "^0.11.0",
+    "tslib": "^1.10.0",
+    "typescript": "^3.7.2"
+  }
+}
