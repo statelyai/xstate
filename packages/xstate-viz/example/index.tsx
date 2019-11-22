@@ -5,14 +5,24 @@ import { MachineViz, ServiceViz } from '../src/index';
 import { createMachine, interpret } from 'xstate';
 
 const machine = createMachine({
-  initial: 'off',
+  initial: 'green',
+  id: 'light',
   states: {
-    off: {
+    green: {
       after: {
-        5000: 'on',
+        1000: 'yellow',
       },
     },
-    on: {},
+    yellow: {
+      after: {
+        500: 'red',
+      },
+    },
+    red: {
+      after: {
+        2000: 'green',
+      },
+    },
   },
 });
 

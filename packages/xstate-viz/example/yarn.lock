@@ -780,6 +780,11 @@
     "@types/prop-types" "*"
     csstype "^2.2.0"
 
+"@xstate/react@^1.0.0-rc.0":
+  version "1.0.0-rc.0"
+  resolved "https://registry.yarnpkg.com/@xstate/react/-/react-1.0.0-rc.0.tgz#244e794c871f2e85d8286b08687e4e37738ec7e4"
+  integrity sha512-jUS/eAWTzp9rnIJck/Sz3Xl4dFvYrtB+DcOoe6NF7OM7eFxO152Ba3zbbzbGSUA9Fqf4jAT5oOKcFqs28Pp9kA==
+
 abab@^2.0.0:
   version "2.0.3"
   resolved "https://registry.yarnpkg.com/abab/-/abab-2.0.3.tgz#623e2075e02eb2d3f2475e49f99c91846467907a"
