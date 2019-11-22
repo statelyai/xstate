@@ -60,13 +60,18 @@ toggleService.send('TOGGLE');
 // => 'inactive'
 ```
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Visualizer](#visualizer)
-- [Why? (info about statecharts)](#why)
-- [Installation](https://xstate.js.org/docs/guides/installation.html)
+- [Why?](#why)
 - [Finite State Machines](#finite-state-machines)
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
+- [Sponsors](#sponsors)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Visualizer
 
