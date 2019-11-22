@@ -152,7 +152,7 @@ An event descriptor is a string describing the event type that the transition wi
 Other event descriptors include:
 
 - [Null event descriptors](#transient-transitions) (`""`), which match no events (i.e., "null" events) and represent transitions taken immediately after the state is entered
-- [Wildcard event descriptors](#wildcard-descriptors) (`"*"`), which match any event if the event is not matched explicitly by any other transition in the state
+- [Wildcard event descriptors](#wildcard-descriptors) (`"*"`) <Badge text="4.7+" />, which match any event if the event is not matched explicitly by any other transition in the state
 
 ## Self Transitions
 
@@ -405,7 +405,7 @@ const settingsMachine = Machine({
 });
 ```
 
-## Wildcard Descriptors
+## Wildcard Descriptors <Badge text="4.7+" />
 
 A transition that is specified with a wildcard event descriptor (`"*"`) is activated by _any event_. This means that any event will match the transition that has `on: { "*": ... }`, and if the guards pass, that transition will be taken.
 
