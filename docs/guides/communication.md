@@ -161,7 +161,7 @@ const searchMachine = Machine({
             errorMessage: (context, event) => {
               // event is:
               // { type: 'error.execution', data: 'No query specified' }
-              return event.data.message;
+              return event.data;
             }
           })
         },
