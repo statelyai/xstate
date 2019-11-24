@@ -9,7 +9,8 @@ import {
   sendParent,
   EventObject,
   StateValue,
-  AnyEventObject
+  AnyEventObject,
+  createMachine
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
@@ -68,6 +69,33 @@ describe('interpreter', () => {
     const service = interpret(idMachine);
 
     expect(service.initialState.value).toEqual(idMachine.initialState.value);
+  });
+
+  describe('subscribing', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+
+    it('should notify subscribers of the current state upon subscription (subscribe)', done => {
+      const service = interpret(machine).start();
+
+      service.subscribe(state => {
+        expect(state.value).toBe('active');
+        done();
+      });
+    });
+
+    it('should notify subscribers of the current state upon subscription (onTransition)', done => {
+      const service = interpret(machine).start();
+
+      service.onTransition(state => {
+        expect(state.value).toBe('active');
+        done();
+      });
+    });
   });
 
   describe('.nextState() method', () => {
@@ -1286,18 +1314,20 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       toggleService.onTransition(listener);
 
-      toggleService.send('TOGGLE');
-
       expect(stateCount).toEqual(1);
 
       toggleService.send('TOGGLE');
 
       expect(stateCount).toEqual(2);
 
+      toggleService.send('TOGGLE');
+
+      expect(stateCount).toEqual(3);
+
       toggleService.off(listener);
       toggleService.send('TOGGLE');
 
-      expect(stateCount).toEqual(2);
+      expect(stateCount).toEqual(3);
     });
   });
 
@@ -1562,7 +1592,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           },
           undefined,
           () => {
-            expect(count).toEqual(5);
+            expect(count).toEqual(6);
             done();
           }
         );

@@ -309,6 +309,12 @@ export class Interpreter<
     listener: StateListener<TContext, TEvent>
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.add(listener);
+
+    // Send current state to listener
+    if (this._status === InterpreterStatus.Running) {
+      listener(this.state, this.state.event);
+    }
+
     return this;
   }
   public subscribe(observer: Observer<State<TContext, TEvent>>): Unsubscribable;
@@ -343,6 +349,11 @@ export class Interpreter<
     }
 
     this.listeners.add(listener);
+
+    // Send current state to listener
+    if (this._status === InterpreterStatus.Running) {
+      listener(this.state);
+    }
 
     if (resolvedCompleteListener) {
       this.onDone(resolvedCompleteListener);
