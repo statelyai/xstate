@@ -52,6 +52,7 @@ import { Scheduler } from './scheduler';
 import { Actor, isActor, ServiceActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
+import { registerService } from './devTools';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -1133,37 +1134,40 @@ export class Interpreter<
     });
   }
 
-  private attachDev() {
-    if (
-      this.options.devTools &&
-      typeof window !== 'undefined' &&
-      (window as any).__REDUX_DEVTOOLS_EXTENSION__
-    ) {
-      const devToolsOptions =
-        typeof this.options.devTools === 'object'
-          ? this.options.devTools
-          : undefined;
-      this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
-        {
-          name: this.id,
-          autoPause: true,
-          stateSanitizer: (state: State<any, any>): object => {
-            return {
-              value: state.value,
-              context: state.context,
-              actions: state.actions
-            };
+  private attachDev(): void {
+    if (this.options.devTools && typeof window !== 'undefined') {
+      if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
+        const devToolsOptions =
+          typeof this.options.devTools === 'object'
+            ? this.options.devTools
+            : undefined;
+        this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
+          {
+            name: this.id,
+            autoPause: true,
+            stateSanitizer: (state: State<any, any>): object => {
+              return {
+                value: state.value,
+                context: state.context,
+                actions: state.actions
+              };
+            },
+            ...devToolsOptions,
+            features: {
+              jump: false,
+              skip: false,
+              ...(devToolsOptions
+                ? (devToolsOptions as any).features
+                : undefined)
+            }
           },
-          ...devToolsOptions,
-          features: {
-            jump: false,
-            skip: false,
-            ...(devToolsOptions ? (devToolsOptions as any).features : undefined)
-          }
-        },
-        this.machine
-      );
-      this.devTools.init(this.state);
+          this.machine
+        );
+        this.devTools.init(this.state);
+      }
+
+      // add XState-specific dev tooling hook
+      registerService(this);
     }
   }
   public toJSON() {

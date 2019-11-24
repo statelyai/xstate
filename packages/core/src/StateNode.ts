@@ -1032,7 +1032,7 @@ class StateNode<
             ...stateNode.onEntry
           ];
         })
-      ).concat(doneEvents.map(raise)),
+      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
       flatten(
         Array.from(exitStates).map(stateNode => [
           ...stateNode.onExit,
