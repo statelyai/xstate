@@ -45,7 +45,6 @@ import {
   StateSchema,
   StatesDefinition,
   StateNodesConfig,
-  ActionTypes,
   FinalStateNodeConfig,
   InvokeDefinition,
   ActionObject,
@@ -1214,7 +1213,7 @@ class StateNode<
               updatedContext,
               _event
             );
-          case ActionTypes.Pure:
+          case actionTypes.pure:
             return (
               (actionObject as PureAction<TContext, TEvent>).get(
                 updatedContext,

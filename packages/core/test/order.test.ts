@@ -1,5 +1,5 @@
 import { Machine, StateNode } from '../src';
-import { flatten } from '../lib/utils';
+import { flatten } from '../src/utils';
 
 describe('document order', () => {
   it('should specify the correct document order for each state node', () => {

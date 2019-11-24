@@ -95,9 +95,9 @@ export function toActionObject<TContext, TEvent extends EventObject>(
         type,
         ...exec,
         ...other
-      };
+      } as ActionObject<TContext, TEvent>;
     } else {
-      actionObject = action;
+      actionObject = action as ActionObject<TContext, TEvent>;
     }
   }
 
@@ -239,7 +239,7 @@ export function resolveSend<TContext, TEvent extends EventObject>(
  * @param options Options to pass into the send event.
  */
 export function sendParent<TContext, TEvent extends EventObject>(
-  event: Event<TEvent> | SendExpr<TContext, TEvent>,
+  event: Event<any> | SendExpr<TContext, TEvent>,
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return send<TContext, TEvent>(event, {
@@ -462,7 +462,7 @@ export function pure<TContext, TEvent extends EventObject>(
  * Forwards (sends) an event to a specified service.
  *
  * @param target The target service to forward the event to.
- * @param options Options to pass into the send event.
+ * @param options Options to pass into the send action creator.
  */
 export function forwardTo<TContext, TEvent extends EventObject>(
   target: Required<SendActionOptions<TContext, TEvent>>['to'],
@@ -472,4 +472,26 @@ export function forwardTo<TContext, TEvent extends EventObject>(
     ...options,
     to: target
   });
+}
+
+/**
+ * Escalates an error by sending it as an event to this machine's parent.
+ *
+ * @param errorData The error data to send.
+ * @param options Options to pass into the send action creator.
+ */
+export function escalate<TContext, TEvent extends EventObject>(
+  errorData: any,
+  options?: SendActionOptions<TContext, TEvent>
+): SendAction<TContext, TEvent> {
+  return sendParent<TContext, TEvent>(
+    {
+      type: actionTypes.error,
+      data: errorData
+    },
+    {
+      ...options,
+      to: SpecialTargets.Parent
+    }
+  );
 }

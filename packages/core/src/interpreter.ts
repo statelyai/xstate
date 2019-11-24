@@ -26,7 +26,8 @@ import {
   SCXML,
   EventData,
   Observer,
-  Spawnable
+  Spawnable,
+  AnyEventObject
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -646,6 +647,8 @@ export class Interpreter<
       // Send SCXML events to machines
       (target as Interpreter<TContext, TStateSchema, TEvent>).send({
         ...event,
+        name:
+          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
         origin: this.sessionId
       });
     } else {
@@ -724,8 +727,22 @@ export class Interpreter<
       : action.exec;
 
     if (exec) {
-      // @ts-ignore (TODO: fix for TypeDoc)
-      return exec(context, _event.data, { action, state: this.state });
+      try {
+        return exec(context, _event.data, {
+          action,
+          state: this.state,
+          _event
+        });
+      } catch (err) {
+        if (this.parent) {
+          this.parent.send({
+            type: 'xstate.error',
+            data: err
+          });
+        }
+
+        throw err;
+      }
     }
 
     switch (action.type) {
@@ -1207,15 +1224,15 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
-export function spawn<TContext, TEvent extends EventObject = EventObject>(
+export function spawn<TContext, TEvent extends EventObject>(
   entity: StateMachine<TContext, any, TEvent>,
   nameOrOptions?: string | SpawnOptions
 ): ServiceActor<TContext, TEvent>;
-export function spawn<TContext, TEvent extends EventObject = EventObject>(
+export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
   entity: Exclude<Spawnable<TContext>, StateMachine<any, any, any>>,
   nameOrOptions?: string | SpawnOptions
 ): Actor<TContext, TEvent>;
-export function spawn<TContext, TEvent extends EventObject = EventObject>(
+export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
   entity: Spawnable<TContext, TEvent>,
   nameOrOptions?: string | SpawnOptions
 ): Actor<TContext, TEvent> {

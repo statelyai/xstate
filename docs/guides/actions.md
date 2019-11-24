@@ -445,6 +445,45 @@ parentService.send('ALERT', { message: 'hello world' });
 // => alerts "hello world"
 ```
 
+## Escalate Action <Badge text="4.7+" />
+
+The `escalate()` action creator escalates an error by sending it to the parent machine. This is sent as a special error event that is recognized by the machine.
+
+| Argument    | Type | Description                                      |
+| ----------- | ---- | ------------------------------------------------ |
+| `errorData` | any  | The error data to escalate (send) to the parent. |
+
+**Example:**
+
+```js
+import { createMachine, actions } from 'xstate';
+const { escalate } = actions;
+
+const childMachine = createMachine({
+  // ...
+  // This will be sent to the parent machine that invokes this child
+  entry: escalate({ message: 'This is some error' })
+});
+
+const parentMachine = createMachine({
+  // ...
+  invoke: {
+    src: childMachine,
+    onError: {
+      actions: (context, event) => {
+        console.log(event.data);
+        //  {
+        //    type: ...,
+        //    data: {
+        //      message: 'This is some error'
+        //    }
+        //  }
+      }
+    }
+  }
+});
+```
+
 ## Log Action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:

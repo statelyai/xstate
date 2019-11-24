@@ -7,7 +7,12 @@ import {
   EventObject,
   StateValue
 } from '../src';
-import { actionTypes, done as _done, doneInvoke } from '../src/actions';
+import {
+  actionTypes,
+  done as _done,
+  doneInvoke,
+  escalate
+} from '../src/actions';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -21,7 +26,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
   initial: 'pending',
   states: {
     pending: {
-      onEntry: send({ type: 'RESOLVE', user }),
+      entry: send({ type: 'RESOLVE', user }),
       on: {
         RESOLVE: {
           target: 'success',
@@ -34,7 +39,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
       data: { user: (_, e) => e.user }
     },
     failure: {
-      onEntry: sendParent('REJECT')
+      entry: sendParent('REJECT')
     }
   }
 });
@@ -133,7 +138,7 @@ describe('invoke', () => {
       initial: 'init',
       states: {
         init: {
-          onEntry: [sendParent('INC'), sendParent('INC')]
+          entry: [sendParent('INC'), sendParent('INC')]
         }
       }
     });
@@ -151,7 +156,9 @@ describe('invoke', () => {
               autoForward: true
             },
             on: {
-              INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+              INC: {
+                actions: assign({ count: ctx => ctx.count + 1 })
+              },
               '': {
                 target: 'stop',
                 cond: ctx => ctx.count === 2
@@ -180,7 +187,7 @@ describe('invoke', () => {
         // 1. The 'parent' machine will enter 'start' state
         // 2. The 'child' service will be run with ID 'someService'
         // 3. The 'child' machine will enter 'init' state
-        // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
+        // 4. The 'entry' action will be executed, which sends 'INC' to 'parent' machine twice
         // 5. The context will be updated to increment count to 2
 
         expect(count).toEqual(2);
@@ -501,7 +508,7 @@ describe('invoke', () => {
             initial: 'init',
             states: {
               init: {
-                onEntry: [sendParent('STOP')]
+                entry: [sendParent('STOP')]
               }
             }
           })
@@ -548,7 +555,7 @@ describe('invoke', () => {
           on: { NEXT: 'two' }
         },
         two: {
-          onEntry: sendParent('NEXT')
+          entry: sendParent('NEXT')
         }
       }
     });
@@ -563,7 +570,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -596,7 +603,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -622,7 +629,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -662,7 +669,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            onEntry: send('NEXT', { to: 'foo-child' })
+            entry: send('NEXT', { to: 'foo-child' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -1393,7 +1400,7 @@ describe('invoke', () => {
                 });
               }
             },
-            onEntry: send('PING', { to: 'child' }),
+            entry: send('PING', { to: 'child' }),
             on: {
               PONG: 'done'
             }
@@ -1929,7 +1936,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              onEntry: send('PING', { to: 'pong' }),
+              entry: send('PING', { to: 'pong' }),
               on: {
                 PONG: 'innerSuccess'
               }
@@ -2110,6 +2117,46 @@ describe('invoke', () => {
       service
         .onDone(() => {
           expect(serviceCalled).toBe(false);
+          done();
+        })
+        .start();
+    });
+  });
+
+  describe('error handling', () => {
+    it('handles escalated errors', done => {
+      const child = Machine({
+        initial: 'die',
+
+        states: {
+          die: {
+            entry: escalate('oops')
+          }
+        }
+      });
+
+      const parent = Machine({
+        initial: 'one',
+
+        states: {
+          one: {
+            invoke: {
+              id: 'child',
+              src: child,
+              onError: {
+                target: 'two',
+                cond: (_, event) => event.data === 'oops'
+              }
+            }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parent)
+        .onDone(() => {
           done();
         })
         .start();
