@@ -2,70 +2,22 @@ import React, {
   useMemo,
   createContext,
   useContext,
+  useRef,
   useState,
-  useEffect,
-  useLayoutEffect,
 } from 'react';
+import ReactDOM from 'react-dom';
 import {
   StateMachine,
   Interpreter,
   StateNode,
   State,
-  assign,
   createMachine,
   interpret,
 } from 'xstate';
 import { useService } from '@xstate/react';
 import styled from 'styled-components';
-
-import { produce, Draft, applyPatches } from 'immer';
-
-function createState<TC>(ctx: TC, fn: (context: Draft<TC>) => string) {
-  const patches = [] as any[];
-  let state: string;
-
-  produce(
-    ctx,
-    draft => {
-      state = fn(draft);
-    },
-    patch => patches.push(patch)
-  );
-
-  return {
-    target: state!,
-    actions: assign(ctx => applyPatches(ctx, patches)),
-  };
-}
-
-const machine = createMachine({
-  initial: 'green',
-  id: 'light',
-  context: {
-    count: 0,
-  },
-  states: {
-    green: {
-      after: {
-        1000: createState({ count: 0 }, ctx => {
-          ctx.count++;
-
-          return 'yellow';
-        }),
-      },
-    },
-    yellow: {
-      after: {
-        500: 'red',
-      },
-    },
-    red: {
-      after: {
-        2000: 'green',
-      },
-    },
-  },
-});
+import { useEffect } from 'react';
+import { useState } from 'react-dom/node_modules/@types/react';
 
 export function getChildren(machine: StateNode): StateNode[] {
   if (!machine.states) return [];
@@ -134,13 +86,58 @@ const StateNodeViz: React.FC<{
 export const ServiceViz: React.FC<{
   service: Interpreter<any, any>;
 }> = ({ service }) => {
-  const [state] = useService(interpret(machine).start());
+  const [state] = useService(service);
 
   console.log(state);
 
   return (
     <StateContext.Provider value={state}>
+      <pre>{JSON.stringify(state, null, 2)}</pre>
       <StateNodeViz stateNode={service.machine} />
     </StateContext.Provider>
   );
+};
+
+export const ExtViz: React.FC = () => {
+  const divRef = useRef(document.createElement('div'));
+  const windowRef = useRef<Window | null>(null);
+  console.log((window as any).__xstate__.services);
+  const [[serviceSet], setServiceSet] = useState([
+    (window as any).__xstate__.services as Set<Interpreter<any, any>>,
+  ]);
+
+  useEffect(() => {
+    if (!windowRef.current) {
+      windowRef.current = window.open(
+        '',
+        '',
+        'width=600,height=400,left=200,top=200'
+      );
+      windowRef.current!.document.body.appendChild(divRef.current);
+    }
+  }, []);
+
+  useEffect(() => {
+    (window as any).__xstate__.onRegister(() => {
+      console.log('well yeah');
+      setServiceSet([(window as any).__xstate__.services]);
+    });
+  }, []);
+
+  const services = (
+    <>
+      {Array.from(serviceSet).map(s => {
+        const serv = s as Interpreter<any, any>;
+
+        console.log(serv.id);
+
+        return (
+          <>
+            <ServiceViz key={serv.id} service={serv} />
+          </>
+        );
+      })}
+    </>
+  );
+  return ReactDOM.createPortal(services, divRef.current);
 };
