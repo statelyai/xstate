@@ -1,29 +1,30 @@
 import { Interpreter } from '.';
 import { IS_PRODUCTION } from './environment';
 
-type ServiceListener = (service: Interpreter<any, any>) => void;
-
-declare interface DevInterface {
+interface DevInterface {
   services: Set<Interpreter<any, any>>;
   register(service: Interpreter<any, any>): void;
-  onRegister(listener: ServiceListener): void;
+  onRegister(listener: ServicesListener): void;
 }
+
+type ServicesListener = (service: Set<Interpreter<any, any>>) => void;
 
 function initDevTools(): DevInterface | undefined {
   if (IS_PRODUCTION || typeof window === 'undefined') return;
 
   const w = window as Window & { __xstate__?: DevInterface };
   const services = new Set<Interpreter<any, any>>();
-  const serviceListeners = new Set<ServiceListener>();
+  const serviceListeners = new Set<ServicesListener>();
 
   w.__xstate__ = w.__xstate__ || {
     services,
     register(service) {
       services.add(service);
-      serviceListeners.forEach(listener => listener(service));
+      serviceListeners.forEach(listener => listener(services));
     },
     onRegister(listener) {
       serviceListeners.add(listener);
+      listener(services);
     }
   };
 
