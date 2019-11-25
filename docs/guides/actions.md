@@ -539,10 +539,10 @@ Without any arguments, `log()` is an action that logs an object with `context` a
 
 A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `onExit` actions will not be executed again.
+- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `exit` actions will not be executed again.
   - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
   - Actions defined on the transition's `actions` property will be executed.
-- An external transition _will_ exit and reenter itself, so the state node's `entry` and `onExit` actions will be executed again.
+- An external transition _will_ exit and reenter itself, so the state node's `entry` and `exit` actions will be executed again.
   - All transitions are external by default. To be explicit, you can indicate them with `{ internal: false }`.
   - Actions defined on the transition's `actions` property will be executed.
 
@@ -555,7 +555,7 @@ const counterMachine = Machine({
   states: {
     counting: {
       entry: 'enterCounting',
-      onExit: 'exitCounting',
+      exit: 'exitCounting',
       on: {
         // self-transitions
         INC: { actions: 'increment' }, // internal (implicit)
@@ -566,7 +566,7 @@ const counterMachine = Machine({
   }
 });
 
-// External transition (onExit + transition actions + entry)
+// External transition (exit + transition actions + entry)
 const stateA = counterMachine.transition('counting', 'DEC');
 stateA.actions;
 // ['exitCounting', 'decrement', 'enterCounting']
