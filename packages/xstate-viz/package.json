@@ -10,6 +10,7 @@
     "dist"
   ],
   "scripts": {
+    "clean": "echo \"No clean script\"",
     "start": "tsdx watch",
     "build": "tsdx build",
     "test": "tsdx test --env=jsdom",
