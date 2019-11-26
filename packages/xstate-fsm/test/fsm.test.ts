@@ -207,4 +207,23 @@ describe('interpreter', () => {
 
     actionService.send('TOGGLE');
   });
+
+  it('should execute initial entry action', () => {
+    let executed = false;
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: () => {
+            executed = true;
+          }
+        }
+      }
+    });
+
+    interpret(machine).start();
+
+    expect(executed).toBe(true);
+  });
 });

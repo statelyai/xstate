@@ -24,7 +24,7 @@ export namespace StateMachine {
 
   export type ActionFunction<TContext, TEvent extends EventObject> = (
     context: TContext,
-    event: TEvent
+    event?: TEvent
   ) => void;
 
   export type AssignAction = 'xstate.assign';
