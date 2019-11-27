@@ -522,8 +522,20 @@ export class Interpreter<
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
   ): State<TContext, TEvent> => {
+    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
+
     if (this._status === InterpreterStatus.Stopped) {
       // do nothing
+      if (!IS_PRODUCTION) {
+        warn(
+          false,
+          `Event "${_event.name}" was sent to stopped service "${
+            this.machine.id
+          }". This service has already reached its final state, and will not transition.\nEvent: ${JSON.stringify(
+            _event.data
+          )}`
+        );
+      }
       return this.state;
     }
 
@@ -531,8 +543,6 @@ export class Interpreter<
       this.batch(event);
       return this.state;
     }
-
-    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
 
     if (
       this._status === InterpreterStatus.NotStarted &&
