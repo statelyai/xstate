@@ -1274,7 +1274,7 @@ export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
     } else {
       return createNullActor(resolvedOptions.name);
     }
-  });
+  }) as Actor<TContext, TEvent>;
 }
 
 /**
