@@ -1128,8 +1128,8 @@ export interface Observer<T> {
   complete: () => void;
 }
 
-export type Spawnable<TContext, TEvent extends EventObject = AnyEventObject> =
-  | StateMachine<any, any, TEvent>
-  | Promise<TContext>
+export type Spawnable =
+  | StateMachine<any, any, any>
+  | Promise<any>
   | InvokeCallback
-  | Subscribable<TContext>;
+  | Subscribable<any>;

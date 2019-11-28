@@ -1,5 +1,6 @@
 {
-  "include": ["src", "types", "test"],
+  "extends": "../../tsconfig.base.json",
+  "include": ["src"],
   "compilerOptions": {
     "target": "es5",
     "module": "esnext",

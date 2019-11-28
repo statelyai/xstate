@@ -26,8 +26,7 @@ import {
   SCXML,
   EventData,
   Observer,
-  Spawnable,
-  AnyEventObject
+  Spawnable
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -50,7 +49,7 @@ import {
   createSymbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor, ServiceActor } from './Actor';
+import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
@@ -905,11 +904,7 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(
-    entity: Spawnable<any, any>,
-    name: string,
-    options?: SpawnOptions
-  ): Actor {
+  public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
@@ -933,7 +928,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): Actor<State<TChildContext, TChildEvent>, TChildEvent> {
+  ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -957,12 +952,12 @@ export class Interpreter<
       })
       .start();
 
-    const actor = childService as Actor<
+    const actor = childService;
+
+    this.children.set(childService.id, actor as Actor<
       State<TChildContext, TChildEvent>,
       TChildEvent
-    >;
-
-    this.children.set(childService.id, actor);
+    >);
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
@@ -1245,18 +1240,14 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
-export function spawn<TContext, TEvent extends EventObject>(
-  entity: StateMachine<TContext, any, TEvent>,
+export function spawn<TC, TE extends EventObject>(
+  entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): ServiceActor<TContext, TEvent>;
-export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
-  entity: Exclude<Spawnable<TContext>, StateMachine<any, any, any>>,
+): Interpreter<TC, any, TE>;
+export function spawn(
+  entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor<TContext, TEvent>;
-export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
-  entity: Spawnable<TContext, TEvent>,
-  nameOrOptions?: string | SpawnOptions
-): Actor<TContext, TEvent> {
+): Actor {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, service => {
@@ -1274,7 +1265,7 @@ export function spawn<TContext, TEvent extends EventObject = AnyEventObject>(
     } else {
       return createNullActor(resolvedOptions.name);
     }
-  }) as Actor<TContext, TEvent>;
+  });
 }
 
 /**

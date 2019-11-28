@@ -1,6 +1,6 @@
 // nothing yet
 import { createModel } from '../src';
-import { Machine, assign } from 'xstate/lib';
+import { Machine, assign } from 'xstate';
 import stripAnsi from 'strip-ansi';
 
 interface DieHardContext {
