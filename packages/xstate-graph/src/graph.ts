@@ -25,7 +25,9 @@ const EMPTY_MAP = {};
  * Returns all state nodes of the given `node`.
  * @param stateNode State node to recursively get child state nodes from
  */
-export function getStateNodes(stateNode: StateNode): StateNode[] {
+export function getStateNodes(
+  stateNode: StateNode | StateMachine<any, any, any>
+): StateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
     const childStateNode = states[stateKey];
@@ -59,8 +61,8 @@ export function deserializeEventString<TEvent extends EventObject>(
 
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext>) => boolean;
-  stateSerializer: (state: State<TContext>) => string;
+  filter: (state: State<TContext, any>) => boolean;
+  stateSerializer: (state: State<TContext, any>) => string;
   eventSerializer: (event: TEvent) => string;
 }
 
@@ -75,7 +77,7 @@ export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  node: StateNode<TContext, any, TEvent>,
+  node: StateNode<TContext, any, TEvent> | StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -249,6 +251,7 @@ export function getSimplePaths<
     return EMPTY_MAP;
   }
 
+  // @ts-ignore - excessively deep
   const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();

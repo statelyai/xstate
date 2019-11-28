@@ -40,7 +40,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.5.0"
+    "xstate": "^4.7.0"
   },
   "devDependencies": {
     "@types/jest": "^24.0.11",
@@ -52,7 +52,7 @@
     "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
     "ts-jest": "^24.0.2",
-    "typescript": "^3.6.2",
+    "typescript": "^3.7.2",
     "xstate": "4.7.0-rc6"
   },
   "dependencies": {

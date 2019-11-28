@@ -1,6 +1,6 @@
 // nothing yet
 import { createModel } from '../src';
-import { Machine, assign } from 'xstate';
+import { Machine, assign } from 'xstate/lib';
 import stripAnsi from 'strip-ansi';
 
 interface DieHardContext {
@@ -64,9 +64,7 @@ const dieHardMachine = Machine<DieHardContext>(
         },
         meta: {
           description: state => {
-            return `pending with (${state.context.three}, ${
-              state.context.five
-            })`;
+            return `pending with (${state.context.three}, ${state.context.five})`;
           },
           test: async ({ jugs }, state) => {
             expect(jugs.five).not.toEqual(4);
