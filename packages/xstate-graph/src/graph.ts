@@ -4,7 +4,8 @@ import {
   DefaultContext,
   Event,
   EventObject,
-  StateMachine
+  StateMachine,
+  AnyEventObject
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
 import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
