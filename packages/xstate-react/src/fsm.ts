@@ -1,7 +1,8 @@
 import { useState, useRef, useEffect } from 'react';
 import { StateMachine, EventObject, interpret } from '@xstate/fsm';
+import { AnyEventObject } from 'xstate';
 
-export function useMachine<TC, TE extends EventObject>(
+export function useMachine<TC, TE extends EventObject = AnyEventObject>(
   stateMachine: StateMachine.Machine<TC, TE, any>
 ): [
   StateMachine.State<TC, TE, any>,

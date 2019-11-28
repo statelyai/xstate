@@ -9,6 +9,7 @@ import {
   MachineOptions,
   StateConfig
 } from 'xstate';
+import { ServiceActor } from 'xstate/lib/Actor';
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * If provided, will be merged with machine's `context`.
@@ -130,11 +131,11 @@ export function useMachine<TContext, TEvent extends EventObject>(
 }
 
 export function useService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>
+  service: ServiceActor<TContext, TEvent>
 ): [
   State<TContext, TEvent>,
-  Interpreter<TContext, any, TEvent>['send'],
-  Interpreter<TContext, any, TEvent>
+  ServiceActor<TContext, TEvent>['send'],
+  ServiceActor<TContext, TEvent>
 ] {
   const [current, setCurrent] = useState(service.state);
 

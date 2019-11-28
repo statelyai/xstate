@@ -259,7 +259,10 @@ export class TestModel<TTestContext, TContext> {
     });
   }
 
-  public async testState(state: State<TContext>, testContext: TTestContext) {
+  public async testState(
+    state: State<TContext, any>,
+    testContext: TTestContext
+  ) {
     for (const id of Object.keys(state.meta)) {
       const stateNodeMeta = state.meta[id] as TestMeta<TTestContext, TContext>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
@@ -338,7 +341,7 @@ export class TestModel<TTestContext, TContext> {
   }
 }
 
-function getDescription<T, TContext>(state: State<TContext>): string {
+function getDescription<T, TContext>(state: State<TContext, any>): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 

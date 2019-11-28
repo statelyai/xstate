@@ -1,11 +1,11 @@
 import { EventObject, State } from 'xstate';
 export interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext>) => Promise<void> | void;
-  description?: string | ((state: State<TContext>) => string);
+  test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
+  description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
 }
 interface TestSegment<T> {
-  state: State<any>;
+  state: State<any, any>;
   event: EventObject;
   description: string;
   test: (testContext: T) => Promise<void>;
@@ -44,7 +44,7 @@ export interface TestPlan<TTestContext, TContext> {
   /**
    * The target state.
    */
-  state: State<TContext>;
+  state: State<TContext, any>;
   /**
    * The paths that reach the target `state`.
    */

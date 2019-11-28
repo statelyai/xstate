@@ -14,7 +14,7 @@ describe('useMachine hook', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = createMachine<typeof context>({
+  const fetchMachine = createMachine<typeof context, any>({
     id: 'fetch',
     initial: 'idle',
     context,

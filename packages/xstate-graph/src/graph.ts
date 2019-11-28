@@ -40,7 +40,7 @@ export function getStateNodes(
   return nodes;
 }
 
-export function serializeState<TContext>(state: State<TContext>): string {
+export function serializeState<TContext>(state: State<TContext, any>): string {
   const { value, context } = state;
   return context === undefined
     ? JSON.stringify(value)
@@ -75,7 +75,7 @@ const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
 
 export function getAdjacencyMap<
   TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
   node: StateNode<TContext, any, TEvent> | StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>

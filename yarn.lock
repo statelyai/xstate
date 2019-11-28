@@ -11946,7 +11946,7 @@ xmlchars@^2.1.1:
   version "2.2.0"
   resolved "https://registry.npmjs.org/xmlchars/-/xmlchars-2.2.0.tgz#060fe1bcb7f9c76fe2a17db86a9bc3ab894210cb"
 
-xstate@4.7.0-rc6, xstate@next:
+xstate@next:
   version "4.7.0-rc6"
   resolved "https://registry.yarnpkg.com/xstate/-/xstate-4.7.0-rc6.tgz#fa91810586ad0222ac00128ec2e0b889a5bcc937"
   integrity sha512-dojJ2P8jd1HZwpW1v0L7Eoi+uaWID6chsh41mebdT/di20TML4o0Svt4K17vDLIKeA92E5c2UJOsfRQ1B6CB3w==
