@@ -160,12 +160,14 @@ Returns an array of testing plans based on the shortest paths from the test mode
 This is useful for preventing infinite traversals and stack overflow errors:
 
 ```js
-const todosModel = createModel(todosMachine, {
+const todosModel = createModel(todosMachine).withEvents({
+  /* ... */
+});
+
+const plans = todosModel.getShortestPathPlans({
   // Tell the algorithm to limit state/event adjacency map to states
   // that have less than 5 todos
   filter: state => state.context.todos.length < 5
-}).withEvents({
-  // ...
 });
 ```
 
