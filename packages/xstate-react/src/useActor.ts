@@ -10,7 +10,7 @@ export function useActor<TC, TE extends EventObject>(
   useEffect(() => {
     if (actor) {
       actorRef.current = actor;
-      const sub = actor.subscribe(setCurrent);
+      const sub = actor.subscribe((current) => setCurrent(current));
       return () => {
         sub.unsubscribe();
       };
