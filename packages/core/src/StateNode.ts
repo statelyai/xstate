@@ -1258,11 +1258,13 @@ class StateNode<
         : ({} as Record<string, Actor>)
     );
 
-    const stateNodes = resolvedStateValue
-      ? this.getStateNodes(resolvedStateValue)
+    const resolvedConfiguration = resolvedStateValue
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
       : [];
 
-    const meta = [this, ...stateNodes].reduce(
+    const meta = resolvedConfiguration.reduce(
       (acc, stateNode) => {
         if (stateNode.meta !== undefined) {
           acc[stateNode.id] = stateNode.meta;
@@ -1271,12 +1273,6 @@ class StateNode<
       },
       {} as Record<string, string>
     );
-
-    const resolvedConfiguration = resolvedStateValue
-      ? stateTransition.configuration
-      : currentState
-      ? currentState.configuration
-      : [];
 
     const isDone = isInFinalState(resolvedConfiguration, this);
 
@@ -1332,7 +1328,8 @@ class StateNode<
 
     if (!isDone) {
       const isTransient =
-        this._transient || stateNodes.some(stateNode => stateNode._transient);
+        this._transient ||
+        configuration.some(stateNode => stateNode._transient);
 
       if (isTransient) {
         maybeNextState = this.resolveRaisedTransition(
