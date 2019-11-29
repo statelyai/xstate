@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret } from '../src';
+import { Machine, spawn, interpret, Interpreter } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor, ServiceActor } from '../src/Actor';
+import { Actor } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -101,7 +101,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ServiceActor<any, any>;
+    server?: Interpreter<any, any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -649,7 +649,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: ServiceActor<any, any>;
+        ref?: Interpreter<any, any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -694,7 +694,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ServiceActor<any, any>;
+          ref?: Interpreter<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -744,7 +744,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ServiceActor<any, any>;
+          ref?: Interpreter<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({

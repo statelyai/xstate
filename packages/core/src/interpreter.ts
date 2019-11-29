@@ -1247,6 +1247,10 @@ export function spawn<TC, TE extends EventObject>(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
+): Actor;
+export function spawn(
+  entity: Spawnable,
+  nameOrOptions?: string | SpawnOptions
 ): Actor {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
