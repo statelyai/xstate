@@ -1258,11 +1258,13 @@ class StateNode<
         : ({} as Record<string, Actor>)
     );
 
-    const stateNodes = resolvedStateValue
-      ? this.getStateNodes(resolvedStateValue)
+    const resolvedConfiguration = resolvedStateValue
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
       : [];
 
-    const meta = [this, ...stateNodes].reduce(
+    const meta = resolvedConfiguration.reduce(
       (acc, stateNode) => {
         if (stateNode.meta !== undefined) {
           acc[stateNode.id] = stateNode.meta;
@@ -1271,6 +1273,8 @@ class StateNode<
       },
       {} as Record<string, string>
     );
+
+    const isDone = isInFinalState(resolvedConfiguration, this);
 
     const nextState = new State<TContext, TEvent, TStateSchema, TState>({
       value: resolvedStateValue || currentState!.value,
@@ -1301,13 +1305,10 @@ class StateNode<
         ? currentState.meta
         : undefined,
       events: [],
-      configuration: resolvedStateValue
-        ? stateTransition.configuration
-        : currentState
-        ? currentState.configuration
-        : [],
+      configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
-      children
+      children,
+      done: isDone
     });
 
     nextState.changed =
@@ -1324,25 +1325,30 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    const isTransient = stateNodes.some(stateNode => stateNode._transient);
 
-    if (isTransient) {
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        {
-          type: actionTypes.nullEvent
-        },
-        _event
-      );
-    }
+    if (!isDone) {
+      const isTransient =
+        this._transient ||
+        configuration.some(stateNode => stateNode._transient);
 
-    while (raisedEvents.length) {
-      const raisedEvent = raisedEvents.shift()!;
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        raisedEvent._event,
-        _event
-      );
+      if (isTransient) {
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          {
+            type: actionTypes.nullEvent
+          },
+          _event
+        );
+      }
+
+      while (raisedEvents.length) {
+        const raisedEvent = raisedEvents.shift()!;
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          raisedEvent._event,
+          _event
+        );
+      }
     }
 
     // Detect if state changed

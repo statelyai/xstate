@@ -1007,6 +1007,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, Actor>;
+  done?: boolean;
 }
 
 export interface StateSchema<TC = any> {

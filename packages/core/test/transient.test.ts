@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, createMachine, interpret } from '../src/index';
 import { assign, raise } from '../src/actions';
 
 const greetingContext = { hour: 10 };
@@ -397,5 +397,43 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('a', 'FOO');
     expect(state.value).toBe('pass');
+  });
+
+  it('should work with transient transition on root', done => {
+    const machine = createMachine<any, any>({
+      id: 'machine',
+      initial: 'first',
+      context: { count: 0 },
+      states: {
+        first: {
+          on: {
+            ADD: {
+              actions: assign({ count: ctx => ctx.count + 1 })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      },
+      on: {
+        '': [
+          {
+            target: '.success',
+            cond: ctx => {
+              return ctx.count > 0;
+            }
+          }
+        ]
+      }
+    });
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+
+    service.send('ADD');
   });
 });
