@@ -1311,7 +1311,8 @@ class StateNode<
       events: [],
       configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
-      children
+      children,
+      done: isDone
     });
 
     nextState.changed =

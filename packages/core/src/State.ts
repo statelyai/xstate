@@ -102,6 +102,10 @@ export class State<
    */
   public changed: boolean | undefined;
   /**
+   * Indicates whether the state is a final state.
+   */
+  public done: boolean | undefined;
+  /**
    * The enabled state nodes representative of the state value.
    */
   public configuration: Array<StateNode<TContext, any, TEvent>>;
@@ -237,6 +241,7 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
+    this.done = !!config.done;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
