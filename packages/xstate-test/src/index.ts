@@ -1,6 +1,11 @@
-import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
+import {
+  getShortestPaths,
+  getSimplePaths,
+  getStateNodes,
+  StatePathsMap,
+  ValueAdjMapOptions
+} from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
-import { StatePathsMap } from '@xstate/graph/lib/types';
 import slimChalk from './slimChalk';
 import {
   TestModelCoverage,
@@ -12,7 +17,6 @@ import {
   TestMeta,
   EventExecutor
 } from './types';
-import { ValueAdjMapOptions } from '@xstate/graph/lib/graph';
 
 /**
  * Creates a test model that represents an abstract model of a

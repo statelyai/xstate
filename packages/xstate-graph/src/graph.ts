@@ -8,7 +8,13 @@ import {
   AnyEventObject
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
-import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
+import {
+  StatePathsMap,
+  StatePaths,
+  AdjacencyMap,
+  Segments,
+  ValueAdjMapOptions
+} from './types';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -58,13 +64,6 @@ export function deserializeEventString<TEvent extends EventObject>(
   eventString: string
 ): TEvent {
   return JSON.parse(eventString) as TEvent;
-}
-
-export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
-  events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext, any>) => boolean;
-  stateSerializer: (state: State<TContext, any>) => string;
-  eventSerializer: (event: TEvent) => string;
 }
 
 const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
