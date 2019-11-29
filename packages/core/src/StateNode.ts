@@ -1272,6 +1272,14 @@ class StateNode<
       {} as Record<string, string>
     );
 
+    const resolvedConfiguration = resolvedStateValue
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
+      : [];
+
+    const isDone = isInFinalState(resolvedConfiguration, this);
+
     const nextState = new State<TContext, TEvent, TStateSchema, TState>({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
@@ -1301,11 +1309,7 @@ class StateNode<
         ? currentState.meta
         : undefined,
       events: [],
-      configuration: resolvedStateValue
-        ? stateTransition.configuration
-        : currentState
-        ? currentState.configuration
-        : [],
+      configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
       children
     });
@@ -1324,25 +1328,29 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    const isTransient = stateNodes.some(stateNode => stateNode._transient);
 
-    if (isTransient) {
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        {
-          type: actionTypes.nullEvent
-        },
-        _event
-      );
-    }
+    if (!isDone) {
+      const isTransient =
+        this._transient || stateNodes.some(stateNode => stateNode._transient);
 
-    while (raisedEvents.length) {
-      const raisedEvent = raisedEvents.shift()!;
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        raisedEvent._event,
-        _event
-      );
+      if (isTransient) {
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          {
+            type: actionTypes.nullEvent
+          },
+          _event
+        );
+      }
+
+      while (raisedEvents.length) {
+        const raisedEvent = raisedEvents.shift()!;
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          raisedEvent._event,
+          _event
+        );
+      }
     }
 
     // Detect if state changed
