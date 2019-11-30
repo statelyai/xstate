@@ -1213,7 +1213,7 @@ export class Interpreter<
     return this;
   }
 
-  public [Symbol.observable]() {
+  public [(Symbol as any).observable]() {
     return this;
   }
 }
