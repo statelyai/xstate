@@ -61,7 +61,16 @@ module.exports = {
       },
       {
         title: 'Tutorials',
-        children: ['/tutorials/reddit']
+        children: [
+          '/tutorials/reddit',
+          {
+            title: '7GUIs',
+            children: [
+              '/tutorials/7guis/counter',
+              '/tutorials/7guis/temperature'
+            ]
+          }
+        ]
       },
       {
         title: 'Recipes',
