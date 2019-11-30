@@ -15,7 +15,7 @@ import {
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
-import { interval, from, InteropObservable } from 'rxjs';
+import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 const lightMachine = Machine({
@@ -1584,7 +1584,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
-        const state$ = from(intervalService as InteropObservable<any>);
+        const state$ = from(intervalService as any); // InteropObservable
 
         state$.subscribe(
           () => {
