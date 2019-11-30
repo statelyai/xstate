@@ -4,7 +4,8 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/*",
+      "packages/xstate-viz/example"
     ]
   },
   "scripts": {
@@ -40,7 +41,7 @@
     "@vuepress/plugin-google-analytics": "^1.2.0",
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
-    "husky": "^2.5.0",
+    "husky": "^3.1.0",
     "jest": "^24.8.0",
     "jest-watch-typeahead": "^0.4.1",
     "jsdom": "^14.0.0",
