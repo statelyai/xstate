@@ -87,7 +87,7 @@ const redditMachine = Machine({
 
 ## Async Flow
 
-When a subreddit is selected (that is, when the machine is in the `'selected'` state due to a `'SELECT'` event), the machine should start loading the subreddit data. To do this, we [invoke a Promise](../guides/invoke.md#invoking-promises) that will resolve with the selected subreddit data:
+When a subreddit is selected (that is, when the machine is in the `'selected'` state due to a `'SELECT'` event), the machine should start loading the subreddit data. To do this, we [invoke a Promise](../guides/communication.html#invoking-promises) that will resolve with the selected subreddit data:
 
 ```js {1-7,14-17}
 function invokeFetchSubreddit(context) {
