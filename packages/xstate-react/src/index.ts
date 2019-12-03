@@ -102,11 +102,9 @@ export function useMachine<TContext, TEvent extends EventObject>(
   }, [services]);
 
   // Keep track of the current machine state
-  const initialState = rehydratedState
-    ? State.create(rehydratedState)
-    : service.initialState;
-
-  const [current, setCurrent] = useState(() => initialState);
+  const [current, setCurrent] = useState(() =>
+    rehydratedState ? State.create(rehydratedState) : service.initialState
+  );
 
   // Start service immediately (before mount) if specified in options
   if (immediate) {
@@ -118,7 +116,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     // Note: the service will start only if it hasn't started already.
     //
     // If a rehydrated state was provided, use the resolved `initialState`.
-    service.start(rehydratedState ? initialState : undefined);
+    service.start(rehydratedState ? current : undefined);
 
     return () => {
       // Stop the service when the component unmounts
