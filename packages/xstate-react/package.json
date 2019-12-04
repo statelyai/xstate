@@ -45,19 +45,18 @@
   },
   "devDependencies": {
     "@testing-library/react": "^8.0.9",
-    "@types/jest": "^24.0.11",
     "@types/jsdom": "^12.2.3",
-    "@types/react": "^16.9.0",
-    "@types/react-dom": "^16.8.5",
-    "@xstate/fsm": "^1.0.3",
+    "@types/react": "^16.9.11",
+    "@types/react-dom": "^16.9.4",
+    "@xstate/fsm": "*",
     "jest": "^24.8.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",
-    "react": "^16.9.0",
-    "react-dom": "^16.9.0",
-    "ts-jest": "^24.0.2",
-    "typescript": "^3.6.2",
-    "xstate": "^4.7.0-rc6"
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.2",
+    "xstate": "*"
   }
 }

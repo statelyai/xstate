@@ -10,6 +10,7 @@
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
+    "postinstall": "manypkg check",
     "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest",
@@ -35,8 +36,9 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
-  "devDependencies": {
-    "@types/jest": "^24.0.19",
+  "dependencies": {
+    "@manypkg/cli": "^0.9.0",
+    "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
     "@vuepress/plugin-google-analytics": "^1.2.0",
     "cpy-cli": "^2.0.0",
@@ -52,7 +54,7 @@
     "mermaid": "^8.2.3",
     "prettier": "^1.18.2",
     "spawn-command": "0.0.2-1",
-    "ts-jest": "^24.1.0",
+    "ts-jest": "^24.1.9",
     "tslint": "^5.11.0",
     "typedoc": "^0.15.2",
     "typescript": "^3.7.2",

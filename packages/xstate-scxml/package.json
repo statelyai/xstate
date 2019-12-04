@@ -38,10 +38,9 @@
   },
   "devDependencies": {
     "@scion-scxml/test-framework": "^2.0.15",
-    "@types/jest": "^24.0.11",
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
-    "ts-jest": "^24.0.2",
-    "typescript": "^3.6.2"
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.2"
   }
 }
