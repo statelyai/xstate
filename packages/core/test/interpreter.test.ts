@@ -1584,7 +1584,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
-        const state$ = from(intervalService as any); // InteropObservable
+        const state$ = from(intervalService);
 
         state$.subscribe(
           () => {
