@@ -46,7 +46,7 @@ import {
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  createSymbolObservable
+  symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -942,7 +942,10 @@ export class Interpreter<
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update as any, { state, id: childService.id });
+        this.send(actionTypes.update as any, {
+          state,
+          id: childService.id
+        });
       });
     }
 
@@ -1209,11 +1212,7 @@ export class Interpreter<
     };
   }
 
-  public [createSymbolObservable()]() {
-    return this;
-  }
-
-  public [(Symbol as any).observable]() {
+  public [symbolObservable]() {
     return this;
   }
 }
