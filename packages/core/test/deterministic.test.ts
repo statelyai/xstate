@@ -232,11 +232,11 @@ describe('deterministic machine', () => {
       states: {
         test: {
           activities: ['activity'],
-          onEntry: ['onEntry'],
+          entry: ['onEntry'],
           on: {
             NEXT: 'test'
           },
-          onExit: ['onExit']
+          exit: ['onExit']
         }
       }
     });

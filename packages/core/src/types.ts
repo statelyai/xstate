@@ -232,12 +232,6 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    */
   autoForward?: boolean;
   /**
-   * @deprecated
-   *
-   *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
-   */
-  forward?: boolean;
-  /**
    * Data from the parent machine's context to set as the (partial or full) context
    * for the invoked child machine.
    *
@@ -361,12 +355,6 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        */
       autoForward?: boolean;
       /**
-       * @deprecated
-       *
-       *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
-       */
-      forward?: boolean;
-      /**
        * Data from the parent machine's context to set as the (partial or full) context
        * for the invoked child machine.
        *
@@ -403,10 +391,6 @@ export interface StateNodeConfig<
    */
   initial?: keyof TStateSchema['states'] | undefined;
   /**
-   * @deprecated
-   */
-  parallel?: boolean | undefined;
-  /**
    * The type of this state node:
    *
    *  - `'atomic'` - no child state nodes
@@ -442,20 +426,8 @@ export interface StateNodeConfig<
   on?: TransitionsConfig<TContext, TEvent>;
   /**
    * The action(s) to be executed upon entering the state node.
-   *
-   * @deprecated Use `entry` instead.
-   */
-  onEntry?: Actions<TContext, TEvent>; // TODO: deprecate
-  /**
-   * The action(s) to be executed upon entering the state node.
    */
   entry?: Actions<TContext, TEvent>;
-  /**
-   * The action(s) to be executed upon exiting the state node.
-   *
-   * @deprecated Use `exit` instead.
-   */
-  onExit?: Actions<TContext, TEvent>; // TODO: deprecate
   /**
    * The action(s) to be executed upon exiting the state node.
    */
@@ -521,8 +493,8 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  onEntry: Array<ActionObject<TContext, TEvent>>;
-  onExit: Array<ActionObject<TContext, TEvent>>;
+  entry: Array<ActionObject<TContext, TEvent>>;
+  exit: Array<ActionObject<TContext, TEvent>>;
   activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;
@@ -651,22 +623,6 @@ export type StateFrom<
   TMachine extends StateMachine<any, any, any>
 > = ReturnType<TMachine['transition']>;
 
-export interface ActionMap<TContext, TEvent extends EventObject> {
-  onEntry: Array<Action<TContext, TEvent>>;
-  actions: Array<Action<TContext, TEvent>>;
-  onExit: Array<Action<TContext, TEvent>>;
-}
-
-export interface EntryExitStates<TContext> {
-  entry: Set<StateNode<TContext>>;
-  exit: Set<StateNode<TContext>>;
-}
-
-export interface EntryExitStateArrays<TContext> {
-  entry: Array<StateNode<TContext>>;
-  exit: Array<StateNode<TContext>>;
-}
-
 export interface ActivityMap {
   [activityKey: string]: ActivityDefinition<any, any> | false;
 }
@@ -682,12 +638,6 @@ export interface StateTransition<TContext, TEvent extends EventObject> {
    */
   source: State<TContext> | undefined;
   actions: Array<ActionObject<TContext, TEvent>>;
-}
-
-export interface TransitionData<TContext, TEvent extends EventObject> {
-  value: StateValue | undefined;
-  actions: ActionMap<TContext, TEvent>;
-  activities?: ActivityMap;
 }
 
 export enum ActionTypes {

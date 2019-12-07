@@ -21,7 +21,7 @@ describe('spawning machines', () => {
         on: { SET_COMPLETE: 'complete' }
       },
       complete: {
-        onEntry: sendParent({ type: 'TODO_COMPLETED' })
+        entry: sendParent({ type: 'TODO_COMPLETED' })
       }
     }
   });

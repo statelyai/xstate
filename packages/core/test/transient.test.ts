@@ -87,7 +87,7 @@ describe('transient states (eventless transitions)', () => {
       initial: 'A',
       states: {
         A: {
-          onExit: 'exit_A',
+          exit: 'exit_A',
           on: {
             TIMER: {
               target: 'T',
@@ -101,7 +101,7 @@ describe('transient states (eventless transitions)', () => {
           }
         },
         B: {
-          onEntry: 'enter_B'
+          entry: 'enter_B'
         }
       }
     });
@@ -128,7 +128,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             A2: {
-              onEntry: raise('INT1')
+              entry: raise('INT1')
             }
           }
         },
@@ -142,7 +142,7 @@ describe('transient states (eventless transitions)', () => {
               }
             },
             B2: {
-              onEntry: raise('INT2')
+              entry: raise('INT2')
             }
           }
         },

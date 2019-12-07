@@ -62,7 +62,7 @@ const configMachine = Machine(
     },
     states: {
       foo: {
-        onEntry: 'entryAction',
+        entry: 'entryAction',
         on: {
           EVENT: {
             target: 'bar',

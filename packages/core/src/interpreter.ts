@@ -805,15 +805,6 @@ export class Interpreter<
 
           const { id, data } = activity;
 
-          if (!IS_PRODUCTION) {
-            warn(
-              !('forward' in activity),
-              // tslint:disable-next-line:max-line-length
-              `\`forward\` property is deprecated (found in invocation of '${activity.src}' in in machine '${this.machine.id}'). ` +
-                `Please use \`autoForward\` instead.`
-            );
-          }
-
           const autoForward =
             'autoForward' in activity
               ? activity.autoForward

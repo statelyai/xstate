@@ -184,12 +184,6 @@ class StateNode<
    */
   public initial?: keyof TStateSchema['states'];
   /**
-   * (DEPRECATED) Whether the state node is a parallel state node.
-   *
-   * Use `type: 'parallel'` instead.
-   */
-  public parallel?: boolean;
-  /**
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.
    */
@@ -208,11 +202,11 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (entry)
+  public entry: Array<ActionObject<TContext, TEvent>>;
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext, TEvent>>; // TODO: deprecate (exit)
+  public exit: Array<ActionObject<TContext, TEvent>>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
@@ -307,24 +301,11 @@ class StateNode<
       : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).version;
     this.type =
       this.config.type ||
-      (this.config.parallel
-        ? 'parallel'
-        : this.config.states && keys(this.config.states).length
+      (this.config.states && keys(this.config.states).length
         ? 'compound'
         : this.config.history
         ? 'history'
         : 'atomic');
-
-    if (!IS_PRODUCTION) {
-      warn(
-        !('parallel' in this.config),
-        `The "parallel" property is deprecated and will be removed in version 4.1. ${
-          this.config.parallel
-            ? `Replace with \`type: 'parallel'\``
-            : `Use \`type: '${this.type}'\``
-        } in the config for state node '${this.id}' instead.`
-      );
-    }
 
     this.initial = this.config.initial;
 
@@ -371,14 +352,11 @@ class StateNode<
       : NULL_EVENT in this.config.on;
     this.strict = !!this.config.strict;
 
-    // TODO: deprecate (entry)
-    this.onEntry = toArray(this.config.entry || this.config.onEntry).map(
-      action => toActionObject(action)
-    );
-    // TODO: deprecate (exit)
-    this.onExit = toArray(this.config.exit || this.config.onExit).map(action =>
+    this.entry = toArray(this.config.entry).map(action =>
       toActionObject(action)
     );
+
+    this.exit = toArray(this.config.exit).map(action => toActionObject(action));
     this.meta = this.config.meta;
     this.data =
       this.type === 'final'
@@ -484,8 +462,8 @@ class StateNode<
       ) as StatesDefinition<TContext, TStateSchema, TEvent>,
       on: this.on,
       transitions: this.transitions,
-      onEntry: this.onEntry,
-      onExit: this.onExit,
+      entry: this.entry,
+      exit: this.exit,
       activities: this.activities || [],
       meta: this.meta,
       order: this.order || -1,
@@ -600,8 +578,8 @@ class StateNode<
 
       const eventType = after(delayRef, this.id);
 
-      this.onEntry.push(send(eventType, { delay: delayRef }));
-      this.onExit.push(cancel(eventType));
+      this.entry.push(send(eventType, { delay: delayRef }));
+      this.exit.push(cancel(eventType));
 
       return {
         ...this.formatTransition({
@@ -1028,13 +1006,13 @@ class StateNode<
         Array.from(entryStates).map(stateNode => {
           return [
             ...stateNode.activities.map(activity => start(activity)),
-            ...stateNode.onEntry
+            ...stateNode.entry
           ];
         })
       ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
       flatten(
         Array.from(exitStates).map(stateNode => [
-          ...stateNode.onExit,
+          ...stateNode.exit,
           ...stateNode.activities.map(activity => stop(activity))
         ])
       )

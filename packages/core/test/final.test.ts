@@ -120,7 +120,7 @@ describe('final states', () => {
               states: {
                 baz: {
                   type: 'final',
-                  onEntry: 'bazAction'
+                  entry: 'bazAction'
                 }
               }
             },

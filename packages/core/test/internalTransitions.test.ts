@@ -6,8 +6,8 @@ const wordMachine = Machine({
   states: {
     direction: {
       initial: 'left',
-      onEntry: 'ENTER_DIRECTION',
-      onExit: 'EXIT_DIRECTION',
+      entry: 'ENTER_DIRECTION',
+      exit: 'EXIT_DIRECTION',
       states: {
         left: {},
         right: {},

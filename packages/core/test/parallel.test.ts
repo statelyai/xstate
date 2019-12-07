@@ -9,7 +9,7 @@ const composerMachine = Machine({
     ReadOnly: {
       id: 'ReadOnly',
       initial: 'StructureEdit',
-      onEntry: ['selectNone'],
+      entry: ['selectNone'],
       states: {
         StructureEdit: {
           id: 'StructureEditRO',
@@ -40,10 +40,10 @@ const composerMachine = Machine({
               },
               states: {
                 SelectedNone: {
-                  onEntry: ['redraw']
+                  entry: ['redraw']
                 },
                 SelectedActivity: {
-                  onEntry: ['redraw'],
+                  entry: ['redraw'],
                   on: {
                     singleClickCanvas: [
                       {
@@ -54,7 +54,7 @@ const composerMachine = Machine({
                   }
                 },
                 SelectedLink: {
-                  onEntry: ['redraw'],
+                  entry: ['redraw'],
                   on: {
                     singleClickCanvas: [
                       {
@@ -70,7 +70,7 @@ const composerMachine = Machine({
               initial: 'Empty',
               states: {
                 Empty: {
-                  onEntry: ['emptyClipboard'],
+                  entry: ['emptyClipboard'],
                   on: {
                     cutInClipboardSuccess: [
                       {
@@ -155,10 +155,10 @@ const composerMachine = Machine({
               },
               states: {
                 SelectedNone: {
-                  onEntry: ['redraw']
+                  entry: ['redraw']
                 },
                 SelectedActivity: {
-                  onEntry: ['redraw'],
+                  entry: ['redraw'],
                   on: {
                     singleClickCanvas: [
                       {
@@ -169,7 +169,7 @@ const composerMachine = Machine({
                   }
                 },
                 SelectedLink: {
-                  onEntry: ['redraw'],
+                  entry: ['redraw'],
                   on: {
                     singleClickCanvas: [
                       {
@@ -197,37 +197,37 @@ const wakMachine = Machine({
       initial: 'wak1sonA',
       states: {
         wak1sonA: {
-          onEntry: 'wak1sonAenter',
-          onExit: 'wak1sonAexit'
+          entry: 'wak1sonAenter',
+          exit: 'wak1sonAexit'
         },
         wak1sonB: {
-          onEntry: 'wak1sonBenter',
-          onExit: 'wak1sonBexit'
+          entry: 'wak1sonBenter',
+          exit: 'wak1sonBexit'
         }
       },
       on: {
         WAK1: '.wak1sonB'
       },
-      onEntry: 'wak1enter',
-      onExit: 'wak1exit'
+      entry: 'wak1enter',
+      exit: 'wak1exit'
     },
     wak2: {
       initial: 'wak2sonA',
       states: {
         wak2sonA: {
-          onEntry: 'wak2sonAenter',
-          onExit: 'wak2sonAexit'
+          entry: 'wak2sonAenter',
+          exit: 'wak2sonAexit'
         },
         wak2sonB: {
-          onEntry: 'wak2sonBenter',
-          onExit: 'wak2sonBexit'
+          entry: 'wak2sonBenter',
+          exit: 'wak2sonBexit'
         }
       },
       on: {
         WAK2: '.wak2sonB'
       },
-      onEntry: 'wak2enter',
-      onExit: 'wak2exit'
+      entry: 'wak2enter',
+      exit: 'wak2exit'
     }
   }
 });
@@ -312,21 +312,21 @@ const raisingParallelMachine = Machine({
       initial: 'C',
       states: {
         A: {
-          onEntry: [raise('TURN_OFF')],
+          entry: [raise('TURN_OFF')],
           on: {
             EVENT_OUTER1_B: 'B',
             EVENT_OUTER1_C: 'C'
           }
         },
         B: {
-          onEntry: [raise('TURN_ON')],
+          entry: [raise('TURN_ON')],
           on: {
             EVENT_OUTER1_A: 'A',
             EVENT_OUTER1_C: 'C'
           }
         },
         C: {
-          onEntry: [raise('CLEAR')],
+          entry: [raise('CLEAR')],
           on: {
             EVENT_OUTER1_A: 'A',
             EVENT_OUTER1_B: 'B'
@@ -608,7 +608,7 @@ describe('parallel states', () => {
     });
   });
 
-  it('should properly transition according to onEntry events on an initial state', () => {
+  it('should properly transition according to entry events on an initial state', () => {
     expect(raisingParallelMachine.initialState.value).toEqual({
       OUTER1: 'C',
       OUTER2: {

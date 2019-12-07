@@ -24,7 +24,7 @@ const factorialMachine = Machine<{ n: number; fac: number }>(
         }
       },
       done: {
-        onEntry: [xs => console.log(`The answer is ${xs.fac}`)]
+        entry: [xs => console.log(`The answer is ${xs.fac}`)]
       }
     }
   },

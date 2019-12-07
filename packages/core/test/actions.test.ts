@@ -1,7 +1,7 @@
 import { Machine, assign, interpret, spawn } from '../src/index';
 import { pure, sendParent, forwardTo, log } from '../src/actions';
 
-describe('onEntry/onExit actions', () => {
+describe('entry/exit actions', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -424,7 +424,7 @@ describe('onEntry/onExit actions', () => {
     });
   });
 
-  describe('State.actions (with entry/exit instead of onEntry/onExit)', () => {
+  describe('State.actions (with entry/exit)', () => {
     it('should return the entry actions of an initial state', () => {
       expect(newLightMachine.initialState.actions.map(a => a.type)).toEqual([
         'enter_green'
@@ -479,7 +479,7 @@ describe('onEntry/onExit actions', () => {
 
   describe('parallel states', () => {
     it('should return entry action defined on parallel state', () => {
-      const parallelMachineWithOnEntry = Machine({
+      const parallelMachineWithEntry = Machine({
         id: 'fetch',
         context: { attempts: 0 },
         initial: 'start',
@@ -505,7 +505,7 @@ describe('onEntry/onExit actions', () => {
       });
 
       expect(
-        parallelMachineWithOnEntry
+        parallelMachineWithEntry
           .transition('start', 'ENTER_PARALLEL')
           .actions.map(a => a.type)
       ).toEqual(['enter_p1', 'enter_inner']);
@@ -698,17 +698,17 @@ describe('actions config', () => {
   });
 
   it('should work with anonymous functions (with warning)', () => {
-    let onEntryCalled = false;
+    let entryCalled = false;
     let actionCalled = false;
-    let onExitCalled = false;
+    let exitCalled = false;
 
     const anonMachine = Machine({
       id: 'anon',
       initial: 'active',
       states: {
         active: {
-          entry: () => (onEntryCalled = true),
-          exit: () => (onExitCalled = true),
+          entry: () => (entryCalled = true),
+          exit: () => (exitCalled = true),
           on: {
             EVENT: {
               target: 'inactive',
@@ -736,7 +736,7 @@ describe('actions config', () => {
       }
     });
 
-    expect(onEntryCalled).toBe(true);
+    expect(entryCalled).toBe(true);
 
     const inactiveState = anonMachine.transition(initialState, 'EVENT');
 
@@ -756,7 +756,7 @@ describe('actions config', () => {
       }
     });
 
-    expect(onExitCalled).toBe(true);
+    expect(exitCalled).toBe(true);
     expect(actionCalled).toBe(true);
   });
 });

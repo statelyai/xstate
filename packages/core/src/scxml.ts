@@ -351,8 +351,8 @@ function toConfig(
           }
         : undefined),
       ...(transitionElements.length ? { on } : undefined),
-      ...(onEntry ? { onEntry } : undefined),
-      ...(onExit ? { onExit } : undefined),
+      ...(onEntry ? { entry: onEntry } : undefined),
+      ...(onExit ? { exit: onExit } : undefined),
       ...(invoke.length ? { invoke } : undefined)
     };
   }
