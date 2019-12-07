@@ -1,4 +1,4 @@
-import { Machine, interpret, assign, send, sendParent } from '../src';
+import { Machine, interpret, assign, send, sendParent, State } from '../src';
 
 interface CounterContext {
   count: number;
@@ -157,9 +157,8 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state (property assignment)', () => {
     const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'DEC',
-      { count: 50, foo: 'bar' }
+      State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
+      'DEC'
     );
 
     expect(oneState.value).toEqual('counting');
@@ -170,10 +169,10 @@ describe('assign', () => {
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 48, foo: 'bar' });
 
-    const threeState = counterMachine.transition(twoState, 'DEC', {
-      count: 100,
-      foo: 'bar'
-    });
+    const threeState = counterMachine.transition(
+      State.from(twoState, { count: 100, foo: 'bar' }),
+      'DEC'
+    );
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 99, foo: 'bar' });
@@ -181,9 +180,8 @@ describe('assign', () => {
 
   it('applies the assignment to the explicit external state', () => {
     const oneState = counterMachine.transition(
-      counterMachine.initialState,
-      'INC',
-      { count: 50, foo: 'bar' }
+      State.from(counterMachine.initialState, { count: 50, foo: 'bar' }),
+      'INC'
     );
 
     expect(oneState.value).toEqual('counting');
@@ -194,10 +192,10 @@ describe('assign', () => {
     expect(twoState.value).toEqual('counting');
     expect(twoState.context).toEqual({ count: 52, foo: 'bar' });
 
-    const threeState = counterMachine.transition(twoState, 'INC', {
-      count: 102,
-      foo: 'bar'
-    });
+    const threeState = counterMachine.transition(
+      State.from(twoState, { count: 102, foo: 'bar' }),
+      'INC'
+    );
 
     expect(threeState.value).toEqual('counting');
     expect(threeState.context).toEqual({ count: 103, foo: 'bar' });

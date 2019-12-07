@@ -1,9 +1,9 @@
-import { Machine, interpret } from '../src';
+import { Machine, interpret, State } from '../src';
 
 describe('guard conditions', () => {
-  type LightMachineCtx = {
+  interface LightMachineCtx {
     elapsed: number;
-  };
+  }
   type LightMachineEvents =
     | { type: 'TIMER'; elapsed: number }
     | {
@@ -69,15 +69,21 @@ describe('guard conditions', () => {
 
   it('should transition only if condition is met', () => {
     expect(
-      lightMachine.transition('green', 'TIMER', {
-        elapsed: 50
-      }).value
+      lightMachine.transition(
+        State.from('green', {
+          elapsed: 50
+        }),
+        'TIMER'
+      ).value
     ).toEqual('green');
 
     expect(
-      lightMachine.transition('green', 'TIMER', {
-        elapsed: 120
-      }).value
+      lightMachine.transition(
+        State.from('green', {
+          elapsed: 120
+        }),
+        'TIMER'
+      ).value
     ).toEqual('yellow');
   });
 
@@ -99,31 +105,43 @@ describe('guard conditions', () => {
   });
 
   it('should not transition if no condition is met', () => {
-    const nextState = lightMachine.transition('green', 'TIMER', {
-      elapsed: 9000
-    });
+    const nextState = lightMachine.transition(
+      State.from('green', {
+        elapsed: 9000
+      }),
+      'TIMER'
+    );
     expect(nextState.value).toEqual('green');
     expect(nextState.actions).toEqual([]);
   });
 
   it('should work with defined string transitions', () => {
-    const nextState = lightMachine.transition('yellow', 'TIMER', {
-      elapsed: 150
-    });
+    const nextState = lightMachine.transition(
+      State.from('yellow', {
+        elapsed: 150
+      }),
+      'TIMER'
+    );
     expect(nextState.value).toEqual('red');
   });
 
   it('should work with guard objects', () => {
-    const nextState = lightMachine.transition('yellow', 'TIMER_COND_OBJ', {
-      elapsed: 150
-    });
+    const nextState = lightMachine.transition(
+      State.from('yellow', {
+        elapsed: 150
+      }),
+      'TIMER_COND_OBJ'
+    );
     expect(nextState.value).toEqual('red');
   });
 
   it('should work with defined string transitions (condition not met)', () => {
-    const nextState = lightMachine.transition('yellow', 'TIMER', {
-      elapsed: 10
-    });
+    const nextState = lightMachine.transition(
+      State.from('yellow', {
+        elapsed: 10
+      }),
+      'TIMER'
+    );
     expect(nextState.value).toEqual('yellow');
   });
 
@@ -231,8 +249,13 @@ describe('guard conditions', () => {
 });
 
 describe('custom guards', () => {
-  type Ctx = { count: number };
-  type Events = { type: 'EVENT'; value: number };
+  interface Ctx {
+    count: number;
+  }
+  interface Events {
+    type: 'EVENT';
+    value: number;
+  }
   const machine = Machine<Ctx, Events>(
     {
       id: 'custom',

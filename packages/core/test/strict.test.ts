@@ -21,7 +21,7 @@ describe('strict mode', () => {
         exit: 'exit_wait'
       },
       stop: {
-        type: 'final',
+        type: 'final' as const,
         entry: 'enter_stop',
         exit: 'exit_stop'
       }

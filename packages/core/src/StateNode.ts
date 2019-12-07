@@ -907,7 +907,6 @@ class StateNode<
       _event
     };
 
-    // TODO: do not hardcode!
     if (guard.type === DEFAULT_GUARD_TYPE) {
       return (guard as GuardPredicate<TContext, TEvent>).predicate(
         context,
@@ -1035,22 +1034,18 @@ class StateNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>,
-    context?: TContext
+    event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TState> {
     const _event = toSCXMLEvent(event);
     let currentState: State<TContext, TEvent>;
 
     if (state instanceof State) {
-      currentState =
-        context === undefined
-          ? state
-          : this.resolveState(State.from(state, context));
+      currentState = state;
     } else {
       const resolvedStateValue = isString(state)
         ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
         : this.resolve(state);
-      const resolvedContext = context ? context : this.machine.context!;
+      const resolvedContext = this.machine.context!;
 
       currentState = this.resolveState(
         State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)

@@ -1,4 +1,4 @@
-import { Machine, createMachine, interpret } from '../src/index';
+import { Machine, createMachine, interpret, State } from '../src/index';
 import { assign, raise } from '../src/actions';
 
 const greetingContext = { hour: 10 };
@@ -52,33 +52,45 @@ describe('transient states (eventless transitions)', () => {
   });
 
   it('should choose the first candidate target that matches the cond (D)', () => {
-    const nextState = updateMachine.transition('G', 'UPDATE_BUTTON_CLICKED', {
-      data: false
-    });
+    const nextState = updateMachine.transition(
+      State.from<any>('G', {
+        data: false
+      }),
+      'UPDATE_BUTTON_CLICKED'
+    );
     expect(nextState.value).toEqual('D');
   });
 
   it('should choose the first candidate target that matches the cond (B)', () => {
-    const nextState = updateMachine.transition('G', 'UPDATE_BUTTON_CLICKED', {
-      data: true,
-      status: 'Y'
-    });
+    const nextState = updateMachine.transition(
+      State.from<any>('G', {
+        data: true,
+        status: 'Y'
+      }),
+      'UPDATE_BUTTON_CLICKED'
+    );
     expect(nextState.value).toEqual('B');
   });
 
   it('should choose the first candidate target that matches the cond (C)', () => {
-    const nextState = updateMachine.transition('G', 'UPDATE_BUTTON_CLICKED', {
-      data: true,
-      status: 'X'
-    });
+    const nextState = updateMachine.transition(
+      State.from<any>('G', {
+        data: true,
+        status: 'X'
+      }),
+      'UPDATE_BUTTON_CLICKED'
+    );
     expect(nextState.value).toEqual('C');
   });
 
   it('should choose the final candidate without a cond if none others match', () => {
-    const nextState = updateMachine.transition('G', 'UPDATE_BUTTON_CLICKED', {
-      data: true,
-      status: 'other'
-    });
+    const nextState = updateMachine.transition(
+      State.from<any>('G', {
+        data: true,
+        status: 'other'
+      }),
+      'UPDATE_BUTTON_CLICKED'
+    );
     expect(nextState.value).toEqual('F');
   });
 
