@@ -24,7 +24,10 @@
     "docs:pdf": "npm run docs:build && cd docs && vuepress export .",
     "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md && cpy 'packages/*/docs/*.md' docs --parents",
     "docs:build": "npm run docs:readme && npm run docs:packages && cd docs && vuepress build .",
-    "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
+    "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish",
+    "changeset": "changeset",
+    "prerelease": "npm run build && npm run test",
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -37,6 +40,7 @@
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "dependencies": {
+    "@changesets/cli": "^2.4.0",
     "@manypkg/cli": "^0.9.0",
     "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
