@@ -521,6 +521,11 @@ export class Interpreter<
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
   ): State<TContext, TEvent> => {
+    if (isArray(event)) {
+      this.batch(event);
+      return this.state;
+    }
+
     const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
 
     if (this._status === InterpreterStatus.Stopped) {
@@ -535,11 +540,6 @@ export class Interpreter<
           )}`
         );
       }
-      return this.state;
-    }
-
-    if (isArray(event)) {
-      this.batch(event);
       return this.state;
     }
 
