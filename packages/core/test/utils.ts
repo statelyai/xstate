@@ -1,20 +1,20 @@
 import { StateNode, State } from '../src/index';
 import { matchesState } from '../src';
 
-export function testMultiTransition<TExt>(
-  machine: StateNode<TExt>,
+export function testMultiTransition<TContext>(
+  machine: StateNode<TContext>,
   fromState: string,
   eventTypes: string
 ) {
   const resultState = eventTypes
     .split(/,\s?/)
-    .reduce((state: State<TExt> | string, eventType) => {
+    .reduce((state: State<TContext> | string, eventType) => {
       if (typeof state === 'string' && state[0] === '{') {
         state = JSON.parse(state);
       }
       const nextState = machine.transition(state, eventType);
       return nextState;
-    }, fromState) as State<TExt>;
+    }, fromState) as State<TContext>;
 
   return resultState;
 }

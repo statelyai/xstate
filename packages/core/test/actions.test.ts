@@ -285,7 +285,7 @@ describe('entry/exit actions', () => {
     it('should return the entry and exit actions of a nested transition', () => {
       expect(
         lightMachine
-          .transition('red.walk', 'PED_COUNTDOWN')
+          .transition({ red: 'walk' }, 'PED_COUNTDOWN')
           .actions.map(a => a.type)
       ).toEqual(['exit_walk', 'enter_wait']);
     });
@@ -333,7 +333,7 @@ describe('entry/exit actions', () => {
 
     it('should return nested actions in the correct (child to parent) order', () => {
       expect(
-        deepMachine.transition('a.a1', 'CHANGE').actions.map(a => a.type)
+        deepMachine.transition({ a: 'a1' }, 'CHANGE').actions.map(a => a.type)
       ).toEqual([
         'exit_a1',
         'exit_a',
@@ -346,7 +346,7 @@ describe('entry/exit actions', () => {
 
     it('should ignore parent state actions for same-parent substates', () => {
       expect(
-        deepMachine.transition('a.a1', 'NEXT').actions.map(a => a.type)
+        deepMachine.transition({ a: 'a1' }, 'NEXT').actions.map(a => a.type)
       ).toEqual(['exit_a1', 'enter_a2']);
     });
 
@@ -359,7 +359,7 @@ describe('entry/exit actions', () => {
 
       expect(
         deepMachine
-          .transition('a.a3', 'NEXT')
+          .transition({ a: 'a3' }, 'NEXT')
           .actions.map(action => action.type)
       ).toEqual(['exit_a3_fn', 'do_a3_to_a2', 'enter_a2']);
     });
@@ -413,12 +413,14 @@ describe('entry/exit actions', () => {
       });
 
       it('with a relative transition', () => {
-        expect(pingPong.transition('ping.foo', 'TACK').actions).toHaveLength(0);
+        expect(
+          pingPong.transition({ ping: 'foo' }, 'TACK').actions
+        ).toHaveLength(0);
       });
 
       it('with an absolute transition', () => {
         expect(
-          pingPong.transition('ping.foo', 'ABSOLUTE_TACK').actions
+          pingPong.transition({ ping: 'foo' }, 'ABSOLUTE_TACK').actions
         ).toHaveLength(0);
       });
     });
@@ -446,7 +448,7 @@ describe('entry/exit actions', () => {
     it('should return the entry and exit actions of a nested transition', () => {
       expect(
         newLightMachine
-          .transition('red.walk', 'PED_COUNTDOWN')
+          .transition({ red: 'walk' }, 'PED_COUNTDOWN')
           .actions.map(a => a.type)
       ).toEqual(['exit_walk', 'enter_wait']);
     });

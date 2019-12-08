@@ -75,36 +75,24 @@ const idMachine = Machine({
 describe('State node IDs', () => {
   const expected = {
     A: {
-      NEXT: 'A.bar',
-      NEXT_DOT_RESOLVE: 'B.bar'
+      NEXT: { A: 'bar' },
+      NEXT_DOT_RESOLVE: { B: 'bar' }
     },
-    '#A': {
-      NEXT: 'A.bar'
+    '{"A":"foo"}': {
+      NEXT: { A: 'bar' }
     },
-    'A.foo': {
-      NEXT: 'A.bar'
+    '{"A":"bar"}': {
+      NEXT: { B: 'foo' }
     },
-    '#A_foo': {
-      NEXT: 'A.bar'
-    },
-    'A.bar': {
-      NEXT: 'B.foo'
-    },
-    '#A_bar': {
-      NEXT: 'B.foo'
-    },
-    'B.foo': {
-      'NEXT,NEXT': 'A.foo',
-      NEXT_DOT: 'B.dot'
-    },
-    '#B_foo': {
-      'NEXT,NEXT': 'A.foo'
+    '{"B":"foo"}': {
+      'NEXT,NEXT': { A: 'foo' },
+      NEXT_DOT: { B: 'dot' }
     },
 
     // With getters
     getter: {
       NEXT: 'A',
-      NEXT_DEEP: 'A.foo',
+      NEXT_DEEP: { A: 'foo' },
       NEXT_TARGET: 'B',
       NEXT_TARGET_ARRAY: 'B'
     }

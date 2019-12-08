@@ -505,7 +505,7 @@ describe('parallel states', () => {
   });
 
   const expected = {
-    'bold.off': {
+    '{"bold": "off"}': {
       TOGGLE_BOLD: {
         bold: 'on',
         italics: 'off',
@@ -513,7 +513,7 @@ describe('parallel states', () => {
         list: 'none'
       }
     },
-    'bold.on': {
+    '{"bold": "on"}': {
       TOGGLE_BOLD: {
         bold: 'off',
         italics: 'off',

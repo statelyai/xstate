@@ -1042,9 +1042,7 @@ class StateNode<
     if (state instanceof State) {
       currentState = state;
     } else {
-      const resolvedStateValue = isString(state)
-        ? this.resolve(pathToStateValue(this.getResolvedPath(state)))
-        : this.resolve(state);
+      const resolvedStateValue = this.resolve(state);
       const resolvedContext = this.machine.context!;
 
       currentState = this.resolveState(
@@ -1475,21 +1473,6 @@ class StateNode<
     }
   }
 
-  private getResolvedPath(stateIdentifier: string): string[] {
-    if (isStateId(stateIdentifier)) {
-      const stateNode = this.machine.idMap[
-        stateIdentifier.slice(STATE_IDENTIFIER.length)
-      ];
-
-      if (!stateNode) {
-        throw new Error(`Unable to find state node '${stateIdentifier}'`);
-      }
-
-      return stateNode.path;
-    }
-
-    return toStatePath(stateIdentifier, this.delimiter);
-  }
   private get initialStateValue(): StateValue | undefined {
     if (this.__cache.initialStateValue) {
       return this.__cache.initialStateValue;

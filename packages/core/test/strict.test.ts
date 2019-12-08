@@ -105,7 +105,7 @@ describe('strict mode', () => {
 
   it('should not throw for built-in events', () => {
     expect(() => {
-      lightMachine.transition('red.wait', 'PED_COUNTDOWN');
+      lightMachine.transition({ red: 'wait' }, 'PED_COUNTDOWN');
     }).not.toThrow();
   });
 });

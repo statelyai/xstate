@@ -42,10 +42,10 @@ describe('Example 6.17', () => {
     '{"Y":{"A":"C","B":"G"}}': {
       back: 'X'
     },
-    'Y.A.C': {
+    '{"Y":{"A":"C"}}': {
       back: 'X'
     },
-    'Y.B.G': {
+    '{"Y":{"B":"G"}}': {
       back: 'X'
     }
   };
@@ -107,7 +107,7 @@ describe('Jump to ID', () => {
   });
 
   const expected = {
-    'Y.B.G': {
+    '{"Y":{"B":"G"}}': {
       kill: 'X'
     },
     '{"Y":{"A":"C","B":"H"}}': {

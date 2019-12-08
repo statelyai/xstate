@@ -43,8 +43,8 @@ export function getConfiguration<TC, TE extends EventObject>(
   const configuration = new Set(stateNodes);
 
   // add all ancestors
-  for (const s of configuration) {
-    let m = s.parent;
+  for (const stateNode of configuration) {
+    let m = stateNode.parent;
 
     while (m && !configuration.has(m)) {
       configuration.add(m);

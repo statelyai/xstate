@@ -208,15 +208,15 @@ describe('transition "in" check', () => {
   });
 
   it('should work to forbid events', () => {
-    const walkState = lightMachine.transition('red.walk', 'TIMER');
+    const walkState = lightMachine.transition({ red: 'walk' }, 'TIMER');
 
     expect(walkState.value).toEqual({ red: 'walk' });
 
-    const waitState = lightMachine.transition('red.wait', 'TIMER');
+    const waitState = lightMachine.transition({ red: 'wait' }, 'TIMER');
 
     expect(waitState.value).toEqual({ red: 'wait' });
 
-    const stopState = lightMachine.transition('red.stop', 'TIMER');
+    const stopState = lightMachine.transition({ red: 'stop' }, 'TIMER');
 
     expect(stopState.value).toEqual('green');
   });
