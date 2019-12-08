@@ -25,7 +25,6 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean",
     "test": "jest",
     "build": "tsc",
     "prepublish": "npm run build && npm run test"
