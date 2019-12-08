@@ -1,5 +1,6 @@
 {
   "name": "@xstate/scxml",
+  "private": true,
   "version": "0.2.1",
   "description": "XState SCXML utilities",
   "keywords": [
