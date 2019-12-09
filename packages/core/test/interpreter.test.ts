@@ -910,7 +910,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
         .onTransition(state => {
-          if (state.matches('start')) {
+          if (state.matches<any>('start')) {
             expect(state.children).toHaveProperty('child');
             expect(typeof state.children.child.send).toBe('function');
           }
@@ -1705,7 +1705,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          if (state.matches('active') && state.children.childActor) {
+          if (state.matches<any>('active') && state.children.childActor) {
             state.children.childActor.send({ type: 'FIRE' });
           }
         })
@@ -1798,7 +1798,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const service = interpret(parentMachine)
         .onTransition(state => {
           if (
-            state.matches('active') &&
+            state.matches<any>('active') &&
             state.children.childActor &&
             !subscription
           ) {
