@@ -405,6 +405,9 @@ export function updateContext<TContext, TEvent extends EventObject>(
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>
 ): TContext {
+  if (!IS_PRODUCTION) {
+    warn(!!context, 'Attempting to update undefined context');
+  }
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
