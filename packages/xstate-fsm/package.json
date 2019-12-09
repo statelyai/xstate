@@ -35,7 +35,6 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean",
     "build": "rollup -c",
     "test": "jest",
     "prepublish": "npm run build"
