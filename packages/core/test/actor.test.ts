@@ -33,11 +33,11 @@ describe('spawning machines', () => {
   type TodoEvent =
     | {
         type: 'ADD';
-        id: string;
+        id: number;
       }
     | {
         type: 'SET_COMPLETE';
-        id: string;
+        id: number;
       }
     | {
         type: 'TODO_COMPLETED';
@@ -62,14 +62,14 @@ describe('spawning machines', () => {
         actions: assign({
           todoRefs: (ctx, e) => ({
             ...ctx.todoRefs,
-            [e.id as string]: spawn(todoMachine)
+            [e.id]: spawn(todoMachine)
           })
         })
       },
       SET_COMPLETE: {
         actions: send('SET_COMPLETE', {
           to: (ctx, e: Extract<TodoEvent, { type: 'SET_COMPLETE' }>) => {
-            return ctx.todoRefs[e.id as string];
+            return ctx.todoRefs[e.id];
           }
         })
       }
@@ -147,6 +147,17 @@ describe('spawning machines', () => {
       .start();
 
     service.send('ADD', { id: 42 });
+    service.send('SET_COMPLETE', { id: 42 });
+  });
+
+  it('should invoke actors (when sending batch)', done => {
+    const service = interpret(todosMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+
+    service.send([{ type: 'ADD', id: 42 }]);
     service.send('SET_COMPLETE', { id: 42 });
   });
 

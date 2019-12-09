@@ -608,19 +608,27 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
+      let batchedActions: Array<ActionObject<TContext, TEvent>> = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
-        const actions = nextState.actions.map(a =>
-          bindActionToState(a, nextState)
-        ) as Array<ActionObject<TContext, TEvent>>;
-        nextState = this.machine.transition(nextState, _event);
-        nextState.actions.unshift(...actions);
-        batchChanged = nextState.changed || !!batchChanged;
-        nextState.changed = batchChanged;
 
         this.forward(_event);
+
+        nextState = withServiceScope(this, () => {
+          return this.machine.transition(nextState, _event);
+        });
+
+        batchedActions.push(
+          ...(nextState.actions.map(a =>
+            bindActionToState(a, nextState)
+          ) as Array<ActionObject<TContext, TEvent>>)
+        );
+
+        batchChanged = batchChanged || !!nextState.changed;
       }
 
+      nextState.changed = batchChanged;
+      nextState.actions = batchedActions;
       this.update(nextState, toSCXMLEvent(events[events.length - 1]));
     });
   }
