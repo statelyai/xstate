@@ -363,6 +363,106 @@ describe('invoke', () => {
     service.send('INCREMENT');
   });
 
+  it('should forward events to services if autoForward: true before processing them (when sending batches)', done => {
+    const actual: string[] = [];
+
+    const childMachine = Machine<{ count: number }>({
+      id: 'child',
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          on: {
+            INCREMENT: [
+              {
+                target: 'done',
+                cond: ctx => {
+                  actual.push('child got INCREMENT');
+                  return ctx.count >= 2;
+                }
+              },
+              {
+                target: undefined
+              }
+            ].map(transition => ({
+              ...transition,
+              actions: assign(ctx => ({ count: ++ctx.count }))
+            }))
+          }
+        },
+        done: {
+          type: 'final',
+          data: ctx => ({ countedTo: ctx.count })
+        }
+      },
+      on: {
+        START: {
+          actions: () => {
+            throw new Error('Should not receive START action here.');
+          }
+        }
+      }
+    });
+
+    const parentMachine = Machine<{ countedTo: number }>({
+      id: 'parent',
+      context: { countedTo: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'invokeChild'
+          }
+        },
+        invokeChild: {
+          invoke: {
+            src: childMachine,
+            autoForward: true,
+            onDone: {
+              target: 'done',
+              actions: assign((_ctx, event) => ({
+                countedTo: event.data.countedTo
+              }))
+            }
+          },
+          on: {
+            INCREMENT: {
+              actions: () => {
+                actual.push('parent got INCREMENT');
+              }
+            }
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    let state: any;
+    const service = interpret(parentMachine)
+      .onTransition(s => {
+        state = s;
+      })
+      .onDone(() => {
+        expect(state.context).toEqual({ countedTo: 3 });
+        expect(actual).toEqual([
+          'child got INCREMENT',
+          'parent got INCREMENT',
+          'child got INCREMENT',
+          'child got INCREMENT',
+          'parent got INCREMENT',
+          'parent got INCREMENT'
+        ]);
+        done();
+      })
+      .start();
+
+    service.send(['START']);
+    service.send(['INCREMENT']);
+    service.send(['INCREMENT', 'INCREMENT']);
+  });
+
   it('should start services (explicit machine, invoke = config)', done => {
     interpret(fetcherMachine)
       .onDone(() => {

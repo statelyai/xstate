@@ -1,3 +1,9 @@
+export enum InterpreterStatus {
+  NotStarted = 0,
+  Running = 1,
+  Stopped = 2
+}
+
 export type SingleOrArray<T> = T[] | T;
 export interface EventObject {
   type: string;
@@ -88,6 +94,7 @@ export namespace StateMachine {
     };
     start: () => Service<TContext, TEvent, TState>;
     stop: () => Service<TContext, TEvent, TState>;
+    readonly status: InterpreterStatus;
   }
 }
 

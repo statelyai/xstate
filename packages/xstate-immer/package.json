@@ -1,5 +1,6 @@
 {
   "name": "@xstate/immer",
+  "private": true,
   "version": "0.0.1",
   "description": "XState with Immer",
   "keywords": [
@@ -28,7 +29,6 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean",
     "build": "tsc",
     "test": "jest"
   },
@@ -37,13 +37,13 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "immer": "^3.2.0",
+    "immer": "^5.0.0",
     "xstate": "^4.6.0"
   },
   "devDependencies": {
-    "immer": "^3.2.0",
+    "immer": "^5.0.0",
     "lerna-alias": "3.0.3-0",
-    "typescript": "^3.6.2",
-    "xstate": "^4.7.0-rc1"
+    "typescript": "^3.7.2",
+    "xstate": "*"
   }
 }

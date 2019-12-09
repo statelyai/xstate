@@ -46,7 +46,7 @@ import {
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  createSymbolObservable
+  symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
@@ -521,6 +521,11 @@ export class Interpreter<
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
   ): State<TContext, TEvent> => {
+    if (isArray(event)) {
+      this.batch(event);
+      return this.state;
+    }
+
     const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
 
     if (this._status === InterpreterStatus.Stopped) {
@@ -535,11 +540,6 @@ export class Interpreter<
           )}`
         );
       }
-      return this.state;
-    }
-
-    if (isArray(event)) {
-      this.batch(event);
       return this.state;
     }
 
@@ -608,19 +608,27 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
+      let batchedActions: Array<ActionObject<TContext, TEvent>> = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
-        const actions = nextState.actions.map(a =>
-          bindActionToState(a, nextState)
-        ) as Array<ActionObject<TContext, TEvent>>;
-        nextState = this.machine.transition(nextState, _event);
-        nextState.actions.unshift(...actions);
-        batchChanged = nextState.changed || !!batchChanged;
-        nextState.changed = batchChanged;
 
         this.forward(_event);
+
+        nextState = withServiceScope(this, () => {
+          return this.machine.transition(nextState, _event);
+        });
+
+        batchedActions.push(
+          ...(nextState.actions.map(a =>
+            bindActionToState(a, nextState)
+          ) as Array<ActionObject<TContext, TEvent>>)
+        );
+
+        batchChanged = batchChanged || !!nextState.changed;
       }
 
+      nextState.changed = batchChanged;
+      nextState.actions = batchedActions;
       this.update(nextState, toSCXMLEvent(events[events.length - 1]));
     });
   }
@@ -933,7 +941,10 @@ export class Interpreter<
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update as any, { state, id: childService.id });
+        this.send(actionTypes.update as any, {
+          state,
+          id: childService.id
+        });
       });
     }
 
@@ -1200,11 +1211,7 @@ export class Interpreter<
     };
   }
 
-  public [createSymbolObservable()]() {
-    return this;
-  }
-
-  public [(Symbol as any).observable]() {
+  public [symbolObservable]() {
     return this;
   }
 }
