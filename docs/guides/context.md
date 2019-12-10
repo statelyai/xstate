@@ -356,7 +356,7 @@ const machine = Machine<typeof context>({
 });
 ```
 
-<Badge text="4.7+"> The types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
 
 ```ts
 interface CounterContext {
@@ -372,6 +372,7 @@ const machine = Machine<CounterContext>({
   {
     on: {
       INCREMENT: {
+        // Inferred automatically in most cases
         actions: assign({
           count: (context) => {
             // context: { count: number }
@@ -384,12 +385,13 @@ const machine = Machine<CounterContext>({
 });
 ```
 
-If this inference fails (and in XState versions below 4.7), pass in the `context` type (and `event` type, if applicable) to the `assign(...)` action creator:
+However, TypeScript inference isn't perfect, so the responsible thing to do is to add the context and event as generics into `assign<Context, Event>(...)`:
 
 ```ts {3}
 // ...
 on: {
   INCREMENT: {
+    // Generics guarantee proper inference
     actions: assign<CounterContext, CounterEvent>({
       count: context => {
         // context: { count: number }
