@@ -184,7 +184,7 @@ Both the property assigner and context assigner function signatures above are gi
 The `meta` object contains:
 
 - `state` - the current state in a normal transition (`undefined` for the initial state transition)
-- `action` - the assign action|
+- `action` - the assign action
 
 ::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
