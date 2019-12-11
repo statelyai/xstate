@@ -133,7 +133,7 @@ const { initialState } = answeringMachine;
 initialState.done; // false
 
 const answeredState = answeringMachine.transition(initialState, 'ANSWER');
-initialState.done; // true
+answeredState.done; // true
 ```
 
 ### `state.toStrings()`
