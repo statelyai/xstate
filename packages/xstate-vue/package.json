@@ -52,7 +52,7 @@
     "babel-core": "^6.26.3",
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
-    "ts-jest": "^24.2.0",
+    "ts-jest": "^24.1.9",
     "typescript": "^3.7.2",
     "vue": "^2.6.10",
     "vue-jest": "^3.0.5",
