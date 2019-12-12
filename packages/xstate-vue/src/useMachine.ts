@@ -28,19 +28,15 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-const defaultOptions = {
-  immediate: false
-};
-
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = defaultOptions
+    Partial<MachineOptions<TContext, TEvent>>
 ): {
   current: Ref<State<TContext, TEvent>>;
   send: Interpreter<TContext, any, TEvent>['send'];
-  service: Ref<Interpreter<TContext, any, TEvent>>;
+  service: Interpreter<TContext, any, TEvent>;
 } {
   const {
     context,
@@ -62,45 +58,43 @@ export function useMachine<TContext, TEvent extends EventObject>(
     delays
   };
 
-  const machineRef = ref<StateMachine<TContext, any, TEvent>>(
-    machine.withConfig(machineConfig, {
-      ...machine.context,
-      ...context
-    } as TContext)
-  );
+  const machineWithConfig = machine.withConfig(machineConfig, {
+    ...machine.context,
+    ...context
+  } as TContext);
 
-  const service = ref<Interpreter<TContext, any, TEvent>>(
-    interpret(machineRef.value, interpreterOptions).onTransition(state => {
+  const service = interpret(machineWithConfig, interpreterOptions).onTransition(
+    state => {
       if (state.changed) {
         current.value = state;
       }
-    })
+    }
   );
 
   const initialState = rehydratedState
     ? State.create(rehydratedState)
-    : service.value.initialState;
+    : service.initialState;
 
   const current = ref<State<TContext, TEvent>>(initialState);
 
   // Make sure actions and services are kept updated when they change.
   watch(() => {
-    Object.assign(service.value.machine.options.actions, actions);
+    Object.assign(service.machine.options.actions, actions);
   });
 
   watch(() => {
-    Object.assign(service.value.machine.options.services, services);
+    Object.assign(service.machine.options.services, services);
   });
 
   // extract send method for sending events to the service
-  const send = (event: TEvent | TEvent['type']) => service.value.send(event);
+  const send = (event: TEvent | TEvent['type']) => service.send(event);
 
   onBeforeMount(() => {
-    service.value.start(rehydratedState ? initialState : undefined);
+    service.start(rehydratedState ? initialState : undefined);
   });
 
   onBeforeUnmount(() => {
-    service.value.stop();
+    service.stop();
   });
 
   return {
