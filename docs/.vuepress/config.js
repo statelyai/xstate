@@ -80,6 +80,7 @@ module.exports = {
         title: 'Packages',
         children: [
           'packages/xstate-react/',
+          'packages/xstate-vue/',
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
           'packages/xstate-test/',
