@@ -5,7 +5,7 @@ import {
   cleanup
 } from '@testing-library/vue';
 import VueCompositionApi from '@vue/composition-api';
-import FsmComponent from './FsmComponent.vue';
+import UseFsm from './UseFsm.vue';
 
 afterEach(cleanup);
 
@@ -15,7 +15,7 @@ const renderWithCompositionApi = (component, options?) =>
 
 describe('useFsm composable function', () => {
   it('should work ', async () => {
-    const { getByText, getByTestId } = renderWithCompositionApi(FsmComponent);
+    const { getByText, getByTestId } = renderWithCompositionApi(UseFsm);
     const button = getByText('Fetch');
     fireEvent.click(button);
     await waitForElement(() => getByText('Loading...'));
