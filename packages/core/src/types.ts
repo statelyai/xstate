@@ -337,44 +337,42 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export type InvokeConfig<TContext, TEvent extends EventObject> =
-  | {
-      /**
-       * The unique identifier for the invoked machine. If not specified, this
-       * will be the machine's own `id`, or the URL (from `src`).
-       */
-      id?: string;
-      /**
-       * The source of the machine to be invoked, or the machine itself.
-       */
-      src: string | StateMachine<any, any, any> | InvokeCreator<any, any>;
-      /**
-       * If `true`, events sent to the parent service will be forwarded to the invoked service.
-       *
-       * Default: `false`
-       */
-      autoForward?: boolean;
-      /**
-       * Data from the parent machine's context to set as the (partial or full) context
-       * for the invoked child machine.
-       *
-       * Data should be mapped to match the child machine's context shape.
-       */
-      data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
-      /**
-       * The transition to take upon the invoked child machine reaching its final top-level state.
-       */
-      onDone?:
-        | string
-        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
-      /**
-       * The transition to take upon the invoked child machine sending an error event.
-       */
-      onError?:
-        | string
-        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
-    }
-  | StateMachine<any, any, any>;
+export interface InvokeConfig<TContext, TEvent extends EventObject> {
+  /**
+   * The unique identifier for the invoked machine. If not specified, this
+   * will be the machine's own `id`, or the URL (from `src`).
+   */
+  id?: string;
+  /**
+   * The source of the machine to be invoked, or the machine itself.
+   */
+  src: string | StateMachine<any, any, any> | InvokeCreator<any, any>;
+  /**
+   * If `true`, events sent to the parent service will be forwarded to the invoked service.
+   *
+   * Default: `false`
+   */
+  autoForward?: boolean;
+  /**
+   * Data from the parent machine's context to set as the (partial or full) context
+   * for the invoked child machine.
+   *
+   * Data should be mapped to match the child machine's context shape.
+   */
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+}
 
 export interface StateNodeConfig<
   TContext,
@@ -419,7 +417,12 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<InvokeConfig<TContext, TEvent>>;
+  invoke?: SingleOrArray<
+    | string
+    | StateMachine<any, any, any>
+    | InvokeCreator<TContext>
+    | InvokeConfig<TContext, TEvent>
+  >;
   /**
    * The mapping of event types to their potential transition(s).
    */

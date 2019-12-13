@@ -29,7 +29,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { State } from '.';
+import { State, InvokeConfig, InvokeCreator } from '.';
 import { Actor } from './Actor';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -643,4 +643,22 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
+}
+
+export function toInvokeConfig<TContext, TEvent extends EventObject>(
+  invocable:
+    | InvokeConfig<TContext, TEvent>
+    | string
+    | StateMachine<any, any, any>
+    | InvokeCreator<TContext>,
+  id: string
+): InvokeConfig<TContext, TEvent> {
+  if (typeof invocable === 'object' && 'src' in invocable) {
+    return invocable;
+  }
+
+  return {
+    id,
+    src: invocable
+  };
 }

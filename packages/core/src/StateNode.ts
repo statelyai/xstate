@@ -24,7 +24,8 @@ import {
   toSCXMLEvent,
   mapContext,
   toTransitionConfigArray,
-  normalizeTarget
+  normalizeTarget,
+  toInvokeConfig
 } from './utils';
 import {
   Event,
@@ -57,7 +58,6 @@ import {
   GuardMeta,
   MachineConfig,
   PureAction,
-  InvokeCreator,
   DoneEventObject,
   SingleOrArray,
   LogAction,
@@ -362,39 +362,29 @@ class StateNode<
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    this.invoke = toArray(this.config.invoke).map((invokeConfig, i) => {
-      if (isMachine(invokeConfig)) {
-        this.machine.options.services = {
-          [invokeConfig.id]: invokeConfig,
-          ...this.machine.options.services
-        };
+    this.invoke = toArray(this.config.invoke).map((invocable, i) => {
+      const id = `${this.id}:invocation[${i}]`;
 
-        return {
-          type: actionTypes.invoke,
-          src: invokeConfig.id,
-          id: invokeConfig.id
-        };
-      } else if (typeof invokeConfig.src !== 'string') {
-        const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
-        this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext>,
-          ...this.machine.options.services
-        };
+      const invokeConfig = toInvokeConfig(invocable, id);
+      const resolvedId = invokeConfig.id || id;
 
-        return {
-          type: actionTypes.invoke,
-          id: invokeSrc,
-          ...invokeConfig,
-          src: invokeSrc
-        };
-      } else {
-        return {
-          ...invokeConfig,
-          type: actionTypes.invoke,
-          id: invokeConfig.id || (invokeConfig.src as string),
-          src: invokeConfig.src as string
+      const resolvedSrc = isString(invokeConfig.src)
+        ? invokeConfig.src
+        : resolvedId;
+
+      if (!this.machine.options.services[resolvedSrc]) {
+        this.machine.options.services = {
+          ...this.machine.options.services,
+          [resolvedSrc]: invokeConfig.src
         };
       }
+
+      return {
+        type: actionTypes.invoke,
+        ...invokeConfig,
+        src: resolvedSrc,
+        id: resolvedId
+      };
     });
     this.activities = toArray(this.config.activities)
       .concat(this.invoke)

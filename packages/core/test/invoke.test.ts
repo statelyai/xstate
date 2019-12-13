@@ -1452,9 +1452,12 @@ describe('invoke', () => {
       const expectedStateValues = ['pending', 'second', 'third'];
       const stateValues: StateValue[] = [];
       interpret(callbackMachine)
-        .onTransition(current => stateValues.push(current.value))
+        .onTransition(current => {
+          stateValues.push(current.value);
+        })
         .start()
         .send('BEGIN');
+
       for (let i = 0; i < expectedStateValues.length; i++) {
         expect(stateValues[i]).toEqual(expectedStateValues[i]);
       }
