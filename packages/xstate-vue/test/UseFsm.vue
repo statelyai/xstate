@@ -42,7 +42,7 @@ const fetchMachine = createMachine<typeof context, any>({
 
 export default {
   setup() {
-    const { state: current, send } = useFsm(fetchMachine);
+    const { state: current, send, service } = useFsm(fetchMachine);
     const onFetch = () =>
       new Promise(res => setTimeout(() => res('some data'), 50));
 
@@ -55,7 +55,7 @@ export default {
         }
       })
     );
-    return { current, send };
+    return { current, send, service };
   }
 };
 </script>

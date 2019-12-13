@@ -47,6 +47,7 @@
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/vue": "^4.1.0",
     "@vue/composition-api": "^0.3.4",
+    "@vue/test-utils": "^1.0.0-beta.30",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
     "jest": "^24.8.0",

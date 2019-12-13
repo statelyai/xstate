@@ -4,6 +4,7 @@ import {
   waitForElement,
   cleanup
 } from '@testing-library/vue';
+import { mount, createLocalVue } from '@vue/test-utils';
 import VueCompositionApi from '@vue/composition-api';
 import UseFsm from './UseFsm.vue';
 
@@ -22,5 +23,15 @@ describe('useFsm composable function', () => {
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('some data');
+  });
+
+  it('should provide the service and send function in the data object', async () => {
+    const localVue = createLocalVue();
+    localVue.use(VueCompositionApi);
+    const wrapper = mount(UseFsm, { localVue });
+    await wrapper.vm.$nextTick();
+    const { service, send } = wrapper.vm.$data;
+    expect(service).toBeDefined();
+    expect(typeof send).toBe('function');
   });
 });

@@ -7,6 +7,7 @@ import {
 import VueCompositionApi from '@vue/composition-api';
 import UseMachine from './UseMachine.vue';
 import { Machine, assign, doneInvoke } from 'xstate';
+import { createLocalVue, mount } from '@vue/test-utils';
 
 afterEach(cleanup);
 
@@ -77,5 +78,15 @@ describe('useMachine composition function', () => {
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
+  });
+
+  it('should provide the service and send function in the data object', async () => {
+    const localVue = createLocalVue();
+    localVue.use(VueCompositionApi);
+    const wrapper = mount(UseMachine, { localVue });
+    await wrapper.vm.$nextTick();
+    const { service, send } = wrapper.vm.$data;
+    expect(service).toBeDefined();
+    expect(typeof send).toBe('function');
   });
 });
