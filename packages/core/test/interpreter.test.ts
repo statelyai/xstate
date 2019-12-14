@@ -1,4 +1,4 @@
-import { interpret, Interpreter } from '../src/interpreter';
+import { interpret, Interpreter, spawn } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
@@ -54,21 +54,55 @@ describe('interpreter', () => {
     expect(service).toBeInstanceOf(Interpreter);
   });
 
-  it('immediately notifies the listener with the initial state and event', done => {
-    const service = interpret(idMachine).onTransition((initialState, event) => {
-      expect(initialState).toBeInstanceOf(State);
-      expect(initialState.value).toEqual(idMachine.initialState.value);
-      expect(event.type).toEqual(actionTypes.init);
-      done();
+  describe('initial state', () => {
+    it('immediately notifies the listener with the initial state and event', done => {
+      const service = interpret(idMachine).onTransition(
+        (initialState, event) => {
+          expect(initialState).toBeInstanceOf(State);
+          expect(initialState.value).toEqual(idMachine.initialState.value);
+          expect(event.type).toEqual(actionTypes.init);
+          done();
+        }
+      );
+
+      service.start();
     });
 
-    service.start();
-  });
+    it('.initialState returns the initial state', () => {
+      const service = interpret(idMachine);
 
-  it('.initialState returns the initial state', () => {
-    const service = interpret(idMachine);
+      expect(service.initialState.value).toEqual(idMachine.initialState.value);
+    });
 
-    expect(service.initialState.value).toEqual(idMachine.initialState.value);
+    it('initial state should be cached', () => {
+      let entryCalled = 0;
+      const machine = createMachine<any>({
+        initial: 'idle',
+        context: {
+          actor: undefined
+        },
+        states: {
+          idle: {
+            entry: assign({
+              actor: () => {
+                entryCalled++;
+                return spawn(new Promise(() => void 0));
+              }
+            })
+          }
+        }
+      });
+
+      const service = interpret(machine);
+      const callInitialState = () => service.initialState;
+      callInitialState();
+      callInitialState();
+      callInitialState();
+
+      service.start();
+
+      expect(entryCalled).toEqual(1);
+    });
   });
 
   describe('subscribing', () => {
