@@ -923,9 +923,6 @@ export class Interpreter<
     }
   }
   public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
-    if (this._status !== InterpreterStatus.Running) {
-      return createNullActor(name);
-    }
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
