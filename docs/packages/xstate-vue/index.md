@@ -80,18 +80,7 @@ A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that s
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-### `useActor(actor)`
-
-A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that subscribes to messages (events) from actors, and can send messages (events) to actors.
-
-**Arguments**
-
-- `actor` - An actor-like object, which has `.subscribe(listener)` and `.send(event)` methods.
-
-**Returns** `{current, send}`:
-
-- `current` - Represents the current message sent from the actor.
-- `send` - A function that sends events to the actor.
+### `useActor(actor)` (TODO)
 
 ### `useFsm(machine)` with `@xstate/fsm`
 
