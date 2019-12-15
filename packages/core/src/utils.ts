@@ -405,6 +405,9 @@ export function updateContext<TContext, TEvent extends EventObject>(
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>
 ): TContext {
+  if (!IS_PRODUCTION) {
+    warn(!!context, 'Attempting to update undefined context');
+  }
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
@@ -520,23 +523,8 @@ export function isObservable<T>(
   }
 }
 
-export function createSymbolObservable(): symbol | string {
-  let result;
-
-  if (typeof Symbol === 'function') {
-    if (Symbol.observable) {
-      result = Symbol.observable;
-    } else {
-      result = Symbol('observable');
-      // @ts-ignore
-      Symbol.observable = result;
-    }
-  } else {
-    result = '@@observable';
-  }
-
-  return result;
-}
+export const symbolObservable = (() =>
+  (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
 
 export function isMachine(value: any): value is StateMachine<any, any, any> {
   try {

@@ -1,6 +1,11 @@
-import { StateMachine, EventObject, Typestate } from './types';
+import {
+  StateMachine,
+  EventObject,
+  Typestate,
+  InterpreterStatus
+} from './types';
 
-export { StateMachine, EventObject };
+export { StateMachine, EventObject, InterpreterStatus };
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
@@ -164,12 +169,12 @@ export function interpret<
   machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {
   let state = machine.initialState;
-  let started = false;
+  let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
     send: (event: TEvent | TEvent['type']): void => {
-      if (!started) {
+      if (status !== InterpreterStatus.Running) {
         return;
       }
       state = machine.transition(state, event);
@@ -186,12 +191,18 @@ export function interpret<
         unsubscribe: () => listeners.delete(listener)
       };
     },
-    start: () => ((started = true), service),
-    stop: () => (
-      (started = false),
-      listeners.forEach(listener => listeners.delete(listener)),
-      service
-    )
+    start: () => {
+      status = InterpreterStatus.Running;
+      return service;
+    },
+    stop: () => {
+      status = InterpreterStatus.Stopped;
+      listeners.forEach(listener => listeners.delete(listener));
+      return service;
+    },
+    get status() {
+      return status;
+    }
   };
 
   return service;

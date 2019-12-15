@@ -31,7 +31,6 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean",
     "test": "jest --runInBand",
     "build": "tsc",
     "prepublish": "npm run build && npm run test"
@@ -43,7 +42,6 @@
     "xstate": "^4.7.0"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.11",
     "@types/jest-environment-puppeteer": "^4.0.0",
     "jest": "^24.8.0",
     "jest-environment-puppeteer": "^4.3.0",
@@ -51,9 +49,9 @@
     "lerna-alias": "3.0.3-0",
     "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^24.0.2",
+    "ts-jest": "^24.1.9",
     "typescript": "^3.7.2",
-    "xstate": "^4.7.0"
+    "xstate": "*"
   },
   "dependencies": {
     "@xstate/graph": "^1.0.0",

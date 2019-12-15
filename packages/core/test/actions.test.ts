@@ -1,5 +1,5 @@
-import { Machine, assign, interpret, spawn } from '../src/index';
-import { pure, sendParent, forwardTo, log } from '../src/actions';
+import { Machine, assign, forwardTo, interpret, spawn } from '../src/index';
+import { pure, sendParent, log } from '../src/actions';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
