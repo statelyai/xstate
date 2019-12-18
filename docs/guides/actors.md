@@ -37,7 +37,7 @@ They may have optional methods:
 All the existing invoked service patterns fit this interface:
 
 - [Invoked promises](./communication.md#invoking-promises) are actors that ignore any received events and send at most one event back to the parent
-- [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onReceive` argument), and act on them
+- [Invoked callbacks](./communication.md#invoking-callbacks) are actors that can send events to the parent (first `callback` argument), receive events (second `onEvent` argument), and act on them
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
 
