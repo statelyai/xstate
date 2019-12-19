@@ -193,7 +193,7 @@ export type Receiver<TEvent extends EventObject> = (
 ) => void;
 
 export type InvokeCallback = (
-  sender: Sender<any>,
+  callback: Sender<any>,
   onReceive: Receiver<EventObject>
 ) => any;
 
@@ -205,7 +205,7 @@ export type InvokeCallback = (
  * - `done.invoke.<id>` with the `data` containing the resolved payload when the promise resolves, or:
  * - `error.platform.<id>` with the `data` containing the caught error, and `src` containing the service `id`.
  *
- * For callback handlers, the `sender` will be provided, which will send events to the parent service.
+ * For callback handlers, the `callback` will be provided, which will send events to the parent service.
  *
  * @param context The current machine `context`
  * @param event The event that invoked the service
