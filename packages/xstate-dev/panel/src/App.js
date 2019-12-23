@@ -1,23 +1,9 @@
-import React, {
-  useMemo,
-  createContext,
-  useContext,
-  useRef,
-  useState
-} from 'react';
-import JSONTree from 'react-json-tree';
-import {
-  StateMachine,
-  Interpreter,
-  StateNode,
-  State,
-  interpret,
-  Machine
-} from 'xstate';
-import { useService } from '@xstate/react';
+import React, { useState } from 'react';
+import { Machine } from 'xstate';
 import styled from 'styled-components';
 import { useEffect } from 'react';
-import { getEdges } from './utils';
+import { StateNodeViz } from './StateNodeViz';
+import { StateViz } from './StateViz';
 
 const chrome = window.chrome;
 
@@ -100,20 +86,7 @@ export function getChildren(stateNode) {
   });
 }
 
-// export const StateNodeViz = ({ machine: stateNode, children = null }) => {
-//   const childNodes = getChildren(stateNode);
-
-//   return (
-//     <div>
-//       {childNodes.map(child => {
-//         return <div key={child.id}>{child.id}</div>;
-//       })}
-//       {children}
-//     </div>
-//   );
-// };
-
-const StyledStateNodeViz = styled.div`
+export const StyledStateNodeViz = styled.div`
   display: inline-grid;
   grid-template-columns: auto auto;
   grid-column-gap: 0.5rem;
@@ -126,73 +99,20 @@ const StyledStateNodeViz = styled.div`
   }
 `;
 
-const StyledStateNodeState = styled.div`
+export const StyledStateNodeState = styled.div`
   border: 2px solid var(--color-fg, black);
   padding: 0.5rem;
   border-radius: var(--border-radius);
   align-self: flex-start;
 `;
 
-const StyledStateNodeEvents = styled.div``;
+export const StyledStateNodeEvents = styled.div``;
 
-const StyledStateNodeChildrenViz = styled.div`
+export const StyledStateNodeChildrenViz = styled.div`
   display: flex;
   padding: 1rem;
   flex-wrap: wrap;
 `;
-
-const EdgeViz = ({ edge }) => {
-  return (
-    <div>
-      <strong>{edge.eventType}</strong>
-      {edge.actions.map((action, i) => {
-        return <small key={i}>{action.type}</small>;
-      })}
-    </div>
-  );
-};
-
-const StateNodeViz = ({ stateNode, state }) => {
-  console.log(stateNode, state);
-  const childNodes = useMemo(() => {
-    return getChildren(stateNode);
-  }, []);
-  const resolvedState = stateNode.machine.resolveState(state);
-  const active = resolvedState.configuration.includes(stateNode);
-
-  const edges = getEdges(stateNode, { depth: 0 });
-
-  console.log(edges);
-
-  return (
-    <StyledStateNodeViz
-      data-active={active || undefined}
-      data-type={stateNode.type}
-    >
-      <StyledStateNodeState>
-        <header>{stateNode.key}</header>
-        {!!childNodes.length && (
-          <StyledStateNodeChildrenViz>
-            {childNodes.map(childNode => {
-              return (
-                <StateNodeViz
-                  stateNode={childNode}
-                  state={state}
-                  key={childNode.id}
-                />
-              );
-            })}
-          </StyledStateNodeChildrenViz>
-        )}
-      </StyledStateNodeState>
-      <StyledStateNodeEvents>
-        {edges.map(edge => {
-          return <EdgeViz edge={edge} />;
-        })}
-      </StyledStateNodeEvents>
-    </StyledStateNodeViz>
-  );
-};
 
 const StyledApp = styled.main`
   --color-fg: ${chrome.devtools.panels.themeName === 'dark' ? 'white' : 'black'}
@@ -246,11 +166,7 @@ function App() {
             stateNode={Machine(selectedService.machine)}
             state={selectedService.state}
           ></StateNodeViz>
-          <pre>
-            {selectedService.state && (
-              <JSONTree data={selectedService.state.context} hideRoot={true} />
-            )}
-          </pre>
+          <StateViz state={selectedService.state} />
         </>
       )}
     </StyledApp>
