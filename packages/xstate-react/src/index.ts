@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect, useLayoutEffect } from 'react';
 import {
   interpret,
   EventObject,
@@ -111,7 +111,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     service.start();
   }
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Start the service when the component mounts.
     // Note: the service will start only if it hasn't started already.
     //
@@ -134,16 +134,16 @@ export function useService<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
-  const [current, setCurrent] = useState(service.state);
+  const [current, setCurrent] = useState(service.state || service.initialState);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     // Set to current service state as there is a possibility
     // of a transition occurring between the initial useState()
     // initialization and useEffect() commit.
-    setCurrent(service.state);
+    setCurrent(service.state || service.initialState);
 
     const listener = state => {
-      if (state.changed) {
+      if (state.changed !== false) {
         setCurrent(state);
       }
     };
