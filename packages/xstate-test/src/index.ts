@@ -359,9 +359,11 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
 
       const { description } = meta;
 
-      return typeof description === 'function'
-        ? description(state)
-        : `"${description}"` || `"${JSON.stringify(state.value)}"`;
+      if (typeof description === 'function') {
+        return description(state);
+      }
+
+      return description ? `"${description}"` : JSON.stringify(state.value);
     });
 
   return (
