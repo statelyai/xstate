@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useEffect } from 'react';
 import {
   interpret,
   EventObject,
@@ -42,44 +42,64 @@ export function useMachine<TContext, TEvent extends EventObject>(
     ...interpreterOptions
   } = options;
 
-  const machineConfig = {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays
-  };
+  const createCachedInstances = (): {
+    inputMachine: StateMachine<TContext, any, TEvent>;
+    service: Interpreter<TContext, any, TEvent>;
+    state: State<TContext, TEvent>;
+  } => {
+    const machineConfig = {
+      context,
+      guards,
+      actions,
+      activities,
+      services,
+      delays
+    };
 
-  // Reference the machine
-  const machineRef = useRef<StateMachine<TContext, any, TEvent> | null>(null);
-
-  // Create the machine only once
-  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
-  if (machineRef.current === null) {
-    machineRef.current = machine.withConfig(machineConfig, {
+    const createdMachine = machine.withConfig(machineConfig, {
       ...machine.context,
       ...context
     } as TContext);
+
+    const service = interpret(createdMachine, interpreterOptions).start(
+      rehydratedState ? State.create(rehydratedState) : undefined
+    );
+
+    return {
+      inputMachine: machine,
+      service,
+      state: service.state
+    };
+  };
+
+  // Reference the machine
+  const [cachedInstances, setCachedInstances] = useState(createCachedInstances);
+
+  if (cachedInstances.inputMachine !== machine) {
+    setCachedInstances(createCachedInstances);
   }
 
-  // Reference the service
-  const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
+  useEffect(() => {
+    const currentService = cachedInstances.service;
 
-  // Create the service only once
-  if (serviceRef.current === null) {
-    serviceRef.current = interpret(
-      machineRef.current,
-      interpreterOptions
-    ).onTransition(state => {
-      // Update the current machine state when a transition occurs
+    currentService.onTransition(state => {
       if (state.changed) {
-        setCurrent(state);
+        setCachedInstances(previous => ({ ...previous, state }));
       }
     });
-  }
 
-  const service = serviceRef.current;
+    if (cachedInstances.state !== currentService.state) {
+      setCachedInstances(previous => ({
+        ...previous,
+        state: currentService.state
+      }));
+    }
+    return () => {
+      currentService.stop();
+    };
+  }, [cachedInstances.service]);
+
+  const { service, state } = cachedInstances;
 
   // Make sure actions and services are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
@@ -92,25 +112,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     Object.assign(service.machine.options.services, services);
   }, [services]);
 
-  // Keep track of the current machine state
-  const [current, setCurrent] = useState(() =>
-    rehydratedState ? State.create(rehydratedState) : service.initialState
-  );
-
-  useEffect(() => {
-    // Start the service when the component mounts.
-    // Note: the service will start only if it hasn't started already.
-    //
-    // If a rehydrated state was provided, use the resolved `initialState`.
-    service.start(rehydratedState ? current : undefined);
-
-    return () => {
-      // Stop the service when the component unmounts
-      service.stop();
-    };
-  }, []);
-
-  return [current, service.send, service];
+  return [state, service.send, service];
 }
 
 export function useService<TContext, TEvent extends EventObject>(
