@@ -15,25 +15,17 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
    */
   context?: Partial<TContext>;
   /**
-   * If `true`, service will start immediately (before mount).
-   */
-  immediate: boolean;
-  /**
    * The state to rehydrate the machine to. The machine will
    * start at this state instead of its `initialState`.
    */
   state?: StateConfig<TContext, TEvent>;
 }
 
-const defaultOptions = {
-  immediate: false
-};
-
 export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = defaultOptions
+    Partial<MachineOptions<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent>,
   Interpreter<TContext, any, TEvent>['send'],
@@ -46,7 +38,6 @@ export function useMachine<TContext, TEvent extends EventObject>(
     activities,
     services,
     delays,
-    immediate,
     state: rehydratedState,
     ...interpreterOptions
   } = options;
@@ -105,11 +96,6 @@ export function useMachine<TContext, TEvent extends EventObject>(
   const [current, setCurrent] = useState(() =>
     rehydratedState ? State.create(rehydratedState) : service.initialState
   );
-
-  // Start service immediately (before mount) if specified in options
-  if (immediate) {
-    service.start();
-  }
 
   useEffect(() => {
     // Start the service when the component mounts.

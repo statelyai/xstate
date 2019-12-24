@@ -523,7 +523,13 @@ describe('plan description', () => {
               description: 'two description'
             }
           }
+        },
+        on: {
+          NEXT: 'noMetaDescription'
         }
+      },
+      noMetaDescription: {
+        meta: {}
       }
     }
   });
@@ -540,6 +546,7 @@ describe('plan description', () => {
         "reaches state: \\"#test.compound.child\\" ({\\"count\\":0})",
         "reaches state: \\"child with meta\\" ({\\"count\\":0})",
         "reaches states: \\"#test.parallel.one\\", \\"two description\\" ({\\"count\\":0})",
+        "reaches state: \\"noMetaDescription\\" ({\\"count\\":0})",
       ]
     `);
   });
