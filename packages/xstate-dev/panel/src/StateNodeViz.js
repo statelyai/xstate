@@ -31,6 +31,9 @@ export const StateNodeViz = ({ stateNode, state }) => {
         // behavior: 'smooth',
         block: 'center'
       });
+      requestAnimationFrame(() => {
+        tracker.update(stateNode.id, stateNodeRef.current);
+      });
     }
   }, [isActive]);
 
@@ -38,9 +41,8 @@ export const StateNodeViz = ({ stateNode, state }) => {
     <StyledStateNodeViz
       data-active={isActive || undefined}
       data-type={stateNode.type}
-      ref={stateNodeRef}
     >
-      <StyledStateNodeState>
+      <StyledStateNodeState ref={stateNodeRef}>
         <header>{stateNode.key}</header>
         {!!childNodes.length && (
           <StyledStateNodeChildrenViz>

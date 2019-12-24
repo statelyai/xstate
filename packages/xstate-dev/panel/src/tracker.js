@@ -17,14 +17,14 @@ class Tracker {
     if (typeof window !== 'undefined') {
       let timeout;
 
-      window.addEventListener('resize', () => {
-        if (timeout) {
-          cancelAnimationFrame(timeout);
-        }
-        timeout = requestAnimationFrame(() => {
-          this.updateAll();
-        });
-      });
+      // window.addEventListener('resize', () => {
+      //   if (timeout) {
+      //     cancelAnimationFrame(timeout);
+      //   }
+      //   timeout = requestAnimationFrame(() => {
+      //     this.updateAll();
+      //   });
+      // });
     }
   }
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { tracker } from './tracker';
+import { serializeEdge } from './App';
 
 export function relative(childRect, parentElement) {
   const parentRect = parentElement.getBoundingClientRect();
@@ -16,44 +17,55 @@ export function relative(childRect, parentElement) {
 
 export const EdgeViz = ({ edge }) => {
   console.log('EDGE', edge);
-  const [sourceRect, setSourceRect] = useState();
+  const [eventRect, setEventRect] = useState();
   const [targetRect, setTargetRect] = useState();
   const [svgRect, setSvgRect] = useState();
 
   const targets = edge.target || [];
-  const source = edge.source;
 
   useEffect(() => {
     if (!targets.length) {
       return;
     }
-    tracker.listen(source.id, setSourceRect);
+    console.log('listening', edge.source.id, targets);
+    tracker.listen(serializeEdge(edge), setEventRect);
     tracker.listen(targets[0].id, setTargetRect);
     tracker.listen('svg', setSvgRect);
   }, []);
 
-  if (!sourceRect || !targetRect || !svgRect) {
+  console.log('listen update', edge.source.id, eventRect, targetRect, svgRect);
+
+  if (!eventRect || !targetRect || !svgRect) {
     return null;
   }
 
-  const sourcePos = relative(
-    sourceRect.element.getBoundingClientRect(),
-    svgRect.element
-  );
-  const targetPos = relative(
-    targetRect.element.getBoundingClientRect(),
-    svgRect.element
-  );
+  const eventPos = relative(eventRect.rect, svgRect.element);
+  const targetPos = relative(targetRect.rect, svgRect.element);
 
-  const startPoint = [sourcePos.left, sourcePos.top];
-  const endPoint = [targetPos.left, targetPos.top];
+  const yDir = Math.sign(targetPos.top - eventPos.top);
 
-  return (
-    <path
-      d={`M${startPoint[0]}, ${startPoint[1]} L ${endPoint[0]}, ${endPoint[1]}`}
-      stroke="red"
-    ></path>
-  );
+  const startPoint = [eventPos.right, eventPos.top + eventPos.height / 2];
+  const endPoint = [
+    targetPos.left + targetPos.width / 2,
+    yDir === -1 ? targetPos.bottom : targetPos.top
+  ];
+
+  const points = [
+    startPoint,
+    [startPoint[0] + 10, startPoint[1]],
+    [startPoint[0] + 10, (endPoint[1] - startPoint[1]) / 2 + startPoint[1]],
+    [endPoint[0], (endPoint[1] - startPoint[1]) / 2 + startPoint[1]],
+    endPoint
+  ];
+
+  const d = points.reduce((acc, pt, i) => {
+    if (i === 0) {
+      return `M${pt[0]}, ${pt[1]}`;
+    }
+    return acc + ` L${pt[0]}, ${pt[1]}`;
+  }, '');
+
+  return <path d={d} stroke="white" strokeWidth={2} fill="none"></path>;
 };
 
 console.log(tracker);
