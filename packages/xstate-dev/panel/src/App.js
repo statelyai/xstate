@@ -1,9 +1,12 @@
-import React, { useState } from 'react';
+import React, { useState, useRef } from 'react';
 import { Machine } from 'xstate';
 import styled from 'styled-components';
 import { useEffect } from 'react';
 import { StateNodeViz } from './StateNodeViz';
 import { StateViz } from './StateViz';
+import { getEdges } from './utils';
+import { EdgeViz } from './EdgeViz';
+import { tracker } from './tracker';
 
 const chrome = window.chrome;
 
@@ -42,8 +45,6 @@ function createPort() {
 
   backgroundPort.onMessage.addListener(message => {
     if (message.name === 'service') {
-      console.log('registering', message.data);
-
       services[message.data.sessionId] = {
         machine: message.data.machine,
         state: undefined
@@ -106,7 +107,10 @@ export const StyledStateNodeState = styled.div`
   align-self: flex-start;
 `;
 
-export const StyledStateNodeEvents = styled.div``;
+export const StyledStateNodeEvents = styled.div`
+  display: flex;
+  flex-direction: column;
+`;
 
 export const StyledStateNodeChildrenViz = styled.div`
   display: flex;
@@ -128,6 +132,104 @@ const StyledApp = styled.main`
     overflow: scroll;
   }
 `;
+
+export function serializeEdge(edge) {
+  const cond = edge.cond ? `[${edge.cond.toString().replace(/\n/g, '')}]` : '';
+  return `${edge.source.id}:${edge.eventType}${cond}->${
+    edge.target ? edge.target.map(t => t.id).join('|') : edge.source.id
+  }`;
+}
+
+const MachineViz = ({ selectedService }) => {
+  const svgRef = useRef(null);
+  const state = selectedService.state;
+  const edges = getEdges(Machine(selectedService.machine));
+
+  console.log('EDGES', edges);
+
+  useEffect(() => {
+    if (!svgRef.current) {
+      return;
+    }
+
+    tracker.update('svg', svgRef.current);
+  }, []);
+
+  return (
+    <section>
+      <StateNodeViz
+        stateNode={Machine(selectedService.machine)}
+        state={selectedService.state}
+      ></StateNodeViz>
+      <svg
+        width="100%"
+        height="100%"
+        style={{
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          // @ts-ignore
+          '--color': 'gray',
+          overflow: 'visible',
+          pointerEvents: 'none'
+        }}
+        ref={svgRef}
+      >
+        <defs>
+          <marker
+            id="marker"
+            markerWidth="4"
+            markerHeight="4"
+            refX="2"
+            refY="2"
+            markerUnits="strokeWidth"
+            orient="auto"
+          >
+            <path d="M0,0 L0,4 L4,2 z" fill="var(--color-edge)" />
+          </marker>
+          <marker
+            id="marker-preview"
+            markerWidth="4"
+            markerHeight="4"
+            refX="2"
+            refY="2"
+            markerUnits="strokeWidth"
+            orient="auto"
+          >
+            <path d="M0,0 L0,4 L4,2 z" fill="var(--color-edge-active)" />
+          </marker>
+        </defs>
+        {edges.map(edge => {
+          const serial = serializeEdge(edge);
+
+          console.log(serial);
+
+          // const svgRect = this.svgRef.current.getBoundingClientRect();
+
+          return <EdgeViz edge={edge} key={serial} />;
+
+          // return (
+          //   <Edge
+          //     key={serial}
+          //     svg={svgRef.current}
+          //     edge={edge}
+          //     preview={
+          //       edge.eventType === state.previewEvent &&
+          //       current.matches(edge.source.path.join('.')) &&
+          //       !!state.preview &&
+          //       state.preview.matches(
+          //         edge.target
+          //           ? edge.target[0].path.join('.')
+          //           : edge.source.path.join('.')
+          //       )
+          //     }
+          //   />
+          // );
+        })}
+      </svg>
+    </section>
+  );
+};
 
 function App() {
   const [services, setServices] = useState({});
@@ -161,11 +263,7 @@ function App() {
       </select>
       {selectedService && (
         <>
-          <StateNodeViz
-            key={currentService}
-            stateNode={Machine(selectedService.machine)}
-            state={selectedService.state}
-          ></StateNodeViz>
+          <MachineViz key={currentService} selectedService={selectedService} />
           <StateViz state={selectedService.state} />
         </>
       )}

@@ -1,6 +1,6 @@
-import React, { useMemo } from 'react';
+import React, { useMemo, useEffect, useRef, useLayoutEffect } from 'react';
 import { getEdges } from './utils';
-import { EdgeViz } from './EdgeViz';
+import { EventViz } from './EventViz';
 import {
   getChildren,
   StyledStateNodeViz,
@@ -8,20 +8,37 @@ import {
   StyledStateNodeChildrenViz,
   StyledStateNodeEvents
 } from './App';
+import { tracker } from './tracker';
 
 export const StateNodeViz = ({ stateNode, state }) => {
-  console.log(stateNode, state);
+  const stateNodeRef = useRef(null);
   const childNodes = useMemo(() => {
     return getChildren(stateNode);
   }, []);
   const resolvedState = stateNode.machine.resolveState(state);
-  const active = resolvedState.configuration.includes(stateNode);
+  const isActive = resolvedState.configuration.includes(stateNode);
   const edges = getEdges(stateNode, { depth: 0 });
-  console.log(edges);
+
+  useEffect(() => {
+    if (stateNodeRef.current) {
+      tracker.update(stateNode.id, stateNodeRef.current);
+    }
+  }, []);
+
+  useLayoutEffect(() => {
+    if (isActive && stateNodeRef.current && stateNode.type === 'atomic') {
+      stateNodeRef.current.scrollIntoView({
+        // behavior: 'smooth',
+        block: 'center'
+      });
+    }
+  }, [isActive]);
+
   return (
     <StyledStateNodeViz
-      data-active={active || undefined}
+      data-active={isActive || undefined}
       data-type={stateNode.type}
+      ref={stateNodeRef}
     >
       <StyledStateNodeState>
         <header>{stateNode.key}</header>
@@ -41,7 +58,7 @@ export const StateNodeViz = ({ stateNode, state }) => {
       </StyledStateNodeState>
       <StyledStateNodeEvents>
         {edges.map(edge => {
-          return <EdgeViz edge={edge} />;
+          return <EventViz edge={edge} />;
         })}
       </StyledStateNodeEvents>
     </StyledStateNodeViz>
