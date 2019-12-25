@@ -1495,10 +1495,10 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: () => (next, onEvent) => {
-                onEvent(e => {
+              src: () => (callback, onReceive) => {
+                onReceive(e => {
                   if (e.type === 'PING') {
-                    next('PONG');
+                    callback('PONG');
                   }
                 });
               }

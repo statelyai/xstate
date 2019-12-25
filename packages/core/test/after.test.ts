@@ -118,6 +118,36 @@ describe('delayed transitions', () => {
       .start();
   });
 
+  it('should defer a single send event for a delayed transition with multiple conditions (#886)', () => {
+    type Events = { type: 'FOO' };
+
+    const machine = Machine<{}, Events>({
+      initial: 'X',
+      states: {
+        X: {
+          on: {
+            FOO: 'X'
+          },
+          after: {
+            1500: [
+              {
+                target: 'Y',
+                cond: () => true
+              },
+              {
+                target: 'Z'
+              }
+            ]
+          }
+        },
+        Y: {},
+        Z: {}
+      }
+    });
+
+    expect(machine.initialState.actions.length).toBe(1);
+  });
+
   describe('delay expressions', () => {
     type Events =
       | { type: 'ACTIVATE'; delay: number }

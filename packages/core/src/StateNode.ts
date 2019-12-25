@@ -69,7 +69,8 @@ import {
   ActivityActionObject,
   InvokeActionObject,
   Typestate,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  DelayExpr
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -535,47 +536,49 @@ class StateNode<
       return [];
     }
 
+    const mutateEntryExit = (
+      delay: string | number | DelayExpr<TContext, TEvent>,
+      i: number
+    ) => {
+      const delayRef = isFunction(delay) ? `${this.id}:delay[${i}]` : delay;
+
+      const eventType = after(delayRef, this.id);
+
+      this.entry.push(send(eventType, { delay }));
+      this.exit.push(cancel(eventType));
+
+      return eventType;
+    };
+
     const delayedTransitions = isArray(afterConfig)
-      ? afterConfig
+      ? afterConfig.map((transition, i) => {
+          const eventType = mutateEntryExit(transition.delay, i);
+          return { ...transition, event: eventType };
+        })
       : flatten(
-          keys(afterConfig).map(delay => {
+          keys(afterConfig).map((delay, i) => {
             const configTransition = afterConfig[delay];
             const resolvedTransition = isString(configTransition)
               ? { target: configTransition }
               : configTransition;
 
+            const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+
+            const eventType = mutateEntryExit(resolvedDelay, i);
+
             return toArray(resolvedTransition).map(transition => ({
               ...transition,
-              delay: !isNaN(+delay) ? +delay : delay
+              event: eventType,
+              delay: resolvedDelay
             }));
           })
         );
 
-    return delayedTransitions.map((delayedTransition, i) => {
+    return delayedTransitions.map(delayedTransition => {
       const { delay } = delayedTransition;
-      let delayRef: string | number;
-
-      if (isFunction(delay)) {
-        // TODO: util function
-        delayRef = `${this.id}:delay[${i}]`;
-        this.machine.options.delays = {
-          ...this.machine.options.delays,
-          [delayRef]: delay
-        };
-      } else {
-        delayRef = delay;
-      }
-
-      const eventType = after(delayRef, this.id);
-
-      this.entry.push(send(eventType, { delay: delayRef }));
-      this.exit.push(cancel(eventType));
 
       return {
-        ...this.formatTransition({
-          ...delayedTransition,
-          event: eventType
-        } as any),
+        ...this.formatTransition(delayedTransition),
         delay
       };
     });

@@ -144,6 +144,7 @@ export class Interpreter<
    * The current state of the interpreted machine.
    */
   private _state?: State<TContext, TEvent>;
+  private _initialState?: State<TContext, TEvent>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -214,7 +215,15 @@ export class Interpreter<
       sessionId !== undefined ? sessionId : registry.register(this as Actor);
   }
   public get initialState(): State<TContext, TEvent> {
-    return withServiceScope(this, () => this.machine.initialState);
+    if (this._initialState) {
+      return this._initialState;
+    }
+
+    return withServiceScope(this, () => {
+      this._initialState = this.machine.initialState;
+
+      return this._initialState;
+    });
   }
   public get state(): State<TContext, TEvent> {
     if (!IS_PRODUCTION) {
@@ -451,15 +460,16 @@ export class Interpreter<
     this.initialized = true;
     this._status = InterpreterStatus.Running;
 
-    const resolvedState = withServiceScope(this, () => {
-      return initialState === undefined
-        ? this.machine.initialState
-        : isState<TContext, TEvent>(initialState)
-        ? this.machine.resolveState(initialState)
-        : this.machine.resolveState(
-            State.from(initialState, this.machine.context)
-          );
-    });
+    const resolvedState =
+      initialState === undefined
+        ? this.initialState
+        : withServiceScope(this, () => {
+            return isState<TContext, TEvent>(initialState)
+              ? this.machine.resolveState(initialState)
+              : this.machine.resolveState(
+                  State.from(initialState, this.machine.context)
+                );
+          });
 
     if (this.options.devTools) {
       this.attachDev();
