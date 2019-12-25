@@ -74,7 +74,7 @@ console.log(yellowState.value);
 
 ## Selecting Enabled Transitions
 
-An **enabled transition** is a transition that will be taken, given the current state and event. It will be taken if and only if:
+An **enabled transition** is a transition that will be taken conditionally, based upon the current state and event. It will be taken if and only if:
 
 - it is defined on a [state node](./statenodes.md) that matches the current state value
 - the transition [guard](./guards.md) (`cond` property) is satisfied (evaluates to `true`)
