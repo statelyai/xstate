@@ -210,14 +210,15 @@ export type InvokeCallback = (
  * @param context The current machine `context`
  * @param event The event that invoked the service
  */
-export type InvokeCreator<TContext, TFinalContext = any> = (
+export type InvokeCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
-  event: AnyEventObject
-) =>
-  | PromiseLike<TFinalContext>
-  | StateMachine<TFinalContext, any, any>
-  | Subscribable<any>
-  | InvokeCallback;
+  event: TEvent,
+  meta: { parent: Actor; id: string }
+) => Actor;
+// | PromiseLike<TFinalContext>
+// | StateMachine<TFinalContext, any, any>
+// | Subscribable<any>
+// | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -346,7 +347,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | StateMachine<any, any, any> | InvokeCreator<any, any>;
+  src: string | InvokeCreator<any, any>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -418,10 +419,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    | string
-    | StateMachine<any, any, any>
-    | InvokeCreator<TContext>
-    | InvokeConfig<TContext, TEvent>
+    string | InvokeCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -542,10 +540,7 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext> =
-  | string
-  | StateMachine<any, any, any>
-  | InvokeCreator<TContext>;
+export type ServiceConfig<TContext> = string | InvokeCreator<TContext>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -555,7 +550,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ServiceConfig<TContext>>;
+  services: Record<string, InvokeCreator<TContext>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
    * @private

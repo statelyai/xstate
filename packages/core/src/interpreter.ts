@@ -81,8 +81,6 @@ interface SpawnOptions {
   sync?: boolean;
 }
 
-const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
-
 /**
  * Maintains a stack of the current service in scope.
  * This is used to provide the correct service to spawn().
@@ -840,37 +838,37 @@ export class Interpreter<
             return;
           }
 
-          const source = isFunction(serviceCreator)
-            ? serviceCreator(context, _event.data)
-            : serviceCreator;
+          const source = serviceCreator(context, _event.data);
 
           const childIndex = this.state.children.findIndex(
             child => child.id === id
           );
 
-          if (isPromiseLike(source)) {
-            this.state.children[childIndex] = this.spawnPromise(
-              Promise.resolve(source),
-              id
-            );
-          } else if (isFunction(source)) {
-            this.state.children[childIndex] = this.spawnCallback(source, id);
-          } else if (isObservable<TEvent>(source)) {
-            this.state.children[childIndex] = this.spawnObservable(source, id);
-          } else if (isMachine(source)) {
-            // TODO: try/catch here
-            this.state.children[childIndex] = this.spawnMachine(
-              data
-                ? source.withContext(mapContext(data, context, _event))
-                : source,
-              {
-                id,
-                autoForward
-              }
-            );
-          } else {
-            // service is string
-          }
+          this.state.children[childIndex] = source;
+
+          // if (isPromiseLike(source)) {
+          //   this.state.children[childIndex] = this.spawnPromise(
+          //     Promise.resolve(source),
+          //     id
+          //   );
+          // } else if (isFunction(source)) {
+          //   this.state.children[childIndex] = this.spawnCallback(source, id);
+          // } else if (isObservable<TEvent>(source)) {
+          //   this.state.children[childIndex] = this.spawnObservable(source, id);
+          // } else if (isMachine(source)) {
+          //   // TODO: try/catch here
+          //   this.state.children[childIndex] = this.spawnMachine(
+          //     data
+          //       ? source.withContext(mapContext(data, context, _event))
+          //       : source,
+          //     {
+          //       id,
+          //       autoForward
+          //     }
+          //   );
+          // } else {
+          //   // service is string
+          // }
 
           this.state.children[childIndex].meta = {
             ...this.state.children[childIndex].meta,
