@@ -40,7 +40,7 @@ export function createNullActor(id: string): Actor {
  */
 export function createInvocableActor<TC, TE extends EventObject>(
   invokeDefinition: InvokeDefinition<TC, TE>
-): Actor {
+): Actor<any, TE> {
   const tempActor = createNullActor(invokeDefinition.id);
 
   tempActor.meta = invokeDefinition;

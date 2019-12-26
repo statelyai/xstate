@@ -1,6 +1,5 @@
 import {
   StateValue,
-  ActivityMap,
   EventObject,
   HistoryValue,
   ActionObject,
@@ -12,7 +11,6 @@ import {
   TransitionDefinition,
   Typestate
 } from './types';
-import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
@@ -86,7 +84,6 @@ export class State<
   public historyValue?: HistoryValue | undefined;
   public history?: State<TContext, TEvent, TStateSchema>;
   public actions: Array<ActionObject<TContext, TEvent>> = [];
-  public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];
   public event: TEvent;
@@ -121,7 +118,7 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
-  public children: Record<string, Actor>;
+  public children: Actor[];
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -141,12 +138,11 @@ export class State<
           historyValue: stateValue.historyValue,
           history: stateValue.history,
           actions: [],
-          activities: stateValue.activities,
           meta: {},
           events: [],
           configuration: [], // TODO: fix,
           transitions: [],
-          children: {}
+          children: []
         });
       }
 
@@ -168,7 +164,7 @@ export class State<
       events: [],
       configuration: [],
       transitions: [],
-      children: {}
+      children: []
     });
   }
   /**
@@ -202,10 +198,9 @@ export class State<
         _sessionid: null,
         historyValue: stateValue.historyValue,
         history: stateValue.history,
-        activities: stateValue.activities,
         configuration: stateValue.configuration,
         transitions: [],
-        children: {}
+        children: []
       });
     }
 
@@ -233,7 +228,6 @@ export class State<
     this.historyValue = config.historyValue;
     this.history = config.history;
     this.actions = config.actions || [];
-    this.activities = config.activities || EMPTY_ACTIVITY_MAP;
     this.meta = config.meta || {};
     this.events = config.events || [];
     this.matches = this.matches.bind(this);

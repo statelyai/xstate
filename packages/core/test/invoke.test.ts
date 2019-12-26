@@ -2186,7 +2186,8 @@ describe('invoke', () => {
       service.start();
     });
 
-    it('should not invoke a service if transient', done => {
+    // TODO: unskip once onMicrostep behavior is established
+    it.skip('should not invoke a service if transient', done => {
       // Since an invocation will be canceled when the state machine leaves the
       // invoking state, it does not make sense to start an invocation in a state
       // that will be exited immediately

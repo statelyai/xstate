@@ -455,7 +455,7 @@ describe('interpreter', () => {
         initial: 'on',
         states: {
           on: {
-            activities: 'myActivity',
+            invoke: 'myActivity',
             on: {
               TURN_OFF: 'off'
             }
@@ -464,8 +464,8 @@ describe('interpreter', () => {
         }
       },
       {
-        activities: {
-          myActivity: () => {
+        services: {
+          myActivity: () => () => {
             activityState = 'on';
             return () => (activityState = 'off');
           }
@@ -502,7 +502,7 @@ describe('interpreter', () => {
           initial: 'on',
           states: {
             on: {
-              activities: 'myActivity',
+              invoke: 'myActivity',
               on: {
                 TURN_OFF: 'off'
               }
@@ -511,8 +511,8 @@ describe('interpreter', () => {
           }
         },
         {
-          activities: {
-            myActivity: () => {
+          services: {
+            myActivity: () => () => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
             }
@@ -529,7 +529,7 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should not restart activities from a compound state', () => {
+    it('should not restart activities from a compound state', done => {
       let activityActive = false;
 
       const toggleMachine = Machine(
@@ -541,7 +541,7 @@ describe('interpreter', () => {
               on: { TOGGLE: 'active' }
             },
             active: {
-              activities: 'blink',
+              invoke: 'blink',
               on: { TOGGLE: 'inactive' },
               initial: 'A',
               states: {
@@ -552,8 +552,8 @@ describe('interpreter', () => {
           }
         },
         {
-          activities: {
-            blink: () => {
+          services: {
+            blink: () => () => {
               activityActive = true;
 
               return () => {
@@ -570,14 +570,20 @@ describe('interpreter', () => {
       );
       const bState = toggleMachine.transition(activeState, 'SWITCH');
       let state: any;
+
       interpret(toggleMachine)
         .onTransition(s => {
           state = s;
         })
         .start(bState);
 
-      expect(state.activities.blink).toBeTruthy();
-      expect(activityActive).toBe(false);
+      setTimeout(() => {
+        expect(
+          state.children.find(child => child.meta!.src === 'blink')
+        ).toBeTruthy();
+        expect(activityActive).toBeFalsy();
+        done();
+      }, 10);
     });
   });
 
@@ -960,8 +966,11 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       interpret(parentMachine)
         .onTransition(state => {
           if (state.matches('start')) {
-            expect(state.children).toHaveProperty('child');
-            expect(typeof state.children.child.send).toBe('function');
+            const childActor = state.children.find(
+              child => child.id === 'child'
+            );
+
+            expect(typeof childActor!.send).toBe('function');
           }
         })
         .onDone(() => done())
@@ -1754,8 +1763,12 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          if (state.matches('active') && state.children.childActor) {
-            state.children.childActor.send({ type: 'FIRE' });
+          const childActor = state.children.find(
+            child => child.id === 'childActor'
+          );
+
+          if (state.matches('active') && childActor) {
+            childActor.send({ type: 'FIRE' });
           }
         })
         .onDone(() => {
@@ -1799,8 +1812,12 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          if (state.children.childActor && !subscription) {
-            subscription = state.children.childActor.subscribe(subscriber);
+          const childActor = state.children.find(
+            child => child.id === 'childActor'
+          );
+
+          if (childActor && !subscription) {
+            subscription = childActor.subscribe(subscriber);
           }
         })
         .onDone(() => {
@@ -1846,12 +1863,12 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          if (
-            state.matches('active') &&
-            state.children.childActor &&
-            !subscription
-          ) {
-            subscription = state.children.childActor.subscribe(subscriber);
+          const childActor = state.children.find(
+            child => child.id === 'childActor'
+          );
+
+          if (state.matches('active') && childActor && !subscription) {
+            subscription = childActor.subscribe(subscriber);
           }
         })
         .onDone(() => {

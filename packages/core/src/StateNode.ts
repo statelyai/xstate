@@ -41,7 +41,6 @@ import {
   TransitionDefinition,
   AssignAction,
   DelayedTransitionDefinition,
-  ActivityDefinition,
   StateNodeConfig,
   StateSchema,
   StatesDefinition,
@@ -66,19 +65,16 @@ import {
   RaiseAction,
   SCXML,
   RaiseActionObject,
-  ActivityActionObject,
-  InvokeActionObject,
   Typestate,
   TransitionDefinitionMap,
-  DelayExpr
+  DelayExpr,
+  ActivityActionObject,
+  ActivityDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
-  start,
-  stop,
-  toActivityDefinition,
   send,
   cancel,
   after,
@@ -91,7 +87,10 @@ import {
   initEvent,
   toActionObjects,
   resolveLog,
-  resolveRaise
+  resolveRaise,
+  start,
+  stop,
+  toActivityDefinition
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { DEFAULT_GUARD_TYPE, STATE_DELIMITER } from './constants';
@@ -104,7 +103,7 @@ import {
   isInFinalState,
   isLeafNode
 } from './stateUtils';
-import { Actor, createInvocableActor } from './Actor';
+import { createInvocableActor } from './Actor';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -208,11 +207,6 @@ class StateNode<
    * The action(s) to be executed upon exiting the state node.
    */
   public exit: Array<ActionObject<TContext, TEvent>>;
-  /**
-   * The activities to be started upon entering the state node,
-   * and stopped upon exiting the state node.
-   */
-  public activities: Array<ActivityDefinition<TContext, TEvent>>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -244,6 +238,7 @@ class StateNode<
   public invoke: Array<InvokeDefinition<TContext, TEvent>>;
 
   public options: MachineOptions<TContext, TEvent>;
+  public activities: Array<ActivityDefinition<TContext, TEvent>>;
 
   public __xstatenode: true = true;
 
@@ -387,9 +382,8 @@ class StateNode<
         id: resolvedId
       };
     });
-    this.activities = toArray(this.config.activities)
-      .concat(this.invoke)
-      .map(activity => toActivityDefinition(activity));
+
+    this.activities = toArray(this.invoke).map(toActivityDefinition);
     this.transition = this.transition.bind(this);
   }
 
@@ -455,7 +449,6 @@ class StateNode<
       transitions: this.transitions,
       entry: this.entry,
       exit: this.exit,
-      activities: this.activities || [],
       meta: this.meta,
       order: this.order || -1,
       data: this.data,
@@ -1125,17 +1118,6 @@ class StateNode<
       _event,
       currentState
     );
-    const activities = currentState ? { ...currentState.activities } : {};
-    for (const action of actions) {
-      if (action.type === actionTypes.start) {
-        activities[action.activity!.type] = action as ActivityDefinition<
-          TContext,
-          TEvent
-        >;
-      } else if (action.type === actionTypes.stop) {
-        activities[action.activity!.type] = false;
-      }
-    }
 
     const [assignActions, otherActions] = partition(
       actions,
@@ -1203,24 +1185,19 @@ class StateNode<
             SpecialTargets.Internal)
     );
 
-    const invokeActions = resolvedActions.filter(action => {
-      return (
-        action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity.type ===
-          actionTypes.invoke
-      );
-    }) as Array<InvokeActionObject<TContext, TEvent>>;
-
-    const children = invokeActions.reduce(
-      (acc, action) => {
-        acc[action.activity.id] = createInvocableActor(action.activity);
-
-        return acc;
-      },
-      currentState
-        ? { ...currentState.children }
-        : ({} as Record<string, Actor>)
-    );
+    let children = currentState ? currentState.children : [];
+    for (const action of resolvedActions) {
+      if (action.type === actionTypes.start) {
+        children.push(createInvocableActor((action as any).activity!));
+      } else if (action.type === actionTypes.stop) {
+        children = children.filter(childActor => {
+          return (
+            childActor.id !==
+            (action as ActivityActionObject<TContext, TEvent>).activity.id
+          );
+        });
+      }
+    }
 
     const resolvedConfiguration = resolvedStateValue
       ? stateTransition.configuration
@@ -1258,11 +1235,6 @@ class StateNode<
           ? currentState
           : undefined,
       actions: resolvedStateValue ? nonRaisedActions : [],
-      activities: resolvedStateValue
-        ? activities
-        : currentState
-        ? currentState.activities
-        : {},
       meta: resolvedStateValue
         ? meta
         : currentState
@@ -1326,6 +1298,9 @@ class StateNode<
         : undefined);
 
     maybeNextState.changed = changed;
+
+    // TODO: remove children if they are stopped
+    maybeNextState.children = children;
 
     // Preserve original history after raised events
     maybeNextState.historyValue = nextState.historyValue;

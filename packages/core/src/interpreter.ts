@@ -618,7 +618,8 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
-      let batchedActions: Array<ActionObject<TContext, TEvent>> = [];
+      const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
+
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -810,9 +811,9 @@ export class Interpreter<
         // If the activity will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
-        if (!this.state.activities[activity.type]) {
-          break;
-        }
+        // if (!this.state.activities[activity.type]) {
+        //   break;
+        // }
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
@@ -843,18 +844,22 @@ export class Interpreter<
             ? serviceCreator(context, _event.data)
             : serviceCreator;
 
+          const childIndex = this.state.children.findIndex(
+            child => child.id === id
+          );
+
           if (isPromiseLike(source)) {
-            this.state.children[id] = this.spawnPromise(
+            this.state.children[childIndex] = this.spawnPromise(
               Promise.resolve(source),
               id
             );
           } else if (isFunction(source)) {
-            this.state.children[id] = this.spawnCallback(source, id);
+            this.state.children[childIndex] = this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
-            this.state.children[id] = this.spawnObservable(source, id);
+            this.state.children[childIndex] = this.spawnObservable(source, id);
           } else if (isMachine(source)) {
             // TODO: try/catch here
-            this.state.children[id] = this.spawnMachine(
+            this.state.children[childIndex] = this.spawnMachine(
               data
                 ? source.withContext(mapContext(data, context, _event))
                 : source,
@@ -866,6 +871,11 @@ export class Interpreter<
           } else {
             // service is string
           }
+
+          this.state.children[childIndex].meta = {
+            ...this.state.children[childIndex].meta,
+            ...activity
+          };
         } else {
           this.spawnActivity(activity);
         }
@@ -907,7 +917,10 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    delete this.state.children[childId];
+    const childIndex = this.state.children.findIndex(
+      actor => actor.id === childId
+    );
+    this.state.children.splice(childIndex, 1);
 
     if (isFunction(child.stop)) {
       child.stop();
@@ -977,7 +990,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T, never> {
+  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<never> {
     let canceled = false;
 
     promise.then(
@@ -1110,7 +1123,7 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): Actor {
+  ): Actor<any> {
     const subscription = source.subscribe(
       value => {
         this.send(toSCXMLEvent(value, { origin: id }));

@@ -447,11 +447,6 @@ export interface StateNodeConfig<
    */
   after?: DelayedTransitions<TContext, TEvent>;
   /**
-   * The activities to be started upon entering the state node,
-   * and stopped upon exiting the state node.
-   */
-  activities?: SingleOrArray<Activity<TContext, TEvent>>;
-  /**
    * @private
    */
   parent?: StateNode<TContext, any, TEvent>;
@@ -498,7 +493,6 @@ export interface StateNodeDefinition<
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   entry: Array<ActionObject<TContext, TEvent>>;
   exit: Array<ActionObject<TContext, TEvent>>;
-  activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent>['data'];
@@ -959,7 +953,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, Actor>;
+  children: Actor[];
   done?: boolean;
 }
 
