@@ -17,21 +17,22 @@ import {
 } from './utils';
 import { AnyEventObject } from './types';
 
-const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
+export const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
 
 export function spawnMachine<
-  TChildContext,
-  TChildStateSchema,
-  TChildEvent extends EventObject
+  TContext,
+  TEvent extends EventObject,
+  TMachine extends StateMachine<any, any, any>
 >(
-  machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
+  machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-): InvokeCreator<any, TChildEvent> {
-  return (_, __, { parent }) => {
-    const childService = new Interpreter(machine, {
+): InvokeCreator<TContext, TEvent> {
+  return (ctx, event, { parent, id }) => {
+    const resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
+    const childService = new Interpreter(resolvedMachine, {
       ...this.options, // inherit options from this interpreter
       parent,
-      id: options.id || machine.id
+      id: options.id || resolvedMachine.id
     });
 
     const resolvedOptions = {
@@ -51,34 +52,26 @@ export function spawnMachine<
 
     childService
       .onDone(doneEvent => {
-        parent.send(
-          toSCXMLEvent(doneEvent as any, { origin: childService.id })
-        );
+        console.log(doneEvent, id);
+        parent.send(toSCXMLEvent(doneInvoke(id), { origin: childService.id }));
       })
       .start();
 
     const actor = childService;
-
-    // this.children.set(childService.id, actor as Actor<
-    //   State<TChildContext, TChildEvent>,
-    //   TChildEvent
-    // >);
-
-    // if (resolvedOptions.autoForward) {
-    //   this.forwardTo.add(childService.id);
-    // }
 
     return actor as Actor;
   };
 }
 
 export function spawnPromise<T>(
-  promise: PromiseLike<T> | ((ctx: any) => PromiseLike<T>)
+  promise:
+    | PromiseLike<T>
+    | ((ctx: any, event: AnyEventObject) => PromiseLike<T>)
 ): InvokeCreator<any, AnyEventObject> {
-  return (ctx, __, { parent, id }) => {
+  return (ctx, e, { parent, id }) => {
     let canceled = false;
 
-    const resolvedPromise = isFunction(promise) ? promise(ctx) : promise;
+    const resolvedPromise = isFunction(promise) ? promise(ctx, e) : promise;
 
     resolvedPromise.then(
       response => {
@@ -152,19 +145,20 @@ export function spawnPromise<T>(
 }
 
 export function spawnCallback<TE extends EventObject = AnyEventObject>(
-  callback: (ctx: any, e: any) => InvokeCallback
+  callbackCreator: (ctx: any, e: any) => InvokeCallback
 ): InvokeCreator<any, AnyEventObject> {
-  return (_, __, { parent, id }) => {
+  return (ctx, event, { parent, id }) => {
+    const callback = callbackCreator(ctx, event);
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
 
-    const receive = (e: TE) => {
-      listeners.forEach(listener => listener(e));
+    const receive = (receivedEvent: TE) => {
+      listeners.forEach(listener => listener(receivedEvent));
       if (canceled) {
         return;
       }
-      parent.send(e);
+      parent.send(receivedEvent);
     };
 
     let callbackStop;
@@ -185,7 +179,8 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
 
     const actor = {
       id,
-      send: event => receivers.forEach(receiver => receiver(event)),
+      send: receivedEvent =>
+        receivers.forEach(receiver => receiver(receivedEvent)),
       subscribe: next => {
         listeners.add(next);
 

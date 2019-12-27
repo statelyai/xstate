@@ -178,7 +178,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: childMachine
+          child: spawnMachine(childMachine)
         }
       }
     );
@@ -245,7 +245,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: childMachine
+          child: spawnMachine(childMachine)
         }
       }
     );
@@ -605,7 +605,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: childMachine
+          child: spawnMachine(childMachine)
         }
       }
     );
@@ -613,15 +613,17 @@ describe('invoke', () => {
     interpret(
       someParentMachine.withConfig({
         services: {
-          child: Machine({
-            id: 'child',
-            initial: 'init',
-            states: {
-              init: {
-                entry: [sendParent('STOP')]
+          child: spawnMachine(
+            Machine({
+              id: 'child',
+              initial: 'init',
+              states: {
+                init: {
+                  entry: [sendParent('STOP')]
+                }
               }
-            }
-          })
+            })
+          )
         }
       })
     )
@@ -709,7 +711,7 @@ describe('invoke', () => {
         },
         invoke: {
           id: 'foo-child',
-          src: ctx => ctx.machine
+          src: spawnMachine(ctx => ctx.machine)
         },
         states: {
           one: {
@@ -1059,7 +1061,9 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: () => createPromise(resolve => resolve())
+              somePromise: spawnPromise(() =>
+                createPromise(resolve => resolve())
+              )
             }
           }
         );
@@ -1127,7 +1131,9 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
+              somePromise: spawnPromise(() =>
+                createPromise(resolve => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1205,7 +1211,9 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
+              somePromise: spawnPromise(() =>
+                createPromise(resolve => resolve({ count: 1 }))
+              )
             }
           }
         );
@@ -1249,11 +1257,11 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: (ctx, e: BeginEvent) => {
+              somePromise: spawnPromise((ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
                 });
-              }
+              })
             }
           }
         );
@@ -1315,24 +1323,24 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: (ctx, e: BeginEvent) => (
-              cb: (ev: CallbackEvent) => void
-            ) => {
-              if (ctx.foo && e.payload) {
-                cb({
-                  type: 'CALLBACK',
-                  data: 40
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 41
-                });
-                cb({
-                  type: 'CALLBACK',
-                  data: 42
-                });
+            someCallback: spawnCallback(
+              (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
+                if (ctx.foo && e.payload) {
+                  cb({
+                    type: 'CALLBACK',
+                    data: 40
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 41
+                  });
+                  cb({
+                    type: 'CALLBACK',
+                    data: 42
+                  });
+                }
               }
-            }
+            )
           }
         }
       );
@@ -1372,9 +1380,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: () => cb => {
+            someCallback: spawnCallback(() => cb => {
               cb('CALLBACK');
-            }
+            })
           }
         }
       );
@@ -1413,9 +1421,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: () => cb => {
+            someCallback: spawnCallback(() => cb => {
               cb('CALLBACK');
-            }
+            })
           }
         }
       );
@@ -1461,9 +1469,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: () => cb => {
+            someCallback: spawnCallback(() => cb => {
               cb('CALLBACK');
-            }
+            })
           }
         }
       );

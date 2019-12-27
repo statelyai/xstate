@@ -53,6 +53,7 @@ import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
+import { DEFAULT_SPAWN_OPTIONS } from './invoke';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -726,7 +727,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -815,12 +816,13 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator: ServiceConfig<TContext> | undefined = this
-            .machine.options.services
+          const serviceCreator:
+            | ServiceConfig<TContext, TEvent>
+            | undefined = this.machine.options.services
             ? this.machine.options.services[activity.src]
             : undefined;
 
-          const { id, data } = activity;
+          const { id /* data */ } = activity;
 
           const autoForward =
             'autoForward' in activity
@@ -838,13 +840,22 @@ export class Interpreter<
             return;
           }
 
-          const source = serviceCreator(context, _event.data);
+          const actor = serviceCreator(context, _event.data, {
+            parent: this as any,
+            id
+          });
+
+          if (autoForward) {
+            this.forwardTo.add(id);
+          }
+
+          this.children.set(id, actor);
 
           const childIndex = this.state.children.findIndex(
             child => child.id === id
           );
 
-          this.state.children[childIndex] = source;
+          this.state.children[childIndex] = actor;
 
           // if (isPromiseLike(source)) {
           //   this.state.children[childIndex] = this.spawnPromise(

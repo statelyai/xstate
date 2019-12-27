@@ -371,7 +371,7 @@ class StateNode<
       if (!this.machine.options.services[resolvedSrc]) {
         this.machine.options.services = {
           ...this.machine.options.services,
-          [resolvedSrc]: invokeConfig.src
+          [resolvedSrc]: invokeConfig.src as any
         };
       }
 
