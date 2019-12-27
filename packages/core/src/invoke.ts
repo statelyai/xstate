@@ -13,7 +13,8 @@ import { actionTypes, doneInvoke, error } from './actions';
 import {
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  isFunction
+  isFunction,
+  isPromiseLike
 } from './utils';
 import { AnyEventObject } from './types';
 
@@ -52,8 +53,12 @@ export function spawnMachine<
 
     childService
       .onDone(doneEvent => {
-        console.log(doneEvent, id);
-        parent.send(toSCXMLEvent(doneInvoke(id), { origin: childService.id }));
+        // console.log(doneEvent); // todo: use doneEvent
+        parent.send(
+          toSCXMLEvent(doneInvoke(id, doneEvent.data), {
+            origin: childService.id
+          })
+        );
       })
       .start();
 
@@ -171,11 +176,14 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
       parent.send(error(id, err) as any);
     }
 
-    // if (isPromiseLike(callbackStop)) {
-    //   // it turned out to be an async function, can't reliably check this before calling `callback`
-    //   // because transpiled async functions are not recognizable
-    //   return this.spawnPromise(callbackStop as Promise<any>, id);
-    // }
+    if (isPromiseLike(callbackStop)) {
+      // it turned out to be an async function, can't reliably check this before calling `callback`
+      // because transpiled async functions are not recognizable
+      return spawnPromise(callbackStop as Promise<any>)(ctx, event, {
+        parent,
+        id
+      });
+    }
 
     const actor = {
       id,

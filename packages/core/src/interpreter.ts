@@ -772,6 +772,7 @@ export class Interpreter<
           _event
         });
       } catch (err) {
+        console.log('caught', err);
         if (this.parent) {
           this.parent.send({
             type: 'xstate.error',

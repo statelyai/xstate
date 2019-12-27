@@ -1553,7 +1553,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => {
+              src: spawnCallback(() => () => {
                 throw new Error('test');
               }),
               onError: {
@@ -1582,7 +1582,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => {
+              src: spawnCallback(() => () => {
                 throw new Error('test');
               }),
               onError: 'failed'
@@ -1685,7 +1685,7 @@ describe('invoke', () => {
             states: {
               first: {
                 invoke: {
-                  src: spawnCallback(() => {
+                  src: spawnCallback(() => () => {
                     throw new Error('test');
                   }),
                   onError: {
@@ -2258,13 +2258,18 @@ describe('invoke', () => {
   });
 
   describe('error handling', () => {
-    it('handles escalated errors', done => {
+    it.only('handles escalated errors', done => {
       const child = Machine({
         initial: 'die',
 
         states: {
           die: {
-            entry: escalate('oops')
+            entry: [
+              escalate('oops'),
+              () => {
+                console.log('yeah error');
+              }
+            ]
           }
         }
       });
@@ -2289,7 +2294,12 @@ describe('invoke', () => {
         }
       });
 
+      console.log(parent.states!.one!.on);
+
       interpret(parent)
+        .onTransition(state => {
+          console.log(state.event);
+        })
         .onDone(() => {
           done();
         })
