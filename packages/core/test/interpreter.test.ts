@@ -17,6 +17,12 @@ import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
+import {
+  spawnCallback,
+  spawnObservable,
+  spawnMachine,
+  spawnPromise
+} from '../src/invoke';
 
 const lightMachine = Machine({
   id: 'light',
@@ -465,10 +471,10 @@ describe('interpreter', () => {
       },
       {
         services: {
-          myActivity: () => () => {
+          myActivity: spawnCallback(() => () => {
             activityState = 'on';
             return () => (activityState = 'off');
-          }
+          })
         }
       }
     );
@@ -512,10 +518,10 @@ describe('interpreter', () => {
         },
         {
           services: {
-            myActivity: () => () => {
+            myActivity: spawnCallback(() => () => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
-            }
+            })
           }
         }
       );
@@ -553,13 +559,13 @@ describe('interpreter', () => {
         },
         {
           services: {
-            blink: () => () => {
+            blink: spawnCallback(() => () => {
               activityActive = true;
 
               return () => {
                 activityActive = false;
               };
-            }
+            })
           }
         }
       );
@@ -782,7 +788,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         foo: {
           invoke: {
             id: 'child',
-            src: childMachine
+            src: spawnMachine(childMachine)
           }
         }
       },
@@ -944,7 +950,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         start: {
           invoke: {
             id: 'child',
-            src: childMachine,
+            src: spawnMachine(childMachine),
             data: {
               password: 'foo'
             }
@@ -1749,7 +1755,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: childMachine
+              src: spawnMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1786,12 +1792,14 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: () =>
-                new Promise(res => {
-                  setTimeout(() => {
-                    res(42);
-                  }, 100);
-                }),
+              src: spawnPromise(
+                () =>
+                  new Promise(res => {
+                    setTimeout(() => {
+                      res(42);
+                    }, 100);
+                  })
+              ),
               onDone: {
                 target: 'success',
                 cond: (_, e) => e.data === 42
@@ -1836,8 +1844,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: () =>
+              src: spawnObservable(() =>
                 interval$.pipe(map(value => ({ type: 'FIRED', value })))
+              )
             },
             on: {
               FIRED: {

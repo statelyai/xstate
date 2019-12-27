@@ -774,7 +774,6 @@ export class Interpreter<
           _event
         });
       } catch (err) {
-        console.log('caught', err);
         if (this.parent) {
           this.parent.send({
             type: 'xstate.error',
@@ -965,7 +964,7 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
-    const childService = new Interpreter(machine, {
+    const childService = interpret(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
       id: options.id || machine.id

@@ -1,4 +1,5 @@
 import { Machine, interpret, assign, send, sendParent, State } from '../src';
+import { spawnMachine } from '../src/invoke';
 
 interface CounterContext {
   count: number;
@@ -327,7 +328,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: childMachine
+            src: spawnMachine(childMachine)
           }
         }
       },

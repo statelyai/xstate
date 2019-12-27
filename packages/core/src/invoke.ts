@@ -108,7 +108,7 @@ export function spawnPromise<T>(
             //   // exception/promise rejection happens but because we don't want to
             //   // break existing code so enforce it on strict mode only especially so
             //   // because documentation says that onError is optional
-            //   this.stop();
+            //   canceled = true;
             // }
           }
         }
