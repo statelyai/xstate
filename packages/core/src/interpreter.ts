@@ -682,13 +682,15 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
-      // Send SCXML events to machines
-      (target as Interpreter<TContext, TStateSchema, TEvent>).send({
+      const e = {
         ...event,
         name:
           event.name === actionTypes.error ? `${error(this.id)}` : event.name,
         origin: this.sessionId
-      });
+      };
+      // console.log('..', e);
+      // Send SCXML events to machines
+      (target as Interpreter<TContext, TStateSchema, TEvent>).send(e);
     } else {
       // Send normal events to other targets
       target.send(event.data);
@@ -823,7 +825,7 @@ export class Interpreter<
             ? this.machine.options.services[activity.src]
             : undefined;
 
-          const { id /* data */ } = activity;
+          const { id, data } = activity;
 
           const autoForward =
             'autoForward' in activity
@@ -843,7 +845,9 @@ export class Interpreter<
 
           const actor = serviceCreator(context, _event.data, {
             parent: this as any,
-            id
+            id,
+            data,
+            _event
           });
 
           if (autoForward) {

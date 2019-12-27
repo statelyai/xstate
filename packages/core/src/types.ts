@@ -213,7 +213,7 @@ export type InvokeCallback = (
 export type InvokeCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
-  meta: { parent: Actor; id: string }
+  meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
 ) => Actor;
 // | PromiseLike<TFinalContext>
 // | StateMachine<TFinalContext, any, any>

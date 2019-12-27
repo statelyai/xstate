@@ -14,7 +14,8 @@ import {
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
   isFunction,
-  isPromiseLike
+  isPromiseLike,
+  mapContext
 } from './utils';
 import { AnyEventObject } from './types';
 
@@ -28,12 +29,17 @@ export function spawnMachine<
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
 ): InvokeCreator<TContext, TEvent> {
-  return (ctx, event, { parent, id }) => {
-    const resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
+  return (ctx, event, { parent, id, data, _event }) => {
+    let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
+    if (data) {
+      resolvedMachine = resolvedMachine.withContext(
+        mapContext(data, ctx, _event)
+      ) as TMachine;
+    }
     const childService = new Interpreter(resolvedMachine, {
       ...this.options, // inherit options from this interpreter
       parent,
-      id: options.id || resolvedMachine.id
+      id: id || resolvedMachine.id
     });
 
     const resolvedOptions = {
@@ -152,7 +158,7 @@ export function spawnPromise<T>(
 export function spawnCallback<TE extends EventObject = AnyEventObject>(
   callbackCreator: (ctx: any, e: any) => InvokeCallback
 ): InvokeCreator<any, AnyEventObject> {
-  return (ctx, event, { parent, id }) => {
+  return (ctx, event, { parent, id, _event }) => {
     const callback = callbackCreator(ctx, event);
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
@@ -181,7 +187,8 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
       // because transpiled async functions are not recognizable
       return spawnPromise(callbackStop as Promise<any>)(ctx, event, {
         parent,
-        id
+        id,
+        _event
       });
     }
 

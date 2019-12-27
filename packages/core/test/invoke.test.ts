@@ -2258,18 +2258,13 @@ describe('invoke', () => {
   });
 
   describe('error handling', () => {
-    it.only('handles escalated errors', done => {
+    it('handles escalated errors', done => {
       const child = Machine({
         initial: 'die',
 
         states: {
           die: {
-            entry: [
-              escalate('oops'),
-              () => {
-                console.log('yeah error');
-              }
-            ]
+            entry: [escalate('oops')]
           }
         }
       });
@@ -2294,12 +2289,7 @@ describe('invoke', () => {
         }
       });
 
-      console.log(parent.states!.one!.on);
-
       interpret(parent)
-        .onTransition(state => {
-          console.log(state.event);
-        })
         .onDone(() => {
           done();
         })
