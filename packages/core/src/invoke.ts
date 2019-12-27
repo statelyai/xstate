@@ -1,12 +1,13 @@
 import {
   EventObject,
   StateMachine,
-  Interpreter,
   Actor,
   InvokeCreator,
   InvokeCallback,
   Subscribable
 } from '.';
+
+import { interpret } from './interpreter';
 
 import { actionTypes, doneInvoke, error } from './actions';
 
@@ -36,7 +37,7 @@ export function spawnMachine<
         mapContext(data, ctx, _event)
       ) as TMachine;
     }
-    const childService = new Interpreter(resolvedMachine, {
+    const childService = interpret(resolvedMachine, {
       ...this.options, // inherit options from this interpreter
       parent,
       id: id || resolvedMachine.id

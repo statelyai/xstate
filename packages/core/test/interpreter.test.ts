@@ -1722,9 +1722,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         },
         {
           services: {
-            testService: (() => {
-              return void 0;
-            }) as any
+            testService: spawnCallback(() => () => {
+              // nothing
+            })
           }
         }
       );
