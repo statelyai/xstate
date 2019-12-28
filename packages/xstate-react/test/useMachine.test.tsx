@@ -137,7 +137,6 @@ describe('useMachine hook', () => {
         execute: false
       });
 
-      // expect(service.initialized).toBe(false);
       expect(service.options.execute).toBe(false);
 
       return null;
