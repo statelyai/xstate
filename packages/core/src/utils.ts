@@ -649,8 +649,7 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | StateMachine<any, any, any>
-    | InvokeCreator<TContext>,
+    | InvokeCreator<TContext, TEvent>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object' && 'src' in invocable) {
