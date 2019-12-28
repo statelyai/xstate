@@ -368,7 +368,10 @@ class StateNode<
         ? invokeConfig.src
         : resolvedId;
 
-      if (!this.machine.options.services[resolvedSrc]) {
+      if (
+        !this.machine.options.services[resolvedSrc] &&
+        !isString(invokeConfig.src)
+      ) {
         this.machine.options.services = {
           ...this.machine.options.services,
           [resolvedSrc]: invokeConfig.src
