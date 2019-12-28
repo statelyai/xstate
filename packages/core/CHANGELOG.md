@@ -1,5 +1,11 @@
 # xstate
 
+## 4.7.5
+
+### Patch Changes
+
+- 6b3d767: Fixed issue with delayed transitions scheduling a delayed event for each transition defined for a single delay.
+
 ## 4.7.4
 
 ### Patch Changes
