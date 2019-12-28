@@ -131,7 +131,7 @@ The typestates of a machine are specified as the 3rd generic type in `createMach
 **Example:**
 
 ```ts
-import { createMachine } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
 interface User {
   name: string;
