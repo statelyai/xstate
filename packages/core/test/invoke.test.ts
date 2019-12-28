@@ -17,7 +17,8 @@ import {
   spawnMachine,
   spawnCallback,
   spawnPromise,
-  spawnObservable
+  spawnObservable,
+  spawnActivity
 } from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
@@ -643,7 +644,7 @@ describe('invoke', () => {
       states: {
         active: {
           invoke: {
-            src: spawnCallback(() => () => {
+            src: spawnActivity(() => {
               startCount++;
             })
           }
@@ -1556,7 +1557,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => () => {
+              src: spawnActivity(() => {
                 throw new Error('test');
               }),
               onError: {
@@ -1585,7 +1586,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => () => {
+              src: spawnActivity(() => {
                 throw new Error('test');
               }),
               onError: 'failed'
@@ -1688,7 +1689,7 @@ describe('invoke', () => {
             states: {
               first: {
                 invoke: {
-                  src: spawnCallback(() => () => {
+                  src: spawnActivity(() => {
                     throw new Error('test');
                   }),
                   onError: {
@@ -1702,7 +1703,7 @@ describe('invoke', () => {
               },
               second: {
                 invoke: {
-                  src: spawnCallback(() => () => {
+                  src: spawnActivity(() => {
                     // empty
                   }),
                   onError: {

@@ -18,10 +18,10 @@ import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  spawnCallback,
   spawnObservable,
   spawnMachine,
-  spawnPromise
+  spawnPromise,
+  spawnActivity
 } from '../src/invoke';
 
 const lightMachine = Machine({
@@ -471,7 +471,7 @@ describe('interpreter', () => {
       },
       {
         services: {
-          myActivity: spawnCallback(() => () => {
+          myActivity: spawnActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
           })
@@ -518,7 +518,7 @@ describe('interpreter', () => {
         },
         {
           services: {
-            myActivity: spawnCallback(() => () => {
+            myActivity: spawnActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
             })
@@ -559,7 +559,7 @@ describe('interpreter', () => {
         },
         {
           services: {
-            blink: spawnCallback(() => () => {
+            blink: spawnActivity(() => {
               activityActive = true;
 
               return () => {
@@ -1722,7 +1722,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         },
         {
           services: {
-            testService: spawnCallback(() => () => {
+            testService: spawnActivity(() => {
               // nothing
             })
           }

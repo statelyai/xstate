@@ -156,6 +156,32 @@ export function spawnPromise<T>(
   };
 }
 
+export function spawnActivity<TC, TE extends EventObject>(
+  activityCreator: (ctx: TC, event: TE) => any
+): InvokeCreator<TC, TE> {
+  return (ctx, e, { parent, id }) => {
+    let dispose;
+    try {
+      dispose = activityCreator(ctx, e);
+    } catch (err) {
+      parent.send(error(id, err) as any);
+    }
+
+    return {
+      id,
+      send: () => void 0,
+      toJSON: () => ({ id }),
+      subscribe() {
+        // do nothing
+        return {
+          unsubscribe: () => void 0
+        };
+      },
+      stop: isFunction(dispose) ? () => dispose() : undefined
+    };
+  };
+}
+
 export function spawnCallback<TE extends EventObject = AnyEventObject>(
   callbackCreator: (ctx: any, e: any) => InvokeCallback
 ): InvokeCreator<any, AnyEventObject> {
