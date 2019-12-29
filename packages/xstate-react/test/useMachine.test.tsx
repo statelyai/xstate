@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
+import { spawnPromise } from 'xstate/lib/invoke';
 import {
   render,
   fireEvent,
@@ -41,10 +42,10 @@ describe('useMachine hook', () => {
     }
   });
 
-  const persistedFetchState = fetchMachine.transition(
-    'loading',
-    doneInvoke('fetchData', 'persisted data')
-  );
+  const persistedFetchState = fetchMachine.transition('loading', {
+    type: 'done.invoke.fetch.loading:invocation[0]',
+    data: 'persisted data'
+  });
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
@@ -55,7 +56,7 @@ describe('useMachine hook', () => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       services: {
-        fetchData: onFetch
+        fetchData: spawnPromise(onFetch)
       },
       state: persistedState
     });
