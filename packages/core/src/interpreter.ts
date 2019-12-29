@@ -682,15 +682,14 @@ export class Interpreter<
     }
 
     if ('machine' in target) {
-      const e = {
+      const scxmlEvent = {
         ...event,
         name:
           event.name === actionTypes.error ? `${error(this.id)}` : event.name,
         origin: this.sessionId
       };
-      // console.log('..', e);
       // Send SCXML events to machines
-      (target as Interpreter<TContext, TStateSchema, TEvent>).send(e);
+      target.send(scxmlEvent);
     } else {
       // Send normal events to other targets
       target.send(event.data);
@@ -807,7 +806,7 @@ export class Interpreter<
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext, TEvent>)
-          .activity as InvokeDefinition<TContext, TEvent>;
+          .actor as InvokeDefinition<TContext, TEvent>;
 
         // If the activity will be stopped right after it's started
         // (such as in transient states)

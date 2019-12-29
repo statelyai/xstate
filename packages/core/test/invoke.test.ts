@@ -993,9 +993,6 @@ describe('invoke', () => {
         });
 
         interpret(promiseMachine)
-          .onTransition(s => {
-            console.log(s.event);
-          })
           .onDone(doneSpy)
           .onStop(() => {
             expect(doneSpy).not.toHaveBeenCalled();

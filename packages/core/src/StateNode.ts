@@ -1196,7 +1196,7 @@ class StateNode<
         children = children.filter(childActor => {
           return (
             childActor.id !==
-            (action as ActivityActionObject<TContext, TEvent>).activity.id
+            (action as ActivityActionObject<TContext, TEvent>).actor.id
           );
         });
       }

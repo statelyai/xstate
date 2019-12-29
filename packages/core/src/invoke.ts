@@ -60,7 +60,6 @@ export function spawnMachine<
 
     childService
       .onDone(doneEvent => {
-        // console.log(doneEvent); // todo: use doneEvent
         parent.send(
           toSCXMLEvent(doneInvoke(id, doneEvent.data), {
             origin: childService.id
