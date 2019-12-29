@@ -1191,7 +1191,7 @@ class StateNode<
     let children = currentState ? currentState.children : [];
     for (const action of resolvedActions) {
       if (action.type === actionTypes.start) {
-        children.push(createInvocableActor((action as any).activity!));
+        children.push(createInvocableActor((action as any).actor));
       } else if (action.type === actionTypes.stop) {
         children = children.filter(childActor => {
           return (

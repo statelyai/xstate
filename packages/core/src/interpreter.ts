@@ -895,7 +895,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.activity.id);
+        this.stopChild(action.actor.id);
         break;
       }
 

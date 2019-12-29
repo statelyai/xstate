@@ -110,7 +110,7 @@ describe('activities', () => {
     ).toBeTruthy();
     expect(nextState.actions).toContainEqual(
       expect.objectContaining({
-        activity: expect.objectContaining({ src: 'activateCrosswalkLight' })
+        actor: expect.objectContaining({ src: 'activateCrosswalkLight' })
       })
     );
   });
@@ -131,7 +131,7 @@ describe('activities', () => {
     expect(nextState.actions).toContainEqual(
       expect.objectContaining({
         type: actionTypes.start,
-        activity: expect.objectContaining({
+        actor: expect.objectContaining({
           src: 'blinkCrosswalkLight'
         })
       })
@@ -156,7 +156,7 @@ describe('activities', () => {
     expect(nextState.actions).toContainEqual(
       expect.objectContaining({
         type: actionTypes.stop,
-        activity: expect.objectContaining({ src: 'blinkCrosswalkLight' })
+        actor: expect.objectContaining({ src: 'blinkCrosswalkLight' })
       })
     );
   });
@@ -184,14 +184,14 @@ describe('activities', () => {
     expect(nextState.actions).toContainEqual(
       expect.objectContaining({
         type: actionTypes.stop,
-        activity: expect.objectContaining({ src: 'activateCrosswalkLight' })
+        actor: expect.objectContaining({ src: 'activateCrosswalkLight' })
       })
     );
 
     expect(nextState.actions).toContainEqual(
       expect.objectContaining({
         type: actionTypes.start,
-        activity: expect.objectContaining({ src: 'fadeInGreen' })
+        actor: expect.objectContaining({ src: 'fadeInGreen' })
       })
     );
   });

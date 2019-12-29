@@ -12,7 +12,7 @@ describe('action creators', () => {
         expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
-          activity: {
+          actor: {
             type: 'test',
             exec: undefined,
             id: 'test'
@@ -26,7 +26,7 @@ describe('action creators', () => {
         expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
-          activity: {
+          actor: {
             type: 'test',
             id: undefined,
             foo: 'bar'
@@ -34,7 +34,7 @@ describe('action creators', () => {
         });
       });
 
-      it('should accept an activity definition', () => {
+      it('should accept an actor definition', () => {
         const action = actions[actionKey]({
           type: 'test',
           foo: 'bar',
@@ -44,7 +44,7 @@ describe('action creators', () => {
         expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
-          activity: {
+          actor: {
             type: 'test',
             id: undefined,
             foo: 'bar',

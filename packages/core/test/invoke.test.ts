@@ -1737,7 +1737,7 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].activity!.src).toBe('string');
+      expect(typeof waitingState.actions[0].actor!.src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
