@@ -2040,7 +2040,7 @@ describe('invoke', () => {
     });
   });
 
-  describe('nested invoked machine', () => {
+  describe('with machines', () => {
     const pongMachine = Machine({
       id: 'pong',
       initial: 'active',
@@ -2089,6 +2089,37 @@ describe('invoke', () => {
       interpret(pingMachine)
         .onDone(() => done())
         .start();
+    });
+
+    it('should sync with child machine when sync: true option is provided', done => {
+      const childMachine = Machine({
+        initial: 'working',
+        context: { count: 42 },
+        states: {
+          working: {}
+        }
+      });
+
+      const machine = Machine({
+        initial: 'pending',
+        states: {
+          pending: {
+            invoke: {
+              src: spawnMachine(childMachine, { sync: true })
+            }
+          },
+          success: { type: 'final' }
+        }
+      });
+
+      const service = interpret(machine).onTransition(state => {
+        if (state.event.type === actionTypes.update) {
+          expect(state.event.state.context).toEqual({ count: 42 });
+          done();
+        }
+      });
+
+      service.start();
     });
   });
 

@@ -20,7 +20,7 @@ import {
 } from './utils';
 import { AnyEventObject } from './types';
 
-export const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
+export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function spawnMachine<
   TContext,
@@ -28,7 +28,7 @@ export function spawnMachine<
   TMachine extends StateMachine<any, any, any>
 >(
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
-  options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
+  options: { sync?: boolean } = {}
 ): InvokeCreator<TContext, TEvent> {
   return (ctx, event, { parent, id, data, _event }) => {
     let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
