@@ -39,8 +39,17 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
+    "@xstate/fsm": "^1.0.0",
     "react": "^16.8.0",
     "xstate": "^4.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/react": "^8.0.9",
