@@ -2,7 +2,7 @@ import { ref, onBeforeUnmount, Ref } from '@vue/composition-api';
 import { StateMachine, EventObject, interpret } from '@xstate/fsm';
 import { AnyEventObject } from 'xstate';
 
-export function useFsm<TC, TE extends EventObject = AnyEventObject>(
+export function useMachine<TC, TE extends EventObject = AnyEventObject>(
   stateMachine: StateMachine.Machine<TC, TE, any>
 ): {
   state: Ref<StateMachine.State<TC, TE, any>>;

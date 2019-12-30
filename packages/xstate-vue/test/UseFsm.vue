@@ -10,7 +10,7 @@
 </template>
 
 <script lang="ts">
-import { useFsm } from '../src/useFsm';
+import { useMachine } from '../src/fsm';
 import { createMachine, assign } from '@xstate/fsm';
 import { watch } from '@vue/composition-api';
 
@@ -42,7 +42,7 @@ const fetchMachine = createMachine<typeof context, any>({
 
 export default {
   setup() {
-    const { state: current, send, service } = useFsm(fetchMachine);
+    const { state: current, send, service } = useMachine(fetchMachine);
     const onFetch = () =>
       new Promise(res => setTimeout(() => res('some data'), 50));
 
