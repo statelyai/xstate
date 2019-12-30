@@ -16,7 +16,7 @@ export function useService<TContext, TEvent extends EventObject>(
   const current = ref<State<TContext, TEvent>>(serviceRef.value.state);
 
   watch(serviceRef, (service, _, onCleanup) => {
-    current.value = serviceRef.value.state;
+    current.value = service.state;
     const { unsubscribe } = service.subscribe(state => {
       if (state.changed) {
         current.value = state;

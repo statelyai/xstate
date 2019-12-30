@@ -77,15 +77,6 @@ export function useMachine<TContext, TEvent extends EventObject>(
 
   const current = ref<State<TContext, TEvent>>(initialState);
 
-  // Make sure actions and services are kept updated when they change.
-  watch(() => {
-    Object.assign(service.machine.options.actions, actions);
-  });
-
-  watch(() => {
-    Object.assign(service.machine.options.services, services);
-  });
-
   // extract send method for sending events to the service
   const send = (event: TEvent | TEvent['type']) => service.send(event);
 
