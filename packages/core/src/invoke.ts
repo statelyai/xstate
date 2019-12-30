@@ -1,37 +1,46 @@
 import {
   EventObject,
   StateMachine,
-  Interpreter,
   Actor,
   InvokeCreator,
   InvokeCallback,
   Subscribable
 } from '.';
 
+import { interpret } from './interpreter';
+
 import { actionTypes, doneInvoke, error } from './actions';
 
 import {
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  isFunction
+  isFunction,
+  isPromiseLike,
+  mapContext
 } from './utils';
 import { AnyEventObject } from './types';
 
-const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
+export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function spawnMachine<
-  TChildContext,
-  TChildStateSchema,
-  TChildEvent extends EventObject
+  TContext,
+  TEvent extends EventObject,
+  TMachine extends StateMachine<any, any, any>
 >(
-  machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
-  options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-): InvokeCreator<any, TChildEvent> {
-  return (_, __, { parent }) => {
-    const childService = new Interpreter(machine, {
-      ...this.options, // inherit options from this interpreter
+  machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
+  options: { sync?: boolean } = {}
+): InvokeCreator<TContext, TEvent> {
+  return (ctx, event, { parent, id, data, _event }) => {
+    let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
+    if (data) {
+      resolvedMachine = resolvedMachine.withContext(
+        mapContext(data, ctx, _event)
+      ) as TMachine;
+    }
+    const childService = interpret(resolvedMachine, {
+      ...options, // inherit options from this interpreter
       parent,
-      id: options.id || machine.id
+      id: id || resolvedMachine.id
     });
 
     const resolvedOptions = {
@@ -52,33 +61,28 @@ export function spawnMachine<
     childService
       .onDone(doneEvent => {
         parent.send(
-          toSCXMLEvent(doneEvent as any, { origin: childService.id })
+          toSCXMLEvent(doneInvoke(id, doneEvent.data), {
+            origin: childService.id
+          })
         );
       })
       .start();
 
     const actor = childService;
 
-    // this.children.set(childService.id, actor as Actor<
-    //   State<TChildContext, TChildEvent>,
-    //   TChildEvent
-    // >);
-
-    // if (resolvedOptions.autoForward) {
-    //   this.forwardTo.add(childService.id);
-    // }
-
     return actor as Actor;
   };
 }
 
 export function spawnPromise<T>(
-  promise: PromiseLike<T> | ((ctx: any) => PromiseLike<T>)
+  promise:
+    | PromiseLike<T>
+    | ((ctx: any, event: AnyEventObject) => PromiseLike<T>)
 ): InvokeCreator<any, AnyEventObject> {
-  return (ctx, __, { parent, id }) => {
+  return (ctx, e, { parent, id }) => {
     let canceled = false;
 
-    const resolvedPromise = isFunction(promise) ? promise(ctx) : promise;
+    const resolvedPromise = isFunction(promise) ? promise(ctx, e) : promise;
 
     resolvedPromise.then(
       response => {
@@ -104,7 +108,7 @@ export function spawnPromise<T>(
             //   // exception/promise rejection happens but because we don't want to
             //   // break existing code so enforce it on strict mode only especially so
             //   // because documentation says that onError is optional
-            //   this.stop();
+            //   canceled = true;
             // }
           }
         }
@@ -151,20 +155,47 @@ export function spawnPromise<T>(
   };
 }
 
+export function spawnActivity<TC, TE extends EventObject>(
+  activityCreator: (ctx: TC, event: TE) => any
+): InvokeCreator<TC, TE> {
+  return (ctx, e, { parent, id }) => {
+    let dispose;
+    try {
+      dispose = activityCreator(ctx, e);
+    } catch (err) {
+      parent.send(error(id, err) as any);
+    }
+
+    return {
+      id,
+      send: () => void 0,
+      toJSON: () => ({ id }),
+      subscribe() {
+        // do nothing
+        return {
+          unsubscribe: () => void 0
+        };
+      },
+      stop: isFunction(dispose) ? () => dispose() : undefined
+    };
+  };
+}
+
 export function spawnCallback<TE extends EventObject = AnyEventObject>(
-  callback: (ctx: any, e: any) => InvokeCallback
+  callbackCreator: (ctx: any, e: any) => InvokeCallback
 ): InvokeCreator<any, AnyEventObject> {
-  return (_, __, { parent, id }) => {
+  return (ctx, event, { parent, id, _event }) => {
+    const callback = callbackCreator(ctx, event);
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
 
-    const receive = (e: TE) => {
-      listeners.forEach(listener => listener(e));
+    const receive = (receivedEvent: TE) => {
+      listeners.forEach(listener => listener(receivedEvent));
       if (canceled) {
         return;
       }
-      parent.send(e);
+      parent.send(receivedEvent);
     };
 
     let callbackStop;
@@ -177,15 +208,20 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
       parent.send(error(id, err) as any);
     }
 
-    // if (isPromiseLike(callbackStop)) {
-    //   // it turned out to be an async function, can't reliably check this before calling `callback`
-    //   // because transpiled async functions are not recognizable
-    //   return this.spawnPromise(callbackStop as Promise<any>, id);
-    // }
+    if (isPromiseLike(callbackStop)) {
+      // it turned out to be an async function, can't reliably check this before calling `callback`
+      // because transpiled async functions are not recognizable
+      return spawnPromise(callbackStop as Promise<any>)(ctx, event, {
+        parent,
+        id,
+        _event
+      });
+    }
 
     const actor = {
       id,
-      send: event => receivers.forEach(receiver => receiver(event)),
+      send: receivedEvent =>
+        receivers.forEach(receiver => receiver(receivedEvent)),
       subscribe: next => {
         listeners.add(next);
 

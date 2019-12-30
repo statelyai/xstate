@@ -1,6 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { Interpreter, Clock } from './interpreter';
+import { Clock } from './interpreter';
 import { Actor } from './Actor';
 
 export type EventType = string;
@@ -213,7 +213,7 @@ export type InvokeCallback = (
 export type InvokeCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
-  meta: { parent: Actor; id: string }
+  meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
 ) => Actor;
 // | PromiseLike<TFinalContext>
 // | StateMachine<TFinalContext, any, any>
@@ -540,7 +540,9 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext> = string | InvokeCreator<TContext>;
+export type ServiceConfig<TContext, TEvent extends EventObject> =
+  | string
+  | InvokeCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -550,7 +552,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, InvokeCreator<TContext>>;
+  services: Record<string, InvokeCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
    * @private
@@ -697,13 +699,13 @@ export interface NullEvent {
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext, TEvent>;
+  actor: ActivityDefinition<TContext, TEvent>;
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
 export interface InvokeActionObject<TContext, TEvent extends EventObject>
   extends ActivityActionObject<TContext, TEvent> {
-  activity: InvokeDefinition<TContext, TEvent>;
+  actor: InvokeDefinition<TContext, TEvent>;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
@@ -967,7 +969,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Interpreter<any, any, any>;
+  parent?: Actor<any>;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown

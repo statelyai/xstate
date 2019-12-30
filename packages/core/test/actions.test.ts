@@ -1,5 +1,6 @@
 import { Machine, assign, forwardTo, interpret, spawn } from '../src/index';
 import { pure, sendParent, log } from '../src/actions';
+import { spawnMachine } from '../src/invoke';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -920,7 +921,7 @@ describe('forwardTo()', () => {
       initial: 'first',
       states: {
         first: {
-          invoke: { src: child, id: 'myChild' },
+          invoke: { src: spawnMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')

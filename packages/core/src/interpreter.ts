@@ -53,6 +53,7 @@ import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
+import { DEFAULT_SPAWN_OPTIONS } from './invoke';
 
 export type StateListener<TContext, TEvent extends EventObject> = (
   state: State<TContext, TEvent>,
@@ -165,7 +166,7 @@ export class Interpreter<
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
-  public parent?: Interpreter<any>;
+  public parent?: Actor<any>;
   public id: string;
 
   /**
@@ -680,14 +681,15 @@ export class Interpreter<
       return;
     }
 
-    if ('machine' in target) {
-      // Send SCXML events to machines
-      (target as Interpreter<TContext, TStateSchema, TEvent>).send({
+    if ('machine' in (target as any)) {
+      const scxmlEvent = {
         ...event,
         name:
           event.name === actionTypes.error ? `${error(this.id)}` : event.name,
         origin: this.sessionId
-      });
+      };
+      // Send SCXML events to machines
+      target.send(scxmlEvent);
     } else {
       // Send normal events to other targets
       target.send(event.data);
@@ -726,7 +728,7 @@ export class Interpreter<
 
       if (!child) {
         throw new Error(
-          `Unable to forward event '${event}' from interpreter '${this.id}' to nonexistant child '${id}'.`
+          `Unable to forward event '${event.name}' from interpreter '${this.id}' to nonexistant child '${id}'.`
         );
       }
 
@@ -804,7 +806,7 @@ export class Interpreter<
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext, TEvent>)
-          .activity as InvokeDefinition<TContext, TEvent>;
+          .actor as InvokeDefinition<TContext, TEvent>;
 
         // If the activity will be stopped right after it's started
         // (such as in transient states)
@@ -815,8 +817,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator: ServiceConfig<TContext> | undefined = this
-            .machine.options.services
+          const serviceCreator:
+            | ServiceConfig<TContext, TEvent>
+            | undefined = this.machine.options.services
             ? this.machine.options.services[activity.src]
             : undefined;
 
@@ -838,13 +841,24 @@ export class Interpreter<
             return;
           }
 
-          const source = serviceCreator(context, _event.data);
+          const actor = serviceCreator(context, _event.data, {
+            parent: this as any,
+            id,
+            data,
+            _event
+          });
+
+          if (autoForward) {
+            this.forwardTo.add(id);
+          }
+
+          this.children.set(id, actor);
 
           const childIndex = this.state.children.findIndex(
             child => child.id === id
           );
 
-          this.state.children[childIndex] = source;
+          this.state.children[childIndex] = actor;
 
           // if (isPromiseLike(source)) {
           //   this.state.children[childIndex] = this.spawnPromise(
@@ -881,7 +895,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.activity.id);
+        this.stopChild(action.actor.id);
         break;
       }
 
@@ -949,9 +963,9 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
-    const childService = new Interpreter(machine, {
+    const childService = interpret(machine, {
       ...this.options, // inherit options from this interpreter
-      parent: this,
+      parent: this as Actor<any>,
       id: options.id || machine.id
     });
 

@@ -19,7 +19,9 @@ export interface Actor<
   state?: any;
 }
 
-export function createNullActor(id: string): Actor {
+export function createNullActor<TContext, TEvent extends EventObject>(
+  id: string
+): Actor<TContext, TEvent> {
   return {
     id,
     send: () => void 0,
@@ -38,10 +40,10 @@ export function createNullActor(id: string): Actor {
  *
  * @param invokeDefinition The meta information needed to invoke the actor.
  */
-export function createInvocableActor<TC, TE extends EventObject>(
-  invokeDefinition: InvokeDefinition<TC, TE>
-): Actor<any, TE> {
-  const tempActor = createNullActor(invokeDefinition.id);
+export function createInvocableActor<TContext, TEvent extends EventObject>(
+  invokeDefinition: InvokeDefinition<TContext, TEvent>
+): Actor<any, TEvent> {
+  const tempActor = createNullActor<TContext, TEvent>(invokeDefinition.id);
 
   tempActor.meta = invokeDefinition;
 

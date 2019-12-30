@@ -374,7 +374,7 @@ class StateNode<
       ) {
         this.machine.options.services = {
           ...this.machine.options.services,
-          [resolvedSrc]: invokeConfig.src
+          [resolvedSrc]: invokeConfig.src as any
         };
       }
 
@@ -1191,12 +1191,12 @@ class StateNode<
     let children = currentState ? currentState.children : [];
     for (const action of resolvedActions) {
       if (action.type === actionTypes.start) {
-        children.push(createInvocableActor((action as any).activity!));
+        children.push(createInvocableActor((action as any).actor));
       } else if (action.type === actionTypes.stop) {
         children = children.filter(childActor => {
           return (
             childActor.id !==
-            (action as ActivityActionObject<TContext, TEvent>).activity.id
+            (action as ActivityActionObject<TContext, TEvent>).actor.id
           );
         });
       }

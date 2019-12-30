@@ -343,7 +343,7 @@ export function start<TContext, TEvent extends EventObject>(
 
   return {
     type: ActionTypes.Start,
-    activity: activityDef,
+    actor: activityDef,
     exec: undefined
   };
 }
@@ -360,7 +360,7 @@ export function stop<TContext, TEvent extends EventObject>(
 
   return {
     type: ActionTypes.Stop,
-    activity: activityDef,
+    actor: activityDef,
     exec: undefined
   };
 }

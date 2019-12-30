@@ -9,6 +9,7 @@ import {
 import { StateNode, Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
+import { spawnMachine } from './invoke';
 
 function getAttribute(
   element: XMLElement,
@@ -336,7 +337,7 @@ function toConfig(
         el => el.name === 'content'
       ) as XMLElement;
 
-      return scxmlToMachine(content, options);
+      return spawnMachine(scxmlToMachine(content, options));
     });
 
     return {
