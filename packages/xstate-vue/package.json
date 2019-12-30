@@ -40,8 +40,17 @@
   },
   "peerDependencies": {
     "@vue/composition-api": "^0.3.4",
+    "@xstate/fsm": "^1.0.0",
     "vue": "^2.6.10",
     "xstate": "^4.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^4.2.4",
