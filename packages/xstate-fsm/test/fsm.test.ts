@@ -44,7 +44,7 @@ describe('@xstate/fsm', () => {
         }
       },
       yellow: {
-        entry: assign({ go: false }),
+        entry: assign<LightContext>({ go: false }),
         on: {
           INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
           EMERGENCY: {

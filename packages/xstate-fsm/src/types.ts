@@ -12,10 +12,11 @@ export interface EventObject {
 export namespace StateMachine {
   export type Action<TContext, TEvent extends EventObject> =
     | string
+    | StateMachine.AssignActionObject<TContext, TEvent>
     | StateMachine.ActionObject<TContext, TEvent>
     | ((context: TContext, event: TEvent) => void);
 
-  export interface ActionObject<TContext, TEvent> {
+  export interface ActionObject<TContext, TEvent extends EventObject> {
     type: string;
     exec?: (context: TContext, event: TEvent) => void;
     [key: string]: any;
@@ -28,6 +29,12 @@ export namespace StateMachine {
 
   export type AssignAction = 'xstate.assign';
 
+  export interface AssignActionObject<TContext, TEvent extends EventObject>
+    extends ActionObject<TContext, TEvent> {
+    type: AssignAction;
+    assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
+  }
+
   export type Transition<TContext, TEvent extends EventObject> =
     | string
     | {
@@ -35,7 +42,11 @@ export namespace StateMachine {
         actions?: SingleOrArray<Action<TContext, TEvent>>;
         cond?: (context: TContext, event: TEvent) => boolean;
       };
-  export interface State<TContext, TEvent, TState extends Typestate<TContext>> {
+  export interface State<
+    TContext,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext>
+  > {
     value: string;
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
@@ -96,6 +107,17 @@ export namespace StateMachine {
     stop: () => Service<TContext, TEvent, TState>;
     readonly status: InterpreterStatus;
   }
+
+  export type Assigner<TContext, TEvent extends EventObject> = (
+    context: TContext,
+    event: TEvent
+  ) => Partial<TContext>;
+
+  export type PropertyAssigner<TContext, TEvent extends EventObject> = {
+    [K in keyof TContext]?:
+      | ((context: TContext, event: TEvent) => TContext[K])
+      | TContext[K];
+  };
 }
 
 export interface Typestate<TContext> {
