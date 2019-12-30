@@ -1,0 +1,70 @@
+{
+  "name": "@xstate/vue",
+  "version": "0.0.1",
+  "description": "XState tools for Vue",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "vue",
+    "composable"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "sideEffects": false,
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "build": "tsc",
+    "test": "jest",
+    "prepublish": "npm run build && npm run test"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "peerDependencies": {
+    "@vue/composition-api": "^0.3.4",
+    "@xstate/fsm": "^1.0.0",
+    "vue": "^2.6.10",
+    "xstate": "^4.7.0"
+  },
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
+  },
+  "devDependencies": {
+    "@testing-library/jest-dom": "^4.2.4",
+    "@testing-library/vue": "^4.1.0",
+    "@vue/composition-api": "^0.3.4",
+    "@vue/test-utils": "^1.0.0-beta.30",
+    "@xstate/fsm": "*",
+    "babel-core": "^6.26.3",
+    "jest": "^24.8.0",
+    "lerna-alias": "3.0.3-0",
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.2",
+    "vue": "^2.6.10",
+    "vue-jest": "^3.0.5",
+    "xstate": "*"
+  }
+}
