@@ -166,7 +166,7 @@ export class Interpreter<
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
-  public parent?: Interpreter<any>;
+  public parent?: Actor<any>;
   public id: string;
 
   /**
@@ -681,7 +681,7 @@ export class Interpreter<
       return;
     }
 
-    if ('machine' in target) {
+    if ('machine' in (target as any)) {
       const scxmlEvent = {
         ...event,
         name:
@@ -965,7 +965,7 @@ export class Interpreter<
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
     const childService = interpret(machine, {
       ...this.options, // inherit options from this interpreter
-      parent: this,
+      parent: this as Actor<any>,
       id: options.id || machine.id
     });
 

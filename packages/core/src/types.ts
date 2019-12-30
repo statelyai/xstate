@@ -1,6 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { Interpreter, Clock } from './interpreter';
+import { Clock } from './interpreter';
 import { Actor } from './Actor';
 
 export type EventType = string;
@@ -969,7 +969,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Interpreter<any, any, any>;
+  parent?: Actor<any>;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown

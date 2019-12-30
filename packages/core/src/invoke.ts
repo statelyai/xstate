@@ -38,7 +38,7 @@ export function spawnMachine<
       ) as TMachine;
     }
     const childService = interpret(resolvedMachine, {
-      ...this.options, // inherit options from this interpreter
+      ...options, // inherit options from this interpreter
       parent,
       id: id || resolvedMachine.id
     });
