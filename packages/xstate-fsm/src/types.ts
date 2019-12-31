@@ -12,13 +12,13 @@ export interface EventObject {
 export namespace StateMachine {
   export type Action<TContext, TEvent extends EventObject> =
     | string
-    | StateMachine.AssignActionObject<TContext, TEvent>
-    | StateMachine.ActionObject<TContext, TEvent>
-    | ((context: TContext, event: TEvent) => void);
+    | AssignActionObject<TContext, TEvent>
+    | ActionObject<TContext, TEvent>
+    | ActionFunction<TContext, TEvent>;
 
   export interface ActionObject<TContext, TEvent extends EventObject> {
     type: string;
-    exec?: (context: TContext, event: TEvent) => void;
+    exec?: ActionFunction<TContext, TEvent>;
     [key: string]: any;
   }
 
@@ -64,14 +64,11 @@ export namespace StateMachine {
       [key: string]: {
         on?: {
           [K in TEvent['type']]?: SingleOrArray<
-            StateMachine.Transition<
-              TContext,
-              TEvent extends { type: K } ? TEvent : never
-            >
+            Transition<TContext, TEvent extends { type: K } ? TEvent : never>
           >;
         };
-        exit?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
-        entry?: SingleOrArray<StateMachine.Action<TContext, TEvent>>;
+        exit?: SingleOrArray<Action<TContext, TEvent>>;
+        entry?: SingleOrArray<Action<TContext, TEvent>>;
       };
     };
   }
@@ -81,14 +78,14 @@ export namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext>
   > {
-    initialState: StateMachine.State<TContext, TEvent, TState>;
+    initialState: State<TContext, TEvent, TState>;
     transition: (
-      state: string | StateMachine.State<TContext, TEvent, TState>,
+      state: string | State<TContext, TEvent, TState>,
       event: TEvent['type'] | TEvent
-    ) => StateMachine.State<TContext, TEvent, TState>;
+    ) => State<TContext, TEvent, TState>;
   }
 
-  export type StateListener<T extends StateMachine.State<any, any, any>> = (
+  export type StateListener<T extends State<any, any, any>> = (
     state: T
   ) => void;
 
