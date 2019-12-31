@@ -54,7 +54,7 @@ export default {
 
 ### `useMachine(machine, options?)`
 
-A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
+A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
 
 **Arguments**
 
@@ -84,7 +84,7 @@ A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that s
 
 ### `useMachine(machine)` with `@xstate/fsm`
 
-A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
+A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
 This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
 
