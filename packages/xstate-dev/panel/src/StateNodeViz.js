@@ -23,7 +23,7 @@ export const StateNodeViz = ({ stateNode, state }) => {
     if (stateNodeRef.current) {
       tracker.update(stateNode.id, stateNodeRef.current);
     }
-  }, []);
+  });
 
   useLayoutEffect(() => {
     if (isActive && stateNodeRef.current && stateNode.type === 'atomic') {

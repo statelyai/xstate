@@ -14,18 +14,20 @@ export function isHidden(el) {
 class Tracker {
   elements = new Map();
   constructor() {
-    if (typeof window !== 'undefined') {
-      let timeout;
-
-      // window.addEventListener('resize', () => {
-      //   if (timeout) {
-      //     cancelAnimationFrame(timeout);
-      //   }
-      //   timeout = requestAnimationFrame(() => {
-      //     this.updateAll();
-      //   });
-      // });
-    }
+    // if (typeof window !== 'undefined') {
+    //   let timeout;
+    //   window.addEventListener('resize', () => {
+    //     if (timeout) {
+    //       cancelAnimationFrame(timeout);
+    //     }
+    //     timeout = requestAnimationFrame(() => {
+    //       this.updateAll();
+    //     });
+    //   });
+    // }
+    // setInterval(() => {
+    //   this.updateAll();
+    // }, 500);
   }
 
   updateAll() {
@@ -34,8 +36,45 @@ class Tracker {
     });
   }
 
+  debug() {
+    let el = document.querySelector('#tracker');
+
+    if (!el) {
+      el = document.createElement('div');
+      document.body.appendChild(el);
+      el.style = `
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100vw;
+        height: 100vh;
+        border: 5px solid red;
+        pointer-events: none;
+      `.replace('\n', '');
+      el.setAttribute('id', 'tracker');
+    }
+
+    while (el.firstChild) {
+      el.removeChild(el.firstChild);
+    }
+
+    for (const [key, value] of this.elements.entries()) {
+      const child = document.createElement('div');
+      el.appendChild(child);
+      child.style = `
+        position: fixed;
+        top: ${value.rect.top}px;
+        left: ${value.rect.left}px;
+        width: ${value.rect.width}px;
+        height: ${value.rect.height}px;
+        outline: 1px solid red;
+      `.replace('\n', '');
+      child.dataset.key = key;
+    }
+  }
+
   update(id, element) {
-    console.log('updagint', id, this.elements.get(id));
+    console.log('updating ' + id, element);
     if (!this.elements.get(id)) {
       this.elements.set(id, {
         listeners: new Set(),
@@ -44,14 +83,30 @@ class Tracker {
         hidden: isHidden(element)
       });
     }
+    const prevData = this.elements.get(id);
+    const { rect: prevRect } = prevData;
+    const rect = element ? element.getBoundingClientRect() : undefined;
+
+    if (
+      prevRect.top === rect.top &&
+      prevRect.left === rect.left &&
+      prevRect.bottom === rect.bottom &&
+      prevRect.right === rect.right
+    ) {
+      return;
+    }
+
     const data = {
-      ...this.elements.get(id),
+      ...prevData,
       element: element || undefined,
       rect: element ? element.getBoundingClientRect() : undefined,
       hidden: isHidden(element)
     };
 
-    this.notify(data);
+    this.elements.set(id, data);
+    requestAnimationFrame(() => {
+      this.notify(data);
+    });
 
     if (element) {
       const desc = element.querySelectorAll(`[data-id]`);
@@ -62,6 +117,8 @@ class Tracker {
         this.update(id, el);
       });
     }
+
+    // this.debug();
   }
 
   listen(id, listener) {
@@ -76,6 +133,8 @@ class Tracker {
 
     const data = this.elements.get(id);
     data.listeners.add(listener);
+
+    console.log('new listener', id, data.rect);
 
     this.notify(data);
   }

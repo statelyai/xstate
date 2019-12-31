@@ -1,5 +1,5 @@
 import React, { useState, useRef } from 'react';
-import { Machine } from 'xstate';
+import { Machine, State } from 'xstate';
 import styled from 'styled-components';
 import { useEffect } from 'react';
 import { StateNodeViz } from './StateNodeViz';
@@ -110,6 +110,7 @@ export const StyledStateNodeState = styled.div`
 export const StyledStateNodeEvents = styled.div`
   display: flex;
   flex-direction: column;
+  align-items: flex-start;
 `;
 
 export const StyledStateNodeChildrenViz = styled.div`
@@ -142,10 +143,11 @@ export function serializeEdge(edge) {
 
 const MachineViz = ({ selectedService }) => {
   const svgRef = useRef(null);
-  const state = selectedService.state;
   const edges = getEdges(Machine(selectedService.machine));
 
-  console.log('EDGES', edges);
+  const machine = Machine(selectedService.machine);
+  console.log(State.create(selectedService.state));
+  const state = State.create(selectedService.state);
 
   useEffect(() => {
     if (!svgRef.current) {
@@ -153,14 +155,11 @@ const MachineViz = ({ selectedService }) => {
     }
 
     tracker.update('svg', svgRef.current);
-  }, []);
+  });
 
   return (
     <section>
-      <StateNodeViz
-        stateNode={Machine(selectedService.machine)}
-        state={selectedService.state}
-      ></StateNodeViz>
+      <StateNodeViz stateNode={machine} state={state}></StateNodeViz>
       <svg
         width="100%"
         height="100%"
@@ -206,7 +205,7 @@ const MachineViz = ({ selectedService }) => {
 
           // const svgRect = this.svgRef.current.getBoundingClientRect();
 
-          return <EdgeViz edge={edge} key={serial} />;
+          return <EdgeViz key={serial} edge={edge} state={state} />;
 
           // return (
           //   <Edge
