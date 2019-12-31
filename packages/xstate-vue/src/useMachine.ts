@@ -1,10 +1,4 @@
-import {
-  ref,
-  Ref,
-  watch,
-  onBeforeMount,
-  onBeforeUnmount
-} from '@vue/composition-api';
+import { ref, Ref, onBeforeMount, onBeforeUnmount } from '@vue/composition-api';
 import {
   interpret,
   EventObject,

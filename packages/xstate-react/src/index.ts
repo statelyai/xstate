@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   interpret,
   EventObject,
@@ -9,6 +9,7 @@ import {
   MachineOptions,
   StateConfig
 } from 'xstate';
+import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
@@ -102,26 +103,22 @@ export function useService<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
-  const [current, setCurrent] = useState(service.state || service.initialState);
-
-  useEffect(() => {
-    // Set to current service state as there is a possibility
-    // of a transition occurring between the initial useState()
-    // initialization and useEffect() commit.
-    setCurrent(service.state || service.initialState);
-
-    const listener = state => {
-      if (state.changed !== false) {
-        setCurrent(state);
+  const subscription: Subscription<State<TContext, TEvent>> = useMemo(
+    () => ({
+      getCurrentValue: () => service.state || service.initialState,
+      subscribe: callback => {
+        const { unsubscribe } = service.subscribe(state => {
+          if (state.changed !== false) {
+            callback();
+          }
+        });
+        return unsubscribe;
       }
-    };
+    }),
+    [service]
+  );
 
-    const sub = service.subscribe(listener);
-
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [service]);
+  const current = useSubscription(subscription);
 
   return [current, service.send, service];
 }
