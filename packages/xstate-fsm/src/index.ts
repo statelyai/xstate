@@ -2,16 +2,18 @@ import {
   StateMachine,
   EventObject,
   Typestate,
-  InterpreterStatus
+  InterpreterStatus,
+  InitEvent
 } from './types';
 
 export { StateMachine, EventObject, InterpreterStatus, Typestate };
 
+const INIT_EVENT: InitEvent = { type: 'xstate.init' };
+const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
+
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
-
-const assignActionType: StateMachine.AssignAction = 'xstate.assign';
 
 export function assign<TC, TE extends EventObject = EventObject>(
   assignment:
@@ -19,7 +21,7 @@ export function assign<TC, TE extends EventObject = EventObject>(
     | StateMachine.PropertyAssigner<TC, TE>
 ): StateMachine.AssignActionObject<TC, TE> {
   return {
-    type: assignActionType,
+    type: ASSIGN_ACTION,
     assignment
   };
 }
@@ -43,7 +45,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-function createMatcher(value) {
+function createMatcher(value: string) {
   return stateValue => value === stateValue;
 }
 
@@ -127,7 +129,7 @@ export function createMachine<
               .filter(a => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
-                if (action.type === assignActionType) {
+                if (action.type === ASSIGN_ACTION) {
                   assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
 
@@ -171,7 +173,7 @@ const executeStateActions = <
   TState extends Typestate<TContext> = any
 >(
   state: StateMachine.State<TContext, TEvent, TState>,
-  event?: TEvent
+  event: TEvent | InitEvent
 ) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
 
 export function interpret<
@@ -204,7 +206,7 @@ export function interpret<
     },
     start: () => {
       status = InterpreterStatus.Running;
-      executeStateActions(state);
+      executeStateActions(state, INIT_EVENT);
       return service;
     },
     stop: () => {
