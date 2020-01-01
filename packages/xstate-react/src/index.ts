@@ -122,5 +122,3 @@ export function useService<TContext, TEvent extends EventObject>(
 
   return [current, service.send, service];
 }
-
-export { useActor } from './useActor';
