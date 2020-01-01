@@ -80,8 +80,6 @@ A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that s
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-### `useActor(actor)` (TODO)
-
 ### `useMachine(machine)` with `@xstate/fsm`
 
 A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
