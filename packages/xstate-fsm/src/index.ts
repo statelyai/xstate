@@ -163,7 +163,7 @@ export function createMachine<
 
 export function interpret<
   TContext,
-  TEvent extends EventObject = any,
+  TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
   machine: StateMachine.Machine<TContext, TEvent, TState>
