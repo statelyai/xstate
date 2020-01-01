@@ -34,6 +34,17 @@ export function useMachine<TContext, TEvent extends EventObject>(
   Interpreter<TContext, any, TEvent>['send'],
   Interpreter<TContext, any, TEvent>
 ] {
+  if (process.env.NODE_ENV !== 'production') {
+    const [initialMachine] = useState(machine);
+
+    if (machine !== initialMachine) {
+      throw new Error(
+        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
+          'Please make sure that you pass the same Machine as argument each time.'
+      );
+    }
+  }
+
   const {
     context,
     guards,
