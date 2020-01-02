@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
-import { useService } from '../src';
-import { Machine, assign, interpret } from 'xstate';
+import { useService, useMachine } from '../src';
+import { Machine, assign, interpret, Interpreter } from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 
 afterEach(cleanup);
@@ -142,5 +142,35 @@ describe('useService hook', () => {
     expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
     expect(countEl.textContent).toBe('0');
+  });
+
+  it('service should be able to be used from useMachine', () => {
+    const CounterDisplay: React.FC<{
+      service: Interpreter<any>;
+    }> = ({ service }) => {
+      const [state] = useService(service);
+
+      return <div data-testid="count">{state.context.count}</div>;
+    };
+
+    const Counter = () => {
+      const [, send, service] = useMachine(counterMachine);
+
+      return (
+        <>
+          <button data-testid="inc" onClick={_ => send('INC')} />
+          <CounterDisplay service={service} />
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Counter />);
+
+    const incButton = getByTestId('inc');
+    const countEl = getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
   });
 });
