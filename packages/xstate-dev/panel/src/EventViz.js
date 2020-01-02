@@ -22,7 +22,7 @@ export const EventViz = ({ edge }) => {
     if (ref.current) {
       tracker.update(serializeEdge(edge), ref.current);
     }
-  }, []);
+  });
 
   return (
     <StyledEdgeViz>

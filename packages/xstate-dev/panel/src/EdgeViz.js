@@ -1,9 +1,11 @@
 import React, { useState, useEffect } from 'react';
 import { tracker } from './tracker';
 import { serializeEdge } from './App';
+import { pathToStateValue } from 'xstate/lib/utils';
+import styled from 'styled-components';
 
-export function relative(childRect, parentElement) {
-  const parentRect = parentElement.getBoundingClientRect();
+export function relative(childRect, parentRect) {
+  // const parentRect = parentElement.getBoundingClientRect();
 
   return {
     top: childRect.top - parentRect.top,
@@ -15,32 +17,42 @@ export function relative(childRect, parentElement) {
   };
 }
 
-export const EdgeViz = ({ edge }) => {
-  console.log('EDGE', edge);
+const StyledPath = styled.path`
+  opacity: 0.5;
+  &[data-enabled] {
+    opacity: 1;
+  }
+`;
+
+export const EdgeViz = ({ edge, state }) => {
   const [eventRect, setEventRect] = useState();
   const [targetRect, setTargetRect] = useState();
   const [svgRect, setSvgRect] = useState();
-
+  console.log(state);
   const targets = edge.target || [];
 
   useEffect(() => {
     if (!targets.length) {
       return;
     }
-    console.log('listening', edge.source.id, targets);
-    tracker.listen(serializeEdge(edge), setEventRect);
-    tracker.listen(targets[0].id, setTargetRect);
-    tracker.listen('svg', setSvgRect);
-  }, []);
 
-  console.log('listen update', edge.source.id, eventRect, targetRect, svgRect);
+    tracker.listen(serializeEdge(edge), data => {
+      setEventRect(data);
+    });
+    tracker.listen(targets[0].id, data => {
+      setTargetRect(data);
+    });
+    tracker.listen('svg', data => {
+      setSvgRect(data);
+    });
+  }, []);
 
   if (!eventRect || !targetRect || !svgRect) {
     return null;
   }
 
-  const eventPos = relative(eventRect.rect, svgRect.element);
-  const targetPos = relative(targetRect.rect, svgRect.element);
+  const eventPos = relative(eventRect.rect, svgRect.rect);
+  const targetPos = relative(targetRect.rect, svgRect.rect);
 
   const yDir = Math.sign(targetPos.top - eventPos.top);
 
@@ -65,7 +77,17 @@ export const EdgeViz = ({ edge }) => {
     return acc + ` L${pt[0]}, ${pt[1]}`;
   }, '');
 
-  return <path d={d} stroke="white" strokeWidth={2} fill="none"></path>;
+  return (
+    <StyledPath
+      d={d}
+      stroke="white"
+      strokeWidth={2}
+      fill="none"
+      data-enabled={
+        state.matches(pathToStateValue(edge.source.path)) || undefined
+      }
+    ></StyledPath>
+  );
 };
 
 console.log(tracker);

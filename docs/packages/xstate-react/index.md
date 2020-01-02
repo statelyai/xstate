@@ -70,19 +70,6 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-### `useActor(actor)` <Badge text="0.8+"/>
-
-A [React hook](https://reactjs.org/hooks) that subscribes to messages (events) from actors, and can send messages (events) to actors.
-
-**Arguments**
-
-- `actor` - An actor-like object, which has `.subscribe(listener)` and `.send(event)` methods.
-
-**Returns** a tuple of `[current, send]`:
-
-- `current` - Represents the current message sent from the actor.
-- `send` - A function that sends events to the actor.
-
 ### `useMachine(machine)` with `@xstate/fsm` <Badge text="1.1+"/>
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.

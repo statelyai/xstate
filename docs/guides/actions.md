@@ -172,7 +172,7 @@ The `send(event)` action creator creates a special "send" action object that tel
 
 | Argument   | Type                                       | Description                                                   |
 | ---------- | ------------------------------------------ | ------------------------------------------------------------- |
-| `event`    | string or event object or event expression | The event to send to the specified `options.target` (or self) |
+| `event`    | string or event object or event expression | The event to send to the specified `options.to` (or self) |
 | `options?` | send options (see below)                   | Options for sending the event.                                |
 
 The send `options` argument is an object containing:
@@ -357,7 +357,7 @@ nextState.actions;
 
 The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
 
-This uses [SCXML events](./events.md#scxml-events) internally to get the `origin` from the event and set the `target` of the `send()` action to the `origin`.
+This uses [SCXML events](./events.md#scxml-events) internally to get the `origin` from the event and set the `to` of the `send()` action to the `origin`.
 
 | Argument   | Type                                     | Description                             |
 | ---------- | ---------------------------------------- | --------------------------------------- |
