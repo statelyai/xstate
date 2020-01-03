@@ -1,4 +1,4 @@
-import { EventObject, State } from 'xstate';
+import { EventObject, State, StateNode } from 'xstate';
 export interface TestMeta<T, TContext> {
   test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
   description?: string | ((state: State<TContext, any>) => string);
@@ -137,4 +137,8 @@ export interface TestModelOptions<T> {
 export interface TestModelCoverage {
   stateNodes: Map<string, number>;
   transitions: Map<string, Map<EventObject, number>>;
+}
+
+export interface CoverageOptions<TContext> {
+  filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
 }
