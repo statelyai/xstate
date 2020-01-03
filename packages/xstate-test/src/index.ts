@@ -311,11 +311,10 @@ export class TestModel<TTestContext, TContext> {
     options?: CoverageOptions<TContext>
   ): { stateNodes: Record<string, number> } {
     const filter = options ? options.filter : undefined;
-    const stateNodes = getStateNodes(this.machine).filter(
-      filter || (() => true)
-    );
+    const stateNodes = getStateNodes(this.machine);
+    const filteredStateNodes = filter ? stateNodes.filter(filter) : stateNodes;
     const coverage = {
-      stateNodes: stateNodes.reduce((acc, stateNode) => {
+      stateNodes: filteredStateNodes.reduce((acc, stateNode) => {
         acc[stateNode.id] = 0;
         return acc;
       }, {})
