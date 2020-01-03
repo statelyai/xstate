@@ -1754,7 +1754,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          if (state.matches<any>('active') && state.children.childActor) {
+          if (state.matches('active') && state.children.childActor) {
             state.children.childActor.send({ type: 'FIRE' });
           }
         })
@@ -1847,7 +1847,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const service = interpret(parentMachine)
         .onTransition(state => {
           if (
-            state.matches<any>('active') &&
+            state.matches('active') &&
             state.children.childActor &&
             !subscription
           ) {
