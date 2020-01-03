@@ -1885,9 +1885,15 @@ class StateNode<
 
     const target = this.resolveTarget(normalizedTarget);
 
+    const actions = toActionObjects(toArray(transitionConfig.actions));
+
+    if (transitionConfig.context) {
+      actions.unshift(assign(transitionConfig.context));
+    }
+
     return {
       ...transitionConfig,
-      actions: toActionObjects(toArray(transitionConfig.actions)),
+      actions,
       cond: toGuard(transitionConfig.cond, guards),
       target,
       source: this,

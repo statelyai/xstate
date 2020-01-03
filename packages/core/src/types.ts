@@ -149,6 +149,11 @@ export type TransitionTargets<TContext> = Array<
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
+  /**
+   * The (partial) context that should be assigned to the state
+   * when this transition is taken.
+   */
+  context?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
