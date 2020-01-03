@@ -58,8 +58,8 @@ import { registerService } from './devTools';
 export type StateListener<
   TContext,
   TEvent extends EventObject,
-  TState extends Typestate<TContext> = any
-> = (state: State<TContext, TEvent, any, TState>, event: TEvent) => void;
+  TTypestate extends Typestate<TContext> = any
+> = (state: State<TContext, TEvent, any, TTypestate>, event: TEvent) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
   context: TContext,
@@ -121,7 +121,7 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = any
 > implements Actor<State<TContext, TEvent>, TEvent> {
   /**
    * The default interpreter options:
@@ -190,7 +190,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TStateSchema, TEvent, TState>,
+    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions,
     sessionId?: string
   ) {
@@ -316,7 +316,9 @@ export class Interpreter<
    *
    * @param listener The state listener
    */
-  public onTransition(listener: StateListener<TContext, TEvent, TState>): this {
+  public onTransition(
+    listener: StateListener<TContext, TEvent, TTypestate>
+  ): this {
     this.listeners.add(listener);
 
     // Send current state to listener
@@ -327,18 +329,18 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TState>>
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Unsubscribable;
   public subscribe(
-    nextListener?: (state: State<TContext, TEvent, any, TState>) => void,
+    nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Unsubscribable;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent, any, TState>) => void)
-      | Observer<State<TContext, TEvent, any, TState>>,
+      | ((state: State<TContext, TEvent, any, TTypestate>) => void)
+      | Observer<State<TContext, TEvent, any, TTypestate>>,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
@@ -347,7 +349,7 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent, any, TState>) => void;
+    let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -1302,15 +1304,17 @@ export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = any
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent, TState>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
-  const interpreter = new Interpreter<TContext, TStateSchema, TEvent, TState>(
-    machine,
-    options
-  );
+  const interpreter = new Interpreter<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate
+  >(machine, options);
 
   return interpreter;
 }

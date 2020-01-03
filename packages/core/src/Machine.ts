@@ -51,19 +51,19 @@ export function Machine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TState extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = any
 >(
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TState> {
+): StateMachine<TContext, any, TEvent, TTypestate> {
   const resolvedInitialContext =
     typeof config.context === 'function'
       ? (config.context as (() => TContext))()
       : config.context;
 
-  return new StateNode<TContext, any, TEvent, TState>(
+  return new StateNode<TContext, any, TEvent, TTypestate>(
     config,
     options,
     resolvedInitialContext
-  ) as StateMachine<TContext, any, TEvent, TState>;
+  ) as StateMachine<TContext, any, TEvent, TTypestate>;
 }

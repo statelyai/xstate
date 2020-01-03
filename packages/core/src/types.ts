@@ -641,8 +641,8 @@ export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TState extends Typestate<TContext> = Typestate<TContext>
-> extends StateNode<TContext, TStateSchema, TEvent, TState> {
+  TTypestate extends Typestate<TContext> = any
+> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }

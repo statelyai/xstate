@@ -930,8 +930,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       }
     });
-
-    const parentMachine = Machine<Ctx, Events>({
+    // Ctx, any, Events, any
+    const parentMachine = createMachine<Ctx, Events>({
       id: 'parent',
       initial: 'start',
       states: {
@@ -959,7 +959,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
         .onTransition(state => {
-          if (state.matches<any>('start')) {
+          if (state.matches('start')) {
             expect(state.children).toHaveProperty('child');
             expect(typeof state.children.child.send).toBe('function');
           }
