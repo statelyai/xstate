@@ -417,11 +417,9 @@ export interface StateNodeConfig<
    */
   type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   /**
-   * The initial context (extended state) of the machine.
-   *
-   * Can be an object or a function that returns an object.
+   * The (partial) context that this state should have once entered.
    */
-  context?: TContext | (() => TContext);
+  context?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
   /**
    * Indicates whether the state node is a history state node, and what
    * type of history:
@@ -603,7 +601,9 @@ export interface MachineConfig<
   TEvent extends EventObject
 > extends StateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
-   * The initial context (extended state)
+   * The initial context (extended state) of the machine.
+   *
+   * Can be an object or a function that returns an object.
    */
   context?: TContext | (() => TContext);
   /**
