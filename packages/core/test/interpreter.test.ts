@@ -930,8 +930,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       }
     });
-
-    const parentMachine = Machine<Ctx, Events>({
+    // Ctx, any, Events, any
+    const parentMachine = createMachine<Ctx, Events>({
       id: 'parent',
       initial: 'start',
       states: {
