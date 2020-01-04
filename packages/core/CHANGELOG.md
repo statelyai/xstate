@@ -1,5 +1,11 @@
 # xstate
 
+## 4.7.6
+
+### Patch Changes
+
+- dae8818: Typestates are now propagated to interpreted services.
+
 ## 4.7.5
 
 ### Patch Changes
