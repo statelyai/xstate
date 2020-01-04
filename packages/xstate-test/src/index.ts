@@ -15,7 +15,8 @@ import {
   TestPathResult,
   TestSegmentResult,
   TestMeta,
-  EventExecutor
+  EventExecutor,
+  CoverageOptions
 } from './types';
 
 /**
@@ -306,10 +307,14 @@ export class TestModel<TTestContext, TContext> {
     }
   }
 
-  public getCoverage(): { stateNodes: Record<string, number> } {
+  public getCoverage(
+    options?: CoverageOptions<TContext>
+  ): { stateNodes: Record<string, number> } {
+    const filter = options ? options.filter : undefined;
     const stateNodes = getStateNodes(this.machine);
+    const filteredStateNodes = filter ? stateNodes.filter(filter) : stateNodes;
     const coverage = {
-      stateNodes: stateNodes.reduce((acc, stateNode) => {
+      stateNodes: filteredStateNodes.reduce((acc, stateNode) => {
         acc[stateNode.id] = 0;
         return acc;
       }, {})
@@ -322,8 +327,8 @@ export class TestModel<TTestContext, TContext> {
     return coverage;
   }
 
-  public testCoverage(): void {
-    const coverage = this.getCoverage();
+  public testCoverage(options?: CoverageOptions<TContext>): void {
+    const coverage = this.getCoverage(options);
     const missingStateNodes = Object.keys(coverage.stateNodes).filter(id => {
       return !coverage.stateNodes[id];
     });
