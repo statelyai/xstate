@@ -1,4 +1,4 @@
-import { Machine, interpret, assign } from '../src';
+import { Machine, interpret, assign, AnyEventObject } from '../src';
 
 // @ts-ignore
 const finalMachine = Machine({
@@ -143,7 +143,11 @@ describe('final states', () => {
   });
 
   it('should call data expressions on nested final nodes', done => {
-    const machine = Machine({
+    interface Ctx {
+      revealedSecret?: string;
+    }
+
+    const machine = Machine<Ctx>({
       initial: 'secret',
       context: {
         revealedSecret: undefined
@@ -166,7 +170,7 @@ describe('final states', () => {
           },
           onDone: {
             target: 'success',
-            actions: assign({
+            actions: assign<Ctx, AnyEventObject>({
               revealedSecret: (_, event) => {
                 return event.data.secret;
               }

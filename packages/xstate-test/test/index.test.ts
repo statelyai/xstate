@@ -325,6 +325,66 @@ describe('coverage', () => {
       );
     }
   });
+
+  it('skips filtered states (filter option)', async () => {
+    const TestBug = Machine({
+      id: 'testbug',
+      initial: 'idle',
+      context: {
+        retries: 0
+      },
+      states: {
+        idle: {
+          on: {
+            START: 'passthrough'
+          },
+          meta: {
+            test: () => {
+              /* ... */
+            }
+          }
+        },
+        passthrough: {
+          on: {
+            '': 'end'
+          }
+        },
+        end: {
+          type: 'final',
+          meta: {
+            test: () => {
+              /* ... */
+            }
+          }
+        }
+      }
+    });
+
+    const testModel = createModel(TestBug).withEvents({
+      START: () => {
+        /* ... */
+      }
+    });
+
+    const testPlans = testModel.getShortestPathPlans();
+
+    const promises: any[] = [];
+    testPlans.forEach(plan => {
+      plan.paths.forEach(() => {
+        promises.push(plan.test(undefined));
+      });
+    });
+
+    await Promise.all(promises);
+
+    expect(() => {
+      testModel.testCoverage({
+        filter: stateNode => {
+          return !!stateNode.meta;
+        }
+      });
+    }).not.toThrow();
+  });
 });
 
 describe('events', () => {

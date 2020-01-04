@@ -13,7 +13,11 @@ function toArray<T>(item: T | T[] | undefined): T[] {
 
 const assignActionType: StateMachine.AssignAction = 'xstate.assign';
 
-export function assign(assignment: any): StateMachine.ActionObject<any, any> {
+export function assign<TC, TE extends EventObject = EventObject>(
+  assignment:
+    | StateMachine.Assigner<TC, TE>
+    | StateMachine.PropertyAssigner<TC, TE>
+): StateMachine.AssignActionObject<TC, TE> {
   return {
     type: assignActionType,
     assignment

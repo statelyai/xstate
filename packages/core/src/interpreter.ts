@@ -26,7 +26,8 @@ import {
   SCXML,
   EventData,
   Observer,
-  Spawnable
+  Spawnable,
+  Typestate
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -55,10 +56,11 @@ import { registry } from './registry';
 import { registerService } from './devTools';
 import { DEFAULT_SPAWN_OPTIONS } from './invoke';
 
-export type StateListener<TContext, TEvent extends EventObject> = (
-  state: State<TContext, TEvent>,
-  event: TEvent
-) => void;
+export type StateListener<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = any
+> = (state: State<TContext, TEvent, any, TTypestate>, event: TEvent) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
   context: TContext,
@@ -117,7 +119,8 @@ export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TTypestate extends Typestate<TContext> = any
 > implements Actor<State<TContext, TEvent>, TEvent> {
   /**
    * The default interpreter options:
@@ -186,7 +189,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TStateSchema, TEvent>,
+    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions,
     sessionId?: string
   ) {
@@ -313,8 +316,8 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onTransition(
-    listener: StateListener<TContext, TEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+    listener: StateListener<TContext, TEvent, TTypestate>
+  ): this {
     this.listeners.add(listener);
 
     // Send current state to listener
@@ -324,17 +327,19 @@ export class Interpreter<
 
     return this;
   }
-  public subscribe(observer: Observer<State<TContext, TEvent>>): Unsubscribable;
   public subscribe(
-    nextListener?: (state: State<TContext, TEvent>) => void,
+    observer: Observer<State<TContext, TEvent, any, TTypestate>>
+  ): Unsubscribable;
+  public subscribe(
+    nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Unsubscribable;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent>) => void)
-      | Observer<State<TContext, TEvent>>,
+      | ((state: State<TContext, TEvent, any, TTypestate>) => void)
+      | Observer<State<TContext, TEvent, any, TTypestate>>,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
@@ -343,7 +348,7 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent>) => void;
+    let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -618,7 +623,6 @@ export class Interpreter<
       let nextState = this.state;
       let batchChanged = false;
       const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
-
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -1314,15 +1318,18 @@ export function spawn(
 export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TTypestate extends Typestate<TContext> = any
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
-  const interpreter = new Interpreter<TContext, TStateSchema, TEvent>(
-    machine,
-    options
-  );
+  const interpreter = new Interpreter<
+    TContext,
+    TStateSchema,
+    TEvent,
+    TTypestate
+  >(machine, options);
 
   return interpreter;
 }
