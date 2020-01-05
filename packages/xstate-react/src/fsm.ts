@@ -1,5 +1,6 @@
-import { useState, useEffect } from 'react';
-import { StateMachine, EventObject, interpret } from '@xstate/fsm';
+import { useState, useEffect, useMemo } from 'react';
+import { StateMachine, EventObject, Typestate, interpret } from '@xstate/fsm';
+import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
 export function useMachine<TC, TE extends EventObject = EventObject>(
@@ -29,6 +30,47 @@ export function useMachine<TC, TE extends EventObject = EventObject>(
       service.stop();
     };
   }, []);
+
+  return [current, service.send, service];
+}
+
+export function useService<
+  TContext,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  service: StateMachine.Service<TContext, TEvent, TState>
+): [
+  StateMachine.State<TContext, TEvent, TState>,
+  StateMachine.Service<TContext, TEvent, TState>['send'],
+  StateMachine.Service<TContext, TEvent, TState>
+] {
+  const subscription: Subscription<
+    StateMachine.State<TContext, TEvent, TState>
+  > = useMemo(() => {
+    let currentValue: StateMachine.State<TContext, TEvent, TState>;
+
+    service
+      .subscribe(state => {
+        currentValue = state;
+      })
+      .unsubscribe();
+
+    return {
+      getCurrentValue: () => currentValue,
+      subscribe: callback => {
+        const { unsubscribe } = service.subscribe(state => {
+          if (state.changed !== false) {
+            currentValue = state;
+            callback();
+          }
+        });
+        return unsubscribe;
+      }
+    };
+  }, [service]);
+
+  const current = useSubscription(subscription);
 
   return [current, service.send, service];
 }
