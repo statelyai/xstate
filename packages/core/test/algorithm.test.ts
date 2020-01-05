@@ -1,5 +1,6 @@
 import { Machine } from '../src';
 import { getConfiguration } from '../src/stateUtils';
+import { getStateNodes } from '../src/nodeUtils';
 
 const testMachine = Machine({
   id: 'a',
@@ -70,7 +71,7 @@ const testMachine = Machine({
 
 describe('algorithm', () => {
   it('getConfiguration', () => {
-    const prevNodes = testMachine.getStateNodes({
+    const prevNodes = getStateNodes(testMachine, {
       b1: {
         c1: 'd1',
         c2: {},

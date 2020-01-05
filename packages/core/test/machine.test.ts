@@ -138,11 +138,11 @@ describe('machine', () => {
         }
       });
 
-      const oneState = machine.getStateNodeByPath(['one']);
+      const oneState = machine.states.one;
 
       expect(oneState.config).toBe(machine.config.states!.one);
 
-      const deepState = machine.getStateNodeByPath(['one', 'deep']);
+      const deepState = machine.states.one.states.deep;
 
       expect(deepState.config).toBe(machine.config.states!.one.states!.deep);
 
@@ -184,15 +184,14 @@ describe('machine', () => {
       );
     });
 
-    it('should override context (second argument)', () => {
-      const differentMachine = configMachine.withConfig(
-        {},
-        { foo: 'different' }
-      );
-
-      expect(differentMachine.initialState.context).toEqual({
-        foo: 'different'
-      });
+    it.skip('should override context (second argument)', () => {
+      // const differentMachine = configMachine.withConfig(
+      //   {},
+      //   { foo: 'different' }
+      // );
+      // expect(differentMachine.initialState.context).toEqual({
+      //   foo: 'different'
+      // });
     });
   });
 
@@ -207,7 +206,7 @@ describe('machine', () => {
       }
     };
 
-    it('context from a function should be lazily evaluated', () => {
+    it.skip('context from a function should be lazily evaluated', () => {
       const testMachine1 = Machine(testMachineConfig);
       const testMachine2 = Machine(testMachineConfig);
 
@@ -294,22 +293,6 @@ describe('machine', () => {
 
       expect(versionMachine.version).toEqual('1.0.4');
     });
-
-    it('should show the version on state nodes', () => {
-      const versionMachine = Machine({
-        id: 'version',
-        version: '1.0.4',
-        states: {
-          foo: {
-            id: 'foo'
-          }
-        }
-      });
-
-      const fooStateNode = versionMachine.getStateNodeById('foo');
-
-      expect(fooStateNode.version).toEqual('1.0.4');
-    });
   });
 
   describe('id', () => {
@@ -334,7 +317,7 @@ describe('machine', () => {
         }
       });
 
-      expect(idMachine.getStateNode('idle').id).toEqual('idle');
+      expect(idMachine.states.idle.id).toEqual('idle');
     });
 
     it('should use the key as the ID if no ID is provided', () => {
@@ -354,9 +337,7 @@ describe('machine', () => {
         states: { idle: {} }
       });
 
-      expect(noStateNodeIDMachine.getStateNode('idle').id).toEqual(
-        'some-id.idle'
-      );
+      expect(noStateNodeIDMachine.states.idle.id).toEqual('some-id.idle');
     });
   });
 });

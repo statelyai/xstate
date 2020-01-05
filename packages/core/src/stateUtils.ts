@@ -1,5 +1,6 @@
 import { EventObject, StateNode, StateValue } from '.';
 import { keys, flatten } from './utils';
+import { getInitialStateNodes } from './nodeUtils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -61,7 +62,7 @@ export function getConfiguration<TC, TE extends EventObject>(
       if (prevAdjList.get(s)) {
         prevAdjList.get(s)!.forEach(sn => configuration.add(sn));
       } else {
-        s.initialStateNodes.forEach(sn => configuration.add(sn));
+        getInitialStateNodes(s).forEach(sn => configuration.add(sn));
       }
     } else {
       if (s.type === 'parallel') {
@@ -76,7 +77,7 @@ export function getConfiguration<TC, TE extends EventObject>(
             if (prevAdjList.get(child)) {
               prevAdjList.get(child)!.forEach(sn => configuration.add(sn));
             } else {
-              child.initialStateNodes.forEach(sn => configuration.add(sn));
+              getInitialStateNodes(child).forEach(sn => configuration.add(sn));
             }
           }
         }

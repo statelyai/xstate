@@ -12,7 +12,6 @@ import {
   Condition,
   Guard,
   Subscribable,
-  StateMachine,
   ConditionPredicate,
   SCXML,
   StateLike,
@@ -31,6 +30,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State, InvokeConfig, InvokeCreator } from '.';
 import { Actor } from './Actor';
+import { MachineNode } from './MachineNode';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -526,9 +526,9 @@ export function isObservable<T>(
 export const symbolObservable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
 
-export function isMachine(value: any): value is StateMachine<any, any, any> {
+export function isMachine(value: any): value is MachineNode<any, any, any> {
   try {
-    return '__xstatenode' in value;
+    return '__xstatenode' in value && value.parent === undefined;
   } catch (e) {
     return false;
   }

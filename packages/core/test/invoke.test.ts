@@ -968,38 +968,42 @@ describe('invoke', () => {
         }, 10);
       });
 
-      it.skip('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', done => {
-        const doneSpy = jest.fn();
+      it.skip(
+        'should be invoked with a promise factory and ' +
+          'stop on unhandled onError target when on strict mode',
+        done => {
+          const doneSpy = jest.fn();
 
-        const promiseMachine = Machine({
-          id: 'invokePromise',
-          initial: 'pending',
-          strict: true,
-          states: {
-            pending: {
-              invoke: {
-                src: spawnPromise(() =>
-                  createPromise(() => {
-                    throw new Error('test');
-                  })
-                ),
-                onDone: 'success'
+          const promiseMachine = Machine({
+            id: 'invokePromise',
+            initial: 'pending',
+            strict: true,
+            states: {
+              pending: {
+                invoke: {
+                  src: spawnPromise(() =>
+                    createPromise(() => {
+                      throw new Error('test');
+                    })
+                  ),
+                  onDone: 'success'
+                }
+              },
+              success: {
+                type: 'final'
               }
-            },
-            success: {
-              type: 'final'
             }
-          }
-        });
+          });
 
-        interpret(promiseMachine)
-          .onDone(doneSpy)
-          .onStop(() => {
-            expect(doneSpy).not.toHaveBeenCalled();
-            done();
-          })
-          .start();
-      });
+          interpret(promiseMachine)
+            .onDone(doneSpy)
+            .onStop(() => {
+              expect(doneSpy).not.toHaveBeenCalled();
+              done();
+            })
+            .start();
+        }
+      );
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', done => {
         const promiseMachine = Machine({

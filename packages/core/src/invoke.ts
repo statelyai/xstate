@@ -1,6 +1,5 @@
 import {
   EventObject,
-  StateMachine,
   Actor,
   InvokeCreator,
   InvokeCallback,
@@ -19,18 +18,20 @@ import {
   mapContext
 } from './utils';
 import { AnyEventObject } from './types';
+import { MachineNode } from './MachineNode';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function spawnMachine<
   TContext,
   TEvent extends EventObject,
-  TMachine extends StateMachine<any, any, any>
+  TMachine extends MachineNode<any, any, any>
 >(
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { sync?: boolean } = {}
 ): InvokeCreator<TContext, TEvent> {
   return (ctx, event, { parent, id, data, _event }) => {
+    console.log(data);
     let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
     if (data) {
       resolvedMachine = resolvedMachine.withContext(
@@ -42,6 +43,8 @@ export function spawnMachine<
       parent,
       id: id || resolvedMachine.id
     });
+
+    console.log('creating child service ' + id + ' with parent', parent.id);
 
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
