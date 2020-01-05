@@ -370,14 +370,15 @@ function resolveTarget<TContext, TEvent extends EventObject>(
     // If internal target is defined on machine,
     // do not include machine key on target
     if (isInternalTarget && !stateNode.parent) {
-      return stateNode.getStateNodeByPath(target.slice(1));
+      return getStateNodeByPath(stateNode, target.slice(1));
     }
 
     const resolvedTarget = isInternalTarget ? stateNode.key + target : target;
 
     if (stateNode.parent) {
       try {
-        const targetStateNode = stateNode.parent.getStateNodeByPath(
+        const targetStateNode = getStateNodeByPath(
+          stateNode.parent,
           resolvedTarget
         );
         return targetStateNode;
@@ -387,7 +388,7 @@ function resolveTarget<TContext, TEvent extends EventObject>(
         );
       }
     } else {
-      return stateNode.getStateNodeByPath(resolvedTarget);
+      return getStateNodeByPath(stateNode, resolvedTarget);
     }
   });
 }
@@ -424,7 +425,7 @@ function resolveHistory<TContext, TEvent extends EventObject>(
   ).current;
 
   if (isString(subHistoryValue)) {
-    return [parent.getStateNode(subHistoryValue)];
+    return [getStateNode(parent, subHistoryValue)];
   }
 
   return flatten(
@@ -492,7 +493,7 @@ function getFromRelativePath<TContext, TEvent extends EventObject>(
     );
   }
 
-  const childStateNode = stateNode.getStateNode(stateKey);
+  const childStateNode = getStateNode(stateNode, stateKey);
 
   if (childStateNode.type === 'history') {
     return resolveHistory(childStateNode);
@@ -550,6 +551,121 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
       getFromRelativePath(stateNode, initialPath)
     )
   );
+}
+
+export function getInitialState<
+  TContext,
+  TStateSchema,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+>(
+  stateNode: StateNode<TContext, TStateSchema, TEvent>,
+  stateValue: StateValue,
+  context?: TContext
+): State<TContext, TEvent, TStateSchema, TTypestate> {
+  const configuration = stateNode.getStateNodes(stateValue);
+
+  return stateNode.resolveTransition(
+    {
+      configuration,
+      entrySet: configuration,
+      exitSet: [],
+      transitions: [],
+      source: undefined,
+      actions: []
+    },
+    undefined,
+    undefined,
+    context
+  );
+}
+
+/**
+ * Returns the child state node from its relative `stateKey`, or throws.
+ */
+function getStateNode<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  stateKey: string
+): StateNode<TContext, any, TEvent> {
+  if (isStateId(stateKey)) {
+    return getStateNodeById(stateNode.machine, stateKey);
+  }
+
+  if (!stateNode.states) {
+    throw new Error(
+      `Unable to retrieve child state '${stateKey}' from '${stateNode.id}'; no child states exist.`
+    );
+  }
+
+  const result = stateNode.states[stateKey];
+  if (!result) {
+    throw new Error(
+      `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+    );
+  }
+
+  return result;
+}
+
+/**
+ * Returns the state node with the given `stateId`, or throws.
+ *
+ * @param stateId The state ID. The prefix "#" is removed.
+ */
+function getStateNodeById<TContext, TEvent extends EventObject>(
+  fromStateNode: StateNode<TContext, any, TEvent>,
+  stateId: string
+): StateNode<TContext, any, TEvent> {
+  const resolvedStateId = isStateId(stateId)
+    ? stateId.slice(STATE_IDENTIFIER.length)
+    : stateId;
+
+  if (resolvedStateId === fromStateNode.id) {
+    return fromStateNode;
+  }
+
+  const stateNode = fromStateNode.machine.idMap[resolvedStateId];
+
+  if (!stateNode) {
+    throw new Error(
+      `Child state node '#${resolvedStateId}' does not exist on machine '${fromStateNode.id}'`
+    );
+  }
+
+  return stateNode;
+}
+
+/**
+ * Returns the relative state node from the given `statePath`, or throws.
+ *
+ * @param statePath The string or string array relative path to the state node.
+ */
+function getStateNodeByPath<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  statePath: string | string[]
+): StateNode<TContext, any, TEvent> {
+  if (typeof statePath === 'string' && isStateId(statePath)) {
+    try {
+      return getStateNodeById(stateNode, statePath.slice(1));
+    } catch (e) {
+      // try individual paths
+      // throw e;
+    }
+  }
+
+  const arrayStatePath = toStatePath(statePath, stateNode.delimiter).slice();
+  let currentStateNode: StateNode<TContext, any, TEvent> = stateNode;
+  while (arrayStatePath.length) {
+    const key = arrayStatePath.shift()!;
+
+    if (!key.length) {
+      break;
+    }
+
+    currentStateNode = getStateNode(currentStateNode, key);
+  }
+
+  return currentStateNode;
 }
 
 class StateNode<
@@ -673,7 +789,7 @@ class StateNode<
       | undefined
   };
 
-  private idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  public idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
 
   constructor(
     /**
@@ -924,7 +1040,7 @@ class StateNode<
         : toStateValue(state, this.delimiter);
 
     if (isString(stateValue)) {
-      const initialStateValue = this.getStateNode(stateValue).initial;
+      const initialStateValue = getStateNode(this, stateValue).initial;
 
       return initialStateValue !== undefined
         ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
@@ -934,12 +1050,12 @@ class StateNode<
     const subStateKeys = keys(stateValue);
     const subStateNodes: Array<
       StateNode<TContext, any, TEvent>
-    > = subStateKeys.map(subStateKey => this.getStateNode(subStateKey));
+    > = subStateKeys.map(subStateKey => getStateNode(this, subStateKey));
 
     return subStateNodes.concat(
       subStateKeys.reduce(
         (allSubStateNodes, subStateKey) => {
-          const subStateNode = this.getStateNode(subStateKey).getStateNodes(
+          const subStateNode = getStateNode(this, subStateKey).getStateNodes(
             stateValue[subStateKey]
           );
 
@@ -984,7 +1100,7 @@ class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
-    const stateNode = this.getStateNode(stateValue);
+    const stateNode = getStateNode(this, stateValue);
     const next = stateNode.next(state, _event);
 
     if (!next || !next.transitions.length) {
@@ -1000,7 +1116,7 @@ class StateNode<
   ): StateTransition<TContext, TEvent> | undefined {
     const subStateKeys = keys(stateValue);
 
-    const stateNode = this.getStateNode(subStateKeys[0]);
+    const stateNode = getStateNode(this, subStateKeys[0]);
     const next = stateNode._transition(
       stateValue[subStateKeys[0]],
       state,
@@ -1027,7 +1143,7 @@ class StateNode<
         continue;
       }
 
-      const subStateNode = this.getStateNode(subStateKey);
+      const subStateNode = getStateNode(this, subStateKey);
       const next = subStateNode._transition(subStateValue, state, _event);
       if (next) {
         transitionMap[subStateKey] = next;
@@ -1101,7 +1217,7 @@ class StateNode<
         ? isString(stateIn) && isStateId(stateIn)
           ? // Check if in state by ID
             state.matches(
-              toStateValue(this.getStateNodeById(stateIn).path, this.delimiter)
+              toStateValue(getStateNodeById(this, stateIn).path, this.delimiter)
             )
           : // Check if in state by relative grandparent
             matchesState(
@@ -1419,7 +1535,7 @@ class StateNode<
     return state;
   }
 
-  private resolveTransition(
+  public resolveTransition(
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
@@ -1640,87 +1756,6 @@ class StateNode<
   }
 
   /**
-   * Returns the child state node from its relative `stateKey`, or throws.
-   */
-  public getStateNode(stateKey: string): StateNode<TContext, any, TEvent> {
-    if (isStateId(stateKey)) {
-      return this.machine.getStateNodeById(stateKey);
-    }
-
-    if (!this.states) {
-      throw new Error(
-        `Unable to retrieve child state '${stateKey}' from '${this.id}'; no child states exist.`
-      );
-    }
-
-    const result = this.states[stateKey];
-    if (!result) {
-      throw new Error(
-        `Child state '${stateKey}' does not exist on '${this.id}'`
-      );
-    }
-
-    return result;
-  }
-
-  /**
-   * Returns the state node with the given `stateId`, or throws.
-   *
-   * @param stateId The state ID. The prefix "#" is removed.
-   */
-  public getStateNodeById(stateId: string): StateNode<TContext, any, TEvent> {
-    const resolvedStateId = isStateId(stateId)
-      ? stateId.slice(STATE_IDENTIFIER.length)
-      : stateId;
-
-    if (resolvedStateId === this.id) {
-      return this;
-    }
-
-    const stateNode = this.machine.idMap[resolvedStateId];
-
-    if (!stateNode) {
-      throw new Error(
-        `Child state node '#${resolvedStateId}' does not exist on machine '${this.id}'`
-      );
-    }
-
-    return stateNode;
-  }
-
-  /**
-   * Returns the relative state node from the given `statePath`, or throws.
-   *
-   * @param statePath The string or string array relative path to the state node.
-   */
-  public getStateNodeByPath(
-    statePath: string | string[]
-  ): StateNode<TContext, any, TEvent> {
-    if (typeof statePath === 'string' && isStateId(statePath)) {
-      try {
-        return this.getStateNodeById(statePath.slice(1));
-      } catch (e) {
-        // try individual paths
-        // throw e;
-      }
-    }
-
-    const arrayStatePath = toStatePath(statePath, this.delimiter).slice();
-    let currentStateNode: StateNode<TContext, any, TEvent> = this;
-    while (arrayStatePath.length) {
-      const key = arrayStatePath.shift()!;
-
-      if (!key.length) {
-        break;
-      }
-
-      currentStateNode = currentStateNode.getStateNode(key);
-    }
-
-    return currentStateNode;
-  }
-
-  /**
    * Resolves a partial state value with its full representation in this machine.
    *
    * @param stateValue The partial state value to resolve.
@@ -1736,7 +1771,7 @@ class StateNode<
           this.initialStateValue as Record<string, StateValue>,
           (subStateValue, subStateKey) => {
             return subStateValue
-              ? this.getStateNode(subStateKey).resolve(
+              ? getStateNode(this, subStateKey).resolve(
                   stateValue[subStateKey] || subStateValue
                 )
               : EMPTY_OBJECT;
@@ -1745,7 +1780,7 @@ class StateNode<
 
       case 'compound':
         if (isString(stateValue)) {
-          const subStateNode = this.getStateNode(stateValue);
+          const subStateNode = getStateNode(this, stateValue);
 
           if (
             subStateNode.type === 'parallel' ||
@@ -1762,7 +1797,7 @@ class StateNode<
 
         return mapValues(stateValue, (subStateValue, subStateKey) => {
           return subStateValue
-            ? this.getStateNode(subStateKey).resolve(subStateValue)
+            ? getStateNode(this, subStateKey).resolve(subStateValue)
             : EMPTY_OBJECT;
         });
 
@@ -1803,27 +1838,6 @@ class StateNode<
     return this.__cache.initialStateValue;
   }
 
-  public getInitialState(
-    stateValue: StateValue,
-    context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    const configuration = this.getStateNodes(stateValue);
-
-    return this.resolveTransition(
-      {
-        configuration,
-        entrySet: configuration,
-        exitSet: [],
-        transitions: [],
-        source: undefined,
-        actions: []
-      },
-      undefined,
-      undefined,
-      context
-    );
-  }
-
   /**
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
@@ -1838,7 +1852,7 @@ class StateNode<
       );
     }
 
-    return this.getInitialState(initialStateValue);
+    return getInitialState(this, initialStateValue);
   }
 
   /**
@@ -1855,9 +1869,9 @@ class StateNode<
       if (isString(historyConfig.target)) {
         target = isStateId(historyConfig.target)
           ? pathToStateValue(
-              this.machine
-                .getStateNodeById(historyConfig.target)
-                .path.slice(this.path.length - 1)
+              getStateNodeById(this.machine, historyConfig.target).path.slice(
+                this.path.length - 1
+              )
             )
           : historyConfig.target;
       } else {
@@ -1923,6 +1937,10 @@ class StateNode<
     );
 
     return Array.from(events);
+  }
+
+  public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {
+    return getStateNodeById(this, id);
   }
 }
 

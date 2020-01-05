@@ -4,7 +4,7 @@ import * as pkgUp from 'pkg-up';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
-import { StateNode } from '../src/StateNode';
+import { StateNode, getInitialState } from '../src/StateNode';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
@@ -380,7 +380,7 @@ async function runTestToCompletion(
     )
   );
   let done = false;
-  let nextState: State<any> = machine.getInitialState(resolvedStateValue);
+  let nextState: State<any> = getInitialState(machine, resolvedStateValue);
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
