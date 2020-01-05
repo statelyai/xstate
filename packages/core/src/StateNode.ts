@@ -245,7 +245,7 @@ function formatTransition<TContext, TEvent extends EventObject>(
       : true;
   const { guards } = stateNode.machine.options;
 
-  const target = stateNode.resolveTarget(normalizedTarget);
+  const target = resolveTarget(stateNode, normalizedTarget);
 
   return {
     ...transitionConfig,
@@ -349,6 +349,125 @@ function formatTransitions<TContext, TEvent extends EventObject>(
   }
 
   return formattedTransitions;
+}
+
+function resolveTarget<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
+): Array<StateNode<TContext, any, TEvent>> | undefined {
+  if (_target === undefined) {
+    // an undefined target signals that the state node should not transition from that state when receiving that event
+    return undefined;
+  }
+
+  return _target.map(target => {
+    if (!isString(target)) {
+      return target;
+    }
+
+    const isInternalTarget = target[0] === stateNode.delimiter;
+
+    // If internal target is defined on machine,
+    // do not include machine key on target
+    if (isInternalTarget && !stateNode.parent) {
+      return stateNode.getStateNodeByPath(target.slice(1));
+    }
+
+    const resolvedTarget = isInternalTarget ? stateNode.key + target : target;
+
+    if (stateNode.parent) {
+      try {
+        const targetStateNode = stateNode.parent.getStateNodeByPath(
+          resolvedTarget
+        );
+        return targetStateNode;
+      } catch (err) {
+        throw new Error(
+          `Invalid transition definition for state node '${stateNode.id}':\n${err.message}`
+        );
+      }
+    } else {
+      return stateNode.getStateNodeByPath(resolvedTarget);
+    }
+  });
+}
+
+/**
+ * Resolves to the historical value(s) of the parent state node,
+ * represented by state nodes.
+ *
+ * @param historyValue
+ */
+function resolveHistory<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  historyValue?: HistoryValue
+): Array<StateNode<TContext, any, TEvent>> {
+  if (stateNode.type !== 'history') {
+    return [stateNode];
+  }
+
+  const parent = stateNode.parent!;
+
+  if (!historyValue) {
+    const historyTarget = stateNode.target;
+    return historyTarget
+      ? flatten(
+          toStatePaths(historyTarget).map(relativeChildPath =>
+            parent.getFromRelativePath(relativeChildPath)
+          )
+        )
+      : parent.initialStateNodes;
+  }
+
+  const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
+    historyValue
+  ).current;
+
+  if (isString(subHistoryValue)) {
+    return [parent.getStateNode(subHistoryValue)];
+  }
+
+  return flatten(
+    toStatePaths(subHistoryValue!).map(subStatePath => {
+      return stateNode.history === 'deep'
+        ? parent.getFromRelativePath(subStatePath)
+        : [parent.states[subStatePath[0]]];
+    })
+  );
+}
+
+function getHistoryValue<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  relativeStateValue?: StateValue | undefined
+): HistoryValue | undefined {
+  if (!keys(stateNode.states).length) {
+    return undefined;
+  }
+
+  return {
+    current: relativeStateValue || stateNode.initialStateValue,
+    states: mapFilterValues<
+      StateNode<TContext, any, TEvent>,
+      HistoryValue | undefined
+    >(
+      stateNode.states,
+      (childNode, key) => {
+        if (!relativeStateValue) {
+          return getHistoryValue(childNode);
+        }
+
+        const subStateValue = isString(relativeStateValue)
+          ? undefined
+          : relativeStateValue[key];
+
+        return getHistoryValue(
+          childNode,
+          subStateValue || childNode.initialStateValue
+        );
+      },
+      childNode => !childNode.history
+    )
+  };
 }
 
 class StateNode<
@@ -1237,7 +1356,7 @@ class StateNode<
       ? currentState.historyValue
         ? currentState.historyValue
         : stateTransition.source
-        ? (this.machine.historyValue(currentState.value) as HistoryValue)
+        ? getHistoryValue(this.machine, currentState.value)
         : undefined
       : undefined;
     const currentContext = currentState ? currentState.context : context;
@@ -1570,7 +1689,7 @@ class StateNode<
     }
   }
 
-  private get initialStateValue(): StateValue | undefined {
+  public get initialStateValue(): StateValue | undefined {
     if (this.__cache.initialStateValue) {
       return this.__cache.initialStateValue;
     }
@@ -1681,7 +1800,7 @@ class StateNode<
   ): Array<StateNode<TContext, any, TEvent>> {
     return resolve
       ? relativeStateId.type === 'history'
-        ? relativeStateId.resolveHistory(historyValue)
+        ? resolveHistory(relativeStateId, historyValue)
         : relativeStateId.initialStateNodes
       : [relativeStateId];
   }
@@ -1729,7 +1848,7 @@ class StateNode<
     const childStateNode = this.getStateNode(stateKey);
 
     if (childStateNode.type === 'history') {
-      return childStateNode.resolveHistory();
+      return resolveHistory(childStateNode);
     }
 
     if (!this.states[stateKey]) {
@@ -1739,80 +1858,6 @@ class StateNode<
     }
 
     return this.states[stateKey].getFromRelativePath(childStatePath);
-  }
-
-  private historyValue(
-    relativeStateValue?: StateValue | undefined
-  ): HistoryValue | undefined {
-    if (!keys(this.states).length) {
-      return undefined;
-    }
-
-    return {
-      current: relativeStateValue || this.initialStateValue,
-      states: mapFilterValues<
-        StateNode<TContext, any, TEvent>,
-        HistoryValue | undefined
-      >(
-        this.states,
-        (stateNode, key) => {
-          if (!relativeStateValue) {
-            return stateNode.historyValue();
-          }
-
-          const subStateValue = isString(relativeStateValue)
-            ? undefined
-            : relativeStateValue[key];
-
-          return stateNode.historyValue(
-            subStateValue || stateNode.initialStateValue
-          );
-        },
-        stateNode => !stateNode.history
-      )
-    };
-  }
-  /**
-   * Resolves to the historical value(s) of the parent state node,
-   * represented by state nodes.
-   *
-   * @param historyValue
-   */
-  private resolveHistory(
-    historyValue?: HistoryValue
-  ): Array<StateNode<TContext, any, TEvent>> {
-    if (this.type !== 'history') {
-      return [this];
-    }
-
-    const parent = this.parent!;
-
-    if (!historyValue) {
-      const historyTarget = this.target;
-      return historyTarget
-        ? flatten(
-            toStatePaths(historyTarget).map(relativeChildPath =>
-              parent.getFromRelativePath(relativeChildPath)
-            )
-          )
-        : parent.initialStateNodes;
-    }
-
-    const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
-      historyValue
-    ).current;
-
-    if (isString(subHistoryValue)) {
-      return [parent.getStateNode(subHistoryValue)];
-    }
-
-    return flatten(
-      toStatePaths(subHistoryValue!).map(subStatePath => {
-        return this.history === 'deep'
-          ? parent.getFromRelativePath(subStatePath)
-          : [parent.states[subStatePath[0]]];
-      })
-    );
   }
 
   /**
@@ -1870,45 +1915,6 @@ class StateNode<
     );
 
     return Array.from(events);
-  }
-  public resolveTarget(
-    _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
-  ): Array<StateNode<TContext, any, TEvent>> | undefined {
-    if (_target === undefined) {
-      // an undefined target signals that the state node should not transition from that state when receiving that event
-      return undefined;
-    }
-
-    return _target.map(target => {
-      if (!isString(target)) {
-        return target;
-      }
-
-      const isInternalTarget = target[0] === this.delimiter;
-
-      // If internal target is defined on machine,
-      // do not include machine key on target
-      if (isInternalTarget && !this.parent) {
-        return this.getStateNodeByPath(target.slice(1));
-      }
-
-      const resolvedTarget = isInternalTarget ? this.key + target : target;
-
-      if (this.parent) {
-        try {
-          const targetStateNode = this.parent.getStateNodeByPath(
-            resolvedTarget
-          );
-          return targetStateNode;
-        } catch (err) {
-          throw new Error(
-            `Invalid transition definition for state node '${this.id}':\n${err.message}`
-          );
-        }
-      } else {
-        return this.getStateNodeByPath(resolvedTarget);
-      }
-    });
   }
 }
 
