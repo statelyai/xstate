@@ -4,11 +4,12 @@ import * as pkgUp from 'pkg-up';
 // import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
-import { StateNode, getInitialState } from '../src/StateNode';
+import { StateNode } from '../src/StateNode';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
+import { getInitialState } from '../src/nodeUtils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
