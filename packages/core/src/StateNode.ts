@@ -147,6 +147,210 @@ const validateArrayifiedTransitions = <TContext>(
   );
 };
 
+function getCandidates<TEvent extends EventObject>(
+  stateNode: StateNode<any, any, TEvent>,
+  eventName: TEvent['type'] | NullEvent['type'] | '*'
+) {
+  if (stateNode.__cache.candidates[eventName]) {
+    return stateNode.__cache.candidates[eventName];
+  }
+
+  const transient = eventName === NULL_EVENT;
+
+  const candidates = stateNode.transitions.filter(transition => {
+    const sameEventType = transition.eventType === eventName;
+    // null events should only match against eventless transitions
+    return transient
+      ? sameEventType
+      : sameEventType || transition.eventType === WILDCARD;
+  }) as any;
+  stateNode.__cache.candidates[eventName] = candidates;
+  return candidates;
+}
+
+/**
+ * All delayed transitions from the config.
+ */
+function getDelayedTransitions<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>
+): Array<DelayedTransitionDefinition<TContext, TEvent>> {
+  const afterConfig = stateNode.config.after;
+
+  if (!afterConfig) {
+    return [];
+  }
+
+  const mutateEntryExit = (
+    delay: string | number | DelayExpr<TContext, TEvent>,
+    i: number
+  ) => {
+    const delayRef = isFunction(delay) ? `${stateNode.id}:delay[${i}]` : delay;
+
+    const eventType = after(delayRef, stateNode.id);
+
+    stateNode.entry.push(send(eventType, { delay }));
+    stateNode.exit.push(cancel(eventType));
+
+    return eventType;
+  };
+
+  const delayedTransitions = isArray(afterConfig)
+    ? afterConfig.map((transition, i) => {
+        const eventType = mutateEntryExit(transition.delay, i);
+        return { ...transition, event: eventType };
+      })
+    : flatten(
+        keys(afterConfig).map((delay, i) => {
+          const configTransition = afterConfig[delay];
+          const resolvedTransition = isString(configTransition)
+            ? { target: configTransition }
+            : configTransition;
+
+          const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+
+          const eventType = mutateEntryExit(resolvedDelay, i);
+
+          return toArray(resolvedTransition).map(transition => ({
+            ...transition,
+            event: eventType,
+            delay: resolvedDelay
+          }));
+        })
+      );
+
+  return delayedTransitions.map(delayedTransition => {
+    const { delay } = delayedTransition;
+
+    return {
+      ...formatTransition(stateNode, delayedTransition),
+      delay
+    };
+  });
+}
+
+function formatTransition<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  transitionConfig: TransitionConfig<TContext, TEvent> & {
+    event: TEvent['type'] | NullEvent['type'] | '*';
+  }
+): TransitionDefinition<TContext, TEvent> {
+  const normalizedTarget = normalizeTarget(transitionConfig.target);
+  const internal =
+    'internal' in transitionConfig
+      ? transitionConfig.internal
+      : normalizedTarget
+      ? normalizedTarget.some(
+          _target => isString(_target) && _target[0] === stateNode.delimiter
+        )
+      : true;
+  const { guards } = stateNode.machine.options;
+
+  const target = stateNode.resolveTarget(normalizedTarget);
+
+  return {
+    ...transitionConfig,
+    actions: toActionObjects(toArray(transitionConfig.actions)),
+    cond: toGuard(transitionConfig.cond, guards),
+    target,
+    source: stateNode,
+    internal,
+    eventType: transitionConfig.event
+  };
+}
+
+function formatTransitions<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>
+): Array<TransitionDefinition<TContext, TEvent>> {
+  let onConfig: Array<
+    TransitionConfig<TContext, EventObject> & {
+      event: string;
+    }
+  >;
+
+  if (!stateNode.config.on) {
+    onConfig = [];
+  } else if (Array.isArray(stateNode.config.on)) {
+    onConfig = stateNode.config.on;
+  } else {
+    const {
+      [WILDCARD]: wildcardConfigs = [],
+      ...strictOnConfigs
+    } = stateNode.config.on;
+
+    onConfig = flatten(
+      keys(strictOnConfigs)
+        .map(key => {
+          const arrayified = toTransitionConfigArray<TContext, EventObject>(
+            key,
+            strictOnConfigs![key as string]
+          );
+          if (!IS_PRODUCTION) {
+            validateArrayifiedTransitions(stateNode, key, arrayified);
+          }
+          return arrayified;
+        })
+        .concat(
+          toTransitionConfigArray(WILDCARD, wildcardConfigs as SingleOrArray<
+            TransitionConfig<TContext, EventObject> & {
+              event: '*';
+            }
+          >)
+        )
+    );
+  }
+
+  const doneConfig = stateNode.config.onDone
+    ? toTransitionConfigArray(
+        String(done(stateNode.id)),
+        stateNode.config.onDone
+      )
+    : [];
+
+  const invokeConfig = flatten(
+    stateNode.invoke.map(invokeDef => {
+      const settleTransitions: any[] = [];
+      if (invokeDef.onDone) {
+        settleTransitions.push(
+          ...toTransitionConfigArray(
+            String(doneInvoke(invokeDef.id)),
+            invokeDef.onDone
+          )
+        );
+      }
+      if (invokeDef.onError) {
+        settleTransitions.push(
+          ...toTransitionConfigArray(
+            String(error(invokeDef.id)),
+            invokeDef.onError
+          )
+        );
+      }
+      return settleTransitions;
+    })
+  );
+
+  const delayedTransitions = stateNode.after;
+
+  const formattedTransitions = flatten(
+    [...doneConfig, ...invokeConfig, ...onConfig].map(
+      (
+        transitionConfig: TransitionConfig<TContext, TEvent> & {
+          event: TEvent['type'] | NullEvent['type'] | '*';
+        }
+      ) =>
+        toArray(transitionConfig).map(transition =>
+          formatTransition(stateNode, transition)
+        )
+    )
+  );
+
+  for (const delayedTransition of delayedTransitions) {
+    formattedTransitions.push(delayedTransition as any);
+  }
+
+  return formattedTransitions;
+}
+
 class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
@@ -242,7 +446,7 @@ class StateNode<
 
   public __xstatenode: true = true;
 
-  private __cache = {
+  public __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
@@ -486,7 +690,7 @@ class StateNode<
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
     return (
       this.__cache.delayedTransitions ||
-      ((this.__cache.delayedTransitions = this.getDelayedTransitions()),
+      ((this.__cache.delayedTransitions = getDelayedTransitions(this)),
       this.__cache.delayedTransitions)
     );
   }
@@ -497,87 +701,9 @@ class StateNode<
   public get transitions(): Array<TransitionDefinition<TContext, TEvent>> {
     return (
       this.__cache.transitions ||
-      ((this.__cache.transitions = this.formatTransitions()),
+      ((this.__cache.transitions = formatTransitions(this)),
       this.__cache.transitions)
     );
-  }
-
-  private getCandidates(eventName: TEvent['type'] | NullEvent['type'] | '*') {
-    if (this.__cache.candidates[eventName]) {
-      return this.__cache.candidates[eventName];
-    }
-
-    const transient = eventName === NULL_EVENT;
-
-    const candidates = this.transitions.filter(transition => {
-      const sameEventType = transition.eventType === eventName;
-      // null events should only match against eventless transitions
-      return transient
-        ? sameEventType
-        : sameEventType || transition.eventType === WILDCARD;
-    }) as any;
-    this.__cache.candidates[eventName] = candidates;
-    return candidates;
-  }
-
-  /**
-   * All delayed transitions from the config.
-   */
-  private getDelayedTransitions(): Array<
-    DelayedTransitionDefinition<TContext, TEvent>
-  > {
-    const afterConfig = this.config.after;
-
-    if (!afterConfig) {
-      return [];
-    }
-
-    const mutateEntryExit = (
-      delay: string | number | DelayExpr<TContext, TEvent>,
-      i: number
-    ) => {
-      const delayRef = isFunction(delay) ? `${this.id}:delay[${i}]` : delay;
-
-      const eventType = after(delayRef, this.id);
-
-      this.entry.push(send(eventType, { delay }));
-      this.exit.push(cancel(eventType));
-
-      return eventType;
-    };
-
-    const delayedTransitions = isArray(afterConfig)
-      ? afterConfig.map((transition, i) => {
-          const eventType = mutateEntryExit(transition.delay, i);
-          return { ...transition, event: eventType };
-        })
-      : flatten(
-          keys(afterConfig).map((delay, i) => {
-            const configTransition = afterConfig[delay];
-            const resolvedTransition = isString(configTransition)
-              ? { target: configTransition }
-              : configTransition;
-
-            const resolvedDelay = !isNaN(+delay) ? +delay : delay;
-
-            const eventType = mutateEntryExit(resolvedDelay, i);
-
-            return toArray(resolvedTransition).map(transition => ({
-              ...transition,
-              event: eventType,
-              delay: resolvedDelay
-            }));
-          })
-        );
-
-    return delayedTransitions.map(delayedTransition => {
-      const { delay } = delayedTransition;
-
-      return {
-        ...this.formatTransition(delayedTransition),
-        delay
-      };
-    });
   }
 
   /**
@@ -766,7 +892,7 @@ class StateNode<
     let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of this.getCandidates(eventName)) {
+    for (const candidate of getCandidates(this, eventName)) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
@@ -1745,7 +1871,7 @@ class StateNode<
 
     return Array.from(events);
   }
-  private resolveTarget(
+  public resolveTarget(
     _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
   ): Array<StateNode<TContext, any, TEvent>> | undefined {
     if (_target === undefined) {
@@ -1783,122 +1909,6 @@ class StateNode<
         return this.getStateNodeByPath(resolvedTarget);
       }
     });
-  }
-
-  private formatTransition(
-    transitionConfig: TransitionConfig<TContext, TEvent> & {
-      event: TEvent['type'] | NullEvent['type'] | '*';
-    }
-  ): TransitionDefinition<TContext, TEvent> {
-    const normalizedTarget = normalizeTarget(transitionConfig.target);
-    const internal =
-      'internal' in transitionConfig
-        ? transitionConfig.internal
-        : normalizedTarget
-        ? normalizedTarget.some(
-            _target => isString(_target) && _target[0] === this.delimiter
-          )
-        : true;
-    const { guards } = this.machine.options;
-
-    const target = this.resolveTarget(normalizedTarget);
-
-    return {
-      ...transitionConfig,
-      actions: toActionObjects(toArray(transitionConfig.actions)),
-      cond: toGuard(transitionConfig.cond, guards),
-      target,
-      source: this,
-      internal,
-      eventType: transitionConfig.event
-    };
-  }
-  private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
-    let onConfig: Array<
-      TransitionConfig<TContext, EventObject> & {
-        event: string;
-      }
-    >;
-
-    if (!this.config.on) {
-      onConfig = [];
-    } else if (Array.isArray(this.config.on)) {
-      onConfig = this.config.on;
-    } else {
-      const {
-        [WILDCARD]: wildcardConfigs = [],
-        ...strictOnConfigs
-      } = this.config.on;
-
-      onConfig = flatten(
-        keys(strictOnConfigs)
-          .map(key => {
-            const arrayified = toTransitionConfigArray<TContext, EventObject>(
-              key,
-              strictOnConfigs![key as string]
-            );
-            if (!IS_PRODUCTION) {
-              validateArrayifiedTransitions(this, key, arrayified);
-            }
-            return arrayified;
-          })
-          .concat(
-            toTransitionConfigArray(WILDCARD, wildcardConfigs as SingleOrArray<
-              TransitionConfig<TContext, EventObject> & {
-                event: '*';
-              }
-            >)
-          )
-      );
-    }
-
-    const doneConfig = this.config.onDone
-      ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
-      : [];
-
-    const invokeConfig = flatten(
-      this.invoke.map(invokeDef => {
-        const settleTransitions: any[] = [];
-        if (invokeDef.onDone) {
-          settleTransitions.push(
-            ...toTransitionConfigArray(
-              String(doneInvoke(invokeDef.id)),
-              invokeDef.onDone
-            )
-          );
-        }
-        if (invokeDef.onError) {
-          settleTransitions.push(
-            ...toTransitionConfigArray(
-              String(error(invokeDef.id)),
-              invokeDef.onError
-            )
-          );
-        }
-        return settleTransitions;
-      })
-    );
-
-    const delayedTransitions = this.after;
-
-    const formattedTransitions = flatten(
-      [...doneConfig, ...invokeConfig, ...onConfig].map(
-        (
-          transitionConfig: TransitionConfig<TContext, TEvent> & {
-            event: TEvent['type'] | NullEvent['type'] | '*';
-          }
-        ) =>
-          toArray(transitionConfig).map(transition =>
-            this.formatTransition(transition)
-          )
-      )
-    );
-
-    for (const delayedTransition of delayedTransitions) {
-      formattedTransitions.push(delayedTransition as any);
-    }
-
-    return formattedTransitions;
   }
 }
 
