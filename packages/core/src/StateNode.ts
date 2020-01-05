@@ -413,10 +413,10 @@ function resolveHistory<TContext, TEvent extends EventObject>(
     return historyTarget
       ? flatten(
           toStatePaths(historyTarget).map(relativeChildPath =>
-            parent.getFromRelativePath(relativeChildPath)
+            getFromRelativePath(parent, relativeChildPath)
           )
         )
-      : parent.initialStateNodes;
+      : getInitialStateNodes(parent);
   }
 
   const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
@@ -430,7 +430,7 @@ function resolveHistory<TContext, TEvent extends EventObject>(
   return flatten(
     toStatePaths(subHistoryValue!).map(subStatePath => {
       return stateNode.history === 'deep'
-        ? parent.getFromRelativePath(subStatePath)
+        ? getFromRelativePath(parent, subStatePath)
         : [parent.states[subStatePath[0]]];
     })
   );
@@ -468,6 +468,88 @@ function getHistoryValue<TContext, TEvent extends EventObject>(
       childNode => !childNode.history
     )
   };
+}
+
+/**
+ * Retrieves state nodes from a relative path to this state node.
+ *
+ * @param relativePath The relative path from this state node
+ * @param historyValue
+ */
+function getFromRelativePath<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  relativePath: string[]
+): Array<StateNode<TContext, any, TEvent>> {
+  if (!relativePath.length) {
+    return [stateNode];
+  }
+
+  const [stateKey, ...childStatePath] = relativePath;
+
+  if (!stateNode.states) {
+    throw new Error(
+      `Cannot retrieve subPath '${stateKey}' from node with no states`
+    );
+  }
+
+  const childStateNode = stateNode.getStateNode(stateKey);
+
+  if (childStateNode.type === 'history') {
+    return resolveHistory(childStateNode);
+  }
+
+  if (!stateNode.states[stateKey]) {
+    throw new Error(
+      `Child state '${stateKey}' does not exist on '${stateNode.id}'`
+    );
+  }
+
+  return getFromRelativePath(stateNode.states[stateKey], childStatePath);
+}
+
+/**
+ * Returns the leaf nodes from a state path relative to this state node.
+ *
+ * @param relativeStateId The relative state path to retrieve the state nodes
+ * @param history The previous state to retrieve history
+ * @param resolve Whether state nodes should resolve to initial child state nodes
+ */
+function getRelativeStateNodes<TContext, TEvent extends EventObject>(
+  relativeStateId: StateNode<TContext, any, TEvent>,
+  historyValue?: HistoryValue,
+  resolve: boolean = true
+): Array<StateNode<TContext, any, TEvent>> {
+  return resolve
+    ? relativeStateId.type === 'history'
+      ? resolveHistory(relativeStateId, historyValue)
+      : getInitialStateNodes(relativeStateId)
+    : [relativeStateId];
+}
+
+export function getInitialStateNodes<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>
+): Array<StateNode<TContext, any, TEvent>> {
+  if (isLeafNode(stateNode)) {
+    return [stateNode];
+  }
+
+  // Case when state node is compound but no initial state is defined
+  if (stateNode.type === 'compound' && !stateNode.initial) {
+    if (!IS_PRODUCTION) {
+      warn(
+        false,
+        `Compound state node '${stateNode.id}' has no initial state.`
+      );
+    }
+    return [stateNode];
+  }
+
+  const initialStateNodePaths = toStatePaths(stateNode.initialStateValue!);
+  return flatten(
+    initialStateNodePaths.map(initialPath =>
+      getFromRelativePath(stateNode, initialPath)
+    )
+  );
 }
 
 class StateNode<
@@ -1069,7 +1151,7 @@ class StateNode<
 
     const allNextStateNodes = flatten(
       nextStateNodes.map(stateNode => {
-        return this.getRelativeStateNodes(stateNode, state.historyValue);
+        return getRelativeStateNodes(stateNode, state.historyValue);
       })
     );
 
@@ -1784,80 +1866,6 @@ class StateNode<
     }
 
     return target;
-  }
-
-  /**
-   * Returns the leaf nodes from a state path relative to this state node.
-   *
-   * @param relativeStateId The relative state path to retrieve the state nodes
-   * @param history The previous state to retrieve history
-   * @param resolve Whether state nodes should resolve to initial child state nodes
-   */
-  public getRelativeStateNodes(
-    relativeStateId: StateNode<TContext, any, TEvent>,
-    historyValue?: HistoryValue,
-    resolve: boolean = true
-  ): Array<StateNode<TContext, any, TEvent>> {
-    return resolve
-      ? relativeStateId.type === 'history'
-        ? resolveHistory(relativeStateId, historyValue)
-        : relativeStateId.initialStateNodes
-      : [relativeStateId];
-  }
-  public get initialStateNodes(): Array<StateNode<TContext, any, TEvent>> {
-    if (isLeafNode(this)) {
-      return [this];
-    }
-
-    // Case when state node is compound but no initial state is defined
-    if (this.type === 'compound' && !this.initial) {
-      if (!IS_PRODUCTION) {
-        warn(false, `Compound state node '${this.id}' has no initial state.`);
-      }
-      return [this];
-    }
-
-    const initialStateNodePaths = toStatePaths(this.initialStateValue!);
-    return flatten(
-      initialStateNodePaths.map(initialPath =>
-        this.getFromRelativePath(initialPath)
-      )
-    );
-  }
-  /**
-   * Retrieves state nodes from a relative path to this state node.
-   *
-   * @param relativePath The relative path from this state node
-   * @param historyValue
-   */
-  public getFromRelativePath(
-    relativePath: string[]
-  ): Array<StateNode<TContext, any, TEvent>> {
-    if (!relativePath.length) {
-      return [this];
-    }
-
-    const [stateKey, ...childStatePath] = relativePath;
-
-    if (!this.states) {
-      throw new Error(
-        `Cannot retrieve subPath '${stateKey}' from node with no states`
-      );
-    }
-
-    const childStateNode = this.getStateNode(stateKey);
-
-    if (childStateNode.type === 'history') {
-      return resolveHistory(childStateNode);
-    }
-
-    if (!this.states[stateKey]) {
-      throw new Error(
-        `Child state '${stateKey}' does not exist on '${this.id}'`
-      );
-    }
-
-    return this.states[stateKey].getFromRelativePath(childStatePath);
   }
 
   /**
