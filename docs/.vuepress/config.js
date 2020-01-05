@@ -67,7 +67,8 @@ module.exports = {
             title: '7GUIs',
             children: [
               '/tutorials/7guis/counter',
-              '/tutorials/7guis/temperature'
+              '/tutorials/7guis/temperature',
+              '/tutorials/7guis/flight'
             ]
           }
         ]

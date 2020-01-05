@@ -61,7 +61,7 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
-**Returns** `{ current, send, service }`:
+**Returns** `{ current, send, service}`:
 
 - `current` - Represents the current state of the machine as an XState `State` object.
 - `send` - A function that sends events to the running service.
@@ -69,13 +69,13 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 
 ### `useService(service)`
 
-A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that subscribes to state changes from an existing [service](TODO).
+A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that subscribes to state changes from an existing [service](TODO).
 
 **Arguments**
 
 - `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
 
-**Returns** `{ current, send }`:
+**Returns** `{current, send}`:
 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
@@ -90,7 +90,7 @@ This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
 
 - `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
 
-**Returns** an object `{ current, send, service }`:
+**Returns** an object `{current, send, service}`:
 
 - `current` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
 - `send` - A function that sends events to the running service.
