@@ -15,7 +15,6 @@ import {
   warn,
   isString,
   toSCXMLEvent,
-  mapContext,
   toInvokeConfig
 } from './utils';
 import {
@@ -41,12 +40,8 @@ import {
   PropertyMapper,
   SendAction,
   NullEvent,
-  Guard,
-  GuardPredicate,
-  GuardMeta,
   MachineConfig,
   PureAction,
-  DoneEventObject,
   LogAction,
   SendActionObject,
   SpecialTargets,
@@ -62,24 +57,18 @@ import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
 import * as actionTypes from './actionTypes';
 import {
-  raise,
-  done,
   toActionObject,
   resolveSend,
   initEvent,
-  toActionObjects,
   resolveLog,
   resolveRaise,
-  start,
-  stop,
   toActivityDefinition
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { DEFAULT_GUARD_TYPE, STATE_DELIMITER } from './constants';
+import { STATE_DELIMITER } from './constants';
 import {
   getValue,
   getConfiguration,
-  has,
   getChildren,
   getAllStateNodes,
   isInFinalState,
@@ -95,7 +84,10 @@ import {
   getRelativeStateNodes,
   getHistoryValue,
   getInitialState,
-  getStateNodes
+  getStateNodes,
+  nodesFromChild,
+  evaluateGuard,
+  getActions
 } from './nodeUtils';
 
 export const NULL_EVENT = '';
@@ -632,7 +624,7 @@ export class StateNode<
 
       try {
         guardPassed =
-          !cond || this.evaluateGuard(cond, resolvedContext, _event, state);
+          !cond || evaluateGuard(this, cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||
@@ -677,7 +669,11 @@ export class StateNode<
 
     const reentryNodes = isInternal
       ? []
-      : flatten(allNextStateNodes.map(n => this.nodesFromChild(n)));
+      : flatten(
+          allNextStateNodes.map(nextStateNode =>
+            nodesFromChild(this, nextStateNode)
+          )
+        );
 
     return {
       transitions: [selectedTransition],
@@ -687,176 +683,6 @@ export class StateNode<
       source: state,
       actions
     };
-  }
-
-  private nodesFromChild(
-    childStateNode: StateNode<TContext, any, TEvent>
-  ): Array<StateNode<TContext, any, TEvent>> {
-    if (childStateNode.escapes(this)) {
-      return [];
-    }
-
-    const nodes: Array<StateNode<TContext, any, TEvent>> = [];
-    let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
-
-    while (marker && marker !== this) {
-      nodes.push(marker);
-      marker = marker.parent;
-    }
-    nodes.push(this); // inclusive
-
-    return nodes;
-  }
-
-  /**
-   * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
-   * this state node, it does not escape.
-   */
-  private escapes(stateNode: StateNode<TContext, any, TEvent>): boolean {
-    if (this === stateNode) {
-      return false;
-    }
-
-    let parent = this.parent;
-
-    while (parent) {
-      if (parent === stateNode) {
-        return false;
-      }
-      parent = parent.parent;
-    }
-
-    return true;
-  }
-  private evaluateGuard(
-    guard: Guard<TContext, TEvent>,
-    context: TContext,
-    _event: SCXML.Event<TEvent>,
-    state: State<TContext, TEvent>
-  ): boolean {
-    const { guards } = this.machine.options;
-    const guardMeta: GuardMeta<TContext, TEvent> = {
-      state,
-      cond: guard,
-      _event
-    };
-
-    if (guard.type === DEFAULT_GUARD_TYPE) {
-      return (guard as GuardPredicate<TContext, TEvent>).predicate(
-        context,
-        _event.data,
-        guardMeta
-      );
-    }
-
-    const condFn = guards[guard.type];
-
-    if (!condFn) {
-      throw new Error(
-        `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
-      );
-    }
-
-    return condFn(context, _event.data, guardMeta);
-  }
-
-  private getActions(
-    transition: StateTransition<TContext, TEvent>,
-    currentContext: TContext,
-    _event: SCXML.Event<TEvent>,
-    prevState?: State<TContext>
-  ): Array<ActionObject<TContext, TEvent>> {
-    const prevConfig = getConfiguration(
-      [],
-      prevState ? getStateNodes(this, prevState.value) : [this]
-    );
-    const resolvedConfig = transition.configuration.length
-      ? getConfiguration(prevConfig, transition.configuration)
-      : prevConfig;
-
-    for (const sn of resolvedConfig) {
-      if (!has(prevConfig, sn)) {
-        transition.entrySet.push(sn);
-      }
-    }
-    for (const sn of prevConfig) {
-      if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
-        transition.exitSet.push(sn);
-      }
-    }
-
-    if (!transition.source) {
-      transition.exitSet = [];
-
-      // Ensure that root StateNode (machine) is entered
-      transition.entrySet.push(this);
-    }
-
-    const doneEvents = flatten(
-      transition.entrySet.map(sn => {
-        const events: DoneEventObject[] = [];
-
-        if (sn.type !== 'final') {
-          return events;
-        }
-
-        const parent = sn.parent!;
-
-        events.push(
-          done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
-          done(
-            parent.id,
-            sn.data ? mapContext(sn.data, currentContext, _event) : undefined
-          )
-        );
-
-        if (parent.parent) {
-          const grandparent = parent.parent;
-
-          if (grandparent.type === 'parallel') {
-            if (
-              getChildren(grandparent).every(parentNode =>
-                isInFinalState(transition.configuration, parentNode)
-              )
-            ) {
-              events.push(done(grandparent.id, grandparent.data));
-            }
-          }
-        }
-
-        return events;
-      })
-    );
-
-    transition.exitSet.sort((a, b) => b.order - a.order);
-    transition.entrySet.sort((a, b) => a.order - b.order);
-
-    const entryStates = new Set(transition.entrySet);
-    const exitStates = new Set(transition.exitSet);
-
-    const [entryActions, exitActions] = [
-      flatten(
-        Array.from(entryStates).map(stateNode => {
-          return [
-            ...stateNode.activities.map(activity => start(activity)),
-            ...stateNode.entry
-          ];
-        })
-      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
-      flatten(
-        Array.from(exitStates).map(stateNode => [
-          ...stateNode.exit,
-          ...stateNode.activities.map(activity => stop(activity))
-        ])
-      )
-    ];
-
-    const actions = toActionObjects(
-      exitActions.concat(transition.actions).concat(entryActions),
-      this.machine.options.actions
-    ) as Array<ActionObject<TContext, TEvent>>;
-
-    return actions;
   }
 
   /**
@@ -960,7 +786,8 @@ export class StateNode<
         : undefined
       : undefined;
     const currentContext = currentState ? currentState.context : context;
-    const actions = this.getActions(
+    const actions = getActions(
+      this,
       stateTransition,
       currentContext,
       _event,

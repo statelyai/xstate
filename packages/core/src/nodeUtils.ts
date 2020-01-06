@@ -14,7 +14,8 @@ import {
   isMachine,
   toTransitionConfigArray,
   normalizeTarget,
-  toStateValue
+  toStateValue,
+  mapContext
 } from './utils';
 import {
   StateValue,
@@ -26,7 +27,14 @@ import {
   NullEvent,
   SingleOrArray,
   Typestate,
-  DelayExpr
+  DelayExpr,
+  Guard,
+  SCXML,
+  GuardMeta,
+  GuardPredicate,
+  StateTransition,
+  ActionObject,
+  DoneEventObject
 } from './types';
 import { State } from './State';
 import {
@@ -36,10 +44,19 @@ import {
   done,
   doneInvoke,
   error,
-  toActionObjects
+  toActionObjects,
+  start,
+  raise,
+  stop
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { isLeafNode } from './stateUtils';
+import {
+  isLeafNode,
+  getConfiguration,
+  has,
+  getChildren,
+  isInFinalState
+} from './stateUtils';
 import {
   StateNode,
   NULL_EVENT,
@@ -47,6 +64,7 @@ import {
   isStateId,
   STATE_IDENTIFIER
 } from './StateNode';
+import { DEFAULT_GUARD_TYPE } from './constants';
 
 const validateArrayifiedTransitions = <TContext>(
   stateNode: StateNode<any, any, any>,
@@ -570,4 +588,181 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
       [] as Array<StateNode<TContext, any, TEvent>>
     )
   );
+}
+
+export function nodesFromChild<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  childStateNode: StateNode<TContext, any, TEvent>
+): Array<StateNode<TContext, any, TEvent>> {
+  if (escapes(childStateNode, stateNode)) {
+    return [];
+  }
+
+  const nodes: Array<StateNode<TContext, any, TEvent>> = [];
+  let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
+
+  while (marker && marker !== stateNode) {
+    nodes.push(marker);
+    marker = marker.parent;
+  }
+  nodes.push(stateNode); // inclusive
+
+  return nodes;
+}
+
+/**
+ * Whether the given state node "escapes" this state node. If the `stateNode` is equal to or the parent of
+ * this state node, it does not escape.
+ */
+export function escapes<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  escapeeNode: StateNode<TContext, any, TEvent>
+): boolean {
+  if (stateNode === escapeeNode) {
+    return false;
+  }
+
+  let parent = stateNode.parent;
+
+  while (parent) {
+    if (parent === escapeeNode) {
+      return false;
+    }
+    parent = parent.parent;
+  }
+
+  return true;
+}
+
+export function evaluateGuard<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  guard: Guard<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+): boolean {
+  const { guards } = stateNode.machine.options;
+  const guardMeta: GuardMeta<TContext, TEvent> = {
+    state,
+    cond: guard,
+    _event
+  };
+
+  if (guard.type === DEFAULT_GUARD_TYPE) {
+    return (guard as GuardPredicate<TContext, TEvent>).predicate(
+      context,
+      _event.data,
+      guardMeta
+    );
+  }
+
+  const condFn = guards[guard.type];
+
+  if (!condFn) {
+    throw new Error(
+      `Guard '${guard.type}' is not implemented on machine '${stateNode.machine.id}'.`
+    );
+  }
+
+  return condFn(context, _event.data, guardMeta);
+}
+
+export function getActions<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  transition: StateTransition<TContext, TEvent>,
+  currentContext: TContext,
+  _event: SCXML.Event<TEvent>,
+  prevState?: State<TContext>
+): Array<ActionObject<TContext, TEvent>> {
+  const prevConfig = getConfiguration(
+    [],
+    prevState ? getStateNodes(stateNode, prevState.value) : [stateNode]
+  );
+  const resolvedConfig = transition.configuration.length
+    ? getConfiguration(prevConfig, transition.configuration)
+    : prevConfig;
+
+  for (const sn of resolvedConfig) {
+    if (!has(prevConfig, sn)) {
+      transition.entrySet.push(sn);
+    }
+  }
+  for (const sn of prevConfig) {
+    if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
+      transition.exitSet.push(sn);
+    }
+  }
+
+  if (!transition.source) {
+    transition.exitSet = [];
+
+    // Ensure that root StateNode (machine) is entered
+    transition.entrySet.push(stateNode);
+  }
+
+  const doneEvents = flatten(
+    transition.entrySet.map(sn => {
+      const events: DoneEventObject[] = [];
+
+      if (sn.type !== 'final') {
+        return events;
+      }
+
+      const parent = sn.parent!;
+
+      events.push(
+        done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
+        done(
+          parent.id,
+          sn.data ? mapContext(sn.data, currentContext, _event) : undefined
+        )
+      );
+
+      if (parent.parent) {
+        const grandparent = parent.parent;
+
+        if (grandparent.type === 'parallel') {
+          if (
+            getChildren(grandparent).every(parentNode =>
+              isInFinalState(transition.configuration, parentNode)
+            )
+          ) {
+            events.push(done(grandparent.id, grandparent.data));
+          }
+        }
+      }
+
+      return events;
+    })
+  );
+
+  transition.exitSet.sort((a, b) => b.order - a.order);
+  transition.entrySet.sort((a, b) => a.order - b.order);
+
+  const entryStates = new Set(transition.entrySet);
+  const exitStates = new Set(transition.exitSet);
+
+  const [entryActions, exitActions] = [
+    flatten(
+      Array.from(entryStates).map(entryNode => {
+        return [
+          ...entryNode.activities.map(activity => start(activity)),
+          ...entryNode.entry
+        ];
+      })
+    ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
+    flatten(
+      Array.from(exitStates).map(exitNode => [
+        ...exitNode.exit,
+        ...exitNode.activities.map(activity => stop(activity))
+      ])
+    )
+  ];
+
+  const actions = toActionObjects(
+    exitActions.concat(transition.actions).concat(entryActions),
+    stateNode.machine.options.actions
+  ) as Array<ActionObject<TContext, TEvent>>;
+
+  return actions;
 }
