@@ -13,7 +13,8 @@ import {
   toGuard,
   isMachine,
   toTransitionConfigArray,
-  normalizeTarget
+  normalizeTarget,
+  toStateValue
 } from './utils';
 import {
   StateValue,
@@ -434,7 +435,7 @@ export function getInitialState<
   stateValue: StateValue,
   context?: TContext
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
-  const configuration = stateNode.getStateNodes(stateValue);
+  const configuration = getStateNodes(stateNode, stateValue);
   return stateNode.resolveTransition(
     {
       configuration,
@@ -522,4 +523,51 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
     currentStateNode = getStateNode(currentStateNode, key);
   }
   return currentStateNode;
+}
+
+/**
+ * Returns the state nodes represented by the current state value.
+ *
+ * @param state The state value or State instance
+ */
+export function getStateNodes<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  state: StateValue | State<TContext, TEvent>
+): Array<StateNode<TContext, any, TEvent>> {
+  if (!state) {
+    return [];
+  }
+  const stateValue =
+    state instanceof State
+      ? state.value
+      : toStateValue(state, stateNode.machine.delimiter);
+
+  if (isString(stateValue)) {
+    const initialStateValue = getStateNode(stateNode, stateValue).initial;
+
+    return initialStateValue !== undefined
+      ? getStateNodes(stateNode, {
+          [stateValue]: initialStateValue
+        } as StateValue)
+      : [stateNode.states[stateValue]];
+  }
+
+  const subStateKeys = keys(stateValue);
+  const subStateNodes: Array<
+    StateNode<TContext, any, TEvent>
+  > = subStateKeys.map(subStateKey => getStateNode(stateNode, subStateKey));
+
+  return subStateNodes.concat(
+    subStateKeys.reduce(
+      (allSubStateNodes, subStateKey) => {
+        const subStateNode = getStateNodes(
+          getStateNode(stateNode, subStateKey),
+          stateValue[subStateKey]
+        );
+
+        return allSubStateNodes.concat(subStateNode);
+      },
+      [] as Array<StateNode<TContext, any, TEvent>>
+    )
+  );
 }

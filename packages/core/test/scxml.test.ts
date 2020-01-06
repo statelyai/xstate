@@ -9,7 +9,7 @@ import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
-import { getInitialState } from '../src/nodeUtils';
+import { getInitialState, getStateNodes } from '../src/nodeUtils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
@@ -402,9 +402,9 @@ async function runTestToCompletion(
     }
     service.send(event.name);
 
-    const stateIds = machine
-      .getStateNodes(nextState)
-      .map(stateNode => stateNode.id);
+    const stateIds = getStateNodes(machine, nextState).map(
+      stateNode => stateNode.id
+    );
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });

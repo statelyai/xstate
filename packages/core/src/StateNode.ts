@@ -94,7 +94,8 @@ import {
   getStateNodeById,
   getRelativeStateNodes,
   getHistoryValue,
-  getInitialState
+  getInitialState,
+  getStateNodes
 } from './nodeUtils';
 
 export const NULL_EVENT = '';
@@ -468,49 +469,6 @@ export class StateNode<
   }
 
   /**
-   * Returns the state nodes represented by the current state value.
-   *
-   * @param state The state value or State instance
-   */
-  public getStateNodes(
-    state: StateValue | State<TContext, TEvent>
-  ): Array<StateNode<TContext, any, TEvent>> {
-    if (!state) {
-      return [];
-    }
-    const stateValue =
-      state instanceof State
-        ? state.value
-        : toStateValue(state, this.delimiter);
-
-    if (isString(stateValue)) {
-      const initialStateValue = getStateNode(this, stateValue).initial;
-
-      return initialStateValue !== undefined
-        ? this.getStateNodes({ [stateValue]: initialStateValue } as StateValue)
-        : [this.states[stateValue]];
-    }
-
-    const subStateKeys = keys(stateValue);
-    const subStateNodes: Array<
-      StateNode<TContext, any, TEvent>
-    > = subStateKeys.map(subStateKey => getStateNode(this, subStateKey));
-
-    return subStateNodes.concat(
-      subStateKeys.reduce(
-        (allSubStateNodes, subStateKey) => {
-          const subStateNode = getStateNode(this, subStateKey).getStateNodes(
-            stateValue[subStateKey]
-          );
-
-          return allSubStateNodes.concat(subStateNode);
-        },
-        [] as Array<StateNode<TContext, any, TEvent>>
-      )
-    );
-  }
-
-  /**
    * Returns `true` if this state node explicitly handles the given event.
    *
    * @param event The event in question
@@ -530,7 +488,7 @@ export class StateNode<
    */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
     const configuration = Array.from(
-      getConfiguration([], this.getStateNodes(state.value))
+      getConfiguration([], getStateNodes(this, state.value))
     );
     return new State({
       ...state,
@@ -810,7 +768,7 @@ export class StateNode<
   ): Array<ActionObject<TContext, TEvent>> {
     const prevConfig = getConfiguration(
       [],
-      prevState ? this.getStateNodes(prevState.value) : [this]
+      prevState ? getStateNodes(this, prevState.value) : [this]
     );
     const resolvedConfig = transition.configuration.length
       ? getConfiguration(prevConfig, transition.configuration)
@@ -953,7 +911,7 @@ export class StateNode<
 
     const prevConfig = getConfiguration(
       [],
-      this.getStateNodes(currentState.value)
+      getStateNodes(this, currentState.value)
     );
     const resolvedConfig = stateTransition.configuration.length
       ? getConfiguration(prevConfig, stateTransition.configuration)
