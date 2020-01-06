@@ -2,6 +2,18 @@
 # yarn lockfile v1
 
 
+"@actions/exec@^1.0.2":
+  version "1.0.2"
+  resolved "https://registry.yarnpkg.com/@actions/exec/-/exec-1.0.2.tgz#80ae9c2ea0bf5d0046a9f73d2a1b15bddfff0311"
+  integrity sha512-Yo/wfcFuxbVjAaAfvx3aGLhMEuonOahas2jf8BwyA52IkXTAmLi7YVZTpGAQG/lTxuGoNLg9slTWQD4rr7rMDQ==
+  dependencies:
+    "@actions/io" "^1.0.1"
+
+"@actions/io@^1.0.1":
+  version "1.0.1"
+  resolved "https://registry.yarnpkg.com/@actions/io/-/io-1.0.1.tgz#81a9418fe2bbdef2d2717a8e9f85188b9c565aca"
+  integrity sha512-rhq+tfZukbtaus7xyUtwKfuiCRXd1hWSfmJNEpFgBQJ4woqPEpsBw04awicjwz9tyG2/MVhAEMfVn664Cri5zA==
+
 "@babel/cli@^7.6.0":
   version "7.6.4"
   resolved "https://registry.npmjs.org/@babel/cli/-/cli-7.6.4.tgz#9b35a4e15fa7d8f487418aaa8229c8b0bc815f20"
