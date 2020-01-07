@@ -62,7 +62,7 @@ const selectEvent = {
 This event will be handled at the top-level, so that whenever the `'SELECT'` event occurs, the machine will:
 
 - [transition](../guides/transitions.md) to its child `'.selected'` state (notice the dot, which indicates a [relative target](../guides/ids.md#relative-targets))
-- [assign](../guides/context.md#updating-context-with-assign) `context.subreddit` to the `event.name`
+- [assign](../guides/context.md#updating-context-with-assign) `event.name` to the `context.subreddit`
 
 ```js {10-17}
 const redditMachine = Machine({
