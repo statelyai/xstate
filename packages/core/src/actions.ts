@@ -29,7 +29,8 @@ import {
   LogAction,
   LogActionObject,
   DelayFunctionMap,
-  SCXML
+  SCXML,
+  ExprWithMeta
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -480,14 +481,22 @@ export function forwardTo<TContext, TEvent extends EventObject>(
  * @param errorData The error data to send.
  * @param options Options to pass into the send action creator.
  */
-export function escalate<TContext, TEvent extends EventObject>(
-  errorData: any,
+export function escalate<
+  TContext,
+  TEvent extends EventObject,
+  TErrorData = any
+>(
+  errorData: TErrorData | ExprWithMeta<TContext, TEvent, TErrorData>,
   options?: SendActionOptions<TContext, TEvent>
 ): SendAction<TContext, TEvent> {
   return sendParent<TContext, TEvent>(
-    {
-      type: actionTypes.error,
-      data: errorData
+    (context, event, meta) => {
+      return {
+        type: actionTypes.error,
+        data: isFunction(errorData)
+          ? errorData(context, event, meta)
+          : errorData
+      };
     },
     {
       ...options,
