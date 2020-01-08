@@ -1,9 +1,23 @@
-import { StateNode, ActionObject, Guard, InvokeDefinition } from 'xstate';
+import {
+  StateNode,
+  ActionObject,
+  Guard,
+  InvokeDefinition,
+  TransitionDefinition
+} from 'xstate';
 import { mapValues } from 'xstate/lib/utils';
 import { getBacklinkMap } from './utils';
 
 function getStateNodeId(stateNode: StateNode): string {
   return `#${stateNode.id}`;
+}
+
+interface TransitionConfig {
+  target: string[];
+  source: string;
+  actions: Array<ActionObject<any, any>>;
+  cond: Guard<any, any> | undefined;
+  eventType: string;
 }
 
 interface StateNodeConfig {
@@ -12,13 +26,7 @@ interface StateNodeConfig {
   entry: Array<ActionObject<any, any>>;
   exit: Array<ActionObject<any, any>>;
   on: {
-    [key: string]: Array<{
-      target: string[];
-      source: string;
-      actions: Array<ActionObject<any, any>>;
-      cond: Guard<any, any> | undefined;
-      eventType: string;
-    }>;
+    [key: string]: TransitionConfig[];
   };
   invoke: Array<InvokeDefinition<any, any>>;
   states: Record<string, StateNodeConfig>;
@@ -124,6 +132,48 @@ export function deleteTransition(
   const transitions = stateNode.on[event];
 
   transitions.splice(index, 1);
+
+  return getConfig(machine);
+}
+
+export function addEvent(
+  machine: StateNode,
+  id: string,
+  event: string
+): StateNodeConfig {
+  const stateNode = machine.getStateNodeById(id);
+
+  if (stateNode.on[event]) {
+    return getConfig(machine);
+  }
+
+  stateNode.on[event] = [];
+
+  return getConfig(machine);
+}
+
+function transitionConfigToDefinition(
+  machine: StateNode,
+  transitionConfig: TransitionConfig
+): TransitionDefinition<any, any> {
+  return {
+    ...transitionConfig,
+    target: transitionConfig.target.map(target =>
+      machine.getStateNodeById(target)
+    ),
+    source: machine.getStateNodeById(transitionConfig.source)
+  };
+}
+
+export function addTransition(
+  machine: StateNode,
+  id: string,
+  event: string,
+  transition: TransitionConfig
+): StateNodeConfig {
+  const stateNode = machine.getStateNodeById(id);
+
+  stateNode.on[event].push(transitionConfigToDefinition(machine, transition));
 
   return getConfig(machine);
 }
