@@ -478,7 +478,8 @@ export function forwardTo<TContext, TEvent extends EventObject>(
 /**
  * Escalates an error by sending it as an event to this machine's parent.
  *
- * @param errorData The error data to send.
+ * @param errorData The error data to send, or the expression function that
+ * takes in the `context`, `event`, and `meta`, and returns the error data to send.
  * @param options Options to pass into the send action creator.
  */
 export function escalate<
