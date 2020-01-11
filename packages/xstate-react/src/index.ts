@@ -7,7 +7,8 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineOptions,
-  StateConfig
+  StateConfig,
+  Typestate
 } from 'xstate';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
@@ -24,15 +25,19 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>,
+export function useMachine<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = any
+>(
+  machine: StateMachine<TContext, any, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): [
-  State<TContext, TEvent>,
-  Interpreter<TContext, any, TEvent>['send'],
-  Interpreter<TContext, any, TEvent>
+  State<TContext, TEvent, any, TTypestate>,
+  Interpreter<TContext, any, TEvent, TTypestate>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate>
 ] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(machine);
@@ -107,14 +112,20 @@ export function useMachine<TContext, TEvent extends EventObject>(
   return [current, service.send, service];
 }
 
-export function useService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>
+export function useService<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = any
+>(
+  service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [
-  State<TContext, TEvent>,
-  Interpreter<TContext, any, TEvent>['send'],
-  Interpreter<TContext, any, TEvent>
+  State<TContext, TEvent, any, TTypestate>,
+  Interpreter<TContext, any, TEvent, TTypestate>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const subscription: Subscription<State<TContext, TEvent>> = useMemo(
+  const subscription: Subscription<
+    State<TContext, TEvent, any, TTypestate>
+  > = useMemo(
     () => ({
       getCurrentValue: () => service.state || service.initialState,
       subscribe: callback => {
