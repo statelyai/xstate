@@ -9,6 +9,8 @@ export interface EventObject {
   type: string;
 }
 
+export type InitEvent = { type: 'xstate.init' };
+
 export namespace StateMachine {
   export type Action<TContext, TEvent extends EventObject> =
     | string
@@ -24,7 +26,7 @@ export namespace StateMachine {
 
   export type ActionFunction<TContext, TEvent extends EventObject> = (
     context: TContext,
-    event: TEvent
+    event: TEvent | InitEvent
   ) => void;
 
   export type AssignAction = 'xstate.assign';
