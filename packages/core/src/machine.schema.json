@@ -1,0 +1,103 @@
+{
+  "type": "object",
+  "$schema": "http://json-schema.org/draft-07/schema",
+  "definitions": {
+    "actionObject": {
+      "type": "object",
+      "properties": {
+        "type": { "type": "string" },
+        "exec": { "type": "string" }
+      },
+      "required": ["type"]
+    },
+    "statesObject": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "type": "object",
+          "properties": {
+            "entry": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/actionObject"
+              }
+            },
+            "exit": {
+              "type": "array",
+              "items": {
+                "$ref": "#/definitions/actionObject"
+              }
+            },
+            "id": {
+              "type": "string"
+            },
+            "initial": {
+              "type": "string"
+            },
+            "invoke": {
+              "type": "array"
+            },
+            "on": {
+              "$ref": "#/definitions/transitionsObject"
+            },
+            "states": {
+              "$ref": "#/definitions/statesObject"
+            },
+            "type": {
+              "type": "string",
+              "enum": ["atomic", "compound", "parallel", "final", "history"]
+            }
+          },
+          "required": ["entry", "exit", "id", "invoke", "on", "states", "type"]
+        }
+      }
+    },
+    "transitionsObject": {
+      "type": "object",
+      "patternProperties": {
+        "^.*$": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actions": {
+                "type": "array",
+                "items": {
+                  "$ref": "#/definitions/actionObject"
+                }
+              },
+              "cond": {
+                "type": "object"
+              },
+              "eventType": {
+                "type": "string"
+              },
+              "source": {
+                "type": "string"
+              },
+              "target": {
+                "type": "array",
+                "items": {
+                  "type": "string"
+                }
+              }
+            },
+            "required": ["actions", "eventType", "source", "target"]
+          }
+        }
+      }
+    }
+  },
+  "properties": {
+    "id": {
+      "title": "ID",
+      "type": "string"
+    },
+    "initial": {
+      "type": "string"
+    },
+    "states": {
+      "$ref": "#/definitions/statesObject"
+    }
+  }
+}
