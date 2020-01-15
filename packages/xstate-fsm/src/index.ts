@@ -34,7 +34,9 @@ function toActionObject<TContext, TEvent extends EventObject>(
     | StateMachine.ActionObject<TContext, TEvent>
 ) {
   return typeof action === 'string'
-    ? { type: action }
+    ? {
+        type: action
+      }
     : typeof action === 'function'
     ? {
         type: action.name,
@@ -174,27 +176,42 @@ const executeStateActions = <
   TState extends Typestate<TContext> = any
 >(
   state: StateMachine.State<TContext, TEvent, TState>,
-  event: TEvent | InitEvent
-) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
+  event: TEvent | InitEvent,
+  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
+) =>
+  state.actions.forEach(action => {
+    if (!action.exec && actionMap && actionMap[action.type]) {
+      action = toActionObject(actionMap[action.type]);
+    }
+    action.exec && action.exec(state.context, event);
+  });
 
 export function interpret<
   TContext,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
-  machine: StateMachine.Machine<TContext, TEvent, TState>
+  machine: StateMachine.Machine<TContext, TEvent, TState>,
+  options: {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+  } = {}
 ): StateMachine.Service<TContext, TEvent, TState> {
   let state = machine.initialState;
   let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
+    _options: options,
     send: (event: TEvent | TEvent['type']): void => {
       if (status !== InterpreterStatus.Running) {
         return;
       }
       state = machine.transition(state, event);
-      executeStateActions(state, toEventObject(event));
+      executeStateActions(
+        state,
+        toEventObject(event),
+        service._options.actions
+      );
       listeners.forEach(listener => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
@@ -207,7 +224,7 @@ export function interpret<
     },
     start: () => {
       status = InterpreterStatus.Running;
-      executeStateActions(state, INIT_EVENT);
+      executeStateActions(state, INIT_EVENT, service._options.actions);
       return service;
     },
     stop: () => {

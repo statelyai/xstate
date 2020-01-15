@@ -4,7 +4,8 @@ import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
 export function useMachine<TC, TE extends EventObject = EventObject>(
-  stateMachine: StateMachine.Machine<TC, TE, any>
+  stateMachine: StateMachine.Machine<TC, TE, any>,
+  options: StateMachine.ActionMap<TC, TE> = {}
 ): [
   StateMachine.State<TC, TE, any>,
   StateMachine.Service<TC, TE>['send'],
@@ -23,6 +24,10 @@ export function useMachine<TC, TE extends EventObject = EventObject>(
 
   const service = useConstant(() => interpret(stateMachine).start());
   const [current, setCurrent] = useState(stateMachine.initialState);
+
+  useEffect(() => {
+    (service as any)._options = options;
+  });
 
   useEffect(() => {
     service.subscribe(setCurrent);

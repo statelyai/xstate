@@ -18,6 +18,11 @@ export namespace StateMachine {
     | ActionObject<TContext, TEvent>
     | ActionFunction<TContext, TEvent>;
 
+  export type ActionMap<TContext, TEvent extends EventObject> = Record<
+    string,
+    Exclude<Action<TContext, TEvent>, string>
+  >;
+
   export interface ActionObject<TContext, TEvent extends EventObject> {
     type: string;
     exec?: ActionFunction<TContext, TEvent>;
