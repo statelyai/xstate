@@ -3,7 +3,10 @@ import { StateMachine, EventObject, Typestate, interpret } from '@xstate/fsm';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
-export function useMachine<TC, TE extends EventObject = EventObject>(
+export function useMachine<
+  TC extends object,
+  TE extends EventObject = EventObject
+>(
   stateMachine: StateMachine.Machine<TC, TE, any>,
   options: StateMachine.ActionMap<TC, TE> = {}
 ): [
@@ -26,7 +29,7 @@ export function useMachine<TC, TE extends EventObject = EventObject>(
   const [current, setCurrent] = useState(stateMachine.initialState);
 
   useEffect(() => {
-    (service as any)._options = options;
+    (service as any).machine._options = options;
   });
 
   useEffect(() => {

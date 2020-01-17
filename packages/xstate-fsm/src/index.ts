@@ -31,8 +31,13 @@ function toActionObject<TContext, TEvent extends EventObject>(
   action:
     | string
     | StateMachine.ActionFunction<TContext, TEvent>
-    | StateMachine.ActionObject<TContext, TEvent>
+    | StateMachine.ActionObject<TContext, TEvent>,
+  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
 ) {
+  action =
+    typeof action === 'string' && actionMap && actionMap[action]
+      ? actionMap[action]
+      : action;
   return typeof action === 'string'
     ? {
         type: action
@@ -76,14 +81,18 @@ export function createMachine<
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
-  fsmConfig: StateMachine.Config<TContext, TEvent>
+  fsmConfig: StateMachine.Config<TContext, TEvent>,
+  options: {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+  } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
-  return {
+  const machine = {
     config: fsmConfig,
+    _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
-        toActionObject
+      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(action =>
+        toActionObject(action, options.actions)
       ),
       context: fsmConfig.context!,
       matches: createMatcher(fsmConfig.initial)
@@ -130,7 +139,9 @@ export function createMachine<
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(a => a)
-              .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
+              .map<StateMachine.ActionObject<TContext, TEvent>>(action =>
+                toActionObject(action, (machine as any)._options.actions)
+              )
               .filter(action => {
                 if (action.type === ASSIGN_ACTION) {
                   assigned = true;
@@ -168,6 +179,7 @@ export function createMachine<
       return createUnchangedState(value, context);
     }
   };
+  return machine;
 }
 
 const executeStateActions = <
@@ -176,42 +188,33 @@ const executeStateActions = <
   TState extends Typestate<TContext> = any
 >(
   state: StateMachine.State<TContext, TEvent, TState>,
-  event: TEvent | InitEvent,
-  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
-) =>
-  state.actions.forEach(action => {
-    if (!action.exec && actionMap && actionMap[action.type]) {
-      action = toActionObject(actionMap[action.type]);
-    }
-    action.exec && action.exec(state.context, event);
-  });
+  event: TEvent | InitEvent
+) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
 
 export function interpret<
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
-  machine: StateMachine.Machine<TContext, TEvent, TState>,
-  options: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  } = {}
+  machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {
-  let state = machine.initialState;
+  const machineInstance: StateMachine.Machine<
+    TContext,
+    TEvent,
+    TState
+  > = createMachine(machine.config, (machine as any)._options);
+  let state = machineInstance.initialState;
   let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
-    _options: options,
+    machine: machineInstance,
     send: (event: TEvent | TEvent['type']): void => {
       if (status !== InterpreterStatus.Running) {
         return;
       }
-      state = machine.transition(state, event);
-      executeStateActions(
-        state,
-        toEventObject(event),
-        service._options.actions
-      );
+      state = machineInstance.transition(state, event);
+      executeStateActions(state, toEventObject(event));
       listeners.forEach(listener => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
@@ -224,7 +227,7 @@ export function interpret<
     },
     start: () => {
       status = InterpreterStatus.Running;
-      executeStateActions(state, INIT_EVENT, service._options.actions);
+      executeStateActions(state, INIT_EVENT);
       return service;
     },
     stop: () => {
