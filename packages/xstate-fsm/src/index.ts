@@ -77,6 +77,7 @@ export function createMachine<
   fsmConfig: StateMachine.Config<TContext, TEvent>
 ): StateMachine.Machine<TContext, TEvent, TState> {
   return {
+    config: fsmConfig,
     initialState: {
       value: fsmConfig.initial,
       actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(

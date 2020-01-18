@@ -80,6 +80,7 @@ export namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext>
   > {
+    config: StateMachine.Config<TContext, TEvent>;
     initialState: State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
