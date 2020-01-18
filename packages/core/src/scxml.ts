@@ -128,8 +128,7 @@ function mapActions<
   return elements.map(element => {
     switch (element.name) {
       case 'raise':
-        return actions.raise<TContext, TEvent>(element.attributes!
-          .event! as string);
+        return actions.raise<TEvent>(element.attributes!.event! as string);
       case 'assign':
         return actions.assign<TContext, TEvent>((context, e, meta) => {
           const fnBody = `

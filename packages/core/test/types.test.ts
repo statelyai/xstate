@@ -241,7 +241,7 @@ describe('Raise events', () => {
           DECIDE: [
             {
               // This one does not work
-              actions: raise<GreetingContext, { type: 'MORNING' }>({
+              actions: raise<{ type: 'MORNING' }>({
                 type: 'MORNING'
               }),
               cond: ctx => ctx.hour < 12
@@ -252,19 +252,14 @@ describe('Raise events', () => {
               // raised should be passed ('LUNCH_TIME') or is it like the
               // assign() API where we want the event that caused the action to
               // be executed?
-              actions: raise<
-                GreetingContext,
-                { type: 'DECIDE' } | { type: 'LUNCH_TIME' }
-              >({
+              actions: raise<{ type: 'DECIDE' } | { type: 'LUNCH_TIME' }>({
                 type: 'LUNCH_TIME'
               }),
               cond: ctx => ctx.hour === 12
             },
             {
               // Does not work
-              actions: raise<GreetingContext, { type: 'AFTERNOON' }>(
-                'AFTERNOON'
-              ),
+              actions: raise<{ type: 'AFTERNOON' }>('AFTERNOON'),
               cond: ctx => ctx.hour < 18
             },
             {
