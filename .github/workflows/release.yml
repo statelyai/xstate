@@ -7,6 +7,8 @@ on:
 
 jobs:
   release:
+    if: github.repository == 'davidkpiano/xstate'
+
     timeout-minutes: 20
 
     runs-on: ubuntu-latest
