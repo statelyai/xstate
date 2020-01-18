@@ -7,7 +7,12 @@ import {
   EventObject,
   StateValue
 } from '../src';
-import { actionTypes, done as _done, doneInvoke } from '../src/actions';
+import {
+  actionTypes,
+  done as _done,
+  doneInvoke,
+  escalate
+} from '../src/actions';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -21,7 +26,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
   initial: 'pending',
   states: {
     pending: {
-      onEntry: send({ type: 'RESOLVE', user }),
+      entry: send({ type: 'RESOLVE', user }),
       on: {
         RESOLVE: {
           target: 'success',
@@ -34,7 +39,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
       data: { user: (_, e) => e.user }
     },
     failure: {
-      onEntry: sendParent('REJECT')
+      entry: sendParent('REJECT')
     }
   }
 });
@@ -133,7 +138,7 @@ describe('invoke', () => {
       initial: 'init',
       states: {
         init: {
-          onEntry: [sendParent('INC'), sendParent('INC')]
+          entry: [sendParent('INC'), sendParent('INC')]
         }
       }
     });
@@ -151,7 +156,9 @@ describe('invoke', () => {
               autoForward: true
             },
             on: {
-              INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+              INC: {
+                actions: assign({ count: ctx => ctx.count + 1 })
+              },
               '': {
                 target: 'stop',
                 cond: ctx => ctx.count === 2
@@ -180,7 +187,7 @@ describe('invoke', () => {
         // 1. The 'parent' machine will enter 'start' state
         // 2. The 'child' service will be run with ID 'someService'
         // 3. The 'child' machine will enter 'init' state
-        // 4. The 'onEntry' action will be executed, which sends 'INC' to 'parent' machine twice
+        // 4. The 'entry' action will be executed, which sends 'INC' to 'parent' machine twice
         // 5. The context will be updated to increment count to 2
 
         expect(count).toEqual(2);
@@ -356,6 +363,106 @@ describe('invoke', () => {
     service.send('INCREMENT');
   });
 
+  it('should forward events to services if autoForward: true before processing them (when sending batches)', done => {
+    const actual: string[] = [];
+
+    const childMachine = Machine<{ count: number }>({
+      id: 'child',
+      context: { count: 0 },
+      initial: 'counting',
+      states: {
+        counting: {
+          on: {
+            INCREMENT: [
+              {
+                target: 'done',
+                cond: ctx => {
+                  actual.push('child got INCREMENT');
+                  return ctx.count >= 2;
+                }
+              },
+              {
+                target: undefined
+              }
+            ].map(transition => ({
+              ...transition,
+              actions: assign(ctx => ({ count: ++ctx.count }))
+            }))
+          }
+        },
+        done: {
+          type: 'final',
+          data: ctx => ({ countedTo: ctx.count })
+        }
+      },
+      on: {
+        START: {
+          actions: () => {
+            throw new Error('Should not receive START action here.');
+          }
+        }
+      }
+    });
+
+    const parentMachine = Machine<{ countedTo: number }>({
+      id: 'parent',
+      context: { countedTo: 0 },
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'invokeChild'
+          }
+        },
+        invokeChild: {
+          invoke: {
+            src: childMachine,
+            autoForward: true,
+            onDone: {
+              target: 'done',
+              actions: assign((_ctx, event) => ({
+                countedTo: event.data.countedTo
+              }))
+            }
+          },
+          on: {
+            INCREMENT: {
+              actions: () => {
+                actual.push('parent got INCREMENT');
+              }
+            }
+          }
+        },
+        done: {
+          type: 'final'
+        }
+      }
+    });
+
+    let state: any;
+    const service = interpret(parentMachine)
+      .onTransition(s => {
+        state = s;
+      })
+      .onDone(() => {
+        expect(state.context).toEqual({ countedTo: 3 });
+        expect(actual).toEqual([
+          'child got INCREMENT',
+          'parent got INCREMENT',
+          'child got INCREMENT',
+          'child got INCREMENT',
+          'parent got INCREMENT',
+          'parent got INCREMENT'
+        ]);
+        done();
+      })
+      .start();
+
+    service.send(['START']);
+    service.send(['INCREMENT']);
+    service.send(['INCREMENT', 'INCREMENT']);
+  });
+
   it('should start services (explicit machine, invoke = config)', done => {
     interpret(fetcherMachine)
       .onDone(() => {
@@ -501,7 +608,7 @@ describe('invoke', () => {
             initial: 'init',
             states: {
               init: {
-                onEntry: [sendParent('STOP')]
+                entry: [sendParent('STOP')]
               }
             }
           })
@@ -548,7 +655,7 @@ describe('invoke', () => {
           on: { NEXT: 'two' }
         },
         two: {
-          onEntry: sendParent('NEXT')
+          entry: sendParent('NEXT')
         }
       }
     });
@@ -563,7 +670,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -596,7 +703,7 @@ describe('invoke', () => {
         },
         states: {
           one: {
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -622,7 +729,7 @@ describe('invoke', () => {
               id: 'foo-child',
               src: subMachine
             },
-            onEntry: send('NEXT', { to: 'foo-child' }),
+            entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
           },
           two: {
@@ -662,7 +769,7 @@ describe('invoke', () => {
               src: doneSubMachine,
               onDone: 'two'
             },
-            onEntry: send('NEXT', { to: 'foo-child' })
+            entry: send('NEXT', { to: 'foo-child' })
           },
           two: {
             on: { NEXT: 'three' }
@@ -1385,15 +1492,15 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: () => (next, onEvent) => {
-                onEvent(e => {
+              src: () => (callback, onReceive) => {
+                onReceive(e => {
                   if (e.type === 'PING') {
-                    next('PONG');
+                    callback('PONG');
                   }
                 });
               }
             },
-            onEntry: send('PING', { to: 'child' }),
+            entry: send('PING', { to: 'child' }),
             on: {
               PONG: 'done'
             }
@@ -1929,7 +2036,7 @@ describe('invoke', () => {
                 src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
-              onEntry: send('PING', { to: 'pong' }),
+              entry: send('PING', { to: 'pong' }),
               on: {
                 PONG: 'innerSuccess'
               }
@@ -2110,6 +2217,91 @@ describe('invoke', () => {
       service
         .onDone(() => {
           expect(serviceCalled).toBe(false);
+          done();
+        })
+        .start();
+    });
+  });
+
+  describe('error handling', () => {
+    it('handles escalated errors', done => {
+      const child = Machine({
+        initial: 'die',
+
+        states: {
+          die: {
+            entry: escalate('oops')
+          }
+        }
+      });
+
+      const parent = Machine({
+        initial: 'one',
+
+        states: {
+          one: {
+            invoke: {
+              id: 'child',
+              src: child,
+              onError: {
+                target: 'two',
+                cond: (_, event) => event.data === 'oops'
+              }
+            }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parent)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('handles escalated errors as an expression', done => {
+      interface ChildContext {
+        id: number;
+      }
+
+      const child = Machine<ChildContext>({
+        initial: 'die',
+        context: { id: 42 },
+        states: {
+          die: {
+            entry: escalate(ctx => ctx.id)
+          }
+        }
+      });
+
+      const parent = Machine({
+        initial: 'one',
+
+        states: {
+          one: {
+            invoke: {
+              id: 'child',
+              src: child,
+              onError: {
+                target: 'two',
+                cond: (_, event) => {
+                  expect(event.data).toEqual(42);
+                  return true;
+                }
+              }
+            }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parent)
+        .onDone(() => {
           done();
         })
         .start();

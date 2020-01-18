@@ -45,7 +45,6 @@ import {
   StateSchema,
   StatesDefinition,
   StateNodesConfig,
-  ActionTypes,
   FinalStateNodeConfig,
   InvokeDefinition,
   ActionObject,
@@ -70,7 +69,8 @@ import {
   ActivityActionObject,
   InvokeActionObject,
   Typestate,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  DelayExpr
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -152,7 +152,7 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = any
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -568,47 +568,49 @@ class StateNode<
       return [];
     }
 
+    const mutateEntryExit = (
+      delay: string | number | DelayExpr<TContext, TEvent>,
+      i: number
+    ) => {
+      const delayRef = isFunction(delay) ? `${this.id}:delay[${i}]` : delay;
+
+      const eventType = after(delayRef, this.id);
+
+      this.onEntry.push(send(eventType, { delay }));
+      this.onExit.push(cancel(eventType));
+
+      return eventType;
+    };
+
     const delayedTransitions = isArray(afterConfig)
-      ? afterConfig
+      ? afterConfig.map((transition, i) => {
+          const eventType = mutateEntryExit(transition.delay, i);
+          return { ...transition, event: eventType };
+        })
       : flatten(
-          keys(afterConfig).map(delay => {
+          keys(afterConfig).map((delay, i) => {
             const configTransition = afterConfig[delay];
             const resolvedTransition = isString(configTransition)
               ? { target: configTransition }
               : configTransition;
 
+            const resolvedDelay = !isNaN(+delay) ? +delay : delay;
+
+            const eventType = mutateEntryExit(resolvedDelay, i);
+
             return toArray(resolvedTransition).map(transition => ({
               ...transition,
-              delay: !isNaN(+delay) ? +delay : delay
+              event: eventType,
+              delay: resolvedDelay
             }));
           })
         );
 
-    return delayedTransitions.map((delayedTransition, i) => {
+    return delayedTransitions.map(delayedTransition => {
       const { delay } = delayedTransition;
-      let delayRef: string | number;
-
-      if (isFunction(delay)) {
-        // TODO: util function
-        delayRef = `${this.id}:delay[${i}]`;
-        this.machine.options.delays = {
-          ...this.machine.options.delays,
-          [delayRef]: delay
-        };
-      } else {
-        delayRef = delay;
-      }
-
-      const eventType = after(delayRef, this.id);
-
-      this.onEntry.push(send(eventType, { delay: delayRef }));
-      this.onExit.push(cancel(eventType));
 
       return {
-        ...this.formatTransition({
-          ...delayedTransition,
-          event: eventType
-        } as any),
+        ...this.formatTransition(delayedTransition),
         delay
       };
     });
@@ -1032,7 +1034,7 @@ class StateNode<
             ...stateNode.onEntry
           ];
         })
-      ).concat(doneEvents.map(raise)),
+      ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
       flatten(
         Array.from(exitStates).map(stateNode => [
           ...stateNode.onExit,
@@ -1060,7 +1062,7 @@ class StateNode<
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TState> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const _event = toSCXMLEvent(event);
     let currentState: State<TContext, TEvent>;
 
@@ -1119,10 +1121,10 @@ class StateNode<
   }
 
   private resolveRaisedTransition(
-    state: State<TContext, TEvent, TStateSchema, TState>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent> | NullEvent,
     originalEvent: SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TState> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentActions = state.actions;
 
     state = this.transition(state, _event as SCXML.Event<TEvent>);
@@ -1138,7 +1140,7 @@ class StateNode<
     currentState?: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
     context: TContext = this.machine.context!
-  ): State<TContext, TEvent, TStateSchema, TState> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const { configuration } = stateTransition;
     // Transition will "apply" if:
     // - this is the initial state (there is no current state)
@@ -1214,7 +1216,7 @@ class StateNode<
               updatedContext,
               _event
             );
-          case ActionTypes.Pure:
+          case actionTypes.pure:
             return (
               (actionObject as PureAction<TContext, TEvent>).get(
                 updatedContext,
@@ -1259,11 +1261,13 @@ class StateNode<
         : ({} as Record<string, Actor>)
     );
 
-    const stateNodes = resolvedStateValue
-      ? this.getStateNodes(resolvedStateValue)
+    const resolvedConfiguration = resolvedStateValue
+      ? stateTransition.configuration
+      : currentState
+      ? currentState.configuration
       : [];
 
-    const meta = [this, ...stateNodes].reduce(
+    const meta = resolvedConfiguration.reduce(
       (acc, stateNode) => {
         if (stateNode.meta !== undefined) {
           acc[stateNode.id] = stateNode.meta;
@@ -1273,7 +1277,9 @@ class StateNode<
       {} as Record<string, string>
     );
 
-    const nextState = new State<TContext, TEvent, TStateSchema, TState>({
+    const isDone = isInFinalState(resolvedConfiguration, this);
+
+    const nextState = new State<TContext, TEvent, TStateSchema, TTypestate>({
       value: resolvedStateValue || currentState!.value,
       context: updatedContext,
       _event,
@@ -1302,13 +1308,10 @@ class StateNode<
         ? currentState.meta
         : undefined,
       events: [],
-      configuration: resolvedStateValue
-        ? stateTransition.configuration
-        : currentState
-        ? currentState.configuration
-        : [],
+      configuration: resolvedConfiguration,
       transitions: stateTransition.transitions,
-      children
+      children,
+      done: isDone
     });
 
     nextState.changed =
@@ -1325,25 +1328,30 @@ class StateNode<
     }
 
     let maybeNextState = nextState;
-    const isTransient = stateNodes.some(stateNode => stateNode._transient);
 
-    if (isTransient) {
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        {
-          type: actionTypes.nullEvent
-        },
-        _event
-      );
-    }
+    if (!isDone) {
+      const isTransient =
+        this._transient ||
+        configuration.some(stateNode => stateNode._transient);
 
-    while (raisedEvents.length) {
-      const raisedEvent = raisedEvents.shift()!;
-      maybeNextState = this.resolveRaisedTransition(
-        maybeNextState,
-        raisedEvent._event,
-        _event
-      );
+      if (isTransient) {
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          {
+            type: actionTypes.nullEvent
+          },
+          _event
+        );
+      }
+
+      while (raisedEvents.length) {
+        const raisedEvent = raisedEvents.shift()!;
+        maybeNextState = this.resolveRaisedTransition(
+          maybeNextState,
+          raisedEvent._event,
+          _event
+        );
+      }
     }
 
     // Detect if state changed
@@ -1547,7 +1555,7 @@ class StateNode<
   public getInitialState(
     stateValue: StateValue,
     context?: TContext
-  ): State<TContext, TEvent, TStateSchema, TState> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
@@ -1569,7 +1577,7 @@ class StateNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TState> {
+  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
     const { initialStateValue } = this;
 

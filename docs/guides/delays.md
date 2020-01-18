@@ -228,6 +228,7 @@ const dynamicDelayMachine = Machine({
     },
     pending: {
       entry: send('FINISH', {
+        // delay determined from custom event.wait property
         delay: (context, event) => context.initialDelay + event.wait || 0
       }),
       on: {
@@ -244,7 +245,8 @@ const dynamicDelayService = interpret(dynamicDelayMachine)
 
 dynamicDelayService.send({
   type: 'ACTIVATE',
-  delay: 2000
+  // arbitrary property
+  wait: 2000
 });
 
 // after 3000ms (1000 + 2000), console will log:

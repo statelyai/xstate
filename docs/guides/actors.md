@@ -54,7 +54,7 @@ The `spawn(...)` function creates an **actor reference** by providing 1 or 2 arg
   - [Machine](./communication.md#invoking-machines)
   - [Promise](./communication.md#invoking-promises)
   - [Callback](./communication.md#invoking-callbacks)
-  - Observable
+  - [Observable](./communication.md#invoking-observables)
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 
 ```js {13-14}

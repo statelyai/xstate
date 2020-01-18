@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.1.0",
+  "version": "0.3.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -17,6 +17,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "browser": {
     "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
   },
@@ -31,7 +32,6 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "prebuild": "npm run clean",
     "test": "jest --runInBand",
     "build": "tsc",
     "prepublish": "npm run build && npm run test"
@@ -40,10 +40,9 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.5.0"
+    "xstate": "^4.7.6"
   },
   "devDependencies": {
-    "@types/jest": "^24.0.11",
     "@types/jest-environment-puppeteer": "^4.0.0",
     "jest": "^24.8.0",
     "jest-environment-puppeteer": "^4.3.0",
@@ -51,12 +50,12 @@
     "lerna-alias": "3.0.3-0",
     "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^24.0.2",
-    "typescript": "^3.6.2",
-    "xstate": "4.7.0-rc6"
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.2",
+    "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.0.0-rc1.1",
+    "@xstate/graph": "^1.0.0",
     "chalk": "^2.4.2"
   }
 }

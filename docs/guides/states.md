@@ -42,12 +42,13 @@ A `State` object instance is JSON-serializable and has the following properties:
 - `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
 - `history` - the previous `State` instance
 - `meta` - any static meta data defined on the `meta` property of the [state node](./statenodes.md)
+- `done` - whether the state indicates a final state <Badge text="4.7.1" />
 
 It contains other properties such as `historyValue`, `events`, `tree`, and others that are generally not relevant and are used internally.
 
-## State Methods and Getters
+## State Methods and Properties
 
-There are some helpful methods and getters that you can use for a better development experience:
+There are some helpful methods and properties that you can use for a better development experience:
 
 ### `state.matches(parentStateValue)`
 
@@ -72,7 +73,7 @@ console.log(state.matches('green'));
 
 ### `state.nextEvents`
 
-This getter specifies the next events that will cause a transition from the current state:
+This specifies the next events that will cause a transition from the current state:
 
 ```js
 const { initialState } = lightMachine;
@@ -85,7 +86,7 @@ This is useful in determining which next events can be taken, and representing t
 
 ### `state.changed`
 
-This getter specifies if this `state` has changed from the previous state. A state is considered "changed" if:
+This specifies if this `state` has changed from the previous state. A state is considered "changed" if:
 
 - Its value is not equal to its previous value, or:
 - It has any new actions (side-effects) to execute.
@@ -107,6 +108,32 @@ const unchangedState = lightMachine.transition(nextState, 'UNKNOWN_EVENT');
 
 console.log(unchangedState.changed);
 // => false
+```
+
+### `state.done`
+
+This specifies whether the `state` is a ["final state"](./final.md) - that is, a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
+
+```js
+const answeringMachine = Machine({
+  initial: 'unanswered',
+  states: {
+    unanswered: {
+      on: {
+        ANSWER: 'answered'
+      }
+    },
+    answered: {
+      type: 'final'
+    }
+  }
+});
+
+const { initialState } = answeringMachine;
+initialState.done; // false
+
+const answeredState = answeringMachine.transition(initialState, 'ANSWER');
+answeredState.done; // true
 ```
 
 ### `state.toStrings()`

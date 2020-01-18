@@ -1,6 +1,11 @@
-import { getShortestPaths, getSimplePaths, getStateNodes } from '@xstate/graph';
+import {
+  getShortestPaths,
+  getSimplePaths,
+  getStateNodes,
+  StatePathsMap,
+  ValueAdjMapOptions
+} from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
-import { StatePathsMap } from '@xstate/graph/lib/types';
 import slimChalk from './slimChalk';
 import {
   TestModelCoverage,
@@ -10,9 +15,9 @@ import {
   TestPathResult,
   TestSegmentResult,
   TestMeta,
-  EventExecutor
+  EventExecutor,
+  CoverageOptions
 } from './types';
-import { ValueAdjMapOptions } from '@xstate/graph/lib/graph';
 
 /**
  * Creates a test model that represents an abstract model of a
@@ -259,7 +264,10 @@ export class TestModel<TTestContext, TContext> {
     });
   }
 
-  public async testState(state: State<TContext>, testContext: TTestContext) {
+  public async testState(
+    state: State<TContext, any>,
+    testContext: TTestContext
+  ) {
     for (const id of Object.keys(state.meta)) {
       const stateNodeMeta = state.meta[id] as TestMeta<TTestContext, TContext>;
       if (typeof stateNodeMeta.test === 'function' && !stateNodeMeta.skip) {
@@ -299,10 +307,14 @@ export class TestModel<TTestContext, TContext> {
     }
   }
 
-  public getCoverage(): { stateNodes: Record<string, number> } {
+  public getCoverage(
+    options?: CoverageOptions<TContext>
+  ): { stateNodes: Record<string, number> } {
+    const filter = options ? options.filter : undefined;
     const stateNodes = getStateNodes(this.machine);
+    const filteredStateNodes = filter ? stateNodes.filter(filter) : stateNodes;
     const coverage = {
-      stateNodes: stateNodes.reduce((acc, stateNode) => {
+      stateNodes: filteredStateNodes.reduce((acc, stateNode) => {
         acc[stateNode.id] = 0;
         return acc;
       }, {})
@@ -315,8 +327,8 @@ export class TestModel<TTestContext, TContext> {
     return coverage;
   }
 
-  public testCoverage(): void {
-    const coverage = this.getCoverage();
+  public testCoverage(options?: CoverageOptions<TContext>): void {
+    const coverage = this.getCoverage(options);
     const missingStateNodes = Object.keys(coverage.stateNodes).filter(id => {
       return !coverage.stateNodes[id];
     });
@@ -338,7 +350,7 @@ export class TestModel<TTestContext, TContext> {
   }
 }
 
-function getDescription<T, TContext>(state: State<TContext>): string {
+function getDescription<T, TContext>(state: State<TContext, any>): string {
   const contextString =
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 
@@ -352,9 +364,11 @@ function getDescription<T, TContext>(state: State<TContext>): string {
 
       const { description } = meta;
 
-      return typeof description === 'function'
-        ? description(state)
-        : `"${description}"` || `"${JSON.stringify(state.value)}"`;
+      if (typeof description === 'function') {
+        return description(state);
+      }
+
+      return description ? `"${description}"` : JSON.stringify(state.value);
     });
 
   return (

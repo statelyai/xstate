@@ -161,7 +161,7 @@ const searchMachine = Machine({
             errorMessage: (context, event) => {
               // event is:
               // { type: 'error.execution', data: 'No query specified' }
-              return event.data.message;
+              return event.data;
             }
           })
         },
@@ -188,7 +188,7 @@ If the `onError` transition is missing and the Promise is rejected, the error wi
 Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:
 
 - `callback` - called with the event to be sent
-- `onEvent` - called with a listener that [listens to events from the parent](#listening-to-parent-events)
+- `onReceive` - called with a listener that [listens to events from the parent](#listening-to-parent-events)
 
 The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited.
 
@@ -197,7 +197,7 @@ The (optional) return value should be a function that performs cleanup (i.e., un
 counting: {
   invoke: {
     id: 'incInterval',
-    src: (context, event) => (callback, onEvent) => {
+    src: (context, event) => (callback, onReceive) => {
       // This will send the 'INC' event to the parent every second
       const id = setInterval(() => callback('INC'), 1000);
 
@@ -214,9 +214,9 @@ counting: {
 
 ### Listening to Parent Events
 
-Invoked callback handlers are also given a second argument, `onEvent`, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.
+Invoked callback handlers are also given a second argument, `onReceive`, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.
 
-For example, the parent machine sends the child `'ponger'` service a `'PING'` event. The child service can listen for that event using `onEvent(listener)`, and send a `'PONG'` event back to the parent in response:
+For example, the parent machine sends the child `'ponger'` service a `'PING'` event. The child service can listen for that event using `onReceive(listener)`, and send a `'PONG'` event back to the parent in response:
 
 ```js
 const pingPongMachine = Machine({
@@ -226,10 +226,10 @@ const pingPongMachine = Machine({
     active: {
       invoke: {
         id: 'ponger',
-        src: (context, event) => (callback, onEvent) => {
+        src: (context, event) => (callback, onReceive) => {
           // Whenever parent sends 'PING',
           // send parent 'PONG' event
-          onEvent(e => {
+          onReceive(e => {
             if (e.type === 'PING') {
               callback('PONG');
             }

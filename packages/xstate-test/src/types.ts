@@ -1,11 +1,11 @@
-import { EventObject, State } from 'xstate';
+import { EventObject, State, StateNode } from 'xstate';
 export interface TestMeta<T, TContext> {
-  test?: (testContext: T, state: State<TContext>) => Promise<void> | void;
-  description?: string | ((state: State<TContext>) => string);
+  test?: (testContext: T, state: State<TContext, any>) => Promise<void> | void;
+  description?: string | ((state: State<TContext, any>) => string);
   skip?: boolean;
 }
 interface TestSegment<T> {
-  state: State<any>;
+  state: State<any, any>;
   event: EventObject;
   description: string;
   test: (testContext: T) => Promise<void>;
@@ -44,7 +44,7 @@ export interface TestPlan<TTestContext, TContext> {
   /**
    * The target state.
    */
-  state: State<TContext>;
+  state: State<TContext, any>;
   /**
    * The paths that reach the target `state`.
    */
@@ -137,4 +137,8 @@ export interface TestModelOptions<T> {
 export interface TestModelCoverage {
   stateNodes: Map<string, number>;
   transitions: Map<string, Map<EventObject, number>>;
+}
+
+export interface CoverageOptions<TContext> {
+  filter?: (stateNode: StateNode<TContext, any, any>) => boolean;
 }

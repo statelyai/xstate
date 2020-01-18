@@ -61,7 +61,18 @@ module.exports = {
       },
       {
         title: 'Tutorials',
-        children: ['/tutorials/reddit']
+        children: [
+          '/tutorials/reddit',
+          {
+            title: '7GUIs',
+            children: [
+              '/tutorials/7guis/counter',
+              '/tutorials/7guis/temperature',
+              '/tutorials/7guis/flight',
+              '/tutorials/7guis/timer'
+            ]
+          }
+        ]
       },
       {
         title: 'Recipes',
@@ -71,6 +82,7 @@ module.exports = {
         title: 'Packages',
         children: [
           'packages/xstate-react/',
+          'packages/xstate-vue/',
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
           'packages/xstate-test/',

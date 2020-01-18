@@ -5,6 +5,10 @@
 blockquote {
   font-size: 1rem;
   color: #8e8e8e;
+
+  > p + p {
+    margin-top: 1rem;
+  }
 }
 
 iframe {
@@ -30,5 +34,13 @@ details {
 
   > * {
     padding: 0 1rem;
+  }
+
+  > ul, > ol {
+    margin-left: 1rem;
+  }
+
+  > [class*="language-"] {
+    margin: 0 1rem;
   }
 }

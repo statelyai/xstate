@@ -4,11 +4,13 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "packages/*"
+      "packages/!(xstate-dev)",
+      "packages/xstate-viz/example"
     ]
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
+    "postinstall": "manypkg check",
     "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest",
@@ -22,7 +24,10 @@
     "docs:pdf": "npm run docs:build && cd docs && vuepress export .",
     "docs:packages": "cpy 'packages/*/README.md' docs --parents --rename=index.md && cpy 'packages/*/docs/*.md' docs --parents",
     "docs:build": "npm run docs:readme && npm run docs:packages && cd docs && vuepress build .",
-    "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish"
+    "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish",
+    "changeset": "changeset",
+    "prerelease": "npm run build && npm run test",
+    "release": "changeset publish"
   },
   "repository": {
     "type": "git",
@@ -34,13 +39,17 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "homepage": "https://github.com/davidkpiano/xstate#readme",
-  "devDependencies": {
-    "@types/jest": "^24.0.19",
+  "dependencies": {
+    "@actions/exec": "^1.0.2",
+    "@changesets/cli": "^2.4.0",
+    "@manypkg/cli": "^0.9.0",
+    "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
+    "@types/use-subscription": "^1.0.0",
     "@vuepress/plugin-google-analytics": "^1.2.0",
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
-    "husky": "^2.5.0",
+    "husky": "^3.1.0",
     "jest": "^24.8.0",
     "jest-watch-typeahead": "^0.4.1",
     "jsdom": "^14.0.0",
@@ -51,7 +60,7 @@
     "mermaid": "^8.2.3",
     "prettier": "^1.18.2",
     "spawn-command": "0.0.2-1",
-    "ts-jest": "^24.1.0",
+    "ts-jest": "^24.1.9",
     "tslint": "^5.11.0",
     "typedoc": "^0.15.2",
     "typescript": "^3.7.2",

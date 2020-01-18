@@ -15,7 +15,8 @@ Pull requests are encouraged. If you want to add a feature or fix a bug:
 2. Create a separate branch for your changes
 3. Make your changes, and ensure that it is formatted by Prettier and type-checks without errors in TypeScript
 4. Write tests that validate your change and/or fix.
-5. Run tests with `npm test` (for all packages) or `npm run test:core` (for only changes to core XState)
-6. Push your branch and open a PR 🚀
+5. Run tests with `yarn test` (for all packages) or `yarn test:core` (for only changes to core XState)
+6. Create a changeset by running `yarn changeset`. [More info](https://github.com/atlassian/changesets).
+7. Push your branch and open a PR 🚀
 
 PRs are reviewed promptly and merged in within a day or two (or even within an hour), if everything looks good.

@@ -1,16 +1,27 @@
-import { StateMachine, EventObject, Typestate } from './types';
+import {
+  StateMachine,
+  EventObject,
+  Typestate,
+  InterpreterStatus,
+  InitEvent
+} from './types';
 
-export { StateMachine, EventObject };
+export { StateMachine, EventObject, InterpreterStatus, Typestate };
+
+const INIT_EVENT: InitEvent = { type: 'xstate.init' };
+const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-const assignActionType: StateMachine.AssignAction = 'xstate.assign';
-
-export function assign(assignment: any): StateMachine.ActionObject<any, any> {
+export function assign<TC, TE extends EventObject = EventObject>(
+  assignment:
+    | StateMachine.Assigner<TC, TE>
+    | StateMachine.PropertyAssigner<TC, TE>
+): StateMachine.AssignActionObject<TC, TE> {
   return {
-    type: assignActionType,
+    type: ASSIGN_ACTION,
     assignment
   };
 }
@@ -34,7 +45,7 @@ function toActionObject<TContext, TEvent extends EventObject>(
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-function createMatcher(value) {
+function createMatcher(value: string) {
   return stateValue => value === stateValue;
 }
 
@@ -119,7 +130,7 @@ export function createMachine<
               .filter(a => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
               .filter(action => {
-                if (action.type === assignActionType) {
+                if (action.type === ASSIGN_ACTION) {
                   assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
 
@@ -157,26 +168,33 @@ export function createMachine<
   };
 }
 
-export function interpret<
+const executeStateActions = <
   TContext,
   TEvent extends EventObject = any,
+  TState extends Typestate<TContext> = any
+>(
+  state: StateMachine.State<TContext, TEvent, TState>,
+  event: TEvent | InitEvent
+) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
+
+export function interpret<
+  TContext,
+  TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
   machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {
   let state = machine.initialState;
-  let started = false;
+  let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
     send: (event: TEvent | TEvent['type']): void => {
-      if (!started) {
+      if (status !== InterpreterStatus.Running) {
         return;
       }
       state = machine.transition(state, event);
-      state.actions.forEach(
-        ({ exec }) => exec && exec(state.context, toEventObject(event))
-      );
+      executeStateActions(state, toEventObject(event));
       listeners.forEach(listener => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
@@ -187,12 +205,19 @@ export function interpret<
         unsubscribe: () => listeners.delete(listener)
       };
     },
-    start: () => ((started = true), service),
-    stop: () => (
-      (started = false),
-      listeners.forEach(listener => listeners.delete(listener)),
-      service
-    )
+    start: () => {
+      status = InterpreterStatus.Running;
+      executeStateActions(state, INIT_EVENT);
+      return service;
+    },
+    stop: () => {
+      status = InterpreterStatus.Stopped;
+      listeners.forEach(listener => listeners.delete(listener));
+      return service;
+    },
+    get status() {
+      return status;
+    }
   };
 
   return service;

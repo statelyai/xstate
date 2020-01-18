@@ -28,6 +28,7 @@ Object {
               "context": Object {
                 "id": "foo",
               },
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -59,6 +60,7 @@ Object {
           "context": Object {
             "id": "foo",
           },
+          "done": false,
           "event": Object {
             "id": "whatever",
             "type": "EVENT",
@@ -81,6 +83,7 @@ Object {
             "context": Object {
               "id": "foo",
             },
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -125,6 +128,7 @@ Object {
       "context": Object {
         "id": "foo",
       },
+      "done": false,
       "event": Object {
         "id": "whatever",
         "type": "EVENT",
@@ -147,6 +151,7 @@ Object {
         "context": Object {
           "id": "foo",
         },
+        "done": false,
         "event": Object {
           "type": "xstate.init",
         },
@@ -196,6 +201,7 @@ Object {
               "context": Object {
                 "id": "foo",
               },
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -226,6 +232,7 @@ Object {
           "context": Object {
             "id": "foo",
           },
+          "done": false,
           "event": Object {
             "type": "STATE",
           },
@@ -247,6 +254,7 @@ Object {
             "context": Object {
               "id": "foo",
             },
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -290,6 +298,7 @@ Object {
       "context": Object {
         "id": "foo",
       },
+      "done": false,
       "event": Object {
         "type": "STATE",
       },
@@ -311,6 +320,7 @@ Object {
         "context": Object {
           "id": "foo",
         },
+        "done": false,
         "event": Object {
           "type": "xstate.init",
         },
@@ -356,6 +366,7 @@ Object {
           "context": Object {
             "id": "foo",
           },
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -387,6 +398,7 @@ Object {
       "context": Object {
         "id": "foo",
       },
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -423,6 +435,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "1",
           },
@@ -442,6 +455,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "2",
             },
@@ -528,6 +542,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "1",
       },
@@ -547,6 +562,7 @@ Object {
         "changed": true,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "2",
         },
@@ -639,6 +655,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "1",
               },
@@ -658,6 +675,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "2",
                 },
@@ -743,6 +761,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "2",
           },
@@ -762,6 +781,7 @@ Object {
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -825,6 +845,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "2",
       },
@@ -844,6 +865,7 @@ Object {
         "changed": undefined,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "xstate.init",
         },
@@ -913,6 +935,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "1",
               },
@@ -932,6 +955,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "2",
                 },
@@ -1017,6 +1041,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "3",
           },
@@ -1036,6 +1061,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "2",
             },
@@ -1122,6 +1148,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "3",
       },
@@ -1141,6 +1168,7 @@ Object {
         "changed": true,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "2",
         },
@@ -1234,6 +1262,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -1253,6 +1282,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
@@ -1321,6 +1351,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -1340,6 +1371,7 @@ Object {
         "changed": true,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "PED_COUNTDOWN",
         },
@@ -1414,6 +1446,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -1433,6 +1466,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
@@ -1500,6 +1534,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -1543,6 +1578,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -1592,6 +1628,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -1611,6 +1648,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
@@ -1678,6 +1716,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -1725,6 +1764,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "POWER_OUTAGE",
       },
@@ -1778,6 +1818,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -1797,6 +1838,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
@@ -1867,6 +1909,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -1912,6 +1955,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -1966,6 +2010,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -2012,6 +2057,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -2059,6 +2105,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -2112,6 +2159,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2131,6 +2179,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
@@ -2201,6 +2250,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2246,6 +2296,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2297,6 +2348,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -2349,6 +2401,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -2402,6 +2455,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2421,6 +2475,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
@@ -2491,6 +2546,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2533,6 +2589,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -2580,6 +2637,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -2634,6 +2692,7 @@ Object {
           "changed": undefined,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -2663,6 +2722,7 @@ Object {
       "changed": undefined,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -2698,6 +2758,7 @@ Object {
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -2726,6 +2787,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -2769,6 +2831,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -2818,6 +2881,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2837,6 +2901,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -2907,6 +2972,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -2952,6 +3018,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3006,6 +3073,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -3055,6 +3123,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -3101,6 +3170,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -3153,6 +3223,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3172,6 +3243,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -3242,6 +3314,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3287,6 +3360,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3341,6 +3415,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -3387,6 +3462,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -3411,6 +3487,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
@@ -3488,6 +3565,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3507,6 +3585,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -3577,6 +3656,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3622,6 +3702,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3668,6 +3749,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -3687,6 +3769,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "TIMER",
             },
@@ -3764,6 +3847,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3783,6 +3867,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -3853,6 +3938,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -3895,6 +3981,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -3914,6 +4001,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "TIMER",
             },
@@ -3987,6 +4075,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4006,6 +4095,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "TIMER",
                 },
@@ -4073,6 +4163,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -4092,6 +4183,7 @@ Object {
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -4145,6 +4237,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "POWER_OUTAGE",
       },
@@ -4198,6 +4291,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4217,6 +4311,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -4287,6 +4382,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4332,6 +4428,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4386,6 +4483,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -4432,6 +4530,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -4479,6 +4578,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -4532,6 +4632,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4551,6 +4652,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -4621,6 +4723,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4666,6 +4769,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4717,6 +4821,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -4769,6 +4874,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -4822,6 +4928,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4841,6 +4948,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -4911,6 +5019,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -4953,6 +5062,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -5000,6 +5110,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -5054,6 +5165,7 @@ Object {
           "changed": undefined,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -5086,6 +5198,7 @@ Object {
       "changed": undefined,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -5124,6 +5237,7 @@ Object {
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -5155,6 +5269,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "2",
           },
@@ -5174,6 +5289,7 @@ Object {
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -5237,6 +5353,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "2",
       },
@@ -5256,6 +5373,7 @@ Object {
         "changed": undefined,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "xstate.init",
         },
@@ -5325,6 +5443,7 @@ Object {
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -5359,6 +5478,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "2",
               },
@@ -5378,6 +5498,7 @@ Object {
                 "changed": undefined,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "xstate.init",
                 },
@@ -5440,6 +5561,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "3",
           },
@@ -5459,6 +5581,7 @@ Object {
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "2",
             },
@@ -5550,6 +5673,7 @@ Object {
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "1",
               },
@@ -5569,6 +5693,7 @@ Object {
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "2",
                 },
@@ -5654,6 +5779,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "3",
           },
@@ -5673,6 +5799,7 @@ Object {
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -5736,6 +5863,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "3",
       },
@@ -5755,6 +5883,7 @@ Object {
         "changed": true,
         "children": Object {},
         "context": undefined,
+        "done": false,
         "event": Object {
           "type": "2",
         },
@@ -5848,6 +5977,7 @@ Object {
           "changed": undefined,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -5877,6 +6007,7 @@ Object {
       "changed": undefined,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -5912,6 +6043,7 @@ Object {
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -5940,6 +6072,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "FOO",
           },
@@ -5979,6 +6112,7 @@ Object {
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -6007,6 +6141,7 @@ Object {
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "BAR",
           },
@@ -6026,6 +6161,7 @@ Object {
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -6066,6 +6202,7 @@ Object {
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "FOO",
       },
@@ -6114,6 +6251,7 @@ Object {
               "context": Object {
                 "count": 0,
               },
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -6149,6 +6287,7 @@ Object {
               "context": Object {
                 "count": 1,
               },
+              "done": false,
               "event": Object {
                 "type": "INC",
                 "value": 1,
@@ -6190,6 +6329,7 @@ Object {
               "context": Object {
                 "count": 2,
               },
+              "done": false,
               "event": Object {
                 "type": "INC",
                 "value": 1,
@@ -6227,6 +6367,7 @@ Object {
           "context": Object {
             "count": 3,
           },
+          "done": false,
           "event": Object {
             "type": "INC",
             "value": 1,
@@ -6250,6 +6391,7 @@ Object {
             "context": Object {
               "count": 2,
             },
+            "done": false,
             "event": Object {
               "type": "INC",
               "value": 1,
@@ -6300,6 +6442,7 @@ Object {
       "context": Object {
         "count": 3,
       },
+      "done": false,
       "event": Object {
         "type": "INC",
         "value": 1,
@@ -6323,6 +6466,7 @@ Object {
         "context": Object {
           "count": 2,
         },
+        "done": false,
         "event": Object {
           "type": "INC",
           "value": 1,
@@ -6374,6 +6518,7 @@ Object {
           "context": Object {
             "count": 0,
           },
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -6405,6 +6550,7 @@ Object {
       "context": Object {
         "count": 0,
       },
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -6443,6 +6589,7 @@ Object {
               "context": Object {
                 "count": 0,
               },
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -6474,6 +6621,7 @@ Object {
           "context": Object {
             "count": 1,
           },
+          "done": false,
           "event": Object {
             "type": "INC",
             "value": 1,
@@ -6512,6 +6660,7 @@ Object {
       "context": Object {
         "count": 1,
       },
+      "done": false,
       "event": Object {
         "type": "INC",
         "value": 1,
@@ -6556,6 +6705,7 @@ Object {
               "context": Object {
                 "count": 0,
               },
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -6591,6 +6741,7 @@ Object {
               "context": Object {
                 "count": 1,
               },
+              "done": false,
               "event": Object {
                 "type": "INC",
                 "value": 1,
@@ -6628,6 +6779,7 @@ Object {
           "context": Object {
             "count": 2,
           },
+          "done": false,
           "event": Object {
             "type": "INC",
             "value": 1,
@@ -6666,6 +6818,7 @@ Object {
       "context": Object {
         "count": 2,
       },
+      "done": false,
       "event": Object {
         "type": "INC",
         "value": 1,
@@ -6708,6 +6861,7 @@ Array [
           "changed": undefined,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "xstate.init",
           },
@@ -6737,6 +6891,7 @@ Array [
       "changed": undefined,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "xstate.init",
       },
@@ -6772,6 +6927,7 @@ Array [
               "changed": undefined,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "xstate.init",
               },
@@ -6800,6 +6956,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -6843,6 +7000,7 @@ Array [
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -6892,6 +7050,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -6911,6 +7070,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -6981,6 +7141,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7023,6 +7184,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "TIMER",
           },
@@ -7070,6 +7232,7 @@ Array [
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "TIMER",
       },
@@ -7123,6 +7286,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7142,6 +7306,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -7212,6 +7377,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7257,6 +7423,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7308,6 +7475,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -7360,6 +7528,7 @@ Array [
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -7413,6 +7582,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7432,6 +7602,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -7502,6 +7673,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7547,6 +7719,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7601,6 +7774,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -7647,6 +7821,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
@@ -7694,6 +7869,7 @@ Array [
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
@@ -7747,6 +7923,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7766,6 +7943,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -7836,6 +8014,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7881,6 +8060,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -7935,6 +8115,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -7984,6 +8165,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -8030,6 +8212,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -8082,6 +8265,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8101,6 +8285,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -8171,6 +8356,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8216,6 +8402,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8270,6 +8457,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
@@ -8316,6 +8504,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -8340,6 +8529,7 @@ Array [
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
@@ -8417,6 +8607,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8436,6 +8627,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -8506,6 +8698,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8551,6 +8744,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8597,6 +8791,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -8616,6 +8811,7 @@ Array [
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "TIMER",
             },
@@ -8693,6 +8889,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8712,6 +8909,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
@@ -8782,6 +8980,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8824,6 +9023,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -8843,6 +9043,7 @@ Array [
             "changed": true,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "TIMER",
             },
@@ -8916,6 +9117,7 @@ Array [
               "changed": true,
               "children": Object {},
               "context": undefined,
+              "done": false,
               "event": Object {
                 "type": "TIMER",
               },
@@ -8935,6 +9137,7 @@ Array [
                 "changed": true,
                 "children": Object {},
                 "context": undefined,
+                "done": false,
                 "event": Object {
                   "type": "TIMER",
                 },
@@ -9002,6 +9205,7 @@ Array [
           "changed": true,
           "children": Object {},
           "context": undefined,
+          "done": false,
           "event": Object {
             "type": "POWER_OUTAGE",
           },
@@ -9021,6 +9225,7 @@ Array [
             "changed": undefined,
             "children": Object {},
             "context": undefined,
+            "done": false,
             "event": Object {
               "type": "xstate.init",
             },
@@ -9074,6 +9279,7 @@ Array [
       "changed": true,
       "children": Object {},
       "context": undefined,
+      "done": false,
       "event": Object {
         "type": "POWER_OUTAGE",
       },

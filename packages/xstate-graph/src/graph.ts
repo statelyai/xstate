@@ -4,10 +4,17 @@ import {
   DefaultContext,
   Event,
   EventObject,
-  StateMachine
+  StateMachine,
+  AnyEventObject
 } from 'xstate';
 import { flatten, keys } from 'xstate/lib/utils';
-import { StatePathsMap, StatePaths, AdjacencyMap, Segments } from './types';
+import {
+  StatePathsMap,
+  StatePaths,
+  AdjacencyMap,
+  Segments,
+  ValueAdjMapOptions
+} from './types';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -25,7 +32,9 @@ const EMPTY_MAP = {};
  * Returns all state nodes of the given `node`.
  * @param stateNode State node to recursively get child state nodes from
  */
-export function getStateNodes(stateNode: StateNode): StateNode[] {
+export function getStateNodes(
+  stateNode: StateNode | StateMachine<any, any, any>
+): StateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
     const childStateNode = states[stateKey];
@@ -38,7 +47,7 @@ export function getStateNodes(stateNode: StateNode): StateNode[] {
   return nodes;
 }
 
-export function serializeState<TContext>(state: State<TContext>): string {
+export function serializeState<TContext>(state: State<TContext, any>): string {
   const { value, context } = state;
   return context === undefined
     ? JSON.stringify(value)
@@ -57,13 +66,6 @@ export function deserializeEventString<TEvent extends EventObject>(
   return JSON.parse(eventString) as TEvent;
 }
 
-export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
-  events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext>) => boolean;
-  stateSerializer: (state: State<TContext>) => string;
-  eventSerializer: (event: TEvent) => string;
-}
-
 const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
   events: {},
   filter: () => true,
@@ -73,9 +75,9 @@ const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
 
 export function getAdjacencyMap<
   TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = AnyEventObject
 >(
-  node: StateNode<TContext, any, TEvent>,
+  node: StateNode<TContext, any, TEvent> | StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -249,6 +251,7 @@ export function getSimplePaths<
     return EMPTY_MAP;
   }
 
+  // @ts-ignore - excessively deep
   const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();

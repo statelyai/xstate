@@ -79,7 +79,7 @@ export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TState extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = any
 > {
   public value: StateValue;
   public context: TContext;
@@ -101,6 +101,10 @@ export class State<
    * An initial state (with no history) will return `undefined`.
    */
   public changed: boolean | undefined;
+  /**
+   * Indicates whether the state is a final state.
+   */
+  public done: boolean | undefined;
   /**
    * The enabled state nodes representative of the state value.
    */
@@ -237,6 +241,7 @@ export class State<
     this.configuration = config.configuration;
     this.transitions = config.transitions;
     this.children = config.children;
+    this.done = !!config.done;
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
@@ -276,10 +281,10 @@ export class State<
    * Whether the current state value is a subset of the given parent state value.
    * @param parentStateValue
    */
-  public matches<TSV extends TState['value']>(
+  public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
-  ): this is TState extends { value: TSV }
-    ? State<TState['context'], TEvent, TStateSchema, TState>
+  ): this is TTypestate extends { value: TSV }
+    ? State<TTypestate['context'], TEvent, TStateSchema, TTypestate>
     : never {
     return matchesState(parentStateValue as StateValue, this.value);
   }

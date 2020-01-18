@@ -4,7 +4,6 @@ import {
   InvokeDefinition,
   AnyEventObject
 } from './types';
-import { State } from './State';
 
 export interface Actor<
   TContext = any,
@@ -18,11 +17,6 @@ export interface Actor<
   };
   meta?: InvokeDefinition<TContext, TEvent>;
   state?: any;
-}
-
-export interface ServiceActor<TContext, TEvent extends EventObject>
-  extends Actor<TContext, TEvent> {
-  state: State<TContext, TEvent>;
 }
 
 export function createNullActor(id: string): Actor {

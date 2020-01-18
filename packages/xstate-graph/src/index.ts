@@ -13,3 +13,5 @@ export {
   serializeEvent,
   serializeState
 };
+
+export * from './types';

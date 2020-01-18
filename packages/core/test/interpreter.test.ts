@@ -1,4 +1,4 @@
-import { interpret, Interpreter } from '../src/interpreter';
+import { interpret, Interpreter, spawn } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
@@ -9,12 +9,13 @@ import {
   sendParent,
   EventObject,
   StateValue,
-  AnyEventObject
+  AnyEventObject,
+  createMachine
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
-import { interval, from, InteropObservable } from 'rxjs';
+import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 
 const lightMachine = Machine({
@@ -53,21 +54,97 @@ describe('interpreter', () => {
     expect(service).toBeInstanceOf(Interpreter);
   });
 
-  it('immediately notifies the listener with the initial state and event', done => {
-    const service = interpret(idMachine).onTransition((initialState, event) => {
-      expect(initialState).toBeInstanceOf(State);
-      expect(initialState.value).toEqual(idMachine.initialState.value);
-      expect(event.type).toEqual(actionTypes.init);
-      done();
+  describe('initial state', () => {
+    it('immediately notifies the listener with the initial state and event', done => {
+      const service = interpret(idMachine).onTransition(
+        (initialState, event) => {
+          expect(initialState).toBeInstanceOf(State);
+          expect(initialState.value).toEqual(idMachine.initialState.value);
+          expect(event.type).toEqual(actionTypes.init);
+          done();
+        }
+      );
+
+      service.start();
     });
 
-    service.start();
+    it('.initialState returns the initial state', () => {
+      const service = interpret(idMachine);
+
+      expect(service.initialState.value).toEqual(idMachine.initialState.value);
+    });
+
+    it('initial state should be cached', done => {
+      let entryCalled = 0;
+      let promiseSpawned = 0;
+
+      const machine = createMachine<any>({
+        initial: 'idle',
+        context: {
+          actor: undefined
+        },
+        states: {
+          idle: {
+            entry: assign({
+              actor: () => {
+                entryCalled++;
+                return spawn(
+                  new Promise(() => {
+                    promiseSpawned++;
+                  })
+                );
+              }
+            })
+          }
+        }
+      });
+
+      const service = interpret(machine);
+
+      expect(entryCalled).toEqual(0);
+      expect(promiseSpawned).toEqual(0);
+
+      const callInitialState = () => service.initialState;
+      callInitialState();
+      callInitialState();
+      callInitialState();
+
+      service.start();
+
+      expect(entryCalled).toEqual(1);
+
+      setTimeout(() => {
+        expect(promiseSpawned).toEqual(1);
+        done();
+      }, 100);
+    });
   });
 
-  it('.initialState returns the initial state', () => {
-    const service = interpret(idMachine);
+  describe('subscribing', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
 
-    expect(service.initialState.value).toEqual(idMachine.initialState.value);
+    it('should notify subscribers of the current state upon subscription (subscribe)', done => {
+      const service = interpret(machine).start();
+
+      service.subscribe(state => {
+        expect(state.value).toBe('active');
+        done();
+      });
+    });
+
+    it('should notify subscribers of the current state upon subscription (onTransition)', done => {
+      const service = interpret(machine).start();
+
+      service.onTransition(state => {
+        expect(state.value).toBe('active');
+        done();
+      });
+    });
   });
 
   describe('.nextState() method', () => {
@@ -853,8 +930,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       }
     });
-
-    const parentMachine = Machine<Ctx, Events>({
+    // Ctx, any, Events, any
+    const parentMachine = createMachine<Ctx, Events>({
       id: 'parent',
       initial: 'start',
       states: {
@@ -1286,18 +1363,20 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       toggleService.onTransition(listener);
 
-      toggleService.send('TOGGLE');
-
       expect(stateCount).toEqual(1);
 
       toggleService.send('TOGGLE');
 
       expect(stateCount).toEqual(2);
 
+      toggleService.send('TOGGLE');
+
+      expect(stateCount).toEqual(3);
+
       toggleService.off(listener);
       toggleService.send('TOGGLE');
 
-      expect(stateCount).toEqual(2);
+      expect(stateCount).toEqual(3);
     });
   });
 
@@ -1554,7 +1633,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       const intervalService = interpret(intervalMachine).start();
 
       expect(() => {
-        const state$ = from(intervalService as InteropObservable<any>);
+        const state$ = from(intervalService as any);
 
         state$.subscribe(
           () => {
@@ -1562,7 +1641,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           },
           undefined,
           () => {
-            expect(count).toEqual(5);
+            expect(count).toEqual(6);
             done();
           }
         );

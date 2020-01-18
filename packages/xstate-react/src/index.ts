@@ -1,4 +1,4 @@
-import { useState, useRef, useEffect } from 'react';
+import { useState, useMemo, useEffect } from 'react';
 import {
   interpret,
   EventObject,
@@ -7,17 +7,17 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineOptions,
-  StateConfig
+  StateConfig,
+  Typestate
 } from 'xstate';
+import { useSubscription, Subscription } from 'use-subscription';
+import useConstant from './useConstant';
+
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
    * If provided, will be merged with machine's `context`.
    */
   context?: Partial<TContext>;
-  /**
-   * If `true`, service will start immediately (before mount).
-   */
-  immediate: boolean;
   /**
    * The state to rehydrate the machine to. The machine will
    * start at this state instead of its `initialState`.
@@ -25,20 +25,31 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-const defaultOptions = {
-  immediate: false
-};
-
-export function useMachine<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>,
+export function useMachine<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = any
+>(
+  machine: StateMachine<TContext, any, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = defaultOptions
+    Partial<MachineOptions<TContext, TEvent>> = {}
 ): [
-  State<TContext, TEvent>,
-  Interpreter<TContext, any, TEvent>['send'],
-  Interpreter<TContext, any, TEvent>
+  State<TContext, TEvent, any, TTypestate>,
+  Interpreter<TContext, any, TEvent, TTypestate>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate>
 ] {
+  if (process.env.NODE_ENV !== 'production') {
+    const [initialMachine] = useState(machine);
+
+    if (machine !== initialMachine) {
+      throw new Error(
+        'Machine given to `useMachine` has changed between renders. This is not supported and might lead to unexpected results.\n' +
+          'Please make sure that you pass the same Machine as argument each time.'
+      );
+    }
+  }
+
   const {
     context,
     guards,
@@ -46,49 +57,46 @@ export function useMachine<TContext, TEvent extends EventObject>(
     activities,
     services,
     delays,
-    immediate,
     state: rehydratedState,
     ...interpreterOptions
   } = options;
 
-  const machineConfig = {
-    context,
-    guards,
-    actions,
-    activities,
-    services,
-    delays
-  };
+  const service = useConstant(() => {
+    const machineConfig = {
+      context,
+      guards,
+      actions,
+      activities,
+      services,
+      delays
+    };
 
-  // Reference the machine
-  const machineRef = useRef<StateMachine<TContext, any, TEvent> | null>(null);
-
-  // Create the machine only once
-  // See https://reactjs.org/docs/hooks-faq.html#how-to-create-expensive-objects-lazily
-  if (machineRef.current === null) {
-    machineRef.current = machine.withConfig(machineConfig, {
+    const createdMachine = machine.withConfig(machineConfig, {
       ...machine.context,
       ...context
     } as TContext);
-  }
 
-  // Reference the service
-  const serviceRef = useRef<Interpreter<TContext, any, TEvent> | null>(null);
+    return interpret(createdMachine, interpreterOptions).start(
+      rehydratedState ? State.create(rehydratedState) : undefined
+    );
+  });
 
-  // Create the service only once
-  if (serviceRef.current === null) {
-    serviceRef.current = interpret(
-      machineRef.current,
-      interpreterOptions
-    ).onTransition(state => {
-      // Update the current machine state when a transition occurs
+  const [current, setCurrent] = useState(service.state);
+
+  useEffect(() => {
+    service.onTransition(state => {
       if (state.changed) {
         setCurrent(state);
       }
     });
-  }
 
-  const service = serviceRef.current;
+    // if service.state has not changed React should just bail out from this update
+    setCurrent(service.state);
+
+    return () => {
+      service.stop();
+    };
+  }, []);
 
   // Make sure actions and services are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
@@ -101,63 +109,38 @@ export function useMachine<TContext, TEvent extends EventObject>(
     Object.assign(service.machine.options.services, services);
   }, [services]);
 
-  // Keep track of the current machine state
-  const initialState = rehydratedState
-    ? State.create(rehydratedState)
-    : service.initialState;
-
-  const [current, setCurrent] = useState(() => initialState);
-
-  // Start service immediately (before mount) if specified in options
-  if (immediate) {
-    service.start();
-  }
-
-  useEffect(() => {
-    // Start the service when the component mounts.
-    // Note: the service will start only if it hasn't started already.
-    //
-    // If a rehydrated state was provided, use the resolved `initialState`.
-    service.start(rehydratedState ? initialState : undefined);
-
-    return () => {
-      // Stop the service when the component unmounts
-      service.stop();
-    };
-  }, []);
-
   return [current, service.send, service];
 }
 
-export function useService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>
+export function useService<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = any
+>(
+  service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [
-  State<TContext, TEvent>,
-  Interpreter<TContext, any, TEvent>['send'],
-  Interpreter<TContext, any, TEvent>
+  State<TContext, TEvent, any, TTypestate>,
+  Interpreter<TContext, any, TEvent, TTypestate>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const [current, setCurrent] = useState(service.state);
-
-  useEffect(() => {
-    // Set to current service state as there is a possibility
-    // of a transition occurring between the initial useState()
-    // initialization and useEffect() commit.
-    setCurrent(service.state);
-
-    const listener = state => {
-      if (state.changed) {
-        setCurrent(state);
+  const subscription: Subscription<
+    State<TContext, TEvent, any, TTypestate>
+  > = useMemo(
+    () => ({
+      getCurrentValue: () => service.state || service.initialState,
+      subscribe: callback => {
+        const { unsubscribe } = service.subscribe(state => {
+          if (state.changed !== false) {
+            callback();
+          }
+        });
+        return unsubscribe;
       }
-    };
+    }),
+    [service]
+  );
 
-    const sub = service.subscribe(listener);
-
-    return () => {
-      sub.unsubscribe();
-    };
-  }, [service]);
+  const current = useSubscription(subscription);
 
   return [current, service.send, service];
 }
-
-export { useActor } from './useActor';
