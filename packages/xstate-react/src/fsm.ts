@@ -1,5 +1,11 @@
 import { useState, useEffect, useMemo } from 'react';
-import { StateMachine, EventObject, Typestate, interpret } from '@xstate/fsm';
+import {
+  StateMachine,
+  EventObject,
+  Typestate,
+  interpret,
+  createMachine
+} from '@xstate/fsm';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
@@ -8,7 +14,9 @@ export function useMachine<
   TE extends EventObject = EventObject
 >(
   stateMachine: StateMachine.Machine<TC, TE, any>,
-  options?: StateMachine.ActionMap<TC, TE>
+  options?: {
+    actions?: StateMachine.ActionMap<TC, TE>;
+  }
 ): [
   StateMachine.State<TC, TE, any>,
   StateMachine.Service<TC, TE>['send'],
@@ -25,13 +33,14 @@ export function useMachine<
     }
   }
 
-  const service = useConstant(() => {
-    const service = interpret(stateMachine);
-    if (options) {
-      (service as any)._machine._options = options;
-    }
-    return service.start();
-  });
+  const service = useConstant(() =>
+    interpret(
+      createMachine(
+        stateMachine.config,
+        options ? options : (stateMachine as any)._options
+      )
+    ).start()
+  );
   const [current, setCurrent] = useState(stateMachine.initialState);
 
   useEffect(() => {

@@ -198,21 +198,17 @@ export function interpret<
 >(
   machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {
-  const machineInstance = createMachine(
-    machine.config,
-    (machine as any)._options
-  );
-  let state = machineInstance.initialState;
+  let state = machine.initialState;
   let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
-    _machine: machineInstance,
+    _machine: machine,
     send: (event: TEvent | TEvent['type']): void => {
       if (status !== InterpreterStatus.Running) {
         return;
       }
-      state = machineInstance.transition(state, event);
+      state = machine.transition(state, event);
       executeStateActions(state, toEventObject(event));
       listeners.forEach(listener => listener(state));
     },

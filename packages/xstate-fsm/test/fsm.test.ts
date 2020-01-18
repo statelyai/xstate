@@ -60,9 +60,7 @@ describe('@xstate/fsm', () => {
     lightConfig
   );
   it('should return back the config object', () => {
-    const { config } = lightFSM;
-
-    expect(config).toBe(lightConfig);
+    expect(lightFSM.config).toBe(lightConfig);
   });
   it('should have the correct initial state', () => {
     const { initialState } = lightFSM;
@@ -229,6 +227,32 @@ describe('interpreter', () => {
         }
       }
     });
+
+    interpret(machine).start();
+
+    expect(executed).toBe(true);
+  });
+
+  it('should lookup string actions in options', () => {
+    let executed = false;
+
+    const machine = createMachine(
+      {
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: 'testAction'
+          }
+        }
+      },
+      {
+        actions: {
+          testAction: () => {
+            executed = true;
+          }
+        }
+      }
+    );
 
     interpret(machine).start();
 
