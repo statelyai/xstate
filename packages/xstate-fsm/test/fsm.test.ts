@@ -1,4 +1,4 @@
-import { createMachine, assign, interpret } from '../src';
+import { createMachine, assign, interpret, StateMachine } from '../src';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -22,7 +22,7 @@ describe('@xstate/fsm', () => {
         context: LightContext & { go: false };
       };
 
-  const lightConfig = {
+  const lightConfig: StateMachine.Config<LightContext, LightEvent> = {
     id: 'light',
     initial: 'green',
     context: { count: 0, foo: 'bar', go: true },
