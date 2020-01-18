@@ -1879,7 +1879,7 @@ class StateNode<
 
     const target = this.resolveTarget(normalizedTarget);
 
-    return {
+    const transition = {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond, guards),
@@ -1888,6 +1888,18 @@ class StateNode<
       internal,
       eventType: transitionConfig.event
     };
+
+    Object.defineProperty(transition, 'toJSON', {
+      value: () => ({
+        ...transition,
+        target: transition.target
+          ? transition.target.map(t => `#${t.id}`)
+          : undefined,
+        source: `#{this.id}`
+      })
+    });
+
+    return transition;
   }
   private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
     let onConfig: Array<

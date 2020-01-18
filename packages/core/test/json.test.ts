@@ -1,5 +1,4 @@
 import { createMachine, assign } from '../src/index';
-import { getConfig } from '../src/json';
 import * as machineSchema from '../src/machine.schema.json';
 
 import * as Ajv from 'ajv';
@@ -8,7 +7,7 @@ const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);
 
 describe('json', () => {
-  it('should ser', () => {
+  it('should serialize the machine', () => {
     const machine = createMachine<{ [key: string]: any }>({
       initial: 'foo',
       context: {
@@ -17,6 +16,7 @@ describe('json', () => {
       },
       states: {
         testActions: {
+          invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
           entry: [
             'stringActionType',
             {
@@ -36,60 +36,26 @@ describe('json', () => {
               number: 10,
               string: 'test',
               evalNumber: () => 42
-            })
-          ]
-        }
+            }),
+            assign(ctx => ({
+              ...ctx
+            }))
+          ],
+          on: {
+            TO_FOO: {
+              target: ['foo', 'bar'],
+              cond: ctx => !!ctx.string
+            }
+          }
+        },
+        foo: {},
+        bar: {}
       }
     });
 
-    const config = getConfig(machine);
-    const configFromJson = JSON.parse(JSON.stringify(config));
+    const json = JSON.parse(JSON.stringify(machine.definition));
 
-    expect(configFromJson).toMatchInlineSnapshot(`
-      Object {
-        "entry": Array [],
-        "exit": Array [],
-        "id": "(machine)",
-        "initial": "foo",
-        "invoke": Array [],
-        "on": Object {},
-        "states": Object {
-          "testActions": Object {
-            "entry": Array [
-              Object {
-                "type": "stringActionType",
-              },
-              Object {
-                "type": "objectActionType",
-              },
-              Object {
-                "other": "any",
-                "type": "objectActionTypeWithExec",
-              },
-              Object {
-                "type": "actionFunction",
-              },
-              Object {
-                "assignment": Object {
-                  "number": 10,
-                  "string": "test",
-                },
-                "type": "xstate.assign",
-              },
-            ],
-            "exit": Array [],
-            "id": "(machine).testActions",
-            "invoke": Array [],
-            "on": Object {},
-            "states": Object {},
-            "type": "atomic",
-          },
-        },
-        "type": "compound",
-      }
-    `);
-
-    validate(configFromJson);
+    validate(json);
 
     expect(validate.errors).toBeNull();
   });
