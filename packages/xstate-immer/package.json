@@ -14,6 +14,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "sideEffects": false,
   "directories": {
     "lib": "lib",

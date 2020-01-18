@@ -1,4 +1,4 @@
-import { createMachine, assign, interpret } from '../src';
+import { createMachine, assign, interpret, StateMachine } from '../src';
 
 describe('@xstate/fsm', () => {
   interface LightContext {
@@ -22,7 +22,7 @@ describe('@xstate/fsm', () => {
         context: LightContext & { go: false };
       };
 
-  const lightFSM = createMachine<LightContext, LightEvent, LightState>({
+  const lightConfig: StateMachine.Config<LightContext, LightEvent> = {
     id: 'light',
     initial: 'green',
     context: { count: 0, foo: 'bar', go: true },
@@ -55,6 +55,14 @@ describe('@xstate/fsm', () => {
       },
       red: {}
     }
+  };
+  const lightFSM = createMachine<LightContext, LightEvent, LightState>(
+    lightConfig
+  );
+  it('should return back the config object', () => {
+    const { config } = lightFSM;
+
+    expect(config).toBe(lightConfig);
   });
   it('should have the correct initial state', () => {
     const { initialState } = lightFSM;
@@ -206,5 +214,24 @@ describe('interpreter', () => {
     });
 
     actionService.send('TOGGLE');
+  });
+
+  it('should execute initial entry action', () => {
+    let executed = false;
+
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: () => {
+            executed = true;
+          }
+        }
+      }
+    });
+
+    interpret(machine).start();
+
+    expect(executed).toBe(true);
   });
 });

@@ -2327,5 +2327,50 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('handles escalated errors as an expression', done => {
+      interface ChildContext {
+        id: number;
+      }
+
+      const child = Machine<ChildContext>({
+        initial: 'die',
+        context: { id: 42 },
+        states: {
+          die: {
+            entry: escalate(ctx => ctx.id)
+          }
+        }
+      });
+
+      const parent = Machine({
+        initial: 'one',
+
+        states: {
+          one: {
+            invoke: {
+              id: 'child',
+              src: child,
+              onError: {
+                target: 'two',
+                cond: (_, event) => {
+                  expect(event.data).toEqual(42);
+                  return true;
+                }
+              }
+            }
+          },
+          two: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parent)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
   });
 });
