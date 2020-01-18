@@ -15,7 +15,7 @@ function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-export function assign<TC, TE extends EventObject = EventObject>(
+export function assign<TC extends object, TE extends EventObject = EventObject>(
   assignment:
     | StateMachine.Assigner<TC, TE>
     | StateMachine.PropertyAssigner<TC, TE>
@@ -26,7 +26,7 @@ export function assign<TC, TE extends EventObject = EventObject>(
   };
 }
 
-function toActionObject<TContext, TEvent extends EventObject>(
+function toActionObject<TContext extends object, TEvent extends EventObject>(
   // tslint:disable-next-line:ban-types
   action:
     | string
@@ -63,7 +63,7 @@ function toEventObject<TEvent extends EventObject>(
 }
 
 function createUnchangedState<
-  TC,
+  TC extends object,
   TE extends EventObject,
   TS extends Typestate<TC>
 >(value: string, context: TC): StateMachine.State<TC, TE, TS> {
@@ -183,7 +183,7 @@ export function createMachine<
 }
 
 const executeStateActions = <
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = any,
   TState extends Typestate<TContext> = any
 >(
@@ -198,17 +198,16 @@ export function interpret<
 >(
   machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {
-  const machineInstance: StateMachine.Machine<
-    TContext,
-    TEvent,
-    TState
-  > = createMachine(machine.config, (machine as any)._options);
+  const machineInstance = createMachine(
+    machine.config,
+    (machine as any)._options
+  );
   let state = machineInstance.initialState;
   let status = InterpreterStatus.NotStarted;
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
-    machine: machineInstance,
+    _machine: machineInstance,
     send: (event: TEvent | TEvent['type']): void => {
       if (status !== InterpreterStatus.Running) {
         return;

@@ -29,7 +29,7 @@ export function useMachine<
   const [current, setCurrent] = useState(stateMachine.initialState);
 
   useEffect(() => {
-    (service as any).machine._options = options;
+    (service as any)._machine._options = options;
   });
 
   useEffect(() => {
@@ -43,7 +43,7 @@ export function useMachine<
 }
 
 export function useService<
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
