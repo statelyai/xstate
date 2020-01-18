@@ -202,103 +202,95 @@ describe('Nested parallel stateSchema', () => {
 });
 
 describe('Raise events', () => {
-  interface GreetingStateSchema {
-    states: {
-      pending: {};
-      morning: {};
-      lunchTime: {};
-      afternoon: {};
-      evening: {};
-      night: {};
-    };
-  }
-
-  type GreetingEvent =
-    | { type: 'DECIDE' }
-    | { type: 'MORNING' }
-    | { type: 'LUNCH_TIME' }
-    | { type: 'AFTERNOON' }
-    | { type: 'EVENING' }
-    | { type: 'NIGHT' };
-
-  interface GreetingContext {
-    hour: number;
-  }
-
-  const greetingContext: GreetingContext = { hour: 10 };
-
-  const raiseGreetingMachine = Machine<
-    GreetingContext,
-    GreetingStateSchema,
-    GreetingEvent
-  >({
-    key: 'greeting',
-    context: greetingContext,
-    initial: 'pending',
-    states: {
-      pending: {
-        on: {
-          DECIDE: [
-            {
-              // This one does not work
-              actions: raise<GreetingContext, { type: 'MORNING' }>({
-                type: 'MORNING'
-              }),
-              cond: ctx => ctx.hour < 12
-            },
-            {
-              // This one does work which makes me wonder what the second type
-              // argument of type should be. I thought the event type that is
-              // raised should be passed ('LUNCH_TIME') or is it like the
-              // assign() API where we want the event that caused the action to
-              // be executed?
-              actions: raise<
-                GreetingContext,
-                { type: 'DECIDE' } | { type: 'LUNCH_TIME' }
-              >({
-                type: 'LUNCH_TIME'
-              }),
-              cond: ctx => ctx.hour === 12
-            },
-            {
-              // Does not work
-              actions: raise<GreetingContext, { type: 'AFTERNOON' }>(
-                'AFTERNOON'
-              ),
-              cond: ctx => ctx.hour < 18
-            },
-            {
-              // Does not work
-              actions: raise({ type: 'EVENING' }),
-              cond: ctx => ctx.hour < 22
-            },
-            {
-              // Works and fixes the type errors for the others too.
-              // Uncomment next line to see them pass :o
-              // actions: raise('NIGHT'),
-              cond: ctx => ctx.hour < 24
-            }
-          ]
-        }
-      },
-      morning: {},
-      lunchTime: {},
-      afternoon: {},
-      evening: {},
-      night: {}
-    },
-    on: {
-      MORNING: '.morning',
-      LUNCH_TIME: '.lunchTime',
-      AFTERNOON: '.afternoon',
-      EVENING: '.evening',
-      NIGHT: '.night'
-    }
-  });
-
-  noop(raiseGreetingMachine);
-
   it('should work with all the ways to raise events', () => {
+    interface GreetingStateSchema {
+      states: {
+        pending: {};
+        morning: {};
+        lunchTime: {};
+        afternoon: {};
+        evening: {};
+        night: {};
+      };
+    }
+
+    type GreetingEvent =
+      | { type: 'DECIDE' }
+      | { type: 'MORNING' }
+      | { type: 'LUNCH_TIME' }
+      | { type: 'AFTERNOON' }
+      | { type: 'EVENING' }
+      | { type: 'NIGHT' };
+
+    interface GreetingContext {
+      hour: number;
+    }
+
+    const greetingContext: GreetingContext = { hour: 10 };
+
+    const raiseGreetingMachine = Machine<
+      GreetingContext,
+      GreetingStateSchema,
+      GreetingEvent
+    >({
+      key: 'greeting',
+      context: greetingContext,
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            DECIDE: [
+              {
+                // This one does not work
+                actions: raise<GreetingContext, { type: 'MORNING' }>({
+                  type: 'MORNING'
+                }),
+                cond: ctx => ctx.hour < 12
+              },
+              {
+                actions: raise<
+                  GreetingContext,
+                  { type: 'DECIDE' } | { type: 'LUNCH_TIME' }
+                >({
+                  type: 'LUNCH_TIME'
+                }),
+                cond: ctx => ctx.hour === 12
+              },
+              {
+                actions: raise<GreetingContext, { type: 'AFTERNOON' }>(
+                  'AFTERNOON'
+                ),
+                cond: ctx => ctx.hour < 18
+              },
+              {
+                actions: raise({ type: 'EVENING' }),
+                cond: ctx => ctx.hour < 22
+              },
+              {
+                // Works and fixes the type errors for the others too.
+                // Uncomment next line to see them pass :o
+                // actions: raise('NIGHT'),
+                cond: ctx => ctx.hour < 24
+              }
+            ]
+          }
+        },
+        morning: {},
+        lunchTime: {},
+        afternoon: {},
+        evening: {},
+        night: {}
+      },
+      on: {
+        MORNING: '.morning',
+        LUNCH_TIME: '.lunchTime',
+        AFTERNOON: '.afternoon',
+        EVENING: '.evening',
+        NIGHT: '.night'
+      }
+    });
+
+    noop(raiseGreetingMachine);
     expect(true).toBeTruthy();
   });
 });
