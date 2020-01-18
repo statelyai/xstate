@@ -8,7 +8,7 @@ export function useMachine<
   TE extends EventObject = EventObject
 >(
   stateMachine: StateMachine.Machine<TC, TE, any>,
-  options: StateMachine.ActionMap<TC, TE> = {}
+  options?: StateMachine.ActionMap<TC, TE>
 ): [
   StateMachine.State<TC, TE, any>,
   StateMachine.Service<TC, TE>['send'],
@@ -25,11 +25,19 @@ export function useMachine<
     }
   }
 
-  const service = useConstant(() => interpret(stateMachine).start());
+  const service = useConstant(() => {
+    const service = interpret(stateMachine);
+    if (options) {
+      (service as any)._machine._options = options;
+    }
+    return service.start();
+  });
   const [current, setCurrent] = useState(stateMachine.initialState);
 
   useEffect(() => {
-    (service as any)._machine._options = options;
+    if (options) {
+      (service as any)._machine._options = options;
+    }
   });
 
   useEffect(() => {
