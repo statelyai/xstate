@@ -241,36 +241,14 @@ describe('Raise events', () => {
           on: {
             DECIDE: [
               {
-                // This one does not work
                 actions: raise<GreetingContext, { type: 'MORNING' }>({
                   type: 'MORNING'
                 }),
                 cond: ctx => ctx.hour < 12
               },
               {
-                actions: raise<
-                  GreetingContext,
-                  { type: 'DECIDE' } | { type: 'LUNCH_TIME' }
-                >({
-                  type: 'LUNCH_TIME'
-                }),
-                cond: ctx => ctx.hour === 12
-              },
-              {
-                actions: raise<GreetingContext, { type: 'AFTERNOON' }>(
-                  'AFTERNOON'
-                ),
-                cond: ctx => ctx.hour < 18
-              },
-              {
                 actions: raise({ type: 'EVENING' }),
                 cond: ctx => ctx.hour < 22
-              },
-              {
-                // Works and fixes the type errors for the others too.
-                // Uncomment next line to see them pass :o
-                // actions: raise('NIGHT'),
-                cond: ctx => ctx.hour < 24
               }
             ]
           }
