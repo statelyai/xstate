@@ -864,30 +864,6 @@ export class Interpreter<
 
           this.state.children[childIndex] = actor;
 
-          // if (isPromiseLike(source)) {
-          //   this.state.children[childIndex] = this.spawnPromise(
-          //     Promise.resolve(source),
-          //     id
-          //   );
-          // } else if (isFunction(source)) {
-          //   this.state.children[childIndex] = this.spawnCallback(source, id);
-          // } else if (isObservable<TEvent>(source)) {
-          //   this.state.children[childIndex] = this.spawnObservable(source, id);
-          // } else if (isMachine(source)) {
-          //   // TODO: try/catch here
-          //   this.state.children[childIndex] = this.spawnMachine(
-          //     data
-          //       ? source.withContext(mapContext(data, context, _event))
-          //       : source,
-          //     {
-          //       id,
-          //       autoForward
-          //     }
-          //   );
-          // } else {
-          //   // service is string
-          // }
-
           this.state.children[childIndex].meta = {
             ...this.state.children[childIndex].meta,
             ...activity

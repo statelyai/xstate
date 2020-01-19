@@ -300,7 +300,6 @@ export class StateNode<
         id: resolvedId
       };
     });
-    // this.activities = toArray(this.invoke).map(toActivityDefinition);
   }
 
   /**

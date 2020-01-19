@@ -216,10 +216,6 @@ export type InvokeCreator<TContext, TEvent extends EventObject> = (
   event: TEvent,
   meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
 ) => Actor;
-// | PromiseLike<TFinalContext>
-// | StateMachine<TFinalContext, any, any>
-// | Subscribable<any>
-// | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -595,15 +591,6 @@ export interface EntryExitEffectMap<TContext, TEvent extends EventObject> {
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: StateValue | undefined;
-}
-
-export interface StateMachine<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNode<TContext, TStateSchema, TEvent> {
-  id: string;
-  states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }
 
 export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
