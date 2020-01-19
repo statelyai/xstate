@@ -8,16 +8,13 @@ import {
   mapFilterValues,
   toArray,
   keys,
-  isBuiltInEvent,
   isString,
-  toSCXMLEvent,
   toInvokeConfig
 } from './utils';
 import {
   Event,
   StateValue,
   StateTransition,
-  MachineOptions,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -33,39 +30,26 @@ import {
   Mapper,
   PropertyMapper,
   NullEvent,
-  MachineConfig,
   SCXML,
-  Typestate,
-  TransitionDefinitionMap,
-  ActivityDefinition
+  TransitionDefinitionMap
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
-import { toActionObject, toActivityDefinition } from './actions';
-import { IS_PRODUCTION } from './environment';
-import { STATE_DELIMITER } from './constants';
-import {
-  getConfiguration,
-  getChildren,
-  getAllStateNodes,
-  isLeafNode
-} from './stateUtils';
+import { toActionObject } from './actions';
+import { isLeafNode } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates,
   getStateNodeById,
   getRelativeStateNodes,
-  getInitialState,
-  getStateNodes,
   nodesFromChild,
   evaluateGuard,
-  isStateId,
-  transitionNode,
-  resolveStateValue,
-  resolveTransition
+  isStateId
 } from './nodeUtils';
+import { MachineNode } from './MachineNode';
+import { STATE_DELIMITER } from './constants';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -73,19 +57,15 @@ export const WILDCARD = '*';
 
 const EMPTY_OBJECT = {};
 
-const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
-  actions: {},
-  guards: {},
-  services: {},
-  activities: {},
-  delays: {}
-});
+interface StateNodeOptions<TContext, TEvent extends EventObject> {
+  _key: string;
+  _parent?: StateNode<TContext, any, TEvent>;
+}
 
 export class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TEvent extends EventObject = EventObject
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -95,10 +75,6 @@ export class StateNode<
    * The unique ID of the state node.
    */
   public id: string;
-  /**
-   * The machine's own version.
-   */
-  public version?: string;
   /**
    * The type of this state node:
    *
@@ -141,7 +117,6 @@ export class StateNode<
    * The action(s) to be executed upon exiting the state node.
    */
   public exit: Array<ActionObject<TContext, TEvent>>;
-  public strict: boolean;
   /**
    * The parent state node.
    */
@@ -149,7 +124,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateNode<TContext, any, TEvent>;
+  public machine: MachineNode<TContext, any, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -159,20 +134,9 @@ export class StateNode<
    */
   public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
   /**
-   * The string delimiter for serializing the path to a string. The default is "."
-   */
-  public delimiter: string;
-  /**
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
   public order: number = -1;
-  /**
-   * The services invoked by this state node.
-   */
-  public invoke: Array<InvokeDefinition<TContext, TEvent>>;
-
-  public options: MachineOptions<TContext, TEvent>;
-  public activities: Array<ActivityDefinition<TContext, TEvent>>;
 
   public __xstatenode: true = true;
 
@@ -209,26 +173,22 @@ export class StateNode<
      * The raw config used to create the machine.
      */
     public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
-    options?: Partial<MachineOptions<TContext, TEvent>>,
-    /**
-     * The initial extended state
-     */
-    public context?: Readonly<TContext>
+    options: StateNodeOptions<TContext, TEvent>
   ) {
-    this.options = Object.assign(createDefaultOptions<TContext>(), options);
-    this.parent = this.options._parent;
-    this.key =
-      this.config.key || this.options._key || this.config.id || '(machine)';
-    this.machine = this.parent ? this.parent.machine : this;
+    const isMachine = !this.parent;
+    this.parent = options._parent;
+    this.key = this.config.key || options._key;
+    this.machine = this.parent
+      ? this.parent.machine
+      : ((this as unknown) as MachineNode<TContext, TStateSchema, TEvent>);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
-    this.delimiter =
-      this.config.delimiter ||
-      (this.parent ? this.parent.delimiter : STATE_DELIMITER);
     this.id =
-      this.config.id || [this.machine.key, ...this.path].join(this.delimiter);
-    this.version = this.parent
-      ? this.parent.version
-      : (this.config as MachineConfig<TContext, TStateSchema, TEvent>).version;
+      this.config.id ||
+      [this.machine.key, ...this.path].join(
+        isMachine
+          ? this.config.delimiter || STATE_DELIMITER
+          : this.machine.delimiter
+      );
     this.type =
       this.config.type ||
       (this.config.states && keys(this.config.states).length
@@ -256,19 +216,6 @@ export class StateNode<
         )
       : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvent>;
 
-    // Document order
-    let order = 0;
-
-    function dfs(stateNode: StateNode<TContext, any, TEvent>): void {
-      stateNode.order = order++;
-
-      for (const child of getChildren(stateNode)) {
-        dfs(child);
-      }
-    }
-
-    dfs(this);
-
     // History config
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
@@ -280,7 +227,6 @@ export class StateNode<
           return event === NULL_EVENT;
         })
       : NULL_EVENT in this.config.on;
-    this.strict = !!this.config.strict;
 
     this.entry = toArray(this.config.entry).map(action =>
       toActionObject(action)
@@ -292,7 +238,42 @@ export class StateNode<
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
-    this.invoke = toArray(this.config.invoke).map((invocable, i) => {
+  }
+  /**
+   * The well-structured state node definition.
+   */
+  public get definition(): StateNodeDefinition<TContext, TStateSchema, TEvent> {
+    return {
+      id: this.id,
+      key: this.key,
+      version: this.machine.version, // TODO: fix
+      type: this.type,
+      initial: this.initial,
+      history: this.history,
+      states: mapValues(
+        this.states,
+        (state: StateNode<TContext, any, TEvent>) => state.definition
+      ) as StatesDefinition<TContext, TStateSchema, TEvent>,
+      on: this.on,
+      transitions: this.transitions,
+      entry: this.entry,
+      exit: this.exit,
+      meta: this.meta,
+      order: this.order || -1,
+      data: this.data,
+      invoke: this.invoke
+    };
+  }
+
+  public toJSON() {
+    return this.definition;
+  }
+
+  /**
+   * The services invoked by this state node.
+   */
+  public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
+    return toArray(this.config.invoke).map((invocable, i) => {
       const id = `${this.id}:invocation[${i}]`;
 
       const invokeConfig = toInvokeConfig(invocable, id);
@@ -319,82 +300,7 @@ export class StateNode<
         id: resolvedId
       };
     });
-
-    this.activities = toArray(this.invoke).map(toActivityDefinition);
-    this.transition = this.transition.bind(this);
-  }
-
-  private _init(): void {
-    if (this.__cache.transitions) {
-      return;
-    }
-    getAllStateNodes(this).forEach(stateNode => stateNode.on);
-  }
-
-  /**
-   * Clones this state machine with custom options and context.
-   *
-   * @param options Options (actions, guards, activities, services) to recursively merge with the existing options.
-   * @param context Custom context (will override predefined context)
-   */
-  public withConfig(
-    options: Partial<MachineOptions<TContext, TEvent>>,
-    context: TContext | undefined = this.context
-  ): StateNode<TContext, TStateSchema, TEvent> {
-    const { actions, activities, guards, services, delays } = this.options;
-
-    return new StateNode(
-      this.config,
-      {
-        actions: { ...actions, ...options.actions },
-        activities: { ...activities, ...options.activities },
-        guards: { ...guards, ...options.guards },
-        services: { ...services, ...options.services },
-        delays: { ...delays, ...options.delays }
-      },
-      context
-    );
-  }
-
-  /**
-   * Clones this state machine with custom context.
-   *
-   * @param context Custom context (will override predefined context, not recursive)
-   */
-  public withContext(
-    context: TContext
-  ): StateNode<TContext, TStateSchema, TEvent> {
-    return new StateNode(this.config, this.options, context);
-  }
-
-  /**
-   * The well-structured state node definition.
-   */
-  public get definition(): StateNodeDefinition<TContext, TStateSchema, TEvent> {
-    return {
-      id: this.id,
-      key: this.key,
-      version: this.version,
-      type: this.type,
-      initial: this.initial,
-      history: this.history,
-      states: mapValues(
-        this.states,
-        (state: StateNode<TContext, any, TEvent>) => state.definition
-      ) as StatesDefinition<TContext, TStateSchema, TEvent>,
-      on: this.on,
-      transitions: this.transitions,
-      entry: this.entry,
-      exit: this.exit,
-      meta: this.meta,
-      order: this.order || -1,
-      data: this.data,
-      invoke: this.invoke
-    };
-  }
-
-  public toJSON() {
-    return this.definition;
+    // this.activities = toArray(this.invoke).map(toActivityDefinition);
   }
 
   /**
@@ -447,24 +353,6 @@ export class StateNode<
     return this.events.includes(eventType);
   }
 
-  /**
-   * Resolves the given `state` to a new `State` instance relative to this machine.
-   *
-   * This ensures that `.events` and `.nextEvents` represent the correct values.
-   *
-   * @param state The state to resolve
-   */
-  public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
-    const configuration = Array.from(
-      getConfiguration([], getStateNodes(this, state.value))
-    );
-    return new State({
-      ...state,
-      value: resolveStateValue(this, state.value),
-      configuration
-    });
-  }
-
   public next(
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
@@ -483,11 +371,14 @@ export class StateNode<
         ? isString(stateIn) && isStateId(stateIn)
           ? // Check if in state by ID
             state.matches(
-              toStateValue(getStateNodeById(this, stateIn).path, this.delimiter)
+              toStateValue(
+                getStateNodeById(this, stateIn).path,
+                this.machine.delimiter
+              )
             )
           : // Check if in state by relative grandparent
             matchesState(
-              toStateValue(stateIn, this.delimiter),
+              toStateValue(stateIn, this.machine.delimiter),
               path(this.path.slice(0, -2))(state.value)
             )
         : true;
@@ -557,70 +448,6 @@ export class StateNode<
     };
   }
 
-  /**
-   * Determines the next state given the current `state` and sent `event`.
-   *
-   * @param state The current State instance or state value
-   * @param event The event that was sent at the current state
-   * @param context The current context (extended state) of the current state
-   */
-  public transition(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent>;
-
-    if (state instanceof State) {
-      currentState = state;
-    } else {
-      const resolvedStateValue = resolveStateValue(this, state);
-      const resolvedContext = this.machine.context!;
-
-      currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
-      );
-    }
-
-    if (!IS_PRODUCTION && _event.name === WILDCARD) {
-      throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-    }
-
-    if (this.strict) {
-      if (!this.events.includes(_event.name) && !isBuiltInEvent(_event.name)) {
-        throw new Error(
-          `Machine '${this.id}' does not accept event '${_event.name}'`
-        );
-      }
-    }
-
-    const stateTransition = transitionNode(
-      this,
-      currentState.value,
-      currentState,
-      _event
-    ) || {
-      transitions: [],
-      configuration: [],
-      entrySet: [],
-      exitSet: [],
-      source: currentState,
-      actions: []
-    };
-
-    const prevConfig = getConfiguration(
-      [],
-      getStateNodes(this, currentState.value)
-    );
-    const resolvedConfig = stateTransition.configuration.length
-      ? getConfiguration(prevConfig, stateTransition.configuration)
-      : prevConfig;
-
-    stateTransition.configuration = [...resolvedConfig];
-
-    return resolveTransition(this, stateTransition, currentState, _event);
-  }
-
   public get initialStateValue(): StateValue | undefined {
     if (this.__cache.initialStateValue) {
       return this.__cache.initialStateValue;
@@ -651,23 +478,6 @@ export class StateNode<
     this.__cache.initialStateValue = initialStateValue;
 
     return this.__cache.initialStateValue;
-  }
-
-  /**
-   * The initial State instance, which includes all actions to be executed from
-   * entering the initial state.
-   */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    this._init();
-    const { initialStateValue } = this;
-
-    if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}'.`
-      );
-    }
-
-    return getInitialState(this, initialStateValue);
   }
 
   /**
@@ -752,9 +562,5 @@ export class StateNode<
     );
 
     return Array.from(events);
-  }
-
-  public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {
-    return getStateNodeById(this, id);
   }
 }

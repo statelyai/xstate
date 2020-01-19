@@ -67,7 +67,8 @@ import {
   resolveRaise,
   resolveSend,
   resolveLog,
-  toActionObject
+  toActionObject,
+  toActivityDefinition
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
@@ -81,6 +82,7 @@ import {
 import { StateNode, NULL_EVENT, WILDCARD, STATE_IDENTIFIER } from './StateNode';
 import { DEFAULT_GUARD_TYPE } from './constants';
 import { createInvocableActor } from './Actor';
+import { MachineNode } from './MachineNode';
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
@@ -187,7 +189,8 @@ function formatTransition<TContext, TEvent extends EventObject>(
       ? transitionConfig.internal
       : normalizedTarget
       ? normalizedTarget.some(
-          _target => isString(_target) && _target[0] === stateNode.delimiter
+          _target =>
+            isString(_target) && _target[0] === stateNode.machine.delimiter
         )
       : true;
   const { guards } = stateNode.machine.options;
@@ -298,7 +301,7 @@ function resolveTarget<TContext, TEvent extends EventObject>(
     if (!isString(target)) {
       return target;
     }
-    const isInternalTarget = target[0] === stateNode.delimiter;
+    const isInternalTarget = target[0] === stateNode.machine.delimiter;
     // If internal target is defined on machine,
     // do not include machine key on target
     if (isInternalTarget && !stateNode.parent) {
@@ -467,13 +470,13 @@ export function getInitialState<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  stateNode: StateNode<TContext, TStateSchema, TEvent>,
+  machine: MachineNode<TContext, TStateSchema, TEvent>,
   stateValue: StateValue,
   context?: TContext
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
-  const configuration = getStateNodes(stateNode, stateValue);
+  const configuration = getStateNodes(machine, stateValue);
   return resolveTransition(
-    stateNode,
+    machine,
     {
       configuration,
       entrySet: configuration,
@@ -550,7 +553,10 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
       // throw e;
     }
   }
-  const arrayStatePath = toStatePath(statePath, stateNode.delimiter).slice();
+  const arrayStatePath = toStatePath(
+    statePath,
+    stateNode.machine.delimiter
+  ).slice();
   let currentStateNode: StateNode<TContext, any, TEvent> = stateNode;
   while (arrayStatePath.length) {
     const key = arrayStatePath.shift()!;
@@ -686,6 +692,10 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   return condFn(context, _event.data, guardMeta);
 }
 
+function getActivities(stateNode: StateNode<any, any, any>) {
+  return toArray(stateNode.invoke).map(toActivityDefinition);
+}
+
 export function getActions<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   transition: StateTransition<TContext, TEvent>,
@@ -765,7 +775,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(entryStates).map(entryNode => {
         return [
-          ...entryNode.activities.map(activity => start(activity)),
+          ...getActivities(entryNode).map(activity => start(activity)),
           ...entryNode.entry
         ];
       })
@@ -773,7 +783,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(exitStates).map(exitNode => [
         ...exitNode.exit,
-        ...exitNode.activities.map(activity => stop(activity))
+        ...getActivities(exitNode).map(activity => stop(activity))
       ])
     )
   ];
@@ -901,14 +911,14 @@ export function resolveRaisedTransition<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  stateNode: StateNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   state: State<TContext, TEvent, any, TTypestate>,
   _event: SCXML.Event<TEvent> | NullEvent,
   originalEvent: SCXML.Event<TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
   const currentActions = state.actions;
 
-  state = stateNode.transition(state, _event as SCXML.Event<TEvent>);
+  state = machine.transition(state, _event as SCXML.Event<TEvent>);
   // Save original event to state
   state._event = originalEvent;
   state.event = originalEvent.data;
@@ -921,11 +931,11 @@ export function resolveTransition<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  stateNode: StateNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   stateTransition: StateTransition<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-  context: TContext = stateNode.machine.context!
+  context: TContext = machine.machine.context!
 ): State<TContext, TEvent, any, TTypestate> {
   const { configuration } = stateTransition;
   // Transition will "apply" if:
@@ -934,18 +944,18 @@ export function resolveTransition<
   const willTransition =
     !currentState || stateTransition.transitions.length > 0;
   const resolvedStateValue = willTransition
-    ? getValue(stateNode.machine, configuration)
+    ? getValue(machine.machine, configuration)
     : undefined;
   const historyValue = currentState
     ? currentState.historyValue
       ? currentState.historyValue
       : stateTransition.source
-      ? getHistoryValue(stateNode.machine, currentState.value)
+      ? getHistoryValue(machine.machine, currentState.value)
       : undefined
     : undefined;
   const currentContext = currentState ? currentState.context : context;
   const actions = getActions(
-    stateNode,
+    machine,
     stateTransition,
     currentContext,
     _event,
@@ -972,7 +982,7 @@ export function resolveTransition<
             actionObject as SendAction<TContext, TEvent>,
             updatedContext,
             _event,
-            stateNode.machine.options.delays
+            machine.machine.options.delays
           ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
           if (!IS_PRODUCTION) {
@@ -981,7 +991,7 @@ export function resolveTransition<
               !isString(actionObject.delay) ||
                 typeof sendAction.delay === 'number',
               // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${stateNode.machine.id}'`
+              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
             );
           }
 
@@ -1000,10 +1010,7 @@ export function resolveTransition<
             ) || []
           );
         default:
-          return toActionObject(
-            actionObject,
-            stateNode.machine.options.actions
-          );
+          return toActionObject(actionObject, machine.machine.options.actions);
       }
     })
   );
@@ -1051,7 +1058,7 @@ export function resolveTransition<
     {} as Record<string, string>
   );
 
-  const isDone = isInFinalState(resolvedConfiguration, stateNode);
+  const isDone = isInFinalState(resolvedConfiguration, machine);
 
   const nextState = new State<TContext, TEvent, any, TTypestate>({
     value: resolvedStateValue || currentState!.value,
@@ -1098,11 +1105,11 @@ export function resolveTransition<
 
   if (!isDone) {
     const isTransient =
-      stateNode._transient || configuration.some(sn => sn._transient);
+      machine._transient || configuration.some(sn => sn._transient);
 
     if (isTransient) {
       maybeNextState = resolveRaisedTransition(
-        stateNode,
+        machine,
         maybeNextState,
         {
           type: actionTypes.nullEvent
@@ -1114,7 +1121,7 @@ export function resolveTransition<
     while (raisedEvents.length) {
       const raisedEvent = raisedEvents.shift()!;
       maybeNextState = resolveRaisedTransition(
-        stateNode,
+        machine,
         maybeNextState,
         raisedEvent._event,
         _event

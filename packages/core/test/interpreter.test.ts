@@ -971,6 +971,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
         .onTransition(state => {
+          console.log(state);
           if (state.matches('start')) {
             const childActor = state.children.find(
               child => child.id === 'child'

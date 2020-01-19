@@ -2,6 +2,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
 import { Actor } from './Actor';
+import { MachineNode } from './MachineNode';
 
 export type EventType = string;
 export type ActionType = string;
@@ -554,14 +555,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, InvokeCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  /**
-   * @private
-   */
-  _parent?: StateNode<TContext, any, TEvent>;
-  /**
-   * @private
-   */
-  _key?: string;
+  context: TContext;
 }
 export interface MachineConfig<
   TContext,
@@ -571,7 +565,7 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: TContext;
   /**
    * The machine's own version.
    */
@@ -606,16 +600,15 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
 export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
-> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
+  TEvent extends EventObject
+> extends StateNode<TContext, TStateSchema, TEvent> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
 }
 
-export type StateFrom<
-  TMachine extends StateMachine<any, any, any>
-> = ReturnType<TMachine['transition']>;
+export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
+  TMachine['transition']
+>;
 
 export interface ActivityMap {
   [activityKey: string]: ActivityDefinition<any, any> | false;
