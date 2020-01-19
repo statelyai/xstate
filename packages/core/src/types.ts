@@ -1067,7 +1067,7 @@ export interface Observer<T> {
 }
 
 export type Spawnable =
-  | StateMachine<any, any, any>
+  | MachineNode<any, any, any>
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;

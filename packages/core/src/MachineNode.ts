@@ -147,7 +147,8 @@ export class MachineNode<
       createDefaultOptions(config.context!),
       options
     );
-    this.context = config.context!;
+    // console.log(options, this.options);
+    this.context = this.options.context;
     this.key = this.config.key || this.config.id || '(machine)';
     this.machine = this;
     this.path = [];
@@ -221,7 +222,7 @@ export class MachineNode<
   public withContext(
     context: TContext
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    return this.withConfig({ context });
+    return new MachineNode({ ...this.config, context });
   }
 
   /**

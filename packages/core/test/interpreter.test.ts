@@ -935,10 +935,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       },
       states: {
         start: {
-          entry: sendParent(ctx => ({
-            type: 'NEXT',
-            password: ctx.password
-          }))
+          entry: sendParent(ctx => {
+            return { type: 'NEXT', password: ctx.password };
+          })
         }
       }
     });
@@ -950,10 +949,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         start: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine),
-            data: {
-              password: 'foo'
-            }
+            src: spawnMachine(() => {
+              return childMachine.withContext({ password: 'foo' });
+            })
           },
           on: {
             NEXT: {
@@ -971,7 +969,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     it('should resolve sendParent event expressions', done => {
       interpret(parentMachine)
         .onTransition(state => {
-          console.log(state);
           if (state.matches('start')) {
             const childActor = state.children.find(
               child => child.id === 'child'

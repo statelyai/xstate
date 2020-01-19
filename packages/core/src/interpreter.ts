@@ -1,5 +1,4 @@
 import {
-  StateMachine,
   Event,
   EventObject,
   CancelAction,
@@ -55,6 +54,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import { DEFAULT_SPAWN_OPTIONS } from './invoke';
+import { MachineNode } from './MachineNode';
 
 export type StateListener<
   TContext,
@@ -189,7 +189,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+    public machine: MachineNode<TContext, TStateSchema, TEvent, TTypestate>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions,
     sessionId?: string
   ) {
@@ -964,7 +964,7 @@ export class Interpreter<
     TChildStateSchema,
     TChildEvent extends EventObject
   >(
-    machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
+    machine: MachineNode<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
     const childService = interpret(machine, {
@@ -1006,7 +1006,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<never> {
+  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T> {
     let canceled = false;
 
     promise.then(
@@ -1278,7 +1278,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 };
 
 export function spawn<TC, TE extends EventObject>(
-  entity: StateMachine<TC, any, TE>,
+  entity: MachineNode<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
 ): Interpreter<TC, any, TE>;
 export function spawn(
@@ -1321,7 +1321,7 @@ export function interpret<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+  machine: MachineNode<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<
