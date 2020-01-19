@@ -526,9 +526,9 @@ export function isObservable<T>(
 export const symbolObservable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
 
-export function isMachine(value: any): value is MachineNode<any, any, any> {
+export function isMachineNode(value: any): value is MachineNode<any, any, any> {
   try {
-    return '__xstatenode' in value && value.parent === undefined;
+    return '__xstatenode' in value;
   } catch (e) {
     return false;
   }
@@ -593,7 +593,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
-      isMachine(transitionLike)
+      isMachineNode(transitionLike)
     ) {
       // @ts-ignore until Type instantiation is excessively deep and possibly infinite bug is fixed
       return { target: transitionLike, event };

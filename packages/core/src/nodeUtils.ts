@@ -11,7 +11,7 @@ import {
   isFunction,
   isString,
   toGuard,
-  isMachine,
+  isMachineNode,
   toTransitionConfigArray,
   normalizeTarget,
   toStateValue,
@@ -101,7 +101,7 @@ const validateArrayifiedTransitions = <TContext>(
       transition =>
         !('cond' in transition) &&
         !('in' in transition) &&
-        (isString(transition.target) || isMachine(transition.target))
+        (isString(transition.target) || isMachineNode(transition.target))
     );
   const eventText =
     event === NULL_EVENT ? 'the transient event' : `event '${event}'`;

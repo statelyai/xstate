@@ -42,7 +42,7 @@ import {
   isString,
   isObservable,
   uniqueId,
-  isMachine,
+  isMachineNode,
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
@@ -927,7 +927,7 @@ export class Interpreter<
       return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
-    } else if (isMachine(entity)) {
+    } else if (isMachineNode(entity)) {
       return this.spawnMachine(entity, { ...options, id: name });
     } else {
       throw new Error(
@@ -1272,7 +1272,7 @@ export function spawn(
       warn(
         !!service,
         `Attempted to spawn an Actor (ID: "${
-          isMachine(entity) ? entity.id : 'undefined'
+          isMachineNode(entity) ? entity.id : 'undefined'
         }") outside of a service. This will have no effect.`
       );
     }
