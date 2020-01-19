@@ -12,7 +12,6 @@ import {
   Condition,
   Guard,
   Subscribable,
-  StateMachine,
   ConditionPredicate,
   SCXML,
   StateLike,
