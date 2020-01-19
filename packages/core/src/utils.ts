@@ -528,7 +528,7 @@ export const symbolObservable = (() =>
 
 export function isMachineNode(value: any): value is MachineNode<any, any, any> {
   try {
-    return '__xstatenode' in value;
+    return '__xstatenode' in value && value.parent === undefined;
   } catch (e) {
     return false;
   }
