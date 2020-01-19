@@ -9,7 +9,11 @@ import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { pathsToStateValue } from '../src/utils';
-import { getInitialState, getStateNodes } from '../src/nodeUtils';
+import {
+  getInitialState,
+  getStateNodes,
+  resolveStateValue
+} from '../src/nodeUtils';
 // import { StateValue } from '../src/types';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
@@ -349,7 +353,7 @@ interface SCIONTest {
 }
 
 async function runW3TestToCompletion(machine: StateNode): Promise<void> {
-  await new Promise((resolve, reject) => {
+  await new Promise((res, reject) => {
     let nextState: State<any>;
 
     interpret(machine)
@@ -358,7 +362,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
       })
       .onDone(() => {
         if (nextState.value === 'pass') {
-          resolve();
+          res();
         } else {
           reject(new Error('Reached "fail" state.'));
         }
@@ -375,7 +379,8 @@ async function runTestToCompletion(
     await runW3TestToCompletion(machine);
     return;
   }
-  const resolvedStateValue = machine.resolve(
+  const resolvedStateValue = resolveStateValue(
+    machine,
     pathsToStateValue(
       test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
     )
