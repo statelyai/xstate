@@ -54,6 +54,6 @@ const publishablePackages = ['xstate', '@xstate/fsm', '@xstate/test'];
   }
 
   await exec('git', ['add', '.']);
-  await exec('git', ['commit', '-m', `'${latestCommitMessage}'`]);
+  await exec('git', ['commit', '-m', latestCommitMessage]);
   await exec('git', ['push', 'origin', currentBranchName, '--force']);
 })();

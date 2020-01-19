@@ -1,7 +1,14 @@
 import * as React from 'react';
-import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
-import { spawnPromise } from 'xstate/lib/invoke';
+import { useMachine, useService } from '../src';
+import {
+  Machine,
+  assign,
+  Interpreter,
+  spawn,
+  doneInvoke,
+  State,
+  createMachine
+} from 'xstate';
 import {
   render,
   fireEvent,
@@ -9,6 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
+import { spawnPromise } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 
@@ -262,5 +270,73 @@ describe('useMachine hook', () => {
     fireEvent.click(extButton);
 
     fireEvent.click(button);
+  });
+
+  it('should compile with typed matches (createMachine)', () => {
+    interface TestContext {
+      count?: number;
+      user?: { name: string };
+    }
+
+    type TestState =
+      | {
+          value: 'loading';
+          context: { count: number; user: undefined };
+        }
+      | {
+          value: 'loaded';
+          context: { user: { name: string } };
+        };
+
+    const machine = createMachine<TestContext, any, TestState>({
+      initial: 'loading',
+      states: {
+        loading: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {}
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    const ServiceApp: React.FC<{
+      service: Interpreter<TestContext, any, any, TestState>;
+    }> = ({ service }) => {
+      const [state] = useService(service);
+
+      if (state.matches('loaded')) {
+        const name = state.context.user.name;
+
+        // never called - it's okay if the name is undefined
+        expect(name).toBeTruthy();
+      } else if (state.matches('loading')) {
+        // Make sure state isn't "never" - if it is, tests will fail to compile
+        expect(state).toBeTruthy();
+      }
+
+      return null;
+    };
+
+    const App = () => {
+      const [state, , service] = useMachine(machine);
+
+      if (state.matches('loaded')) {
+        const name = state.context.user.name;
+
+        // never called - it's okay if the name is undefined
+        expect(name).toBeTruthy();
+      } else if (state.matches('loading')) {
+        // Make sure state isn't "never" - if it is, tests will fail to compile
+        expect(state).toBeTruthy();
+      }
+
+      return <ServiceApp service={service} />;
+    };
+
+    // Just testing that it compiles
+    render(<App />);
   });
 });

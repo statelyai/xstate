@@ -1,4 +1,5 @@
 import { Machine, assign } from '../src/index';
+import { raise } from '../src/actions';
 
 function noop(_x) {
   return;
@@ -196,6 +197,78 @@ describe('Nested parallel stateSchema', () => {
   noop(nestedParallelMachine);
 
   it('should work with a parallel StateSchema defined', () => {
+    expect(true).toBeTruthy();
+  });
+});
+
+describe('Raise events', () => {
+  it('should work with all the ways to raise events', () => {
+    interface GreetingStateSchema {
+      states: {
+        pending: {};
+        morning: {};
+        lunchTime: {};
+        afternoon: {};
+        evening: {};
+        night: {};
+      };
+    }
+
+    type GreetingEvent =
+      | { type: 'DECIDE' }
+      | { type: 'MORNING' }
+      | { type: 'LUNCH_TIME' }
+      | { type: 'AFTERNOON' }
+      | { type: 'EVENING' }
+      | { type: 'NIGHT' };
+
+    interface GreetingContext {
+      hour: number;
+    }
+
+    const greetingContext: GreetingContext = { hour: 10 };
+
+    const raiseGreetingMachine = Machine<
+      GreetingContext,
+      GreetingStateSchema,
+      GreetingEvent
+    >({
+      key: 'greeting',
+      context: greetingContext,
+      initial: 'pending',
+      states: {
+        pending: {
+          on: {
+            DECIDE: [
+              {
+                actions: raise<GreetingContext, { type: 'MORNING' }>({
+                  type: 'MORNING'
+                }),
+                cond: ctx => ctx.hour < 12
+              },
+              {
+                actions: raise({ type: 'EVENING' }),
+                cond: ctx => ctx.hour < 22
+              }
+            ]
+          }
+        },
+        morning: {},
+        lunchTime: {},
+        afternoon: {},
+        evening: {},
+        night: {}
+      },
+      on: {
+        MORNING: '.morning',
+        LUNCH_TIME: '.lunchTime',
+        AFTERNOON: '.afternoon',
+        EVENING: '.evening',
+        NIGHT: '.night'
+      }
+    });
+
+    noop(raiseGreetingMachine);
     expect(true).toBeTruthy();
   });
 });

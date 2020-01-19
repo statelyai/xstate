@@ -1,10 +1,22 @@
 import { useState, useEffect, useMemo } from 'react';
-import { StateMachine, EventObject, Typestate, interpret } from '@xstate/fsm';
+import {
+  StateMachine,
+  EventObject,
+  Typestate,
+  interpret,
+  createMachine
+} from '@xstate/fsm';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
-export function useMachine<TC, TE extends EventObject = EventObject>(
-  stateMachine: StateMachine.Machine<TC, TE, any>
+export function useMachine<
+  TC extends object,
+  TE extends EventObject = EventObject
+>(
+  stateMachine: StateMachine.Machine<TC, TE, any>,
+  options?: {
+    actions?: StateMachine.ActionMap<TC, TE>;
+  }
 ): [
   StateMachine.State<TC, TE, any>,
   StateMachine.Service<TC, TE>['send'],
@@ -21,8 +33,21 @@ export function useMachine<TC, TE extends EventObject = EventObject>(
     }
   }
 
-  const service = useConstant(() => interpret(stateMachine).start());
+  const service = useConstant(() =>
+    interpret(
+      createMachine(
+        stateMachine.config,
+        options ? options : (stateMachine as any)._options
+      )
+    ).start()
+  );
   const [current, setCurrent] = useState(stateMachine.initialState);
+
+  useEffect(() => {
+    if (options) {
+      (service as any)._machine._options = options;
+    }
+  });
 
   useEffect(() => {
     service.subscribe(setCurrent);
@@ -35,7 +60,7 @@ export function useMachine<TC, TE extends EventObject = EventObject>(
 }
 
 export function useService<
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
