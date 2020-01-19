@@ -9,7 +9,6 @@ import {
   State,
   createMachine
 } from 'xstate';
-import { spawnPromise } from 'xstate/lib/invoke';
 import {
   render,
   fireEvent,
@@ -17,6 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
+import { spawnPromise } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 

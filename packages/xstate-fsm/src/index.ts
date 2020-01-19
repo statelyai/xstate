@@ -15,7 +15,7 @@ function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-export function assign<TC, TE extends EventObject = EventObject>(
+export function assign<TC extends object, TE extends EventObject = EventObject>(
   assignment:
     | StateMachine.Assigner<TC, TE>
     | StateMachine.PropertyAssigner<TC, TE>
@@ -26,15 +26,22 @@ export function assign<TC, TE extends EventObject = EventObject>(
   };
 }
 
-function toActionObject<TContext, TEvent extends EventObject>(
+function toActionObject<TContext extends object, TEvent extends EventObject>(
   // tslint:disable-next-line:ban-types
   action:
     | string
     | StateMachine.ActionFunction<TContext, TEvent>
-    | StateMachine.ActionObject<TContext, TEvent>
+    | StateMachine.ActionObject<TContext, TEvent>,
+  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
 ) {
+  action =
+    typeof action === 'string' && actionMap && actionMap[action]
+      ? actionMap[action]
+      : action;
   return typeof action === 'string'
-    ? { type: action }
+    ? {
+        type: action
+      }
     : typeof action === 'function'
     ? {
         type: action.name,
@@ -56,7 +63,7 @@ function toEventObject<TEvent extends EventObject>(
 }
 
 function createUnchangedState<
-  TC,
+  TC extends object,
   TE extends EventObject,
   TS extends Typestate<TC>
 >(value: string, context: TC): StateMachine.State<TC, TE, TS> {
@@ -74,14 +81,18 @@ export function createMachine<
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
-  fsmConfig: StateMachine.Config<TContext, TEvent>
+  fsmConfig: StateMachine.Config<TContext, TEvent>,
+  options: {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+  } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
-  return {
+  const machine = {
     config: fsmConfig,
+    _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
-        toActionObject
+      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(action =>
+        toActionObject(action, options.actions)
       ),
       context: fsmConfig.context!,
       matches: createMatcher(fsmConfig.initial)
@@ -128,7 +139,9 @@ export function createMachine<
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter(a => a)
-              .map<StateMachine.ActionObject<TContext, TEvent>>(toActionObject)
+              .map<StateMachine.ActionObject<TContext, TEvent>>(action =>
+                toActionObject(action, (machine as any)._options.actions)
+              )
               .filter(action => {
                 if (action.type === ASSIGN_ACTION) {
                   assigned = true;
@@ -166,10 +179,11 @@ export function createMachine<
       return createUnchangedState(value, context);
     }
   };
+  return machine;
 }
 
 const executeStateActions = <
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = any,
   TState extends Typestate<TContext> = any
 >(
@@ -178,7 +192,7 @@ const executeStateActions = <
 ) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
 
 export function interpret<
-  TContext,
+  TContext extends object,
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
@@ -189,6 +203,7 @@ export function interpret<
   const listeners = new Set<StateMachine.StateListener<typeof state>>();
 
   const service = {
+    _machine: machine,
     send: (event: TEvent | TEvent['type']): void => {
       if (status !== InterpreterStatus.Running) {
         return;
