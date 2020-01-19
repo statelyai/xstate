@@ -5,7 +5,7 @@ import {
   InterpreterStatus
 } from './types';
 
-export { StateMachine, EventObject, InterpreterStatus };
+export { StateMachine, EventObject, InterpreterStatus, Typestate };
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);

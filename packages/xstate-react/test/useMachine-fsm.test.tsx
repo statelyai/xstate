@@ -10,7 +10,7 @@ import {
 
 afterEach(cleanup);
 
-describe('useMachine hook', () => {
+describe('useMachine hook for fsm', () => {
   const context = {
     data: undefined
   };
