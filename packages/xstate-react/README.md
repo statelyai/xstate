@@ -287,6 +287,30 @@ const App = () => {
 }
 ```
 
+## Services
+
+The `service` created in `useMachine(machine)` can be referenced as the third returned value:
+
+```js
+//                  vvvvvvv
+const [state, send, service] = useMachine(someMachine);
+```
+
+You can subscribe to that service's state changes with the [`useEFfect` hook](https://reactjs.org/docs/hooks-effect.html):
+
+```js
+// ...
+
+useEffect(() => {
+  const subscription = service.subscribe(state => {
+    // simple state logging
+    console.log(state);
+  });
+
+  return subscription.unsubscribe;
+}, [service]); // note: service should never change
+```
+
 ## Resources
 
 [State Machines in React](https://gedd.ski/post/state-machines-in-react/)
