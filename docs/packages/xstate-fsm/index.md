@@ -94,6 +94,7 @@ toggleService.stop();
   - [Machine config](#machine-config)
   - [State config](#state-config)
   - [Transition config](#transition-config)
+  - [Machine options](#machine-options)
   - [Action config](#action-config)
   - [`machine.initialState`](#machineinitialstate)
   - [`machine.transition(state, event)`](#machinetransitionstate-event)
@@ -110,13 +111,14 @@ toggleService.stop();
 
 ## API
 
-### `createMachine(config)`
+### `createMachine(config, options)`
 
 Creates a new finite state machine from the config.
 
-| Argument | Type               | Description                                 |
-| -------- | ------------------ | ------------------------------------------- |
-| `config` | object (see below) | The config object for creating the machine. |
+| Argument  | Type               | Description                                 |
+| --------- | ------------------ | ------------------------------------------- |
+| `config`  | object (see below) | The config object for creating the machine. |
+| `options` | object (see below) | The optional options object.                |
 
 **Returns:**
 
@@ -150,6 +152,10 @@ Object syntax:
 - `actions?` (Action | Action[]) - the [action(s)](#action-config) to execute when this transition is taken.
 - `cond?` (Guard) - the condition (predicate function) to test. If it returns `true`, the transition will be taken.
 
+### Machine options
+
+- `actions?` (object) - a lookup object for your string actions.
+
 ### Action config
 
 Function syntax:
@@ -166,7 +172,7 @@ Object syntax:
 String syntax:
 
 - (string) - the action type.
-  - Resolves to `{ type: actionType, exec: undefined }`
+  - By default it resolves to `{ type: actionType, exec: undefined }`. It can resolve to resolved function or resolved object action **if** the action can be looked up in the `options.actions` object.
 
 <details>
   <summary>Why use a string or object for defining actions?</summary>
