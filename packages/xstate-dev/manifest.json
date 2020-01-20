@@ -24,6 +24,5 @@
     "https://*/*"
   ],
   "web_accessible_resources": ["src/content/*.js"],
-  "manifest_version": 2,
-  "author": "David Khourshid"
+  "manifest_version": 2
 }
