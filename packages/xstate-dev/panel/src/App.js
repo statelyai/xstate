@@ -21,7 +21,7 @@ function createPort() {
   });
 
   let services = {};
-  const listeners = new Set();
+  let listeners = new Set();
 
   function getInitialServices() {
     services = {};
@@ -127,10 +127,6 @@ const StyledApp = styled.main`
   color: var(--color-fg);
   height: 100%;
   max-height: 100%;
-
-  > * {
-    overflow: scroll;
-  }
 `;
 
 export function serializeEdge(edge) {
@@ -231,9 +227,55 @@ const MachineViz = ({ selectedService }) => {
   );
 };
 
+const ViewButtonsGroup = styled.div`
+  display: flex;
+  border: 1px solid black;
+  padding: 4px;
+  height: 100%;
+
+  & > button + button {
+    margin-left: 4px;
+  }
+`
+
+const views = {
+  GRAPH: 'graph',
+  EXTENDED_STATE: 'extendedState',
+  EVENTS_LOG: 'eventsLog'
+}
+
+const Button = styled.button`
+  background: transparent;
+  border: 1px solid black;
+  border-radius: 8px;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+
+  background-color: ${(props) => props.isActive ? 'skyblue' : 'rgba(0,0,0,0.1);'};
+`
+
+const Select = styled.select`
+    background: none;
+    height: 100%;
+    border: 1px solid black;
+    width: 100%;
+`
+
+const TopBar = styled.div`
+  display: flex;
+  align-items: center;
+  padding: 1px;
+  
+  & > * + * {
+    margin-left: 4px;
+  }
+`
+
 function App() {
   const [services, setServices] = useState({});
   const [currentService, setCurrentService] = useState(null);
+  const [activeView, setActiveView] = useState(views.GRAPH);
   const serviceKeys = Object.keys(services);
 
   const selectedService = currentService ? services[currentService] : null;
@@ -252,20 +294,28 @@ function App() {
 
   return (
     <StyledApp>
-      <select
-        value={currentService}
-        onChange={e => setCurrentService(e.target.value)}
-      >
-        <option>Select a service</option>
-        {serviceKeys.map(serviceKey => {
-          return <option key={serviceKey}>{serviceKey}</option>;
-        })}
-      </select>
+      <TopBar>
+        <ViewButtonsGroup style={{display: 'flex', border: '1px solid black'}}>
+          <Button isActive={activeView === views.GRAPH} onClick={() => setActiveView(views.GRAPH)}>Graph</Button>
+          <Button isActive={activeView === views.EXTENDED_STATE} onClick={() => setActiveView(views.EXTENDED_STATE)}>Extended State</Button>
+          <Button isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</Button>
+        </ViewButtonsGroup>
+        <Select
+          value={currentService}
+          onChange={e => setCurrentService(e.target.value)}
+        >
+          <option>Select a service</option>
+          {serviceKeys.map(serviceKey => {
+            return <option key={serviceKey}>{serviceKey}</option>;
+          })}
+        </Select>
+      </TopBar>
       {selectedService && (
-        <>
-          <MachineViz key={currentService} selectedService={selectedService} />
-          <StateViz state={selectedService.state} />
-        </>
+        <div style={{height: '100vh', width: '100vw'}}>
+        {activeView === views.GRAPH && <MachineViz key={currentService} selectedService={selectedService} />}
+        {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
+        {activeView === views.EVENTS_LOG && <h2>Nothing to see here yet...</h2>}
+        </div>
       )}
     </StyledApp>
   );

@@ -1,7 +1,7 @@
 const script = document.createElement('script');
 script.text = `
 (() => {
-  var sendMessage = function(name, data) {
+  const sendMessage = (name, data) => {
     window.postMessage({
       source: 'xstate-devtools',
       name: name,
@@ -9,12 +9,12 @@ script.text = `
     }, '*');
   };
 
-  const services = {};
+  let services = {};
 
   Object.defineProperty(window, '__XSTATE__', {
     value: {
-      services,
-      register(service) {
+      services: services,
+      register: (service) => {
         services[service.sessionId] = {
           state: service.state,
           machine: service.machine.config
@@ -41,13 +41,13 @@ script.onload = () => {
 /*
  * agent -> **content-script.js** -> background.js -> dev tools
  */
-window.addEventListener('message', function(event) {
+window.addEventListener('message', (event) => {
   // Only accept messages from same frame
   if (event.source !== window) {
     return;
   }
 
-  var message = event.data;
+  const message = event.data;
 
   // Only accept messages of correct format (our messages)
   if (
@@ -65,7 +65,7 @@ window.addEventListener('message', function(event) {
 /*
  * agent <- **content-script.js** <- background.js <- dev tools
  */
-chrome.runtime.onMessage.addListener(function(request) {
+chrome.runtime.onMessage.addListener((request) => {
   console.log('coming from chrome runtime', request);
   request.source = 'xstate-devtools';
   window.postMessage(request, '*');
