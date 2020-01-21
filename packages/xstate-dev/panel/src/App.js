@@ -265,8 +265,8 @@ const Select = styled.select`
 const TopBar = styled.div`
   display: flex;
   align-items: center;
-  padding: 1px;
-  
+  margin-bottom: 2px;
+
   & > * + * {
     margin-left: 4px;
   }
@@ -311,10 +311,10 @@ function App() {
         </Select>
       </TopBar>
       {selectedService && (
-        <div style={{height: '100vh', width: '100vw'}}>
-        {activeView === views.GRAPH && <MachineViz key={currentService} selectedService={selectedService} />}
-        {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
-        {activeView === views.EVENTS_LOG && <h2>Nothing to see here yet...</h2>}
+        <div style={{border: '1px solid black'}}>
+          {activeView === views.GRAPH && <MachineViz key={currentService} selectedService={selectedService} />}
+          {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
+          {activeView === views.EVENTS_LOG && <h2>Nothing to see here yet...</h2>}
         </div>
       )}
     </StyledApp>
