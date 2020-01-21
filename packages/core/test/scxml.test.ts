@@ -1,10 +1,8 @@
 import * as fs from 'fs';
 import * as path from 'path';
 import * as pkgUp from 'pkg-up';
-// import * as util from 'util';
 
 import { toMachine } from '../src/scxml';
-import { StateNode } from '../src/StateNode';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
@@ -12,11 +10,10 @@ import { pathsToStateValue } from '../src/utils';
 import {
   getInitialState,
   getStateNodes,
-  resolveStateValue
+  resolveStateValue,
+  getStateNodeById
 } from '../src/nodeUtils';
-// import { StateValue } from '../src/types';
-// import { Event, StateValue, ActionObject } from '../src/types';
-// import { actionTypes } from '../src/actions';
+import { MachineNode } from '../src/MachineNode';
 
 const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
   cwd: require.resolve('@scion-scxml/test-framework')
@@ -352,7 +349,7 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: StateNode): Promise<void> {
+async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
   await new Promise((res, reject) => {
     let nextState: State<any>;
 
@@ -372,7 +369,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: StateNode,
+  machine: MachineNode,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
@@ -382,7 +379,7 @@ async function runTestToCompletion(
   const resolvedStateValue = resolveStateValue(
     machine,
     pathsToStateValue(
-      test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+      test.initialConfiguration.map(id => getStateNodeById(machine, id).path)
     )
   );
   let done = false;

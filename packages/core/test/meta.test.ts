@@ -72,9 +72,8 @@ describe('state meta data', () => {
     }
   });
 
-  it.only('states should aggregate meta data', () => {
+  it('states should aggregate meta data', () => {
     const yellowState = lightMachine.transition('green', 'TIMER');
-    console.log(yellowState);
     expect(yellowState.meta).toEqual({
       'light.yellow': {
         yellowData: 'yellow data'
