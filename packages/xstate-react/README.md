@@ -79,6 +79,7 @@ This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
 **Arguments**
 
 - `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
+- `options` - An optional `options` object.
 
 **Returns** a tuple of `[current, send, service]`:
 
@@ -120,17 +121,15 @@ const fetchMachine = createMachine({
 });
 
 const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
-  const [current, send] = useMachine(fetchMachine);
-
-  useEffect(() => {
-    current.actions.forEach(action => {
-      if (action.type === 'load') {
+  const [current, send] = useMachine(fetchMachine, {
+    actions: {
+      load: () => {
         onFetch().then(res => {
           send({ type: 'RESOLVE', data: res });
         });
       }
-    });
-  }, [current]);
+    }
+  });
 
   switch (current.value) {
     case 'idle':
@@ -286,6 +285,30 @@ const App = () => {
 
   return (/* ... */)
 }
+```
+
+## Services
+
+The `service` created in `useMachine(machine)` can be referenced as the third returned value:
+
+```js
+//                  vvvvvvv
+const [state, send, service] = useMachine(someMachine);
+```
+
+You can subscribe to that service's state changes with the [`useEFfect` hook](https://reactjs.org/docs/hooks-effect.html):
+
+```js
+// ...
+
+useEffect(() => {
+  const subscription = service.subscribe(state => {
+    // simple state logging
+    console.log(state);
+  });
+
+  return subscription.unsubscribe;
+}, [service]); // note: service should never change
 ```
 
 ## Resources
