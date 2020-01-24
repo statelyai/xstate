@@ -4,7 +4,8 @@
   "description": "Chrome Dev Tools Extension for XState",
   "devtools_page": "src/extension/devtools.html",
   "background": {
-    "page": "src/extension/background.html"
+    "scripts": ["src/extension/hotReload.js", "src/extension/background.js"],
+    "persistent": false
   },
   "icons": {
     "128": "assets/icon_128.png"

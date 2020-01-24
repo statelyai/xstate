@@ -16,7 +16,6 @@ export function relative(childRect, parentElement) {
 }
 
 export const EdgeViz = ({ edge }) => {
-  console.log('EDGE', edge);
   const [eventRect, setEventRect] = useState();
   const [targetRect, setTargetRect] = useState();
   const [svgRect, setSvgRect] = useState();
@@ -27,13 +26,11 @@ export const EdgeViz = ({ edge }) => {
     if (!targets.length) {
       return;
     }
-    console.log('listening', edge.source.id, targets);
     tracker.listen(serializeEdge(edge), setEventRect);
     tracker.listen(targets[0].id, setTargetRect);
     tracker.listen('svg', setSvgRect);
   }, []);
 
-  console.log('listen update', edge.source.id, eventRect, targetRect, svgRect);
 
   if (!eventRect || !targetRect || !svgRect) {
     return null;
@@ -67,5 +64,3 @@ export const EdgeViz = ({ edge }) => {
 
   return <path d={d} stroke="white" strokeWidth={2} fill="none"></path>;
 };
-
-console.log(tracker);

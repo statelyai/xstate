@@ -20,12 +20,31 @@ script.text = `
           machine: service.machine.config
         };
 
-        service.subscribe(state => {
+        service.subscribe((state) => {
           services[service.sessionId].state = state;
           sendMessage('state', {
             type: 'state',
             state: JSON.stringify(state),
-            sessionId: state._sessionid
+            sessionId: service.sessionId
+          })
+        })
+
+        service.onEvent(event => {
+          const eventData = {
+            event: event,
+            time: Date.now()
+          }
+
+          if (services[service.sessionId].eventsData !== undefined) {
+            services[service.sessionId].eventsData.push(eventData)
+          } else {
+            services[service.sessionId].eventsData = [eventData]
+          }
+           
+          sendMessage('event', {
+            type: 'event',
+            eventData: JSON.stringify(eventData),
+            sessionId: service.sessionId
           })
         })
       }

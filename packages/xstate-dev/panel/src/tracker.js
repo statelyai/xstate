@@ -35,7 +35,6 @@ class Tracker {
   }
 
   update(id, element) {
-    console.log('updagint', id, this.elements.get(id));
     if (!this.elements.get(id)) {
       this.elements.set(id, {
         listeners: new Set(),

@@ -7,6 +7,7 @@ import { StateViz } from './StateViz';
 import { getEdges } from './utils';
 import { EdgeViz } from './EdgeViz';
 import { tracker } from './tracker';
+import EventsLog from './EventsLog';
 
 const chrome = window.chrome;
 
@@ -25,25 +26,22 @@ function createPort() {
 
   function getInitialServices() {
     services = {};
-    chrome.devtools.inspectedWindow.eval(
-      `Object.keys(window.__XSTATE__.services)`,
-      keys => {
-        keys.forEach(key => {
-          chrome.devtools.inspectedWindow.eval(
-            `JSON.stringify(window.__XSTATE__.services['${key}'])`,
-            result => {
-              services[key] = JSON.parse(result);
-              update();
-            }
-          );
-        });
-      }
-    );
+
+    chrome.devtools.inspectedWindow.eval(`JSON.stringify(window.__XSTATE__.services)`,
+     (serializedContentScriptServices) => {
+       const contentScriptServices = JSON.parse(serializedContentScriptServices)
+
+      services = contentScriptServices
+      update()
+     })
+
   }
 
   getInitialServices();
 
   backgroundPort.onMessage.addListener(message => {
+    console.log('App: message:', message)
+    
     if (message.name === 'service') {
       services[message.data.sessionId] = {
         machine: message.data.machine,
@@ -57,6 +55,19 @@ function createPort() {
       update();
     } else if (message.name === 'reloaded') {
       getInitialServices();
+    } else if (message.name === 'event') {
+      console.log('App: got event:', message)
+      const eventData = JSON.parse(message.data.eventData);
+
+      if (services[message.data.sessionId].eventsData !== undefined) {
+        services[message.data.sessionId].eventsData.push(eventData)
+      } else {
+        services[message.data.sessionId].eventsData = [eventData]
+      }
+
+      console.log('eventsData:', services[message.data.sessionId].eventsData )
+
+      update()
     }
   });
 
@@ -75,7 +86,6 @@ function createPort() {
 }
 
 backgroundPort.onMessage.addListener(message => {
-  console.log(message);
 });
 // End chrome stuff
 
@@ -127,6 +137,9 @@ const StyledApp = styled.main`
   color: var(--color-fg);
   height: 100%;
   max-height: 100%;
+
+  display: flex;
+  flex-direction: column;
 `;
 
 export function serializeEdge(edge) {
@@ -140,8 +153,6 @@ const MachineViz = ({ selectedService }) => {
   const svgRef = useRef(null);
   const state = selectedService.state;
   const edges = getEdges(Machine(selectedService.machine));
-
-  console.log('EDGES', edges);
 
   useEffect(() => {
     if (!svgRef.current) {
@@ -197,8 +208,6 @@ const MachineViz = ({ selectedService }) => {
         </defs>
         {edges.map(edge => {
           const serial = serializeEdge(edge);
-
-          console.log(serial);
 
           // const svgRect = this.svgRef.current.getBoundingClientRect();
 
@@ -274,11 +283,11 @@ const TopBar = styled.div`
 
 function App() {
   const [services, setServices] = useState({});
-  const [currentService, setCurrentService] = useState(null);
+  const [currentServiceId, setCurrentServiceId] = useState(null);
   const [activeView, setActiveView] = useState(views.GRAPH);
-  const serviceKeys = Object.keys(services);
+  const serviceIds = Object.keys(services);
 
-  const selectedService = currentService ? services[currentService] : null;
+  const selectedService = currentServiceId ? services[currentServiceId] : null;
 
   useEffect(() => {
     createPort().subscribe(s => {
@@ -287,10 +296,10 @@ function App() {
   }, []);
 
   useEffect(() => {
-    if (serviceKeys.length && !currentService) {
-      setCurrentService(serviceKeys[0]);
+    if (serviceIds.length && !currentServiceId) {
+      setCurrentServiceId(serviceIds[0]);
     }
-  }, [serviceKeys]);
+  }, [serviceIds]);
 
   return (
     <StyledApp>
@@ -301,20 +310,20 @@ function App() {
           <Button isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</Button>
         </ViewButtonsGroup>
         <Select
-          value={currentService}
-          onChange={e => setCurrentService(e.target.value)}
+          value={currentServiceId}
+          onChange={e => setCurrentServiceId(e.target.value)}
         >
           <option>Select a service</option>
-          {serviceKeys.map(serviceKey => {
+          {serviceIds.map(serviceKey => {
             return <option key={serviceKey}>{serviceKey}</option>;
           })}
         </Select>
       </TopBar>
       {selectedService && (
-        <div style={{border: '1px solid black'}}>
-          {activeView === views.GRAPH && <MachineViz key={currentService} selectedService={selectedService} />}
+        <div style={{border: '1px solid black', height: '100%'}}>
+          {activeView === views.GRAPH && <MachineViz key={currentServiceId} selectedService={selectedService} />}
           {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
-          {activeView === views.EVENTS_LOG && <h2>Nothing to see here yet...</h2>}
+          {activeView === views.EVENTS_LOG && selectedService && <EventsLog events={selectedService.eventsData} />}
         </div>
       )}
     </StyledApp>
