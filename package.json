@@ -41,6 +41,7 @@
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "dependencies": {
     "@actions/exec": "^1.0.2",
+    "@changesets/changelog-github": "^0.2.1",
     "@changesets/cli": "^2.5.0",
     "@manypkg/cli": "^0.9.0",
     "@types/jest": "^24.0.23",
