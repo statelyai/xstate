@@ -14,7 +14,7 @@ npm i xstate @xstate/vue
 <template>
   <button @click="send('TOGGLE')">
     {{
-      current.value === 'inactive'
+      state.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'
     }}
@@ -40,9 +40,9 @@ const toggleMachine = Machine({
 
 export default {
   setup() {
-    const { current, send } = useMachine(toggleMachine);
+    const { state, send } = useMachine(toggleMachine);
     return {
-      current,
+      state,
       send
     };
   }
@@ -61,9 +61,9 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
-**Returns** `{ current, send, service}`:
+**Returns** `{ state, send, service}`:
 
-- `current` - Represents the current state of the machine as an XState `State` object.
+- `state` - Represents the current state of the machine as an XState `State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
@@ -75,9 +75,9 @@ A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that s
 
 - `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
 
-**Returns** `{current, send}`:
+**Returns** `{state, send}`:
 
-- `current` - Represents the current state of the service as an XState `State` object.
+- `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
 ### `useMachine(machine)` with `@xstate/fsm`
@@ -90,9 +90,9 @@ This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
 
 - `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
 
-**Returns** an object `{current, send, service}`:
+**Returns** an object `{state, send, service}`:
 
-- `current` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
+- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created `@xstate/fsm` service.
 
@@ -113,11 +113,9 @@ For [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [par
 ```vue
 <template>
   <div>
-    <loader-idle v-if="current.matches('idle')" />
-    <loader-loading-user v-if-else="current.matches({ loading: 'user' })" />
-    <loader-loading-friends
-      v-if-else="current.matches({ loading: 'friends' })"
-    />
+    <loader-idle v-if="state.matches('idle')" />
+    <loader-loading-user v-if-else="state.matches({ loading: 'user' })" />
+    <loader-loading-friends v-if-else="state.matches({ loading: 'friends' })" />
   </div>
 </template>
 ```
@@ -135,12 +133,12 @@ const persistedState = JSON.parse(
 
 export default {
   setup() {
-    const { current, send } = useMachine(someMachine, {
+    const { state, send } = useMachine(someMachine, {
       state: persistedState
     });
 
-    // current will initially be that persisted state, not the machine's initialState
-    return { current, send };
+    // state will initially be that persisted state, not the machine's initialState
+    return { state, send };
   }
 };
 </script>

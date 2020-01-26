@@ -81,17 +81,17 @@ export function useMachine<
     );
   });
 
-  const [current, setCurrent] = useState(service.state);
+  const [state, setState] = useState(service.state);
 
   useEffect(() => {
-    service.onTransition(state => {
-      if (state.changed) {
-        setCurrent(state);
+    service.onTransition(currentState => {
+      if (currentState.changed) {
+        setState(currentState);
       }
     });
 
     // if service.state has not changed React should just bail out from this update
-    setCurrent(service.state);
+    setState(service.state);
 
     return () => {
       service.stop();
@@ -109,7 +109,7 @@ export function useMachine<
     Object.assign(service.machine.options.services, services);
   }, [services]);
 
-  return [current, service.send, service];
+  return [state, service.send, service];
 }
 
 export function useService<
@@ -140,7 +140,7 @@ export function useService<
     [service]
   );
 
-  const current = useSubscription(subscription);
+  const state = useSubscription(subscription);
 
-  return [current, service.send, service];
+  return [state, service.send, service];
 }
