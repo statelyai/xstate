@@ -190,8 +190,7 @@ export class Interpreter<
    */
   constructor(
     public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
-    options: Partial<InterpreterOptions> = Interpreter.defaultOptions,
-    sessionId?: string
+    options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
       ...Interpreter.defaultOptions,
@@ -213,8 +212,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.sessionId =
-      sessionId !== undefined ? sessionId : registry.register(this as Actor);
+    this.sessionId = registry.bookId();
   }
   public get initialState(): State<TContext, TEvent> {
     if (this._initialState) {
@@ -461,6 +459,7 @@ export class Interpreter<
       return this;
     }
 
+    registry.register(this.sessionId, this as Actor);
     this.initialized = true;
     this._status = InterpreterStatus.Running;
 
@@ -519,6 +518,7 @@ export class Interpreter<
     this.scheduler.clear();
     this.initialized = false;
     this._status = InterpreterStatus.Stopped;
+    registry.free(this.sessionId);
 
     return this;
   }

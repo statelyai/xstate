@@ -1,28 +1,28 @@
 import { Actor } from './Actor';
 
 const children = new Map<string, Actor>();
-const idMap = new Map<Actor, string>();
 
 let sessionIdIndex = 0;
 
 export interface Registry {
-  register(actor: Actor): string;
+  bookId(): string;
+  register(id: string, actor: Actor): string;
   get(id: string): Actor | undefined;
-  lookup(actor: Actor): string | undefined;
+  free(id: string): void;
 }
 
 export const registry: Registry = {
-  register(actor) {
-    const id = `x:${sessionIdIndex++}`;
+  bookId() {
+    return `x:${sessionIdIndex++}`;
+  },
+  register(id, actor) {
     children.set(id, actor);
-    idMap.set(actor, id);
-
     return id;
   },
   get(id) {
     return children.get(id);
   },
-  lookup(actorRef) {
-    return idMap.get(actorRef);
+  free(id) {
+    children.delete(id);
   }
 };
