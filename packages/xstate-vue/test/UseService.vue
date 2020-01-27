@@ -6,8 +6,16 @@
 </template>
 
 <script lang="ts">
-import { useService } from '../src/useService';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State, Service } from 'xstate';
+import { useService } from '../src';
+import {
+  Machine,
+  assign,
+  Interpreter,
+  spawn,
+  doneInvoke,
+  State,
+  Service
+} from 'xstate';
 import { watch, ref } from '@vue/composition-api';
 
 export default {
@@ -16,10 +24,10 @@ export default {
     let { current, send } = useService(props.service);
 
     watch(() => {
-      let state = useService(props.service)
-      current.value = state.current.value
-      send = state.send
-    })
+      let state = useService(props.service);
+      current.value = state.current.value;
+      send = state.send;
+    });
     return { current, send };
   }
 };

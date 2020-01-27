@@ -11,7 +11,7 @@
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src/useMachine';
+import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
 import { watch } from '@vue/composition-api';
 
