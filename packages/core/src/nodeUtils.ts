@@ -11,7 +11,6 @@ import {
   isFunction,
   isString,
   toGuard,
-  isMachineNode,
   toTransitionConfigArray,
   normalizeTarget,
   toStateValue,
@@ -86,31 +85,6 @@ import { MachineNode } from './MachineNode';
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
-const validateArrayifiedTransitions = <TContext>(
-  stateNode: StateNode<any, any, any>,
-  event: string,
-  transitions: Array<
-    TransitionConfig<TContext, EventObject> & {
-      event: string;
-    }
-  >
-) => {
-  const hasNonLastUnguardedTarget = transitions
-    .slice(0, -1)
-    .some(
-      transition =>
-        !('cond' in transition) &&
-        !('in' in transition) &&
-        (isString(transition.target) || isMachineNode(transition.target))
-    );
-  const eventText =
-    event === NULL_EVENT ? 'the transient event' : `event '${event}'`;
-  warn(
-    !hasNonLastUnguardedTarget,
-    `One or more transitions for ${eventText} on state '${stateNode.id}' are unreachable. ` +
-      `Make sure that the default transition is the last one defined.`
-  );
-};
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, any, TEvent>,
   eventName: TEvent['type'] | NullEvent['type'] | '*'
@@ -229,9 +203,7 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
             key,
             strictOnConfigs![key as string]
           );
-          if (!IS_PRODUCTION) {
-            validateArrayifiedTransitions(stateNode, key, arrayified);
-          }
+          // TODO: add dev-mode validation for unreachable transitions
           return arrayified;
         })
         .concat(

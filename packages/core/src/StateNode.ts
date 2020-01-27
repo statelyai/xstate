@@ -138,8 +138,6 @@ export class StateNode<
    */
   public order: number = -1;
 
-  public __xstatenode: true = true;
-
   public __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
