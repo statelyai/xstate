@@ -147,7 +147,6 @@ export class MachineNode<
       createDefaultOptions(config.context!),
       options
     );
-    // console.log(options, this.options);
     this.context = this.options.context;
     this.key = this.config.key || this.config.id || '(machine)';
     this.machine = this;

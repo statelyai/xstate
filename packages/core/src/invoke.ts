@@ -31,7 +31,6 @@ export function spawnMachine<
   options: { sync?: boolean } = {}
 ): InvokeCreator<TContext, TEvent> {
   return (ctx, event, { parent, id, data, _event }) => {
-    console.log(data);
     let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
     if (data) {
       resolvedMachine = resolvedMachine.withContext(
@@ -43,8 +42,6 @@ export function spawnMachine<
       parent,
       id: id || resolvedMachine.id
     });
-
-    console.log('creating child service ' + id + ' with parent', parent.id);
 
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
