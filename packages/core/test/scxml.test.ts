@@ -350,7 +350,7 @@ interface SCIONTest {
 }
 
 async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
-  await new Promise((res, reject) => {
+  await new Promise((resolve, reject) => {
     let nextState: State<any>;
 
     interpret(machine)
@@ -359,7 +359,7 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
       })
       .onDone(() => {
         if (nextState.value === 'pass') {
-          res();
+          resolve();
         } else {
           reject(new Error('Reached "fail" state.'));
         }
