@@ -17,32 +17,22 @@ script.text = `
       register: (service) => {
         services[service.sessionId] = {
           state: service.state,
-          machine: service.machine.config
+          machine: service.machine.config,
+          eventsLog: []
         };
 
-        service.subscribe((state) => {
-          services[service.sessionId].state = state;
-          sendMessage('state', {
-            type: 'state',
-            state: JSON.stringify(state),
-            sessionId: service.sessionId
-          })
-        })
-
-        service.onEvent(event => {
+        service.subscribe((state, ...args) => {
           const eventData = {
-            event: event,
+            event: state.event,
             time: Date.now()
           }
 
-          if (services[service.sessionId].eventsData !== undefined) {
-            services[service.sessionId].eventsData.push(eventData)
-          } else {
-            services[service.sessionId].eventsData = [eventData]
-          }
-           
-          sendMessage('event', {
-            type: 'event',
+          services[service.sessionId].state = state;
+          services[service.sessionId].eventsLog.push(eventData)
+
+          sendMessage('state', {
+            type: 'state',
+            state: JSON.stringify(state),
             eventData: JSON.stringify(eventData),
             sessionId: service.sessionId
           })

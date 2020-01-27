@@ -8,6 +8,7 @@
     "@testing-library/user-event": "^7.1.2",
     "@xstate/react": "^0.8.1",
     "date-fns": "^2.9.0",
+    "deep-object-diff": "^1.1.0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-json-tree": "^0.11.2",

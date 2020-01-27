@@ -41,33 +41,25 @@ function createPort() {
 
   backgroundPort.onMessage.addListener(message => {
     console.log('App: message:', message)
+    console.log('services:', services)
     
-    if (message.name === 'service') {
-      services[message.data.sessionId] = {
-        machine: message.data.machine,
-        state: undefined
-      };
-      update();
-    } else if (message.name === 'state') {
+    if (message.name === 'state') {
       const state = JSON.parse(message.data.state);
 
-      services[state._sessionid].state = state;
+      const eventData = JSON.parse(message.data.eventData);
+
+      services[message.data.sessionId].state = state;
+      
+      const eventListing = {
+        eventData: eventData,
+        stateAfter: state
+      }
+
+      services[message.data.sessionId].eventsLog.push(eventListing)
+
       update();
     } else if (message.name === 'reloaded') {
       getInitialServices();
-    } else if (message.name === 'event') {
-      console.log('App: got event:', message)
-      const eventData = JSON.parse(message.data.eventData);
-
-      if (services[message.data.sessionId].eventsData !== undefined) {
-        services[message.data.sessionId].eventsData.push(eventData)
-      } else {
-        services[message.data.sessionId].eventsData = [eventData]
-      }
-
-      console.log('eventsData:', services[message.data.sessionId].eventsData )
-
-      update()
     }
   });
 
@@ -289,6 +281,8 @@ function App() {
 
   const selectedService = currentServiceId ? services[currentServiceId] : null;
 
+  console.log('App: services:', services)
+
   useEffect(() => {
     createPort().subscribe(s => {
       setServices(s);
@@ -323,7 +317,7 @@ function App() {
         <div style={{border: '1px solid black', height: '100%'}}>
           {activeView === views.GRAPH && <MachineViz key={currentServiceId} selectedService={selectedService} />}
           {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
-          {activeView === views.EVENTS_LOG && selectedService && <EventsLog events={selectedService.eventsData} />}
+          {activeView === views.EVENTS_LOG && selectedService && <EventsLog eventsLog={selectedService.eventsLog} machine={Machine(selectedService.machine)}/>}
         </div>
       )}
     </StyledApp>
