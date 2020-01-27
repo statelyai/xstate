@@ -14,7 +14,7 @@ import {
   Segments,
   ValueAdjMapOptions
 } from './types';
-import { MachineNode } from 'xstate/src/MachineNode';
+import { StateMachine } from 'xstate/src/MachineNode';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -33,7 +33,7 @@ const EMPTY_MAP = {};
  * @param stateNode State node to recursively get child state nodes from
  */
 export function getStateNodes(
-  stateNode: StateNode | MachineNode<any, any, any>
+  stateNode: StateNode | StateMachine<any, any, any>
 ): StateNode[] {
   const { states } = stateNode;
   const nodes = keys(states).reduce((accNodes: StateNode[], stateKey) => {
@@ -77,7 +77,9 @@ export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = AnyEventObject
 >(
-  node: MachineNode<TContext, any, TEvent> | MachineNode<TContext, any, TEvent>,
+  node:
+    | StateMachine<TContext, any, TEvent>
+    | StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -142,7 +144,7 @@ export function getShortestPaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
@@ -237,7 +239,7 @@ export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -313,7 +315,7 @@ export function getSimplePathsAsArray<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: StateMachine<TContext, any, TEvent>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);

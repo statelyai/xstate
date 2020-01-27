@@ -54,7 +54,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import { DEFAULT_SPAWN_OPTIONS } from './invoke';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './MachineNode';
 
 export type StateListener<
   TContext,
@@ -189,7 +189,7 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: MachineNode<TContext, TStateSchema, TEvent, TTypestate>,
+    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -940,7 +940,7 @@ export class Interpreter<
     TChildStateSchema,
     TChildEvent extends EventObject
   >(
-    machine: MachineNode<TChildContext, TChildStateSchema, TChildEvent>,
+    machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
     const childService = interpret(machine, {
@@ -1254,7 +1254,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 };
 
 export function spawn<TC, TE extends EventObject>(
-  entity: MachineNode<TC, any, TE>,
+  entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
 ): Interpreter<TC, any, TE>;
 export function spawn(
@@ -1297,7 +1297,7 @@ export function interpret<
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
-  machine: MachineNode<TContext, TStateSchema, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<

@@ -10,7 +10,7 @@ import { Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 import { spawnMachine } from './invoke';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './MachineNode';
 
 function getAttribute(
   element: XMLElement,
@@ -369,7 +369,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): MachineNode {
+): StateMachine {
   const machineElement = scxmlJson.elements!.find(
     element => element.name === 'scxml'
   ) as XMLElement;
@@ -405,7 +405,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): MachineNode {
+): StateMachine {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }

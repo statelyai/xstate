@@ -2,7 +2,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
 import { Actor } from './Actor';
-import { MachineNode } from './MachineNode';
+import { StateMachine } from './MachineNode';
 
 export type EventType = string;
 export type ActionType = string;
@@ -593,9 +593,9 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
-export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
-  TMachine['transition']
->;
+export type StateFrom<
+  TMachine extends StateMachine<any, any, any>
+> = ReturnType<TMachine['transition']>;
 
 export interface ActivityMap {
   [activityKey: string]: ActivityDefinition<any, any> | false;
@@ -1054,7 +1054,7 @@ export interface Observer<T> {
 }
 
 export type Spawnable =
-  | MachineNode<any, any, any>
+  | StateMachine<any, any, any>
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;
