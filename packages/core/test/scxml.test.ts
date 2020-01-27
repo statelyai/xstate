@@ -13,7 +13,7 @@ import {
   resolveStateValue,
   getStateNodeById
 } from '../src/nodeUtils';
-import { MachineNode } from '../src/MachineNode';
+import { StateMachine } from '../src/MachineNode';
 
 const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
   cwd: require.resolve('@scion-scxml/test-framework')
@@ -349,7 +349,7 @@ interface SCIONTest {
   }>;
 }
 
-async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
+async function runW3TestToCompletion(machine: StateMachine): Promise<void> {
   await new Promise((resolve, reject) => {
     let nextState: State<any>;
 
@@ -369,7 +369,7 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
 }
 
 async function runTestToCompletion(
-  machine: MachineNode,
+  machine: StateMachine,
   test: SCIONTest
 ): Promise<void> {
   if (!test.events.length && test.initialConfiguration[0] === 'pass') {
