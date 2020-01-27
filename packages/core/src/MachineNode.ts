@@ -209,7 +209,7 @@ export class StateMachine<
       guards: { ...guards, ...options.guards },
       services: { ...services, ...options.services },
       delays: { ...delays, ...options.delays },
-      context
+      context: { ...context, ...options.context }
     });
   }
 

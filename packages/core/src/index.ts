@@ -23,6 +23,7 @@ import {
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
+export { StateMachine } from './MachineNode';
 
 const actions = {
   raise,

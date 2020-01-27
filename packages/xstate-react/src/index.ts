@@ -71,7 +71,7 @@ export function useMachine<
       delays
     };
 
-    const createdMachine = machine.withConfig(machineConfig, {
+    const createdMachine = machine.withConfig(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);
