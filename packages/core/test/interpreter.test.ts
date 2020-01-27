@@ -949,9 +949,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         start: {
           invoke: {
             id: 'child',
-            src: spawnMachine(() => {
-              return childMachine.withContext({ password: 'foo' });
-            })
+            src: spawnMachine(childMachine),
+            data: { password: 'foo' }
           },
           on: {
             NEXT: {
