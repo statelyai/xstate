@@ -1,6 +1,6 @@
 <template>
   <div>
-    <div data-testid="count">{{ current.context.count }}</div>
+    <div data-testid="count">{{ state.context.count }}</div>
     <button data-testid="inc" @click="send('INC')">Increase</button>
   </div>
 </template>
@@ -21,14 +21,14 @@ import { watch, ref } from '@vue/composition-api';
 export default {
   props: ['service'],
   setup(props): { service: Service } {
-    let { current, send } = useService(props.service);
+    let { state, send } = useService(props.service);
 
     watch(() => {
-      let state = useService(props.service);
-      current.value = state.current.value;
-      send = state.send;
+      let currentState = useService(props.service);
+      state.value = currentState.state.value;
+      send = currentState.send;
     });
-    return { current, send };
+    return { state, send };
   }
 };
 </script>
