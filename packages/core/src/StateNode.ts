@@ -400,7 +400,7 @@ class StateNode<
       } else if (typeof invokeConfig.src !== 'string') {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
-          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext>,
+          [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
         };
 
