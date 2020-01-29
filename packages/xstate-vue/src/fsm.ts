@@ -1,27 +1,98 @@
-import { ref, onBeforeUnmount, Ref } from '@vue/composition-api';
-import { StateMachine, EventObject, interpret } from '@xstate/fsm';
-import { AnyEventObject } from 'xstate';
+import {
+  ref,
+  isRef,
+  watch,
+  onMounted,
+  onBeforeUnmount,
+  Ref
+} from '@vue/composition-api';
+import {
+  createMachine,
+  interpret,
+  StateMachine,
+  EventObject,
+  Typestate
+} from '@xstate/fsm';
+
+const getServiceValue = <
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  service: StateMachine.Service<TContext, TEvent, TState>
+): StateMachine.State<TContext, TEvent, TState> => {
+  let currentValue: StateMachine.State<TContext, TEvent, TState>;
+  service
+    .subscribe(state => {
+      currentValue = state;
+    })
+    .unsubscribe();
+  return currentValue!;
+};
 
 export function useMachine<
-  TC extends object,
-  TE extends EventObject = AnyEventObject
+  TContext extends object,
+  TEvent extends EventObject = EventObject
 >(
-  stateMachine: StateMachine.Machine<TC, TE, any>
+  stateMachine: StateMachine.Machine<TContext, TEvent, any>,
+  options?: {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+  }
 ): {
-  state: Ref<StateMachine.State<TC, TE, any>>;
-  send: StateMachine.Service<TC, TE>['send'];
-  service: StateMachine.Service<TC, TE>;
+  state: Ref<StateMachine.State<TContext, TEvent, any>>;
+  send: StateMachine.Service<TContext, TEvent>['send'];
+  service: StateMachine.Service<TContext, TEvent>;
 } {
-  const state = ref<StateMachine.State<TC, TE, any>>(stateMachine.initialState);
-  const service = interpret(stateMachine);
-  const send = (event: TE | TE['type']) => service.send(event);
+  const service = interpret(
+    createMachine(
+      stateMachine.config,
+      options ? options : (stateMachine as any)._options
+    )
+  ).start();
 
-  service.subscribe(s => (state.value = s));
-  service.start();
+  const state = ref<StateMachine.State<TContext, TEvent, any>>(
+    getServiceValue(service)
+  );
 
-  onBeforeUnmount(() => {
-    service.stop();
+  onMounted(() => {
+    service.subscribe(currentState => (state.value = currentState));
   });
 
-  return { state, send, service };
+  onBeforeUnmount(service.stop);
+
+  return { state, send: service.send, service };
+}
+
+export function useService<
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  service:
+    | StateMachine.Service<TContext, TEvent, TState>
+    | Ref<StateMachine.Service<TContext, TEvent, TState>>
+): {
+  state: Ref<StateMachine.State<TContext, TEvent, TState>>;
+  send: StateMachine.Service<TContext, TEvent, TState>['send'];
+  service: Ref<StateMachine.Service<TContext, TEvent, TState>>;
+} {
+  const serviceRef = isRef(service) ? service : ref(service);
+  const state = ref<StateMachine.State<TContext, TEvent, TState>>(
+    getServiceValue(serviceRef.value)
+  );
+
+  watch(serviceRef, (service, _, onCleanup) => {
+    state.value = getServiceValue(service);
+
+    const { unsubscribe } = service.subscribe(currentState => {
+      if (currentState.changed) {
+        state.value = currentState;
+      }
+    });
+    onCleanup(unsubscribe);
+  });
+
+  const send = (event: TEvent | TEvent['type']) => serviceRef.value.send(event);
+
+  return { state, send, service: serviceRef };
 }
