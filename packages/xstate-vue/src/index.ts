@@ -9,7 +9,7 @@ import {
 import {
   interpret,
   EventObject,
-  StateMachine,
+  MachineNode,
   State,
   Interpreter,
   InterpreterOptions,
@@ -30,7 +30,7 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 export function useMachine<TContext, TEvent extends EventObject>(
-  machine: StateMachine<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>>

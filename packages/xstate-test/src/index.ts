@@ -5,7 +5,7 @@ import {
   StatePathsMap,
   ValueAdjMapOptions
 } from '@xstate/graph';
-import { StateMachine, EventObject, State, StateValue } from 'xstate';
+import { MachineNode, EventObject, State, StateValue } from 'xstate';
 import slimChalk from './slimChalk';
 import {
   TestModelCoverage,
@@ -50,7 +50,7 @@ export class TestModel<TTestContext, TContext> {
   };
 
   constructor(
-    public machine: StateMachine<TContext, any, any>,
+    public machine: MachineNode<TContext, any, any>,
     options?: Partial<TestModelOptions<TTestContext>>
   ) {
     this.options = {
@@ -431,7 +431,7 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
  * to an event test config (e.g., `{exec: () => {...}, cases: [...]}`)
  */
 export function createModel<TestContext, TContext = any>(
-  machine: StateMachine<TContext, any, any>,
+  machine: MachineNode<TContext, any, any>,
   options?: TestModelOptions<TestContext>
 ): TestModel<TestContext, TContext> {
   return new TestModel<TestContext, TContext>(machine, options);
