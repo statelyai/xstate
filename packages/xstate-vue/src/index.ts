@@ -59,10 +59,10 @@ export function useMachine<TContext, TEvent extends EventObject>(
     delays
   };
 
-  const createdMachine = machine.withConfig(machineConfig, {
+  const createdMachine = machine.withConfig(machineConfig).withContext({
     ...machine.context,
     ...context
-  } as TContext);
+  });
 
   const service = interpret(createdMachine, interpreterOptions).start(
     rehydratedState ? State.create(rehydratedState) : undefined
@@ -101,9 +101,9 @@ export function useService<TContext, TEvent extends EventObject>(
     : ref<Interpreter<TContext, any, TEvent>>(service);
   const state = ref<State<TContext, TEvent>>(serviceRef.value.state);
 
-  watch(serviceRef, (service, _, onCleanup) => {
-    state.value = service.state;
-    const { unsubscribe } = service.subscribe(currentState => {
+  watch(serviceRef, (watchedService, _, onCleanup) => {
+    state.value = watchedService.state;
+    const { unsubscribe } = watchedService.subscribe(currentState => {
       if (currentState.changed) {
         state.value = currentState;
       }
