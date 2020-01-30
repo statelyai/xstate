@@ -1,11 +1,11 @@
 import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
 import {
-  MachineNode,
   ActionObject,
   TransitionDefinition,
   StateNode,
   ActionType
 } from 'xstate';
+import { MachineNode } from 'xstate/lib/MachineNode';
 import { flatten } from 'xstate/lib/utils';
 
 function cleanAttributes(attributes: Attributes): Attributes {
