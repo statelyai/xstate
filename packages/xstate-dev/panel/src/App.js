@@ -304,7 +304,7 @@ function App() {
           <Button isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</Button>
         </ViewButtonsGroup>
         <Select
-          value={currentServiceId}
+          value={currentServiceId === null ? '' : currentServiceId}
           onChange={e => setCurrentServiceId(e.target.value)}
         >
           <option>Select a service</option>

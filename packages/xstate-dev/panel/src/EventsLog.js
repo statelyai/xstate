@@ -3,8 +3,8 @@ import { FixedSizeList as WindowedList } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { format } from 'date-fns';
 import styled from 'styled-components';
-import JSONTree from 'react-json-tree';
-import { diff } from 'deep-object-diff'
+import createDiffPatcher from './utils/createDiffPatcher';
+import JSONDiff from './JSONDiff';
 
 const EventsLogViewFrame = styled.div`
   display: flex;
@@ -18,7 +18,6 @@ const EventsLogViewFrame = styled.div`
   & > div + div {
     margin-left: 2px;
   }
-
 `
 
 const EVENT_ROW_HEIGHT = 60 // 16 + 20 + 16 + 4 x 2 = 60
@@ -51,26 +50,6 @@ const AnimatedList = (props) => {
   );
 }
 
-const theme = {
-  scheme: 'monokai',
-  author: 'wimer hazenberg (http://www.monokai.nl)',
-  base00: '#272822',
-  base01: '#383830',
-  base02: '#49483e',
-  base03: '#75715e',
-  base04: '#a59f85',
-  base05: '#f8f8f2',
-  base06: '#f5f4f1',
-  base07: '#f9f8f5',
-  base08: '#f92672',
-  base09: '#fd971f',
-  base0A: '#f4bf75',
-  base0B: '#a6e22e',
-  base0C: '#a1efe4',
-  base0D: '#66d9ef',
-  base0E: '#ae81ff',
-  base0F: '#cc6633'
-};
 
 const EventDetails = ({event, time, extendedStateDiffData}) => {
   let eventPayload = Object.assign({}, event)
@@ -84,10 +63,11 @@ return (
       <h2>{JSON.stringify(eventPayload)}</h2>
       <hr/>
       <h1>Extended State Diff</h1>
-      <JSONTree data={extendedStateDiffData} theme={theme} invertTheme hideRoot={true} />
+      <JSONDiff extendedStateDiffData={extendedStateDiffData} />
     </>
   )
 }
+
 
 
 const EventsLog = ({eventsLog, machine}) => {
@@ -111,9 +91,14 @@ const EventsLog = ({eventsLog, machine}) => {
   
       const etendedStateAfterChosenEvent = stateAfterChosenEvent.context
 
-      const theExtendedStateDiffOnChosenEvent = diff(extendedStateBeforeChosenEvent, etendedStateAfterChosenEvent) 
+      const delta = createDiffPatcher().diff(
+        extendedStateBeforeChosenEvent,
+        etendedStateAfterChosenEvent
+      );
+
+      console.log('delta:', delta)
   
-      setExtendedStateDiffDataOnChosenEvent(theExtendedStateDiffOnChosenEvent)
+      setExtendedStateDiffDataOnChosenEvent(delta)
     }
 
   }, [eventsLog.length])
@@ -149,9 +134,8 @@ const EventsLog = ({eventsLog, machine}) => {
                     backgroundColor: index === chosenEventIndex ? 'skyblue' : 'white'    
                   }}>
                   <div>
-                    <h2 style={{margin: 0, fontSize: 16}}>{format(eventData.time, 'hh:mm:ss.SS')}</h2>
                     <h2 style={{margin: 0, fontSize: 20}}>{eventData.event.type}</h2>
-                    <h2 style={{margin: 0, fontSize: 16}}>{JSON.stringify(eventPayload)}</h2>
+                    <h2 style={{margin: 0, fontSize: 16}}>{format(eventData.time, 'hh:mm:ss.SS')}</h2>
                   </div>
                 </div>
               );
