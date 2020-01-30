@@ -59,9 +59,9 @@ export function useMachine<TContext, TEvent extends EventObject>(
     delays
   };
 
-  const createdMachine = machine.withConfig(machineConfig).withContext({
-    ...machine.context,
-    ...context
+  const createdMachine = machine.withConfig({
+    ...machineConfig,
+    context
   });
 
   const service = interpret(createdMachine, interpreterOptions).start(

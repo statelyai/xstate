@@ -147,7 +147,7 @@ export class MachineNode<
       createDefaultOptions(config.context!),
       options
     );
-    this.context = this.options.context;
+    this.context = Object.assign({}, config.context, this.options.context);
     this.key = this.config.key || this.config.id || '(machine)';
     this.machine = this;
     this.path = [];
@@ -214,14 +214,17 @@ export class MachineNode<
   }
 
   /**
-   * Clones this state machine with custom context.
+   * Clones this state machine with custom `context`.
+   *
+   * The `context` provided can be partial `context`, which will be combined with the original `context`.
    *
    * @param context Custom context (will override predefined context, not recursive)
    */
   public withContext(
-    context: TContext
+    context: Partial<TContext>
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    return new MachineNode({ ...this.config, context });
+    const resolvedContext = Object.assign({}, this.context, context);
+    return new MachineNode({ ...this.config, context: resolvedContext });
   }
 
   /**

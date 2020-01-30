@@ -551,7 +551,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, InvokeCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  context: TContext;
+  context: Partial<TContext>;
 }
 export interface MachineConfig<
   TContext,
