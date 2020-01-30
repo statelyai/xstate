@@ -30,7 +30,7 @@ import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State, InvokeConfig, InvokeCreator } from '.';
 import { Actor } from './Actor';
-import { StateMachine } from './MachineNode';
+import { MachineNode } from './MachineNode';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -526,9 +526,7 @@ export function isObservable<T>(
 export const symbolObservable = (() =>
   (typeof Symbol === 'function' && Symbol.observable) || '@@observable')();
 
-export function isMachineNode(
-  value: any
-): value is StateMachine<any, any, any> {
+export function isMachineNode(value: any): value is MachineNode<any, any, any> {
   try {
     return '__xstatenode' in value && value.parent === undefined;
   } catch (e) {

@@ -47,7 +47,7 @@ const createDefaultOptions = <TContext>(
   context
 });
 
-export class StateMachine<
+export class MachineNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
@@ -193,7 +193,7 @@ export class StateMachine<
    */
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>
-  ): StateMachine<TContext, TStateSchema, TEvent> {
+  ): MachineNode<TContext, TStateSchema, TEvent> {
     const {
       actions,
       activities,
@@ -203,7 +203,7 @@ export class StateMachine<
       context = this.context
     } = this.options;
 
-    return new StateMachine(this.config, {
+    return new MachineNode(this.config, {
       actions: { ...actions, ...options.actions },
       activities: { ...activities, ...options.activities },
       guards: { ...guards, ...options.guards },
@@ -220,8 +220,8 @@ export class StateMachine<
    */
   public withContext(
     context: TContext
-  ): StateMachine<TContext, TStateSchema, TEvent> {
-    return new StateMachine({ ...this.config, context });
+  ): MachineNode<TContext, TStateSchema, TEvent> {
+    return new MachineNode({ ...this.config, context });
   }
 
   /**

@@ -7,7 +7,7 @@ import {
   AnyEventObject,
   Typestate
 } from './types';
-import { StateMachine } from './MachineNode';
+import { MachineNode } from './MachineNode';
 
 export function Machine<
   TContext = any,
@@ -16,7 +16,7 @@ export function Machine<
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
-): StateMachine<TContext, any, TEvent>;
+): MachineNode<TContext, any, TEvent>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
@@ -25,7 +25,7 @@ export function Machine<
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
-): StateMachine<TContext, TStateSchema, TEvent>;
+): MachineNode<TContext, TStateSchema, TEvent>;
 export function Machine<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
@@ -33,8 +33,8 @@ export function Machine<
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, TStateSchema, TEvent> {
-  return new StateMachine<TContext, TStateSchema, TEvent, any>(config, options);
+): MachineNode<TContext, TStateSchema, TEvent> {
+  return new MachineNode<TContext, TStateSchema, TEvent, any>(config, options);
 }
 
 export function createMachine<
@@ -44,6 +44,6 @@ export function createMachine<
 >(
   config: MachineConfig<TContext, any, TEvent>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
-  return new StateMachine<TContext, any, TEvent, TTypestate>(config, options);
+): MachineNode<TContext, any, TEvent, TTypestate> {
+  return new MachineNode<TContext, any, TEvent, TTypestate>(config, options);
 }

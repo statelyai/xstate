@@ -48,7 +48,7 @@ import {
   evaluateGuard,
   isStateId
 } from './nodeUtils';
-import { StateMachine } from './MachineNode';
+import { MachineNode } from './MachineNode';
 import { STATE_DELIMITER } from './constants';
 
 export const NULL_EVENT = '';
@@ -124,7 +124,7 @@ export class StateNode<
   /**
    * The root machine node.
    */
-  public machine: StateMachine<TContext, any, TEvent>;
+  public machine: MachineNode<TContext, any, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -178,7 +178,7 @@ export class StateNode<
     this.key = this.config.key || options._key;
     this.machine = this.parent
       ? this.parent.machine
-      : ((this as unknown) as StateMachine<TContext, TStateSchema, TEvent>);
+      : ((this as unknown) as MachineNode<TContext, TStateSchema, TEvent>);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||

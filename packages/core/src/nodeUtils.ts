@@ -81,7 +81,7 @@ import {
 import { StateNode, NULL_EVENT, WILDCARD, STATE_IDENTIFIER } from './StateNode';
 import { DEFAULT_GUARD_TYPE } from './constants';
 import { createInvocableActor } from './Actor';
-import { StateMachine } from './MachineNode';
+import { MachineNode } from './MachineNode';
 
 export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 
@@ -442,7 +442,7 @@ export function getInitialState<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent>,
+  machine: MachineNode<TContext, TStateSchema, TEvent>,
   stateValue: StateValue,
   context?: TContext
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -883,7 +883,7 @@ export function resolveRaisedTransition<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: StateMachine<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   state: State<TContext, TEvent, any, TTypestate>,
   _event: SCXML.Event<TEvent> | NullEvent,
   originalEvent: SCXML.Event<TEvent>
@@ -903,7 +903,7 @@ export function resolveTransition<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: StateMachine<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   stateTransition: StateTransition<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
