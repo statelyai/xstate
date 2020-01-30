@@ -2,7 +2,7 @@ import { useState, useMemo, useEffect } from 'react';
 import {
   interpret,
   EventObject,
-  StateMachine,
+  MachineNode,
   State,
   Interpreter,
   InterpreterOptions,
@@ -30,7 +30,7 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  machine: MachineNode<TContext, any, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
@@ -129,8 +129,8 @@ export function useService<
     () => ({
       getCurrentValue: () => service.state || service.initialState,
       subscribe: callback => {
-        const { unsubscribe } = service.subscribe(state => {
-          if (state.changed !== false) {
+        const { unsubscribe } = service.subscribe(currentState => {
+          if (currentState.changed !== false) {
             callback();
           }
         });
