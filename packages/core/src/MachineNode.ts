@@ -47,6 +47,20 @@ const createDefaultOptions = <TContext>(
   context
 });
 
+function resolveContext<TContext>(
+  context: TContext,
+  partialContext: Partial<TContext>
+): TContext {
+  if (context === undefined) {
+    return context;
+  }
+
+  return {
+    ...context,
+    ...partialContext
+  };
+}
+
 export class MachineNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
@@ -147,7 +161,10 @@ export class MachineNode<
       createDefaultOptions(config.context!),
       options
     );
-    this.context = Object.assign({}, config.context, this.options.context);
+    this.context = resolveContext<TContext>(
+      config.context as TContext,
+      this.options.context
+    );
     this.key = this.config.key || this.config.id || '(machine)';
     this.machine = this;
     this.path = [];
@@ -223,8 +240,10 @@ export class MachineNode<
   public withContext(
     context: Partial<TContext>
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    const resolvedContext = Object.assign({}, this.context, context);
-    return new MachineNode({ ...this.config, context: resolvedContext });
+    return new MachineNode({
+      ...this.config,
+      context: resolveContext(this.context, context)
+    });
   }
 
   /**

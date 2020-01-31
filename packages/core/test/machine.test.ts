@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src/index';
+import { Machine, interpret, createMachine } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -192,6 +192,45 @@ describe('machine', () => {
       // expect(differentMachine.initialState.context).toEqual({
       //   foo: 'different'
       // });
+    });
+  });
+
+  describe('machine.withContext', () => {
+    it('should partially override context', () => {
+      const fooBarMachine = createMachine({
+        initial: 'active',
+        context: {
+          foo: 1,
+          bar: 2
+        },
+        states: {
+          active: {}
+        }
+      });
+
+      const changedBarMachine = fooBarMachine.withContext({
+        bar: 42
+      });
+
+      expect(changedBarMachine.initialState.context).toEqual({
+        foo: 1,
+        bar: 42
+      });
+    });
+
+    it('should not override undefined context', () => {
+      const fooBarMachine = createMachine({
+        initial: 'active',
+        states: {
+          active: {}
+        }
+      });
+
+      const changedBarMachine = fooBarMachine.withContext({
+        bar: 42
+      });
+
+      expect(changedBarMachine.initialState.context).toBeUndefined();
     });
   });
 
