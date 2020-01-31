@@ -92,17 +92,6 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
-export type ExtractStateValue<
-  TS extends StateSchema<any>,
-  TSS = TS['states']
-> = TSS extends undefined
-  ? never
-  : {
-      [K in keyof TSS]?:
-        | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
-        | ExtractStateValue<TSS[K]>;
-    };
-
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
   current: StateValue | undefined;
@@ -568,26 +557,6 @@ export interface MachineConfig<
   version?: string;
 }
 
-export interface StandardMachineConfig<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {}
-
-export interface ParallelMachineConfig<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
-  initial?: undefined;
-  type?: 'parallel';
-}
-
-export interface EntryExitEffectMap<TContext, TEvent extends EventObject> {
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
-}
-
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
   target: StateValue | undefined;
@@ -596,10 +565,6 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
 export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
   TMachine['transition']
 >;
-
-export interface ActivityMap {
-  [activityKey: string]: ActivityDefinition<any, any> | false;
-}
 
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
@@ -925,7 +890,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
-  activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
