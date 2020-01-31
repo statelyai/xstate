@@ -49,13 +49,27 @@ describe('json', () => {
           }
         },
         foo: {},
-        bar: {}
+        bar: {},
+        testHistory: {
+          type: 'history',
+          history: 'deep'
+        },
+        testFinal: {
+          type: 'final',
+          data: {
+            something: 'else'
+          }
+        }
       }
     });
 
     const json = JSON.parse(JSON.stringify(machine.definition));
 
-    validate(json);
+    try {
+      validate(json);
+    } catch (err) {
+      throw new Error(JSON.stringify(JSON.parse(err.message), null, 2));
+    }
 
     expect(validate.errors).toBeNull();
   });

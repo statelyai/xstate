@@ -24,48 +24,109 @@
       },
       "required": ["type"]
     },
+    "stateNode": {
+      "type": "object",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "exit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "initial": {
+          "type": "string"
+        },
+        "invoke": {
+          "type": "array"
+        },
+        "on": {
+          "$ref": "#/definitions/transitionsObject"
+        },
+        "states": {
+          "$ref": "#/definitions/statesObject"
+        },
+        "type": {
+          "type": "string",
+          "enum": ["atomic", "compound", "parallel", "final"]
+        }
+      },
+      "required": ["id", "type"]
+    },
+    "atomicStateNode": {
+      "type": "object",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "exit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "invoke": {
+          "type": "array"
+        },
+        "on": {
+          "$ref": "#/definitions/transitionsObject"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "atomic"
+        }
+      },
+      "required": ["id", "type", "on"]
+    },
+    "historyStateNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "history"
+        },
+        "history": {
+          "type": "string",
+          "enum": ["shallow", "deep"]
+        }
+      },
+      "required": ["id", "type", "history"]
+    },
     "statesObject": {
       "type": "object",
       "patternProperties": {
         "^.*$": {
-          "type": "object",
-          "properties": {
-            "entry": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/actionObject"
-              }
-            },
-            "exit": {
-              "type": "array",
-              "items": {
-                "$ref": "#/definitions/actionObject"
-              }
-            },
-            "id": {
-              "type": "string"
-            },
-            "key": {
-              "type": "string"
-            },
-            "initial": {
-              "type": "string"
-            },
-            "invoke": {
-              "type": "array"
-            },
-            "on": {
-              "$ref": "#/definitions/transitionsObject"
-            },
-            "states": {
-              "$ref": "#/definitions/statesObject"
-            },
-            "type": {
-              "type": "string",
-              "enum": ["atomic", "compound", "parallel", "final", "history"]
-            }
-          },
-          "required": ["id", "type"]
+          "oneOf": [
+            { "$ref": "#/definitions/stateNode" },
+            { "$ref": "#/definitions/atomicStateNode" },
+            { "$ref": "#/definitions/historyStateNode" }
+          ]
         }
       }
     },
