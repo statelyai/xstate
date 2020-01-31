@@ -273,11 +273,9 @@ export type StatesConfig<
   TStateSchema extends StateSchema,
   TEvent extends EventObject
 > = {
-  [K in keyof TStateSchema['states']]: StateNodeConfig<
-    TContext,
-    TStateSchema['states'][K],
-    TEvent
-  >;
+  [K in keyof TStateSchema['states']]:
+    | BaseStateNodeConfig<TContext, TStateSchema['states'][K], TEvent>
+    | TaskStateNodeConfig<TContext, TEvent>;
 };
 
 export type StatesDefinition<
@@ -350,18 +348,22 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
-  onDone?:
-    | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  onDone?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
   /**
    * The transition to take upon the invoked child machine sending an error event.
    */
-  onError?:
-    | string
-    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  onError?: string | SingleOrArray<TransitionConfig<TContext, DoneEventObject>>;
 }
 
-export interface StateNodeConfig<
+export type StateNodeType =
+  | 'atomic'
+  | 'compound'
+  | 'parallel'
+  | 'final'
+  | 'history'
+  | 'task';
+
+export interface BaseStateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
@@ -384,7 +386,7 @@ export interface StateNodeConfig<
    *  - `'history'` - history state node
    *  - `'final'` - final state node
    */
-  type?: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  type?: StateNodeType;
   /**
    * The initial context (extended state) of the machine.
    *
@@ -469,8 +471,8 @@ export interface StateNodeDefinition<
   id: string;
   version: string | undefined;
   key: string;
-  type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
+  type: StateNodeType;
+  initial: BaseStateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
@@ -485,11 +487,10 @@ export interface StateNodeDefinition<
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
-  extends StateNodeConfig<TContext, StateSchema, TEvent> {
+  extends BaseStateNodeConfig<TContext, StateSchema, TEvent> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
-  onDone?: undefined;
 }
 
 export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
@@ -508,13 +509,23 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
   data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
 }
 
+export interface TaskStateNodeConfig<TContext, TEvent extends EventObject>
+  extends AtomicStateNodeConfig<TContext, TEvent> {
+  type: 'task';
+  src: InvokeConfig<TContext, TEvent>['src'];
+  autoForward?: InvokeConfig<TContext, TEvent>['autoForward'];
+  onDone?: InvokeConfig<TContext, TEvent>['onDone'];
+  onError?: InvokeConfig<TContext, TEvent>['onError'];
+  data?: InvokeConfig<TContext, TEvent>['data'];
+}
+
 export type SimpleOrStateNodeConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TStateSchema, TEvent>;
+  | BaseStateNodeConfig<TContext, TStateSchema, TEvent>;
 
 export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
@@ -546,7 +557,7 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
+> extends BaseStateNodeConfig<TContext, TStateSchema, TEvent> {
   /**
    * The initial context (extended state)
    */

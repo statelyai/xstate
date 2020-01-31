@@ -20,7 +20,7 @@ import {
   StateNodeDefinition,
   TransitionDefinition,
   DelayedTransitionDefinition,
-  StateNodeConfig,
+  BaseStateNodeConfig,
   StateSchema,
   StatesDefinition,
   StateNodesConfig,
@@ -31,7 +31,9 @@ import {
   PropertyMapper,
   NullEvent,
   SCXML,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  StateNodeType,
+  TaskStateNodeConfig
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
@@ -83,8 +85,9 @@ export class StateNode<
    *  - `'parallel'` - orthogonal nested child state nodes (AND)
    *  - `'history'` - history state node
    *  - `'final'` - final state node
+   *  - `'task'` - task state node
    */
-  public type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
+  public type: StateNodeType;
   /**
    * The string path from the root machine node to this node.
    */
@@ -170,7 +173,7 @@ export class StateNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
+    public config: BaseStateNodeConfig<TContext, TStateSchema, TEvent>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     const isMachine = !this.parent;
@@ -200,8 +203,27 @@ export class StateNode<
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
-          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
-            const stateNode = new StateNode(stateConfig, {
+          (
+            stateConfig:
+              | BaseStateNodeConfig<TContext, any, TEvent>
+              | TaskStateNodeConfig<TContext, TEvent>,
+            key
+          ) => {
+            const resolvedStateConfig =
+              'src' in stateConfig
+                ? {
+                    invoke: {
+                      src: stateConfig.src,
+                      onDone: stateConfig.onDone,
+                      onError: stateConfig.onError,
+                      autoForward: stateConfig.autoForward,
+                      data: stateConfig.data
+                    },
+                    on: stateConfig.on
+                  }
+                : stateConfig;
+
+            const stateNode = new StateNode(resolvedStateConfig, {
               _parent: this,
               _key: key
             });

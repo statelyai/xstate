@@ -4,7 +4,7 @@ import {
   Event,
   EventObject,
   StateSchema,
-  StateNodeConfig
+  BaseStateNodeConfig
 } from './types';
 import { toEventObject } from './utils';
 
@@ -55,7 +55,7 @@ export function sequence<
       : toEventObject(resolvedOptions.prevEvent);
 
   items.forEach((item, i) => {
-    const state: StateNodeConfig<TEvent, TStateSchema, TEvent> = {
+    const state: BaseStateNodeConfig<TEvent, TStateSchema, TEvent> = {
       on: {}
     };
 
