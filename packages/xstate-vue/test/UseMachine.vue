@@ -1,17 +1,17 @@
 <template>
   <div>
     Hallo
-    <button v-if="current.matches('idle')" @click="send('FETCH')">Fetch</button>
-    <div v-else-if="current.matches('loading')">Loading...</div>
-    <div v-else-if="current.matches('success')">
+    <button v-if="state.matches('idle')" @click="send('FETCH')">Fetch</button>
+    <div v-else-if="state.matches('loading')">Loading...</div>
+    <div v-else-if="state.matches('success')">
       Success! Data:
-      <div data-testid="data">{{ current.context.data }}</div>
+      <div data-testid="data">{{ state.context.data }}</div>
     </div>
   </div>
 </template>
 
 <script lang="ts">
-import { useMachine } from '../src/useMachine';
+import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
 import { watch } from '@vue/composition-api';
 
@@ -50,22 +50,13 @@ export default {
     const onFetch = () =>
       new Promise(res => setTimeout(() => res('some data'), 50));
 
-    const { current, send, service } = useMachine(fetchMachine, {
+    const { state, send, service } = useMachine(fetchMachine, {
       services: {
         fetchData: onFetch
       },
       state: persistedState
     });
-    watch(() =>
-      current.value.actions.forEach(action => {
-        if (action.type === 'load') {
-          onFetch().then(res => {
-            send({ type: 'RESOLVE', data: res });
-          });
-        }
-      })
-    );
-    return { current, send, service };
+    return { state, send, service };
   }
 };
 </script>
