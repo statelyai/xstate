@@ -12,7 +12,7 @@ import {
   getStateNodes,
   resolveStateValue,
   getStateNodeById
-} from '../src/nodeUtils';
+} from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
 
 const TEST_FRAMEWORK = path.dirname(pkgUp.sync({

@@ -1,6 +1,6 @@
 import { Machine } from '../src';
 import { getConfiguration } from '../src/stateUtils';
-import { getStateNodes } from '../src/nodeUtils';
+import { getStateNodes } from '../src/stateUtils';
 
 const testMachine = Machine({
   id: 'a',

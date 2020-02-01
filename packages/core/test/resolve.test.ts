@@ -1,5 +1,5 @@
 import { Machine } from '../src/index';
-import { resolveStateValue } from '../src/nodeUtils';
+import { resolveStateValue } from '../src/stateUtils';
 
 // from parallel/test3.scxml
 const flatParallelMachine = Machine({

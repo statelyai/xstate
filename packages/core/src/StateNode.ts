@@ -47,13 +47,9 @@ import {
   nodesFromChild,
   evaluateGuard,
   isStateId
-} from './nodeUtils';
+} from './stateUtils';
 import { MachineNode } from './MachineNode';
-import { STATE_DELIMITER } from './constants';
-
-export const NULL_EVENT = '';
-export const STATE_IDENTIFIER = '#';
-export const WILDCARD = '*';
+import { STATE_DELIMITER, NULL_EVENT } from './constants';
 
 const EMPTY_OBJECT = {};
 

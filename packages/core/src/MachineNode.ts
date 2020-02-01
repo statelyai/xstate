@@ -29,7 +29,7 @@ import {
   transitionNode,
   resolveStateValue,
   resolveTransition
-} from './nodeUtils';
+} from './stateUtils';
 import { StateNode } from './StateNode';
 
 export const NULL_EVENT = '';

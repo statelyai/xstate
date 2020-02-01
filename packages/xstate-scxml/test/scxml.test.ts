@@ -10,7 +10,7 @@ import {
   resolveStateValue,
   getInitialState,
   getStateNodes
-} from 'xstate/lib/nodeUtils';
+} from 'xstate/lib/stateUtils';
 import { MachineNode } from 'xstate/lib/MachineNode';
 
 interface SCIONTest {
