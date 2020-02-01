@@ -8,6 +8,8 @@ import { getEdges } from './utils';
 import { EdgeViz } from './EdgeViz';
 import { tracker } from './tracker';
 import EventsLog from './EventsLog';
+import TabButton from './components/TabButton';
+import TabButtonsGroup from './components/TabButtonsGroup';
 
 const chrome = window.chrome;
 
@@ -228,33 +230,13 @@ const MachineViz = ({ selectedService }) => {
   );
 };
 
-const ViewButtonsGroup = styled.div`
-  display: flex;
-  border: 1px solid black;
-  padding: 4px;
-  height: 100%;
 
-  & > button + button {
-    margin-left: 4px;
-  }
-`
 
 const views = {
   GRAPH: 'graph',
   EXTENDED_STATE: 'extendedState',
   EVENTS_LOG: 'eventsLog'
 }
-
-const Button = styled.button`
-  background: transparent;
-  border: 1px solid black;
-  border-radius: 8px;
-  white-space: nowrap;
-  cursor: pointer;
-  outline: none;
-
-  background-color: ${(props) => props.isActive ? 'skyblue' : 'rgba(0,0,0,0.1);'};
-`
 
 const Select = styled.select`
     background: none;
@@ -298,11 +280,11 @@ function App() {
   return (
     <StyledApp>
       <TopBar>
-        <ViewButtonsGroup style={{display: 'flex', border: '1px solid black'}}>
-          <Button isActive={activeView === views.GRAPH} onClick={() => setActiveView(views.GRAPH)}>Graph</Button>
-          <Button isActive={activeView === views.EXTENDED_STATE} onClick={() => setActiveView(views.EXTENDED_STATE)}>Extended State</Button>
-          <Button isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</Button>
-        </ViewButtonsGroup>
+        <TabButtonsGroup>
+          <TabButton isActive={activeView === views.GRAPH} onClick={() => setActiveView(views.GRAPH)}>Graph</TabButton>
+          <TabButton isActive={activeView === views.EXTENDED_STATE} onClick={() => setActiveView(views.EXTENDED_STATE)}>Extended State</TabButton>
+          <TabButton isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</TabButton>
+        </TabButtonsGroup>
         <Select
           value={currentServiceId === null ? '' : currentServiceId}
           onChange={e => setCurrentServiceId(e.target.value)}

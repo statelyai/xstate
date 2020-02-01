@@ -3,8 +3,33 @@ import { FixedSizeList as WindowedList } from 'react-window';
 import AutoSizer from 'react-virtualized-auto-sizer';
 import { format } from 'date-fns';
 import styled from 'styled-components';
+import JSONTree from 'react-json-tree';
+
 import createDiffPatcher from './utils/createDiffPatcher';
 import JSONDiff from './JSONDiff';
+import TabButton from './components/TabButton';
+import TabButtonsGroup from './components/TabButtonsGroup';
+
+const theme = {
+  scheme: 'monokai',
+  author: 'wimer hazenberg (http://www.monokai.nl)',
+  base00: '#272822',
+  base01: '#383830',
+  base02: '#49483e',
+  base03: '#75715e',
+  base04: '#a59f85',
+  base05: '#f8f8f2',
+  base06: '#f5f4f1',
+  base07: '#f9f8f5',
+  base08: '#f92672',
+  base09: '#fd971f',
+  base0A: '#f4bf75',
+  base0B: '#a6e22e',
+  base0C: '#a1efe4',
+  base0D: '#66d9ef',
+  base0E: '#ae81ff',
+  base0F: '#cc6633'
+};
 
 const EventsLogViewFrame = styled.div`
   display: flex;
@@ -17,6 +42,17 @@ const EventsLogViewFrame = styled.div`
 
   & > div + div {
     margin-left: 2px;
+  }
+`
+
+const TabSelectionBar = styled.div`
+  display: flex;
+  align-items: center;
+  justify-content: left;
+  margin-bottom: 2px;
+
+  & > * + * {
+    margin-left: 4px;
   }
 `
 
@@ -51,30 +87,67 @@ const AnimatedList = (props) => {
 }
 
 
-const EventDetails = ({event, time, extendedStateDiffData}) => {
+const EventPayloadTab = ({event, time}) => {
   let eventPayload = Object.assign({}, event)
   delete eventPayload['type']
 
-return (
+  return (
     <>
-      <h1>Event Details</h1>
       <h3>{time}</h3>
-      <h2>{event.type}</h2>
-      <h2>{JSON.stringify(eventPayload)}</h2>
-      <hr/>
-      <h1>Extended State Diff</h1>
-      <JSONDiff extendedStateDiffData={extendedStateDiffData} />
+      <h2>Type: {event.type}</h2>
+      <h2>Payload:</h2>
+      <JSONTree data={eventPayload} theme={theme} invertTheme hideRoot={true} />
     </>
   )
 }
 
+const StateDiffTab = ({ finiteStateDiff, extendedStateDiff}) => {
+  return (
+    <>
+      <h1>Finite</h1>
+      <JSONDiff diffData={finiteStateDiff} />
+      <h1>Extended</h1>
+      <JSONDiff diffData={extendedStateDiff} />
+    </>
+  )
+}
 
+const StateAfterEventTab = ({ finiteState, extendedState}) => {
+  return (
+    <>
+      <h1>Finite</h1>
+      <JSONTree data={{ state: finiteState }} theme={theme} invertTheme hideRoot={true} />
+      <h1>Extended</h1>
+      <JSONTree data={extendedState} theme={theme} invertTheme hideRoot={true} />
+    </>
+  )
+}
+
+const eventLogViews = {
+  EVENT: 'event',
+  EXTENDED_STATE_AFTER: 'extendedStateAfter',
+  EXTENDED_STATE_DIFF_WITH_PREVIOUS: 'extendedStateDiffWithPrevious'
+}
+
+
+const EventTab = ({eventLogView, event, time, stateAfterEvent, stateDiffData}) => {
+  if (eventLogView === eventLogViews.EXTENDED_STATE_DIFF_WITH_PREVIOUS) {
+    return (<StateDiffTab finiteStateDiff={stateDiffData.finiteState}  extendedStateDiff={stateDiffData.extendedState}/>)
+  } else if (eventLogView === eventLogViews.EVENT) {
+    return (<EventPayloadTab
+      event={event}
+      time={time}
+      />)
+  } else if (eventLogView === eventLogViews.EXTENDED_STATE_AFTER) {
+    return (<StateAfterEventTab finiteState={stateAfterEvent.value} extendedState={stateAfterEvent.context} />)
+  }
+}
 
 const EventsLog = ({eventsLog, machine}) => {
   const [chosenEventIndex, setChosenEvent] = React.useState(null)
-  const [extendedStateDiffDataOnChosenEvent, setExtendedStateDiffDataOnChosenEvent] = React.useState({})
-
-  console.log('eventsLog:', eventsLog)
+  const [stateDiffOnChosenEvent, setStateDiffOnChosenEvent] = React.useState(null)
+  const [stateAfterEvent, setStateAfterEvent] = React.useState(null)
+  const [eventLogView, setEventLogView] = React.useState(eventLogViews.EVENT);
 
   React.useEffect(() => {
     if (eventsLog.length > 0) {
@@ -85,20 +158,26 @@ const EventsLog = ({eventsLog, machine}) => {
         ? machine.initialState
         : eventsLog[newChosenEventIndex - 1].stateAfter
 
-      const extendedStateBeforeChosenEvent = stateBeforeChosenEvent.context
-    
       const stateAfterChosenEvent = eventsLog[newChosenEventIndex].stateAfter
-  
-      const etendedStateAfterChosenEvent = stateAfterChosenEvent.context
 
-      const delta = createDiffPatcher().diff(
-        extendedStateBeforeChosenEvent,
-        etendedStateAfterChosenEvent
+      const extendedStateDiff = createDiffPatcher().diff(
+        stateBeforeChosenEvent.context,
+        stateAfterChosenEvent.context
       );
 
-      console.log('delta:', delta)
+      const finiteStateDiff = createDiffPatcher().diff(
+        stateBeforeChosenEvent.value,
+        stateAfterChosenEvent.value
+      )
   
-      setExtendedStateDiffDataOnChosenEvent(delta)
+      const _stateOnChosenEventDiff = {
+        finiteState: finiteStateDiff,
+        extendedState: extendedStateDiff
+      }
+
+      setStateDiffOnChosenEvent(_stateOnChosenEventDiff)
+
+      setStateAfterEvent(stateAfterChosenEvent)
     }
 
   }, [eventsLog.length])
@@ -145,11 +224,33 @@ const EventsLog = ({eventsLog, machine}) => {
       </AutoSizer>
     </div>
     <div style={{width: '80%', padding: '2px'}}>
+      <TabSelectionBar>
+        <TabButtonsGroup>
+          <TabButton onClick={() => setEventLogView(eventLogViews.EVENT)}
+            isActive={eventLogView === eventLogViews.EVENT}
+          >
+            Event
+          </TabButton>
+          <TabButton onClick={() => setEventLogView(eventLogViews.EXTENDED_STATE_AFTER)}
+            isActive={eventLogView === eventLogViews.EXTENDED_STATE_AFTER}
+          >
+            State
+          </TabButton>
+          <TabButton onClick={() => setEventLogView(eventLogViews.EXTENDED_STATE_DIFF_WITH_PREVIOUS)}
+            isActive={eventLogView === eventLogViews.EXTENDED_STATE_DIFF_WITH_PREVIOUS}
+          >
+            Diff
+          </TabButton>
+        </TabButtonsGroup>
+      </TabSelectionBar>
       {chosenEventIndex !== null &&
-      <EventDetails
-        event={eventsLog[chosenEventIndex].eventData.event}
-        time={format(eventsLog[chosenEventIndex].eventData.time, 'hh:mm:ss.SS')}
-        extendedStateDiffData={extendedStateDiffDataOnChosenEvent}/>}
+        <EventTab 
+          eventLogView={eventLogView}
+          event={eventsLog[chosenEventIndex].eventData.event}
+          time={format(eventsLog[chosenEventIndex].eventData.time, 'hh:mm:ss.SS')}
+          stateDiffData={stateDiffOnChosenEvent}
+          stateAfterEvent={stateAfterEvent} />
+      }
     </div>
   </EventsLogViewFrame>
   )

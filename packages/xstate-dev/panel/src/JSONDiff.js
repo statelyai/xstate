@@ -118,11 +118,11 @@ const _getItemString = (type, data) => (
     }
 */
 
-const JSONDiff = ({extendedStateDiffData}) => {
+const JSONDiff = ({diffData}) => {
   return (
     <JSONTree
     theme={theme}
-    data={extendedStateDiffData}
+    data={diffData}
     getItemString={_getItemString}
     valueRenderer={valueRenderer}
     postprocessValue={prepareDelta}
