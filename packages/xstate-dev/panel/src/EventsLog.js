@@ -56,29 +56,43 @@ const TabSelectionBar = styled.div`
   }
 `
 
+const EventButton = styled.button`
+  background: transparent;
+  white-space: nowrap;
+  cursor: pointer;
+  outline: none;
+  border: none;
+  width: 100%;
+  height: 100%;
+`
+
 const EVENT_ROW_HEIGHT = 60 // 16 + 20 + 16 + 4 x 2 = 60
 
-const AnimatedList = (props) => {
-  const listRef = React.useRef();
-  const scrollableContainerRef = React.useRef() 
+const scrollTo = ({rowIndex, elementRef, itemSize}) => {
+  const scrollOffset = rowIndex * itemSize
+  elementRef.current.scrollTo({ 
+    left: 0, 
+    top: scrollOffset,
+    behavior: 'smooth',
+  });
+}
 
-  const scrollTo = (rowIndex) => {
-    const scrollOffset = rowIndex * props.itemSize
-    scrollableContainerRef.current.scrollTo({ 
-      left: 0, 
-      top: scrollOffset,
-      behavior: 'smooth',
-    });
-  }
+
+const AnimatedList = ({ scrollableContainerRef, ...rest }) => {
+  const listRef = React.useRef();
 
   React.useEffect(() => {
-    scrollTo(props.itemCount - 1)
-  }, [props.itemCount])
+    scrollTo({
+      rowIndex: rest.itemCount - 1,
+      elementRef: scrollableContainerRef,
+      itemSize: rest.itemSize
+    })
+  }, [rest.itemCount])
 
   
   return (
     <WindowedList 
-      {...props} 
+      {...rest} 
       ref={listRef}
       outerRef={scrollableContainerRef}
       layout="vertical"
@@ -149,39 +163,42 @@ const EventsLog = ({eventsLog, machine}) => {
   const [stateAfterEvent, setStateAfterEvent] = React.useState(null)
   const [eventLogView, setEventLogView] = React.useState(eventLogViews.EVENT);
 
+  const scrollableContainerRef = React.useRef()
+
+  const updateStateAndDiff = (newChosenEventIndex) => {
+    const stateBeforeChosenEvent = newChosenEventIndex === 0
+      ? machine.initialState
+      : eventsLog[newChosenEventIndex - 1].stateAfter
+
+    const stateAfterChosenEvent = eventsLog[newChosenEventIndex].stateAfter
+
+    const extendedStateDiff = createDiffPatcher().diff(
+      stateBeforeChosenEvent.context,
+      stateAfterChosenEvent.context
+    );
+
+    const finiteStateDiff = createDiffPatcher().diff(
+      stateBeforeChosenEvent.value,
+      stateAfterChosenEvent.value
+    )
+
+    const _stateOnChosenEventDiff = {
+      finiteState: finiteStateDiff,
+      extendedState: extendedStateDiff
+    }
+
+    setStateDiffOnChosenEvent(_stateOnChosenEventDiff)
+
+    setStateAfterEvent(stateAfterChosenEvent)  
+  }
+
   React.useEffect(() => {
     if (eventsLog.length > 0) {
       const newChosenEventIndex = eventsLog.length - 1
       setChosenEvent(newChosenEventIndex)
-
-      const stateBeforeChosenEvent = chosenEventIndex === null || chosenEventIndex === 0
-        ? machine.initialState
-        : eventsLog[newChosenEventIndex - 1].stateAfter
-
-      const stateAfterChosenEvent = eventsLog[newChosenEventIndex].stateAfter
-
-      const extendedStateDiff = createDiffPatcher().diff(
-        stateBeforeChosenEvent.context,
-        stateAfterChosenEvent.context
-      );
-
-      const finiteStateDiff = createDiffPatcher().diff(
-        stateBeforeChosenEvent.value,
-        stateAfterChosenEvent.value
-      )
-  
-      const _stateOnChosenEventDiff = {
-        finiteState: finiteStateDiff,
-        extendedState: extendedStateDiff
-      }
-
-      setStateDiffOnChosenEvent(_stateOnChosenEventDiff)
-
-      setStateAfterEvent(stateAfterChosenEvent)
+      updateStateAndDiff(newChosenEventIndex)
     }
-
   }, [eventsLog.length])
-
 
   return (
     <EventsLogViewFrame>
@@ -189,6 +206,7 @@ const EventsLog = ({eventsLog, machine}) => {
         <AutoSizer>
         {({ width, height }) => (
           <AnimatedList
+            scrollableContainerRef={scrollableContainerRef}
             className="List"
             height={height}
             width={width}
@@ -211,11 +229,16 @@ const EventsLog = ({eventsLog, machine}) => {
                     borderBottom: '1px solid #ddd',
                     margin: '4px',
                     backgroundColor: index === chosenEventIndex ? 'skyblue' : 'white'    
+                  }}
+                  >
+                  <EventButton onClick={() => {
+                    scrollTo({rowIndex: index, elementRef: scrollableContainerRef, itemSize:eventsLog.length })
+                    setChosenEvent(index);
+                    updateStateAndDiff(index)
                   }}>
-                  <div>
                     <h2 style={{margin: 0, fontSize: 20}}>{eventData.event.type}</h2>
                     <h2 style={{margin: 0, fontSize: 16}}>{format(eventData.time, 'hh:mm:ss.SS')}</h2>
-                  </div>
+                  </EventButton>
                 </div>
               );
             }}
