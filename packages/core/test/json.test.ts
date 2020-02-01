@@ -59,6 +59,23 @@ describe('json', () => {
           data: {
             something: 'else'
           }
+        },
+        testParallel: {
+          type: 'parallel',
+          states: {
+            one: {
+              initial: 'inactive',
+              states: {
+                inactive: {}
+              }
+            },
+            two: {
+              initial: 'inactive',
+              states: {
+                inactive: {}
+              }
+            }
+          }
         }
       }
     });

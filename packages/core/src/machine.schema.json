@@ -8,8 +8,7 @@
         "$function": {
           "type": "string"
         }
-      },
-      "additionalProperties": false
+      }
     },
     "actionObject": {
       "type": "object",
@@ -63,6 +62,83 @@
         }
       },
       "required": ["id", "type"]
+    },
+    "compoundStateNode": {
+      "type": "object",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "exit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "initial": {
+          "type": "string"
+        },
+        "invoke": {
+          "type": "array"
+        },
+        "on": {
+          "$ref": "#/definitions/transitionsObject"
+        },
+        "states": {
+          "$ref": "#/definitions/statesObject"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "compound"
+        }
+      },
+      "required": ["id", "type", "states"]
+    },
+    "parallelStateNode": {
+      "type": "object",
+      "properties": {
+        "entry": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "exit": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/actionObject"
+          }
+        },
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "invoke": {
+          "type": "array"
+        },
+        "on": {
+          "$ref": "#/definitions/transitionsObject"
+        },
+        "states": {
+          "$ref": "#/definitions/statesObject"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "parallel"
+        }
+      },
+      "required": ["id", "type", "states"]
     },
     "atomicStateNode": {
       "type": "object",
@@ -118,14 +194,35 @@
       },
       "required": ["id", "type", "history"]
     },
+    "finalStateNode": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string"
+        },
+        "key": {
+          "type": "string"
+        },
+        "type": {
+          "type": "string",
+          "pattern": "final"
+        },
+        "data": {
+          "type": "object"
+        }
+      },
+      "required": ["id", "type"]
+    },
     "statesObject": {
       "type": "object",
       "patternProperties": {
         "^.*$": {
           "oneOf": [
-            { "$ref": "#/definitions/stateNode" },
             { "$ref": "#/definitions/atomicStateNode" },
-            { "$ref": "#/definitions/historyStateNode" }
+            { "$ref": "#/definitions/compoundStateNode" },
+            { "$ref": "#/definitions/parallelStateNode" },
+            { "$ref": "#/definitions/historyStateNode" },
+            { "$ref": "#/definitions/finalStateNode" }
           ]
         }
       }
