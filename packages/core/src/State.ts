@@ -159,7 +159,6 @@ export class State<
       historyValue: undefined,
       history: undefined,
       actions: [],
-      activities: undefined,
       meta: undefined,
       events: [],
       configuration: [],
