@@ -476,9 +476,10 @@ class StateNode<
       id: this.id,
       key: this.key,
       version: this.version,
+      context: this.context!,
       type: this.type,
       initial: this.initial,
-      history: this.history,
+      history: this.history || undefined,
       states: mapValues(
         this.states,
         (state: StateNode<TContext, any, TEvent>) => state.definition

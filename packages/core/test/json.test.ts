@@ -10,10 +10,12 @@ describe('json', () => {
   it('should serialize the machine', () => {
     const machine = createMachine<{ [key: string]: any }>({
       initial: 'foo',
+      version: '1.0.0',
       context: {
         number: 0,
         string: 'hello'
       },
+      invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
       states: {
         testActions: {
           invoke: [{ id: 'invokeId', src: 'invokeSrc', autoForward: true }],
