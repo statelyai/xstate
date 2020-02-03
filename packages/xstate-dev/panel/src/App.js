@@ -3,7 +3,7 @@ import { Machine } from 'xstate';
 import styled from 'styled-components';
 import { useEffect } from 'react';
 import { StateNodeViz } from './StateNodeViz';
-import { StateViz } from './StateViz';
+import StateTab from './components/StateTab';
 import { getEdges } from './utils';
 import { EdgeViz } from './EdgeViz';
 import { tracker } from './tracker';
@@ -231,7 +231,7 @@ const MachineViz = ({ selectedService }) => {
 
 const views = {
   GRAPH: 'graph',
-  EXTENDED_STATE: 'extendedState',
+  STATE: 'state',
   EVENTS_LOG: 'eventsLog'
 }
 
@@ -277,7 +277,7 @@ function App() {
       <TopBar>
         <TabButtonsGroup>
           <TabButton isActive={activeView === views.GRAPH} onClick={() => setActiveView(views.GRAPH)}>Graph</TabButton>
-          <TabButton isActive={activeView === views.EXTENDED_STATE} onClick={() => setActiveView(views.EXTENDED_STATE)}>Extended State</TabButton>
+          <TabButton isActive={activeView === views.STATE} onClick={() => setActiveView(views.STATE)}>State</TabButton>
           <TabButton isActive={activeView === views.EVENTS_LOG} onClick={() => setActiveView(views.EVENTS_LOG)}>Events Log</TabButton>
         </TabButtonsGroup>
         <Select
@@ -293,7 +293,7 @@ function App() {
       {selectedService && (
         <div style={{border: '1px solid black', height: '100%'}}>
           {activeView === views.GRAPH && <MachineViz key={currentServiceId} selectedService={selectedService} />}
-          {activeView === views.EXTENDED_STATE && <StateViz state={selectedService.state} />}
+          {activeView === views.STATE && <StateTab finiteState={selectedService.state && selectedService.state.value} extendedState={selectedService.state && selectedService.state.context}/>}
           {activeView === views.EVENTS_LOG && selectedService && <EventsLog eventsLog={selectedService.eventsLog} machine={Machine(selectedService.machine)}/>}
         </div>
       )}

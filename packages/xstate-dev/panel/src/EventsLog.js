@@ -9,6 +9,8 @@ import createDiffPatcher from './utils/createDiffPatcher';
 import JSONDiff from './JSONDiff';
 import TabButton from './components/TabButton';
 import TabButtonsGroup from './components/TabButtonsGroup';
+import StateTab from './components/StateTab';
+import formatFiniteState from './utils/formatFiniteState';
 
 const theme = {
   scheme: 'monokai',
@@ -119,20 +121,9 @@ const StateDiffTab = ({ finiteStateDiff, extendedStateDiff}) => {
   return (
     <>
       <h1>Finite</h1>
-      <JSONDiff diffData={finiteStateDiff} />
+      {finiteStateDiff !== undefined ? <JSONDiff diffData={finiteStateDiff} /> : <h2>No changes</h2>}
       <h1>Extended</h1>
-      <JSONDiff diffData={extendedStateDiff} />
-    </>
-  )
-}
-
-const StateAfterEventTab = ({ finiteState, extendedState}) => {
-  return (
-    <>
-      <h1>Finite</h1>
-      <JSONTree data={{ state: finiteState }} theme={theme} invertTheme hideRoot={true} />
-      <h1>Extended</h1>
-      <JSONTree data={extendedState} theme={theme} invertTheme hideRoot={true} />
+      {extendedStateDiff !== undefined ? <JSONDiff diffData={extendedStateDiff} /> : <h2>No changes</h2>}
     </>
   )
 }
@@ -143,8 +134,7 @@ const eventLogViews = {
   EXTENDED_STATE_DIFF_WITH_PREVIOUS: 'extendedStateDiffWithPrevious'
 }
 
-
-const EventTab = ({eventLogView, event, time, stateAfterEvent, stateDiffData}) => {
+const EventTab = ({ eventLogView, event, time, stateAfterEvent, stateDiffData }) => {
   if (eventLogView === eventLogViews.EXTENDED_STATE_DIFF_WITH_PREVIOUS) {
     return (<StateDiffTab finiteStateDiff={stateDiffData.finiteState}  extendedStateDiff={stateDiffData.extendedState}/>)
   } else if (eventLogView === eventLogViews.EVENT) {
@@ -153,7 +143,7 @@ const EventTab = ({eventLogView, event, time, stateAfterEvent, stateDiffData}) =
       time={time}
       />)
   } else if (eventLogView === eventLogViews.EXTENDED_STATE_AFTER) {
-    return (<StateAfterEventTab finiteState={stateAfterEvent.value} extendedState={stateAfterEvent.context} />)
+    return (<StateTab finiteState={stateAfterEvent.value} extendedState={stateAfterEvent.context} />)
   }
 }
 
@@ -178,8 +168,8 @@ const EventsLog = ({eventsLog, machine}) => {
     );
 
     const finiteStateDiff = createDiffPatcher().diff(
-      stateBeforeChosenEvent.value,
-      stateAfterChosenEvent.value
+      formatFiniteState(stateBeforeChosenEvent.value),
+      formatFiniteState(stateAfterChosenEvent.value)
     )
 
     const _stateOnChosenEventDiff = {
