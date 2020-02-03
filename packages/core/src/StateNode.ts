@@ -134,7 +134,7 @@ export class StateNode<
    */
   public order: number = -1;
 
-  public __cache = {
+  protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
@@ -360,7 +360,11 @@ export class StateNode<
     let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of getCandidates(this, eventName)) {
+    const candidates =
+      this.__cache.candidates[eventName] ||
+      (this.__cache.candidates[eventName] = getCandidates(this, eventName));
+
+    for (const candidate of candidates) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 

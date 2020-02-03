@@ -276,9 +276,6 @@ export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, any, TEvent>,
   eventName: TEvent['type'] | NullEvent['type'] | '*'
 ) {
-  if (stateNode.__cache.candidates[eventName]) {
-    return stateNode.__cache.candidates[eventName];
-  }
   const transient = eventName === NULL_EVENT;
   const candidates = stateNode.transitions.filter(transition => {
     const sameEventType = transition.eventType === eventName;
@@ -287,7 +284,7 @@ export function getCandidates<TEvent extends EventObject>(
       ? sameEventType
       : sameEventType || transition.eventType === WILDCARD;
   }) as any;
-  stateNode.__cache.candidates[eventName] = candidates;
+
   return candidates;
 }
 /**
