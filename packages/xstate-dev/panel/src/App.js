@@ -41,10 +41,7 @@ function createPort() {
 
   getInitialServices();
 
-  backgroundPort.onMessage.addListener(message => {
-    console.log('App: message:', message)
-    console.log('services:', services)
-    
+  backgroundPort.onMessage.addListener(message => {    
     if (message.name === 'state') {
       const state = JSON.parse(message.data.state);
 
@@ -262,8 +259,6 @@ function App() {
   const serviceIds = Object.keys(services);
 
   const selectedService = currentServiceId ? services[currentServiceId] : null;
-
-  console.log('App: services:', services)
 
   useEffect(() => {
     createPort().subscribe(s => {

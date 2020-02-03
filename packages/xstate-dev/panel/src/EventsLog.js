@@ -193,12 +193,12 @@ const EventsLog = ({eventsLog, machine}) => {
   }
 
   React.useEffect(() => {
-    if (eventsLog.length > 0) {
+    if (eventsLog && eventsLog.length > 0) {
       const newChosenEventIndex = eventsLog.length - 1
       setChosenEvent(newChosenEventIndex)
       updateStateAndDiff(newChosenEventIndex)
     }
-  }, [eventsLog.length])
+  }, [eventsLog && eventsLog.length])
 
   return (
     <EventsLogViewFrame>
@@ -232,7 +232,6 @@ const EventsLog = ({eventsLog, machine}) => {
                   }}
                   >
                   <EventButton onClick={() => {
-                    scrollTo({rowIndex: index, elementRef: scrollableContainerRef, itemSize:eventsLog.length })
                     setChosenEvent(index);
                     updateStateAndDiff(index)
                   }}>
