@@ -11,3 +11,5 @@ The `context` property in the machine configuration no longer accepts a function
 The `activities` property was removed from `State` objects, as activities are now part of `invoke` declarations.
 
 The state nodes will not show the machine's `version` on them - the `version` property is only available on the root machine node.
+
+The `machine.withContext({...})` method now permits providing partial context, instead of the entire machine context.
