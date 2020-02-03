@@ -1264,7 +1264,7 @@ export function resolveTransition<
 
   if (!isDone) {
     const isTransient =
-      machine._transient || configuration.some(sn => sn._transient);
+      machine.isTransient || configuration.some(sn => sn.isTransient);
 
     if (isTransient) {
       maybeNextState = resolveRaisedTransition(
