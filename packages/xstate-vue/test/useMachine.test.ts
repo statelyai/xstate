@@ -6,6 +6,7 @@ import {
 } from '@testing-library/vue';
 import VueCompositionApi from '@vue/composition-api';
 import UseMachine from './UseMachine.vue';
+import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import { Machine, assign, doneInvoke } from 'xstate';
 import { createLocalVue, mount } from '@vue/test-utils';
 
@@ -88,5 +89,11 @@ describe('useMachine composition function', () => {
     const { service, send } = wrapper.vm.$data;
     expect(service).toBeDefined();
     expect(typeof send).toBe('function');
+  });
+
+  it('should not crash without optional `options` parameter being provided', async () => {
+    expect(() => {
+      renderWithCompositionApi(UseMachineNoExtraOptions);
+    }).not.toThrow();
   });
 });

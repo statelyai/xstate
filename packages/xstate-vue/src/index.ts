@@ -33,7 +33,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>>
+    Partial<MachineOptions<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent>>;
   send: Interpreter<TContext, any, TEvent>['send'];
