@@ -285,8 +285,8 @@ function App() {
           onChange={e => setCurrentServiceId(e.target.value)}
         >
           <option>Select a service</option>
-          {serviceIds.map(serviceKey => {
-            return <option key={serviceKey}>{serviceKey}</option>;
+          {serviceIds.map(serviceId => {
+          return <option key={serviceId}>{services[serviceId].machine.id} ({serviceId})</option>;
           })}
         </Select>
       </TopBar>
