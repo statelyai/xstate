@@ -147,7 +147,7 @@ const EventTab = ({ eventLogView, event, time, stateAfterEvent, stateDiffData })
   }
 }
 
-const EventsLog = ({eventsLog, machine}) => {
+const EventsLog = ({eventsLog, statesAfterEvent, machine}) => {
   const [chosenEventIndex, setChosenEvent] = React.useState(null)
   const [stateDiffOnChosenEvent, setStateDiffOnChosenEvent] = React.useState(null)
   const [stateAfterEvent, setStateAfterEvent] = React.useState(null)
@@ -158,9 +158,9 @@ const EventsLog = ({eventsLog, machine}) => {
   const updateStateAndDiff = (newChosenEventIndex) => {
     const stateBeforeChosenEvent = newChosenEventIndex === 0
       ? machine.initialState
-      : eventsLog[newChosenEventIndex - 1].stateAfter
+      : statesAfterEvent[newChosenEventIndex - 1]
 
-    const stateAfterChosenEvent = eventsLog[newChosenEventIndex].stateAfter
+    const stateAfterChosenEvent = statesAfterEvent[newChosenEventIndex]
 
     const extendedStateDiff = createDiffPatcher().diff(
       stateBeforeChosenEvent.context,

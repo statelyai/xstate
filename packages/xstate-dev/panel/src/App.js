@@ -18,16 +18,11 @@ const tabId = chrome.devtools.inspectedWindow.tabId.toString();
 const backgroundPort = chrome.runtime.connect({ name: tabId });
 
 function createPort() {
-  backgroundPort.postMessage({
-    name: 'init',
-    tabId: chrome.devtools.inspectedWindow.tabId
-  });
 
   let services = {};
   let listeners = new Set();
 
-  function getInitialServices() {
-    services = {};
+  function getLatestServices() {
 
     chrome.devtools.inspectedWindow.eval(`JSON.stringify(window.__XSTATE__.services)`,
      (serializedContentScriptServices) => {
@@ -39,27 +34,26 @@ function createPort() {
 
   }
 
-  getInitialServices();
+  getLatestServices();
 
   backgroundPort.onMessage.addListener(message => {    
-    if (message.name === 'state') {
-      const state = JSON.parse(message.data.state);
+    getLatestServices()
+    // if (message === 'state') {
+    //   const state = JSON.parse(message.data.state);
 
-      const eventData = JSON.parse(message.data.eventData);
+    //   const eventData = JSON.parse(message.data.eventData);
 
-      services[message.data.sessionId].state = state;
+    //   services[message.data.sessionId].state = state;
       
-      const eventListing = {
-        eventData: eventData,
-        stateAfter: state
-      }
+    //   const eventListing = {
+    //     eventData: eventData,
+    //     stateAfter: state
+    //   }
 
-      services[message.data.sessionId].eventsLog.push(eventListing)
+    //   services[message.data.sessionId].eventsLog.push(eventListing)
 
-      update();
-    } else if (message.name === 'reloaded') {
-      getInitialServices();
-    }
+    //   update();
+    // }
   });
 
   function update() {
@@ -76,8 +70,6 @@ function createPort() {
   };
 }
 
-backgroundPort.onMessage.addListener(message => {
-});
 // End chrome stuff
 
 export function getChildren(stateNode) {
@@ -294,7 +286,7 @@ function App() {
         <div style={{border: '1px solid black', height: '100%'}}>
           {activeView === views.GRAPH && <MachineViz key={currentServiceId} selectedService={selectedService} />}
           {activeView === views.STATE && <StateTab finiteState={selectedService.state && selectedService.state.value} extendedState={selectedService.state && selectedService.state.context}/>}
-          {activeView === views.EVENTS_LOG && selectedService && <EventsLog eventsLog={selectedService.eventsLog} machine={Machine(selectedService.machine)}/>}
+          {activeView === views.EVENTS_LOG && selectedService && <EventsLog eventsLog={selectedService.eventsLog} statesAfterEvent={selectedService.statesAfterEvent} machine={Machine(selectedService.machine)}/>}
         </div>
       )}
     </StyledApp>
