@@ -1,10 +1,17 @@
-import { Machine, StateNode, State, interpret } from 'xstate';
+import { Machine, State, interpret } from 'xstate';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import { toMachine } from 'xstate/lib/scxml';
 import { pathsToStateValue } from 'xstate/lib/utils';
 import { SimulatedClock } from 'xstate/lib/SimulatedClock';
 import * as fs from 'fs';
+import {
+  getStateNodeById,
+  resolveStateValue,
+  getInitialState,
+  getStateNodes
+} from 'xstate/lib/stateUtils';
+import { MachineNode } from 'xstate/lib/MachineNode';
 
 interface SCIONTest {
   initialConfiguration: string[];
@@ -16,19 +23,20 @@ interface SCIONTest {
 }
 
 async function runTestToCompletion(
-  machine: StateNode,
+  machine: MachineNode,
   test: SCIONTest
 ): Promise<void> {
   const stateValue = test.events.length
     ? pathsToStateValue(
-        test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+        test.initialConfiguration.map(id => getStateNodeById(machine, id).path)
       )
     : machine.initialState.value;
 
-  const resolvedStateValue = machine.resolve(stateValue);
+  const resolvedStateValue = resolveStateValue(machine, stateValue);
 
   let done = false;
-  let nextState: State<any> = machine.getInitialState(
+  let nextState: State<any> = getInitialState(
+    machine,
     resolvedStateValue,
     machine.initialState.context
   );
@@ -56,15 +64,15 @@ async function runTestToCompletion(
     }
     service.send(event.name);
 
-    const stateIds = machine
-      .getStateNodes(nextState)
-      .map(stateNode => stateNode.id);
+    const stateIds = getStateNodes(machine, nextState).map(
+      stateNode => stateNode.id
+    );
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });
 
   if (!test.events.length) {
-    const stateIds = machine.getStateNodes(nextState).map(sn => sn.id);
+    const stateIds = getStateNodes(machine, nextState).map(sn => sn.id);
     expect(stateIds).toContain(test.initialConfiguration[0]);
   }
 }

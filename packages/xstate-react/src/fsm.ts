@@ -9,6 +9,22 @@ import {
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 
+const getServiceState = <
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  service: StateMachine.Service<TContext, TEvent, TState>
+): StateMachine.State<TContext, TEvent, TState> => {
+  let currentValue: StateMachine.State<TContext, TEvent, TState>;
+  service
+    .subscribe(state => {
+      currentValue = state;
+    })
+    .unsubscribe();
+  return currentValue!;
+};
+
 export function useMachine<
   TC extends object,
   TE extends EventObject = EventObject
@@ -41,7 +57,8 @@ export function useMachine<
       )
     ).start()
   );
-  const [current, setCurrent] = useState(stateMachine.initialState);
+
+  const [state, setState] = useState(() => getServiceState(service));
 
   useEffect(() => {
     if (options) {
@@ -50,13 +67,13 @@ export function useMachine<
   });
 
   useEffect(() => {
-    service.subscribe(setCurrent);
+    service.subscribe(setState);
     return () => {
       service.stop();
     };
   }, []);
 
-  return [current, service.send, service];
+  return [state, service.send, service];
 }
 
 export function useService<
@@ -73,20 +90,14 @@ export function useService<
   const subscription: Subscription<
     StateMachine.State<TContext, TEvent, TState>
   > = useMemo(() => {
-    let currentValue: StateMachine.State<TContext, TEvent, TState>;
-
-    service
-      .subscribe(state => {
-        currentValue = state;
-      })
-      .unsubscribe();
+    let currentState = getServiceState(service);
 
     return {
-      getCurrentValue: () => currentValue,
+      getCurrentValue: () => currentState,
       subscribe: callback => {
         const { unsubscribe } = service.subscribe(state => {
           if (state.changed !== false) {
-            currentValue = state;
+            currentState = state;
             callback();
           }
         });
@@ -95,7 +106,7 @@ export function useService<
     };
   }, [service]);
 
-  const current = useSubscription(subscription);
+  const state = useSubscription(subscription);
 
-  return [current, service.send, service];
+  return [state, service.send, service];
 }

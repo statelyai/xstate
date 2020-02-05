@@ -16,7 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { spawnPromise } from 'xstate/src/invoke';
+import { spawnPromise } from 'xstate/lib/invoke';
 
 afterEach(cleanup);
 
@@ -167,7 +167,9 @@ describe('useMachine hook', () => {
     });
 
     const Test = () => {
-      const [state] = useMachine(testMachine, { context: { test: true } });
+      const [state] = useMachine(testMachine, {
+        context: { test: true }
+      });
 
       expect(state.context).toEqual({
         foo: 'bar',

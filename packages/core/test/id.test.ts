@@ -46,28 +46,6 @@ const idMachine = Machine({
           id: 'B.dot'
         }
       }
-    },
-    getter: {
-      on: {
-        get NEXT() {
-          return idMachine.states.A;
-        },
-        get NEXT_DEEP() {
-          return idMachine.states.A.states.foo;
-        },
-        NEXT_TARGET: {
-          get target() {
-            return idMachine.states.B;
-          }
-        },
-        NEXT_TARGET_ARRAY: [
-          {
-            get target() {
-              return idMachine.states.B;
-            }
-          }
-        ]
-      }
     }
   }
 });
@@ -87,14 +65,6 @@ describe('State node IDs', () => {
     '{"B":"foo"}': {
       'NEXT,NEXT': { A: 'foo' },
       NEXT_DOT: { B: 'dot' }
-    },
-
-    // With getters
-    getter: {
-      NEXT: 'A',
-      NEXT_DEEP: { A: 'foo' },
-      NEXT_TARGET: 'B',
-      NEXT_TARGET_ARRAY: 'B'
     }
   };
 

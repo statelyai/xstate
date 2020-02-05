@@ -1,8 +1,9 @@
-import { StateNode, State } from '../src/index';
+import { State } from '../src/index';
 import { matchesState } from '../src';
+import { MachineNode } from '../src/MachineNode';
 
 export function testMultiTransition<TContext>(
-  machine: StateNode<TContext>,
+  machine: MachineNode<TContext>,
   fromState: string,
   eventTypes: string
 ) {
@@ -19,7 +20,7 @@ export function testMultiTransition<TContext>(
   return resultState;
 }
 
-export function testAll(machine: StateNode, expected: {}): void {
+export function testAll(machine: MachineNode, expected: {}): void {
   Object.keys(expected).forEach(fromState => {
     Object.keys(expected[fromState]).forEach(eventTypes => {
       const toState = expected[fromState][eventTypes];

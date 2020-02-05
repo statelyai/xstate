@@ -2,6 +2,7 @@ import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
 import { Actor } from './Actor';
+import { MachineNode } from './MachineNode';
 
 export type EventType = string;
 export type ActionType = string;
@@ -90,17 +91,6 @@ export interface StateValueMap {
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
 export type StateValue = string | StateValueMap;
-
-export type ExtractStateValue<
-  TS extends StateSchema<any>,
-  TSS = TS['states']
-> = TSS extends undefined
-  ? never
-  : {
-      [K in keyof TSS]?:
-        | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
-        | ExtractStateValue<TSS[K]>;
-    };
 
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
@@ -215,10 +205,6 @@ export type InvokeCreator<TContext, TEvent extends EventObject> = (
   event: TEvent,
   meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
 ) => Actor;
-// | PromiseLike<TFinalContext>
-// | StateMachine<TFinalContext, any, any>
-// | Subscribable<any>
-// | InvokeCallback;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -481,7 +467,7 @@ export interface StateNodeDefinition<
   TEvent extends EventObject
 > {
   id: string;
-  version: string | undefined;
+  version?: string | undefined;
   key: string;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
@@ -554,14 +540,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, InvokeCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
-  /**
-   * @private
-   */
-  _parent?: StateNode<TContext, any, TEvent>;
-  /**
-   * @private
-   */
-  _key?: string;
+  context: Partial<TContext>;
 }
 export interface MachineConfig<
   TContext,
@@ -571,31 +550,11 @@ export interface MachineConfig<
   /**
    * The initial context (extended state)
    */
-  context?: TContext | (() => TContext);
+  context?: TContext;
   /**
    * The machine's own version.
    */
   version?: string;
-}
-
-export interface StandardMachineConfig<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {}
-
-export interface ParallelMachineConfig<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
-  initial?: undefined;
-  type?: 'parallel';
-}
-
-export interface EntryExitEffectMap<TContext, TEvent extends EventObject> {
-  entry: Array<ActionObject<TContext, TEvent>>;
-  exit: Array<ActionObject<TContext, TEvent>>;
 }
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
@@ -603,23 +562,9 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
-export interface StateMachine<
-  TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
-> extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
-  id: string;
-  states: StateNode<TContext, TStateSchema, TEvent>['states'];
-}
-
-export type StateFrom<
-  TMachine extends StateMachine<any, any, any>
-> = ReturnType<TMachine['transition']>;
-
-export interface ActivityMap {
-  [activityKey: string]: ActivityDefinition<any, any> | false;
-}
+export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
+  TMachine['transition']
+>;
 
 // tslint:disable-next-line:class-name
 export interface StateTransition<TContext, TEvent extends EventObject> {
@@ -945,7 +890,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
-  activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
@@ -1074,7 +1018,7 @@ export interface Observer<T> {
 }
 
 export type Spawnable =
-  | StateMachine<any, any, any>
+  | MachineNode<any, any, any>
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;

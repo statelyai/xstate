@@ -1,6 +1,5 @@
 import {
   EventObject,
-  StateMachine,
   Actor,
   InvokeCreator,
   InvokeCallback,
@@ -19,13 +18,14 @@ import {
   mapContext
 } from './utils';
 import { AnyEventObject } from './types';
+import { MachineNode } from './MachineNode';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
 export function spawnMachine<
   TContext,
   TEvent extends EventObject,
-  TMachine extends StateMachine<any, any, any>
+  TMachine extends MachineNode<any, any, any>
 >(
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { sync?: boolean } = {}

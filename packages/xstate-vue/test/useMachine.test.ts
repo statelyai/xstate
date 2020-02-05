@@ -29,6 +29,7 @@ describe('useMachine composition function', () => {
       },
       loading: {
         invoke: {
+          id: 'fetchData',
           src: 'fetchData',
           onDone: {
             target: 'success',
@@ -49,6 +50,7 @@ describe('useMachine composition function', () => {
     'loading',
     doneInvoke('fetchData', 'persisted data')
   );
+
   it('should work with a component ', async () => {
     const { getByText, getByTestId } = renderWithCompositionApi(UseMachine);
     const button = getByText('Fetch');
@@ -63,8 +65,11 @@ describe('useMachine composition function', () => {
     const { getByText, getByTestId } = renderWithCompositionApi(UseMachine, {
       propsData: { persistedState: persistedFetchState }
     });
+
     await waitForElement(() => getByText(/Success/));
+
     const dataEl = getByTestId('data');
+
     expect(dataEl.textContent).toBe('persisted data');
   });
 

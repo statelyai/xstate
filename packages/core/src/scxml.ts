@@ -6,10 +6,11 @@ import {
   SendExpr,
   DelayExpr
 } from './types';
-import { StateNode, Machine } from './index';
+import { Machine } from './index';
 import { mapValues, keys, isString } from './utils';
 import * as actions from './actions';
 import { spawnMachine } from './invoke';
+import { MachineNode } from './MachineNode';
 
 function getAttribute(
   element: XMLElement,
@@ -368,7 +369,7 @@ export interface ScxmlToMachineOptions {
 function scxmlToMachine(
   scxmlJson: XMLElement,
   options: ScxmlToMachineOptions
-): StateNode {
+): MachineNode {
   const machineElement = scxmlJson.elements!.find(
     element => element.name === 'scxml'
   ) as XMLElement;
@@ -404,7 +405,7 @@ function scxmlToMachine(
 export function toMachine(
   xml: string,
   options: ScxmlToMachineOptions
-): StateNode {
+): MachineNode {
   const json = xml2js(xml) as XMLElement;
   return scxmlToMachine(json, options);
 }
