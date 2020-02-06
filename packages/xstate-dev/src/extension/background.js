@@ -1,14 +1,30 @@
 let connections = new Map();
 
+const possibleMessageTypesFromContentScript = [
+  'retrievingInitialServices',
+  'registerService',
+  'stateUpdate'
+]
+
 /*
  * agent -> content-script.js -> **background.js** -> dev tools
  */
-chrome.runtime.onMessage.addListener((request, sender) => {
-  if (sender.tab) {
-    const { id: tabId } = sender.tab;
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (sender.tab && message.source === 'xstate-devtools') {
 
-    if (Array.from( connections.keys() ).includes(tabId)) {
-      connections.get(tabId).postMessage(request);
+    if (message.data && possibleMessageTypesFromContentScript.includes(message.data.type)) {
+      const { id: tabId } = sender.tab;
+      console.log('background received request:', message)
+      
+      if (Array.from( connections.keys() ).includes(tabId)) {
+        console.log('background sending request to devtools:', message)
+
+        if (message.data.type === 'stateUpdate') {
+          console.log('injected->background diff:', Date.now() - JSON.parse(message.data.eventData).time)
+        }
+    
+        connections.get(tabId).postMessage(message);
+      }  
     }
   } else {
     console.log('sender.tab not defined.');
@@ -20,8 +36,21 @@ chrome.runtime.onMessage.addListener((request, sender) => {
  * agent <- content-script.js <- **background.js** <- dev tools
  */
 chrome.runtime.onConnect.addListener((port) => {
-  const {name: tabId} = port;
-  connections.set(Number(tabId), port)
+  const {name: stringifiedTabId} = port;
+  const tabId = Number(stringifiedTabId)
+  connections.set(tabId, port)
+
+  console.log('background sending getCurrentServices to content', tabId)
+
+  chrome.tabs.sendMessage(
+    tabId,
+    {
+      source: 'xstate-devtools',
+      data: {
+        type: 'getCurrentServices'
+      }
+  })
+
 
   port.onDisconnect.addListener(() => {
     if (Array.from( connections.keys() ).includes(tabId)) {

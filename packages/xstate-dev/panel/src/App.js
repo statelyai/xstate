@@ -22,38 +22,38 @@ function createPort() {
   let services = {};
   let listeners = new Set();
 
-  function getLatestServices() {
-
-    chrome.devtools.inspectedWindow.eval(`JSON.stringify(window.__XSTATE__.services)`,
-     (serializedContentScriptServices) => {
-       const contentScriptServices = JSON.parse(serializedContentScriptServices)
-
-      services = contentScriptServices
-      update()
-     })
-
-  }
-
-  getLatestServices();
-
   backgroundPort.onMessage.addListener(message => {    
-    getLatestServices()
-    // if (message === 'state') {
-    //   const state = JSON.parse(message.data.state);
-
-    //   const eventData = JSON.parse(message.data.eventData);
-
-    //   services[message.data.sessionId].state = state;
-      
-    //   const eventListing = {
-    //     eventData: eventData,
-    //     stateAfter: state
-    //   }
-
-    //   services[message.data.sessionId].eventsLog.push(eventListing)
-
-    //   update();
-    // }
+    if (message && message.source === 'xstate-devtools' && message.data) {
+      console.log('App.js received: message:', message)
+      console.log('App.js before update: services:', services)
+      if (message.data.type === "retrievingInitialServices") {
+        services = JSON.parse(message.data.services)
+        update()
+      } else if (message.data.type === 'stateUpdate') {
+        const {state, eventData, sessionId} = message.data
+        if (Object.keys(services).includes(sessionId)) {
+          const parsedEventData = JSON.parse(eventData)
+          console.log('injected->devtools diff:', Date.now() - parsedEventData.time)
+          services[sessionId].eventsLog.push({
+            eventData: parsedEventData
+          })
+          services[sessionId].statesAfterEvent.push(JSON.parse(state))
+          update()
+        }
+      } else if (message.data.type === 'registerService') {
+        const {machine, state, sessionId} = message.data
+        if (!Object.keys(services).includes(sessionId)) {
+          services[sessionId] = {
+            state: JSON.parse(state),
+            machine: JSON.parse(machine),
+            eventsLog: [],
+            statesAfterEvent: []  
+          }
+          update()
+        }
+      }
+      console.log('App.js after updatee: services:', services)
+    }
   });
 
   function update() {

@@ -178,7 +178,7 @@ const EventsLog = ({eventsLog, statesAfterEvent, machine}) => {
     }
 
     setStateDiffOnChosenEvent(_stateOnChosenEventDiff)
-
+    
     setStateAfterEvent(stateAfterChosenEvent)  
   }
 
