@@ -49,13 +49,9 @@ import {
   nodesFromChild,
   evaluateGuard,
   isStateId
-} from './nodeUtils';
+} from './stateUtils';
 import { MachineNode } from './MachineNode';
-import { STATE_DELIMITER } from './constants';
-
-export const NULL_EVENT = '';
-export const STATE_IDENTIFIER = '#';
-export const WILDCARD = '*';
+import { STATE_DELIMITER, NULL_EVENT } from './constants';
 
 const EMPTY_OBJECT = {};
 
@@ -100,7 +96,7 @@ export class StateNode<
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.
    */
-  public _transient: boolean;
+  public isTransient: boolean;
   /**
    * The child state nodes.
    */
@@ -141,7 +137,7 @@ export class StateNode<
    */
   public order: number = -1;
 
-  public __cache = {
+  protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
     relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
@@ -164,7 +160,8 @@ export class StateNode<
     },
     delayedTransitions: undefined as
       | Array<DelayedTransitionDefinition<TContext, TEvent>>
-      | undefined
+      | undefined,
+    invoke: undefined as Array<InvokeDefinition<TContext, TEvent>> | undefined
   };
 
   public idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
@@ -240,7 +237,7 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this._transient = !this.config.on
+    this.isTransient = !this.config.on
       ? false
       : Array.isArray(this.config.on)
       ? this.config.on.some(({ event }: { event: string }) => {
@@ -266,7 +263,7 @@ export class StateNode<
     return {
       id: this.id,
       key: this.key,
-      version: this.machine.version, // TODO: fix
+      version: this.machine.version,
       type: this.type,
       initial: this.initial,
       history: this.history,
@@ -293,33 +290,36 @@ export class StateNode<
    * The services invoked by this state node.
    */
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
-    return toArray(this.config.invoke).map((invocable, i) => {
-      const id = `${this.id}:invocation[${i}]`;
+    return (
+      this.__cache.invoke ||
+      (this.__cache.invoke = toArray(this.config.invoke).map((invocable, i) => {
+        const id = `${this.id}:invocation[${i}]`;
 
-      const invokeConfig = toInvokeConfig(invocable, id);
-      const resolvedId = invokeConfig.id || id;
+        const invokeConfig = toInvokeConfig(invocable, id);
+        const resolvedId = invokeConfig.id || id;
 
-      const resolvedSrc = isString(invokeConfig.src)
-        ? invokeConfig.src
-        : resolvedId;
+        const resolvedSrc = isString(invokeConfig.src)
+          ? invokeConfig.src
+          : resolvedId;
 
-      if (
-        !this.machine.options.services[resolvedSrc] &&
-        !isString(invokeConfig.src)
-      ) {
-        this.machine.options.services = {
-          ...this.machine.options.services,
-          [resolvedSrc]: invokeConfig.src as any
+        if (
+          !this.machine.options.services[resolvedSrc] &&
+          !isString(invokeConfig.src)
+        ) {
+          this.machine.options.services = {
+            ...this.machine.options.services,
+            [resolvedSrc]: invokeConfig.src as any
+          };
+        }
+
+        return {
+          type: actionTypes.invoke,
+          ...invokeConfig,
+          src: resolvedSrc,
+          id: resolvedId
         };
-      }
-
-      return {
-        type: actionTypes.invoke,
-        ...invokeConfig,
-        src: resolvedSrc,
-        id: resolvedId
-      };
-    });
+      }))
+    );
   }
 
   /**
@@ -382,7 +382,11 @@ export class StateNode<
     let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    for (const candidate of getCandidates(this, eventName)) {
+    const candidates =
+      this.__cache.candidates[eventName] ||
+      (this.__cache.candidates[eventName] = getCandidates(this, eventName));
+
+    for (const candidate of candidates) {
       const { cond, in: stateIn } = candidate;
       const resolvedContext = state.context;
 

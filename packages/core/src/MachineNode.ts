@@ -4,17 +4,10 @@ import {
   StateValue,
   MachineOptions,
   EventObject,
-  TransitionDefinition,
-  DelayedTransitionDefinition,
   StateSchema,
-  ActionObject,
-  Mapper,
-  PropertyMapper,
-  NullEvent,
   MachineConfig,
   SCXML,
-  Typestate,
-  TransitionDefinitionMap
+  Typestate
 } from './types';
 import { State } from './State';
 
@@ -29,7 +22,7 @@ import {
   transitionNode,
   resolveStateValue,
   resolveTransition
-} from './nodeUtils';
+} from './stateUtils';
 import { StateNode } from './StateNode';
 
 export const NULL_EVENT = '';
@@ -49,7 +42,7 @@ const createDefaultOptions = <TContext>(
 
 function resolveContext<TContext>(
   context: TContext,
-  partialContext: Partial<TContext>
+  partialContext?: Partial<TContext>
 ): TContext {
   if (context === undefined) {
     return context;
@@ -69,83 +62,21 @@ export class MachineNode<
 > extends StateNode<TContext, TStateSchema, TEvent> {
   public context: TContext;
   /**
-   * The relative key of the state node, which represents its location in the overall state value.
-   */
-  public key: string;
-  /**
-   * The unique ID of the state node.
-   */
-  // public id: string;
-  /**
    * The machine's own version.
    */
   public version?: string;
 
-  /**
-   * The string path from the root machine node to this node.
-   */
-  public path: string[];
-  /**
-   * The initial state node key.
-   */
-  public initial?: keyof TStateSchema['states'];
-
-  /**
-   * The action(s) to be executed upon entering the state node.
-   */
-  public entry: Array<ActionObject<TContext, TEvent>>;
-  /**
-   * The action(s) to be executed upon exiting the state node.
-   */
-  public exit: Array<ActionObject<TContext, TEvent>>;
   public parent = undefined;
   public strict: boolean;
-  /**
-   * The meta data associated with this state node, which will be returned in State instances.
-   */
-  public meta?: TStateSchema extends { meta: infer D } ? D : any;
-  /**
-   * The data sent with the "done.state._id_" event if this is a final state node.
-   */
-  public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
   public delimiter: string;
-  /**
-   * The order this state node appears. Corresponds to the implicit SCXML document order.
-   */
-  public order: number = -1;
 
   public options: MachineOptions<TContext, TEvent>;
 
   public __xstatenode: true = true;
-
-  public __cache = {
-    events: undefined as Array<TEvent['type']> | undefined,
-    relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
-    initialStateValue: undefined as StateValue | undefined,
-    initialState: undefined as State<TContext, TEvent> | undefined,
-    on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
-    transitions: undefined as
-      | Array<TransitionDefinition<TContext, TEvent>>
-      | undefined,
-    candidates: {} as {
-      [K in TEvent['type'] | NullEvent['type'] | '*']:
-        | Array<
-            TransitionDefinition<
-              TContext,
-              K extends TEvent['type']
-                ? Extract<TEvent, { type: K }>
-                : EventObject
-            >
-          >
-        | undefined;
-    },
-    delayedTransitions: undefined as
-      | Array<DelayedTransitionDefinition<TContext, TEvent>>
-      | undefined
-  };
 
   constructor(
     /**
@@ -211,14 +142,7 @@ export class MachineNode<
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    const {
-      actions,
-      activities,
-      guards,
-      services,
-      delays,
-      context = this.context
-    } = this.options;
+    const { actions, activities, guards, services, delays } = this.options;
 
     return new MachineNode(this.config, {
       actions: { ...actions, ...options.actions },
@@ -226,7 +150,7 @@ export class MachineNode<
       guards: { ...guards, ...options.guards },
       services: { ...services, ...options.services },
       delays: { ...delays, ...options.delays },
-      context: { ...context, ...options.context }
+      context: resolveContext(this.context, options.context)
     });
   }
 

@@ -4,7 +4,6 @@ import {
   HistoryValue,
   ActionObject,
   EventType,
-  StateValueMap,
   StateConfig,
   SCXML,
   StateSchema,
@@ -16,31 +15,6 @@ import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { Actor } from './Actor';
-
-export function stateValuesEqual(
-  a: StateValue | undefined,
-  b: StateValue | undefined
-): boolean {
-  if (a === b) {
-    return true;
-  }
-
-  if (a === undefined || b === undefined) {
-    return false;
-  }
-
-  if (isString(a) || isString(b)) {
-    return a === b;
-  }
-
-  const aKeys = keys(a as StateValueMap);
-  const bKeys = keys(b as StateValueMap);
-
-  return (
-    aKeys.length === bKeys.length &&
-    aKeys.every(key => stateValuesEqual(a[key], b[key]))
-  );
-}
 
 export function isState<TContext, TEvent extends EventObject>(
   state: object | string

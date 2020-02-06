@@ -469,7 +469,7 @@ export interface StateNodeDefinition<
   TEvent extends EventObject
 > {
   id: string;
-  version: string | undefined;
+  version?: string | undefined;
   key: string;
   type: StateNodeType;
   initial: BaseStateNodeConfig<TContext, TStateSchema, TEvent>['initial'];

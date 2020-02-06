@@ -14,8 +14,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
-  initialContext?: TContext
+  options?: Partial<MachineOptions<TContext, TEvent>>
 ): MachineNode<TContext, any, TEvent>;
 export function Machine<
   TContext = DefaultContext,
@@ -23,8 +22,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
-  initialContext?: TContext
+  options?: Partial<MachineOptions<TContext, TEvent>>
 ): MachineNode<TContext, TStateSchema, TEvent>;
 export function Machine<
   TContext = DefaultContext,
