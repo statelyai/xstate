@@ -27,9 +27,9 @@
     "xstate": "^4.7.3"
   },
   "scripts": {
-    "watch": "cra-build-watch --verbose",
+    "watch": "mkdirp '../src/extension/panel/build' && cra-build-watch --verbose --build-path='../src/extension/panel/build'",
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && node moveBuild.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -49,6 +49,8 @@
     ]
   },
   "devDependencies": {
-    "cra-build-watch": "^3.0.0"
+    "cra-build-watch": "^3.0.0",
+    "mkdirp": "^1.0.3",
+    "rimraf": "^3.0.1"
   }
 }
