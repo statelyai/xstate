@@ -3,7 +3,8 @@ import {
   Actor,
   InvokeCreator,
   InvokeCallback,
-  Subscribable
+  Subscribable,
+  Spawnable
 } from '.';
 
 import { interpret } from './interpreter';
@@ -11,11 +12,14 @@ import { interpret } from './interpreter';
 import { actionTypes, doneInvoke, error } from './actions';
 
 import {
-  toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
   isFunction,
   isPromiseLike,
-  mapContext
+  mapContext,
+  isActor,
+  isObservable,
+  isMachineNode,
+  toSCXMLEvent
 } from './utils';
 import { AnyEventObject } from './types';
 import { MachineNode } from './MachineNode';
@@ -277,4 +281,26 @@ export function spawnObservable<T extends EventObject = AnyEventObject>(
 
     return actor;
   };
+}
+
+export function spawnFrom<TContext, TEvent extends EventObject>(
+  entity: Spawnable,
+  name: string
+  // options?: SpawnOptions // TODO: add back in
+): InvokeCreator<TContext, TEvent> {
+  if (isPromiseLike(entity)) {
+    return spawnPromise(Promise.resolve(entity));
+  } else if (isFunction(entity)) {
+    return spawnCallback(entity as InvokeCallback);
+  } else if (isActor(entity)) {
+    return () => entity;
+  } else if (isObservable<TEvent>(entity)) {
+    return spawnObservable(entity);
+  } else if (isMachineNode(entity)) {
+    return spawnMachine(entity);
+  } else {
+    throw new Error(
+      `Unable to spawn entity "${name}" of type "${typeof entity}".`
+    );
+  }
 }

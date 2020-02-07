@@ -1,4 +1,4 @@
-import { interpret, Interpreter, spawn } from '../src/interpreter';
+import { interpret, Interpreter } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
@@ -10,7 +10,8 @@ import {
   EventObject,
   StateValue,
   AnyEventObject,
-  createMachine
+  createMachine,
+  spawn
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
@@ -1873,6 +1874,47 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         })
         .onDone(() => {
           expect(service.state.children).not.toHaveProperty('childActor');
+        });
+
+      service.start();
+    });
+
+    it.skip('state.children should reference spawned actors', done => {
+      const parentMachine = Machine<any>({
+        initial: 'active',
+        context: {
+          promise: null
+        },
+        states: {
+          active: {
+            entry: assign({
+              promise: (_, __, x) =>
+                x.spawn(
+                  () =>
+                    new Promise(res => {
+                      setTimeout(() => {
+                        res(42);
+                      }, 100);
+                    })
+                )
+            }),
+            after: {
+              1000: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parentMachine)
+        .onTransition(state => {
+          console.log(state.actions);
+        })
+        .onDone(() => {
+          expect(service.state.children).toMatchInlineSnapshot(`Object {}`);
+          done();
         });
 
       service.start();

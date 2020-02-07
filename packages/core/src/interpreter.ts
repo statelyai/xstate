@@ -821,7 +821,7 @@ export class Interpreter<
           const serviceCreator:
             | ServiceConfig<TContext, TEvent>
             | undefined = this.machine.options.services
-            ? this.machine.options.services[activity.src]
+            ? this.machine.options.services[activity.src + '']
             : undefined;
 
           const { id, data } = activity;

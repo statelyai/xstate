@@ -57,7 +57,19 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
+  spawn: SpawnFunction;
 }
+
+export interface SpawnOptions {
+  name?: string;
+  autoForward?: boolean;
+  sync?: boolean;
+}
+
+export type SpawnFunction = (
+  entity: Spawnable,
+  nameOrOptions?: string | SpawnOptions
+) => Actor;
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
   context: TContext,
@@ -215,7 +227,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string;
+  src: string | InvokeCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -664,8 +676,9 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
-export interface InvokeActionObject<TContext, TEvent extends EventObject>
-  extends ActivityActionObject<TContext, TEvent> {
+export interface InvokeActionObject<TContext, TEvent extends EventObject> {
+  type: ActionTypes.Start | ActionTypes.Stop;
+  exec: undefined;
   actor: InvokeDefinition<TContext, TEvent>;
 }
 
