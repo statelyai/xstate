@@ -575,7 +575,7 @@ describe('interpreter', () => {
         'TOGGLE'
       );
       const bState = toggleMachine.transition(activeState, 'SWITCH');
-      let state: any;
+      let state: State<any, any>;
 
       interpret(toggleMachine)
         .onTransition(s => {
@@ -585,7 +585,9 @@ describe('interpreter', () => {
 
       setTimeout(() => {
         expect(
-          state.children.find(child => child.meta!.src === 'blink')
+          Object.values(state.children).find(
+            child => child.meta!.src === 'blink'
+          )
         ).toBeTruthy();
         expect(activityActive).toBeFalsy();
         done();
@@ -969,9 +971,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       interpret(parentMachine)
         .onTransition(state => {
           if (state.matches('start')) {
-            const childActor = state.children.find(
-              child => child.id === 'child'
-            );
+            const childActor = state.children.child;
 
             expect(typeof childActor!.send).toBe('function');
           }
@@ -1766,9 +1766,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          const childActor = state.children.find(
-            child => child.id === 'childActor'
-          );
+          const childActor = state.children.childActor;
 
           if (state.matches('active') && childActor) {
             childActor.send({ type: 'FIRE' });
@@ -1817,9 +1815,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          const childActor = state.children.find(
-            child => child.id === 'childActor'
-          );
+          const childActor = state.children.childActor;
 
           if (childActor && !subscription) {
             subscription = childActor.subscribe(subscriber);
@@ -1869,9 +1865,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
 
       const service = interpret(parentMachine)
         .onTransition(state => {
-          const childActor = state.children.find(
-            child => child.id === 'childActor'
-          );
+          const childActor = state.children.childActor;
 
           if (state.matches('active') && childActor && !subscription) {
             subscription = childActor.subscribe(subscriber);

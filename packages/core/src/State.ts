@@ -92,7 +92,7 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
-  public children: Actor[];
+  public children: Record<string, Actor>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -116,7 +116,7 @@ export class State<
           events: [],
           configuration: [], // TODO: fix,
           transitions: [],
-          children: []
+          children: {}
         });
       }
 
@@ -137,7 +137,7 @@ export class State<
       events: [],
       configuration: [],
       transitions: [],
-      children: []
+      children: {}
     });
   }
   /**
@@ -173,7 +173,7 @@ export class State<
         history: stateValue.history,
         configuration: stateValue.configuration,
         transitions: [],
-        children: []
+        children: {}
       });
     }
 

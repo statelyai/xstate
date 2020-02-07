@@ -656,10 +656,7 @@ export class Interpreter<
     return this.send.bind(this, event);
   }
 
-  private sendTo = (
-    event: SCXML.Event<TEvent>,
-    to: string | number | Actor
-  ) => {
+  private sendTo(event: SCXML.Event<TEvent>, to: string | number | Actor) {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
     const target = isParent
@@ -698,7 +695,7 @@ export class Interpreter<
       // Send normal events to other targets
       target.send(event.data);
     }
-  };
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
@@ -829,11 +826,6 @@ export class Interpreter<
 
           const { id, data } = activity;
 
-          const autoForward =
-            'autoForward' in activity
-              ? activity.autoForward
-              : !!activity.forward;
-
           if (!serviceCreator) {
             // tslint:disable-next-line:no-console
             if (!IS_PRODUCTION) {
@@ -852,20 +844,16 @@ export class Interpreter<
             _event
           });
 
-          if (autoForward) {
+          if (activity.autoForward) {
             this.forwardTo.add(id);
           }
 
           this.children.set(id, actor);
 
-          const childIndex = this.state.children.findIndex(
-            child => child.id === id
-          );
+          this.state.children[id] = actor;
 
-          this.state.children[childIndex] = actor;
-
-          this.state.children[childIndex].meta = {
-            ...this.state.children[childIndex].meta,
+          this.state.children[id].meta = {
+            ...this.state.children[id].meta,
             ...activity
           };
         } else {
@@ -909,10 +897,7 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    const childIndex = this.state.children.findIndex(
-      actor => actor.id === childId
-    );
-    this.state.children.splice(childIndex, 1);
+    delete this.state.children[childId];
 
     if (isFunction(child.stop)) {
       child.stop();

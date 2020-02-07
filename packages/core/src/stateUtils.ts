@@ -1184,17 +1184,18 @@ export function resolveTransition<
           SpecialTargets.Internal)
   );
 
-  let children = currentState ? currentState.children : [];
+  let children = currentState ? currentState.children : {};
   for (const action of resolvedActions) {
     if (action.type === actionTypes.start) {
-      children.push(createInvocableActor((action as any).actor));
+      const actor = createInvocableActor((action as any).actor);
+      children[actor.id] = actor;
+      // TODO: warn of collisions
     } else if (action.type === actionTypes.stop) {
-      children = children.filter(childActor => {
-        return (
-          childActor.id !==
-          (action as ActivityActionObject<TContext, TEvent>).actor.id
-        );
-      });
+      const id = (action as ActivityActionObject<TContext, TEvent>).actor.id;
+
+      children = { ...children };
+      delete children[id];
+      // TODO: warn if child actor does not exist
     }
   }
 

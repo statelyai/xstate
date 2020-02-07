@@ -206,8 +206,12 @@ export type InvokeCreator<TContext, TEvent extends EventObject> = (
   meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
 ) => Actor;
 
-export interface InvokeDefinition<TContext, TEvent extends EventObject>
-  extends ActivityDefinition<TContext, TEvent> {
+export interface InvokeDefinition<TContext, TEvent extends EventObject> {
+  /**
+   * The unique identifier of this actor.
+   */
+  id: string;
+  type: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -225,6 +229,18 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 }
 
 export interface Delay {
@@ -894,7 +910,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Actor[];
+  children: Record<string, Actor>;
   done?: boolean;
 }
 
