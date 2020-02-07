@@ -24,16 +24,14 @@ function createPort() {
 
   backgroundPort.onMessage.addListener(message => {    
     if (message && message.source === 'xstate-devtools' && message.data) {
-      console.log('App.js received: message:', message)
-      console.log('App.js before update: services:', services)
       if (message.data.type === "retrievingInitialServices") {
-        services = JSON.parse(message.data.services)
+        const {services: receivedServices} = message.data;
+        services = JSON.parse(receivedServices)
         update()
       } else if (message.data.type === 'stateUpdate') {
         const {state, eventData, sessionId} = message.data
         if (Object.keys(services).includes(sessionId)) {
           const parsedEventData = JSON.parse(eventData)
-          console.log('injected->devtools diff:', Date.now() - parsedEventData.time)
           services[sessionId].eventsLog.push({
             eventData: parsedEventData
           })
@@ -52,7 +50,6 @@ function createPort() {
           update()
         }
       }
-      console.log('App.js after updatee: services:', services)
     }
   });
 

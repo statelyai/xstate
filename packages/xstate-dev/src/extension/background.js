@@ -14,14 +14,8 @@ chrome.runtime.onMessage.addListener((message, sender) => {
 
     if (message.data && possibleMessageTypesFromContentScript.includes(message.data.type)) {
       const { id: tabId } = sender.tab;
-      console.log('background received request:', message)
       
       if (Array.from( connections.keys() ).includes(tabId)) {
-        console.log('background sending request to devtools:', message)
-
-        if (message.data.type === 'stateUpdate') {
-          console.log('injected->background diff:', Date.now() - JSON.parse(message.data.eventData).time)
-        }
     
         connections.get(tabId).postMessage(message);
       }  

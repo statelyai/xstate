@@ -40,7 +40,6 @@ script.text = `
     && message.data
     && message.data.type === 'getCurrentServices'
     ) {
-      console.log('injected sending to content: services:', services)
       sendMessage({
         type: 'retrievingInitialServices',
         services: JSON.stringify(services)
@@ -59,8 +58,6 @@ script.text = `
           eventsLog: [],
           statesAfterEvent: []
         };
-
-        console.log('injected sending data to content: service', service)
 
         sendMessage({
           type: 'registerService',
@@ -115,16 +112,10 @@ window.addEventListener('message', (event) => {
     return;
   }
 
-  console.log('content script received event:', event)
-
   if (message.source === 'xstate-devtools'
     && message.data
     && possibleMessageTypesFromInjectedScript.includes(message.data.type)
     ) {
-    console.log('sending message from content to background: event:', event)
-    if (message.data.type === 'stateUpdate') {
-      console.log('injected->content diff:', Date.now() - JSON.parse(message.data.eventData).time)
-    }
     chrome.runtime.sendMessage(message);
   }
   
@@ -138,7 +129,6 @@ chrome.runtime.onMessage.addListener((message) => {
     && message.data
     && message.data.type === 'getCurrentServices'
     ) {
-    console.log('content sending getCurrentServices to injected')
     window.postMessage(message, '*');  
   }
 });
