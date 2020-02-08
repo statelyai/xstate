@@ -11,7 +11,7 @@ import {
   StateValue,
   AnyEventObject,
   createMachine,
-  spawn
+  Actor
 } from '../src';
 import { State } from '../src/State';
 import { log, actionTypes, raise } from '../src/actions';
@@ -93,7 +93,7 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
+              actor: (_, __, { spawn }) => {
                 entryCalled++;
                 return spawn(
                   new Promise(() => {
@@ -1879,8 +1879,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.start();
     });
 
-    it.skip('state.children should reference spawned actors', done => {
-      const parentMachine = Machine<any>({
+    it('state.children should reference spawned actors', done => {
+      const parentMachine = Machine<{
+        promise: Actor | null;
+      }>({
         initial: 'active',
         context: {
           promise: null
@@ -1888,18 +1890,17 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         states: {
           active: {
             entry: assign({
-              promise: (_, __, x) =>
-                x.spawn(
-                  () =>
-                    new Promise(res => {
-                      setTimeout(() => {
-                        res(42);
-                      }, 100);
-                    })
+              promise: (_, __, { spawn: _spawn }) =>
+                _spawn(
+                  new Promise(res => {
+                    setTimeout(() => {
+                      res(42);
+                    }, 100);
+                  })
                 )
             }),
-            after: {
-              1000: 'success'
+            on: {
+              '*': 'success'
             }
           },
           success: {
@@ -1908,14 +1909,12 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         }
       });
 
-      const service = interpret(parentMachine)
-        .onTransition(state => {
-          console.log(state.actions);
-        })
-        .onDone(() => {
-          expect(service.state.children).toMatchInlineSnapshot(`Object {}`);
-          done();
-        });
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.state.children).toHaveProperty([
+          service.state.context.promise!.id
+        ]);
+        done();
+      });
 
       service.start();
     });

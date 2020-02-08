@@ -679,7 +679,11 @@ export interface ActivityActionObject<TContext, TEvent extends EventObject>
 export interface InvokeActionObject<TContext, TEvent extends EventObject> {
   type: ActionTypes.Start | ActionTypes.Stop;
   exec: undefined;
-  actor: InvokeDefinition<TContext, TEvent>;
+  def: InvokeDefinition<TContext, TEvent>;
+  /**
+   * The deferred actor to overwrite
+   */
+  actor?: Actor;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<

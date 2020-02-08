@@ -5,10 +5,8 @@ import {
   DefaultContext,
   ActionObject,
   StateSchema,
-  ActivityActionObject,
   SpecialTargets,
   ActionTypes,
-  InvokeDefinition,
   SendActionObject,
   ServiceConfig,
   InvokeCallback,
@@ -26,7 +24,8 @@ import {
   EventData,
   Observer,
   Spawnable,
-  Typestate
+  Typestate,
+  InvokeActionObject
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -806,8 +805,7 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
-        const activity = (action as ActivityActionObject<TContext, TEvent>)
-          .actor as InvokeDefinition<TContext, TEvent>;
+        const actorDef = (action as InvokeActionObject<TContext, TEvent>).def;
 
         // If the activity will be stopped right after it's started
         // (such as in transient states)
@@ -817,34 +815,41 @@ export class Interpreter<
         // }
 
         // Invoked services
-        if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator:
+        if (actorDef.type === ActionTypes.Invoke) {
+          const actorCreator:
             | ServiceConfig<TContext, TEvent>
-            | undefined = this.machine.options.services
-            ? this.machine.options.services[activity.src + '']
-            : undefined;
+            | undefined = isString(actorDef.src)
+            ? this.machine.options.services
+              ? this.machine.options.services[actorDef.src]
+              : undefined
+            : actorDef.src;
 
-          const { id, data } = activity;
+          const { id, data } = actorDef;
 
-          if (!serviceCreator) {
+          if (!actorCreator) {
             // tslint:disable-next-line:no-console
             if (!IS_PRODUCTION) {
               warn(
                 false,
-                `No service found for invocation '${activity.src}' in machine '${this.machine.id}'.`
+                `No service found for invocation '${actorDef.src}' in machine '${this.machine.id}'.`
               );
             }
             return;
           }
 
-          const actor = serviceCreator(context, _event.data, {
+          const actor = actorCreator(context, _event.data, {
             parent: this as any,
             id,
             data,
             _event
           });
 
-          if (activity.autoForward) {
+          // Mutate the deferred actor reference
+          if (action.actor) {
+            Object.assign(action.actor, actor);
+          }
+
+          if (actorDef.autoForward) {
             this.forwardTo.add(id);
           }
 
@@ -854,16 +859,16 @@ export class Interpreter<
 
           this.state.children[id].meta = {
             ...this.state.children[id].meta,
-            ...activity
+            ...actorDef
           };
         } else {
-          this.spawnActivity(activity);
+          this.spawnActivity(actorDef);
         }
 
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.actor.id);
+        this.stopChild((action as InvokeActionObject<TContext, TEvent>).def.id);
         break;
       }
 

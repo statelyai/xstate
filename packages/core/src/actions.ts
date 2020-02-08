@@ -13,9 +13,7 @@ import {
   AssignAction,
   ActionFunction,
   ActionFunctionMap,
-  ActivityActionObject,
   ActionTypes,
-  ActivityDefinition,
   SpecialTargets,
   RaiseAction,
   RaiseActionObject,
@@ -30,7 +28,9 @@ import {
   LogActionObject,
   DelayFunctionMap,
   SCXML,
-  ExprWithMeta
+  ExprWithMeta,
+  InvokeActionObject,
+  InvokeDefinition
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -41,6 +41,7 @@ import {
   toSCXMLEvent
 } from './utils';
 import { isArray } from './utils';
+import { Actor } from '.';
 
 export { actionTypes };
 
@@ -124,13 +125,14 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
   return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
 };
 
-export function toActivityDefinition<TContext, TEvent extends EventObject>(
-  action: string | ActivityDefinition<TContext, TEvent>
-): ActivityDefinition<TContext, TEvent> {
+export function toInvokeDefinition<TContext, TEvent extends EventObject>(
+  action: string | InvokeDefinition<TContext, TEvent>
+): InvokeDefinition<TContext, TEvent> {
   const actionObject = toActionObject(action);
 
   return {
     id: isString(action) ? action : actionObject.id,
+    src: isString(action) ? action : action.src,
     ...actionObject,
     type: actionObject.type
   };
@@ -338,14 +340,16 @@ export const cancel = (sendId: string | number): CancelAction => {
  * @param activity The activity to start.
  */
 export function start<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityActionObject<TContext, TEvent> {
-  const activityDef = toActivityDefinition(activity);
+  activity: string | InvokeDefinition<TContext, TEvent>,
+  deferredActor?: Actor
+): InvokeActionObject<TContext, TEvent> {
+  const activityDef = toInvokeDefinition(activity);
 
   return {
     type: ActionTypes.Start,
-    actor: activityDef,
-    exec: undefined
+    def: activityDef,
+    exec: undefined,
+    actor: deferredActor
   };
 }
 
@@ -355,14 +359,16 @@ export function start<TContext, TEvent extends EventObject>(
  * @param activity The activity to stop.
  */
 export function stop<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityActionObject<TContext, TEvent> {
-  const activityDef = toActivityDefinition(activity);
+  activity: string | InvokeDefinition<TContext, TEvent>,
+  deferredActor?: Actor
+): InvokeActionObject<TContext, TEvent> {
+  const activityDef = toInvokeDefinition(activity);
 
   return {
     type: ActionTypes.Stop,
-    actor: activityDef,
-    exec: undefined
+    def: activityDef,
+    exec: undefined,
+    actor: deferredActor
   };
 }
 

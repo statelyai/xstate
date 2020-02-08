@@ -10,12 +10,14 @@ describe('action creators', () => {
         const action = actions[actionKey]('test');
         expect(action.type).toEqual(actionTypes[actionKey]);
         expect(action).toEqual({
+          actor: undefined,
           type: actionTypes[actionKey],
           exec: undefined,
-          actor: {
+          def: {
             type: 'test',
             exec: undefined,
-            id: 'test'
+            id: 'test',
+            src: 'test'
           }
         });
       });
@@ -26,7 +28,7 @@ describe('action creators', () => {
         expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
-          actor: {
+          def: {
             type: 'test',
             id: undefined,
             foo: 'bar'
@@ -44,7 +46,7 @@ describe('action creators', () => {
         expect(action).toEqual({
           type: actionTypes[actionKey],
           exec: undefined,
-          actor: {
+          def: {
             type: 'test',
             id: undefined,
             foo: 'bar',

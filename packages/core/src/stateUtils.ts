@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue } from '.';
+import { EventObject, StateNode, StateValue, Actor } from '.';
 import {
   keys,
   flatten,
@@ -17,10 +17,10 @@ import {
   toStateValue,
   mapContext,
   partition,
-  updateContext,
   updateHistoryValue,
   mapValues
 } from './utils';
+import { updateContext } from './updateContext';
 import {
   TransitionConfig,
   HistoryValue,
@@ -46,7 +46,7 @@ import {
   RaiseActionObject,
   SendActionObject,
   SpecialTargets,
-  ActivityActionObject
+  InvokeActionObject
 } from './types';
 import { State } from './State';
 import {
@@ -66,7 +66,7 @@ import {
   resolveSend,
   resolveLog,
   toActionObject,
-  toActivityDefinition
+  toInvokeDefinition
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
@@ -848,8 +848,8 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   return condFn(context, _event.data, guardMeta);
 }
 
-function getActivities(stateNode: StateNode<any, any, any>) {
-  return toArray(stateNode.invoke).map(toActivityDefinition);
+function getInvocations(stateNode: StateNode<any, any, any>) {
+  return toArray(stateNode.invoke).map(toInvokeDefinition);
 }
 
 export function getActions<TContext, TEvent extends EventObject>(
@@ -931,7 +931,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(entryStates).map(entryNode => {
         return [
-          ...getActivities(entryNode).map(activity => start(activity)),
+          ...getInvocations(entryNode).map(activity => start(activity)),
           ...entryNode.entry
         ];
       })
@@ -939,7 +939,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(exitStates).map(exitNode => [
         ...exitNode.exit,
-        ...getActivities(exitNode).map(activity => stop(activity))
+        ...getInvocations(exitNode).map(activity => stop(activity))
       ])
     )
   ];
@@ -1124,9 +1124,27 @@ export function resolveTransition<
       action.type === actionTypes.assign
   );
 
-  const updatedContext = assignActions.length
+  const [updatedContext, invokeCreatorMap]: [
+    TContext,
+    Record<string, Actor>
+  ] = assignActions.length
     ? updateContext(currentContext, _event, assignActions, currentState)
-    : currentContext;
+    : [currentContext, {}];
+
+  // Add spawned actors as start actions
+  Object.keys(invokeCreatorMap).forEach(actorId => {
+    const actor = invokeCreatorMap[actorId];
+    otherActions.unshift(
+      start(
+        {
+          type: actionTypes.invoke,
+          src: actor.meta!.src,
+          id: actorId
+        },
+        actor
+      )
+    );
+  });
 
   const resolvedActions = flatten(
     otherActions.map(actionObject => {
@@ -1187,11 +1205,13 @@ export function resolveTransition<
   let children = currentState ? currentState.children : {};
   for (const action of resolvedActions) {
     if (action.type === actionTypes.start) {
-      const actor = createInvocableActor((action as any).actor);
-      children[actor.id] = actor;
+      const actorDef = createInvocableActor(
+        (action as InvokeActionObject<TContext, TEvent>).def
+      );
+      children[actorDef.id] = actorDef;
       // TODO: warn of collisions
     } else if (action.type === actionTypes.stop) {
-      const id = (action as ActivityActionObject<TContext, TEvent>).actor.id;
+      const id = (action as InvokeActionObject<TContext, TEvent>).def.id;
 
       children = { ...children };
       delete children[id];

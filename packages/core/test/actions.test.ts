@@ -1,4 +1,4 @@
-import { Machine, assign, forwardTo, interpret, spawn } from '../src/index';
+import { Machine, assign, forwardTo, interpret } from '../src/index';
 import { pure, sendParent, log } from '../src/actions';
 import { spawnMachine } from '../src/invoke';
 
@@ -967,7 +967,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: () => spawn(child)
+            child: (_, __, { spawn }) => spawn(child)
           }),
           on: {
             EVENT: {

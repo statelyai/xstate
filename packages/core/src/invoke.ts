@@ -291,7 +291,7 @@ export function spawnFrom<TContext, TEvent extends EventObject>(
   if (isPromiseLike(entity)) {
     return spawnPromise(Promise.resolve(entity));
   } else if (isFunction(entity)) {
-    return spawnCallback(entity as InvokeCallback);
+    return spawnCallback(() => entity as InvokeCallback);
   } else if (isActor(entity)) {
     return () => entity;
   } else if (isObservable<TEvent>(entity)) {
