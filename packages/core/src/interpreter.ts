@@ -6,14 +6,11 @@ import {
   ActionObject,
   StateSchema,
   SpecialTargets,
-  ActionTypes,
   SendActionObject,
   ServiceConfig,
   InvokeCallback,
-  DisposeActivityFunction,
   StateValue,
   InterpreterOptions,
-  ActivityDefinition,
   SingleOrArray,
   Subscribable,
   DoneEvent,
@@ -807,63 +804,53 @@ export class Interpreter<
       case actionTypes.start: {
         const actorDef = (action as InvokeActionObject<TContext, TEvent>).def;
 
-        // If the activity will be stopped right after it's started
-        // (such as in transient states)
-        // don't bother starting the activity.
-        // if (!this.state.activities[activity.type]) {
-        //   break;
-        // }
-
         // Invoked services
-        if (actorDef.type === ActionTypes.Invoke) {
-          const actorCreator:
-            | ServiceConfig<TContext, TEvent>
-            | undefined = isString(actorDef.src)
-            ? this.machine.options.services
-              ? this.machine.options.services[actorDef.src]
-              : undefined
-            : actorDef.src;
 
-          const { id, data } = actorDef;
+        const actorCreator:
+          | ServiceConfig<TContext, TEvent>
+          | undefined = isString(actorDef.src)
+          ? this.machine.options.services
+            ? this.machine.options.services[actorDef.src]
+            : undefined
+          : actorDef.src;
 
-          if (!actorCreator) {
-            // tslint:disable-next-line:no-console
-            if (!IS_PRODUCTION) {
-              warn(
-                false,
-                `No service found for invocation '${actorDef.src}' in machine '${this.machine.id}'.`
-              );
-            }
-            return;
+        const { id, data } = actorDef;
+
+        if (!actorCreator) {
+          // tslint:disable-next-line:no-console
+          if (!IS_PRODUCTION) {
+            warn(
+              false,
+              `No service found for invocation '${actorDef.src}' in machine '${this.machine.id}'.`
+            );
           }
-
-          const actor = actorCreator(context, _event.data, {
-            parent: this as any,
-            id,
-            data,
-            _event
-          });
-
-          // Mutate the deferred actor reference
-          if (action.actor) {
-            Object.assign(action.actor, actor);
-          }
-
-          if (actorDef.autoForward) {
-            this.forwardTo.add(id);
-          }
-
-          this.children.set(id, actor);
-
-          this.state.children[id] = actor;
-
-          this.state.children[id].meta = {
-            ...this.state.children[id].meta,
-            ...actorDef
-          };
-        } else {
-          this.spawnActivity(actorDef);
+          return;
         }
+
+        const actor = actorCreator(context, _event.data, {
+          parent: this as any,
+          id,
+          data,
+          _event
+        });
+
+        // Mutate the deferred actor reference
+        if (action.actor) {
+          Object.assign(action.actor, actor);
+        }
+
+        if (actorDef.autoForward) {
+          this.forwardTo.add(id);
+        }
+
+        this.children.set(id, actor);
+
+        this.state.children[id] = actor;
+
+        this.state.children[id].meta = {
+          ...this.state.children[id].meta,
+          ...actorDef
+        };
 
         break;
       }
@@ -1138,40 +1125,6 @@ export class Interpreter<
     this.children.set(actor.id, actor);
 
     return actor;
-  }
-  private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
-    const implementation =
-      this.machine.options && this.machine.options.activities
-        ? this.machine.options.activities[activity.type]
-        : undefined;
-
-    if (!implementation) {
-      if (!IS_PRODUCTION) {
-        warn(false, `No implementation found for activity '${activity.type}'`);
-      }
-      // tslint:disable-next-line:no-console
-      return;
-    }
-
-    // Start implementation
-    const dispose = implementation(this.state.context, activity);
-    this.spawnEffect(activity.id, dispose);
-  }
-  private spawnEffect(
-    id: string,
-    dispose?: DisposeActivityFunction | void
-  ): void {
-    this.children.set(id, {
-      id,
-      send: () => void 0,
-      subscribe: () => {
-        return { unsubscribe: () => void 0 };
-      },
-      stop: dispose || undefined,
-      toJSON() {
-        return { id };
-      }
-    });
   }
 
   private attachDev(): void {

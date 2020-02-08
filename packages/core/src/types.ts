@@ -172,22 +172,7 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-export type DisposeActivityFunction = () => void;
-
-export type ActivityConfig<TContext, TEvent extends EventObject> = (
-  ctx: TContext,
-  activity: ActivityDefinition<TContext, TEvent>
-) => DisposeActivityFunction | void;
-
-export type Activity<TContext, TEvent extends EventObject> =
-  | string
-  | ActivityDefinition<TContext, TEvent>;
-
-export interface ActivityDefinition<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  id: string;
-  type: string;
-}
+export type DisposeFunction = () => void;
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type Receiver<TEvent extends EventObject> = (
@@ -565,7 +550,6 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, InvokeCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
@@ -667,13 +651,6 @@ export type DoneEvent = DoneEventObject & string;
 
 export interface NullEvent {
   type: ActionTypes.NullEvent;
-}
-
-export interface ActivityActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  type: ActionTypes.Start | ActionTypes.Stop;
-  actor: ActivityDefinition<TContext, TEvent>;
-  exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
 export interface InvokeActionObject<TContext, TEvent extends EventObject> {

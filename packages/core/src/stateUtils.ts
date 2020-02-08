@@ -931,7 +931,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(entryStates).map(entryNode => {
         return [
-          ...getInvocations(entryNode).map(activity => start(activity)),
+          ...getInvocations(entryNode).map(invokeDef => start(invokeDef)),
           ...entryNode.entry
         ];
       })
@@ -939,7 +939,7 @@ export function getActions<TContext, TEvent extends EventObject>(
     flatten(
       Array.from(exitStates).map(exitNode => [
         ...exitNode.exit,
-        ...getInvocations(exitNode).map(activity => stop(activity))
+        ...getInvocations(exitNode).map(invokeDef => stop(invokeDef))
       ])
     )
   ];

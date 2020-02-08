@@ -335,38 +335,34 @@ export const cancel = (sendId: string | number): CancelAction => {
 };
 
 /**
- * Starts an activity.
+ * Creates an action that invokes an actor.
  *
- * @param activity The activity to start.
+ * @param invokeDef The definition of the actor to invoke.
  */
 export function start<TContext, TEvent extends EventObject>(
-  activity: string | InvokeDefinition<TContext, TEvent>,
+  invokeDef: string | InvokeDefinition<TContext, TEvent>,
   deferredActor?: Actor
 ): InvokeActionObject<TContext, TEvent> {
-  const activityDef = toInvokeDefinition(activity);
-
   return {
     type: ActionTypes.Start,
-    def: activityDef,
+    def: toInvokeDefinition(invokeDef),
     exec: undefined,
     actor: deferredActor
   };
 }
 
 /**
- * Stops an activity.
+ * Stops an actor.
  *
- * @param activity The activity to stop.
+ * @param invokeDef The definition of the actor to stop.
  */
 export function stop<TContext, TEvent extends EventObject>(
-  activity: string | InvokeDefinition<TContext, TEvent>,
+  invokeDef: string | InvokeDefinition<TContext, TEvent>,
   deferredActor?: Actor
 ): InvokeActionObject<TContext, TEvent> {
-  const activityDef = toInvokeDefinition(activity);
-
   return {
     type: ActionTypes.Stop,
-    def: activityDef,
+    def: toInvokeDefinition(invokeDef),
     exec: undefined,
     actor: deferredActor
   };
