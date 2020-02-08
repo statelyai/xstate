@@ -242,7 +242,6 @@ describe('spawning callbacks', () => {
           START_CB: {
             actions: send('START', {
               to: ctx => {
-                console.log(ctx.callbackRef);
                 return ctx.callbackRef;
               }
             })
