@@ -57,6 +57,12 @@ The `spawn(...)` function creates an **actor reference** by providing 1 or 2 arg
   - [Observable](./communication.md#invoking-observables)
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
 
+Alternatively `spawn` accepts an options object as the second argument which may contain the following options:
+
+- `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
+- `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
+- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
+
 ```js {13-14}
 import { Machine, spawn } from 'xstate';
 import { todoMachine } from './todoMachine';
