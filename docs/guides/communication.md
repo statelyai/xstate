@@ -555,7 +555,7 @@ const service = interpret(pingMachine).start();
 // ...
 ```
 
-## Sending Responses
+## Sending Responses <Badge text="4.7+" />
 
 An invoked service (or [spawned actor](./actors.md)) can _respond_ to another service/actor; i.e., it can send an event _in response to_ an event sent by another service/actor. This is done with the `respond(...)` action creator.
 
