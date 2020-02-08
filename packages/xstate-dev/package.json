@@ -8,7 +8,10 @@
     "postinstall": "cd panel && npm install",
     "test": "echo \"Error: no test specified\" && exit 1"
   },
-  "author": "David Khourshid",
+  "authors": [
+    "Amit Novick",
+    "David Khourshid"
+  ],
   "license": "ISC",
   "dependencies": {
     "create-react-app": "^3.3.0"

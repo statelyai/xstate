@@ -7,17 +7,22 @@
     "@testing-library/react": "^9.3.2",
     "@testing-library/user-event": "^7.1.2",
     "@xstate/react": "^0.8.1",
+    "date-fns": "^2.9.0",
+    "javascript-stringify": "^2.0.1",
+    "jsondiffpatch": "^0.4.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "react-json-tree": "^0.11.2",
     "react-scripts": "3.3.0",
+    "react-virtualized-auto-sizer": "^1.0.2",
+    "react-window": "^1.8.5",
     "styled-components": "^4.4.1",
     "xstate": "^4.7.3"
   },
   "scripts": {
-    "watch": "cra-build-watch --verbose",
+    "watch": "mkdirp '../src/extension/panel/build' && cra-build-watch --verbose --build-path='../src/extension/panel/build'",
     "start": "react-scripts start",
-    "build": "react-scripts build",
+    "build": "react-scripts build && node moveBuild.js",
     "test": "react-scripts test",
     "eject": "react-scripts eject"
   },
@@ -37,6 +42,8 @@
     ]
   },
   "devDependencies": {
-    "cra-build-watch": "^3.0.0"
+    "cra-build-watch": "^3.0.0",
+    "mkdirp": "^1.0.3",
+    "rimraf": "^3.0.1"
   }
 }

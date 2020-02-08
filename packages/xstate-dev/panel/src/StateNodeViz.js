@@ -6,7 +6,8 @@ import {
   StyledStateNodeViz,
   StyledStateNodeState,
   StyledStateNodeChildrenViz,
-  StyledStateNodeEvents
+  StyledStateNodeEvents,
+  serializeEdge
 } from './App';
 import { tracker } from './tracker';
 
@@ -60,7 +61,9 @@ export const StateNodeViz = ({ stateNode, state }) => {
       </StyledStateNodeState>
       <StyledStateNodeEvents>
         {edges.map(edge => {
-          return <EventViz edge={edge} />;
+          const serial = serializeEdge(edge);
+
+          return <EventViz edge={edge} key={serial}/>;
         })}
       </StyledStateNodeEvents>
     </StyledStateNodeViz>

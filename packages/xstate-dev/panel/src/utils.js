@@ -1,5 +1,4 @@
 export function getEdges(node, options) {
-  console.log(node);
   const { depth = null } = options || {};
   const edges = [];
 

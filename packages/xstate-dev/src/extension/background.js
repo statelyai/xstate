@@ -1,20 +1,24 @@
-var connections = {};
+let connections = new Map();
+
+const possibleMessageTypesFromContentScript = [
+  'retrievingInitialServices',
+  'registerService',
+  'stateUpdate'
+]
 
 /*
  * agent -> content-script.js -> **background.js** -> dev tools
  */
-chrome.runtime.onMessage.addListener(function(request, sender) {
-  if (sender.tab) {
-    var tabId = sender.tab.id;
-    if (tabId in connections) {
-      connections[tabId].postMessage(request);
-    } else {
-      console.log(
-        'Tab not found in connection list.',
-        request,
-        sender,
-        connections
-      );
+chrome.runtime.onMessage.addListener((message, sender) => {
+  if (sender.tab && message.source === 'xstate-devtools') {
+
+    if (message.data && possibleMessageTypesFromContentScript.includes(message.data.type)) {
+      const { id: tabId } = sender.tab;
+      
+      if (Array.from( connections.keys() ).includes(tabId)) {
+    
+        connections.get(tabId).postMessage(message);
+      }  
     }
   } else {
     console.log('sender.tab not defined.');
@@ -25,38 +29,58 @@ chrome.runtime.onMessage.addListener(function(request, sender) {
 /*
  * agent <- content-script.js <- **background.js** <- dev tools
  */
-chrome.runtime.onConnect.addListener(function(port) {
-  console.log({ port });
-  // Listen to messages sent from the DevTools page
-  port.onMessage.addListener(function(request) {
-    console.log('incoming message from dev tools page', request);
+chrome.runtime.onConnect.addListener((port) => {
+  const {name: stringifiedTabId} = port;
+  const tabId = Number(stringifiedTabId)
+  connections.set(tabId, port)
 
-    // Register initial connection
-    if (request.name === 'init') {
-      connections[request.tabId] = port;
+  console.log('background sending getCurrentServices to content', tabId)
 
-      port.onDisconnect.addListener(function() {
-        delete connections[request.tabId];
-      });
+  chrome.tabs.sendMessage(
+    tabId,
+    {
+      source: 'xstate-devtools',
+      data: {
+        type: 'getCurrentServices'
+      }
+  })
 
-      return;
+
+  port.onDisconnect.addListener(() => {
+    if (Array.from( connections.keys() ).includes(tabId)) {
+      connections.delete(tabId)
     }
-
-    // Otherwise, broadcast to agent
-    chrome.tabs.sendMessage(request.tabId, {
-      name: request.name,
-      data: request.data
-    });
   });
 });
 
-chrome.tabs.onUpdated.addListener(function(tabId, changeInfo, tab) {
-  console.log(tabId, connections, changeInfo);
-  if (tabId in connections && changeInfo.status === 'complete') {
-    // TODO: reload connection to page somehow...?
-    connections[tabId].postMessage({
-      source: 'xstate-devtools',
-      name: 'reloaded'
-    });
+chrome.tabs.onUpdated.addListener((tabId, { status }) => {
+  if (Array.from( connections.keys() ).includes(tabId)) {
+    const panelPort = connections.get(tabId);
+
+    if (status === 'loading') {
+      panelPort.postMessage({
+        type: 'pageStartedLoading'
+      });
+    } else if (status === 'complete') {
+      panelPort.postMessage({
+        type: 'pageFinishedLoading'
+      });
+      // panelPort.disconnect();
+      // delete connections[tabId];
+    }
+  
+
+    // connections[tabId].postMessage({
+    //   source: 'xstate-devtools',
+    //   name: 'reloaded'
+    // });
   }
 });
+
+// when tab is closed, remove the tabid from `tabs`
+chrome.tabs.onRemoved.addListener(tabId => {
+  if (Array.from( connections.keys() ).includes(tabId)) {
+    connections.delete(tabId)
+  }
+});
+

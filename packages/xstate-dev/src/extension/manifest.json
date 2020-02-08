@@ -1,0 +1,29 @@
+{
+  "name": "XState Dev Tools",
+  "author": "Amit Novick",
+  "version": "0.2.1",
+  "description": "Chrome Dev Tools Extension for XState",
+  "manifest_version": 2,
+  "content_security_policy": "script-src 'self' 'unsafe-eval' ; object-src 'self'",
+  "icons": {
+    "128": "assets/icon_128.png"
+  },
+  "permissions": [
+    "tabs",
+    "http://*/*",
+    "https://*/*"
+  ],
+  "web_accessible_resources": [],
+  "background": {
+    "scripts": ["hotReload.js", "background.js"],
+    "persistent": false
+  },
+  "content_scripts": [
+    {
+      "matches": ["http://*/*", "https://*/*"],
+      "js": ["contentScript.js"],
+      "run_at": "document_start"
+    }
+  ],
+  "devtools_page": "devtools.html"
+}
