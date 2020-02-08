@@ -3,7 +3,7 @@ import { IS_PRODUCTION } from './environment';
 import { State, Actor } from '.';
 import { warn, isFunction, keys } from './utils';
 import { createNullActor } from './Actor';
-import { spawnFrom } from './invoke';
+import { spawnFrom, createInvocationId } from './invoke';
 import { isString } from 'util';
 
 export function updateContext<TContext, TEvent extends EventObject>(
@@ -28,7 +28,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
           spawn(s, nameOrOptions) {
             const id = isString(nameOrOptions)
               ? nameOrOptions
-              : `${Math.random()}`;
+              : createInvocationId();
             const actor = createNullActor(id);
 
             const invokeCreator = spawnFrom(s, actor.id);

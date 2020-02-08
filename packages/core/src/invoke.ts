@@ -304,3 +304,9 @@ export function spawnFrom<TContext, TEvent extends EventObject>(
     );
   }
 }
+
+export const createInvocationId = (() => {
+  let count = 0;
+
+  return () => `__xstate.invoke:${count++}`;
+})();
