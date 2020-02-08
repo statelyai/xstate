@@ -35,7 +35,6 @@ const createDefaultOptions = <TContext>(
   actions: {},
   guards: {},
   services: {},
-  activities: {},
   delays: {},
   context
 });
@@ -142,11 +141,10 @@ export class MachineNode<
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    const { actions, activities, guards, services, delays } = this.options;
+    const { actions, guards, services, delays } = this.options;
 
     return new MachineNode(this.config, {
       actions: { ...actions, ...options.actions },
-      activities: { ...activities, ...options.activities },
       guards: { ...guards, ...options.guards },
       services: { ...services, ...options.services },
       delays: { ...delays, ...options.delays },
