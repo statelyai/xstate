@@ -275,15 +275,15 @@ function App() {
         >
           <option>Select a service</option>
           {serviceIds.map(serviceId => {
-          return <option key={serviceId}>{services[serviceId].machine.id} ({serviceId})</option>;
+          return <option key={serviceId} value={serviceId}>{services[serviceId].machine.id} ({serviceId})</option>;
           })}
         </Select>
       </TopBar>
       {selectedService && (
         <div style={{border: '1px solid black', height: '100%'}}>
           {activeView === views.GRAPH && <MachineViz key={currentServiceId} selectedService={selectedService} />}
-          {activeView === views.STATE && <StateTab finiteState={selectedService.state && selectedService.state.value} extendedState={selectedService.state && selectedService.state.context}/>}
-          {activeView === views.EVENTS_LOG && selectedService && <EventsLog eventsLog={selectedService.eventsLog} statesAfterEvent={selectedService.statesAfterEvent} machine={Machine(selectedService.machine)}/>}
+          {activeView === views.STATE && <StateTab key={currentServiceId} finiteState={selectedService.state && selectedService.state.value} extendedState={selectedService.state && selectedService.state.context}/>}
+          {activeView === views.EVENTS_LOG && selectedService && <EventsLog key={currentServiceId} eventsLog={selectedService.eventsLog} statesAfterEvent={selectedService.statesAfterEvent} machine={Machine(selectedService.machine)}/>}
         </div>
       )}
     </StyledApp>

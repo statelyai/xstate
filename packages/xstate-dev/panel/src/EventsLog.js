@@ -11,6 +11,7 @@ import TabButton from './components/TabButton';
 import TabButtonsGroup from './components/TabButtonsGroup';
 import StateTab from './components/StateTab';
 import formatFiniteState from './utils/formatFiniteState';
+import usePrevious from './utils/usePrevious';
 
 const theme = {
   scheme: 'monokai',
@@ -70,26 +71,41 @@ const EventButton = styled.button`
 
 const EVENT_ROW_HEIGHT = 60 // 16 + 20 + 16 + 4 x 2 = 60
 
-const scrollTo = ({rowIndex, elementRef, itemSize}) => {
+const scrollTo = ({ rowIndex, elementRef, itemSize, scrollSmoothly=true }) => {
   const scrollOffset = rowIndex * itemSize
-  elementRef.current.scrollTo({ 
+  const scrollToOptions = Object.assign({
     left: 0, 
     top: scrollOffset,
-    behavior: 'smooth',
-  });
+  }, scrollSmoothly ? {
+    behavior: 'smooth'
+  } : {})
+  elementRef.current.scrollTo(scrollToOptions);
 }
 
 
 const AnimatedList = ({ scrollableContainerRef, ...rest }) => {
+  const { itemCount, itemSize, shouldScrollToNewEvent } = rest;
+
   const listRef = React.useRef();
+  const previousItemCount = usePrevious(itemCount)
 
   React.useEffect(() => {
-    scrollTo({
-      rowIndex: rest.itemCount - 1,
-      elementRef: scrollableContainerRef,
-      itemSize: rest.itemSize
-    })
-  }, [rest.itemCount])
+    if (!previousItemCount) {
+      scrollTo({
+        rowIndex: itemCount - 1,
+        elementRef: scrollableContainerRef,
+        itemSize: itemSize,
+        scrollSmoothly: false
+      })
+    } else if (shouldScrollToNewEvent && itemCount > previousItemCount) {
+      scrollTo({
+        rowIndex: itemCount - 1,
+        elementRef: scrollableContainerRef,
+        itemSize: itemSize,
+        scrollSmoothly: true
+      })
+    }
+  }, [itemCount])
 
   
   return (
@@ -152,6 +168,7 @@ const EventsLog = ({eventsLog, statesAfterEvent, machine}) => {
   const [stateDiffOnChosenEvent, setStateDiffOnChosenEvent] = React.useState(null)
   const [stateAfterEvent, setStateAfterEvent] = React.useState(null)
   const [eventLogView, setEventLogView] = React.useState(eventLogViews.EVENT);
+  const [shouldFocusNewEvents, setShouldFocusNewEvents] = React.useState(true);
 
   const scrollableContainerRef = React.useRef()
 
@@ -183,7 +200,7 @@ const EventsLog = ({eventsLog, statesAfterEvent, machine}) => {
   }
 
   React.useEffect(() => {
-    if (eventsLog && eventsLog.length > 0) {
+    if (shouldFocusNewEvents && eventsLog && eventsLog.length > 0) {
       const newChosenEventIndex = eventsLog.length - 1
       setChosenEvent(newChosenEventIndex)
       updateStateAndDiff(newChosenEventIndex)
@@ -192,48 +209,66 @@ const EventsLog = ({eventsLog, statesAfterEvent, machine}) => {
 
   return (
     <EventsLogViewFrame>
-      <div style={{width: '20%'}}>
-        <AutoSizer>
-        {({ width, height }) => (
-          <AnimatedList
-            scrollableContainerRef={scrollableContainerRef}
-            className="List"
-            height={height}
-            width={width}
-            itemCount={eventsLog.length}
-            itemSize={EVENT_ROW_HEIGHT}
-            >
-            {({ index, style }) => {
-              const eventData = eventsLog[index].eventData;
+      <div style={{width: '20%', display: 'flex', flexDirection: 'column'}}>
+        <div style={{flexGrow: 1}}>
+          <AutoSizer>
+          {({ width, height }) => (
+            <AnimatedList
+              scrollableContainerRef={scrollableContainerRef}
+              shouldScrollToNewEvent={shouldFocusNewEvents}
+              className="List"
+              height={height}
+              width={width}
+              itemCount={eventsLog.length}
+              itemSize={EVENT_ROW_HEIGHT}
+              style={{overflowX: 'hidden', overflowY: 'scroll'}}
+              >
+              {({ index, style }) => {
+                const eventData = eventsLog[index].eventData;
 
-              let eventPayload = Object.assign({}, eventData.event)
-              delete eventPayload['type']
+                let eventPayload = Object.assign({}, eventData.event)
+                delete eventPayload['type']
 
-              return (
-                <div
-                  style={{
-                    ...style,
-                    pointerEvents: 'auto',
-                    display: 'flex',
-                    alignItems: 'center',
-                    borderBottom: '1px solid #ddd',
-                    margin: '4px',
-                    backgroundColor: index === chosenEventIndex ? 'skyblue' : 'white'    
-                  }}
-                  >
-                  <EventButton onClick={() => {
-                    setChosenEvent(index);
-                    updateStateAndDiff(index)
-                  }}>
-                    <h2 style={{margin: 0, fontSize: 20}}>{eventData.event.type}</h2>
-                    <h2 style={{margin: 0, fontSize: 16}}>{format(eventData.time, 'hh:mm:ss.SS')}</h2>
-                  </EventButton>
-                </div>
-              );
-            }}
-          </AnimatedList>
-        )}
-      </AutoSizer>
+                return (
+                  <div
+                    style={{
+                      ...style,
+                      pointerEvents: 'auto',
+                      display: 'flex',
+                      alignItems: 'center',
+                      borderBottom: '1px solid #ddd',
+                      margin: '4px',
+                      backgroundColor: index === chosenEventIndex ? 'skyblue' : 'white'    
+                    }}
+                    >
+                    <EventButton onClick={() => {
+                      setChosenEvent(index);
+                      updateStateAndDiff(index)
+                    }}>
+                      <h2 style={{margin: 0, fontSize: 20}}>{eventData.event.type}</h2>
+                      <h2 style={{margin: 0, fontSize: 16}}>{format(eventData.time, 'hh:mm:ss.SS')}</h2>
+                    </EventButton>
+                  </div>
+                );
+              }}
+            </AnimatedList>
+          )}
+        </AutoSizer>
+      </div>
+      <div style={{
+        display: 'flex',
+        alignItems: 'center',
+        justifyContent: 'center',
+        borderTop: '1px solid grey'
+      }}>
+        <input 
+          type="checkbox"
+          id="checkbox-focus-new-events"
+          checked={shouldFocusNewEvents}
+          onClick={() => setShouldFocusNewEvents(previousShouldScrollToNewEvent => !previousShouldScrollToNewEvent)}
+        />
+        <label htmlFor="checkbox-focus-new-events">Focus new events</label>
+      </div>
     </div>
     <div style={{width: '80%', padding: '2px'}}>
       <TabSelectionBar>
