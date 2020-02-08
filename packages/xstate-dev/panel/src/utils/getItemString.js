@@ -1,11 +1,10 @@
 import React from 'react';
-import { Iterable } from 'immutable';
 import isIterable from './isIterable';
 
 const IS_IMMUTABLE_KEY = '@@__IS_IMMUTABLE__@@';
 
 function isImmutable(value) {
-  return Iterable.isKeyed(value) || Iterable.isIndexed(value) || Iterable.isIterable(value);
+  return false;
 }
 
 function getShortTypeString(val, diff) {

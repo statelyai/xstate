@@ -2,7 +2,6 @@ import React from 'react';
 import JSONTree from 'react-json-tree';
 import { stringify } from 'javascript-stringify';
 
-import createStylingFromTheme from './utils/createStylingFromTheme';
 import getItemString from './utils/getItemString';
 
 const theme = {
