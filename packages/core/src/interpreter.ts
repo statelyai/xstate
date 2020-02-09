@@ -21,7 +21,8 @@ import {
   Observer,
   Spawnable,
   Typestate,
-  InvokeActionObject
+  InvokeActionObject,
+  ActorCreator
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -828,12 +829,16 @@ export class Interpreter<
           return;
         }
 
-        const spawnable = spawnableCreator(context, _event.data, {
-          parent: this as any,
-          id,
-          data,
-          _event
-        });
+        const spawnable = (spawnableCreator as ActorCreator<TContext, TEvent>)(
+          context,
+          _event.data,
+          {
+            parent: this as any,
+            id,
+            data,
+            _event
+          }
+        );
 
         const actor = actorFrom(spawnable, id, this as Actor);
 
