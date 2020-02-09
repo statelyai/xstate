@@ -128,14 +128,14 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
 export function toInvokeDefinition<TContext, TEvent extends EventObject>(
   action: string | InvokeDefinition<TContext, TEvent>
 ): InvokeDefinition<TContext, TEvent> {
-  const actionObject = toActionObject(action);
+  if (isString(action)) {
+    return {
+      id: action,
+      src: action
+    };
+  }
 
-  return {
-    id: isString(action) ? action : actionObject.id,
-    src: isString(action) ? action : action.src,
-    ...actionObject,
-    type: actionObject.type
-  };
+  return action;
 }
 
 /**

@@ -244,6 +244,8 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+
+  meta?: Record<string, any>;
 }
 
 export interface Delay {

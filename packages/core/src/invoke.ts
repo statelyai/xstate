@@ -173,12 +173,6 @@ export function spawnActivity<TC, TE extends EventObject>(
       id,
       send: () => void 0,
       toJSON: () => ({ id }),
-      subscribe() {
-        // do nothing
-        return {
-          unsubscribe: () => void 0
-        };
-      },
       stop: isFunction(dispose) ? () => dispose() : undefined
     };
   };

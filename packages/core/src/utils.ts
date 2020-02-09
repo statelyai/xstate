@@ -609,10 +609,15 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
+    | MachineNode<any, any>
     | ActorCreator<TContext, TEvent>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
-  if (typeof invocable === 'object' && 'src' in invocable) {
+  if (
+    typeof invocable === 'object' &&
+    'src' in invocable &&
+    !isMachineNode(invocable)
+  ) {
     return invocable;
   }
 

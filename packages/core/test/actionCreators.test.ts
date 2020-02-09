@@ -5,9 +5,30 @@ const { actionTypes } = actions;
 
 describe('action creators', () => {
   ['start', 'stop'].forEach(actionKey => {
+    const startOrStop: typeof actions['start'] | typeof actions['stop'] =
+      actions[actionKey];
     describe(`${actionKey}()`, () => {
-      it('should accept a string action', () => {
-        const action = actions[actionKey]('test');
+      it('should accept a string source', () => {
+        const action = startOrStop('test');
+        expect(action.type).toEqual(actionTypes[actionKey]);
+        expect(action).toEqual({
+          actor: undefined,
+          type: actionTypes[actionKey],
+          exec: undefined,
+          def: {
+            id: 'test',
+            src: 'test'
+          }
+        });
+      });
+
+      it('should accept an invoke definition', () => {
+        const action = startOrStop({
+          type: 'test',
+          id: 'testid',
+          meta: { foo: 'bar' },
+          src: 'someSrc'
+        });
         expect(action.type).toEqual(actionTypes[actionKey]);
         expect(action).toEqual({
           actor: undefined,
@@ -15,41 +36,8 @@ describe('action creators', () => {
           exec: undefined,
           def: {
             type: 'test',
-            exec: undefined,
-            id: 'test',
-            src: 'test'
-          }
-        });
-      });
-
-      it('should accept an action object', () => {
-        const action = actions[actionKey]({ type: 'test', foo: 'bar' });
-        expect(action.type).toEqual(actionTypes[actionKey]);
-        expect(action).toEqual({
-          type: actionTypes[actionKey],
-          exec: undefined,
-          def: {
-            type: 'test',
-            id: undefined,
-            foo: 'bar'
-          }
-        });
-      });
-
-      it('should accept an actor definition', () => {
-        const action = actions[actionKey]({
-          type: 'test',
-          foo: 'bar',
-          src: 'someSrc'
-        });
-        expect(action.type).toEqual(actionTypes[actionKey]);
-        expect(action).toEqual({
-          type: actionTypes[actionKey],
-          exec: undefined,
-          def: {
-            type: 'test',
-            id: undefined,
-            foo: 'bar',
+            id: 'testid',
+            meta: { foo: 'bar' },
             src: 'someSrc'
           }
         });

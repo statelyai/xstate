@@ -24,13 +24,13 @@ export function updateContext<TContext, TEvent extends EventObject>(
           state,
           action: assignAction,
           _event,
-          spawn(s, nameOrOptions) {
-            const id = isString(nameOrOptions)
-              ? nameOrOptions
+          spawn(spawnable, idOrOptions) {
+            const id = isString(idOrOptions)
+              ? idOrOptions
               : createInvocationId();
             const actor = createNullActor(id);
 
-            const invokeCreator = spawnFrom(s, actor.id);
+            const invokeCreator = spawnFrom(spawnable, actor.id);
 
             actor.meta = {
               src: invokeCreator,

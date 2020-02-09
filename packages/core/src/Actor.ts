@@ -1,22 +1,17 @@
-import {
-  EventObject,
-  Subscribable,
-  InvokeDefinition,
-  AnyEventObject
-} from './types';
+import { EventObject, InvokeDefinition, AnyEventObject } from './types';
 
 export interface Actor<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
-> extends Subscribable<TContext> {
+> {
   id: string;
   send: (event: TEvent) => any; // TODO: change to void
   stop?: () => any | undefined;
   toJSON: () => {
     id: string;
+    meta?: object; // TODO: make non-optional
   };
   meta?: InvokeDefinition<TContext, TEvent>;
-  state?: any;
 }
 
 export function createNullActor<TContext, TEvent extends EventObject>(
@@ -25,9 +20,6 @@ export function createNullActor<TContext, TEvent extends EventObject>(
   return {
     id,
     send: () => void 0,
-    subscribe: () => ({
-      unsubscribe: () => void 0
-    }),
     toJSON: () => ({
       id
     })

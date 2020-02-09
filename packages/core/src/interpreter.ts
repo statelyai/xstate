@@ -1184,10 +1184,6 @@ export class Interpreter<
 const createNullActor = (name: string = 'null'): Actor => ({
   id: name,
   send: () => void 0,
-  subscribe: () => {
-    // tslint:disable-next-line:no-empty
-    return { unsubscribe: () => {} };
-  },
   toJSON: () => ({ id: name })
 });
 
