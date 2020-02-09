@@ -286,7 +286,7 @@ export class StateNode<
         ) {
           this.machine.options.services = {
             ...this.machine.options.services,
-            [resolvedSrc]: invokeConfig.src as any
+            [resolvedSrc]: invokeConfig.src
           };
         }
 

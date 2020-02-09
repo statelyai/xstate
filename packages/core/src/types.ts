@@ -67,7 +67,7 @@ export interface SpawnOptions {
 }
 
 export type SpawnFunction = (
-  entity: Spawnable,
+  entity: Spawnable<any>, // TODO: fix
   nameOrOptions?: string | SpawnOptions
 ) => Actor;
 
@@ -179,9 +179,9 @@ export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
 
-export type InvokeCallback = (
+export type InvokeCallback<TEvent extends EventObject> = (
   callback: Sender<any>,
-  onReceive: Receiver<EventObject>
+  onReceive: Receiver<TEvent>
 ) => any;
 
 /**
@@ -197,7 +197,13 @@ export type InvokeCallback = (
  * @param context The current machine `context`
  * @param event The event that invoked the service
  */
-export type InvokeCreator<TContext, TEvent extends EventObject> = (
+export type SpawnableCreator<TContext, TEvent extends EventObject> = (
+  context: TContext,
+  event: TEvent,
+  meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
+) => Spawnable<TEvent>;
+
+export type ActorCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
@@ -212,7 +218,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeCreator<TContext, TEvent>;
+  src: string | ActorCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -346,7 +352,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeCreator<any, any>;
+  src: string | SpawnableCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -418,7 +424,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | InvokeCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    string | ActorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -541,7 +547,7 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
 
 export type ServiceConfig<TContext, TEvent extends EventObject> =
   | string
-  | InvokeCreator<TContext, TEvent>;
+  | ActorCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -550,7 +556,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  services: Record<string, InvokeCreator<TContext, TEvent>>;
+  services: Record<string, SpawnableCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -1027,8 +1033,9 @@ export interface Observer<T> {
   complete: () => void;
 }
 
-export type Spawnable =
+export type Spawnable<TEvent extends EventObject> =
   | MachineNode<any, any, any>
   | Promise<any>
-  | InvokeCallback
-  | Subscribable<any>;
+  | InvokeCallback<TEvent>
+  | Subscribable<any>
+  | Actor;

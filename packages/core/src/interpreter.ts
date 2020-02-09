@@ -7,7 +7,6 @@ import {
   StateSchema,
   SpecialTargets,
   SendActionObject,
-  ServiceConfig,
   InvokeCallback,
   StateValue,
   InterpreterOptions,
@@ -49,7 +48,7 @@ import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
-import { DEFAULT_SPAWN_OPTIONS } from './invoke';
+import { DEFAULT_SPAWN_OPTIONS, actorFrom } from './invoke';
 import { MachineNode } from './MachineNode';
 
 export type StateListener<
@@ -806,9 +805,7 @@ export class Interpreter<
 
         // Invoked services
 
-        const actorCreator:
-          | ServiceConfig<TContext, TEvent>
-          | undefined = isString(actorDef.src)
+        const spawnableCreator = isString(actorDef.src)
           ? this.machine.options.services
             ? this.machine.options.services[actorDef.src]
             : undefined
@@ -816,7 +813,7 @@ export class Interpreter<
 
         const { id, data } = actorDef;
 
-        if (!actorCreator) {
+        if (!spawnableCreator) {
           // tslint:disable-next-line:no-console
           if (!IS_PRODUCTION) {
             warn(
@@ -827,12 +824,14 @@ export class Interpreter<
           return;
         }
 
-        const actor = actorCreator(context, _event.data, {
+        const spawnable = spawnableCreator(context, _event.data, {
           parent: this as any,
           id,
           data,
           _event
         });
+
+        const actor = actorFrom(spawnable, id, this as Actor);
 
         // Mutate the deferred actor reference
         if (action.actor) {
@@ -895,11 +894,15 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
+  public spawn(
+    entity: Spawnable<TEvent>,
+    name: string,
+    options?: SpawnOptions
+  ): Actor {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
-      return this.spawnCallback(entity as InvokeCallback, name);
+      return this.spawnCallback(entity as InvokeCallback<TEvent>, name);
     } else if (isActor(entity)) {
       return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
@@ -1033,7 +1036,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnCallback(callback: InvokeCallback, id: string): Actor {
+  private spawnCallback(callback: InvokeCallback<TEvent>, id: string): Actor {
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
@@ -1196,16 +1199,8 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   };
 };
 
-export function spawn<TC, TE extends EventObject>(
-  entity: MachineNode<TC, any, TE>,
-  nameOrOptions?: string | SpawnOptions
-): Interpreter<TC, any, TE>;
-export function spawn(
-  entity: Spawnable,
-  nameOrOptions?: string | SpawnOptions
-): Actor;
-export function spawn(
-  entity: Spawnable,
+export function spawn<TE extends EventObject>(
+  entity: Spawnable<TE>,
   nameOrOptions?: string | SpawnOptions
 ): Actor {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);

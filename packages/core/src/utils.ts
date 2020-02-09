@@ -27,7 +27,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { InvokeConfig, InvokeCreator } from '.';
+import { InvokeConfig, ActorCreator } from '.';
 import { Actor } from './Actor';
 import { MachineNode } from './MachineNode';
 
@@ -399,10 +399,9 @@ export function updateHistoryValue(
 }
 
 // tslint:disable-next-line:no-empty
-export let warn: (
-  condition: boolean | Error,
-  message: string
-) => void = () => {};
+export let warn: (condition: boolean | Error, message: string) => void = () => {
+  // empty
+};
 
 if (!IS_PRODUCTION) {
   warn = (condition: boolean | Error, message: string) => {
@@ -610,7 +609,7 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | InvokeCreator<TContext, TEvent>,
+    | ActorCreator<TContext, TEvent>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object' && 'src' in invocable) {
