@@ -18,12 +18,7 @@ import { log, actionTypes, raise } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
-import {
-  spawnObservable,
-  spawnMachine,
-  spawnPromise,
-  spawnActivity
-} from '../src/invoke';
+import { spawnActivity } from '../src/invoke';
 
 const lightMachine = Machine({
   id: 'light',
@@ -791,7 +786,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         foo: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine)
+            src: childMachine
           }
         }
       },
@@ -952,7 +947,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         start: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine),
+            src: childMachine,
             data: { password: 'foo' }
           },
           on: {
@@ -1753,7 +1748,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnMachine(childMachine)
+              src: childMachine
             },
             on: {
               FIRED: 'success'
@@ -1788,14 +1783,12 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnPromise(
-                () =>
-                  new Promise(res => {
-                    setTimeout(() => {
-                      res(42);
-                    }, 100);
-                  })
-              ),
+              src: () =>
+                new Promise(res => {
+                  setTimeout(() => {
+                    res(42);
+                  }, 100);
+                }),
               onDone: {
                 target: 'success',
                 cond: (_, e) => e.data === 42
@@ -1838,9 +1831,8 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnObservable(() =>
+              src: () =>
                 interval$.pipe(map(value => ({ type: 'FIRED', value })))
-              )
             },
             on: {
               FIRED: {

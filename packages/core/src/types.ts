@@ -352,7 +352,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | SpawnableCreator<TContext, TEvent>;
+  src: string | MachineNode<any, any> | SpawnableCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -424,7 +424,10 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | ActorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    | string
+    | ActorCreator<TContext, TEvent>
+    | InvokeConfig<TContext, TEvent>
+    | MachineNode<any, any>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -556,7 +559,10 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  services: Record<string, SpawnableCreator<TContext, TEvent>>;
+  services: Record<
+    string,
+    MachineNode<any, any> | SpawnableCreator<TContext, TEvent>
+  >;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -1035,7 +1041,7 @@ export interface Observer<T> {
 
 export type Spawnable<TEvent extends EventObject> =
   | MachineNode<any, any, any>
-  | Promise<any>
+  | PromiseLike<any>
   | InvokeCallback<TEvent>
   | Subscribable<any>
   | Actor;

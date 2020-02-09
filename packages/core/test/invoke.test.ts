@@ -5,7 +5,8 @@ import {
   sendParent,
   send,
   EventObject,
-  StateValue
+  StateValue,
+  UpdateObject
 } from '../src';
 import {
   actionTypes,
@@ -13,13 +14,7 @@ import {
   doneInvoke,
   escalate
 } from '../src/actions';
-import {
-  spawnMachine,
-  spawnCallback,
-  spawnPromise,
-  spawnObservable,
-  spawnActivity
-} from '../src/invoke';
+import { spawnActivity, spawnMachine } from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
 
@@ -67,7 +62,7 @@ const fetcherMachine = Machine({
     },
     waiting: {
       invoke: {
-        src: spawnMachine(fetchMachine),
+        src: fetchMachine,
         data: {
           userId: ctx => ctx.selectedUserId
         },
@@ -82,7 +77,7 @@ const fetcherMachine = Machine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: spawnMachine(fetchMachine.withContext({ userId: '55' })),
+        src: fetchMachine.withContext({ userId: '55' }),
         onDone: 'received'
       }
     },
@@ -106,13 +101,13 @@ const intervalMachine = Machine<{
     counting: {
       invoke: {
         id: 'intervalService',
-        src: spawnCallback(ctx => cb => {
+        src: ctx => cb => {
           const ivl = setInterval(() => {
             cb('INC');
           }, ctx.interval);
 
           return () => clearInterval(ivl);
-        })
+        }
       },
       on: {
         '': {
@@ -179,7 +174,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: spawnMachine(childMachine)
+          child: childMachine
         }
       }
     );
@@ -246,7 +241,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: spawnMachine(childMachine)
+          child: childMachine
         }
       }
     );
@@ -322,7 +317,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: spawnMachine(childMachine),
+            src: childMachine,
             autoForward: true,
             onDone: {
               target: 'done',
@@ -423,7 +418,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: spawnMachine(childMachine),
+            src: childMachine,
             autoForward: true,
             onDone: {
               target: 'done',
@@ -497,17 +492,15 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: spawnMachine(
-            Machine({
-              id: 'child',
-              initial: 'sending',
-              states: {
-                sending: {
-                  entry: sendParent({ type: 'SUCCESS', data: 42 })
-                }
+          invoke: Machine({
+            id: 'child',
+            initial: 'sending',
+            states: {
+              sending: {
+                entry: sendParent({ type: 'SUCCESS', data: 42 })
               }
-            })
-          ),
+            }
+          }),
           on: {
             SUCCESS: {
               target: 'success',
@@ -540,17 +533,15 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: spawnMachine(
-                Machine({
-                  id: 'child',
-                  initial: 'sending',
-                  states: {
-                    sending: {
-                      entry: sendParent({ type: 'SUCCESS', data: 42 })
-                    }
+              invoke: Machine({
+                id: 'child',
+                initial: 'sending',
+                states: {
+                  sending: {
+                    entry: sendParent({ type: 'SUCCESS', data: 42 })
                   }
-                })
-              )
+                }
+              })
             }
           }
         },
@@ -606,7 +597,7 @@ describe('invoke', () => {
       },
       {
         services: {
-          child: spawnMachine(childMachine)
+          child: childMachine
         }
       }
     );
@@ -614,17 +605,15 @@ describe('invoke', () => {
     interpret(
       someParentMachine.withConfig({
         services: {
-          child: spawnMachine(
-            Machine({
-              id: 'child',
-              initial: 'init',
-              states: {
-                init: {
-                  entry: [sendParent('STOP')]
-                }
+          child: Machine({
+            id: 'child',
+            initial: 'init',
+            states: {
+              init: {
+                entry: [sendParent('STOP')]
               }
-            })
-          )
+            }
+          })
         }
       })
     )
@@ -679,7 +668,7 @@ describe('invoke', () => {
         initial: 'one',
         invoke: {
           id: 'foo-child',
-          src: spawnMachine(subMachine)
+          src: subMachine
         },
         states: {
           one: {
@@ -712,7 +701,7 @@ describe('invoke', () => {
         },
         invoke: {
           id: 'foo-child',
-          src: spawnMachine(ctx => ctx.machine)
+          src: ctx => ctx.machine
         },
         states: {
           one: {
@@ -740,7 +729,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: spawnMachine(subMachine)
+              src: subMachine
             },
             entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
@@ -779,7 +768,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: spawnMachine(doneSubMachine),
+              src: doneSubMachine,
               onDone: 'two'
             },
             entry: send('NEXT', { to: 'foo-child' })
@@ -826,7 +815,7 @@ describe('invoke', () => {
               active: {
                 invoke: {
                   id: 'pong',
-                  src: spawnMachine(pongMachine),
+                  src: pongMachine,
                   onDone: {
                     target: 'success',
                     cond: (_, e) => e.data.secret === 'pingpong'
@@ -889,15 +878,14 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: spawnPromise(ctx =>
+              src: ctx =>
                 createPromise(resolve => {
                   if (ctx.succeed) {
                     resolve(ctx.id);
                   } else {
                     throw new Error(`failed on purpose for: ${ctx.id}`);
                   }
-                })
-              ),
+                }),
               onDone: {
                 target: 'success',
                 cond: (ctx, e) => {
@@ -941,11 +929,10 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
+                src: () =>
                   createPromise(() => {
                     throw new Error('test');
-                  })
-                ),
+                  }),
                 onDone: 'success'
               }
             },
@@ -981,11 +968,10 @@ describe('invoke', () => {
             states: {
               pending: {
                 invoke: {
-                  src: spawnPromise(() =>
+                  src: () =>
                     createPromise(() => {
                       throw new Error('test');
-                    })
-                  ),
+                    }),
                   onDone: 'success'
                 }
               },
@@ -1015,9 +1001,7 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: spawnPromise(() =>
-                      createPromise(resolve => resolve())
-                    ),
+                    src: () => createPromise(resolve => resolve()),
                     onDone: 'success'
                   }
                 },
@@ -1066,9 +1050,7 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: spawnPromise(() =>
-                createPromise(resolve => resolve())
-              )
+              somePromise: () => createPromise(resolve => resolve())
             }
           }
         );
@@ -1086,9 +1068,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
-                  createPromise(resolve => resolve({ count: 1 }))
-                ),
+                src: () => createPromise(resolve => resolve({ count: 1 })),
                 onDone: {
                   target: 'success',
                   actions: assign({ count: (_, e) => e.data.count })
@@ -1136,9 +1116,7 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: spawnPromise(() =>
-                createPromise(resolve => resolve({ count: 1 }))
-              )
+              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
             }
           }
         );
@@ -1165,9 +1143,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
-                  createPromise(resolve => resolve({ count: 1 }))
-                ),
+                src: () => createPromise(resolve => resolve({ count: 1 })),
                 onDone: {
                   target: 'success',
                   actions: (_, e) => {
@@ -1216,9 +1192,7 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: spawnPromise(() =>
-                createPromise(resolve => resolve({ count: 1 }))
-              )
+              somePromise: () => createPromise(resolve => resolve({ count: 1 }))
             }
           }
         );
@@ -1262,11 +1236,11 @@ describe('invoke', () => {
           },
           {
             services: {
-              somePromise: spawnPromise((ctx, e: BeginEvent) => {
+              somePromise: (ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
                 });
-              })
+              }
             }
           }
         );
@@ -1328,24 +1302,24 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: spawnCallback(
-              (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
-                if (ctx.foo && e.payload) {
-                  cb({
-                    type: 'CALLBACK',
-                    data: 40
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 41
-                  });
-                  cb({
-                    type: 'CALLBACK',
-                    data: 42
-                  });
-                }
+            someCallback: (ctx, e: BeginEvent) => (
+              cb: (ev: CallbackEvent) => void
+            ) => {
+              if (ctx.foo && e.payload) {
+                cb({
+                  type: 'CALLBACK',
+                  data: 40
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 41
+                });
+                cb({
+                  type: 'CALLBACK',
+                  data: 42
+                });
               }
-            )
+            }
           }
         }
       );
@@ -1385,9 +1359,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: spawnCallback(() => cb => {
+            someCallback: () => cb => {
               cb('CALLBACK');
-            })
+            }
           }
         }
       );
@@ -1426,9 +1400,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: spawnCallback(() => cb => {
+            someCallback: () => cb => {
               cb('CALLBACK');
-            })
+            }
           }
         }
       );
@@ -1474,9 +1448,9 @@ describe('invoke', () => {
         },
         {
           services: {
-            someCallback: spawnCallback(() => cb => {
+            someCallback: () => cb => {
               cb('CALLBACK');
-            })
+            }
           }
         }
       );
@@ -1527,13 +1501,13 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: spawnCallback(() => (callback, onReceive) => {
+              src: () => (callback, onReceive) => {
                 onReceive(e => {
                   if (e.type === 'PING') {
                     callback('PONG');
                   }
                 });
-              })
+              }
             },
             entry: send('PING', { to: 'child' }),
             on: {
@@ -1614,10 +1588,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: () => async () => {
                 await true;
                 throw new Error('test');
-              }),
+              },
               onError: {
                 target: 'failed',
                 cond: (_, e) => {
@@ -1647,10 +1621,10 @@ describe('invoke', () => {
         states: {
           fetch: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: () => async () => {
                 await true;
                 return 42;
-              }),
+              },
               onDone: {
                 target: 'success',
                 actions: assign((_, { data: result }) => ({ result }))
@@ -1751,9 +1725,9 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => {
+              src: () => {
                 throw new Error('test');
-              })
+              }
             }
           },
           failed: {
@@ -1776,10 +1750,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: () => async () => {
                 await true;
                 throw new Error('test');
-              })
+              }
             }
           },
           failed: {
@@ -1806,10 +1780,10 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: () => async () => {
                 await true;
                 throw new Error('test');
-              })
+              }
             }
           },
           failed: {
@@ -1851,7 +1825,7 @@ describe('invoke', () => {
         states: {
           begin: {
             invoke: {
-              src: spawnMachine(anotherChildMachine),
+              src: anotherChildMachine,
               id: 'invoked.child',
               onDone: 'completed'
             },
@@ -1908,13 +1882,12 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: () =>
                 infinite$.pipe(
                   map(value => {
                     return { type: 'COUNT', value };
                   })
                 )
-              )
             },
             on: {
               '': {
@@ -1955,7 +1928,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: () =>
                 infinite$.pipe(
                   take(5),
                   map(value => {
@@ -1964,8 +1937,7 @@ describe('invoke', () => {
                       value
                     };
                   })
-                )
-              ),
+                ),
               onDone: {
                 target: 'counted',
                 cond: ctx => ctx.count === 4
@@ -2007,7 +1979,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: () =>
                 infinite$.pipe(
                   map(value => {
                     if (value === 5) {
@@ -2016,8 +1988,7 @@ describe('invoke', () => {
 
                     return { type: 'COUNT', value };
                   })
-                )
-              ),
+                ),
               onError: {
                 target: 'success',
                 cond: (ctx, e) => {
@@ -2071,7 +2042,7 @@ describe('invoke', () => {
             active: {
               invoke: {
                 id: 'pong',
-                src: spawnMachine(pongMachine)
+                src: pongMachine
               },
               // Sends 'PING' event to child machine with ID 'pong'
               entry: send('PING', { to: 'pong' }),
@@ -2109,7 +2080,7 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: spawnMachine(childMachine, { sync: true })
+              src: spawnMachine(childMachine, { sync: true }) // TODO: consider adding sync option to invoke
             }
           },
           success: { type: 'final' }
@@ -2118,7 +2089,9 @@ describe('invoke', () => {
 
       const service = interpret(machine).onTransition(state => {
         if (state.event.type === actionTypes.update) {
-          expect(state.event.state.context).toEqual({ count: 42 });
+          expect((state.event as UpdateObject).state.context).toEqual({
+            count: 42
+          });
           done();
         }
       });
@@ -2158,11 +2131,11 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: spawnCallback(() => cb => cb('ONE'))
+                  src: () => cb => cb('ONE')
                 },
                 {
                   id: 'child2',
-                  src: spawnCallback(() => cb => cb('TWO'))
+                  src: () => cb => cb('TWO')
                 }
               ]
             }
@@ -2219,13 +2192,13 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: spawnCallback(() => cb => cb('ONE'))
+                    src: () => cb => cb('ONE')
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: spawnCallback(() => cb => cb('TWO'))
+                    src: () => cb => cb('TWO')
                   }
                 }
               }
@@ -2265,9 +2238,9 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: spawnCallback(() => async () => {
+              src: () => async () => {
                 serviceCalled = true;
-              })
+              }
             },
             on: {
               '': 'inactive'
@@ -2312,7 +2285,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: spawnMachine(child),
+              src: child,
               onError: {
                 target: 'two',
                 cond: (_, event) => event.data === 'oops'
@@ -2354,7 +2327,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: spawnMachine(child),
+              src: child,
               onError: {
                 target: 'two',
                 cond: (_, event) => {

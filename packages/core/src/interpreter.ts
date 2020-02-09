@@ -48,7 +48,7 @@ import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
-import { DEFAULT_SPAWN_OPTIONS, actorFrom } from './invoke';
+import { DEFAULT_SPAWN_OPTIONS, actorFrom, spawnMachine } from './invoke';
 import { MachineNode } from './MachineNode';
 
 export type StateListener<
@@ -805,11 +805,15 @@ export class Interpreter<
 
         // Invoked services
 
-        const spawnableCreator = isString(actorDef.src)
+        let spawnableCreator = isString(actorDef.src)
           ? this.machine.options.services
             ? this.machine.options.services[actorDef.src]
             : undefined
           : actorDef.src;
+
+        if (isMachineNode(spawnableCreator)) {
+          spawnableCreator = spawnMachine(spawnableCreator);
+        }
 
         const { id, data } = actorDef;
 
