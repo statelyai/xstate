@@ -92,11 +92,6 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
-export interface HistoryValue {
-  states: Record<string, HistoryValue | undefined>;
-  current: StateValue | undefined;
-}
-
 export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
@@ -887,7 +882,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   context: TContext;
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;
-  historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;

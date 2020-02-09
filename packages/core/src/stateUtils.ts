@@ -4,7 +4,6 @@ import {
   flatten,
   toStatePath,
   toStatePaths,
-  mapFilterValues,
   toArray,
   warn,
   isArray,
@@ -17,12 +16,10 @@ import {
   mapContext,
   partition,
   updateContext,
-  updateHistoryValue,
   mapValues
 } from './utils';
 import {
   TransitionConfig,
-  HistoryValue,
   TransitionDefinition,
   DelayedTransitionDefinition,
   NullEvent,
@@ -483,16 +480,11 @@ function resolveTarget<TContext, TEvent extends EventObject>(
 /**
  * Resolves to the historical value(s) of the parent state node,
  * represented by state nodes.
- *
- * @param historyValue
  */
 function resolveHistory<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
+  stateNode: StateNode<TContext, any, TEvent> & { type: 'history' },
   state?: State<TContext, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
-  if (stateNode.type !== 'history') {
-    return [stateNode];
-  }
   const parent = stateNode.parent!;
   if (!state || !state.historyMap[stateNode.id]) {
     const historyTarget = stateNode.target;
@@ -507,41 +499,17 @@ function resolveHistory<TContext, TEvent extends EventObject>(
 
   return state.historyMap[stateNode.id];
 }
-export function getHistoryValue<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
-  relativeStateValue?: StateValue | undefined
-): HistoryValue | undefined {
-  if (!keys(stateNode.states).length) {
-    return undefined;
-  }
-  return {
-    current: relativeStateValue || stateNode.initialStateValue,
-    states: mapFilterValues<
-      StateNode<TContext, any, TEvent>,
-      HistoryValue | undefined
-    >(
-      stateNode.states,
-      (childNode, key) => {
-        if (!relativeStateValue) {
-          return getHistoryValue(childNode);
-        }
-        const subStateValue = isString(relativeStateValue)
-          ? undefined
-          : relativeStateValue[key];
-        return getHistoryValue(
-          childNode,
-          subStateValue || childNode.initialStateValue
-        );
-      },
-      childNode => !childNode.history
-    )
-  };
+
+function isHistoryNode<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>
+): stateNode is StateNode<TContext, any, TEvent> & { type: 'history' } {
+  return stateNode.type === 'history';
 }
+
 /**
  * Retrieves state nodes from a relative path to the state node.
  *
  * @param relativePath The relative path from the state node
- * @param historyValue
  */
 function getFromRelativePath<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
@@ -557,7 +525,7 @@ function getFromRelativePath<TContext, TEvent extends EventObject>(
     );
   }
   const childStateNode = getStateNode(stateNode, stateKey);
-  if (childStateNode.type === 'history') {
+  if (isHistoryNode(childStateNode)) {
     return resolveHistory(childStateNode);
   }
   if (!stateNode.states[stateKey]) {
@@ -571,7 +539,7 @@ function getFromRelativePath<TContext, TEvent extends EventObject>(
  * Returns the leaf nodes from a state path relative to the state node.
  *
  * @param relativeStateNode The relative state node to retrieve the state nodes
- * @param history The previous state to retrieve history
+ * @param state The previous state to retrieve history
  * @param resolveInitialStateNodes Whether state nodes should resolve to initial child state nodes
  */
 export function getRelativeStateNodes<TContext, TEvent extends EventObject>(
@@ -580,7 +548,7 @@ export function getRelativeStateNodes<TContext, TEvent extends EventObject>(
   resolveInitialStateNodes: boolean = true
 ): Array<StateNode<TContext, any, TEvent>> {
   return resolveInitialStateNodes
-    ? relativeStateNode.type === 'history'
+    ? isHistoryNode(relativeStateNode)
       ? resolveHistory(relativeStateNode, state)
       : getInitialStateNodes(relativeStateNode)
     : [relativeStateNode];
@@ -1048,9 +1016,9 @@ function getHistoryNodes<TContext, TEvent extends EventObject>(
   });
 }
 
-function isDescendant(
-  childStateNode: StateNode,
-  parentStateNode: StateNode
+function isDescendant<TC, TE extends EventObject>(
+  childStateNode: StateNode<TC, any, TE>,
+  parentStateNode: StateNode<TC, any, TE>
 ): boolean {
   let marker = childStateNode;
   while (marker.parent && marker.parent !== parentStateNode) {
@@ -1116,28 +1084,26 @@ export function resolveTransition<
     Array<StateNode<TContext, any, TEvent>>
   > = currentState ? currentState.historyMap : {};
   if (currentState && currentState.configuration) {
+    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
     for (const exitStateNode of new Set(exitSet)) {
       for (const historyNode of getHistoryNodes(exitStateNode)) {
+        let predicate: (sn: StateNode<TContext, any, TEvent>) => boolean;
+
         if (historyNode.history === 'deep') {
-          historyMap[historyNode.id] = currentState.configuration.filter(
-            sn => isLeafNode(sn) && isDescendant(sn, exitStateNode)
-          );
+          predicate = sn => isLeafNode(sn) && isDescendant(sn, exitStateNode);
         } else {
-          historyMap[historyNode.id] = currentState.configuration.filter(sn => {
+          predicate = sn => {
             return sn.parent === exitStateNode;
-          });
+          };
         }
+
+        historyMap[historyNode.id] = currentState.configuration.filter(
+          predicate
+        );
       }
     }
   }
 
-  const historyValue = currentState
-    ? currentState.historyValue
-      ? currentState.historyValue
-      : stateTransition.source
-      ? getHistoryValue(machine.machine, currentState.value)
-      : undefined
-    : undefined;
   const currentContext = currentState ? currentState.context : context;
   const actions = getActions(machine, stateTransition, currentContext, _event);
 
@@ -1245,16 +1211,8 @@ export function resolveTransition<
     _event,
     // Persist _sessionid between states
     _sessionid: currentState ? currentState._sessionid : null,
-    historyValue: resolvedStateValue
-      ? historyValue
-        ? updateHistoryValue(historyValue, resolvedStateValue)
-        : undefined
-      : currentState
-      ? currentState.historyValue
-      : undefined,
     history:
       !resolvedStateValue || stateTransition.source ? currentState : undefined,
-
     actions: resolvedStateValue ? nonRaisedActions : [],
     meta: resolvedStateValue
       ? meta
@@ -1325,7 +1283,6 @@ export function resolveTransition<
   maybeNextState.children = children;
 
   // Preserve original history after raised events
-  maybeNextState.historyValue = nextState.historyValue;
   maybeNextState.history = history;
   maybeNextState.historyMap = historyMap;
 
