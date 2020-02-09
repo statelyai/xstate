@@ -214,7 +214,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
    * The unique identifier of this actor.
    */
   id: string;
-  type: string;
+  type?: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */

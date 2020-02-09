@@ -34,8 +34,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
 
             actor.meta = {
               src: invokeCreator,
-              id: actor.id,
-              type: 'whatever'
+              id: actor.id
             };
             actorMap[actor.id] = actor;
 
