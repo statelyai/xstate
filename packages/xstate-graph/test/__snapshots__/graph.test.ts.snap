@@ -33,7 +33,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -85,20 +85,13 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "pending",
           },
-          "historyValue": Object {
-            "current": "bar",
-            "states": Object {
-              "bar": undefined,
-              "foo": undefined,
-              "pending": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -151,20 +144,13 @@ Object {
           "type": "xstate.init",
         },
         "events": Array [],
-        "historyValue": undefined,
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
         "value": "pending",
       },
-      "historyValue": Object {
-        "current": "bar",
-        "states": Object {
-          "bar": undefined,
-          "foo": undefined,
-          "pending": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -201,7 +187,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -251,20 +237,13 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "pending",
           },
-          "historyValue": Object {
-            "current": "foo",
-            "states": Object {
-              "bar": undefined,
-              "foo": undefined,
-              "pending": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -315,20 +294,13 @@ Object {
           "type": "xstate.init",
         },
         "events": Array [],
-        "historyValue": undefined,
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
         "value": "pending",
       },
-      "historyValue": Object {
-        "current": "foo",
-        "states": Object {
-          "bar": undefined,
-          "foo": undefined,
-          "pending": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -361,7 +333,7 @@ Object {
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -392,7 +364,7 @@ Object {
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -446,30 +418,7 @@ Object {
               "type": "2",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "a": "a2",
-                "b": "b2",
-              },
-              "states": Object {
-                "a": Object {
-                  "current": "a2",
-                  "states": Object {
-                    "a1": undefined,
-                    "a2": undefined,
-                    "a3": undefined,
-                  },
-                },
-                "b": Object {
-                  "current": "b2",
-                  "states": Object {
-                    "b1": undefined,
-                    "b2": undefined,
-                    "b3": undefined,
-                  },
-                },
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -478,30 +427,7 @@ Object {
               "b": "b2",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a1",
-              "b": "b1",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a1",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b1",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -551,30 +477,7 @@ Object {
           "type": "2",
         },
         "events": Array [],
-        "historyValue": Object {
-          "current": Object {
-            "a": "a2",
-            "b": "b2",
-          },
-          "states": Object {
-            "a": Object {
-              "current": "a2",
-              "states": Object {
-                "a1": undefined,
-                "a2": undefined,
-                "a3": undefined,
-              },
-            },
-            "b": Object {
-              "current": "b2",
-              "states": Object {
-                "b1": undefined,
-                "b2": undefined,
-                "b3": undefined,
-              },
-            },
-          },
-        },
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -583,30 +486,7 @@ Object {
           "b": "b2",
         },
       },
-      "historyValue": Object {
-        "current": Object {
-          "a": "a1",
-          "b": "b1",
-        },
-        "states": Object {
-          "a": Object {
-            "current": "a1",
-            "states": Object {
-              "a1": undefined,
-              "a2": undefined,
-              "a3": undefined,
-            },
-          },
-          "b": Object {
-            "current": "b1",
-            "states": Object {
-              "b1": undefined,
-              "b2": undefined,
-              "b3": undefined,
-            },
-          },
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -662,30 +542,7 @@ Object {
                   "type": "2",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "a": "a2",
-                    "b": "b2",
-                  },
-                  "states": Object {
-                    "a": Object {
-                      "current": "a2",
-                      "states": Object {
-                        "a1": undefined,
-                        "a2": undefined,
-                        "a3": undefined,
-                      },
-                    },
-                    "b": Object {
-                      "current": "b2",
-                      "states": Object {
-                        "b1": undefined,
-                        "b2": undefined,
-                        "b3": undefined,
-                      },
-                    },
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -694,30 +551,7 @@ Object {
                   "b": "b2",
                 },
               },
-              "historyValue": Object {
-                "current": Object {
-                  "a": "a1",
-                  "b": "b1",
-                },
-                "states": Object {
-                  "a": Object {
-                    "current": "a1",
-                    "states": Object {
-                      "a1": undefined,
-                      "a2": undefined,
-                      "a3": undefined,
-                    },
-                  },
-                  "b": Object {
-                    "current": "b1",
-                    "states": Object {
-                      "b1": undefined,
-                      "b2": undefined,
-                      "b3": undefined,
-                    },
-                  },
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -766,7 +600,7 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -775,30 +609,7 @@ Object {
               "b": "b1",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a2",
-              "b": "b2",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a2",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b2",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -848,7 +659,7 @@ Object {
           "type": "xstate.init",
         },
         "events": Array [],
-        "historyValue": undefined,
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -857,30 +668,7 @@ Object {
           "b": "b1",
         },
       },
-      "historyValue": Object {
-        "current": Object {
-          "a": "a2",
-          "b": "b2",
-        },
-        "states": Object {
-          "a": Object {
-            "current": "a2",
-            "states": Object {
-              "a1": undefined,
-              "a2": undefined,
-              "a3": undefined,
-            },
-          },
-          "b": Object {
-            "current": "b2",
-            "states": Object {
-              "b1": undefined,
-              "b2": undefined,
-              "b3": undefined,
-            },
-          },
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -936,30 +724,7 @@ Object {
                   "type": "2",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "a": "a2",
-                    "b": "b2",
-                  },
-                  "states": Object {
-                    "a": Object {
-                      "current": "a2",
-                      "states": Object {
-                        "a1": undefined,
-                        "a2": undefined,
-                        "a3": undefined,
-                      },
-                    },
-                    "b": Object {
-                      "current": "b2",
-                      "states": Object {
-                        "b1": undefined,
-                        "b2": undefined,
-                        "b3": undefined,
-                      },
-                    },
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -968,30 +733,7 @@ Object {
                   "b": "b2",
                 },
               },
-              "historyValue": Object {
-                "current": Object {
-                  "a": "a1",
-                  "b": "b1",
-                },
-                "states": Object {
-                  "a": Object {
-                    "current": "a1",
-                    "states": Object {
-                      "a1": undefined,
-                      "a2": undefined,
-                      "a3": undefined,
-                    },
-                  },
-                  "b": Object {
-                    "current": "b1",
-                    "states": Object {
-                      "b1": undefined,
-                      "b2": undefined,
-                      "b3": undefined,
-                    },
-                  },
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1040,30 +782,7 @@ Object {
               "type": "2",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "a": "a2",
-                "b": "b2",
-              },
-              "states": Object {
-                "a": Object {
-                  "current": "a2",
-                  "states": Object {
-                    "a1": undefined,
-                    "a2": undefined,
-                    "a3": undefined,
-                  },
-                },
-                "b": Object {
-                  "current": "b2",
-                  "states": Object {
-                    "b1": undefined,
-                    "b2": undefined,
-                    "b3": undefined,
-                  },
-                },
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -1072,30 +791,7 @@ Object {
               "b": "b2",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a3",
-              "b": "b3",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a3",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b3",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -1145,30 +841,7 @@ Object {
           "type": "2",
         },
         "events": Array [],
-        "historyValue": Object {
-          "current": Object {
-            "a": "a2",
-            "b": "b2",
-          },
-          "states": Object {
-            "a": Object {
-              "current": "a2",
-              "states": Object {
-                "a1": undefined,
-                "a2": undefined,
-                "a3": undefined,
-              },
-            },
-            "b": Object {
-              "current": "b2",
-              "states": Object {
-                "b1": undefined,
-                "b2": undefined,
-                "b3": undefined,
-              },
-            },
-          },
-        },
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -1177,30 +850,7 @@ Object {
           "b": "b2",
         },
       },
-      "historyValue": Object {
-        "current": Object {
-          "a": "a3",
-          "b": "b3",
-        },
-        "states": Object {
-          "a": Object {
-            "current": "a3",
-            "states": Object {
-              "a1": undefined,
-              "a2": undefined,
-              "a3": undefined,
-            },
-          },
-          "b": Object {
-            "current": "b3",
-            "states": Object {
-              "b1": undefined,
-              "b2": undefined,
-              "b3": undefined,
-            },
-          },
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -1257,24 +907,7 @@ Object {
               "type": "PED_COUNTDOWN",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "stop",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "stop",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -1282,22 +915,7 @@ Object {
               "red": "stop",
             },
           },
-          "historyValue": Object {
-            "current": "green",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -1344,24 +962,7 @@ Object {
           "type": "PED_COUNTDOWN",
         },
         "events": Array [],
-        "historyValue": Object {
-          "current": Object {
-            "red": "stop",
-          },
-          "states": Object {
-            "green": undefined,
-            "red": Object {
-              "current": "stop",
-              "states": Object {
-                "flashing": undefined,
-                "stop": undefined,
-                "wait": undefined,
-                "walk": undefined,
-              },
-            },
-            "yellow": undefined,
-          },
-        },
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -1369,22 +970,7 @@ Object {
           "red": "stop",
         },
       },
-      "historyValue": Object {
-        "current": "green",
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "stop",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -1437,24 +1023,7 @@ Object {
                   "type": "PED_COUNTDOWN",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "stop",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "stop",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -1462,22 +1031,7 @@ Object {
                   "red": "stop",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1504,22 +1058,7 @@ Object {
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -1547,22 +1086,7 @@ Object {
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "yellow",
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -1615,24 +1139,7 @@ Object {
                   "type": "PED_COUNTDOWN",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "stop",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "stop",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -1640,22 +1147,7 @@ Object {
                   "red": "stop",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1682,24 +1174,7 @@ Object {
             "type": "POWER_OUTAGE",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -1729,24 +1204,7 @@ Object {
         "type": "POWER_OUTAGE",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "flashing",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "flashing",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -1801,24 +1259,7 @@ Object {
                   "type": "PED_COUNTDOWN",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "stop",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "stop",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -1826,22 +1267,7 @@ Object {
                   "red": "stop",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1871,22 +1297,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1916,24 +1327,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -1970,24 +1364,7 @@ Object {
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2016,24 +1393,7 @@ Object {
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "stop",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -2063,24 +1423,7 @@ Object {
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "stop",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "stop",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -2135,24 +1478,7 @@ Object {
                   "type": "PED_COUNTDOWN",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "stop",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "stop",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -2160,22 +1486,7 @@ Object {
                   "red": "stop",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2205,22 +1516,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2250,24 +1546,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2301,24 +1580,7 @@ Object {
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "wait",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "wait",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -2353,24 +1615,7 @@ Object {
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "wait",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "wait",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -2425,24 +1670,7 @@ Object {
                   "type": "PED_COUNTDOWN",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "stop",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "stop",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -2450,22 +1678,7 @@ Object {
                   "red": "stop",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2495,22 +1708,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2537,24 +1735,7 @@ Object {
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -2584,24 +1765,7 @@ Object {
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "walk",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -2639,7 +1803,7 @@ Object {
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -2668,7 +1832,7 @@ Object {
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -2703,7 +1867,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2730,22 +1894,7 @@ Object {
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -2773,22 +1922,7 @@ Object {
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "yellow",
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -2841,24 +1975,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -2866,22 +1983,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2911,22 +2013,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -2956,24 +2043,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3010,24 +2080,7 @@ Object {
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3059,24 +2112,7 @@ Object {
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "stop",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3105,24 +2141,7 @@ Object {
             "type": "POWER_OUTAGE",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -3176,24 +2195,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -3201,22 +2203,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3246,22 +2233,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3291,24 +2263,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3345,24 +2300,7 @@ Object {
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3415,24 +2353,7 @@ Object {
               "type": "PED_COUNTDOWN",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "wait",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "wait",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -3440,24 +2361,7 @@ Object {
               "red": "wait",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -3511,24 +2415,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -3536,22 +2423,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3581,22 +2453,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3626,24 +2483,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3691,24 +2531,7 @@ Object {
               "type": "TIMER",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "walk",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "walk",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -3716,24 +2539,7 @@ Object {
               "red": "walk",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -3787,24 +2593,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -3812,22 +2601,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3857,22 +2631,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -3918,45 +2677,13 @@ Object {
               "type": "TIMER",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": "yellow",
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "walk",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "yellow",
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -4010,24 +2737,7 @@ Object {
                   "type": "TIMER",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "walk",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "walk",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -4035,22 +2745,7 @@ Object {
                   "red": "walk",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4096,30 +2791,13 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "green",
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -4149,24 +2827,7 @@ Object {
         "type": "POWER_OUTAGE",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "flashing",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "flashing",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -4221,24 +2882,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -4246,22 +2890,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4291,22 +2920,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4336,24 +2950,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4390,24 +2987,7 @@ Object {
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4436,24 +3016,7 @@ Object {
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "stop",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -4483,24 +3046,7 @@ Object {
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "stop",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "stop",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -4555,24 +3101,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -4580,22 +3109,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4625,22 +3139,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4670,24 +3169,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4721,24 +3203,7 @@ Object {
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "wait",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "wait",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -4773,24 +3238,7 @@ Object {
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "wait",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "wait",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -4845,24 +3293,7 @@ Object {
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -4870,22 +3301,7 @@ Object {
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4915,22 +3331,7 @@ Object {
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -4957,24 +3358,7 @@ Object {
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5004,24 +3388,7 @@ Object {
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "walk",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -5059,7 +3426,7 @@ Object {
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5091,7 +3458,7 @@ Object {
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -5129,7 +3496,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -5178,7 +3545,7 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -5187,30 +3554,7 @@ Object {
               "b": "b1",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a2",
-              "b": "b2",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a2",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b2",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5260,7 +3604,7 @@ Object {
           "type": "xstate.init",
         },
         "events": Array [],
-        "historyValue": undefined,
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -5269,30 +3613,7 @@ Object {
           "b": "b1",
         },
       },
-      "historyValue": Object {
-        "current": Object {
-          "a": "a2",
-          "b": "b2",
-        },
-        "states": Object {
-          "a": Object {
-            "current": "a2",
-            "states": Object {
-              "a1": undefined,
-              "a2": undefined,
-              "a3": undefined,
-            },
-          },
-          "b": Object {
-            "current": "b2",
-            "states": Object {
-              "b1": undefined,
-              "b2": undefined,
-              "b3": undefined,
-            },
-          },
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -5330,7 +3651,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -5382,7 +3703,7 @@ Object {
                   "type": "xstate.init",
                 },
                 "events": Array [],
-                "historyValue": undefined,
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -5391,30 +3712,7 @@ Object {
                   "b": "b1",
                 },
               },
-              "historyValue": Object {
-                "current": Object {
-                  "a": "a2",
-                  "b": "b2",
-                },
-                "states": Object {
-                  "a": Object {
-                    "current": "a2",
-                    "states": Object {
-                      "a1": undefined,
-                      "a2": undefined,
-                      "a3": undefined,
-                    },
-                  },
-                  "b": Object {
-                    "current": "b2",
-                    "states": Object {
-                      "b1": undefined,
-                      "b2": undefined,
-                      "b3": undefined,
-                    },
-                  },
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -5463,30 +3761,7 @@ Object {
               "type": "2",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "a": "a2",
-                "b": "b2",
-              },
-              "states": Object {
-                "a": Object {
-                  "current": "a2",
-                  "states": Object {
-                    "a1": undefined,
-                    "a2": undefined,
-                    "a3": undefined,
-                  },
-                },
-                "b": Object {
-                  "current": "b2",
-                  "states": Object {
-                    "b1": undefined,
-                    "b2": undefined,
-                    "b3": undefined,
-                  },
-                },
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -5495,30 +3770,7 @@ Object {
               "b": "b2",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a3",
-              "b": "b3",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a3",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b3",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5573,30 +3825,7 @@ Object {
                   "type": "2",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "a": "a2",
-                    "b": "b2",
-                  },
-                  "states": Object {
-                    "a": Object {
-                      "current": "a2",
-                      "states": Object {
-                        "a1": undefined,
-                        "a2": undefined,
-                        "a3": undefined,
-                      },
-                    },
-                    "b": Object {
-                      "current": "b2",
-                      "states": Object {
-                        "b1": undefined,
-                        "b2": undefined,
-                        "b3": undefined,
-                      },
-                    },
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -5605,30 +3834,7 @@ Object {
                   "b": "b2",
                 },
               },
-              "historyValue": Object {
-                "current": Object {
-                  "a": "a1",
-                  "b": "b1",
-                },
-                "states": Object {
-                  "a": Object {
-                    "current": "a1",
-                    "states": Object {
-                      "a1": undefined,
-                      "a2": undefined,
-                      "a3": undefined,
-                    },
-                  },
-                  "b": Object {
-                    "current": "b1",
-                    "states": Object {
-                      "b1": undefined,
-                      "b2": undefined,
-                      "b3": undefined,
-                    },
-                  },
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -5677,7 +3883,7 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -5686,30 +3892,7 @@ Object {
               "b": "b1",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "a": "a3",
-              "b": "b3",
-            },
-            "states": Object {
-              "a": Object {
-                "current": "a3",
-                "states": Object {
-                  "a1": undefined,
-                  "a2": undefined,
-                  "a3": undefined,
-                },
-              },
-              "b": Object {
-                "current": "b3",
-                "states": Object {
-                  "b1": undefined,
-                  "b2": undefined,
-                  "b3": undefined,
-                },
-              },
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5759,30 +3942,7 @@ Object {
           "type": "2",
         },
         "events": Array [],
-        "historyValue": Object {
-          "current": Object {
-            "a": "a2",
-            "b": "b2",
-          },
-          "states": Object {
-            "a": Object {
-              "current": "a2",
-              "states": Object {
-                "a1": undefined,
-                "a2": undefined,
-                "a3": undefined,
-              },
-            },
-            "b": Object {
-              "current": "b2",
-              "states": Object {
-                "b1": undefined,
-                "b2": undefined,
-                "b3": undefined,
-              },
-            },
-          },
-        },
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
@@ -5791,30 +3951,7 @@ Object {
           "b": "b2",
         },
       },
-      "historyValue": Object {
-        "current": Object {
-          "a": "a3",
-          "b": "b3",
-        },
-        "states": Object {
-          "a": Object {
-            "current": "a3",
-            "states": Object {
-              "a1": undefined,
-              "a2": undefined,
-              "a3": undefined,
-            },
-          },
-          "b": Object {
-            "current": "b3",
-            "states": Object {
-              "b1": undefined,
-              "b2": undefined,
-              "b3": undefined,
-            },
-          },
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -5853,7 +3990,7 @@ Object {
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5882,7 +4019,7 @@ Object {
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -5917,7 +4054,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -5944,13 +4081,7 @@ Object {
             "type": "FOO",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "b",
-            "states": Object {
-              "a": undefined,
-              "b": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -5984,7 +4115,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6030,19 +4161,13 @@ Object {
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "a",
           },
-          "historyValue": Object {
-            "current": "b",
-            "states": Object {
-              "a": undefined,
-              "b": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6070,13 +4195,7 @@ Object {
         "type": "FOO",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "b",
-        "states": Object {
-          "a": undefined,
-          "b": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6119,7 +4238,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6154,13 +4273,7 @@ Object {
                 "value": 1,
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "start",
-                "states": Object {
-                  "finish": undefined,
-                  "start": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6195,13 +4308,7 @@ Object {
                 "value": 1,
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "start",
-                "states": Object {
-                  "finish": undefined,
-                  "start": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6255,25 +4362,13 @@ Object {
               "value": 1,
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": "start",
-              "states": Object {
-                "finish": undefined,
-                "start": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "start",
           },
-          "historyValue": Object {
-            "current": "start",
-            "states": Object {
-              "finish": undefined,
-              "start": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6328,25 +4423,13 @@ Object {
           "value": 1,
         },
         "events": Array [],
-        "historyValue": Object {
-          "current": "start",
-          "states": Object {
-            "finish": undefined,
-            "start": undefined,
-          },
-        },
+        "historyMap": Object {},
         "matches": [Function],
         "meta": Object {},
         "toStrings": [Function],
         "value": "start",
       },
-      "historyValue": Object {
-        "current": "start",
-        "states": Object {
-          "finish": undefined,
-          "start": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6379,7 +4462,7 @@ Object {
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6410,7 +4493,7 @@ Object {
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6448,7 +4531,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6479,13 +4562,7 @@ Object {
             "value": 1,
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "start",
-            "states": Object {
-              "finish": undefined,
-              "start": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6517,13 +4594,7 @@ Object {
         "value": 1,
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "start",
-        "states": Object {
-          "finish": undefined,
-          "start": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6561,7 +4632,7 @@ Object {
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6596,13 +4667,7 @@ Object {
                 "value": 1,
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "start",
-                "states": Object {
-                  "finish": undefined,
-                  "start": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6633,13 +4698,7 @@ Object {
             "value": 1,
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "start",
-            "states": Object {
-              "finish": undefined,
-              "start": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6671,13 +4730,7 @@ Object {
         "value": 1,
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "start",
-        "states": Object {
-          "finish": undefined,
-          "start": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6713,7 +4766,7 @@ Array [
           },
           "events": Array [],
           "history": undefined,
-          "historyValue": undefined,
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6742,7 +4795,7 @@ Array [
       },
       "events": Array [],
       "history": undefined,
-      "historyValue": undefined,
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6777,7 +4830,7 @@ Array [
               },
               "events": Array [],
               "history": undefined,
-              "historyValue": undefined,
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6804,22 +4857,7 @@ Array [
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": "yellow",
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -6847,22 +4885,7 @@ Array [
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": "yellow",
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -6915,24 +4938,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -6940,22 +4946,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -6985,22 +4976,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7027,24 +5003,7 @@ Array [
             "type": "TIMER",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "walk",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "walk",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -7074,24 +5033,7 @@ Array [
         "type": "TIMER",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "walk",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "walk",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -7146,24 +5088,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -7171,22 +5096,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7216,22 +5126,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7261,24 +5156,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7312,24 +5190,7 @@ Array [
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "wait",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "wait",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -7364,24 +5225,7 @@ Array [
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "wait",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "wait",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -7436,24 +5280,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -7461,22 +5288,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7506,22 +5318,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7551,24 +5348,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7605,24 +5385,7 @@ Array [
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7651,24 +5414,7 @@ Array [
             "type": "PED_COUNTDOWN",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "stop",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "stop",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -7698,24 +5444,7 @@ Array [
         "type": "PED_COUNTDOWN",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "stop",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "stop",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
@@ -7770,24 +5499,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -7795,22 +5507,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7840,22 +5537,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7885,24 +5567,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7939,24 +5604,7 @@ Array [
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -7988,24 +5636,7 @@ Array [
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "stop",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "stop",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8034,24 +5665,7 @@ Array [
             "type": "POWER_OUTAGE",
           },
           "events": Array [],
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -8105,24 +5719,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -8130,22 +5727,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8175,22 +5757,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8220,24 +5787,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8274,24 +5824,7 @@ Array [
                 "type": "PED_COUNTDOWN",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "wait",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "wait",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8344,24 +5877,7 @@ Array [
               "type": "PED_COUNTDOWN",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "wait",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "wait",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -8369,24 +5885,7 @@ Array [
               "red": "wait",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -8440,24 +5939,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -8465,22 +5947,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8510,22 +5977,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8555,24 +6007,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": Object {
-                  "red": "walk",
-                },
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8620,24 +6055,7 @@ Array [
               "type": "TIMER",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": Object {
-                "red": "walk",
-              },
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "walk",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
@@ -8645,24 +6063,7 @@ Array [
               "red": "walk",
             },
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -8716,24 +6117,7 @@ Array [
                   "type": "POWER_OUTAGE",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "flashing",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "flashing",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -8741,22 +6125,7 @@ Array [
                   "red": "flashing",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "flashing",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8786,22 +6155,7 @@ Array [
                 "type": "TIMER",
               },
               "events": Array [],
-              "historyValue": Object {
-                "current": "yellow",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -8847,45 +6201,13 @@ Array [
               "type": "TIMER",
             },
             "events": Array [],
-            "historyValue": Object {
-              "current": "yellow",
-              "states": Object {
-                "green": undefined,
-                "red": Object {
-                  "current": "walk",
-                  "states": Object {
-                    "flashing": undefined,
-                    "stop": undefined,
-                    "wait": undefined,
-                    "walk": undefined,
-                  },
-                },
-                "yellow": undefined,
-              },
-            },
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "yellow",
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -8939,24 +6261,7 @@ Array [
                   "type": "TIMER",
                 },
                 "events": Array [],
-                "historyValue": Object {
-                  "current": Object {
-                    "red": "walk",
-                  },
-                  "states": Object {
-                    "green": undefined,
-                    "red": Object {
-                      "current": "walk",
-                      "states": Object {
-                        "flashing": undefined,
-                        "stop": undefined,
-                        "wait": undefined,
-                        "walk": undefined,
-                      },
-                    },
-                    "yellow": undefined,
-                  },
-                },
+                "historyMap": Object {},
                 "matches": [Function],
                 "meta": Object {},
                 "toStrings": [Function],
@@ -8964,22 +6269,7 @@ Array [
                   "red": "walk",
                 },
               },
-              "historyValue": Object {
-                "current": "green",
-                "states": Object {
-                  "green": undefined,
-                  "red": Object {
-                    "current": "walk",
-                    "states": Object {
-                      "flashing": undefined,
-                      "stop": undefined,
-                      "wait": undefined,
-                      "walk": undefined,
-                    },
-                  },
-                  "yellow": undefined,
-                },
-              },
+              "historyMap": Object {},
               "matches": [Function],
               "meta": Object {},
               "toStrings": [Function],
@@ -9025,30 +6315,13 @@ Array [
               "type": "xstate.init",
             },
             "events": Array [],
-            "historyValue": undefined,
+            "historyMap": Object {},
             "matches": [Function],
             "meta": Object {},
             "toStrings": [Function],
             "value": "green",
           },
-          "historyValue": Object {
-            "current": Object {
-              "red": "flashing",
-            },
-            "states": Object {
-              "green": undefined,
-              "red": Object {
-                "current": "flashing",
-                "states": Object {
-                  "flashing": undefined,
-                  "stop": undefined,
-                  "wait": undefined,
-                  "walk": undefined,
-                },
-              },
-              "yellow": undefined,
-            },
-          },
+          "historyMap": Object {},
           "matches": [Function],
           "meta": Object {},
           "toStrings": [Function],
@@ -9078,24 +6351,7 @@ Array [
         "type": "POWER_OUTAGE",
       },
       "events": Array [],
-      "historyValue": Object {
-        "current": Object {
-          "red": "flashing",
-        },
-        "states": Object {
-          "green": undefined,
-          "red": Object {
-            "current": "flashing",
-            "states": Object {
-              "flashing": undefined,
-              "stop": undefined,
-              "wait": undefined,
-              "walk": undefined,
-            },
-          },
-          "yellow": undefined,
-        },
-      },
+      "historyMap": Object {},
       "matches": [Function],
       "meta": Object {},
       "toStrings": [Function],
