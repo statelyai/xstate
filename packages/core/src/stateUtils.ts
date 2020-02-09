@@ -5,7 +5,6 @@ import {
   toStatePath,
   toStatePaths,
   mapFilterValues,
-  nestedPath,
   toArray,
   warn,
   isArray,
@@ -489,13 +488,13 @@ function resolveTarget<TContext, TEvent extends EventObject>(
  */
 function resolveHistory<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
-  historyValue?: HistoryValue
+  state?: State<TContext, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
   if (stateNode.type !== 'history') {
     return [stateNode];
   }
   const parent = stateNode.parent!;
-  if (!historyValue) {
+  if (!state || !state.historyMap[stateNode.id]) {
     const historyTarget = stateNode.target;
     return historyTarget
       ? flatten(
@@ -505,19 +504,8 @@ function resolveHistory<TContext, TEvent extends EventObject>(
         )
       : getInitialStateNodes(parent);
   }
-  const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
-    historyValue
-  ).current;
-  if (isString(subHistoryValue)) {
-    return [getStateNode(parent, subHistoryValue)];
-  }
-  return flatten(
-    toStatePaths(subHistoryValue!).map(subStatePath => {
-      return stateNode.history === 'deep'
-        ? getFromRelativePath(parent, subStatePath)
-        : [parent.states[subStatePath[0]]];
-    })
-  );
+
+  return state.historyMap[stateNode.id];
 }
 export function getHistoryValue<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
@@ -588,12 +576,12 @@ function getFromRelativePath<TContext, TEvent extends EventObject>(
  */
 export function getRelativeStateNodes<TContext, TEvent extends EventObject>(
   relativeStateNode: StateNode<TContext, any, TEvent>,
-  historyValue?: HistoryValue,
+  state?: State<TContext, TEvent>,
   resolveInitialStateNodes: boolean = true
 ): Array<StateNode<TContext, any, TEvent>> {
   return resolveInitialStateNodes
     ? relativeStateNode.type === 'history'
-      ? resolveHistory(relativeStateNode, historyValue)
+      ? resolveHistory(relativeStateNode, state)
       : getInitialStateNodes(relativeStateNode)
     : [relativeStateNode];
 }
@@ -856,35 +844,8 @@ export function getActions<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   transition: StateTransition<TContext, TEvent>,
   currentContext: TContext,
-  _event: SCXML.Event<TEvent>,
-  prevState?: State<TContext>
+  _event: SCXML.Event<TEvent>
 ): Array<ActionObject<TContext, TEvent>> {
-  const prevConfig = getConfiguration(
-    [],
-    prevState ? getStateNodes(stateNode, prevState.value) : [stateNode]
-  );
-  const resolvedConfig = transition.configuration.length
-    ? getConfiguration(prevConfig, transition.configuration)
-    : prevConfig;
-
-  for (const sn of resolvedConfig) {
-    if (!has(prevConfig, sn)) {
-      transition.entrySet.push(sn);
-    }
-  }
-  for (const sn of prevConfig) {
-    if (!has(resolvedConfig, sn) || has(transition.exitSet, sn.parent)) {
-      transition.exitSet.push(sn);
-    }
-  }
-
-  if (!transition.source) {
-    transition.exitSet = [];
-
-    // Ensure that root StateNode (machine) is entered
-    transition.entrySet.push(stateNode);
-  }
-
   const doneEvents = flatten(
     transition.entrySet.map(sn => {
       const events: DoneEventObject[] = [];
@@ -921,9 +882,6 @@ export function getActions<TContext, TEvent extends EventObject>(
     })
   );
 
-  transition.exitSet.sort((a, b) => b.order - a.order);
-  transition.entrySet.sort((a, b) => a.order - b.order);
-
   const entryStates = new Set(transition.entrySet);
   const exitStates = new Set(transition.exitSet);
 
@@ -958,8 +916,8 @@ export function transitionLeafNode<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): StateTransition<TContext, TEvent> | undefined {
-  const ancestorStateNode = getStateNode(stateNode, stateValue);
-  const next = ancestorStateNode.next(state, _event);
+  const childStateNode = getStateNode(stateNode, stateValue);
+  const next = childStateNode.next(state, _event);
 
   if (!next || !next.transitions.length) {
     return stateNode.next(state, _event);
@@ -1082,6 +1040,26 @@ export function resolveRaisedTransition<
   return state;
 }
 
+function getHistoryNodes<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>
+): Array<StateNode<TContext, any, TEvent>> {
+  return getChildren(stateNode).filter(sn => {
+    return sn.type === 'history';
+  });
+}
+
+function isDescendant(
+  childStateNode: StateNode,
+  parentStateNode: StateNode
+): boolean {
+  let marker = childStateNode;
+  while (marker.parent && marker.parent !== parentStateNode) {
+    marker = marker.parent;
+  }
+
+  return marker.parent === parentStateNode;
+}
+
 export function resolveTransition<
   TContext,
   TEvent extends EventObject,
@@ -1093,7 +1071,7 @@ export function resolveTransition<
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
   context: TContext = machine.machine.context!
 ): State<TContext, TEvent, any, TTypestate> {
-  const { configuration } = stateTransition;
+  const { configuration, exitSet } = stateTransition;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1102,6 +1080,57 @@ export function resolveTransition<
   const resolvedStateValue = willTransition
     ? getValue(machine.machine, configuration)
     : undefined;
+
+  // Entry and exit set
+  const prevConfig = getConfiguration(
+    [],
+    currentState ? getStateNodes(machine, currentState.value) : [machine]
+  );
+  const resolvedConfig = stateTransition.configuration.length
+    ? getConfiguration(prevConfig, stateTransition.configuration)
+    : prevConfig;
+
+  for (const sn of resolvedConfig) {
+    if (!has(prevConfig, sn)) {
+      stateTransition.entrySet.push(sn);
+    }
+  }
+  for (const sn of prevConfig) {
+    if (!has(resolvedConfig, sn) || has(stateTransition.exitSet, sn.parent)) {
+      stateTransition.exitSet.push(sn);
+    }
+  }
+
+  if (!stateTransition.source) {
+    stateTransition.exitSet = [];
+
+    // Ensure that root StateNode (machine) is entered
+    stateTransition.entrySet.push(machine);
+  }
+  stateTransition.exitSet.sort((a, b) => b.order - a.order);
+  stateTransition.entrySet.sort((a, b) => a.order - b.order);
+
+  // History
+  const historyMap: Record<
+    string,
+    Array<StateNode<TContext, any, TEvent>>
+  > = currentState ? currentState.historyMap : {};
+  if (currentState && currentState.configuration) {
+    for (const exitStateNode of new Set(exitSet)) {
+      for (const historyNode of getHistoryNodes(exitStateNode)) {
+        if (historyNode.history === 'deep') {
+          historyMap[historyNode.id] = currentState.configuration.filter(
+            sn => isLeafNode(sn) && isDescendant(sn, exitStateNode)
+          );
+        } else {
+          historyMap[historyNode.id] = currentState.configuration.filter(sn => {
+            return sn.parent === exitStateNode;
+          });
+        }
+      }
+    }
+  }
+
   const historyValue = currentState
     ? currentState.historyValue
       ? currentState.historyValue
@@ -1110,13 +1139,7 @@ export function resolveTransition<
       : undefined
     : undefined;
   const currentContext = currentState ? currentState.context : context;
-  const actions = getActions(
-    machine,
-    stateTransition,
-    currentContext,
-    _event,
-    currentState
-  );
+  const actions = getActions(machine, stateTransition, currentContext, _event);
 
   const [assignActions, otherActions] = partition(
     actions,
@@ -1231,6 +1254,7 @@ export function resolveTransition<
       : undefined,
     history:
       !resolvedStateValue || stateTransition.source ? currentState : undefined,
+
     actions: resolvedStateValue ? nonRaisedActions : [],
     meta: resolvedStateValue
       ? meta
@@ -1303,6 +1327,7 @@ export function resolveTransition<
   // Preserve original history after raised events
   maybeNextState.historyValue = nextState.historyValue;
   maybeNextState.history = history;
+  maybeNextState.historyMap = historyMap;
 
   return maybeNextState;
 }

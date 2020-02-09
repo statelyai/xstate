@@ -57,6 +57,10 @@ export class State<
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
   public history?: State<TContext, TEvent, TStateSchema>;
+  public historyMap: Record<
+    string,
+    Array<StateNode<TContext, any, TEvent>>
+  > = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
   public events: TEvent[] = [];

@@ -354,6 +354,17 @@ export class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
+    if (this.type === 'history' && state.historyMap[this.id]) {
+      return {
+        transitions: [],
+        configuration: state.historyMap[this.id],
+        entrySet: [],
+        exitSet: [],
+        source: state,
+        actions: []
+      };
+    }
+
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
@@ -425,7 +436,7 @@ export class StateNode<
 
     const allNextStateNodes = flatten(
       nextStateNodes.map(stateNode => {
-        return getRelativeStateNodes(stateNode, state.historyValue);
+        return getRelativeStateNodes(stateNode, state);
       })
     );
 
