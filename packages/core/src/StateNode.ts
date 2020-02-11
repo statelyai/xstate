@@ -460,12 +460,15 @@ class StateNode<
   /**
    * Clones this state machine with custom context.
    *
-   * @param context Custom context (will override predefined context, not recursive)
+   * @param context Custom context (will shallow merge predefined context with new context)
    */
   public withContext(
     context: TContext
   ): StateNode<TContext, TStateSchema, TEvent> {
-    return new StateNode(this.config, this.options, context);
+    return new StateNode(this.config, this.options, {
+      ...this.context,
+      ...context
+    });
   }
 
   /**

@@ -834,6 +834,68 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should add to the child context, not overwrite it', done => {
+      let contextFromChild;
+      const childMachine = Machine({
+        id: 'pong',
+        initial: 'active',
+        context: {
+          externalContext: null,
+          internalContext: 'child'
+        },
+        states: {
+          active: {
+            type: 'final',
+            data: { secret: 'pingpong' },
+            entry: context => {
+              contextFromChild = { ...context };
+            }
+          }
+        }
+      });
+
+      const parentMachine = Machine({
+        id: 'ping',
+        type: 'parallel',
+        context: {
+          parentContext: 'parent'
+        },
+        states: {
+          one: {
+            initial: 'active',
+            states: {
+              active: {
+                invoke: {
+                  id: 'pong',
+                  src: childMachine,
+                  onDone: {
+                    target: 'success',
+                    cond: (_, e) => e.data.secret === 'pingpong'
+                  },
+                  data: {
+                    externalContext: ctx => ctx.parentContext
+                  }
+                }
+              },
+              success: {
+                type: 'final'
+              }
+            }
+          }
+        }
+      });
+
+      interpret(parentMachine)
+        .onDone(() => {
+          expect(contextFromChild).toEqual({
+            externalContext: 'parent',
+            internalContext: 'child'
+          });
+          done();
+        })
+        .start();
+    });
   });
 
   type PromiseExecutor = (
