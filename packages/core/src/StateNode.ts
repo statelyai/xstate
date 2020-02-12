@@ -354,10 +354,10 @@ export class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent> | undefined {
-    if (this.type === 'history' && state.historyMap[this.id]) {
+    if (this.type === 'history' && state.historyValue[this.id]) {
       return {
         transitions: [],
-        configuration: state.historyMap[this.id],
+        configuration: state.historyValue[this.id],
         entrySet: [],
         exitSet: [],
         source: state,

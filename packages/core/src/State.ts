@@ -55,7 +55,7 @@ export class State<
   public value: StateValue;
   public context: TContext;
   public history?: State<TContext, TEvent, TStateSchema>;
-  public historyMap: Record<
+  public historyValue: Record<
     string,
     Array<StateNode<TContext, any, TEvent>>
   > = {};

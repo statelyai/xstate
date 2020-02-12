@@ -486,7 +486,7 @@ function resolveHistory<TContext, TEvent extends EventObject>(
   state?: State<TContext, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
   const parent = stateNode.parent!;
-  if (!state || !state.historyMap[stateNode.id]) {
+  if (!state || !state.historyValue[stateNode.id]) {
     const historyTarget = stateNode.target;
     return historyTarget
       ? flatten(
@@ -497,7 +497,7 @@ function resolveHistory<TContext, TEvent extends EventObject>(
       : getInitialStateNodes(parent);
   }
 
-  return state.historyMap[stateNode.id];
+  return state.historyValue[stateNode.id];
 }
 
 function isHistoryNode<TContext, TEvent extends EventObject>(
@@ -1082,7 +1082,7 @@ export function resolveTransition<
   const historyMap: Record<
     string,
     Array<StateNode<TContext, any, TEvent>>
-  > = currentState ? currentState.historyMap : {};
+  > = currentState ? currentState.historyValue : {};
   if (currentState && currentState.configuration) {
     // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
     for (const exitStateNode of new Set(exitSet)) {
@@ -1284,7 +1284,7 @@ export function resolveTransition<
 
   // Preserve original history after raised events
   maybeNextState.history = history;
-  maybeNextState.historyMap = historyMap;
+  maybeNextState.historyValue = historyMap;
 
   return maybeNextState;
 }
