@@ -557,6 +557,11 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
+export type HistoryValue<TContext, TEvent extends EventObject> = Record<
+  string,
+  Array<StateNode<TContext, any, TEvent>>
+>;
+
 export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
   TMachine['transition']
 >;

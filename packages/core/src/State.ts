@@ -7,7 +7,8 @@ import {
   SCXML,
   StateSchema,
   TransitionDefinition,
-  Typestate
+  Typestate,
+  HistoryValue
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
@@ -55,10 +56,7 @@ export class State<
   public value: StateValue;
   public context: TContext;
   public history?: State<TContext, TEvent, TStateSchema>;
-  public historyValue: Record<
-    string,
-    Array<StateNode<TContext, any, TEvent>>
-  > = {};
+  public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
   public events: TEvent[] = [];

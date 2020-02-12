@@ -42,7 +42,8 @@ import {
   RaiseActionObject,
   SendActionObject,
   SpecialTargets,
-  ActivityActionObject
+  ActivityActionObject,
+  HistoryValue
 } from './types';
 import { State } from './State';
 import {
@@ -932,9 +933,14 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
     }
 
     const subStateNode = getStateNode(stateNode, subStateKey);
-    const next = transitionNode(subStateNode, subStateValue, state, _event);
-    if (next) {
-      transitionMap[subStateKey] = next;
+    const nextStateNode = transitionNode(
+      subStateNode,
+      subStateValue,
+      state,
+      _event
+    );
+    if (nextStateNode) {
+      transitionMap[subStateKey] = nextStateNode;
     }
   }
 
@@ -1079,30 +1085,10 @@ export function resolveTransition<
   stateTransition.entrySet.sort((a, b) => a.order - b.order);
 
   // History
-  const historyMap: Record<
-    string,
-    Array<StateNode<TContext, any, TEvent>>
-  > = currentState ? currentState.historyValue : {};
-  if (currentState && currentState.configuration) {
-    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-    for (const exitStateNode of new Set(exitSet)) {
-      for (const historyNode of getHistoryNodes(exitStateNode)) {
-        let predicate: (sn: StateNode<TContext, any, TEvent>) => boolean;
-
-        if (historyNode.history === 'deep') {
-          predicate = sn => isLeafNode(sn) && isDescendant(sn, exitStateNode);
-        } else {
-          predicate = sn => {
-            return sn.parent === exitStateNode;
-          };
-        }
-
-        historyMap[historyNode.id] = currentState.configuration.filter(
-          predicate
-        );
-      }
-    }
-  }
+  const historyValue = resolveHistoryValue<TContext, TEvent>(
+    currentState,
+    exitSet
+  );
 
   const currentContext = currentState ? currentState.context : context;
   const actions = getActions(machine, stateTransition, currentContext, _event);
@@ -1284,9 +1270,38 @@ export function resolveTransition<
 
   // Preserve original history after raised events
   maybeNextState.history = history;
-  maybeNextState.historyValue = historyMap;
+  maybeNextState.historyValue = historyValue;
 
   return maybeNextState;
+}
+
+function resolveHistoryValue<TContext, TEvent extends EventObject>(
+  currentState: State<TContext, TEvent, any, any> | undefined,
+  exitSet: Array<StateNode<TContext, any, TEvent>>
+): HistoryValue<TContext, TEvent> {
+  const historyValue: Record<
+    string,
+    Array<StateNode<TContext, any, TEvent>>
+  > = currentState ? currentState.historyValue : {};
+  if (currentState && currentState.configuration) {
+    // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
+    for (const exitStateNode of new Set(exitSet)) {
+      for (const historyNode of getHistoryNodes(exitStateNode)) {
+        let predicate: (sn: StateNode<TContext, any, TEvent>) => boolean;
+        if (historyNode.history === 'deep') {
+          predicate = sn => isLeafNode(sn) && isDescendant(sn, exitStateNode);
+        } else {
+          predicate = sn => {
+            return sn.parent === exitStateNode;
+          };
+        }
+        historyValue[historyNode.id] = currentState.configuration.filter(
+          predicate
+        );
+      }
+    }
+  }
+  return historyValue;
 }
 
 /**
