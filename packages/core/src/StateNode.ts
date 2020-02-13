@@ -362,7 +362,7 @@ export class StateNode<
         transitions: [],
         configuration: state.historyValue[this.id],
         entrySet: [],
-        exitSet: [],
+        exitSet: [], // TODO: not needed
         source: state,
         actions: []
       };
@@ -430,7 +430,7 @@ export class StateNode<
       return {
         transitions: [selectedTransition],
         entrySet: [],
-        exitSet: [],
+        exitSet: [], // TODO: not needed
         configuration: state.value ? [this] : [],
         source: state,
         actions
@@ -456,7 +456,7 @@ export class StateNode<
     return {
       transitions: [selectedTransition],
       entrySet: reentryNodes,
-      exitSet: isInternal ? [] : [this],
+      exitSet: [], // TODO: not needed
       configuration: allNextStateNodes,
       source: state,
       actions

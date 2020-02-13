@@ -234,7 +234,7 @@ export class MachineNode<
       transitions: [],
       configuration: [],
       entrySet: [],
-      exitSet: [],
+      exitSet: [], // TODO: not needed
       source: currentState,
       actions: []
     };

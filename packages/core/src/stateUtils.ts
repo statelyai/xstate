@@ -593,7 +593,7 @@ export function getInitialState<
     {
       configuration,
       entrySet: configuration,
-      exitSet: [],
+      exitSet: [], // TODO: not needed
       transitions: [],
       source: undefined,
       actions: []
@@ -963,7 +963,7 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   return {
     transitions: enabledTransitions,
     entrySet: entryNodes,
-    exitSet: flatten(stateTransitions.map(t => t.exitSet)),
+    exitSet: [], // TODO: not needed
     configuration,
     source: state,
     actions: flatten(
@@ -1166,15 +1166,8 @@ export function resolveTransition<
       stateTransition.entrySet.push(sn);
     }
   }
-  for (const sn of prevConfig) {
-    if (!has(resolvedConfig, sn) || has(stateTransition.exitSet, sn.parent)) {
-      stateTransition.exitSet.push(sn);
-    }
-  }
 
   if (!stateTransition.source) {
-    stateTransition.exitSet = [];
-
     // Ensure that root StateNode (machine) is entered
     stateTransition.entrySet.push(machine);
   }
