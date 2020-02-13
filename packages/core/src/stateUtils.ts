@@ -1034,6 +1034,103 @@ function isDescendant<TC, TE extends EventObject>(
   return marker.parent === parentStateNode;
 }
 
+function getPathFromRootToNode<TC, TE extends EventObject>(
+  stateNode: StateNode<TC, any, TE>
+): Array<StateNode<TC, any, TE>> {
+  const path: Array<StateNode<TC, any, TE>> = [];
+  let marker = stateNode.parent;
+
+  while (marker) {
+    path.unshift(marker);
+    marker = marker.parent;
+  }
+
+  return path;
+}
+
+function findLCCA<TContext, TEvent extends EventObject>(
+  stateNodes: Array<StateNode<TContext, any, TEvent>>
+): StateNode<TContext, any, TEvent> {
+  const [head] = stateNodes;
+
+  let current = getPathFromRootToNode(head);
+  let candidates: Array<StateNode<TContext, any, TEvent>> = [];
+
+  stateNodes.forEach(stateNode => {
+    const path = getPathFromRootToNode(stateNode);
+
+    candidates = current.filter(sn => path.includes(sn));
+    current = candidates;
+    candidates = [];
+  });
+
+  return current[current.length - 1];
+}
+
+function getEffectiveTargetStates<TC, TE extends EventObject>(
+  transition: TransitionDefinition<TC, TE>,
+  state: State<TC, TE>
+): Array<StateNode<TC, any, TE>> {
+  const targets = new Set<StateNode<TC, any, TE>>();
+
+  for (const s of transition.target || []) {
+    if (isHistoryNode(s)) {
+      resolveHistory(s, state).forEach(t => targets.add(t));
+    } else {
+      targets.add(s);
+    }
+  }
+
+  return [...targets];
+}
+
+function getTransitionDomain<TContext, TEvent extends EventObject>(
+  transition: TransitionDefinition<TContext, TEvent>,
+  state: State<TContext, TEvent>
+): StateNode<TContext, any, TEvent> | null {
+  const targetStates = getEffectiveTargetStates(transition, state);
+
+  if (!targetStates) {
+    return null;
+  }
+
+  if (
+    transition.internal &&
+    transition.source.type === 'compound' &&
+    targetStates.every(targetStateNode =>
+      isDescendant(targetStateNode, transition.source)
+    )
+  ) {
+    return transition.source;
+  }
+
+  const lcca = findLCCA(targetStates.concat(transition.source));
+
+  return lcca;
+}
+
+function computeExitSet<TContext, TEvent extends EventObject>(
+  transitions: Array<TransitionDefinition<TContext, TEvent>>,
+  configuration: Array<StateNode<TContext, any, TEvent>>,
+  state: State<TContext, TEvent>
+): Array<StateNode<TContext, any, TEvent>> {
+  const statesToExit = new Set<StateNode<TContext, any, TEvent>>();
+
+  for (const t of transitions) {
+    if (t.target && t.target.length) {
+      const domain = getTransitionDomain(t, state);
+
+      for (const s of configuration) {
+        if (isDescendant(s, domain!)) {
+          statesToExit.add(s);
+        }
+      }
+    }
+  }
+
+  return [...statesToExit];
+}
+
 export function resolveTransition<
   TContext,
   TEvent extends EventObject,
@@ -1045,7 +1142,7 @@ export function resolveTransition<
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
   context: TContext = machine.machine.context!
 ): State<TContext, TEvent, any, TTypestate> {
-  const { configuration, exitSet } = stateTransition;
+  const { configuration } = stateTransition;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1081,13 +1178,24 @@ export function resolveTransition<
     // Ensure that root StateNode (machine) is entered
     stateTransition.entrySet.push(machine);
   }
-  stateTransition.exitSet.sort((a, b) => b.order - a.order);
   stateTransition.entrySet.sort((a, b) => a.order - b.order);
+
+  const computedExitSet =
+    currentState && currentState.configuration
+      ? computeExitSet(
+          stateTransition.transitions,
+          currentState.configuration,
+          currentState
+        )
+      : stateTransition.exitSet;
+
+  stateTransition.exitSet = computedExitSet;
+  stateTransition.exitSet.sort((a, b) => b.order - a.order);
 
   // History
   const historyValue = resolveHistoryValue<TContext, TEvent>(
     currentState,
-    exitSet
+    stateTransition.exitSet
   );
 
   const currentContext = currentState ? currentState.context : context;

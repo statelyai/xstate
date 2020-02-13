@@ -25,7 +25,10 @@ const wordMachine = Machine({
         CENTER_CLICK: '.center',
         JUSTIFY_CLICK: '.justify',
         RESET: 'direction', // explicit self-transition
-        RESET_TO_CENTER: 'direction.center'
+        RESET_TO_CENTER: {
+          target: 'direction.center',
+          internal: false
+        }
       }
     }
   }

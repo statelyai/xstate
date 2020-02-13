@@ -136,7 +136,10 @@ export class StateNode<
 
   protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
-    relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
+    relativeValue: new Map() as Map<
+      StateNode<TContext, any, TEvent>,
+      StateValue
+    >,
     initialStateValue: undefined as StateValue | undefined,
     initialState: undefined as State<TContext, TEvent> | undefined,
     on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
