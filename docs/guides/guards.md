@@ -218,6 +218,9 @@ const doorMachine = Machine(
           SET_ADMIN: {
             actions: assign({ level: 'admin' })
           },
+          SET_ALARM: {
+            actions: assign({ alert: true })
+          },
           OPEN: [
             // Transitions are tested one at a time.
             // The first valid transition will be taken.
@@ -246,6 +249,13 @@ const doorService = interpret(doorMachine)
   .onTransition(state => console.log(state.value))
   .start();
 // => { closed: 'idle' }
+
+doorService.send('OPEN');
+// => { closed: 'idle' }
+
+doorService.send('SET_ALARM');
+// => { closed: 'idle' }
+// (state does not change, but context changes)
 
 doorService.send('OPEN');
 // => { closed: 'error' }
