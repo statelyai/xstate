@@ -852,7 +852,7 @@ export function getActions<TContext, TEvent extends EventObject>(
   );
 
   const entryStates = new Set(transition.entrySet);
-  const exitStates = new Set(transition.exitSet);
+  const statesToExit = new Set(transition.exitSet);
 
   const [entryActions, exitActions] = [
     flatten(
@@ -864,7 +864,7 @@ export function getActions<TContext, TEvent extends EventObject>(
       })
     ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
     flatten(
-      Array.from(exitStates).map(exitNode => [
+      Array.from(statesToExit).map(exitNode => [
         ...exitNode.exit,
         ...getActivities(exitNode).map(activity => stop(activity))
       ])
@@ -1109,6 +1109,32 @@ function getTransitionDomain<TContext, TEvent extends EventObject>(
   return lcca;
 }
 
+function exitStates<TContext, TEvent extends EventObject>(
+  transitions: Array<TransitionDefinition<TContext, TEvent>>,
+  configuration: Array<StateNode<TContext, any, TEvent>>,
+  state: State<TContext, TEvent>
+) {
+  const statesToExit = computeExitSet(transitions, configuration, state);
+
+  statesToExit.sort((a, b) => b.order - a.order);
+
+  const historyValue = resolveHistoryValue(state, statesToExit);
+
+  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const newConfiguration = new Set(configuration);
+  for (const s of statesToExit) {
+    actions.push(...flatten(s.exit));
+    newConfiguration.delete(s);
+  }
+
+  return {
+    exitSet: statesToExit,
+    historyValue,
+    actions,
+    configuration: [...newConfiguration]
+  };
+}
+
 function computeExitSet<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   configuration: Array<StateNode<TContext, any, TEvent>>,
@@ -1173,23 +1199,22 @@ export function resolveTransition<
   }
   stateTransition.entrySet.sort((a, b) => a.order - b.order);
 
-  const computedExitSet =
+  const { exitSet: computedExitSet, historyValue } =
     currentState && currentState.configuration
-      ? computeExitSet(
+      ? exitStates(
           stateTransition.transitions,
           currentState.configuration,
           currentState
         )
-      : stateTransition.exitSet;
+      : {
+          exitSet: stateTransition.exitSet,
+          historyValue: resolveHistoryValue<TContext, TEvent>(
+            currentState,
+            stateTransition.exitSet
+          )
+        };
 
   stateTransition.exitSet = computedExitSet;
-  stateTransition.exitSet.sort((a, b) => b.order - a.order);
-
-  // History
-  const historyValue = resolveHistoryValue<TContext, TEvent>(
-    currentState,
-    stateTransition.exitSet
-  );
 
   const currentContext = currentState ? currentState.context : context;
   const actions = getActions(machine, stateTransition, currentContext, _event);
