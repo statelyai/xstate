@@ -29,13 +29,8 @@ const machine = Machine<any, Events>({
           target: 'one',
           internal: false
         },
-        INERT: {
-          target: 'one',
-          internal: true
-        },
+        INERT: {},
         INTERNAL: {
-          target: 'one',
-          internal: true,
           actions: ['doSomething']
         },
         TO_TWO: 'two',
@@ -259,16 +254,17 @@ describe('State', () => {
 
   describe('.nextEvents', () => {
     it('returns the next possible events for the current state', () => {
-      expect(machine.initialState.nextEvents.sort()).toEqual([
-        'EXTERNAL',
-        'INERT',
-        'INTERNAL',
-        'MACHINE_EVENT',
-        'TO_FINAL',
-        'TO_THREE',
-        'TO_TWO',
-        'TO_TWO_MAYBE'
-      ]);
+      expect(machine.initialState.nextEvents.sort()).toEqual(
+        [
+          'EXTERNAL',
+          'INTERNAL',
+          'MACHINE_EVENT',
+          'TO_FINAL',
+          'TO_THREE',
+          'TO_TWO',
+          'TO_TWO_MAYBE'
+        ].sort()
+      );
 
       expect(
         machine.transition(machine.initialState, 'TO_TWO').nextEvents.sort()

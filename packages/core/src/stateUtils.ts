@@ -832,8 +832,10 @@ export function getActions<TContext, TEvent extends EventObject>(
   currentContext: TContext,
   _event: SCXML.Event<TEvent>
 ): Array<ActionObject<TContext, TEvent>> {
+  const entryStates = new Set(transition.entrySet);
+
   const doneEvents = flatten(
-    transition.entrySet.map(sn => {
+    [...entryStates].map(sn => {
       const events: DoneEventObject[] = [];
 
       if (sn.type !== 'final') {
@@ -868,7 +870,6 @@ export function getActions<TContext, TEvent extends EventObject>(
     })
   );
 
-  const entryStates = new Set(transition.entrySet);
   const statesToExit = new Set(transition.exitSet);
 
   const [entryActions, exitActions] = [
@@ -1158,11 +1159,10 @@ function exitStates<TContext, TEvent extends EventObject>(
 
 export function enterStates<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  // configuration: Array<StateNode<TContext, any, TEvent>>,
+  configuration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ) {
   const defaultHistoryContent = {};
-  const configuration = new Set<StateNode<TContext, any, TEvent>>();
   const statesToInvoke: typeof configuration = new Set();
   const internalQueue: EventObject[] = [];
 
@@ -1431,25 +1431,48 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   stateTransition: StateTransition<TContext, TEvent>,
   currentState: State<TContext, TEvent> | undefined,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   c: Array<StateNode<TContext, any, TEvent>>
 ) {
-  if (!currentState) {
-    return flatten(c.map(sn => sn.entry)).concat(flatten(c.map(s => s.invoke)));
+  const actions: Array<ActionObject<TContext, TEvent>> = [];
+  const configuration: Array<StateNode<TContext, any, TEvent>> = currentState
+    ? []
+    : stateTransition.configuration; // TODO: handle this better
+
+  const transitions = currentState
+    ? stateTransition.transitions
+    : [
+        {
+          target: stateTransition.configuration,
+          source: machine,
+          actions: [],
+          eventType: 'init'
+        }
+      ];
+
+  if (currentState) {
+    const current = currentState;
+
+    const {
+      historyValue,
+      configuration: configurationFromExit,
+      actions: exitActions
+    } = exitStates(transitions, c, current);
+
+    actions.push(...exitActions);
+
+    current.historyValue = historyValue;
+
+    actions.push(...stateTransition.actions);
+
+    configuration.push(...configurationFromExit);
   }
 
-  const current = currentState || State.from({}, context);
-
-  const { historyValue, configuration, actions } = exitStates(
-    stateTransition.transitions,
-    c,
-    current
+  const res = enterStates(
+    transitions,
+    new Set(configuration),
+    currentState || State.from({})
   );
-
-  current.historyValue = historyValue;
-
-  actions.push(...stateTransition.actions);
-
-  const res = enterStates(stateTransition.transitions, current);
 
   // internal queue events
   actions.push(...res.internalQueue);
@@ -1546,14 +1569,19 @@ export function resolveTransition<
   const currentContext = currentState ? currentState.context : context;
   const actions = getActions(machine, stateTransition, currentContext, _event);
 
-  // const xres = xresolveTransition(stateTransition, currentState, _event, [
-  //   ...prevConfig
-  // ]);
-  // if (actions.length !== xres.length) {
-  //   console.log('actions', actions.map(a => a.type));
-  //   console.log('calcula', xres.map(a => a.type));
-  //   throw new Error('no');
-  // }
+  const xres = xresolveTransition(
+    stateTransition,
+    currentState,
+    _event,
+    machine,
+    [...prevConfig]
+  );
+  if (actions.length !== xres.length) {
+    console.log(_event.name);
+    console.log('actions', actions.map(a => a));
+    console.log('calcula', xres.map(a => a.type));
+    throw new Error('no');
+  }
 
   const [assignActions, otherActions] = partition(
     actions,
