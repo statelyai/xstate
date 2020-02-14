@@ -19,6 +19,7 @@ const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
   cwd: require.resolve('@scion-scxml/test-framework')
 }) as string);
 
+// @ts-ignore
 const testGroups = {
   actionSend: [
     'send1',
@@ -413,11 +414,13 @@ async function runTestToCompletion(
 }
 
 describe('scxml', () => {
-  // const testGroupKeys = Object.keys(testGroups);
-  const testGroupKeys = ['w3c-ecma'];
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+    const testNames = testGroups[testGroupName];
+    // const testNames = ['test406.txml'];
+    testNames.forEach(testName => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1

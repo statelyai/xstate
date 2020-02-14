@@ -1175,7 +1175,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
     statesToEnter
   );
 
-  for (const s of [...statesToEnter].sort((a, b) => b.order - a.order)) {
+  for (const s of [...statesToEnter].sort((a, b) => a.order - b.order)) {
     configuration.add(s);
     statesToInvoke.add(s);
     actions.push(...s.entry);
@@ -1187,7 +1187,12 @@ export function enterStates<TContext, TEvent extends EventObject>(
     // }
     if (s.type === 'final') {
       const parent = s.parent!;
-      internalQueue.push(done(parent!.id, s.data));
+      internalQueue.push(
+        done(
+          parent!.id,
+          s.data ? mapContext(s.data, state.context, state._event) : undefined
+        )
+      );
 
       if (parent.parent) {
         const grandparent = parent.parent;
@@ -1479,11 +1484,20 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
   configuration.push(...res.configuration);
 
-  actions.push(...flatten([...res.statesToInvoke].map(s => s.invoke)));
+  actions.push(
+    ...flatten(
+      [...res.statesToInvoke].map(s =>
+        s.invoke.map(invokeDef => start(invokeDef))
+      )
+    )
+  );
 
   actions.push(...res.actions);
 
-  return actions;
+  return {
+    actions,
+    configuration
+  };
 }
 
 export function resolveTransition<
@@ -1576,15 +1590,21 @@ export function resolveTransition<
     machine,
     [...prevConfig]
   );
-  if (actions.length !== xres.length) {
+
+  xres.actions = toActionObjects(xres.actions, machine.options.actions);
+
+  if (
+    actions.length !== xres.actions.length
+    // !actions.every((a, i) => a.type === xres.actions[i].type)
+  ) {
     console.log(_event.name);
     console.log('actions', actions.map(a => a));
-    console.log('calcula', xres.map(a => a));
-    throw new Error('no');
+    console.log('calcula', xres.actions.map(a => a));
+    // throw new Error('no');
   }
 
   const [assignActions, otherActions] = partition(
-    xres,
+    xres.actions,
     (action): action is AssignAction<TContext, TEvent> =>
       action.type === actionTypes.assign
   );

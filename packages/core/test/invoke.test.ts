@@ -2204,9 +2204,14 @@ describe('invoke', () => {
         TWO: {
           actions: assign({
             two: 'two'
-          }),
-          target: '.three'
+          })
         }
+      },
+
+      after: {
+        // allow both invoked services to get a chance to send their events
+        // and don't depend on a potential race condition (with an immediate transition)
+        10: '.three'
       },
 
       states: {
