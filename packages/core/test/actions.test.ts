@@ -939,7 +939,7 @@ describe('forwardTo()', () => {
       .onDone(() => done())
       .start();
 
-    service.send('EVENT', { value: 42 });
+    service.send({ type: 'EVENT', value: 42 });
   });
 
   it('should forward an event to a service (dynamic)', done => {
@@ -986,7 +986,7 @@ describe('forwardTo()', () => {
       .onDone(() => done())
       .start();
 
-    service.send('EVENT', { value: 42 });
+    service.send({ type: 'EVENT', value: 42 });
   });
 });
 

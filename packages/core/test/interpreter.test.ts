@@ -1170,21 +1170,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.send({ type: 'EVENT', id: 42 });
     });
 
-    it('can send events with a string and object payload', done => {
-      let state: any;
-      const service = interpret(sendMachine)
-        .onTransition(s => {
-          state = s;
-        })
-        .onDone(() => {
-          expect(state.event).toEqual({ type: 'EVENT', id: 42 });
-          done();
-        })
-        .start();
-
-      service.send('EVENT', { id: 42 });
-    });
-
     it('should receive and process all events sent simultaneously', done => {
       const toggleMachine = Machine({
         id: 'toggle',
