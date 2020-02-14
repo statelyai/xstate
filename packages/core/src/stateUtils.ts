@@ -32,7 +32,6 @@ import {
   GuardPredicate,
   StateTransition,
   ActionObject,
-  DoneEventObject,
   StateValueMap,
   AssignAction,
   RaiseAction,
@@ -62,8 +61,7 @@ import {
   resolveRaise,
   resolveSend,
   resolveLog,
-  toActionObject,
-  toActivityDefinition
+  toActionObject
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
@@ -822,81 +820,6 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   return condFn(context, _event.data, guardMeta);
 }
 
-function getActivities(stateNode: StateNode<any, any, any>) {
-  return toArray(stateNode.invoke).map(toActivityDefinition);
-}
-
-export function getActions<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
-  transition: StateTransition<TContext, TEvent>,
-  currentContext: TContext,
-  _event: SCXML.Event<TEvent>
-): Array<ActionObject<TContext, TEvent>> {
-  const entryStates = new Set(transition.entrySet);
-
-  const doneEvents = flatten(
-    [...entryStates].map(sn => {
-      const events: DoneEventObject[] = [];
-
-      if (sn.type !== 'final') {
-        return events;
-      }
-
-      const parent = sn.parent!;
-
-      events.push(
-        // done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
-        done(
-          parent.id,
-          sn.data ? mapContext(sn.data, currentContext, _event) : undefined
-        )
-      );
-
-      if (parent.parent) {
-        const grandparent = parent.parent;
-
-        if (grandparent.type === 'parallel') {
-          if (
-            getChildren(grandparent).every(parentNode =>
-              isInFinalState(transition.configuration, parentNode)
-            )
-          ) {
-            events.push(done(grandparent.id, grandparent.data));
-          }
-        }
-      }
-
-      return events;
-    })
-  );
-
-  const statesToExit = new Set(transition.exitSet);
-
-  const [entryActions, exitActions] = [
-    flatten(
-      Array.from(entryStates).map(entryNode => {
-        return [
-          ...getActivities(entryNode).map(activity => start(activity)),
-          ...entryNode.entry
-        ];
-      })
-    ).concat(doneEvents.map(raise) as Array<ActionObject<TContext, TEvent>>),
-    flatten(
-      Array.from(statesToExit).map(exitNode => [
-        ...exitNode.exit,
-        ...getActivities(exitNode).map(activity => stop(activity))
-      ])
-    )
-  ];
-
-  const actions = toActionObjects(
-    exitActions.concat(transition.actions).concat(entryActions),
-    stateNode.machine.options.actions
-  ) as Array<ActionObject<TContext, TEvent>>;
-
-  return actions;
-}
-
 export function transitionLeafNode<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   stateValue: string,
@@ -1455,18 +1378,20 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
         }
       ];
 
+  let historyValue: HistoryValue<TContext, TEvent> = {};
+
   if (currentState) {
     const current = currentState;
 
     const {
-      historyValue,
+      historyValue: exitHistoryValue,
       configuration: configurationFromExit,
       actions: exitActions
     } = exitStates(transitions, c, current);
 
     actions.push(...exitActions);
 
-    current.historyValue = historyValue;
+    historyValue = exitHistoryValue;
 
     actions.push(...stateTransition.actions);
 
@@ -1495,8 +1420,9 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   actions.push(...res.actions);
 
   return {
-    actions,
-    configuration
+    actions: toActionObjects(actions, machine.options.actions),
+    configuration,
+    historyValue
   };
 }
 
@@ -1526,62 +1452,8 @@ export function resolveTransition<
     [],
     currentState ? getStateNodes(machine, currentState.value) : [machine]
   );
-  const resolvedConfig = stateTransition.configuration.length
-    ? getConfiguration(prevConfig, stateTransition.configuration)
-    : prevConfig;
-
-  for (const sn of resolvedConfig) {
-    if (!has(prevConfig, sn)) {
-      stateTransition.entrySet.push(sn);
-    }
-  }
-
-  if (!stateTransition.source) {
-    // Ensure that root StateNode (machine) is entered
-    stateTransition.entrySet.push(machine);
-  }
-  stateTransition.entrySet.sort((a, b) => a.order - b.order);
-
-  // const eee = enterStates(
-  //   stateTransition.transitions,
-  //   currentState || State.from({})
-  // );
-
-  const {
-    exitSet: computedExitSet,
-    historyValue
-    // configuration: exitConfiguration
-  } =
-    currentState && currentState.configuration
-      ? exitStates(
-          stateTransition.transitions,
-          currentState.configuration,
-          currentState
-        )
-      : {
-          exitSet: stateTransition.exitSet,
-          historyValue: resolveHistoryValue<TContext, TEvent>(
-            currentState,
-            stateTransition.exitSet
-          )
-          // configuration: [...resolvedConfig]
-        };
-
-  // const allConfiguration = new Set([
-  //   ...exitConfiguration,
-  //   ...eee.configuration
-  // ]);
-
-  // if ([...resolvedConfig].length !== [...allConfiguration].length) {
-  //   console.log('RES', [...resolvedConfig].map(s => s.id));
-  //   console.log('EEE', [...allConfiguration].map(s => s.id));
-  //   throw new Error('no');
-  // }
-
-  stateTransition.exitSet = computedExitSet;
 
   const currentContext = currentState ? currentState.context : context;
-  const actions = getActions(machine, stateTransition, currentContext, _event);
 
   const xres = xresolveTransition(
     stateTransition,
@@ -1590,18 +1462,6 @@ export function resolveTransition<
     machine,
     [...prevConfig]
   );
-
-  xres.actions = toActionObjects(xres.actions, machine.options.actions);
-
-  if (
-    actions.length !== xres.actions.length
-    // !actions.every((a, i) => a.type === xres.actions[i].type)
-  ) {
-    console.log(_event.name);
-    console.log('actions', actions.map(a => a));
-    console.log('calcula', xres.actions.map(a => a));
-    // throw new Error('no');
-  }
 
   const [assignActions, otherActions] = partition(
     xres.actions,
@@ -1684,10 +1544,19 @@ export function resolveTransition<
   }
 
   const resolvedConfiguration = resolvedStateValue
-    ? stateTransition.configuration
+    ? xres.configuration
     : currentState
     ? currentState.configuration
     : [];
+
+  // if (
+  //   [...new Set(resolvedConfiguration)].length !==
+  //   [...new Set(xres.configuration)].length
+  // ) {
+  //   console.log('RES', [...resolvedConfiguration].map(s => s.id));
+  //   console.log('EEE', [...xres.configuration].map(s => s.id));
+  //   throw new Error('no');
+  // }
 
   const meta = resolvedConfiguration.reduce(
     (acc, subStateNode) => {
@@ -1780,7 +1649,7 @@ export function resolveTransition<
 
   // Preserve original history after raised events
   maybeNextState.history = history;
-  maybeNextState.historyValue = historyValue;
+  maybeNextState.historyValue = xres.historyValue;
 
   return maybeNextState;
 }
