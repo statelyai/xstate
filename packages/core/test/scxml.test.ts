@@ -413,8 +413,8 @@ async function runTestToCompletion(
 }
 
 describe('scxml', () => {
-  const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
+  // const testGroupKeys = Object.keys(testGroups);
+  const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach(testGroupName => {
     testGroups[testGroupName].forEach(testName => {
@@ -442,8 +442,13 @@ describe('scxml', () => {
           delimiter: '$'
         });
 
-        // console.dir(machine.config, { depth: null });
-        await runTestToCompletion(machine, scxmlTest);
+        try {
+          await runTestToCompletion(machine, scxmlTest);
+        } catch (e) {
+          // console.log(testName);
+          // console.dir(JSON.stringify(machine.config, null, 2));
+          throw e;
+        }
       });
     });
   });

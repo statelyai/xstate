@@ -1475,7 +1475,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   );
 
   // internal queue events
-  actions.push(...res.internalQueue);
+  actions.push(...res.internalQueue.map(raise));
 
   configuration.push(...res.configuration);
 
@@ -1579,12 +1579,12 @@ export function resolveTransition<
   if (actions.length !== xres.length) {
     console.log(_event.name);
     console.log('actions', actions.map(a => a));
-    console.log('calcula', xres.map(a => a.type));
+    console.log('calcula', xres.map(a => a));
     throw new Error('no');
   }
 
   const [assignActions, otherActions] = partition(
-    actions,
+    xres,
     (action): action is AssignAction<TContext, TEvent> =>
       action.type === actionTypes.assign
   );
