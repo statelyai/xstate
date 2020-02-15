@@ -47,7 +47,7 @@ Every path starts with the initial state.
 
 The overall object structure looks like this:
 
-```json
+```json5
 {
   "<SERIALIZED STATE>": {
     "state": State { ... },
@@ -169,7 +169,7 @@ Every path starts with the initial state.
 
 The overall object structure looks like this:
 
-```json
+```json5
 {
   "<SERIALIZED STATE>": {
     "state": State { ... },

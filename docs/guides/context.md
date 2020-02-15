@@ -1,5 +1,7 @@
 # Context
 
+[:rocket: Quick Reference](#quick-reference)
+
 While _finite_ states are well-defined in finite state machines and statecharts, state that represents _quantitative data_ (e.g., arbitrary strings, numbers, objects, etc.) that can be potentially infinite is represented as [extended state](https://en.wikipedia.org/wiki/UML_state_machine#Extended_states) instead. This makes statecharts much more useful for real-life applications.
 
 In XState, extended state is known as **context**. Below is an example of how `context` is used to simulate filling a glass of water:
@@ -66,7 +68,7 @@ nextState.context;
 // => { count: 1 }
 ```
 
-## Initial context
+## Initial Context
 
 The initial context is specified on the `context` property of the `Machine`:
 
@@ -89,25 +91,22 @@ const counterMachine = Machine({
 });
 ```
 
-For dynamic `context` (that is, `context` whose initial value is retrieved or provided externally), you can either provide the context in the third argument of `Machine(...)` (for new machines):
+For dynamic `context` (that is, `context` whose initial value is retrieved or provided externally), you can use a machine factory function that creates the machine with the provided context values (implementation may vary):
 
 ```js
-// retrieved dynamically
-const someContext = { count: 42, time: Date.now() };
-
-const counterMachine = Machine(
-  {
-    id: 'counter'
-    // ...
-  },
-  {
-    actions: {
-      /* ... */
+const createCounterMachine = (count, time) => {
+  return Machine({
+    id: 'counter',
+    // values provided from function arguments
+    context: {
+      count,
+      time
     }
-    // ... machine options
-  },
-  someContext
-); // provide dynamic context as 3rd argument
+    // ...
+  });
+};
+
+const counterMachine = createCounterMachine(42, Date.now());
 ```
 
 Or for existing machines, `machine.withContext(...)` should be used:
@@ -130,22 +129,28 @@ dynamicCounterMachine.initialState.context;
 // => { count: 42, time: 1543687816981 }
 ```
 
-## Updating context with `assign`
+This is preferred to accessing `machine.context` directly, since the initial state is computed with initial `assign(...)` actions and transient transitions, if any.
 
-The `assign()` action is used to update the machine's `context`. It takes the context "updater", which represents how the current context should be updated.
+## Assign Action
 
-The "updater" can be an object (recommended):
+The `assign()` action is used to update the machine's `context`. It takes the context "assigner", which represents how values in the current context should be assigned.
+
+| Argument   | Type               | Description                                                                                |
+| ---------- | ------------------ | ------------------------------------------------------------------------------------------ |
+| `assigner` | object or function | The object assigner or function assigner which assigns values to the `context` (see below) |
+
+The "assigner" can be an object (recommended):
 
 ```js
 import { Machine, assign } from 'xstate';
-// example: property updater
+// example: property assigner
 
 // ...
   actions: assign({
     // increment the current count by the event value
     count: (context, event) => context.count + event.value,
 
-    // update the message statically (no function needed)
+    // assign static value to the message (no function needed)
     message: 'Count changed'
   }),
 // ...
@@ -154,28 +159,38 @@ import { Machine, assign } from 'xstate';
 Or it can be a function that returns the updated state:
 
 ```js
-// example: context updater
+// example: context assigner
 
 // ...
 
   // return a partial (or full) updated context
-  actions: assign((context, event) => ({
-    count: context.count + event.value,
-    message: 'Count changed'
-  })),
+  actions: assign((context, event) => {
+    return {
+      count: context.count + event.value,
+      message: 'Count changed'
+    }
+  }),
 // ...
 ```
 
-Both the property updater and context updater function signatures above are given two arguments:
+Both the property assigner and context assigner function signatures above are given 3 arguments: the `context`, `event`, and `meta`:
 
-- `context` (TContext): the current context (extended state) of the machine
-- `event` (EventObject): the event that caused the `assign` action
+| Argument                     | Type        | Description                                         |
+| ---------------------------- | ----------- | --------------------------------------------------- |
+| `context`                    | TContext    | The current context (extended state) of the machine |
+| `event`                      | EventObject | The event that triggered the `assign` action        |
+| `meta` <Badge text="4.7+" /> | AssignMeta  | an object with meta data (see below)                |
+
+The `meta` object contains:
+
+- `state` - the current state in a normal transition (`undefined` for the initial state transition)
+- `action` - the assign action
 
 ::: warning
 The `assign(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively make assignments to the context.
 :::
 
-## Action order
+## Action Order
 
 Custom actions are always executed with regard to the _next state_ in the transition. When a state transition has `assign(...)` actions, those actions are always batched and computed _first_, to determine the next state. This is because a state is a combination of the finite state and the extended state (context).
 
@@ -228,7 +243,7 @@ const counterMachine = Machine({
               count: context => context.count + 1,
               prevCount: context => context.count
             }), // count === 1, prevCount === 0
-            assign({ count: context => context + 1 }), // count === 2
+            assign({ count: context => context.count + 1 }), // count === 2
             context => console.log(`After: ${context.count}`)
           ]
         }
@@ -247,7 +262,7 @@ The benefits of this are:
 1. The extended state (context) is modeled more explicitly
 2. There are no implicit intermediate states, preventing hard-to-catch bugs
 3. The action order is more independent (the "Before" log can even go after the "After" log!)
-4. Testing and examining state is easier.
+4. Facilitates testing and examining the state
 
 ## Notes
 
@@ -264,9 +279,9 @@ The benefits of this are:
 // ...
 ```
 
-- Just like with `actions`, it's best to represent `assign()` actions as strings, and then reference them in the machine options:
+- Just like with `actions`, it's best to represent `assign()` actions as strings or functions, and then reference them in the machine options:
 
-```js
+```js {5}
 const countMachine = Machine({
   initial: 'start',
   context: { count: 0 }
@@ -283,5 +298,230 @@ const countMachine = Machine({
 });
 ```
 
+Or as named functions (same result as above):
+
+```js {9}
+const increment = assign({ count: context => context.count + 1 });
+const decrement = assign({ count: context => context.count - 1 });
+
+const countMachine = Machine({
+  initial: 'start',
+  context: { count: 0 }
+  states: {
+    start: {
+      // Named function
+      entry: increment
+    }
+  }
+});
+```
+
 - Ideally, the `context` should be representable as a plain JavaScript object; i.e., it should be serializable as JSON.
-- Since `assign()` actions are _raised_, the context is updated before other actions are executed. This means that other actions within the same step will get the _updated_ `context` rather than what it was before the `assign()` action was executed. You shouldn't rely on action order for your states, but keep this in mind.
+- Since `assign()` actions are _raised_, the context is updated before other actions are executed. This means that other actions within the same step will get the _updated_ `context` rather than what it was before the `assign()` action was executed. You shouldn't rely on action order for your states, but keep this in mind. See [action order](#action-order) for more details.
+
+## TypeScript
+
+For proper type inference, add the context type as the first type parameter to `Machine<TContext, ...>`:
+
+```ts
+interface CounterContext {
+  count: number;
+  user?: {
+    name: string;
+  };
+}
+
+const machine = Machine<CounterContext>({
+  // ...
+  context: {
+    count: 0,
+    user: undefined
+  }
+  // ...
+});
+```
+
+When applicable, you can also use `typeof ...` as a shorthand:
+
+```ts
+const context = {
+  count: 0,
+  user: { name: '' }
+};
+
+const machine = Machine<typeof context>({
+  // ...
+  context
+  // ...
+});
+```
+
+In most cases, the types for `context` and `event` in `assign(...)` actions will be automatically inferred from the type parameters passed into `Machine<TContext, TEvent>`:
+
+```ts
+interface CounterContext {
+  count: number;
+}
+
+const machine = Machine<CounterContext>({
+  // ...
+  context: {
+    count: 0
+  },
+  // ...
+  {
+    on: {
+      INCREMENT: {
+        // Inferred automatically in most cases
+        actions: assign({
+          count: (context) => {
+            // context: { count: number }
+            return context.count + 1;
+          }
+        })
+      }
+    }
+  }
+});
+```
+
+However, TypeScript inference isn't perfect, so the responsible thing to do is to add the context and event as generics into `assign<Context, Event>(...)`:
+
+```ts {3}
+// ...
+on: {
+  INCREMENT: {
+    // Generics guarantee proper inference
+    actions: assign<CounterContext, CounterEvent>({
+      count: context => {
+        // context: { count: number }
+        return context.count + 1;
+      }
+    });
+  }
+}
+// ...
+```
+
+## Quick Reference
+
+**Set initial context**
+
+```js
+const machine = Machine({
+  // ...
+  context: {
+    count: 0,
+    user: undefined
+    // ...
+  }
+});
+```
+
+**Set dynamic initial context**
+
+```js
+const createMachine = (count, user) => {
+  return Machine({
+    // ...
+    // Provided from arguments; your implementation may vary
+    context: {
+      count,
+      user
+      // ...
+    }
+  });
+};
+```
+
+**Set custom initial context**
+
+```js
+const machine = Machine({
+  // ...
+  // Provided from arguments; your implementation may vary
+  context: {
+    count: 0,
+    user: undefined
+    // ...
+  }
+});
+
+const myMachine = machine.withContext({
+  count: 10,
+  user: {
+    name: 'David'
+  }
+});
+```
+
+**Assign to context**
+
+```js
+const machine = Machine({
+  // ...
+  context: {
+    count: 0,
+    user: undefined
+    // ...
+  },
+  // ...
+  on: {
+    INCREMENT: {
+      actions: assign({
+        count: (context, event) => context.count + 1
+      })
+    }
+  }
+});
+```
+
+**Assignment (static)**
+
+```js
+// ...
+actions: assign({
+  counter: 42
+}),
+// ...
+```
+
+**Assignment (property)**
+
+```js
+// ...
+actions: assign({
+  counter: (context, event) => {
+    return context.count + event.value;
+  }
+}),
+// ...
+```
+
+**Assignment (context)**
+
+```js
+// ...
+actions: assign((context, event) => {
+  return {
+    counter: context.count + event.value,
+    time: event.time,
+    // ...
+  }
+}),
+// ...
+```
+
+**Assignment (multiple)**
+
+```js
+// ...
+// assume context.count === 1
+actions: [
+  // assigns context.count to 1 + 1 = 2
+  assign({ count: (context) => context.count + 1 }),
+  // assigns context.count to 2 * 3 = 6
+  assign({ count: (context) => context.count * 3 })
+],
+// ...
+```

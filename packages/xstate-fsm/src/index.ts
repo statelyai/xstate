@@ -1,83 +1,47 @@
-export type SingleOrArray<T> = T[] | T;
-export interface EventObject {
-  type: string;
-  [key: string]: any;
-}
+import {
+  StateMachine,
+  EventObject,
+  Typestate,
+  InterpreterStatus,
+  InitEvent
+} from './types';
 
-export namespace FSM {
-  export type Action<TContext, TEvent extends EventObject> =
-    | TEvent['type']
-    | FSM.ActionObject<TContext, TEvent>
-    | ((context: TContext, event: TEvent) => void);
+export { StateMachine, EventObject, InterpreterStatus, Typestate };
 
-  export interface ActionObject<TContext, TEvent> {
-    type: string;
-    exec?: (context: TContext, event: TEvent) => void;
-    [key: string]: any;
-  }
-
-  export type AssignAction = 'xstate.assign';
-
-  export type Transition<TContext, TEvent extends EventObject> =
-    | string
-    | {
-        target?: string;
-        actions?: SingleOrArray<Action<TContext, TEvent>>;
-        cond?: (context: TContext, event: TEvent) => boolean;
-      };
-  export interface State<TContext, TEvent> {
-    value: string;
-    context: TContext;
-    actions: Array<ActionObject<TContext, TEvent>>;
-    changed?: boolean | undefined;
-  }
-
-  export interface Config<TContext, TEvent extends EventObject> {
-    id?: string;
-    initial: string;
-    context?: TContext;
-    states: {
-      [key: string]: {
-        on?: {
-          [event: string]: SingleOrArray<FSM.Transition<TContext, TEvent>>;
-        };
-        exit?: SingleOrArray<FSM.Action<TContext, TEvent>>;
-        entry?: SingleOrArray<FSM.Action<TContext, TEvent>>;
-      };
-    };
-  }
-
-  export interface Machine<TContext, TEvent extends EventObject> {
-    initialState: FSM.State<TContext, TEvent>;
-    transition: (
-      state: string | FSM.State<TContext, TEvent>,
-      event: string | Record<string, any> & { type: string }
-    ) => FSM.State<TContext, TEvent>;
-  }
-}
+const INIT_EVENT: InitEvent = { type: 'xstate.init' };
+const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
 
 function toArray<T>(item: T | T[] | undefined): T[] {
   return item === undefined ? [] : ([] as T[]).concat(item);
 }
 
-const assignActionType: FSM.AssignAction = 'xstate.assign';
-
-export function assign(assignment: any): FSM.ActionObject<any, any> {
+export function assign<TC extends object, TE extends EventObject = EventObject>(
+  assignment:
+    | StateMachine.Assigner<TC, TE>
+    | StateMachine.PropertyAssigner<TC, TE>
+): StateMachine.AssignActionObject<TC, TE> {
   return {
-    type: assignActionType,
+    type: ASSIGN_ACTION,
     assignment
   };
 }
 
-function toActionObject<TContext, TEvent extends EventObject>(
+function toActionObject<TContext extends object, TEvent extends EventObject>(
   // tslint:disable-next-line:ban-types
   action:
     | string
-    | ((context: TContext, event: TEvent) => void)
-    | FSM.ActionObject<TContext, TEvent>
+    | StateMachine.ActionFunction<TContext, TEvent>
+    | StateMachine.ActionObject<TContext, TEvent>,
+  actionMap: StateMachine.ActionMap<TContext, TEvent> | undefined
 ) {
+  action =
+    typeof action === 'string' && actionMap && actionMap[action]
+      ? actionMap[action]
+      : action;
   return typeof action === 'string'
-    ? { type: action }
+    ? {
+        type: action
+      }
     : typeof action === 'function'
     ? {
         type: action.name,
@@ -88,29 +52,60 @@ function toActionObject<TContext, TEvent extends EventObject>(
 
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
-export function FSM<
-  TContext extends object,
-  TEvent extends EventObject = EventObject
->(fsmConfig: FSM.Config<TContext, TEvent>): FSM.Machine<TContext, TEvent> {
+function createMatcher(value: string) {
+  return stateValue => value === stateValue;
+}
+
+function toEventObject<TEvent extends EventObject>(
+  event: TEvent['type'] | TEvent
+): TEvent {
+  return (typeof event === 'string' ? { type: event } : event) as TEvent;
+}
+
+function createUnchangedState<
+  TC extends object,
+  TE extends EventObject,
+  TS extends Typestate<TC>
+>(value: string, context: TC): StateMachine.State<TC, TE, TS> {
   return {
+    value,
+    context,
+    actions: [],
+    changed: false,
+    matches: createMatcher(value)
+  };
+}
+
+export function createMachine<
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  fsmConfig: StateMachine.Config<TContext, TEvent>,
+  options: {
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
+  } = {}
+): StateMachine.Machine<TContext, TEvent, TState> {
+  const machine = {
+    config: fsmConfig,
+    _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(
-        toActionObject
+      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(action =>
+        toActionObject(action, options.actions)
       ),
-      context: fsmConfig.context!
+      context: fsmConfig.context!,
+      matches: createMatcher(fsmConfig.initial)
     },
     transition: (
-      state: string | FSM.State<TContext, TEvent>,
+      state: string | StateMachine.State<TContext, TEvent, TState>,
       event: string | Record<string, any> & { type: string }
-    ): FSM.State<TContext, TEvent> => {
+    ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = (typeof event === 'string'
-        ? { type: event }
-        : event) as TEvent;
+      const eventObject = toEventObject(event);
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION) {
@@ -124,16 +119,14 @@ export function FSM<
       }
 
       if (stateConfig.on) {
-        const transitions = ([] as Array<
-          FSM.Transition<TContext, TEvent>
-        >).concat(stateConfig.on[eventObject.type]);
+        const transitions = toArray(stateConfig.on[eventObject.type]);
 
         for (const transition of transitions) {
           if (transition === undefined) {
-            return { value, context, actions: [], changed: false };
+            return createUnchangedState(value, context);
           }
 
-          const { target, actions = [], cond = () => true } =
+          const { target = value, actions = [], cond = () => true } =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
@@ -141,16 +134,16 @@ export function FSM<
           let nextContext = context;
 
           if (cond(context, eventObject)) {
-            const nextStateConfig = target
-              ? fsmConfig.states[target]
-              : stateConfig;
+            const nextStateConfig = fsmConfig.states[target];
             let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
-              .filter(Boolean)
-              .map<FSM.ActionObject<TContext, TEvent>>(toActionObject)
+              .filter(a => a)
+              .map<StateMachine.ActionObject<TContext, TEvent>>(action =>
+                toActionObject(action, (machine as any)._options.actions)
+              )
               .filter(action => {
-                if (action.type === assignActionType) {
+                if (action.type === ASSIGN_ACTION) {
                   assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
 
@@ -170,19 +163,77 @@ export function FSM<
                 }
                 return true;
               });
-            const nextValue = target ? target : value;
+
             return {
-              value: nextValue,
+              value: target,
               context: nextContext,
               actions: allActions,
-              changed: nextValue !== value || allActions.length > 0 || assigned
+              changed: target !== value || allActions.length > 0 || assigned,
+              matches: createMatcher(target)
             };
           }
         }
       }
 
       // No transitions match
-      return { value, context, actions: [], changed: false };
+      return createUnchangedState(value, context);
     }
   };
+  return machine;
+}
+
+const executeStateActions = <
+  TContext extends object,
+  TEvent extends EventObject = any,
+  TState extends Typestate<TContext> = any
+>(
+  state: StateMachine.State<TContext, TEvent, TState>,
+  event: TEvent | InitEvent
+) => state.actions.forEach(({ exec }) => exec && exec(state.context, event));
+
+export function interpret<
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
+>(
+  machine: StateMachine.Machine<TContext, TEvent, TState>
+): StateMachine.Service<TContext, TEvent, TState> {
+  let state = machine.initialState;
+  let status = InterpreterStatus.NotStarted;
+  const listeners = new Set<StateMachine.StateListener<typeof state>>();
+
+  const service = {
+    _machine: machine,
+    send: (event: TEvent | TEvent['type']): void => {
+      if (status !== InterpreterStatus.Running) {
+        return;
+      }
+      state = machine.transition(state, event);
+      executeStateActions(state, toEventObject(event));
+      listeners.forEach(listener => listener(state));
+    },
+    subscribe: (listener: StateMachine.StateListener<typeof state>) => {
+      listeners.add(listener);
+      listener(state);
+
+      return {
+        unsubscribe: () => listeners.delete(listener)
+      };
+    },
+    start: () => {
+      status = InterpreterStatus.Running;
+      executeStateActions(state, INIT_EVENT);
+      return service;
+    },
+    stop: () => {
+      status = InterpreterStatus.Stopped;
+      listeners.forEach(listener => listeners.delete(listener));
+      return service;
+    },
+    get status() {
+      return status;
+    }
+  };
+
+  return service;
 }

@@ -37,17 +37,18 @@ A `State` object instance is JSON-serializable and has the following properties:
 
 - `value` - the current state value (e.g., `{red: 'walk'}`)
 - `context` - the current [context](./context.md) of this state
-- `event` <Badge text="4.2.1+"/> - the event object that triggered the transition to this state
+- `event` - the event object that triggered the transition to this state
 - `actions` - an array of [actions](./actions.md) to be executed
 - `activities` - a mapping of [activities](./activities.md) to `true` if the activity started, or `false` if stopped.
 - `history` - the previous `State` instance
 - `meta` - any static meta data defined on the `meta` property of the [state node](./statenodes.md)
+- `done` - whether the state indicates a final state <Badge text="4.7.1" />
 
 It contains other properties such as `historyValue`, `events`, `tree`, and others that are generally not relevant and are used internally.
 
-## State Methods and Getters
+## State Methods and Properties
 
-There are some helpful methods and getters that you can use for a better development experience:
+There are some helpful methods and properties that you can use for a better development experience:
 
 ### `state.matches(parentStateValue)`
 
@@ -72,7 +73,7 @@ console.log(state.matches('green'));
 
 ### `state.nextEvents`
 
-This getter specifies the next events that will cause a transition from the current state:
+This specifies the next events that will cause a transition from the current state:
 
 ```js
 const { initialState } = lightMachine;
@@ -85,7 +86,7 @@ This is useful in determining which next events can be taken, and representing t
 
 ### `state.changed`
 
-This getter specifies if this `state` has changed from the previous state. A state is considered "changed" if:
+This specifies if this `state` has changed from the previous state. A state is considered "changed" if:
 
 - Its value is not equal to its previous value, or:
 - It has any new actions (side-effects) to execute.
@@ -109,6 +110,32 @@ console.log(unchangedState.changed);
 // => false
 ```
 
+### `state.done`
+
+This specifies whether the `state` is a ["final state"](./final.md) - that is, a state that indicates that its machine has reached its final (terminal) state and can no longer transition to any other state.
+
+```js
+const answeringMachine = Machine({
+  initial: 'unanswered',
+  states: {
+    unanswered: {
+      on: {
+        ANSWER: 'answered'
+      }
+    },
+    answered: {
+      type: 'final'
+    }
+  }
+});
+
+const { initialState } = answeringMachine;
+initialState.done; // false
+
+const answeredState = answeringMachine.transition(initialState, 'ANSWER');
+answeredState.done; // true
+```
+
 ### `state.toStrings()`
 
 This method returns an array of strings that represent _all_ of the state value paths. For example, assuming the current `state.value` is `{ red: 'stop' }`:
@@ -122,6 +149,30 @@ console.log(state.toStrings());
 ```
 
 This is useful for representing the current state in string-based environments, such as in CSS classes or data-attributes.
+
+### `state.children`
+
+This is an object mapping spawned service/actor IDs to their instances. See [📖 Referencing Services](./communication.md#referencing-services) for more details.
+
+**Example:**
+
+```js
+const machine = Machine({
+  // ...
+  invoke: [
+    { id: 'notifier', src: createNotifier },
+    { id: 'logger', src: createLogger }
+  ]
+  // ...
+});
+
+const service = invoke(machine)
+  .onTransition(state => {
+    state.children.notifier; // service from createNotifier()
+    state.children.logger; // service from createLogger()
+  })
+  .start();
+```
 
 ## Persisting State
 
@@ -255,7 +306,7 @@ function mergeMeta(meta) {
 
 const failureTimeoutState = fetchMachine.transition('loading', 'TIMEOUT');
 
-console.log(mergeMeta(meta));
+console.log(mergeMeta(failureTimeoutState.meta));
 // => {
 //   alert: 'Uh oh.',
 //   message: 'The request timed out.'

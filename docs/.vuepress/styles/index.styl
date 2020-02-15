@@ -5,4 +5,42 @@
 blockquote {
   font-size: 1rem;
   color: #8e8e8e;
+
+  > p + p {
+    margin-top: 1rem;
+  }
+}
+
+iframe {
+  width: 100%;
+  height: 300px;
+  border: 1px solid #ccc;
+  border-radius: 6px;
+  box-shadow: 0 .5rem 1rem rgba(0, 0, 0, 0.1);
+}
+
+details {
+  border: 1px dotted #ccc;
+  border-radius: 6px;
+
+  &[open] > summary {
+    border-bottom: 1px dotted #ccc;
+  }
+
+  > summary {
+    padding: 1rem;
+    cursor: pointer;
+  }
+
+  > * {
+    padding: 0 1rem;
+  }
+
+  > ul, > ol {
+    margin-left: 1rem;
+  }
+
+  > [class*="language-"] {
+    margin: 0 1rem;
+  }
 }

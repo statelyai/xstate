@@ -1,31 +1,78 @@
-import { js2xml, Element as XMLElement } from 'xml-js';
+import { js2xml, Element as XMLElement, Attributes } from 'xml-js';
 import {
   StateMachine,
-  Machine,
   ActionObject,
   TransitionDefinition,
-  StateNode
+  StateNode,
+  ActionType
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
-function transitionToSCXML(
-  transition: TransitionDefinition<any, any>,
-  stateNode: StateNode
+function cleanAttributes(attributes: Attributes): Attributes {
+  for (const key of Object.keys(attributes)) {
+    if (attributes[key] === undefined) {
+      delete attributes[key];
+    }
+  }
+
+  return attributes;
+}
+
+// tslint:disable-next-line:ban-types
+export function functionToExpr(fn: Function): string {
+  return fn.toString();
+}
+
+function actionToSCXML(action: ActionObject<any, any>): XMLElement {
+  const { type, ...attributes } = action;
+
+  const actionTypeMap: Record<ActionType, string> = {
+    'xstate.raise': 'raise'
+  };
+
+  const name = actionTypeMap[action.type];
+
+  if (name) {
+    return {
+      type: 'element',
+      name,
+      attributes
+    };
+  }
+
+  return {
+    type: 'element',
+    name: 'script',
+    elements: [
+      {
+        type: 'text',
+        text: JSON.stringify(action)
+      }
+    ]
+  };
+}
+
+export function transitionToSCXML(
+  transition: TransitionDefinition<any, any>
 ): XMLElement {
+  // console.log(transition.cond!.predicate);
+
+  const elements = transition.actions.map(actionToSCXML);
+
   return {
     type: 'element',
     name: 'transition',
-    attributes: {
-      event: transition.event,
-      cond: JSON.stringify(transition.cond),
-      target: (transition.target !== undefined
-        ? ([] as string[]).concat(transition.target)
-        : []
-      )
-        .map(t => stateNode.parent!.getStateNode(t).id)
+    attributes: cleanAttributes({
+      event: transition.eventType,
+      cond: transition.cond
+        ? functionToExpr(transition.cond.predicate)
+        : undefined,
+      target: (transition.target || [])
+        .map(stateNode => stateNode.id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
-    }
+    }),
+    elements: elements.length ? elements : undefined
   };
 }
 
@@ -53,16 +100,7 @@ function actionsToSCXML(
     type: 'element',
     name,
     elements: actions.map<XMLElement>(action => {
-      return {
-        type: 'element',
-        name: 'script',
-        elements: [
-          {
-            type: 'text',
-            text: JSON.stringify(action)
-          }
-        ]
-      };
+      return actionToSCXML(action);
     })
   };
 }
@@ -90,9 +128,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
     Object.keys(stateNode.on).map(event => {
       const transitions = stateNode.on[event];
 
-      return transitions.map(transition =>
-        transitionToSCXML(transition, stateNode)
-      );
+      return transitions.map(transition => transitionToSCXML(transition));
     })
   );
 
@@ -120,7 +156,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 }
 
 export function toSCXML(machine: StateMachine<any, any, any>): string {
-  const { states } = machine;
+  const { states, initial } = machine;
 
   return js2xml(
     {
@@ -130,7 +166,8 @@ export function toSCXML(machine: StateMachine<any, any, any>): string {
           name: 'scxml',
           attributes: {
             xmlns: 'http://www.w3.org/2005/07/scxml',
-            'xmlns:xi': 'http://www.w3.org/2001/XInclude',
+            initial,
+            // 'xmlns:xi': 'http://www.w3.org/2001/XInclude',
             version: '1.0',
             datamodel: 'ecmascript'
           },
@@ -147,83 +184,3 @@ export function toSCXML(machine: StateMachine<any, any, any>): string {
     }
   );
 }
-
-const pedestrianStates = {
-  initial: 'walk',
-  states: {
-    walk: {
-      on: {
-        PED_COUNTDOWN: {
-          target: 'wait',
-          internal: true
-        },
-        TIMER: undefined // forbidden event
-      }
-    },
-    wait: {
-      on: {
-        PED_COUNTDOWN: 'stop',
-        TIMER: undefined // forbidden event
-      }
-    },
-    stop: {
-      type: 'final',
-      data: {
-        foo: 'bar'
-      }
-    }
-  }
-};
-
-const lightMachine = Machine({
-  key: 'light',
-  initial: 'green',
-  states: {
-    green: {
-      entry: 'enterGreen',
-      exit: 'exitGreen',
-      on: {
-        TIMER: 'yellow',
-        POWER_OUTAGE: 'red'
-      }
-    },
-    yellow: {
-      on: {
-        TIMER: 'red',
-        POWER_OUTAGE: 'red'
-      },
-      after: {
-        1000: 'red'
-      },
-      type: 'parallel',
-      states: {
-        one: {
-          initial: 'inactive',
-          states: {
-            inactive: {},
-            active: {}
-          }
-        },
-        two: {
-          initial: 'inactive',
-          states: {
-            inactive: {},
-            active: {}
-          }
-        }
-      }
-    },
-    red: {
-      on: {
-        TIMER: 'green',
-        POWER_OUTAGE: {
-          target: 'red',
-          internal: true
-        }
-      },
-      ...pedestrianStates
-    }
-  }
-});
-
-console.log(toSCXML(lightMachine));

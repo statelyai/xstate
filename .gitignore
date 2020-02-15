@@ -29,19 +29,23 @@ node_modules
 
 # Other
 .DS_Store
-.vscode/
 dist/
 lib/
 es/
 editor/
 _examples/
-__examples/ 
+__examples/
+.vscode/
+!.vscode/settings.json
+src/invoke.ts
+*.tsbuildinfo
 
 # Documentation
 docs-src/
 netlify/
 docs/.cache
 !docs/examples/
+*.pdf
 
 ./public/
 .cache

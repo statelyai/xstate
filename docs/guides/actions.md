@@ -58,6 +58,53 @@ const triggerMachine = Machine(
 );
 ```
 
+<details>
+  <summary>
+    When should I use transition vs. entry/exit actions?
+  </summary>
+
+It depends! They mean different things:
+
+- An entry/exit actions means "execute this action **on any transition that enters/exits this state**". Use entry/exit actions when the action is only dependent on the state node that it's in, and not on previous/next state nodes or events.
+
+```js
+// ...
+{
+  idle: {
+    on: {
+      LOAD: 'loading'
+    }
+  },
+  loading: {
+    // this action is executed whenever the 'loading' state is entered
+    entry: 'fetchData'
+  }
+}
+// ...
+```
+
+- A transition actions mean "execute this action **only on this transition**". Use transition actions when the action is dependent on the event and the state node that it is currently in.
+
+```js
+// ...
+{
+  idle: {
+    on: {
+      LOAD: {
+        target: 'loading',
+        // this action is executed only on this transition
+        actions: 'fetchData'
+    }
+  },
+  loading: {
+    // ...
+  }
+}
+// ...
+```
+
+</details>
+
 ::: tip
 Action implementations can be quickly prototyped by specifying the action function directly in the machine config:
 
@@ -96,11 +143,18 @@ Each action object has two properties (and others, that you can specify):
 
 The `exec` function takes three arguments:
 
-- `context` - the current machine context
-- `event` - the event that caused the transition
-- `actionMeta` <Badge text="4.4+"/> - an object containing meta data about the action, including:
-  - `action` - the original action object
-  - `state` - the resolved machine state, after transition
+| Argument     | Type         | Description                                                 |
+| ------------ | ------------ | ----------------------------------------------------------- |
+| `context`    | TContext     | The current machine context                                 |
+| `event`      | event object | The event that caused the transition                        |
+| `actionMeta` | meta object  | An object containing meta data about the action (see below) |
+
+The `actionMeta` object includes the following properties:
+
+| Property | Type          | Description                                  |
+| -------- | ------------- | -------------------------------------------- |
+| `action` | action object | The original action object                   |
+| `state`  | State         | The resolved machine state, after transition |
 
 The interpreter will call the `exec` function with the `currentState.context`, the `event`, and the `state` that the machine transitioned to. This behavior can be customized. See [executing actions](./interpretation.md#executing-actions) for more details.
 
@@ -115,6 +169,19 @@ When interpreting statecharts, the order of actions should not necessarily matte
 ## Send Action
 
 The `send(event)` action creator creates a special "send" action object that tells a service (i.e., [interpreted machine](./interpretation.md)) to send that event to itself. It queues an event to the running service, in the external event queue. This means the event is sent on the next "step" of the interpreter.
+
+| Argument   | Type                                       | Description                                               |
+| ---------- | ------------------------------------------ | --------------------------------------------------------- |
+| `event`    | string or event object or event expression | The event to send to the specified `options.to` (or self) |
+| `options?` | send options (see below)                   | Options for sending the event.                            |
+
+The send `options` argument is an object containing:
+
+| Property | Type   | Description                                                                                   |
+| -------- | ------ | --------------------------------------------------------------------------------------------- |
+| `id?`    | string | The send ID (used for cancellation)                                                           |
+| `to?`    | string | The target of the event (defaults to self)                                                    |
+| `delay?` | number | The timeout (milliseconds) before sending the event, if it is not canceled before the timeout |
 
 ::: warning
 The `send(...)` function is an **action creator**; it is a pure function that only returns an action object and does _not_ imperatively send an event.
@@ -183,7 +250,7 @@ const machine = Machine({
 
 ### Send Targets
 
-An event sent from a `send(...)` action can be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
+An event sent from a `send(...)` action creator can signify that it should be sent to specific targets, such as [invoked services](./communication.md) or [spawned actors](./actors.md). This is done by specifying the `{ to: ... }` property in the `send(...)` action:
 
 ```js
 // ...
@@ -193,7 +260,7 @@ invoke: {
   // ...
 },
 // ...
-// Send { type: 'SOME_EVENT' } to the invoked service
+// Indicates to send { type: 'SOME_EVENT' } to the invoked service
 actions: send('SOME_EVENT', { to: 'some-service-id' })
 ```
 
@@ -228,9 +295,30 @@ entry: assign({
 }
 ```
 
+::: warning
+Again, the `send(...)` function is an action creator and **will not imperatively send an event.** Instead, it returns an action object that describes where the event will be sent to:
+
+```js
+console.log(send('SOME_EVENT', { to: 'child' }));
+// logs:
+// {
+//   type: 'xstate.send',
+//   to: 'child',
+//   event: {
+//     type: 'SOME_EVENT'
+//   }
+// }
+```
+
+:::
+
 ## Raise Action
 
 The `raise()` action creator queues an event to the statechart, in the internal event queue. This means the event is immediately sent on the current "step" of the interpreter.
+
+| Argument | Type                   | Description         |
+| -------- | ---------------------- | ------------------- |
+| `event`  | string or event object | The event to raise. |
 
 ```js
 import { Machine, actions } from 'xstate';
@@ -265,14 +353,147 @@ nextState.actions;
 // => []
 ```
 
+## Respond Action <Badge text="4.7+" />
+
+The `respond()` action creator creates a [`send()` action](#send-action) that is sent to the service that sent the event which triggered the response.
+
+This uses [SCXML events](./events.md#scxml-events) internally to get the `origin` from the event and set the `to` of the `send()` action to the `origin`.
+
+| Argument   | Type                                     | Description                             |
+| ---------- | ---------------------------------------- | --------------------------------------- |
+| `event`    | string, event object, or send expression | The event to send back to the sender    |
+| `options?` | send options object                      | Options to pass into the `send()` event |
+
+**Example:**
+
+This demonstrates some parent service (`authClientMachine`) sending a `'CODE'` event to the invoked `authServerMachine`, and the `authServerMachine` responding with a `'TOKEN'` event.
+
+```js
+const authServerMachine = Machine({
+  initial: 'waitingForCode',
+  states: {
+    waitingForCode: {
+      on: {
+        CODE: {
+          actions: respond('TOKEN', { delay: 10 })
+        }
+      }
+    }
+  }
+});
+
+const authClientMachine = Machine({
+  initial: 'idle',
+  states: {
+    idle: {
+      on: { AUTH: 'authorizing' }
+    },
+    authorizing: {
+      invoke: {
+        id: 'auth-server',
+        src: authServerMachine
+      },
+      entry: send('CODE', { to: 'auth-server' }),
+      on: {
+        TOKEN: 'authorized'
+      }
+    },
+    authorized: {
+      type: 'final'
+    }
+  }
+});
+```
+
+See [📖 Sending Responses](./actors.md#sending-responses) for more details.
+
+## Forward To Action <Badge text="4.7+" />
+
+The `forwardTo()` action creator creates a [`send()` action](#send-action) that forwards the most recent event to the specified service via its ID.
+
+| Argument | Type                                    | Description                                          |
+| -------- | --------------------------------------- | ---------------------------------------------------- |
+| `target` | string or function that returns service | The target service to send the most recent event to. |
+
+**Example:**
+
+```js
+import { Machine, forwardTo, interpret } from 'xstate';
+
+function alertService(_, receive) {
+  receive(event => {
+    if (event.type === 'ALERT') {
+      alert(event.message);
+    }
+  });
+}
+
+const parentMachine = Machine({
+  id: 'parent',
+  invoke: {
+    id: 'alerter',
+    src: () => alertService
+  },
+  on: {
+    ALERT: { actions: forwardTo('alerter') }
+  }
+});
+
+const parentService = interpret(parentMachine).start();
+
+parentService.send('ALERT', { message: 'hello world' });
+// => alerts "hello world"
+```
+
+## Escalate Action <Badge text="4.7+" />
+
+The `escalate()` action creator escalates an error by sending it to the parent machine. This is sent as a special error event that is recognized by the machine.
+
+| Argument    | Type | Description                                      |
+| ----------- | ---- | ------------------------------------------------ |
+| `errorData` | any  | The error data to escalate (send) to the parent. |
+
+**Example:**
+
+```js
+import { createMachine, actions } from 'xstate';
+const { escalate } = actions;
+
+const childMachine = createMachine({
+  // ...
+  // This will be sent to the parent machine that invokes this child
+  entry: escalate({ message: 'This is some error' })
+});
+
+const parentMachine = createMachine({
+  // ...
+  invoke: {
+    src: childMachine,
+    onError: {
+      actions: (context, event) => {
+        console.log(event.data);
+        //  {
+        //    type: ...,
+        //    data: {
+        //      message: 'This is some error'
+        //    }
+        //  }
+      }
+    }
+  }
+});
+```
+
 ## Log Action
 
 The `log()` action creator is a declarative way of logging anything related to the current state `context` and/or `event`. It takes two optional arguments:
 
-- `expr` (optional) - a function that takes the `context` and `event` as arguments and returns a value to be logged
-- `label` (optional) - a string to label the logged message
+| Argument | Type               | Description                                                                                                     |
+| -------- | ------------------ | --------------------------------------------------------------------------------------------------------------- |
+| `expr?`  | string or function | A plain string or a function that takes the `context` and `event` as arguments and returns a value to be logged |
+| `label?` | string             | A string to label the logged message                                                                            |
 
-```js {13-16,27-33}
+```js {9,14-17,28-34}
 import { Machine, actions } from 'xstate';
 const { log } = actions;
 
@@ -282,6 +503,7 @@ const loggingMachine = Machine({
   initial: 'start',
   states: {
     start: {
+      entry: log('started!'),
       on: {
         FINISH: {
           target: 'end',
@@ -317,10 +539,10 @@ Without any arguments, `log()` is an action that logs an object with `context` a
 
 A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
 
-- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `onExit` actions will not be executed again.
+- An internal transition will _not_ exit and reenter itself, so the state node's `entry` and `exit` actions will not be executed again.
   - Internal transitions are indicated with `{ internal: true }`, or by leaving the `target` as `undefined`.
   - Actions defined on the transition's `actions` property will be executed.
-- An external transition _will_ exit and reenter itself, so the state node's `entry` and `onExit` actions will be executed again.
+- An external transition _will_ exit and reenter itself, so the state node's `entry` and `exit` actions will be executed again.
   - All transitions are external by default. To be explicit, you can indicate them with `{ internal: false }`.
   - Actions defined on the transition's `actions` property will be executed.
 
@@ -333,7 +555,7 @@ const counterMachine = Machine({
   states: {
     counting: {
       entry: 'enterCounting',
-      onExit: 'exitCounting',
+      exit: 'exitCounting',
       on: {
         // self-transitions
         INC: { actions: 'increment' }, // internal (implicit)
@@ -344,7 +566,7 @@ const counterMachine = Machine({
   }
 });
 
-// External transition (onExit + transition actions + entry)
+// External transition (exit + transition actions + entry)
 const stateA = counterMachine.transition('counting', 'DEC');
 stateA.actions;
 // ['exitCounting', 'decrement', 'enterCounting']

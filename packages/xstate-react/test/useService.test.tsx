@@ -1,15 +1,13 @@
-import { assert } from 'chai';
 import { useEffect, useState } from 'react';
 import * as React from 'react';
-import { useService } from '../src';
-import { Machine, assign, interpret } from 'xstate';
-import { render, cleanup, fireEvent } from 'react-testing-library';
-// import { doneInvoke } from '../../../lib/actions';
+import { useService, useMachine } from '../src';
+import { Machine, assign, interpret, Interpreter } from 'xstate';
+import { render, cleanup, fireEvent, act } from '@testing-library/react';
 
 afterEach(cleanup);
 
 describe('useService hook', () => {
-  const counterMachine = Machine({
+  const counterMachine = Machine<{ count: number }>({
     id: 'counter',
     initial: 'active',
     context: { count: 0 },
@@ -41,16 +39,18 @@ describe('useService hook', () => {
 
     const countEls = getAllByTestId('count');
 
-    assert.lengthOf(countEls, 2);
+    expect(countEls.length).toBe(2);
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '0');
+      expect(countEl.textContent).toBe('0');
     });
 
-    counterService.send('INC');
+    act(() => {
+      counterService.send('INC');
+    });
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '1');
+      expect(countEl.textContent).toBe('1');
     });
   });
 
@@ -61,14 +61,11 @@ describe('useService hook', () => {
       const [state, send] = useService(counterService);
       const [otherState, setOtherState] = useState('');
 
-      useEffect(
-        () => {
-          counterService.execute(state, {
-            doSomething: () => setOtherState('test')
-          });
-        },
-        [state]
-      );
+      useEffect(() => {
+        counterService.execute(state, {
+          doSomething: () => setOtherState('test')
+        });
+      }, [state]);
 
       return (
         <>
@@ -89,10 +86,10 @@ describe('useService hook', () => {
     const countEls = getAllByTestId('count');
     const buttonEls = getAllByTestId('button');
 
-    assert.lengthOf(countEls, 2);
+    expect(countEls.length).toBe(2);
 
     countEls.forEach(countEl => {
-      assert.equal(countEl.textContent, '0');
+      expect(countEl.textContent).toBe('0');
     });
 
     buttonEls.forEach(buttonEl => {
@@ -102,7 +99,7 @@ describe('useService hook', () => {
     const otherEls = getAllByTestId('other');
 
     otherEls.forEach(otherEl => {
-      assert.equal(otherEl.textContent, 'test');
+      expect(otherEl.textContent).toBe('test');
     });
   });
 
@@ -140,10 +137,40 @@ describe('useService hook', () => {
     const incButton = getByTestId('inc');
     const countEl = getByTestId('count');
 
-    assert.equal(countEl.textContent, '0');
+    expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
-    assert.equal(countEl.textContent, '1');
+    expect(countEl.textContent).toBe('1');
     fireEvent.click(changeServiceButton);
-    assert.equal(countEl.textContent, '0');
+    expect(countEl.textContent).toBe('0');
+  });
+
+  it('service should be able to be used from useMachine', () => {
+    const CounterDisplay: React.FC<{
+      service: Interpreter<any>;
+    }> = ({ service }) => {
+      const [state] = useService(service);
+
+      return <div data-testid="count">{state.context.count}</div>;
+    };
+
+    const Counter = () => {
+      const [, send, service] = useMachine(counterMachine);
+
+      return (
+        <>
+          <button data-testid="inc" onClick={_ => send('INC')} />
+          <CounterDisplay service={service} />
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Counter />);
+
+    const incButton = getByTestId('inc');
+    const countEl = getByTestId('count');
+
+    expect(countEl.textContent).toBe('0');
+    fireEvent.click(incButton);
+    expect(countEl.textContent).toBe('1');
   });
 });

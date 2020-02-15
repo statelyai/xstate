@@ -1,14 +1,21 @@
-import { assert } from 'chai';
 import * as React from 'react';
-import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn } from 'xstate';
+import { useMachine, useService } from '../src';
+import {
+  Machine,
+  assign,
+  Interpreter,
+  spawn,
+  doneInvoke,
+  State,
+  createMachine
+} from 'xstate';
 import {
   render,
   fireEvent,
   cleanup,
   waitForElement
-} from 'react-testing-library';
-import { doneInvoke } from '../../../lib/actions';
+} from '@testing-library/react';
+import { useState } from 'react';
 
 afterEach(cleanup);
 
@@ -42,13 +49,23 @@ describe('useMachine hook', () => {
     }
   });
 
-  const Fetcher = ({
-    onFetch = () => new Promise(res => res('some data'))
+  const persistedFetchState = fetchMachine.transition(
+    'loading',
+    doneInvoke('fetchData', 'persisted data')
+  );
+
+  const Fetcher: React.FC<{
+    onFetch: () => Promise<any>;
+    persistedState?: State<any, any>;
+  }> = ({
+    onFetch = () => new Promise(res => res('some data')),
+    persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       services: {
         fetchData: onFetch
-      }
+      },
+      state: persistedState
     });
 
     switch (current.value) {
@@ -76,7 +93,36 @@ describe('useMachine hook', () => {
     getByText('Loading...');
     await waitForElement(() => getByText(/Success/));
     const dataEl = getByTestId('data');
-    assert.equal(dataEl.textContent, 'fake data');
+    expect(dataEl.textContent).toBe('fake data');
+  });
+
+  it('should work with the useMachine hook (rehydrated state)', async () => {
+    const { getByText, getByTestId } = render(
+      <Fetcher
+        onFetch={() => new Promise(res => res('fake data'))}
+        persistedState={persistedFetchState}
+      />
+    );
+
+    await waitForElement(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('persisted data');
+  });
+
+  it('should work with the useMachine hook (rehydrated state config)', async () => {
+    const persistedFetchStateConfig = JSON.parse(
+      JSON.stringify(persistedFetchState)
+    );
+    const { getByText, getByTestId } = render(
+      <Fetcher
+        onFetch={() => new Promise(res => res('fake data'))}
+        persistedState={persistedFetchStateConfig}
+      />
+    );
+
+    await waitForElement(() => getByText(/Success/));
+    const dataEl = getByTestId('data');
+    expect(dataEl.textContent).toBe('persisted data');
   });
 
   it('should provide the service', () => {
@@ -99,7 +145,33 @@ describe('useMachine hook', () => {
         execute: false
       });
 
-      assert.isFalse(service.options.execute);
+      expect(service.options.execute).toBe(false);
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should merge machine context with options.context', () => {
+    const testMachine = Machine<{ foo: string; test: boolean }>({
+      context: {
+        foo: 'bar',
+        test: false
+      },
+      initial: 'idle',
+      states: {
+        idle: {}
+      }
+    });
+
+    const Test = () => {
+      const [state] = useMachine(testMachine, { context: { test: true } });
+
+      expect(state.context).toEqual({
+        foo: 'bar',
+        test: true
+      });
 
       return null;
     };
@@ -143,5 +215,127 @@ describe('useMachine hook', () => {
     const { getByTestId } = render(<Spawner />);
     await waitForElement(() => getByTestId('success'));
     done();
+  });
+
+  it('actions should not have stale data', async done => {
+    const toggleMachine = Machine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: { TOGGLE: 'active' }
+        },
+        active: {
+          entry: 'doAction'
+        }
+      }
+    });
+
+    const Toggle = () => {
+      const [ext, setExt] = useState(false);
+
+      const doAction = React.useCallback(() => {
+        expect(ext).toBeTruthy();
+        done();
+      }, [ext]);
+
+      const [, send] = useMachine(toggleMachine, {
+        actions: {
+          doAction
+        }
+      });
+
+      return (
+        <>
+          <button
+            data-testid="extbutton"
+            onClick={_ => {
+              setExt(true);
+            }}
+          />
+          <button
+            data-testid="button"
+            onClick={_ => {
+              send('TOGGLE');
+            }}
+          />
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Toggle />);
+
+    const button = getByTestId('button');
+    const extButton = getByTestId('extbutton');
+    fireEvent.click(extButton);
+
+    fireEvent.click(button);
+  });
+
+  it('should compile with typed matches (createMachine)', () => {
+    interface TestContext {
+      count?: number;
+      user?: { name: string };
+    }
+
+    type TestState =
+      | {
+          value: 'loading';
+          context: { count: number; user: undefined };
+        }
+      | {
+          value: 'loaded';
+          context: { user: { name: string } };
+        };
+
+    const machine = createMachine<TestContext, any, TestState>({
+      initial: 'loading',
+      states: {
+        loading: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {}
+          }
+        },
+        loaded: {}
+      }
+    });
+
+    const ServiceApp: React.FC<{
+      service: Interpreter<TestContext, any, any, TestState>;
+    }> = ({ service }) => {
+      const [state] = useService(service);
+
+      if (state.matches('loaded')) {
+        const name = state.context.user.name;
+
+        // never called - it's okay if the name is undefined
+        expect(name).toBeTruthy();
+      } else if (state.matches('loading')) {
+        // Make sure state isn't "never" - if it is, tests will fail to compile
+        expect(state).toBeTruthy();
+      }
+
+      return null;
+    };
+
+    const App = () => {
+      const [state, , service] = useMachine(machine);
+
+      if (state.matches('loaded')) {
+        const name = state.context.user.name;
+
+        // never called - it's okay if the name is undefined
+        expect(name).toBeTruthy();
+      } else if (state.matches('loading')) {
+        // Make sure state isn't "never" - if it is, tests will fail to compile
+        expect(state).toBeTruthy();
+      }
+
+      return <ServiceApp service={service} />;
+    };
+
+    // Just testing that it compiles
+    render(<App />);
   });
 });

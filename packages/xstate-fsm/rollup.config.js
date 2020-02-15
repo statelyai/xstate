@@ -3,7 +3,7 @@ import { terser } from 'rollup-plugin-terser';
 import rollupReplace from 'rollup-plugin-replace';
 import fileSize from 'rollup-plugin-filesize';
 
-const createConfig = ({ input, output, target = undefined }) => ({
+const createConfig = ({ input, output, tsconfig = undefined }) => ({
   input,
   output,
   plugins: [
@@ -11,7 +11,8 @@ const createConfig = ({ input, output, target = undefined }) => ({
       'process.env.NODE_ENV': JSON.stringify('production')
     }),
     typescript({
-      clean: true
+      clean: true,
+      tsconfig
     }),
     terser({
       toplevel: true
@@ -26,7 +27,23 @@ export default [
     output: {
       file: 'dist/xstate.fsm.js',
       format: 'umd',
-      name: 'FSM'
+      name: 'XStateFSM'
     }
+  }),
+  createConfig({
+    input: 'src/index.ts',
+    output: [
+      {
+        file: 'dist/xstate.fsm.compat.js',
+        format: 'umd',
+        name: 'XStateFSM'
+      },
+      {
+        dir: 'es',
+        format: 'esm',
+        name: 'XStateFSM'
+      }
+    ],
+    tsconfig: 'tsconfig.compat.json'
   })
 ];

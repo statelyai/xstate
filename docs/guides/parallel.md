@@ -6,7 +6,7 @@ A parallel state node is specified on the machine and/or any nested compound sta
 
 For example, the machine below allows the `upload` and `download` compound states to be simultaneously active. Imagine that this represents an application where you can download and upload files at the same time:
 
-```js
+```js {3,5,21}
 const fileMachine = Machine({
   id: 'file',
   type: 'parallel',
@@ -52,6 +52,8 @@ console.log(fileMachine.initialState.value);
 //   download: 'idle'
 // }
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=ef808b0400ececa786ec17e20d62c1e0&embed=1"></iframe>
 
 A parallel state node's state value is represented as an object, since objects naturally represent orthogonality via separate keys and values. This object state value can be used to further transition to different states in a parallel state node:
 
@@ -128,3 +130,5 @@ console.log(lightMachine.transition('yellow', 'TIMER').value);
 //   }
 // }
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=3887dee1e2bb6e84c3b5a42c056984ad&embed=1"></iframe>

@@ -1,6 +1,10 @@
-import { EventObject, OmniEventObject, ActionObject } from 'xstate';
-import { produce, Draft } from 'immer';
-import { actionTypes } from 'xstate/lib/actions';
+import {
+  EventObject,
+  ActionObject,
+  AssignAction,
+  assign as xstateAssign
+} from 'xstate';
+import { produce, Draft, produceWithPatches, applyPatches } from 'immer';
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
   context: Draft<TContext>,
@@ -14,30 +18,35 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
 
 export function assign<TContext, TEvent extends EventObject = EventObject>(
   assignment: ImmerAssigner<TContext, TEvent>
-): ImmerAssignAction<TContext, TEvent> {
+): AssignAction<TContext, TEvent> {
+  // @ts-ignore (possibly infinite TS bug)
+  return xstateAssign((context, event) => {
+    return produce(context, draft => void assignment(draft, event));
+  });
+}
+
+interface PatchEventObject extends EventObject {
+  patches: ReturnType<typeof produceWithPatches>;
+}
+
+export function patchEvent<TContext>(
+  type: string,
+  context: TContext,
+  recipe: (draftContext: TContext) => void
+): PatchEventObject {
   return {
-    type: actionTypes.assign,
-    assignment
+    type,
+    patches: produceWithPatches(context, recipe)
   };
 }
 
-export function updater<TContext, TEvent extends EventObject>(
-  context: TContext,
-  event: OmniEventObject<TEvent>,
-  assignActions: Array<ImmerAssignAction<TContext, TEvent>>
-): TContext {
-  const updatedContext = context
-    ? assignActions.reduce((acc, assignAction) => {
-        const { assignment } = assignAction as ImmerAssignAction<
-          TContext,
-          OmniEventObject<TEvent>
-        >;
+export function assignPatch<
+  TContext,
+  TEvent extends PatchEventObject
+>(): AssignAction<TContext, TEvent> {
+  return xstateAssign((context, event) => {
+    const [, patches] = event.patches;
 
-        const update = produce(acc, interim => void assignment(interim, event));
-
-        return update;
-      }, context)
-    : context;
-
-  return updatedContext as TContext;
+    return applyPatches(context, patches);
+  });
 }

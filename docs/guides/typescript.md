@@ -71,7 +71,7 @@ const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
         stop: {
           on: {
             // Transient transition
-            '': { target: 'green' }
+            '': { target: '#light.green' }
           }
         }
       }
@@ -115,4 +115,84 @@ const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
   }
   // ...
 };
+```
+
+## Typestates <Badge text="4.7+" />
+
+Typestates are a concept that narrow down the shape of the overall state `context` based on the state `value`. This can be helpful in preventing impossible states and narrowing down what the `context` should be in a given state, without having to write excessive assertions.
+
+A `Typestate` is an interface consisting of two properties:
+
+- `value` - the state value of the typestate
+- `context` - the narrowed context of the typestate when the state matches the given `value`
+
+The typestates of a machine are specified as the 3rd generic type in `createMachine<TContext, TEvent, TState>`.
+
+**Example:**
+
+```ts
+import { createMachine, interpret } from 'xstate';
+
+interface User {
+  name: string;
+}
+
+interface UserContext {
+  user?: User;
+  error?: string;
+}
+
+type UserEvent =
+  | { type: 'FETCH'; id: string }
+  | { type: 'RESOLVE'; user: User }
+  | { type: 'REJECT'; error: string };
+
+type UserState =
+  | {
+      value: 'idle';
+      context: UserContext & {
+        user: undefined;
+        error: undefined;
+      };
+    }
+  | {
+      value: 'loading';
+      context: UserContext;
+    }
+  | {
+      value: 'success';
+      context: UserContext & { user: User; error: undefined };
+    }
+  | {
+      value: 'failure';
+      context: UserContext & { user: undefined; error: string };
+    };
+
+const userMachine = createMachine<UserContext, UserEvent, UserState>({
+  id: 'user',
+  initial: 'idle',
+  states: {
+    idle: {
+      /* ... */
+    },
+    loading: {
+      /* ... */
+    },
+    success: {
+      /* ... */
+    },
+    failure: {
+      /* ... */
+    }
+  }
+});
+
+const userService = interpret(userMachine);
+
+userService.subscribe(state => {
+  if (state.matches('success')) {
+    // from the UserState typestate, `user` will be defined
+    state.context.user.name;
+  }
+});
 ```

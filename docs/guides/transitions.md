@@ -74,7 +74,7 @@ console.log(yellowState.value);
 
 ## Selecting Enabled Transitions
 
-An **enabled transition** is a transition that will be taken, given the current state and event. It will be taken if and only if:
+An **enabled transition** is a transition that will be taken conditionally, based upon the current state and event. It will be taken if and only if:
 
 - it is defined on a [state node](./statenodes.md) that matches the current state value
 - the transition [guard](./guards.md) (`cond` property) is satisfied (evaluates to `true`)
@@ -129,6 +129,30 @@ const closedState = wizardMachine.transition(initialState, 'CLOSE');
 console.log(closedState.value);
 // => 'closed'
 ```
+
+## Event Descriptors
+
+An event descriptor is a string describing the event type that the transition will match. Often, this is equivalent to the `event.type` property on the `event` object sent to the machine:
+
+```js
+// ...
+{
+  on: {
+    // "CLICK" is the event descriptor.
+    // This transition matches events with { type: 'CLICK' }
+    CLICK: 'someState',
+    // "SUBMIT" is the event descriptor.
+    // This transition matches events with { type: 'SUBMIT' }
+    SUBMIT: 'anotherState'
+  }
+}
+// ...
+```
+
+Other event descriptors include:
+
+- [Null event descriptors](#transient-transitions) (`""`), which match no events (i.e., "null" events) and represent transitions taken immediately after the state is entered
+- [Wildcard event descriptors](#wildcard-descriptors) (`"*"`) <Badge text="4.7+" />, which match any event if the event is not matched explicitly by any other transition in the state
 
 ## Self Transitions
 
@@ -195,7 +219,7 @@ const buttonMachine = Machine({
 
 - `EVENT: '.foo'` - internal transition to child
 - `EVENT: { target: '.foo' }` - internal transition to child (starts with `'.'`)
-- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to child
+- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to own child node (equivalent to `{ target: '.foo' }`)
   - This would otherwise be an external transition
 - `EVENT: undefined` - forbidden transition
 - `EVENT: { actions: [ ... ] }` - internal self-transition
@@ -224,13 +248,13 @@ Every transition above is explicit and will have its `exit` and `entry` actions 
 
 **Summary of external transitions:**
 
-- `{ EVENT: 'foo' }` - all transitions to siblings are external transitions
-- `{ EVENT: '#someTarget' }` - all transitions to other nodes are external transitions
-- `{ EVENT: 'same.foo' }` - external transition to child node with reference to self (parent node)
-- `{ EVENT: '.foo', internal: false }` - external transition to child node
+- `EVENT: { target: 'foo' }` - all transitions to siblings are external transitions
+- `EVENT: { target: '#someTarget' }` - all transitions to other nodes are external transitions
+- `EVENT: { target: 'same.foo' }` - external transition to own child node (equivalent to `{ target: '.foo', internal: false }`)
+- `EVENT: { target: '.foo', internal: false }` - external transition to child node
   - This would otherwise be an internal transition
-- `{ actions: [ ... ], internal: false }` - external self-transition
-- `{ target: undefined, actions: [ ... ], internal: false }` - external self-transition, same as above
+- `EVENT: { actions: [ ... ], internal: false }` - external self-transition
+- `EVENT: { target: undefined, actions: [ ... ], internal: false }` - external self-transition, same as above
 
 ## Transient Transitions
 
@@ -374,13 +398,62 @@ const settingsMachine = Machine({
   },
   on: {
     // Multiple targets
-    DEACTIVATE: ['.mode.inactive', '.status.disabled']
-    // Can also be coded as...
-    // DEACTIVATE: {
-    //   target: ['.mode.inactive', '.status.disabled']
-    // }
+    DEACTIVATE: {
+      target: ['.mode.inactive', '.status.disabled']
+    }
   }
 });
+```
+
+## Wildcard Descriptors <Badge text="4.7+" />
+
+A transition that is specified with a wildcard event descriptor (`"*"`) is activated by _any event_. This means that any event will match the transition that has `on: { "*": ... }`, and if the guards pass, that transition will be taken.
+
+Explicit event descriptors will always be chosen over wildcard event descriptors, unless the transitions are specified in an array. In that case, the order of the transitions determines which transition gets chosen.
+
+```js {3,8}
+// For SOME_EVENT, the explicit transition to "here" will be taken
+on: {
+  "*": "elsewhere",
+  "SOME_EVENT": "here"
+}
+
+// For SOME_EVENT, the wildcard transition to "elsewhere" will be taken
+on: [
+  { event: "*", target: "elsewhere" },
+  { event: "SOME_EVENT", target: "here" },
+]
+```
+
+::: tip
+
+Wildcard descriptors do _not_ behave the same way as [transient transitions](#transient-transitions) (with null event descriptors). Whereas transient transitions will be taken immediately whenever the state is active, wildcard transitions still need some event to be sent to its state to be triggered.
+
+:::
+
+**Example:**
+
+```js {7,8}
+const quietMachine = Machine({
+  id: 'quiet',
+  initial: 'idle',
+  states: {
+    idle: {
+      on: {
+        WHISPER: undefined,
+        // On any event besides a WHISPER, transition to the 'disturbed' state
+        '*': 'disturbed'
+      }
+    },
+    disturbed: {}
+  }
+});
+
+quietMachine.transition(quietMachine.initialState, 'WHISPER');
+// => State { value: 'idle' }
+
+quietMachine.transition(quietMachine.initialState, 'SOME_EVENT');
+// => State { value: 'disturbed' }
 ```
 
 ## SCXML

@@ -1,0 +1,61 @@
+{
+  "name": "@xstate/test",
+  "version": "0.3.0",
+  "description": "XState test utilities",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state machine",
+    "model based testing",
+    "mbt",
+    "model",
+    "testing"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "browser": {
+    "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
+  },
+  "sideEffects": false,
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "test": "jest --runInBand",
+    "build": "tsc",
+    "prepublish": "npm run build && npm run test"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "peerDependencies": {
+    "xstate": "^4.7.6"
+  },
+  "devDependencies": {
+    "@types/jest-environment-puppeteer": "^4.0.0",
+    "jest": "^24.8.0",
+    "jest-environment-puppeteer": "^4.3.0",
+    "jest-puppeteer": "^4.3.0",
+    "lerna-alias": "3.0.3-0",
+    "puppeteer": "^1.19.0",
+    "strip-ansi": "^5.2.0",
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.5",
+    "xstate": "*"
+  },
+  "dependencies": {
+    "@xstate/graph": "^1.0.0",
+    "chalk": "^2.4.2"
+  }
+}

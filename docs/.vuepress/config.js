@@ -5,12 +5,6 @@ module.exports = {
     'Documentation for XState: State Machines and Statecharts for the Modern Web',
   markdown: {
     toc: { includeLevel: [2, 3] }
-    // lineNumbers: true
-    // config: md => {
-    //   md.use(mdCodesandboxPlugin, {
-    //     directory: 'sandboxes',
-    //   })
-    // }
   },
   themeConfig: {
     lastUpdated: 'Last Updated',
@@ -24,14 +18,19 @@ module.exports = {
     },
     nav: [
       { text: 'API', link: 'https://xstate.js.org/api' },
-      { text: 'Visualizer', link: 'https://statecharts.github.io/xstate-viz' },
+      { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
       { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
       { text: 'Community', link: 'https://spectrum.chat/statecharts' }
     ],
     sidebar: [
       {
         title: 'About',
-        children: ['/about/concepts', '/about/goals', '/about/showcase']
+        children: [
+          '/about/concepts',
+          '/about/goals',
+          '/about/showcase',
+          '/about/tutorials'
+        ]
       },
       {
         title: 'Guides',
@@ -61,6 +60,21 @@ module.exports = {
         ]
       },
       {
+        title: 'Tutorials',
+        children: [
+          '/tutorials/reddit',
+          {
+            title: '7GUIs',
+            children: [
+              '/tutorials/7guis/counter',
+              '/tutorials/7guis/temperature',
+              '/tutorials/7guis/flight',
+              '/tutorials/7guis/timer'
+            ]
+          }
+        ]
+      },
+      {
         title: 'Recipes',
         children: ['/recipes/react', '/recipes/vue', '/recipes/rxjs']
       },
@@ -68,8 +82,10 @@ module.exports = {
         title: 'Packages',
         children: [
           'packages/xstate-react/',
+          'packages/xstate-vue/',
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
+          'packages/xstate-test/',
           'packages/xstate-immer/'
         ]
       },
@@ -87,5 +103,8 @@ module.exports = {
       }
     ]
   },
-  plugins: [['@vuepress/google-analytics', { ga: 'UA-129726387-1' }]]
+  plugins: [
+    ['@vuepress/google-analytics', { ga: 'UA-129726387-1' }],
+    'vuepress-plugin-export'
+  ]
 };

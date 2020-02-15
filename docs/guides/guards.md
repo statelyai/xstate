@@ -1,25 +1,36 @@
-# Guards
+# Guarded Transitions
 
 Many times, you'll want a transition between states to only take place if certain conditions on the state (finite or extended) or the event are met. For instance, let's say you're creating a machine for a search form, and you only want search to be allowed if:
 
 - the user is allowed to search (`.canSearch` in this example)
 - the search event `query` is not empty.
 
-This is a good use case for a "transition guard", which determines if a transition can occur given the state and the event. A transition with guards is called a **conditional transition**.
+This is a good use case for a "guarded transition", which is a transition that only occurs if some condition (`cond`) passes. A transition with condition(s) is called a **guarded transition**.
 
-## Guard Functions
+## Guards (Condition Functions)
 
-A **guard** is a function that takes 2 arguments:
+A **condition function** (also known as a **guard**) specified on the `.cond` property of a transition, as a string or condition object with a `{ type: '...' }` property, and takes 3 arguments:
 
-- `context` - the [machine context](./context.md)
-- `event` - the event, represented as an object
+| Argument   | Type   | Description                            |
+| ---------- | ------ | -------------------------------------- |
+| `context`  | object | the [machine context](./context.md)    |
+| `event`    | object | the event that triggered the condition |
+| `condMeta` | object | meta data (see below)                  |
 
-and returns either `true` or `false`, which signifies whether the transition should be allowed to take place.
+The `condMeta` object includes the following properties:
 
-Guards are specified on the `.cond` property of a transition, as a string or guard object with a `{ type: '...' }` property:
+- `cond` - the original condition object
+- `state` - the resolved machine state, after transition
+- `_event` - the SCXML event
+
+**Returns**
+
+`true` or `false`, which determines whether the transition should be allowed to take place.
 
 ```js {15-16,30-34}
-import { Machine } from 'xstate';
+const searchValid = (context, event) => {
+  return context.canSearch && event.query && event.query.length > 0;
+};
 
 const searchMachine = Machine(
   {
@@ -31,11 +42,19 @@ const searchMachine = Machine(
     states: {
       idle: {
         on: {
-          SEARCH: {
-            target: 'searching',
-            // Only transition to 'searching' if the guard (cond) evaluates to true
-            cond: 'searchValid' // or { type: 'searchValid' }
-          }
+          SEARCH: [
+            {
+              target: 'searching',
+              // Only transition to 'searching' if the guard (cond) evaluates to true
+              cond: searchValid // or { type: 'searchValid' }
+            },
+            { target: '.invalid' }
+          ]
+        },
+        initial: 'normal',
+        states: {
+          normal: {},
+          invalid: {}
         }
       },
       searching: {
@@ -49,17 +68,19 @@ const searchMachine = Machine(
   },
   {
     guards: {
-      searchValid: (context, event) => {
-        return context.canSearch && event.query && event.query.length > 0;
-      }
+      searchValid // optional, if the implementation doesn't change
     }
   }
 );
 ```
 
+Click the _EVENTS_ tab and send an event like `{ "type": "SEARCH", "query": "something" }` below:
+
+<iframe src="https://xstate.js.org/viz/?gist=09af23963bfa1767ce3900f2ae730029&embed=1&tab=events"></iframe>
+
 If the `cond` guard returns `false`, then the transition will not be selected, and no transition will take place from that state node.
 
-Example of usage with context:
+Example of usage with `context`:
 
 ```js
 import { interpret } from 'xstate';
@@ -76,7 +97,7 @@ searchService.send({ type: 'SEARCH', query: 'something' });
 ```
 
 ::: tip
-Guard implementations can be quickly prototyped by specifying the guard `cond` function directly in the machine config:
+Guard implementations can be quickly prototyped by specifying the guard `cond` function inline, directly in the machine config:
 
 ```js {4}
 // ...
@@ -96,7 +117,7 @@ Guards can (and should) be serialized as a string or an object with the `{ type:
 
 - `context` - the current machine context
 - `event` - the event that triggered the (potential) transition
-- `guardMeta` <Badge text="4.4+" /> - an object containing meta data about the guard and transition, including:
+- `guardMeta` - an object containing meta data about the guard and transition, including:
   - `cond` - the original `cond` object
   - `state` - the current machine state, before transition
 
@@ -183,7 +204,7 @@ const doorMachine = Machine(
     id: 'door',
     initial: 'closed',
     context: {
-      level: 'admin',
+      level: 'user',
       alert: false // alert when intrusions happen
     },
     states: {
@@ -196,6 +217,9 @@ const doorMachine = Machine(
         on: {
           SET_ADMIN: {
             actions: assign({ level: 'admin' })
+          },
+          SET_ALARM: {
+            actions: assign({ alert: true })
           },
           OPEN: [
             // Transitions are tested one at a time.
@@ -227,6 +251,13 @@ const doorService = interpret(doorMachine)
 // => { closed: 'idle' }
 
 doorService.send('OPEN');
+// => { closed: 'idle' }
+
+doorService.send('SET_ALARM');
+// => { closed: 'idle' }
+// (state does not change, but context changes)
+
+doorService.send('OPEN');
 // => { closed: 'error' }
 
 doorService.send('SET_ADMIN');
@@ -237,6 +268,8 @@ doorService.send('OPEN');
 // => 'opened'
 // (since context.isAdmin === true)
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=8526f72c3041b38f7d7ba808c812df06&embed=1"></iframe>
 
 ::: warning
 The `cond` function must always be a **pure function** that only references the `context` and `event` arguments.

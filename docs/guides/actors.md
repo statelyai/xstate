@@ -41,7 +41,7 @@ All the existing invoked service patterns fit this interface:
 - [Invoked machines](./communication.md#invoking-machines) are actors that can send events to the parent (`sendParent(...)` action) or other actors it has references to (`send(...)` action), receive events, act on them (state transitions and actions), spawn new actors (`spawn(...)` function), and stop actors.
 - [Invoked observables](./communication.md#invoking-observables) are actors whose emitted values represent events to be sent back to the parent.
 
-## Spawning actors
+## Spawning Actors
 
 Just as in Actor-model-based languages like [Akka](https://doc.akka.io/docs/akka/current/guide/introduction.html) or [Erlang](http://www.erlang.org/docs), actors are spawned and referenced in `context` (as the result of an `assign(...)` action).
 
@@ -54,8 +54,14 @@ The `spawn(...)` function creates an **actor reference** by providing 1 or 2 arg
   - [Machine](./communication.md#invoking-machines)
   - [Promise](./communication.md#invoking-promises)
   - [Callback](./communication.md#invoking-callbacks)
-  - Observable
+  - [Observable](./communication.md#invoking-observables)
 - `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
+
+Alternatively `spawn` accepts an options object as the second argument which may contain the following options:
+
+- `name` (optional) - a string uniquely identifying the actor. This should be unique for all spawned actors and invoked services.
+- `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
+- `sync` - (optional) `true` if this machine should be automatically subscribed to the spawned child machine's state, the state will be stored as `.state` on the child machine ref
 
 ```js {13-14}
 import { Machine, spawn } from 'xstate';
@@ -119,7 +125,7 @@ const someActorRef = spawn(someMachine);
 
 Different types of values can be spawned as actors.
 
-## Sending events to actors
+## Sending Events to Actors
 
 With the [`send()` action](./actions.md#send-action), events can be sent to actors via a [target expression](./actions.md#send-targets):
 
@@ -145,6 +151,29 @@ const machine = Machine({
 });
 ```
 
+::: tip
+If you provide an unique `name` argument to `spawn(...)`, you can reference it in the target expression:
+
+```js
+const loginMachine = Machine({
+  // ...
+  entry: assign({
+    formRef: () => spawn(formMachine, 'form')
+  }),
+  states: {
+    idle: {
+      on: {
+        LOGIN: {
+          actions: send('SUBMIT', { to: 'form' })
+        }
+      }
+    }
+  }
+});
+```
+
+:::
+
 ## Spawning Promises
 
 Just like [invoking promises](./communication.md#invoking-promises), promises can be spawned as actors. The event sent back to the machine will be a `'done.invoke.<ID>'` action with the promise response as the `data` property in the payload:
@@ -166,7 +195,7 @@ const fetchData = query => {
 // ...
 ```
 
-::: tip
+::: warning
 It is not recommended to spawn promise actors, as [invoking promises](./communication.md#invoking-promises) is a better pattern for this, since they are dependent on state (self-cancelling) and have more predictable behavior.
 :::
 
@@ -211,7 +240,7 @@ const machine = Machine({
   on: {
     'COUNTER.INC': {
       actions: send('INC', {
-        to: context => context.ref
+        to: context => context.counterRef
       })
     }
   }
@@ -260,7 +289,7 @@ const remoteMachine = Machine({
       }
     },
     online: {
-      after {
+      after: {
         1000: {
           actions: sendParent('REMOTE.ONLINE')
         }
@@ -272,6 +301,9 @@ const remoteMachine = Machine({
 const parentMachine = Machine({
   id: 'parent',
   initial: 'waiting',
+  context: {
+    localOne: null
+  },
   states: {
     waiting: {
       entry: assign({
@@ -300,7 +332,7 @@ parentService.send('LOCAL.WAKE');
 // => 'connected'
 ```
 
-### Syncing and Reading State <Badge text="4.6.1+"/>
+## Syncing and Reading State <Badge text="4.6.1+"/>
 
 One of the main tenets of the Actor model is that actor state is _private_ and _local_ - it is never shared unless the actor chooses to share it, via message passing. Sticking with this model, an actor can _notify_ its parent whenever its state changes by sending it a special "update" event with its latest state. In other words, parent actors can subscribe to their child actors' states.
 
@@ -310,6 +342,7 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 // ...
 {
   actions: assign({
+    // Actor will send update event to parent whenever its state changes
     someRef: () => spawn(todoMachine, { sync: true })
   });
 }
@@ -330,29 +363,33 @@ someService.onTransition(state => {
 });
 ```
 
-By default, `sync` is set to `false`; that is, `ref.state === undefined`.
-
 ::: warning
-Prefer sending events to the parent explicitly (`sendParent(...)`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent. Here is an example alternative pattern:
+By default, `sync` is set to `false`. Never read an actor's `.state` when `sync` is disabled; otherwise, you will end up referencing stale state.
+:::
 
-```js {9-12}
-// Child machine
-// ...
-on: {
-  CHANGE: {
-    actions: assign({ value: (_, event) => event.value })
-  },
-  SAVE: {
-    // Only notify parent of changes on SAVE event
-    actions: sendParent({
-      type: 'UPDATE_FROM_CHILD',
-      data: context
-    })
+## Sending Updates <Badge text="4.7+" />
+
+For actors that are not synchronized with the parent, the actor can send an explicit event to its parent machine via `sendUpdate()`:
+
+```js
+import { Machine, sendUpdate } from 'xstate';
+
+const childMachine = Machine({
+  // ...
+  on: {
+    SOME_EVENT: {
+      actions: [
+        // ...
+        // Creates an action that sends an update event to parent
+        sendUpdate()
+      ]
+    }
   }
-}
-// ...
+});
 ```
 
+::: tip
+Prefer sending events to the parent explicitly (`sendUpdate()`) rather than subscribing to every state change. Syncing with spawned machines can result in "chatty" event logs, since every update from the child results in a new `"xstate.update"` event sent from the child to the parent.
 :::
 
 ## Quick Reference
@@ -386,7 +423,8 @@ import { spawn } from 'xstate';
       spawn(
         new Promise((resolve, reject) => {
           // ...
-        }, 'my-promise')
+        }),
+        'my-promise'
       ),
 
     // From a callback
@@ -427,7 +465,7 @@ import { spawn } from 'xstate';
 // ...
 {
   actions: assign({
-    someRef: () => spawn(someMachine, { spawn: true })
+    someRef: () => spawn(someMachine, { sync: true })
   });
 }
 // ...

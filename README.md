@@ -3,13 +3,12 @@
   <br />
   <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
   <br />
-  <sub>JavaScript state machines and statecharts</sub>
+    <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
   <br />
   </a>
 </p>
 
-[![Build Status](https://davidkpiano.visualstudio.com/xstate/_apis/build/status/davidkpiano.xstate)](https://davidkpiano.visualstudio.com/xstate/_build/latest?definitionId=1)
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 [![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
@@ -17,10 +16,15 @@
 JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/Finite-state_machine) and [statecharts](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) for the modern web.
 
 📖 [Read the documentation](https://xstate.js.org/docs)
+📑 Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
 
-Adheres to the [SCXML specification](https://www.w3.org/TR/scxml/).
+## Packages
 
-[**Version 3.x to 4 Migration Guide**](./migration.md)
+- 🤖 `xstate` - Core finite state machine and statecharts library + interpreter
+- [🔬 `@xstate/fsm`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm) - Minimal finite state machine library
+- [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
+- [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
 
 ## Super quick start
 
@@ -55,19 +59,24 @@ toggleService.send('TOGGLE');
 // => 'inactive'
 ```
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
 - [Visualizer](#visualizer)
-- [Why? (info about statecharts)](#why)
-- [Installation](#installation)
+- [Why?](#why)
 - [Finite State Machines](#finite-state-machines)
 - [Hierarchical (Nested) State Machines](#hierarchical-nested-state-machines)
 - [Parallel State Machines](#parallel-state-machines)
 - [History States](#history-states)
+- [Sponsors](#sponsors)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
 
 ## Visualizer
 
-**[:new: Preview and simulate your statecharts in the XState visualizer (beta)!](https://statecharts.github.io/xstate-viz)**
+**[Visualize, simulate, and share your statecharts in XState Viz!](https://xstate.js.org/viz)**
 
-<a href="https://statecharts.github.io/xstate-viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
+<a href="https://xstate.js.org/viz" title="xstate visualizer"><img src="https://i.imgur.com/3pEB0B3.png" alt="xstate visualizer" width="300" /></a>
 
 ## Why?
 
@@ -80,7 +89,6 @@ Read [📽 the slides](http://slides.com/davidkhourshid/finite-state-machines) (
 - [Pure UI](https://rauchg.com/2015/pure-ui) by Guillermo Rauch
 - [Pure UI Control](https://medium.com/@asolove/pure-ui-control-ac8d1be97a8d) by Adam Solove
 - [Spectrum - Statecharts Community](https://spectrum.chat/statecharts)
-
 
 ## Finite State Machines
 

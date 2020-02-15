@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) that you can pass in.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** a tuple of `[current, send, service]`:
 
@@ -69,6 +69,84 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 - `current` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
+
+### `useMachine(machine)` with `@xstate/fsm` <Badge text="1.1+"/>
+
+A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
+
+This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
+
+**Arguments**
+
+- `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
+- `options` - An optional `options` object.
+
+**Returns** a tuple of `[current, send, service]`:
+
+- `current` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
+- `send` - A function that sends events to the running service.
+- `service` - The created `@xstate/fsm` service.
+
+**Example**
+
+```js
+import { useEffect } from 'react';
+import { useMachine } from `@xstate/react/lib/fsm`;
+import { createMachine } from '@xstate/fsm';
+
+const context = {
+  data: undefined
+};
+const fetchMachine = createMachine({
+  id: 'fetch',
+  initial: 'idle',
+  context,
+  states: {
+    idle: {
+      on: { FETCH: 'loading' }
+    },
+    loading: {
+      entry: ['load'],
+      on: {
+        RESOLVE: {
+          target: 'success',
+          actions: assign({
+            data: (context, event) => event.data
+          })
+        }
+      }
+    },
+    success: {}
+  }
+});
+
+const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
+  const [current, send] = useMachine(fetchMachine, {
+    actions: {
+      load: () => {
+        onFetch().then(res => {
+          send({ type: 'RESOLVE', data: res });
+        });
+      }
+    }
+  });
+
+  switch (current.value) {
+    case 'idle':
+      return <button onClick={_ => send('FETCH')}>Fetch</button>;
+    case 'loading':
+      return <div>Loading...</div>;
+    case 'success':
+      return (
+        <div>
+          Success! Data: <div data-testid="data">{current.context.data}</div>
+        </div>
+      );
+    default:
+      return null;
+  }
+};
+```
 
 ## Configuring Machines <Badge text="0.7+"/>
 
@@ -180,10 +258,35 @@ const Loader = () => {
         <Loader.Idle />
       ) : current.matches({ loading: 'user' }) ? (
         <Loader.LoadingUser />
-      ) : current.matches({ loading: 'frends' }) ? (
+      ) : current.matches({ loading: 'friends' }) ? (
         <Loader.LoadingFriends />
       ) : null}
     </div>
   );
 };
 ```
+
+## Persisted and Rehydrated State
+
+You can persist and rehydrate state with `useMachine(...)` via `options.state`:
+
+```js
+// ...
+
+// Get the persisted state config object from somewhere, e.g. localStorage
+const persistedState = JSON.parse(localStorage.getItem('some-persisted-state-key'));
+
+const App = () => {
+  const [current, send] = useMachine(someMachine, {
+    state: persistedState // provide persisted state config object here
+  });
+
+  // current will initially be that persisted state, not the machine's initialState
+
+  return (/* ... */)
+}
+```
+
+## Resources
+
+[State Machines in React](https://gedd.ski/post/state-machines-in-react/)

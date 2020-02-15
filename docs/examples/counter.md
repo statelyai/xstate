@@ -10,8 +10,8 @@ The `count` is [stored in `context`](../guides/context.md).
 ```js
 import { Machine, interpret, assign } from 'xstate';
 
-const increment = context => countext.count + 1;
-const decrement = context => countext.count - 1;
+const increment = context => context.count + 1;
+const decrement = context => context.count - 1;
 
 const counterMachine = Machine({
   initial: 'active',
@@ -50,8 +50,8 @@ With [guards](../guides/guards.md), we can model min and max by preventing trans
 ```js
 // ...
 
-const isNotMax = context => context <= 10;
-const isNotMin = context => context >= 0;
+const isNotMax = context => context.count < 10;
+const isNotMin = context => context.count >= 0;
 
 const counterMachine = Machine({
   initial: 'active',

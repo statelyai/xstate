@@ -1,5 +1,6 @@
 {
   "name": "@xstate/immer",
+  "private": true,
   "version": "0.0.1",
   "description": "XState with Immer",
   "keywords": [
@@ -13,31 +14,37 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-immer#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "types": "lib/index.d.ts",
   "sideEffects": false,
   "directories": {
     "lib": "lib",
     "test": "__tests__"
   },
   "files": [
-    "lib"
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "test": "echo \"Error: run tests from root\" && exit 1"
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "build": "tsc",
+    "test": "jest"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "dependencies": {},
   "peerDependencies": {
-    "immer": "^2.1.5",
+    "immer": "^5.0.0",
     "xstate": "^4.6.0"
   },
   "devDependencies": {
-    "immer": "^2.1.5",
-    "xstate": "^4.6.0"
+    "immer": "^5.0.0",
+    "lerna-alias": "3.0.3-0",
+    "typescript": "^3.7.5",
+    "xstate": "*"
   }
 }

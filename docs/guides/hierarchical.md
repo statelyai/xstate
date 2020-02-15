@@ -26,7 +26,8 @@ const pedestrianStates = {
         PED_COUNTDOWN: 'stop'
       }
     },
-    stop: {}
+    stop: {},
+    blinking: {}
   }
 };
 
@@ -36,26 +37,29 @@ const lightMachine = Machine({
   states: {
     green: {
       on: {
-        TIMER: 'yellow',
-        POWER_OUTAGE: 'red'
+        TIMER: 'yellow'
       }
     },
     yellow: {
       on: {
-        TIMER: 'red',
-        POWER_OUTAGE: 'red'
+        TIMER: 'red'
       }
     },
     red: {
       on: {
-        TIMER: 'green',
-        POWER_OUTAGE: 'red'
+        TIMER: 'green'
       },
       ...pedestrianStates
     }
+  },
+  on: {
+    POWER_OUTAGE: '.red.blinking',
+    POWER_RESTORED: '.red'
   }
 });
 ```
+
+<iframe src="https://xstate.js.org/viz/?gist=e8af8924afe9352bf7d1e06f06407061&embed=1"></iframe>
 
 The `'green'` and `'yellow'` states are **simple states** - they have no child states. In contrast, the `'red'` state is a **composite state** since it is composed of **substates** (the `pedestrianStates`).
 

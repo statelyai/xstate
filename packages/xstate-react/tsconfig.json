@@ -1,8 +1,17 @@
 {
-  "extends": "../../tsconfig",
+  "extends": "../../tsconfig.base.json",
   "include": ["src/**/*"],
   "compilerOptions": {
     "outDir": "./lib",
+    "rootDir": "./src",
     "jsx": "react"
-  }
+  },
+  "references": [
+    {
+      "path": "../core"
+    },
+    {
+      "path": "../xstate-fsm"
+    }
+  ]
 }
