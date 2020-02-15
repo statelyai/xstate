@@ -1052,10 +1052,10 @@ function getTransitionDomain<TContext, TEvent extends EventObject>(
 
 function exitStates<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  configuration: Array<StateNode<TContext, any, TEvent>>,
+  mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ) {
-  const statesToExit = computeExitSet(transitions, configuration, state);
+  const statesToExit = computeExitSet(transitions, mutConfiguration, state);
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
   statesToExit.forEach(stateNode => {
@@ -1066,17 +1066,16 @@ function exitStates<TContext, TEvent extends EventObject>(
 
   const historyValue = resolveHistoryValue(state, statesToExit);
 
-  const newConfiguration = new Set(configuration);
   for (const s of statesToExit) {
     actions.push(...flatten(s.exit));
-    newConfiguration.delete(s);
+    mutConfiguration.delete(s);
   }
 
   return {
     exitSet: statesToExit,
     historyValue,
     actions,
-    configuration: [...newConfiguration]
+    configuration: mutConfiguration
   };
 }
 
@@ -1145,7 +1144,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
 
 function computeExitSet<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  configuration: Array<StateNode<TContext, any, TEvent>>,
+  configuration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
   const statesToExit = new Set<StateNode<TContext, any, TEvent>>();
@@ -1360,12 +1359,12 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
   machine: MachineNode<TContext, any, TEvent>,
-  c: Array<StateNode<TContext, any, TEvent>>
+  mutConfiguration: Set<StateNode<TContext, any, TEvent>>
 ) {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
   const configuration: Array<StateNode<TContext, any, TEvent>> = currentState
     ? []
-    : stateTransition.configuration; // TODO: handle this better
+    : stateTransition.configuration; // TODO: refactor this once initial state returns transitions
 
   const transitions = currentState
     ? stateTransition.transitions
@@ -1380,14 +1379,13 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
   let historyValue: HistoryValue<TContext, TEvent> = {};
 
+  // Exit states
   if (currentState) {
-    const current = currentState;
-
     const {
       historyValue: exitHistoryValue,
       configuration: configurationFromExit,
       actions: exitActions
-    } = exitStates(transitions, c, current);
+    } = exitStates(transitions, mutConfiguration, currentState);
 
     actions.push(...exitActions);
 
@@ -1398,6 +1396,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
     configuration.push(...configurationFromExit);
   }
 
+  // Enter states
   const res = enterStates(
     transitions,
     new Set(configuration),
@@ -1460,7 +1459,7 @@ export function resolveTransition<
     currentState,
     _event,
     machine,
-    [...prevConfig]
+    new Set(prevConfig)
   );
 
   const [assignActions, otherActions] = partition(
