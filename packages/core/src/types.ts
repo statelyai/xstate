@@ -40,8 +40,6 @@ export interface ActionObject<TContext, TEvent extends EventObject> {
 
 export type DefaultContext = Record<string, any> | undefined;
 
-export type EventData = Record<string, any> & { type?: never };
-
 /**
  * The specified string event types or the specified event objects.
  */
