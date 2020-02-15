@@ -1081,11 +1081,11 @@ function exitStates<TContext, TEvent extends EventObject>(
 
 export function enterStates<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
-  configuration: Set<StateNode<TContext, any, TEvent>>,
+  mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ) {
   const defaultHistoryContent = {};
-  const statesToInvoke: typeof configuration = new Set();
+  const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: EventObject[] = [];
 
   const actions: Array<ActionObject<TContext, TEvent>> = [];
@@ -1098,7 +1098,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
   );
 
   for (const s of [...statesToEnter].sort((a, b) => a.order - b.order)) {
-    configuration.add(s);
+    mutConfiguration.add(s);
     statesToInvoke.add(s);
     actions.push(...s.entry);
     // if (statesForDefaultEntry.has(s)) {
@@ -1122,7 +1122,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
         if (grandparent.type === 'parallel') {
           if (
             getChildren(grandparent).every(parentNode =>
-              isInFinalState([...configuration], parentNode)
+              isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
             internalQueue.push(done(grandparent.id, grandparent.data));
@@ -1134,7 +1134,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
 
   return {
     defaultHistoryContent,
-    configuration: [...configuration],
+    configuration: mutConfiguration,
     statesToInvoke,
     internalQueue,
     statesForDefaultEntry,
@@ -1362,9 +1362,9 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>
 ) {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
-  const configuration: Array<StateNode<TContext, any, TEvent>> = currentState
-    ? []
-    : stateTransition.configuration; // TODO: refactor this once initial state returns transitions
+  // const configuration: Array<StateNode<TContext, any, TEvent>> = currentState
+  //   ? []
+  //   : stateTransition.configuration; // TODO: refactor this once initial state returns transitions
 
   const transitions = currentState
     ? stateTransition.transitions
@@ -1383,7 +1383,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   if (currentState) {
     const {
       historyValue: exitHistoryValue,
-      configuration: configurationFromExit,
+      // configuration: configurationFromExit,
       actions: exitActions
     } = exitStates(transitions, mutConfiguration, currentState);
 
@@ -1393,20 +1393,22 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
     actions.push(...stateTransition.actions);
 
-    configuration.push(...configurationFromExit);
+    mutConfiguration.forEach(sn => {
+      mutConfiguration.add(sn);
+    });
   }
 
   // Enter states
   const res = enterStates(
     transitions,
-    new Set(configuration),
+    mutConfiguration,
     currentState || State.from({})
   );
 
   // internal queue events
   actions.push(...res.internalQueue.map(event => raise(event)));
 
-  configuration.push(...res.configuration);
+  // configuration.push(...res.configuration);
 
   actions.push(
     ...flatten(
@@ -1420,7 +1422,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
   return {
     actions: toActionObjects(actions, machine.options.actions),
-    configuration,
+    configuration: mutConfiguration,
     historyValue
   };
 }
@@ -1543,7 +1545,7 @@ export function resolveTransition<
   }
 
   const resolvedConfiguration = resolvedStateValue
-    ? xres.configuration
+    ? Array.from(xres.configuration)
     : currentState
     ? currentState.configuration
     : [];
