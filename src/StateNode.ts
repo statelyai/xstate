@@ -370,7 +370,7 @@ class StateNode<
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>,
     context: TContext | undefined = this.context
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): Omit<StateNode<TContext, TStateSchema, TEvent>, 'withConfig'> {
     const { actions, activities, guards, services, delays } = this.options;
 
     return new StateNode(
@@ -393,7 +393,7 @@ class StateNode<
    */
   public withContext(
     context: TContext
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): Omit<StateNode<TContext, TStateSchema, TEvent>, 'withContext'> {
     return new StateNode(this.config, this.options, context);
   }
 
