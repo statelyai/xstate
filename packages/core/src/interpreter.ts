@@ -23,7 +23,6 @@ import {
   MachineOptions,
   ActionFunctionMap,
   SCXML,
-  EventData,
   Observer,
   Spawnable,
   Typestate
@@ -43,7 +42,6 @@ import {
   isObservable,
   uniqueId,
   isMachineNode,
-  toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
   symbolObservable
@@ -532,15 +530,14 @@ export class Interpreter<
    * @param event The event(s) to send
    */
   public send = (
-    event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
-    payload?: EventData
+    event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>
   ): State<TContext, TEvent> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
     }
 
-    const _event = toSCXMLEvent(toEventObject(event as Event<TEvent>, payload));
+    const _event = toSCXMLEvent(event);
 
     if (this._status === InterpreterStatus.Stopped) {
       // do nothing
@@ -956,10 +953,11 @@ export class Interpreter<
 
     if (resolvedOptions.sync) {
       childService.onTransition(state => {
-        this.send(actionTypes.update as any, {
+        this.send({
+          type: actionTypes.update,
           state,
           id: childService.id
-        });
+        } as any);
       });
     }
 

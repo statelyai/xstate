@@ -14,7 +14,6 @@ import {
   ConditionPredicate,
   SCXML,
   StateLike,
-  EventData,
   TransitionConfig,
   TransitionConfigTargetShortcut,
   NullEvent,
@@ -514,12 +513,10 @@ export const uniqueId = (() => {
 })();
 
 export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: EventData
-  // id?: TEvent['type']
+  event: Event<TEvent>
 ): TEvent {
-  if (isString(event) || typeof event === 'number') {
-    return { type: event, ...payload } as TEvent;
+  if (isString(event)) {
+    return { type: event } as TEvent;
   }
 
   return event;
