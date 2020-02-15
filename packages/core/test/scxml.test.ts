@@ -415,11 +415,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['w3c-ecma'];
+  // const testGroupKeys = ['parallel+interrupt'];
 
   testGroupKeys.forEach(testGroupName => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test406.txml'];
+
     testNames.forEach(testName => {
       const scxmlSource =
         overrides[testGroupName] &&

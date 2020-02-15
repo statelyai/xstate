@@ -1089,15 +1089,17 @@ export function enterStates<TContext, TEvent extends EventObject>(
   const internalQueue: EventObject[] = [];
 
   const actions: Array<ActionObject<TContext, TEvent>> = [];
-  const statesToEnter = new Set<StateNode<TContext, any, TEvent>>();
+  const mutStatesToEnter = new Set<StateNode<TContext, any, TEvent>>();
+  const mutStatesForDefaultEntry = new Set<StateNode<TContext, any, TEvent>>();
 
-  const { statesForDefaultEntry } = computeEntrySet(
+  computeEntrySet(
     transitions,
     state,
-    statesToEnter
+    mutStatesToEnter,
+    mutStatesForDefaultEntry
   );
 
-  for (const s of [...statesToEnter].sort((a, b) => a.order - b.order)) {
+  for (const s of [...mutStatesToEnter].sort((a, b) => a.order - b.order)) {
     mutConfiguration.add(s);
     statesToInvoke.add(s);
     actions.push(...s.entry);
@@ -1137,7 +1139,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
     configuration: mutConfiguration,
     statesToInvoke,
     internalQueue,
-    statesForDefaultEntry,
+    statesForDefaultEntry: mutStatesForDefaultEntry,
     actions
   };
 }
@@ -1167,64 +1169,61 @@ function computeExitSet<TContext, TEvent extends EventObject>(
 function computeEntrySet<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   state: State<TContext, TEvent>,
-  statesToEnter: Set<StateNode<TContext, any, TEvent>>
+  mutStatesToEnter: Set<StateNode<TContext, any, TEvent>>,
+  mutStatesForDefaultEntry: Set<StateNode<TContext, any, TEvent>>
 ) {
-  const statesForDefaultEntry = new Set<StateNode<TContext, any, TEvent>>();
-
   for (const t of transitions) {
     for (const s of t.target || []) {
-      const result = addDescendentStatesToEnter(s, state, statesToEnter);
-      result.statesToEnter.forEach(se => statesToEnter.add(se));
-      result.statesForDefaultEntry.forEach(se => statesForDefaultEntry.add(se));
+      addDescendentStatesToEnter(
+        s,
+        state,
+        mutStatesToEnter,
+        mutStatesForDefaultEntry
+      );
     }
     const ancestor = getTransitionDomain(t, state);
     for (const s of getEffectiveTargetStates(t, state)) {
-      const result = addAncestorStatesToEnter(
+      addAncestorStatesToEnter(
         s,
         ancestor,
         state,
-        statesToEnter
+        mutStatesToEnter,
+        mutStatesForDefaultEntry
       );
-      result.statesToEnter.forEach(se => statesToEnter.add(se));
-      result.statesForDefaultEntry.forEach(se => statesForDefaultEntry.add(se));
+      mutStatesForDefaultEntry.forEach(se => mutStatesForDefaultEntry.add(se));
     }
   }
-
-  return { statesToEnter, statesForDefaultEntry };
 }
 
 function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   state: State<TContext, TEvent>,
-  statesToEnter: Set<typeof stateNode>
+  mutStatesToEnter: Set<typeof stateNode>,
+  mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
   // const statesToEnter = new Set<typeof stateNode>();
-  const statesForDefaultEntry = new Set<typeof stateNode>();
+  // const statesForDefaultEntry = new Set<typeof stateNode>();
 
   if (isHistoryNode(stateNode)) {
     if (state.historyValue[stateNode.id]) {
       for (const s of state.historyValue[stateNode.id]) {
-        const result = addDescendentStatesToEnter(s, state, statesToEnter);
-
-        result.statesToEnter.forEach(stateToEnter =>
-          statesToEnter.add(stateToEnter)
-        );
-        result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-          statesForDefaultEntry.add(stateForDefaultEntry)
+        addDescendentStatesToEnter(
+          s,
+          state,
+          mutStatesToEnter,
+          mutStatesForDefaultEntry
         );
       }
       for (const s of state.historyValue[stateNode.id]) {
-        const result = addAncestorStatesToEnter(
+        addAncestorStatesToEnter(
           s,
           stateNode,
           state,
-          statesToEnter
+          mutStatesToEnter,
+          mutStatesForDefaultEntry
         );
-        result.statesToEnter.forEach(stateToEnter =>
-          statesToEnter.add(stateToEnter)
-        );
-        result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-          statesForDefaultEntry.add(stateForDefaultEntry)
+        mutStatesForDefaultEntry.forEach(stateForDefaultEntry =>
+          mutStatesForDefaultEntry.add(stateForDefaultEntry)
         );
       }
     } else {
@@ -1238,36 +1237,37 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
           )
         : [];
       for (const s of targets) {
-        const result = addDescendentStatesToEnter(s, state, statesToEnter);
-
-        result.statesToEnter.forEach(stateToEnter =>
-          statesToEnter.add(stateToEnter)
-        );
-        result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-          statesForDefaultEntry.add(stateForDefaultEntry)
+        addDescendentStatesToEnter(
+          s,
+          state,
+          mutStatesToEnter,
+          mutStatesForDefaultEntry
         );
       }
       for (const s of targets) {
-        const result = addAncestorStatesToEnter(
+        addAncestorStatesToEnter(
           s,
           stateNode,
           state,
-          statesToEnter
+          mutStatesToEnter,
+          mutStatesForDefaultEntry
         );
-        result.statesToEnter.forEach(stateToEnter =>
-          statesToEnter.add(stateToEnter)
-        );
-        result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-          statesForDefaultEntry.add(stateForDefaultEntry)
+        mutStatesForDefaultEntry.forEach(stateForDefaultEntry =>
+          mutStatesForDefaultEntry.add(stateForDefaultEntry)
         );
       }
     }
   } else {
-    statesToEnter.add(stateNode);
+    mutStatesToEnter.add(stateNode);
     if (stateNode.type === 'compound') {
-      statesForDefaultEntry.add(stateNode);
+      mutStatesForDefaultEntry.add(stateNode);
       const initialStateNode = stateNode.states[stateNode.initial as string];
-      addDescendentStatesToEnter(initialStateNode, state, statesToEnter);
+      addDescendentStatesToEnter(
+        initialStateNode,
+        state,
+        mutStatesToEnter,
+        mutStatesForDefaultEntry
+      );
       // for (const s of getInitialStateNodes(stateNode)) {
       //   const result = addDescendentStatesToEnter(s, state);
 
@@ -1282,7 +1282,8 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
         initialStateNode,
         stateNode,
         state,
-        statesToEnter
+        mutStatesToEnter,
+        mutStatesForDefaultEntry
       );
       // for (const s of getInitialStateNodes(stateNode)) {
       //   const result = addAncestorStatesToEnter(s, stateNode, state);
@@ -1295,63 +1296,45 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
       // }
     } else {
       if (stateNode.type === 'parallel') {
-        for (const child of getChildren(stateNode)) {
-          if (![...statesToEnter].some(s => isDescendant(s, child))) {
-            const result = addDescendentStatesToEnter(
+        for (const child of getChildren(stateNode).filter(
+          sn => !isHistoryNode(sn)
+        )) {
+          if (![...mutStatesToEnter].some(s => isDescendant(s, child))) {
+            addDescendentStatesToEnter(
               child,
               state,
-              statesToEnter
-            );
-
-            result.statesToEnter.forEach(stateToEnter =>
-              statesToEnter.add(stateToEnter)
-            );
-            result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-              statesForDefaultEntry.add(stateForDefaultEntry)
+              mutStatesToEnter,
+              mutStatesForDefaultEntry
             );
           }
         }
       }
     }
   }
-
-  return {
-    statesToEnter,
-    statesForDefaultEntry
-  };
 }
 
 function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   toStateNode: StateNode<TContext, any, TEvent> | null,
   state: State<TContext, TEvent>,
-  statesToEnter: Set<typeof stateNode>
+  mutStatesToEnter: Set<typeof stateNode>,
+  mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
-  // const statesToEnter = new Set<typeof stateNode>();
-  const statesForDefaultEntry = new Set<typeof stateNode>();
-
   for (const anc of getProperAncestors(stateNode, toStateNode)) {
-    statesToEnter.add(anc);
+    mutStatesToEnter.add(anc);
     if (anc.type === 'parallel') {
       for (const child of getChildren(anc).filter(sn => !isHistoryNode(sn))) {
-        if (![...statesToEnter].some(s => isDescendant(s, child))) {
-          const result = addDescendentStatesToEnter(
+        if (![...mutStatesToEnter].some(s => isDescendant(s, child))) {
+          addDescendentStatesToEnter(
             child,
             state,
-            statesToEnter
-          );
-          result.statesToEnter.forEach(stateToEnter =>
-            statesToEnter.add(stateToEnter)
-          );
-          result.statesForDefaultEntry.forEach(stateForDefaultEntry =>
-            statesForDefaultEntry.add(stateForDefaultEntry)
+            mutStatesToEnter,
+            mutStatesForDefaultEntry
           );
         }
       }
     }
   }
-
-  return { statesToEnter, statesForDefaultEntry };
 }
 
 export function xresolveTransition<TContext, TEvent extends EventObject>(
@@ -1444,9 +1427,6 @@ export function resolveTransition<
   // - OR there are transitions
   const willTransition =
     !currentState || stateTransition.transitions.length > 0;
-  const resolvedStateValue = willTransition
-    ? getValue(machine.machine, configuration)
-    : undefined;
 
   // Entry and exit set
   const prevConfig = getConfiguration(
@@ -1463,6 +1443,19 @@ export function resolveTransition<
     machine,
     new Set(prevConfig)
   );
+
+  let resolvedStateValue = willTransition
+    ? getValue(machine.machine, configuration)
+    : undefined;
+
+  configuration.forEach(sn => {
+    if (!xres.configuration.has(sn)) {
+      console.log('Differing values');
+      console.log('Expected:', resolvedStateValue);
+      console.log('Actually:', getValue(machine.machine, xres.configuration));
+      console.log('Not found:', sn.id);
+    }
+  });
 
   const [assignActions, otherActions] = partition(
     xres.actions,
@@ -1609,7 +1602,7 @@ export function resolveTransition<
 
   if (!isDone) {
     const isTransient =
-      machine.isTransient || configuration.some(sn => sn.isTransient);
+      machine.isTransient || resolvedConfiguration.some(sn => sn.isTransient);
 
     if (isTransient) {
       maybeNextState = resolveRaisedTransition(
