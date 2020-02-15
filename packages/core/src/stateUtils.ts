@@ -1405,7 +1405,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   );
 
   // internal queue events
-  actions.push(...res.internalQueue.map(raise));
+  actions.push(...res.internalQueue.map(event => raise(event)));
 
   configuration.push(...res.configuration);
 
