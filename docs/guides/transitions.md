@@ -244,7 +244,7 @@ on: {
 // ...
 ```
 
-Every transition above is explicit and will have its `exit` and `entry` actions of the parent state executed.
+Every transition above is external and will have its `exit` and `entry` actions of the parent state executed.
 
 **Summary of external transitions:**
 
