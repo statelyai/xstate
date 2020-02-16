@@ -69,7 +69,7 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 
 ### `useService(service)`
 
-A [Vue comosition function](https://vue-composition-api-rfc.netlify.com/) that subscribes to state changes from an existing [service](TODO).
+A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that subscribes to state changes from an existing [service](TODO).
 
 **Arguments**
 
