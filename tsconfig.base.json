@@ -5,6 +5,7 @@
     "target": "es5",
     "declaration": true,
     "declarationMap": true,
+    "isolatedModules": true,
     "moduleResolution": "node",
     "noUnusedLocals": true,
     "noUnusedParameters": true,

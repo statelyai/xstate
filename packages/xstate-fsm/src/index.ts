@@ -6,7 +6,7 @@ import {
   InitEvent
 } from './types';
 
-export { StateMachine, EventObject, InterpreterStatus, Typestate };
+export * from './types';
 
 const INIT_EVENT: InitEvent = { type: 'xstate.init' };
 const ASSIGN_ACTION: StateMachine.AssignAction = 'xstate.assign';
