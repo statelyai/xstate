@@ -352,9 +352,7 @@ describe('internal transition with history', () => {
     }
   });
 
-  // History is not set before the transition is taken, so this does not
-  // comply with the SCXML algorithm for determining history
-  it.skip('should transition internally to the most recently visited state', () => {
+  it('should transition internally to the most recently visited state', () => {
     // {
     //   $current: 'first',
     //   first: undefined,

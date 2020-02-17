@@ -419,6 +419,7 @@ describe('scxml', () => {
 
   testGroupKeys.forEach(testGroupName => {
     const testNames = testGroups[testGroupName];
+    // const testNames = ['test17'];
 
     testNames.forEach(testName => {
       const scxmlSource =

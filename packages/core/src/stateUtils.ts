@@ -989,6 +989,61 @@ function getPathFromRootToNode<TC, TE extends EventObject>(
   return path;
 }
 
+function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
+  const set1 = new Set(s1);
+  const set2 = new Set(s2);
+
+  for (const item of set1) {
+    if (set2.has(item)) {
+      return true;
+    }
+  }
+  for (const item of set2) {
+    if (set1.has(item)) {
+      return true;
+    }
+  }
+  return false;
+}
+
+function removeConflictingTransitions<TContext, TEvent extends EventObject>(
+  enabledTransitions: TransitionDefinition<TContext, TEvent>[],
+  mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
+  state: State<TContext, TEvent>
+) {
+  const filteredTransitions = new Set<TransitionDefinition<TContext, TEvent>>();
+
+  for (const t1 of enabledTransitions) {
+    let t1Preempted = false;
+    const transitionsToRemove = new Set<
+      TransitionDefinition<TContext, TEvent>
+    >();
+    for (const t2 of filteredTransitions) {
+      if (
+        hasIntersection(
+          computeExitSet([t1], mutConfiguration, state),
+          computeExitSet([t2], mutConfiguration, state)
+        )
+      ) {
+        if (isDescendant(t1.source, t2.source)) {
+          transitionsToRemove.add(t2);
+        } else {
+          t1Preempted = true;
+          break;
+        }
+      }
+    }
+    if (!t1Preempted) {
+      for (const t3 of transitionsToRemove) {
+        filteredTransitions.delete(t3);
+      }
+      filteredTransitions.add(t1);
+    }
+  }
+
+  return filteredTransitions;
+}
+
 function findLCCA<TContext, TEvent extends EventObject>(
   stateNodes: Array<StateNode<TContext, any, TEvent>>
 ): StateNode<TContext, any, TEvent> {
@@ -1201,9 +1256,6 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
   mutStatesToEnter: Set<typeof stateNode>,
   mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
-  // const statesToEnter = new Set<typeof stateNode>();
-  // const statesForDefaultEntry = new Set<typeof stateNode>();
-
   if (isHistoryNode(stateNode)) {
     if (state.historyValue[stateNode.id]) {
       for (const s of state.historyValue[stateNode.id]) {
@@ -1360,6 +1412,14 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
         }
       ];
 
+  const filteredTransitions = Array.from(
+    removeConflictingTransitions(
+      transitions,
+      mutConfiguration,
+      currentState || State.from({})
+    )
+  );
+
   let historyValue: HistoryValue<TContext, TEvent> = {};
 
   // Exit states
@@ -1368,7 +1428,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
       historyValue: exitHistoryValue,
       // configuration: configurationFromExit,
       actions: exitActions
-    } = exitStates(transitions, mutConfiguration, currentState);
+    } = exitStates(filteredTransitions, mutConfiguration, currentState);
 
     actions.push(...exitActions);
 
@@ -1383,15 +1443,13 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
   // Enter states
   const res = enterStates(
-    transitions,
+    filteredTransitions,
     mutConfiguration,
     currentState || State.from({})
   );
 
   // internal queue events
   actions.push(...res.internalQueue.map(event => raise(event)));
-
-  // configuration.push(...res.configuration);
 
   actions.push(
     ...flatten(
@@ -1448,14 +1506,9 @@ export function resolveTransition<
     ? getValue(machine.machine, configuration)
     : undefined;
 
-  configuration.forEach(sn => {
-    if (!xres.configuration.has(sn)) {
-      console.log('Differing values');
-      console.log('Expected:', resolvedStateValue);
-      console.log('Actually:', getValue(machine.machine, xres.configuration));
-      console.log('Not found:', sn.id);
-    }
-  });
+  resolvedStateValue = willTransition
+    ? getValue(machine.machine, xres.configuration)
+    : undefined;
 
   const [assignActions, otherActions] = partition(
     xres.actions,
@@ -1542,15 +1595,6 @@ export function resolveTransition<
     : currentState
     ? currentState.configuration
     : [];
-
-  // if (
-  //   [...new Set(resolvedConfiguration)].length !==
-  //   [...new Set(xres.configuration)].length
-  // ) {
-  //   console.log('RES', [...resolvedConfiguration].map(s => s.id));
-  //   console.log('EEE', [...xres.configuration].map(s => s.id));
-  //   throw new Error('no');
-  // }
 
   const meta = resolvedConfiguration.reduce(
     (acc, subStateNode) => {
