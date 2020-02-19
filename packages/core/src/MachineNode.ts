@@ -233,8 +233,7 @@ export class MachineNode<
       _event
     ) || {
       transitions: [],
-      entrySet: [],
-      actions: []
+      entrySet: []
     };
 
     return resolveTransition(this, stateTransition, currentState, _event);

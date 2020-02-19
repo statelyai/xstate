@@ -607,8 +607,7 @@ export function getInitialState<
     machine,
     {
       entrySet: configuration,
-      transitions: [],
-      actions: []
+      transitions: []
     },
     undefined,
     undefined,
@@ -896,12 +895,7 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
 
   return {
     transitions: enabledTransitions,
-    entrySet: entryNodes,
-    actions: flatten(
-      keys(transitionMap).map(key => {
-        return transitionMap[key].actions;
-      })
-    )
+    entrySet: entryNodes
   };
 }
 

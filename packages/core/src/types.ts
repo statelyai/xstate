@@ -568,10 +568,6 @@ export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
 export interface StateTransition<TContext, TEvent extends EventObject> {
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   entrySet: Array<StateNode<TContext, any, TEvent>>;
-  /**
-   * The source state that preceded the transition.
-   */
-  actions: Array<ActionObject<TContext, TEvent>>;
 }
 
 export enum ActionTypes {

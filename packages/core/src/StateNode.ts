@@ -358,8 +358,7 @@ export class StateNode<
     if (this.type === 'history' && state.historyValue[this.id]) {
       return {
         transitions: [],
-        entrySet: [],
-        actions: []
+        entrySet: []
       };
     }
 
@@ -424,15 +423,13 @@ export class StateNode<
     if (!nextStateNodes.length) {
       return {
         transitions: [selectedTransition],
-        entrySet: [],
-        actions
+        entrySet: []
       };
     }
 
     return {
       transitions: [selectedTransition],
-      entrySet: [],
-      actions
+      entrySet: []
     };
   }
 
