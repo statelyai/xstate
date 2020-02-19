@@ -358,7 +358,7 @@ export class StateNode<
     if (this.type === 'history' && state.historyValue[this.id]) {
       return {
         transitions: [],
-        source: state,
+        entrySet: [],
         actions: []
       };
     }
@@ -424,14 +424,14 @@ export class StateNode<
     if (!nextStateNodes.length) {
       return {
         transitions: [selectedTransition],
-        source: state,
+        entrySet: [],
         actions
       };
     }
 
     return {
       transitions: [selectedTransition],
-      source: state,
+      entrySet: [],
       actions
     };
   }

@@ -233,7 +233,7 @@ export class MachineNode<
       _event
     ) || {
       transitions: [],
-      source: currentState,
+      entrySet: [],
       actions: []
     };
 

@@ -607,9 +607,7 @@ export function getInitialState<
     machine,
     {
       entrySet: configuration,
-      exitSet: [], // TODO: not needed
       transitions: [],
-      source: undefined,
       actions: []
     },
     undefined,
@@ -899,8 +897,6 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   return {
     transitions: enabledTransitions,
     entrySet: entryNodes,
-    exitSet: [], // TODO: not needed
-    source: state,
     actions: flatten(
       keys(transitionMap).map(key => {
         return transitionMap[key].actions;
@@ -1598,8 +1594,7 @@ export function resolveTransition<
     _event,
     // Persist _sessionid between states
     _sessionid: currentState ? currentState._sessionid : null,
-    history:
-      !resolvedStateValue || stateTransition.source ? currentState : undefined,
+    history: !resolvedStateValue || currentState ? currentState : undefined,
     actions: resolvedStateValue ? nonRaisedActions : [],
     meta: resolvedStateValue
       ? meta
