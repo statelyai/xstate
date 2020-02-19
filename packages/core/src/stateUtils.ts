@@ -1007,7 +1007,7 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
 }
 
 function removeConflictingTransitions<TContext, TEvent extends EventObject>(
-  enabledTransitions: TransitionDefinition<TContext, TEvent>[],
+  enabledTransitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ) {
@@ -1258,7 +1258,8 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
 ) {
   if (isHistoryNode(stateNode)) {
     if (state.historyValue[stateNode.id]) {
-      for (const s of state.historyValue[stateNode.id]) {
+      const historyStateNodes = state.historyValue[stateNode.id];
+      for (const s of historyStateNodes) {
         addDescendentStatesToEnter(
           s,
           state,
@@ -1266,10 +1267,10 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
           mutStatesForDefaultEntry
         );
       }
-      for (const s of state.historyValue[stateNode.id]) {
+      for (const s of historyStateNodes) {
         addAncestorStatesToEnter(
           s,
-          stateNode,
+          stateNode.parent!,
           state,
           mutStatesToEnter,
           mutStatesForDefaultEntry
