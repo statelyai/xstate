@@ -8,15 +8,21 @@
       "packages/xstate-viz/example"
     ]
   },
+  "preconstruct": {
+    "packages": [
+      "packages/!(xstate-dev)"
+    ],
+    "globals": {
+      "react": "React"
+    }
+  },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
-    "postinstall": "manypkg check",
-    "clean:packages": "yarn workspaces run clean",
-    "build": "tsc -b ./tsconfig.monorepo.json",
+    "postinstall": "manypkg check && preconstruct dev",
+    "build": "preconstruct build",
+    "typecheck": "tsc",
     "test": "jest",
-    "test:core": "npm test --prefix packages/core",
-    "dev": "node ./scripts/dev.js",
-    "ci": "npm run build && npm run test",
+    "test:core": "jest packages/core",
     "typedoc": "cd ./packages/core && typedoc --excludePrivate --mode file --out ./api --target es6 --moduleResolution node ./src",
     "typedoc:publish": "npm run typedoc && gh-pages --dist ./api --dest ./api",
     "docs:readme": "cpy 'README.md' docs",
@@ -26,7 +32,7 @@
     "docs:build": "npm run docs:readme && npm run docs:packages && cd docs && vuepress build .",
     "docs:publish": "npm run docs:build && gh-pages --dist ./docs/.vuepress/dist --dest ./docs && npm run typedoc:publish",
     "changeset": "changeset",
-    "prerelease": "npm run build && npm run test",
+    "prerelease": "npm run typecheck && npm run test && npm run build",
     "release": "changeset publish"
   },
   "repository": {
@@ -41,17 +47,26 @@
   "homepage": "https://github.com/davidkpiano/xstate#readme",
   "dependencies": {
     "@actions/exec": "^1.0.2",
+    "@babel/core": "^7.8.4",
+    "@babel/plugin-proposal-class-properties": "^7.8.3",
+    "@babel/preset-env": "^7.8.4",
+    "@babel/preset-react": "^7.8.3",
+    "@babel/preset-typescript": "^7.8.3",
     "@changesets/changelog-github": "^0.2.1",
     "@changesets/cli": "^2.5.0",
     "@manypkg/cli": "^0.9.0",
+    "@preconstruct/cli": "^1.1.7",
     "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
     "@types/use-subscription": "^1.0.0",
     "@vuepress/plugin-google-analytics": "^1.2.0",
+    "babel-core": "^7.0.0-bridge.0",
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",
-    "jest": "^24.8.0",
+    "jest": "^25.1.0",
+    "jest-config": "^25.1.0",
+    "jest-regex-util": "^25.1.0",
     "jest-watch-typeahead": "^0.4.1",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
@@ -60,11 +75,10 @@
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mermaid": "^8.2.3",
     "prettier": "^1.18.2",
-    "spawn-command": "0.0.2-1",
-    "ts-jest": "^24.1.9",
     "tslint": "^5.11.0",
     "typedoc": "^0.15.2",
     "typescript": "^3.7.5",
+    "vue-jest": "^3.0.5",
     "vuepress": "^1.2.0",
     "vuepress-plugin-export": "^0.2.0",
     "webpack-dev-middleware": "^3.6.0"
@@ -79,6 +93,5 @@
       "prettier --write",
       "git add"
     ]
-  },
-  "version": "1.19.1"
+  }
 }

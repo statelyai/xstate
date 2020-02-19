@@ -24,6 +24,7 @@ import {
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
+export { SimulatedClock } from './SimulatedClock';
 
 const actions = {
   raise,
@@ -65,3 +66,8 @@ export {
 export type Actor = ActorType;
 
 export * from './types';
+
+// TODO: decide from where those should be exported
+export { pathToStateValue, flatten, keys } from './utils';
+export { getStateNodes } from './stateUtils';
+export { toMachine } from './scxml';

@@ -15,27 +15,18 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/vue.cjs.js",
+  "module": "dist/vue.esm.js",
   "sideEffects": false,
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "dist",
+    "fsm"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
-    "test": "jest",
-    "prepublish": "npm run build && npm run test"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
@@ -59,13 +50,13 @@
     "@vue/composition-api": "^0.3.4",
     "@vue/test-utils": "^1.0.0-beta.30",
     "@xstate/fsm": "*",
-    "babel-core": "^6.26.3",
-    "jest": "^24.8.0",
-    "lerna-alias": "3.0.3-0",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.7.5",
     "vue": "^2.6.10",
-    "vue-jest": "^3.0.5",
     "xstate": "*"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      ".",
+      "fsm"
+    ]
   }
 }

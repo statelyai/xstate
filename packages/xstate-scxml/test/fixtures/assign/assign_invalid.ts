@@ -1,5 +1,5 @@
 import { Machine, assign } from 'xstate';
-import { log } from 'xstate/lib/actions';
+import { log } from 'xstate/actions';
 
 export default Machine<any>({
   initial: 'uber',

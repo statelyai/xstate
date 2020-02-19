@@ -6,18 +6,10 @@ import React, {
   useState,
 } from 'react';
 import ReactDOM from 'react-dom';
-import {
-  StateMachine,
-  Interpreter,
-  StateNode,
-  State,
-  createMachine,
-  interpret,
-} from 'xstate';
+import { MachineNode, Interpreter, StateNode, State } from 'xstate';
 import { useService } from '@xstate/react';
 import styled from 'styled-components';
 import { useEffect } from 'react';
-import { useState } from 'react-dom/node_modules/@types/react';
 
 export function getChildren(machine: StateNode): StateNode[] {
   if (!machine.states) return [];
@@ -28,7 +20,7 @@ export function getChildren(machine: StateNode): StateNode[] {
 }
 
 export const MachineViz: React.FC<{
-  machine: StateMachine<any, any, any>;
+  machine: MachineNode<any, any, any>;
 }> = ({ machine }) => {
   return (
     <div>
