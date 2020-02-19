@@ -43,8 +43,6 @@ import {
   formatTransitions,
   getCandidates,
   getStateNodeById,
-  getRelativeStateNodes,
-  nodesFromChild,
   evaluateGuard,
   isStateId
 } from './stateUtils';
@@ -360,9 +358,6 @@ export class StateNode<
     if (this.type === 'history' && state.historyValue[this.id]) {
       return {
         transitions: [],
-        configuration: state.historyValue[this.id],
-        entrySet: [],
-        exitSet: [], // TODO: not needed
         source: state,
         actions: []
       };
@@ -429,35 +424,13 @@ export class StateNode<
     if (!nextStateNodes.length) {
       return {
         transitions: [selectedTransition],
-        entrySet: [],
-        exitSet: [], // TODO: not needed
-        configuration: state.value ? [this] : [],
         source: state,
         actions
       };
     }
 
-    const allNextStateNodes = flatten(
-      nextStateNodes.map(stateNode => {
-        return getRelativeStateNodes(stateNode, state);
-      })
-    );
-
-    const isInternal = !!selectedTransition.internal;
-
-    const reentryNodes = isInternal
-      ? []
-      : flatten(
-          allNextStateNodes.map(nextStateNode =>
-            nodesFromChild(this, nextStateNode)
-          )
-        );
-
     return {
       transitions: [selectedTransition],
-      entrySet: reentryNodes,
-      exitSet: [], // TODO: not needed
-      configuration: allNextStateNodes,
       source: state,
       actions
     };

@@ -7,7 +7,8 @@ import {
   StateSchema,
   MachineConfig,
   SCXML,
-  Typestate
+  Typestate,
+  StateTransition
 } from './types';
 import { State } from './State';
 
@@ -225,29 +226,16 @@ export class MachineNode<
       }
     }
 
-    const stateTransition = transitionNode(
+    const stateTransition: StateTransition<TContext, TEvent> = transitionNode(
       this,
       currentState.value,
       currentState,
       _event
     ) || {
       transitions: [],
-      configuration: [],
-      entrySet: [],
-      exitSet: [], // TODO: not needed
       source: currentState,
       actions: []
     };
-
-    const prevConfig = getConfiguration(
-      [],
-      getStateNodes(this, currentState.value)
-    );
-    const resolvedConfig = stateTransition.configuration.length
-      ? getConfiguration(prevConfig, stateTransition.configuration)
-      : prevConfig;
-
-    stateTransition.configuration = [...resolvedConfig];
 
     return resolveTransition(this, stateTransition, currentState, _event);
   }

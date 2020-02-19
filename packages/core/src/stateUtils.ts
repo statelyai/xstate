@@ -606,7 +606,6 @@ export function getInitialState<
   return resolveTransition(
     machine,
     {
-      configuration,
       entrySet: configuration,
       exitSet: [], // TODO: not needed
       transitions: [],
@@ -897,15 +896,10 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   }
   const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
-  const configuration = flatten(
-    keys(transitionMap).map(key => transitionMap[key].configuration)
-  );
-
   return {
     transitions: enabledTransitions,
     entrySet: entryNodes,
     exitSet: [], // TODO: not needed
-    configuration,
     source: state,
     actions: flatten(
       keys(transitionMap).map(key => {
@@ -1434,7 +1428,9 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   );
 
   // internal queue events
-  actions.push(...res.internalQueue.map(event => raise(event)));
+  actions.push(
+    ...res.internalQueue.map(event => raise<TContext, TEvent>(event as TEvent))
+  );
 
   actions.push(
     ...flatten(
