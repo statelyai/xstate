@@ -1391,27 +1391,11 @@ function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
 }
 
 export function xresolveTransition<TContext, TEvent extends EventObject>(
-  stateTransition: StateTransition<TContext, TEvent>,
+  transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-  machine: MachineNode<TContext, any, TEvent>,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>
 ) {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
-  // const configuration: Array<StateNode<TContext, any, TEvent>> = currentState
-  //   ? []
-  //   : stateTransition.configuration; // TODO: refactor this once initial state returns transitions
-
-  const transitions = currentState
-    ? stateTransition.transitions
-    : [
-        {
-          target: stateTransition.configuration,
-          source: machine,
-          actions: [],
-          eventType: 'init'
-        }
-      ];
 
   const filteredTransitions = Array.from(
     removeConflictingTransitions(
@@ -1425,17 +1409,17 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
 
   // Exit states
   if (currentState) {
-    const {
-      historyValue: exitHistoryValue,
-      // configuration: configurationFromExit,
-      actions: exitActions
-    } = exitStates(filteredTransitions, mutConfiguration, currentState);
+    const { historyValue: exitHistoryValue, actions: exitActions } = exitStates(
+      filteredTransitions,
+      mutConfiguration,
+      currentState
+    );
 
     actions.push(...exitActions);
 
     historyValue = exitHistoryValue;
 
-    actions.push(...stateTransition.actions);
+    actions.push(...flatten(transitions.map(t => t.actions)));
 
     mutConfiguration.forEach(sn => {
       mutConfiguration.add(sn);
@@ -1463,7 +1447,7 @@ export function xresolveTransition<TContext, TEvent extends EventObject>(
   actions.push(...res.actions);
 
   return {
-    actions: toActionObjects(actions, machine.options.actions),
+    actions,
     configuration: mutConfiguration,
     historyValue
   };
@@ -1480,7 +1464,7 @@ export function resolveTransition<
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
   context: TContext = machine.machine.context!
 ): State<TContext, TEvent, any, TTypestate> {
-  const { configuration } = stateTransition;
+  const { transitions } = stateTransition;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1495,24 +1479,27 @@ export function resolveTransition<
 
   const currentContext = currentState ? currentState.context : context;
 
-  const xres = xresolveTransition(
-    stateTransition,
+  const resolved = xresolveTransition(
+    currentState
+      ? transitions
+      : [
+          {
+            target: [...prevConfig],
+            source: machine,
+            actions: [],
+            eventType: 'init'
+          }
+        ],
     currentState,
-    _event,
-    machine,
     new Set(prevConfig)
   );
 
-  let resolvedStateValue = willTransition
-    ? getValue(machine.machine, configuration)
-    : undefined;
-
-  resolvedStateValue = willTransition
-    ? getValue(machine.machine, xres.configuration)
+  const resolvedStateValue = willTransition
+    ? getValue(machine.machine, resolved.configuration)
     : undefined;
 
   const [assignActions, otherActions] = partition(
-    xres.actions,
+    toActionObjects(resolved.actions, machine.options.actions),
     (action): action is AssignAction<TContext, TEvent> =>
       action.type === actionTypes.assign
   );
@@ -1592,7 +1579,7 @@ export function resolveTransition<
   }
 
   const resolvedConfiguration = resolvedStateValue
-    ? Array.from(xres.configuration)
+    ? Array.from(resolved.configuration)
     : currentState
     ? currentState.configuration
     : [];
@@ -1688,7 +1675,7 @@ export function resolveTransition<
 
   // Preserve original history after raised events
   maybeNextState.history = history;
-  maybeNextState.historyValue = xres.historyValue;
+  maybeNextState.historyValue = resolved.historyValue;
 
   return maybeNextState;
 }
