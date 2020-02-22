@@ -529,8 +529,8 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  onEntry: Array<ActionObject<TContext, TEvent>>;
-  onExit: Array<ActionObject<TContext, TEvent>>;
+  entry: Array<ActionObject<TContext, TEvent>>;
+  exit: Array<ActionObject<TContext, TEvent>>;
   activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;

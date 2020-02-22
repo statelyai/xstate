@@ -292,13 +292,10 @@
     "transitions": {
       "type": "array"
     },
-    "onEntry": {
+    "entry": {
       "type": "array"
     },
-    "onExit": {
-      "type": "array"
-    },
-    "activities": {
+    "exit": {
       "type": "array"
     },
     "order": {
