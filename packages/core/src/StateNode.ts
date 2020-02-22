@@ -479,7 +479,7 @@ class StateNode<
       context: this.context!,
       type: this.type,
       initial: this.initial,
-      history: this.history || undefined,
+      history: this.history,
       states: mapValues(
         this.states,
         (state: StateNode<TContext, any, TEvent>) => state.definition

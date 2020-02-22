@@ -311,6 +311,5 @@
       "type": "string"
     }
   },
-  "required": ["id", "key", "type", "states"],
-  "additionalProperties": false
+  "required": ["id", "key", "type", "states"]
 }
