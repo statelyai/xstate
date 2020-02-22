@@ -19,10 +19,10 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 
 - `src` - the source of the service to invoke, which can be:
   - a machine
-  - a string, which refers to a machine defined in this machine's `options.services`
   - a function that returns a `Promise`
   - a function that returns a "callback handler"
   - a function that returns an observable
+  - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
 - `id` - the unique identifier for the invoked service
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or
@@ -555,7 +555,7 @@ const service = interpret(pingMachine).start();
 // ...
 ```
 
-## Sending Responses
+## Sending Responses <Badge text="4.7+" />
 
 An invoked service (or [spawned actor](./actors.md)) can _respond_ to another service/actor; i.e., it can send an event _in response to_ an event sent by another service/actor. This is done with the `respond(...)` action creator.
 

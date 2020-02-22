@@ -1,6 +1,6 @@
 {
   "name": "@xstate/vue",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "XState tools for Vue",
   "keywords": [
     "state",
@@ -43,7 +43,7 @@
     "@vue/composition-api": "^0.3.4",
     "@xstate/fsm": "^1.0.0",
     "vue": "^2.6.10",
-    "xstate": "^4.7.0"
+    "xstate": "^4.7.8"
   },
   "peerDependenciesMeta": {
     "@xstate/fsm": {
@@ -63,7 +63,7 @@
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.1.9",
-    "typescript": "^3.7.2",
+    "typescript": "^3.7.5",
     "vue": "^2.6.10",
     "vue-jest": "^3.0.5",
     "xstate": "*"

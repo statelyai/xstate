@@ -1,5 +1,11 @@
 # xstate
 
+## 4.7.8
+
+### Patch Changes
+
+- [`520580b`](https://github.com/davidkpiano/xstate/commit/520580b4af597f7c83c329757ae972278c2d4494) [#967](https://github.com/davidkpiano/xstate/pull/967) Thanks [@andrewgordstewart](https://github.com/andrewgordstewart)! - Add context & event types to InvokeConfig
+
 ## 4.7.7
 
 ### Patch Changes

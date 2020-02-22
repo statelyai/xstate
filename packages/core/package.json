@@ -1,6 +1,6 @@
 {
   "name": "xstate",
-  "version": "4.7.7",
+  "version": "4.7.8",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -66,7 +66,7 @@
     "rxjs": "^6.5.1",
     "ts-jest": "^24.1.9",
     "tslib": "^1.10.0",
-    "typescript": "^3.7.2",
+    "typescript": "^3.7.5",
     "xml-js": "^1.6.11"
   }
 }

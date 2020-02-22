@@ -227,7 +227,7 @@ export function interpret<
     },
     stop: () => {
       status = InterpreterStatus.Stopped;
-      listeners.forEach(listener => listeners.delete(listener));
+      listeners.clear();
       return service;
     },
     get status() {
