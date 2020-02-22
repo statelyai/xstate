@@ -877,6 +877,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;
   history?: State<TContext, TEvent>;
+  historyValue?: HistoryValue<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;
   events?: TEvent[];

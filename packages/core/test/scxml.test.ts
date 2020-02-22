@@ -54,7 +54,7 @@ const testGroups = {
     'history1',
     'history2',
     'history3',
-    'history4', // TODO: support history nodes on parallel states
+    'history4',
     'history4b',
     'history5',
     'history6'
