@@ -564,7 +564,6 @@ export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
   TMachine['transition']
 >;
 
-// tslint:disable-next-line:class-name
 export type Transitions<TContext, TEvent extends EventObject> = Array<
   TransitionDefinition<TContext, TEvent>
 >;

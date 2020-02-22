@@ -1356,11 +1356,15 @@ function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
   }
 }
 
-export function xresolveTransition<TContext, TEvent extends EventObject>(
+export function microstep<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>
-) {
+): {
+  actions: Array<ActionObject<TContext, TEvent>>;
+  configuration: typeof mutConfiguration;
+  historyValue: HistoryValue<TContext, TEvent>;
+} {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
   const filteredTransitions = Array.from(
@@ -1445,7 +1449,7 @@ export function resolveTransition<
 
   const currentContext = currentState ? currentState.context : context;
 
-  const resolved = xresolveTransition(
+  const resolved = microstep(
     currentState
       ? transitions
       : [
