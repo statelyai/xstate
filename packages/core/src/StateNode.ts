@@ -14,7 +14,7 @@ import {
 import {
   Event,
   StateValue,
-  StateTransition,
+  Transitions,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -354,11 +354,9 @@ export class StateNode<
   public next(
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): Transitions<TContext, TEvent> | undefined {
     if (this.type === 'history' && state.historyValue[this.id]) {
-      return {
-        transitions: []
-      };
+      return [];
     }
 
     const eventName = _event.name;
@@ -420,14 +418,10 @@ export class StateNode<
       return undefined;
     }
     if (!nextStateNodes.length) {
-      return {
-        transitions: [selectedTransition]
-      };
+      return [selectedTransition];
     }
 
-    return {
-      transitions: [selectedTransition]
-    };
+    return [selectedTransition];
   }
 
   public get initialStateValue(): StateValue | undefined {

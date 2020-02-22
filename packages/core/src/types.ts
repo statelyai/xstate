@@ -565,9 +565,9 @@ export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
 >;
 
 // tslint:disable-next-line:class-name
-export interface StateTransition<TContext, TEvent extends EventObject> {
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
-}
+export type Transitions<TContext, TEvent extends EventObject> = Array<
+  TransitionDefinition<TContext, TEvent>
+>;
 
 export enum ActionTypes {
   Start = 'xstate.start',

@@ -8,7 +8,7 @@ import {
   MachineConfig,
   SCXML,
   Typestate,
-  StateTransition
+  Transitions
 } from './types';
 import { State } from './State';
 
@@ -226,16 +226,10 @@ export class MachineNode<
       }
     }
 
-    const stateTransition: StateTransition<TContext, TEvent> = transitionNode(
-      this,
-      currentState.value,
-      currentState,
-      _event
-    ) || {
-      transitions: []
-    };
+    const transitions: Transitions<TContext, TEvent> =
+      transitionNode(this, currentState.value, currentState, _event) || [];
 
-    return resolveTransition(this, stateTransition, currentState, _event);
+    return resolveTransition(this, transitions, currentState, _event);
   }
 
   /**

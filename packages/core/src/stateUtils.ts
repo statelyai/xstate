@@ -30,7 +30,7 @@ import {
   SCXML,
   GuardMeta,
   GuardPredicate,
-  StateTransition,
+  Transitions,
   ActionObject,
   StateValueMap,
   AssignAction,
@@ -600,15 +600,7 @@ export function getInitialState<
 >(
   machine: MachineNode<TContext, TStateSchema, TEvent>
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
-  return resolveTransition(
-    machine,
-    {
-      transitions: []
-    },
-    undefined,
-    undefined,
-    undefined
-  );
+  return resolveTransition(machine, [], undefined, undefined, undefined);
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
@@ -817,11 +809,11 @@ export function transitionLeafNode<TContext, TEvent extends EventObject>(
   stateValue: string,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): StateTransition<TContext, TEvent> | undefined {
+): Transitions<TContext, TEvent> | undefined {
   const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(state, _event);
 
-  if (!next || !next.transitions.length) {
+  if (!next || !next.length) {
     return stateNode.next(state, _event);
   }
 
@@ -833,7 +825,7 @@ export function transitionCompoundNode<TContext, TEvent extends EventObject>(
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): StateTransition<TContext, TEvent> | undefined {
+): Transitions<TContext, TEvent> | undefined {
   const subStateKeys = keys(stateValue);
 
   const childStateNode = getStateNode(stateNode, subStateKeys[0]);
@@ -844,7 +836,7 @@ export function transitionCompoundNode<TContext, TEvent extends EventObject>(
     _event
   );
 
-  if (!next || !next.transitions.length) {
+  if (!next || !next.length) {
     return stateNode.next(state, _event);
   }
 
@@ -855,8 +847,8 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   stateValue: StateValueMap,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): StateTransition<TContext, TEvent> | undefined {
-  const transitionMap: Record<string, StateTransition<TContext, TEvent>> = {};
+): Transitions<TContext, TEvent> | undefined {
+  const transitionMap: Record<string, Transitions<TContext, TEvent>> = {};
 
   for (const subStateKey of keys(stateValue)) {
     const subStateValue = stateValue[subStateKey];
@@ -877,20 +869,16 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
     }
   }
 
-  const stateTransitions = keys(transitionMap).map(key => transitionMap[key]);
-  const enabledTransitions = flatten(
-    stateTransitions.map(st => st.transitions)
-  );
+  const transitions = keys(transitionMap).map(key => transitionMap[key]);
+  const enabledTransitions = flatten(transitions);
 
-  const willTransition = stateTransitions.some(st => st.transitions.length > 0);
+  const willTransition = transitions.some(st => st.length > 0);
 
   if (!willTransition) {
     return stateNode.next(state, _event);
   }
 
-  return {
-    transitions: enabledTransitions
-  };
+  return enabledTransitions;
 }
 
 export function transitionNode<TContext, TEvent extends EventObject>(
@@ -898,7 +886,7 @@ export function transitionNode<TContext, TEvent extends EventObject>(
   stateValue: StateValue,
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
-): StateTransition<TContext, TEvent> | undefined {
+): Transitions<TContext, TEvent> | undefined {
   // leaf node
   if (isString(stateValue)) {
     return transitionLeafNode(stateNode, stateValue, state, _event);
@@ -1439,17 +1427,15 @@ export function resolveTransition<
   TTypestate extends Typestate<TContext>
 >(
   machine: MachineNode<TContext, any, TEvent>,
-  stateTransition: StateTransition<TContext, TEvent>,
+  transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
   context: TContext = machine.machine.context!
 ): State<TContext, TEvent, any, TTypestate> {
-  const { transitions } = stateTransition;
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
-  const willTransition =
-    !currentState || stateTransition.transitions.length > 0;
+  const willTransition = !currentState || transitions.length > 0;
 
   // Entry and exit set
   const prevConfig = getConfiguration(
@@ -1591,7 +1577,7 @@ export function resolveTransition<
       : undefined,
     events: [],
     configuration: resolvedConfiguration,
-    transitions: stateTransition.transitions,
+    transitions,
     children,
     done: isDone
   });
