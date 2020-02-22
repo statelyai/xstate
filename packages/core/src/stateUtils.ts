@@ -1356,6 +1356,14 @@ function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
   }
 }
 
+/**
+ * https://www.w3.org/TR/scxml/#microstepProcedure
+ *
+ * @private
+ * @param transitions
+ * @param currentState
+ * @param mutConfiguration
+ */
 export function microstep<TContext, TEvent extends EventObject>(
   transitions: Array<TransitionDefinition<TContext, TEvent>>,
   currentState: State<TContext, TEvent> | undefined,
