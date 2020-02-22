@@ -924,7 +924,7 @@ export interface InterpreterOptions {
   [option: string]: any;
 }
 
-export namespace SCXML {
+export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
   export interface Event<TEvent extends EventObject> {
     /**

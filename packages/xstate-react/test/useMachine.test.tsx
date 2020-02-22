@@ -16,7 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { spawnPromise } from 'xstate/lib/invoke';
+import { spawnPromise } from 'xstate/invoke';
 
 afterEach(cleanup);
 

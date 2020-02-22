@@ -15,27 +15,18 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/react.cjs.js",
+  "module": "dist/react.esm.js",
   "sideEffects": false,
-  "directories": {
-    "lib": "lib",
-    "test": "test"
-  },
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "dist",
+    "fsm"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
-    "test": "jest",
-    "prepublish": "npm run build && npm run test"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
@@ -61,14 +52,16 @@
     "@types/react": "^16.9.11",
     "@types/react-dom": "^16.9.4",
     "@xstate/fsm": "*",
-    "jest": "^24.8.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
-    "lerna-alias": "3.0.3-0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.7.5",
     "xstate": "*"
+  },
+  "preconstruct": {
+    "entrypoints": [
+      ".",
+      "fsm"
+    ]
   }
 }

@@ -206,6 +206,7 @@ export class State<
     this.done = !!config.done;
 
     Object.defineProperty(this, 'nextEvents', {
+      enumerable: false,
       get: () => {
         return nextEvents(config.configuration);
       }

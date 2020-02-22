@@ -1,0 +1,7 @@
+{
+  "main": "dist/react.cjs.js",
+  "module": "dist/react.esm.js",
+  "preconstruct": {
+    "source": "../src/fsm"
+  }
+}

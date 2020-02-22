@@ -11,7 +11,7 @@ export interface EventObject {
 
 export type InitEvent = { type: 'xstate.init' };
 
-export namespace StateMachine {
+export declare namespace StateMachine {
   export type Action<TContext extends object, TEvent extends EventObject> =
     | string
     | AssignActionObject<TContext, TEvent>

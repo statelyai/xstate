@@ -84,7 +84,7 @@ A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that 
 
 A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 
-This special `useMachine` hook is imported from `@xstate/vue/lib/fsm`
+This special `useMachine` hook is imported from `@xstate/vue/fsm`
 
 **Arguments**
 
