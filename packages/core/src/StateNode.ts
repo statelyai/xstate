@@ -358,7 +358,6 @@ export class StateNode<
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-    let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     const candidates =
@@ -401,23 +400,13 @@ export class StateNode<
       }
 
       if (guardPassed && isInState) {
-        if (candidate.target !== undefined) {
-          nextStateNodes = candidate.target;
-        }
         actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;
       }
     }
 
-    if (!selectedTransition) {
-      return undefined;
-    }
-    if (!nextStateNodes.length) {
-      return [selectedTransition];
-    }
-
-    return [selectedTransition];
+    return selectedTransition ? [selectedTransition] : undefined;
   }
 
   public get initialStateValue(): StateValue | undefined {
