@@ -355,10 +355,6 @@ export class StateNode<
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
   ): Transitions<TContext, TEvent> | undefined {
-    if (this.type === 'history' && state.historyValue[this.id]) {
-      return [];
-    }
-
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
