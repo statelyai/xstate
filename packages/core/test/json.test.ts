@@ -92,4 +92,16 @@ describe('json', () => {
 
     expect(validate.errors).toBeNull();
   });
+
+  it('should detect an invalid machine', () => {
+    const invalidMachineConfig = {
+      id: 'something',
+      key: 'something',
+      type: 'invalid type',
+      states: {}
+    };
+
+    validate(invalidMachineConfig);
+    expect(validate.errors).not.toBeNull();
+  });
 });
