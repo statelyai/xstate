@@ -95,16 +95,16 @@ export function getProperAncestors<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   toStateNode: StateNode<TContext, any, TEvent> | null
 ): Array<typeof stateNode> {
-  const ancestors = new Set<typeof stateNode>();
+  const ancestors: Array<typeof stateNode> = [];
 
   // add all ancestors
   let m = stateNode.parent;
   while (m && m !== toStateNode) {
-    ancestors.add(m);
+    ancestors.push(m);
     m = m.parent;
   }
 
-  return [...ancestors];
+  return ancestors;
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
