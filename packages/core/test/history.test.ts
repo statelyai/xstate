@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, interpret } from '../src/index';
 
 describe('history states', () => {
   const historyMachine = Machine({
@@ -318,73 +318,40 @@ describe('transient history', () => {
   });
 });
 
-describe('internal transition with history', () => {
-  const machine = Machine({
-    key: 'test',
-    initial: 'first',
-    states: {
-      first: {
-        initial: 'foo',
-        states: {
-          foo: {}
-        },
-        on: {
-          NEXT: 'second.other'
-        }
-      },
-      second: {
-        initial: 'nested',
-        states: {
-          nested: {},
-          other: {},
-          hist: {
-            history: true
+it('internal transition to a history state should enter default history state configuration if the containing state has never been exited yet', () => {
+  const service = interpret(
+    Machine({
+      initial: 'first',
+      states: {
+        first: {
+          on: {
+            NEXT: 'second.other'
           }
         },
-        on: {
-          NEXT: [
-            {
+        second: {
+          initial: 'nested',
+          states: {
+            nested: {},
+            other: {},
+            hist: {
+              history: true
+            }
+          },
+          on: {
+            NEXT: {
               target: '.hist'
             }
-          ]
+          }
         }
       }
-    }
-  });
+    })
+  ).start();
 
-  // TODO: unskip once microstep algorithms are in
-  it.skip('should transition internally to the most recently visited state', () => {
-    // {
-    //   $current: 'first',
-    //   first: undefined,
-    //   second: {
-    //     $current: 'nested',
-    //     nested: undefined,
-    //     other: undefined
-    //   }
-    // }
-    const state2 = machine.transition(machine.initialState, 'NEXT');
-    // {
-    //   $current: 'second',
-    //   first: undefined,
-    //   second: {
-    //     $current: 'other',
-    //     nested: undefined,
-    //     other: undefined
-    //   }
-    // }
-    const state3 = machine.transition(state2, 'NEXT');
-    // {
-    //   $current: 'second',
-    //   first: undefined,
-    //   second: {
-    //     $current: 'other',
-    //     nested: undefined,
-    //     other: undefined
-    //   }
-    // }
+  service.send('NEXT');
+  service.send('NEXT');
 
-    expect(state3.value).toEqual({ second: 'other' });
+  expect(service.state.value).toEqual({
+    second: 'nested'
   });
 });
 
