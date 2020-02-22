@@ -357,8 +357,7 @@ export class StateNode<
   ): StateTransition<TContext, TEvent> | undefined {
     if (this.type === 'history' && state.historyValue[this.id]) {
       return {
-        transitions: [],
-        entrySet: []
+        transitions: []
       };
     }
 
@@ -422,14 +421,12 @@ export class StateNode<
     }
     if (!nextStateNodes.length) {
       return {
-        transitions: [selectedTransition],
-        entrySet: []
+        transitions: [selectedTransition]
       };
     }
 
     return {
-      transitions: [selectedTransition],
-      entrySet: []
+      transitions: [selectedTransition]
     };
   }
 

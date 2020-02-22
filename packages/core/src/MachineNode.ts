@@ -232,8 +232,7 @@ export class MachineNode<
       currentState,
       _event
     ) || {
-      transitions: [],
-      entrySet: []
+      transitions: []
     };
 
     return resolveTransition(this, stateTransition, currentState, _event);
@@ -253,7 +252,7 @@ export class MachineNode<
       );
     }
 
-    return getInitialState(this, initialStateValue);
+    return getInitialState(this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

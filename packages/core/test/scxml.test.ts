@@ -6,13 +6,7 @@ import { toMachine } from '../src/scxml';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
-import { pathsToStateValue } from '../src/utils';
-import {
-  getInitialState,
-  getStateNodes,
-  resolveStateValue,
-  getStateNodeById
-} from '../src/stateUtils';
+import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
 
 const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
@@ -377,14 +371,10 @@ async function runTestToCompletion(
     await runW3TestToCompletion(machine);
     return;
   }
-  const resolvedStateValue = resolveStateValue(
-    machine,
-    pathsToStateValue(
-      test.initialConfiguration.map(id => getStateNodeById(machine, id).path)
-    )
-  );
+
   let done = false;
-  let nextState: State<any> = getInitialState(machine, resolvedStateValue);
+  let nextState: State<any> = machine.initialState;
+
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })

@@ -598,20 +598,16 @@ export function getInitialState<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
 >(
-  machine: MachineNode<TContext, TStateSchema, TEvent>,
-  stateValue: StateValue,
-  context?: TContext
+  machine: MachineNode<TContext, TStateSchema, TEvent>
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
-  const configuration = getStateNodes(machine, stateValue);
   return resolveTransition(
     machine,
     {
-      entrySet: configuration,
       transitions: []
     },
     undefined,
     undefined,
-    context
+    undefined
   );
 }
 /**
@@ -891,11 +887,9 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
   if (!willTransition) {
     return stateNode.next(state, _event);
   }
-  const entryNodes = flatten(stateTransitions.map(t => t.entrySet));
 
   return {
-    transitions: enabledTransitions,
-    entrySet: entryNodes
+    transitions: enabledTransitions
   };
 }
 
