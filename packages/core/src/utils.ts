@@ -7,7 +7,6 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  HistoryValue,
   AssignAction,
   Condition,
   Guard,
@@ -363,39 +362,6 @@ export function partition<T, A extends T, B extends T>(
   }
 
   return [truthy, falsy];
-}
-
-export function updateHistoryStates(
-  hist: HistoryValue,
-  stateValue: StateValue
-): Record<string, HistoryValue | undefined> {
-  return mapValues(hist.states, (subHist, key) => {
-    if (!subHist) {
-      return undefined;
-    }
-    const subStateValue =
-      (isString(stateValue) ? undefined : stateValue[key]) ||
-      (subHist ? subHist.current : undefined);
-
-    if (!subStateValue) {
-      return undefined;
-    }
-
-    return {
-      current: subStateValue,
-      states: updateHistoryStates(subHist, subStateValue)
-    };
-  });
-}
-
-export function updateHistoryValue(
-  hist: HistoryValue,
-  stateValue: StateValue
-): HistoryValue {
-  return {
-    current: stateValue,
-    states: updateHistoryStates(hist, stateValue)
-  };
 }
 
 export function updateContext<TContext, TEvent extends EventObject>(

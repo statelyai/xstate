@@ -378,7 +378,7 @@ function scxmlToMachine(
     element => element.name === 'datamodel'
   )[0];
 
-  const extState = dataModelEl
+  const context = dataModelEl
     ? dataModelEl
         .elements!.filter(element => element.name === 'data')
         .reduce((acc, element) => {
@@ -397,7 +397,7 @@ function scxmlToMachine(
 
   return Machine({
     ...toConfig(machineElement, '(machine)', options),
-    context: extState,
+    context,
     delimiter: options.delimiter
   });
 }

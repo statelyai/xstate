@@ -1,14 +1,14 @@
 import {
   StateValue,
   EventObject,
-  HistoryValue,
   ActionObject,
   EventType,
   StateConfig,
   SCXML,
   StateSchema,
   TransitionDefinition,
-  Typestate
+  Typestate,
+  HistoryValue
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
@@ -55,8 +55,8 @@ export class State<
 > {
   public value: StateValue;
   public context: TContext;
-  public historyValue?: HistoryValue | undefined;
   public history?: State<TContext, TEvent, TStateSchema>;
+  public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
   public events: TEvent[] = [];
@@ -109,7 +109,6 @@ export class State<
           context: context as TC,
           _event: stateValue._event,
           _sessionid: null,
-          historyValue: stateValue.historyValue,
           history: stateValue.history,
           actions: [],
           meta: {},
@@ -130,7 +129,6 @@ export class State<
       context: context as TC,
       _event,
       _sessionid: null,
-      historyValue: undefined,
       history: undefined,
       actions: [],
       meta: undefined,
@@ -169,7 +167,6 @@ export class State<
         context,
         _event,
         _sessionid: null,
-        historyValue: stateValue.historyValue,
         history: stateValue.history,
         configuration: stateValue.configuration,
         transitions: [],
@@ -184,7 +181,6 @@ export class State<
    * Creates a new State instance.
    * @param value The state value
    * @param context The extended state
-   * @param historyValue The tree representing historical values of the state nodes
    * @param history The previous state
    * @param actions An array of action objects to execute as side-effects
    * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
@@ -198,7 +194,6 @@ export class State<
     this._event = config._event;
     this._sessionid = config._sessionid;
     this.event = this._event.data;
-    this.historyValue = config.historyValue;
     this.history = config.history;
     this.actions = config.actions || [];
     this.meta = config.meta || {};

@@ -2,15 +2,9 @@ import { Machine, State, interpret } from 'xstate';
 import { xml2js } from 'xml-js';
 import { transitionToSCXML, toSCXML } from '../src';
 import { toMachine } from 'xstate/lib/scxml';
-import { pathsToStateValue } from 'xstate/lib/utils';
 import { SimulatedClock } from 'xstate/lib/SimulatedClock';
 import * as fs from 'fs';
-import {
-  getStateNodeById,
-  resolveStateValue,
-  getInitialState,
-  getStateNodes
-} from 'xstate/lib/stateUtils';
+import { getStateNodes } from 'xstate/lib/stateUtils';
 import { MachineNode } from 'xstate/lib/MachineNode';
 
 interface SCIONTest {
@@ -26,20 +20,8 @@ async function runTestToCompletion(
   machine: MachineNode,
   test: SCIONTest
 ): Promise<void> {
-  const stateValue = test.events.length
-    ? pathsToStateValue(
-        test.initialConfiguration.map(id => getStateNodeById(machine, id).path)
-      )
-    : machine.initialState.value;
-
-  const resolvedStateValue = resolveStateValue(machine, stateValue);
-
   let done = false;
-  let nextState: State<any> = getInitialState(
-    machine,
-    resolvedStateValue,
-    machine.initialState.context
-  );
+  let nextState: State<any> = machine.initialState;
 
   const service = interpret(machine, {
     clock: new SimulatedClock()
@@ -51,9 +33,6 @@ async function runTestToCompletion(
       done = true;
     })
     .start(nextState);
-
-  // @ts-ignore
-  // service._state = nextState;
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
@@ -70,11 +49,6 @@ async function runTestToCompletion(
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });
-
-  if (!test.events.length) {
-    const stateIds = getStateNodes(machine, nextState).map(sn => sn.id);
-    expect(stateIds).toContain(test.initialConfiguration[0]);
-  }
 }
 
 const testGroups = {
@@ -91,7 +65,7 @@ const testGroups = {
     'send9'
   ],
   assign: [
-    'assign_obj_literal'
+    // 'assign_obj_literal'
     // 'assign_invalid', // TODO: error handling for assign()
   ],
   'assign-current-small-step': [

@@ -6,19 +6,14 @@ import { toMachine } from '../src/scxml';
 import { interpret } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
-import { pathsToStateValue } from '../src/utils';
-import {
-  getInitialState,
-  getStateNodes,
-  resolveStateValue,
-  getStateNodeById
-} from '../src/stateUtils';
+import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
 
 const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
   cwd: require.resolve('@scion-scxml/test-framework')
 }) as string);
 
+// @ts-ignore
 const testGroups = {
   actionSend: [
     'send1',
@@ -59,7 +54,7 @@ const testGroups = {
     'history1',
     'history2',
     'history3',
-    // 'history4', // TODO: support history nodes on parallel states
+    'history4',
     'history4b',
     'history5',
     'history6'
@@ -78,11 +73,11 @@ const testGroups = {
     'test2',
     'test2b',
     'test3',
-    // 'test3b',
+    'test3b',
     'test4',
     'test5',
     'test6',
-    // 'test6b',
+    'test6b',
     'test7',
     'test8',
     'test9',
@@ -95,11 +90,11 @@ const testGroups = {
   parallel: ['test0', 'test1', 'test2', 'test3'],
   'parallel+interrupt': [
     'test0',
-    // 'test1',
+    'test1',
     'test2',
     'test3',
     'test4',
-    // 'test5',
+    'test5',
     'test6',
     // 'test7',
     // 'test7b',
@@ -107,21 +102,21 @@ const testGroups = {
     'test9',
     'test10',
     'test11',
-    // 'test12',
+    'test12',
     'test13',
     'test14',
-    // 'test15',
+    'test15',
     'test16',
     'test17',
     'test18',
     'test19',
-    // 'test20',
+    'test20',
     // 'test21',
     // 'test21b',
     'test22',
     'test23',
     'test24',
-    // 'test25',
+    'test25',
     'test27',
     'test28',
     'test29',
@@ -148,7 +143,7 @@ const testGroups = {
     // 'test150.txml',
     // 'test151.txml',
     // 'test152.txml',
-    // 'test153.txml',
+    'test153.txml',
     // 'test155.txml',
     // 'test156.txml',
     'test158.txml',
@@ -313,23 +308,23 @@ const testGroups = {
     // 'test528.txml',
     // 'test529.txml',
     // 'test530.txml',
-    // 'test533.txml',
+    'test533.txml',
     // 'test550.txml',
     // 'test551.txml',
     // 'test552.txml',
-    // 'test553.txml',
-    // 'test554.txml',
+    'test553.txml',
+    'test554.txml',
     // 'test557.txml',
     // 'test558.txml',
-    // 'test560.txml',
+    'test560.txml',
     // 'test561.txml',
     // 'test562.txml',
     // 'test569.txml',
     'test570.txml'
-    // 'test576.txml'
+    // 'test576.txml',
     // 'test578.txml',
     // 'test579.txml',
-    // 'test580.txml',
+    // 'test580.txml'
   ]
 };
 
@@ -376,14 +371,10 @@ async function runTestToCompletion(
     await runW3TestToCompletion(machine);
     return;
   }
-  const resolvedStateValue = resolveStateValue(
-    machine,
-    pathsToStateValue(
-      test.initialConfiguration.map(id => getStateNodeById(machine, id).path)
-    )
-  );
+
   let done = false;
-  let nextState: State<any> = getInitialState(machine, resolvedStateValue);
+  let nextState: State<any> = machine.initialState;
+
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
@@ -414,10 +405,13 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['scxml-prefix-event-name-matching'];
+  // const testGroupKeys = ['parallel+interrupt'];
 
   testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+    const testNames = testGroups[testGroupName];
+    // const testNames = ['test17'];
+
+    testNames.forEach(testName => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1
@@ -442,8 +436,13 @@ describe('scxml', () => {
           delimiter: '$'
         });
 
-        // console.dir(machine.config, { depth: null });
-        await runTestToCompletion(machine, scxmlTest);
+        try {
+          await runTestToCompletion(machine, scxmlTest);
+        } catch (e) {
+          // console.log(testName);
+          // console.dir(JSON.stringify(machine.config, null, 2));
+          throw e;
+        }
       });
     });
   });

@@ -33,9 +33,7 @@ const lightMachine = Machine({
       on: {
         TIMER: 'yellow',
         KEEP_GOING: {
-          target: 'green',
-          actions: [actions.cancel('TIMER')],
-          internal: true
+          actions: [actions.cancel('TIMER')]
         }
       }
     },
