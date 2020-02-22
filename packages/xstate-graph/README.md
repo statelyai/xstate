@@ -14,10 +14,10 @@ npm install xstate @xstate/graph
 
 ```js
 import { Machine } from 'xstate';
-import { simplePaths } from '@xstate/graph';
+import { getSimplePaths } from '@xstate/graph';
 
 const machine = Machine(/* ... */);
-const paths = simplePaths(machine);
+const paths = getSimplePaths(machine);
 ```
 
 ## API
