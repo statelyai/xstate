@@ -65,7 +65,7 @@ const testGroups = {
     'send9'
   ],
   assign: [
-    'assign_obj_literal'
+    // 'assign_obj_literal'
     // 'assign_invalid', // TODO: error handling for assign()
   ],
   'assign-current-small-step': [
