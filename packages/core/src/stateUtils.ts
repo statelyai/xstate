@@ -600,7 +600,7 @@ export function getInitialState<
 >(
   machine: MachineNode<TContext, TStateSchema, TEvent>
 ): State<TContext, TEvent, TStateSchema, TTypestate> {
-  return resolveTransition(machine, [], undefined, undefined, undefined);
+  return resolveTransition(machine, [], undefined, undefined);
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
@@ -1441,8 +1441,7 @@ export function resolveTransition<
   machine: MachineNode<TContext, any, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-  context: TContext = machine.machine.context!
+  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
@@ -1455,7 +1454,7 @@ export function resolveTransition<
     currentState ? getStateNodes(machine, currentState.value) : [machine]
   );
 
-  const currentContext = currentState ? currentState.context : context;
+  const currentContext = currentState ? currentState.context : machine.context;
 
   const resolved = microstep(
     currentState
@@ -1475,6 +1474,14 @@ export function resolveTransition<
   const resolvedStateValue = willTransition
     ? getValue(machine.machine, resolved.configuration)
     : undefined;
+
+  if (currentState && resolvedStateValue === undefined) {
+    const inertState = State.inert(currentState, currentState.context);
+    inertState.event = _event.data;
+    inertState._event = _event;
+    inertState.changed = _event.name === actionTypes.update;
+    return inertState;
+  }
 
   let tempContext: TContext = currentContext;
 
@@ -1548,6 +1555,7 @@ export function resolveTransition<
   );
 
   let children = currentState ? currentState.children : ([] as Actor[]);
+
   for (const action of resActions) {
     if (action.type === actionTypes.start) {
       children.push(createInvocableActor((action as any).actor));

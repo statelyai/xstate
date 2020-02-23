@@ -170,7 +170,7 @@ export class State<
         history: stateValue.history,
         configuration: stateValue.configuration,
         transitions: [],
-        children: []
+        children: stateValue.children
       });
     }
 
