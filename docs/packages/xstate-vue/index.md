@@ -115,9 +115,7 @@ For [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [par
   <div>
     <loader-idle v-if="state.matches('idle')" />
     <loader-loading-user v-if-else="state.matches({ loading: 'user' })" />
-    <loader-loading-friends
-      v-if-else="state.matches({ loading: 'friends' })"
-    />
+    <loader-loading-friends v-if-else="state.matches({ loading: 'friends' })" />
   </div>
 </template>
 ```
