@@ -59,6 +59,17 @@ export class TestModel<TTestContext, TContext> {
     };
   }
 
+  public getPlans(
+    plansGenerator: (
+      machine?: StateMachine<TContext, any, any>,
+      options?: TestModelOptions<TTestContext>
+    ) => Array<TestPlan<TTestContext, TContext>>
+  ): Array<TestPlan<TTestContext, TContext>> {
+    const plans = plansGenerator(this.machine, this.options);
+
+    return plans; // TODO: add description and tests
+  }
+
   public getShortestPathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
@@ -91,17 +102,6 @@ export class TestModel<TTestContext, TContext> {
     return shortestPlans;
   }
 
-  private filterPathsTo(
-    stateValue: StateValue | StatePredicate<TContext>,
-    testPlans: Array<TestPlan<TTestContext, TContext>>
-  ): Array<TestPlan<TTestContext, TContext>> {
-    const predicate =
-      typeof stateValue === 'function'
-        ? plan => stateValue(plan.state)
-        : plan => plan.state.matches(stateValue);
-    return testPlans.filter(predicate);
-  }
-
   public getSimplePathPlans(
     options?: Partial<ValueAdjMapOptions<TContext, any>>
   ): Array<TestPlan<TTestContext, TContext>> {
@@ -117,6 +117,17 @@ export class TestModel<TTestContext, TContext> {
     stateValue: StateValue | StatePredicate<TContext>
   ): Array<TestPlan<TTestContext, TContext>> {
     return this.filterPathsTo(stateValue, this.getSimplePathPlans());
+  }
+
+  private filterPathsTo(
+    stateValue: StateValue | StatePredicate<TContext>,
+    testPlans: Array<TestPlan<TTestContext, TContext>>
+  ): Array<TestPlan<TTestContext, TContext>> {
+    const predicate =
+      typeof stateValue === 'function'
+        ? plan => stateValue(plan.state)
+        : plan => plan.state.matches(stateValue);
+    return testPlans.filter(predicate);
   }
 
   public getTestPlans(
