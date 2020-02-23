@@ -1039,9 +1039,13 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               expect(state.value).toEqual('even');
               expect(state.context).toEqual({ count: 4 });
               expect(state.actions.map(a => a.type)).toEqual([
+                actionTypes.assign,
                 'evenAction',
+                actionTypes.assign,
                 'oddAction',
+                actionTypes.assign,
                 'evenAction',
+                actionTypes.assign,
                 'oddAction'
               ]);
 

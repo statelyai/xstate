@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue } from '.';
+import { EventObject, StateNode, StateValue, Actor } from '.';
 import {
   keys,
   flatten,
@@ -1476,61 +1476,66 @@ export function resolveTransition<
     ? getValue(machine.machine, resolved.configuration)
     : undefined;
 
-  const [assignActions, otherActions] = partition(
-    toActionObjects(resolved.actions, machine.options.actions),
-    (action): action is AssignAction<TContext, TEvent> =>
-      action.type === actionTypes.assign
-  );
+  let tempContext: TContext = currentContext;
 
-  const updatedContext = assignActions.length
-    ? updateContext(currentContext, _event, assignActions, currentState)
-    : currentContext;
+  const resActions: Array<ActionObject<TContext, TEvent>> = flatten(
+    toActionObjects(resolved.actions, machine.options.actions).map(
+      actionObject => {
+        switch (actionObject.type) {
+          case actionTypes.raise:
+            return resolveRaise(actionObject as RaiseAction<TEvent>);
+          case actionTypes.send:
+            const sendAction = resolveSend(
+              actionObject as SendAction<TContext, TEvent>,
+              tempContext,
+              _event,
+              machine.machine.options.delays
+            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
 
-  const resolvedActions = flatten(
-    otherActions.map(actionObject => {
-      switch (actionObject.type) {
-        case actionTypes.raise:
-          return resolveRaise(actionObject as RaiseAction<TEvent>);
-        case actionTypes.send:
-          const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent>,
-            updatedContext,
-            _event,
-            machine.machine.options.delays
-          ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+            if (!IS_PRODUCTION) {
+              // warn after resolving as we can create better contextual message here
+              warn(
+                !isString(actionObject.delay) ||
+                  typeof sendAction.delay === 'number',
+                // tslint:disable-next-line:max-line-length
+                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
+              );
+            }
 
-          if (!IS_PRODUCTION) {
-            // warn after resolving as we can create better contextual message here
-            warn(
-              !isString(actionObject.delay) ||
-                typeof sendAction.delay === 'number',
-              // tslint:disable-next-line:max-line-length
-              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
+            return sendAction;
+          case actionTypes.log:
+            return resolveLog(
+              actionObject as LogAction<TContext, TEvent>,
+              tempContext,
+              _event
             );
-          }
-
-          return sendAction;
-        case actionTypes.log:
-          return resolveLog(
-            actionObject as LogAction<TContext, TEvent>,
-            updatedContext,
-            _event
-          );
-        case actionTypes.pure:
-          return (
-            (actionObject as PureAction<TContext, TEvent>).get(
-              updatedContext,
-              _event.data
-            ) || []
-          );
-        default:
-          return toActionObject(actionObject, machine.machine.options.actions);
+          case actionTypes.pure:
+            return (
+              (actionObject as PureAction<TContext, TEvent>).get(
+                tempContext,
+                _event.data
+              ) || []
+            );
+          case actionTypes.assign:
+            tempContext = updateContext(
+              tempContext,
+              _event,
+              [actionObject as AssignAction<TContext, TEvent>],
+              currentState
+            );
+            return actionObject;
+          default:
+            return toActionObject(
+              actionObject,
+              machine.machine.options.actions
+            );
+        }
       }
-    })
+    )
   );
 
   const [raisedEvents, nonRaisedActions] = partition(
-    resolvedActions,
+    resActions,
     (
       action
     ): action is
@@ -1542,8 +1547,8 @@ export function resolveTransition<
           SpecialTargets.Internal)
   );
 
-  let children = currentState ? currentState.children : [];
-  for (const action of resolvedActions) {
+  let children = currentState ? currentState.children : ([] as Actor[]);
+  for (const action of resActions) {
     if (action.type === actionTypes.start) {
       children.push(createInvocableActor((action as any).actor));
     } else if (action.type === actionTypes.stop) {
@@ -1576,7 +1581,7 @@ export function resolveTransition<
 
   const nextState = new State<TContext, TEvent, any, TTypestate>({
     value: resolvedStateValue || currentState!.value,
-    context: updatedContext,
+    context: tempContext,
     _event,
     // Persist _sessionid between states
     _sessionid: currentState ? currentState._sessionid : null,
@@ -1595,7 +1600,7 @@ export function resolveTransition<
   });
 
   nextState.changed =
-    _event.name === actionTypes.update || !!assignActions.length;
+    _event.name === actionTypes.update || tempContext !== currentContext;
 
   // Dispose of penultimate histories to prevent memory leaks
   const { history } = nextState;
@@ -1640,7 +1645,7 @@ export function resolveTransition<
     maybeNextState.changed ||
     (history
       ? !!maybeNextState.actions.length ||
-        !!assignActions.length ||
+        tempContext !== currentContext ||
         typeof history.value !== typeof maybeNextState.value ||
         !stateValuesEqual(maybeNextState.value, history.value)
       : undefined);

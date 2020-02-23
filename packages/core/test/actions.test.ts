@@ -667,6 +667,7 @@ describe('actions config', () => {
       }
     }
   );
+
   it('should reference actions defined in actions parameter of machine options', () => {
     const { initialState } = simpleMachine;
     const nextState = simpleMachine.transition(initialState, 'E');
@@ -691,10 +692,41 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const state = simpleMachine.transition('a', 'EVENT');
+    const machine = Machine<Context, State, EventType>(
+      {
+        initial: 'a',
+        context: {
+          count: 0
+        },
+        states: {
+          a: {
+            entry: [
+              'definedAction',
+              { type: 'definedAction' },
+              'undefinedAction'
+            ],
+            on: {
+              EVENT: {
+                target: 'b',
+                actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        actions: {
+          definedAction,
+          updateContext: assign({ count: 10 })
+        }
+      }
+    );
+    const state = machine.transition('a', 'EVENT');
 
     expect(state.actions).toEqual([
-      { type: 'definedAction', exec: definedAction }
+      { type: 'definedAction', exec: definedAction },
+      assign({ count: 10 })
     ]);
 
     expect(state.context).toEqual({ count: 10 });
