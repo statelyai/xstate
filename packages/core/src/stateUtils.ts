@@ -1471,11 +1471,7 @@ export function resolveTransition<
     new Set(prevConfig)
   );
 
-  const resolvedStateValue = willTransition
-    ? getValue(machine.machine, resolved.configuration)
-    : undefined;
-
-  if (currentState && resolvedStateValue === undefined) {
+  if (currentState && !willTransition) {
     const inertState = State.inert(currentState, currentState.context);
     inertState.event = _event.data;
     inertState._event = _event;
@@ -1569,7 +1565,7 @@ export function resolveTransition<
     }
   }
 
-  const resolvedConfiguration = resolvedStateValue
+  const resolvedConfiguration = willTransition
     ? Array.from(resolved.configuration)
     : currentState
     ? currentState.configuration
@@ -1587,19 +1583,33 @@ export function resolveTransition<
 
   const isDone = isInFinalState(resolvedConfiguration, machine);
 
+  if (!willTransition) {
+    return new State<TContext, TEvent, any, TTypestate>({
+      value: currentState!.value,
+      context: tempContext,
+      _event,
+      // Persist _sessionid between states
+      _sessionid: currentState!._sessionid,
+      history: currentState,
+      actions: [],
+      meta: currentState!.meta,
+      events: [],
+      configuration: resolvedConfiguration,
+      transitions,
+      children,
+      done: isDone
+    });
+  }
+
   const nextState = new State<TContext, TEvent, any, TTypestate>({
-    value: resolvedStateValue || currentState!.value,
+    value: getValue(machine, resolved.configuration),
     context: tempContext,
     _event,
     // Persist _sessionid between states
     _sessionid: currentState ? currentState._sessionid : null,
-    history: !resolvedStateValue || currentState ? currentState : undefined,
-    actions: resolvedStateValue ? nonRaisedActions : [],
-    meta: resolvedStateValue
-      ? meta
-      : currentState
-      ? currentState.meta
-      : undefined,
+    history: currentState,
+    actions: nonRaisedActions,
+    meta,
     events: [],
     configuration: resolvedConfiguration,
     transitions,
@@ -1614,10 +1624,6 @@ export function resolveTransition<
   const { history } = nextState;
   if (history) {
     delete history.history;
-  }
-
-  if (!resolvedStateValue) {
-    return nextState;
   }
 
   let maybeNextState = nextState;
