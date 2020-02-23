@@ -526,6 +526,7 @@ export function toSCXMLEvent<TEvent extends EventObject>(
   event: Event<TEvent> | SCXML.Event<TEvent>,
   scxmlEvent?: Partial<SCXML.Event<TEvent>>
 ): SCXML.Event<TEvent> {
+  console.log(event);
   if (!isString(event) && '$$type' in event && event.$$type === 'scxml') {
     return event as SCXML.Event<TEvent>;
   }

@@ -61,6 +61,7 @@ export class State<
   public meta: any = {};
   public events: TEvent[] = [];
   public event: TEvent;
+  public _internalQueue: Array<SCXML.Event<TEvent>> = [];
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
   /**

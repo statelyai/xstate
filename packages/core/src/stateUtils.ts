@@ -1433,7 +1433,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   };
 }
 
-export function resolveTransition<
+export function resolveMicroTransition<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext>
@@ -1443,6 +1443,140 @@ export function resolveTransition<
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
+  // Transition will "apply" if:
+  // - the state node is the initial state (there is no current state)
+  // - OR there are transitions
+  const willTransition = !currentState || transitions.length > 0;
+
+  // Entry and exit set
+  const prevConfig = getConfiguration(
+    [],
+    currentState ? getStateNodes(machine, currentState.value) : [machine]
+  );
+
+  const currentContext = currentState ? currentState.context : machine.context;
+
+  const resolved = microstep(
+    currentState
+      ? transitions
+      : [
+          {
+            target: [...prevConfig],
+            source: machine,
+            actions: [],
+            eventType: 'init'
+          }
+        ],
+    currentState,
+    new Set(prevConfig)
+  );
+
+  if (currentState && !willTransition) {
+    const inertState = State.inert(currentState, currentState.context);
+    inertState.event = _event.data;
+    inertState._event = _event;
+    inertState.changed = _event.name === actionTypes.update;
+    return inertState;
+  }
+
+  const [raisedEvents, nonRaisedActions] = partition(
+    resolved.actions,
+    (
+      action
+    ): action is
+      | RaiseActionObject<TEvent>
+      | SendActionObject<TContext, TEvent> =>
+      action.type === actionTypes.raise ||
+      (action.type === actionTypes.send &&
+        (action as SendActionObject<TContext, TEvent>).to ===
+          SpecialTargets.Internal)
+  );
+
+  let children = currentState ? [...currentState.children] : ([] as Actor[]);
+
+  for (const action of resolved.actions) {
+    if (action.type === actionTypes.start) {
+      children.push(createInvocableActor((action as any).actor));
+    } else if (action.type === actionTypes.stop) {
+      children = children.filter(childActor => {
+        return (
+          childActor.id !==
+          (action as ActivityActionObject<TContext, TEvent>).actor.id
+        );
+      });
+    }
+  }
+
+  const resolvedConfiguration = willTransition
+    ? Array.from(resolved.configuration)
+    : currentState
+    ? currentState.configuration
+    : [];
+
+  const meta = resolvedConfiguration.reduce(
+    (acc, subStateNode) => {
+      if (subStateNode.meta !== undefined) {
+        acc[subStateNode.id] = subStateNode.meta;
+      }
+      return acc;
+    },
+    {} as Record<string, string>
+  );
+
+  const isDone = isInFinalState(resolvedConfiguration, machine);
+
+  if (!willTransition) {
+    return new State<TContext, TEvent, any, TTypestate>({
+      value: currentState!.value,
+      context: currentState!.context,
+      _event,
+      // Persist _sessionid between states
+      _sessionid: currentState!._sessionid,
+      history: currentState,
+      actions: [],
+      meta: currentState!.meta,
+      events: [],
+      configuration: resolvedConfiguration,
+      transitions,
+      children,
+      done: isDone
+    });
+  }
+
+  const nextState = new State<TContext, TEvent, any, TTypestate>({
+    value: getValue(machine, resolved.configuration),
+    context: currentState ? currentState.context : machine.context,
+    _event,
+    // Persist _sessionid between states
+    _sessionid: currentState ? currentState._sessionid : null,
+    history: currentState,
+    actions: nonRaisedActions,
+    meta,
+    events: [],
+    configuration: resolvedConfiguration,
+    transitions,
+    children,
+    done: isDone
+  });
+
+  nextState.changed = _event.name === actionTypes.update;
+  nextState._internalQueue = raisedEvents.map(r => r._event);
+
+  // Dispose of penultimate histories to prevent memory leaks
+  const { history } = nextState;
+  if (history) {
+    delete history.history;
+  }
+
+  return nextState;
+}
+
+export function resolveTransition<TContext, TEvent extends EventObject>(
+  machine: MachineNode<TContext, any, TEvent>,
+  transitions: Transitions<TContext, TEvent>,
+  currentState?: State<TContext, TEvent>,
+  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
+): State<TContext, TEvent, any, Typestate<TContext>> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1550,9 +1684,21 @@ export function resolveTransition<
           SpecialTargets.Internal)
   );
 
-  let children = currentState ? currentState.children : ([] as Actor[]);
+  const nextState = resolveMicroTransition(
+    machine,
+    transitions,
+    currentState,
+    _event
+  );
 
-  for (const action of resActions) {
+  if (!willTransition) {
+    return nextState;
+  }
+
+  nextState.context = tempContext;
+
+  let children = currentState ? currentState.children : ([] as Actor[]);
+  for (const action of nextState.actions) {
     if (action.type === actionTypes.start) {
       children.push(createInvocableActor((action as any).actor));
     } else if (action.type === actionTypes.stop) {
@@ -1564,59 +1710,7 @@ export function resolveTransition<
       });
     }
   }
-
-  const resolvedConfiguration = willTransition
-    ? Array.from(resolved.configuration)
-    : currentState
-    ? currentState.configuration
-    : [];
-
-  const meta = resolvedConfiguration.reduce(
-    (acc, subStateNode) => {
-      if (subStateNode.meta !== undefined) {
-        acc[subStateNode.id] = subStateNode.meta;
-      }
-      return acc;
-    },
-    {} as Record<string, string>
-  );
-
-  const isDone = isInFinalState(resolvedConfiguration, machine);
-
-  if (!willTransition) {
-    return new State<TContext, TEvent, any, TTypestate>({
-      value: currentState!.value,
-      context: tempContext,
-      _event,
-      // Persist _sessionid between states
-      _sessionid: currentState!._sessionid,
-      history: currentState,
-      actions: [],
-      meta: currentState!.meta,
-      events: [],
-      configuration: resolvedConfiguration,
-      transitions,
-      children,
-      done: isDone
-    });
-  }
-
-  const nextState = new State<TContext, TEvent, any, TTypestate>({
-    value: getValue(machine, resolved.configuration),
-    context: tempContext,
-    _event,
-    // Persist _sessionid between states
-    _sessionid: currentState ? currentState._sessionid : null,
-    history: currentState,
-    actions: nonRaisedActions,
-    meta,
-    events: [],
-    configuration: resolvedConfiguration,
-    transitions,
-    children,
-    done: isDone
-  });
-
+  nextState.actions = nonRaisedActions;
   nextState.changed =
     _event.name === actionTypes.update || tempContext !== currentContext;
 
@@ -1628,9 +1722,8 @@ export function resolveTransition<
 
   let maybeNextState = nextState;
 
-  if (!isDone) {
-    const isTransient =
-      machine.isTransient || resolvedConfiguration.some(sn => sn.isTransient);
+  if (!nextState.done) {
+    const isTransient = nextState.configuration.some(sn => sn.isTransient);
 
     if (isTransient) {
       maybeNextState = resolveRaisedTransition(
