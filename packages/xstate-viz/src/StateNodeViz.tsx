@@ -1,7 +1,9 @@
 import * as React from 'react';
-import { useContext, useEffect, useRef } from 'react';
+import { useContext, useEffect, useRef, useMemo } from 'react';
 import { StateContext } from './StateContext';
 import { StateNode } from 'xstate';
+import { EventViz } from './EventViz';
+import { getEdges, serializeTransition } from './utils';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
@@ -18,6 +20,8 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
     tracker.update(stateNode.id, ref.current!);
   }, []);
 
+  const edges = useMemo(() => getEdges(stateNode), [stateNode]);
+
   return (
     <div data-xviz-element="stateNode" title={`state node: #${stateNode.id}`}>
       <div data-xviz-element="stateNode-state" ref={ref}>
@@ -26,13 +30,21 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         </header>
         <div data-xviz-element="stateNode-children">
           {Object.keys(stateNode.states).map(key => {
-            return <StateNodeViz stateNode={stateNode.states[key]} key={key} />;
+            const childStateNode = stateNode.states[key];
+            return (
+              <StateNodeViz
+                stateNode={stateNode.states[key]}
+                key={childStateNode.id}
+              />
+            );
           })}
         </div>
       </div>
       <div data-xviz-element="events">
-        {stateNode.events.map(event => {
-          return <div data-xviz-element="event">{event}</div>;
+        {edges.map(edge => {
+          return (
+            <EventViz edge={edge} key={serializeTransition(edge.transition)} />
+          );
         })}
       </div>
     </div>
