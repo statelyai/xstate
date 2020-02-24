@@ -611,3 +611,80 @@ describe('plan description', () => {
     `);
   });
 });
+
+describe('chaos', () => {
+  // tslint:disable-next-line:max-classes-per-file
+  class Toggle {
+    public isOn = true;
+    public enabled = true;
+
+    public turnOn() {
+      this.isOn = true;
+    }
+
+    public turnOff() {
+      this.isOn = false;
+    }
+
+    public toggle() {
+      this.isOn = !this.isOn;
+    }
+
+    public disable() {
+      this.enabled = false;
+    }
+  }
+
+  const machine = Machine({
+    initial: 'active',
+    states: {
+      active: {
+        on: { TOGGLE: 'inactive' },
+        meta: {
+          test(toggle) {
+            expect(toggle.isOn).toBeTruthy();
+          }
+        }
+      },
+      inactive: {
+        meta: {
+          test(toggle) {
+            expect(toggle.isOn).toBeFalsy();
+          }
+        }
+      },
+      disabled: {
+        meta: {
+          test(toggle) {
+            expect(toggle.enabled).toBeFalsy();
+          }
+        }
+      }
+    },
+    on: {
+      DISABLE: '.disabled'
+    }
+  });
+
+  const model = createModel(machine).withEvents({
+    TOGGLE(toggle: Toggle) {
+      toggle.toggle();
+    },
+    DISABLE(toggle: Toggle) {
+      toggle.disable();
+    }
+  });
+
+  model.getShortestPathPlans({ chaos: true }).forEach(plan => {
+    plan.paths.forEach(path => {
+      it(plan.description + path.description, async () => {
+        const testToggle = new Toggle();
+        if (plan.state.matches('inactive')) {
+          await expect(path.test(testToggle)).rejects.toThrow(/chaos/i);
+        } else {
+          await path.test(testToggle);
+        }
+      });
+    });
+  });
+});

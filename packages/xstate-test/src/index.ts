@@ -3,7 +3,9 @@ import {
   getSimplePaths,
   getStateNodes,
   StatePathsMap,
-  ValueAdjMapOptions
+  ValueAdjMapOptions,
+  StatePaths,
+  StatePath
 } from '@xstate/graph';
 import { StateMachine, EventObject, State, StateValue } from 'xstate';
 import slimChalk from './slimChalk';
@@ -71,14 +73,14 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getShortestPathPlans(
-    options?: Partial<ValueAdjMapOptions<TContext, any>>
+    options?: Partial<ValueAdjMapOptions<TContext, any> & { chaos: boolean }>
   ): Array<TestPlan<TTestContext, TContext>> {
     const shortestPaths = getShortestPaths(this.machine, {
       ...options,
       events: getEventSamples<TTestContext>(this.options.events)
     }) as StatePathsMap<TContext, any>;
 
-    return this.getTestPlans(shortestPaths);
+    return this.getTestPlans(shortestPaths, options);
   }
 
   public getShortestPathPlansTo(
@@ -131,7 +133,8 @@ export class TestModel<TTestContext, TContext> {
   }
 
   public getTestPlans(
-    statePathsMap: StatePathsMap<TContext, any>
+    statePathsMap: StatePathsMap<TContext, any>,
+    options: Partial<{ chaos: boolean }> = { chaos: false }
   ): Array<TestPlan<TTestContext, TContext>> {
     return Object.keys(statePathsMap).map(key => {
       const testPlan = statePathsMap[key];
@@ -163,102 +166,13 @@ export class TestModel<TTestContext, TContext> {
           ...path,
           segments,
           description: `via ${eventsString}`,
-          test: async testContext => {
-            const testPathResult: TestPathResult = {
-              segments: [],
-              state: {
-                error: null
-              }
-            };
-
-            try {
-              for (const segment of segments) {
-                const testSegmentResult: TestSegmentResult = {
-                  segment,
-                  state: { error: null },
-                  event: { error: null }
-                };
-
-                testPathResult.segments.push(testSegmentResult);
-
-                try {
-                  await segment.test(testContext);
-                } catch (err) {
-                  testSegmentResult.state.error = err;
-
-                  throw err;
-                }
-
-                try {
-                  await segment.exec(testContext);
-                } catch (err) {
-                  testSegmentResult.event.error = err;
-
-                  throw err;
-                }
-              }
-
-              try {
-                await this.testState(testPlan.state, testContext);
-              } catch (err) {
-                testPathResult.state.error = err;
-                throw err;
-              }
-            } catch (err) {
-              const targetStateString = `${JSON.stringify(path.state.value)} ${
-                path.state.context === undefined
-                  ? ''
-                  : JSON.stringify(path.state.context)
-              }`;
-
-              let hasFailed = false;
-              err.message +=
-                '\nPath:\n' +
-                testPathResult.segments
-                  .map(s => {
-                    const stateString = `${JSON.stringify(
-                      s.segment.state.value
-                    )} ${
-                      s.segment.state.context === undefined
-                        ? ''
-                        : JSON.stringify(s.segment.state.context)
-                    }`;
-                    const eventString = `${JSON.stringify(s.segment.event)}`;
-
-                    const stateResult = `\tState: ${
-                      hasFailed
-                        ? slimChalk('gray', stateString)
-                        : s.state.error
-                        ? ((hasFailed = true),
-                          slimChalk('redBright', stateString))
-                        : slimChalk('greenBright', stateString)
-                    }`;
-                    const eventResult = `\tEvent: ${
-                      hasFailed
-                        ? slimChalk('gray', eventString)
-                        : s.event.error
-                        ? ((hasFailed = true), slimChalk('red', eventString))
-                        : slimChalk('green', eventString)
-                    }`;
-
-                    return [stateResult, eventResult].join('\n');
-                  })
-                  .concat(
-                    `\tState: ${
-                      hasFailed
-                        ? slimChalk('gray', targetStateString)
-                        : testPathResult.state.error
-                        ? slimChalk('red', targetStateString)
-                        : slimChalk('green', targetStateString)
-                    }`
-                  )
-                  .join('\n\n');
-
-              throw err;
-            }
-
-            return testPathResult;
-          }
+          test: testPath<TTestContext, TContext>(
+            this,
+            segments,
+            testPlan,
+            path,
+            { chaos: !!options.chaos }
+          )
         };
       });
 
@@ -352,12 +266,174 @@ export class TestModel<TTestContext, TContext> {
     }
   }
 
+  // public testChaos(path: TestPath<TTestContext>) {}
+
   public withEvents(
     eventMap: TestModelOptions<TTestContext>['events']
   ): TestModel<TTestContext, TContext> {
     return new TestModel<TTestContext, TContext>(this.machine, {
       events: eventMap
     });
+  }
+}
+
+function testPath<TTestContext, TContext>(
+  model: TestModel<TTestContext, TContext>,
+  segments: Array<{
+    description: string;
+    test: (testContext: TTestContext) => Promise<void>;
+    exec: (testContext: TTestContext) => Promise<void>;
+    state: State<TContext, any, any, any>;
+    event: any;
+  }>,
+  testPlan: StatePaths<TContext, any>,
+  path: StatePath<TContext, any>,
+  options: { chaos: boolean } = { chaos: false }
+): (testContext: any) => Promise<TestPathResult> {
+  const { chaos } = options;
+
+  return async testContext => {
+    const testPathResult: TestPathResult = {
+      segments: [],
+      state: {
+        error: null
+      },
+      chaos: { error: null }
+    };
+    try {
+      for (const segment of segments) {
+        const testSegmentResult: TestSegmentResult = {
+          segment,
+          state: { error: null },
+          event: { error: null },
+          chaos: { error: null }
+        };
+        testPathResult.segments.push(testSegmentResult);
+
+        // Test state
+        try {
+          await segment.test(testContext);
+        } catch (err) {
+          testSegmentResult.state.error = err;
+          throw err;
+        }
+
+        // Execute event
+        try {
+          await segment.exec(testContext);
+        } catch (err) {
+          testSegmentResult.event.error = err;
+          throw err;
+        }
+
+        // Chaos test
+        try {
+          await chaosTest(segment.state, segment.test, testContext);
+        } catch (err) {
+          testSegmentResult.chaos.error = err;
+          throw err;
+        }
+      }
+      try {
+        await model.testState(testPlan.state, testContext);
+      } catch (err) {
+        testPathResult.state.error = err;
+        throw err;
+      }
+
+      // Chaos
+      try {
+        await chaosTest(
+          testPlan.state,
+          async (tc: TTestContext) => {
+            await model.testState(testPlan.state, tc);
+          },
+          testContext
+        );
+      } catch (err) {
+        testPathResult.chaos.error = err;
+        throw err;
+      }
+    } catch (err) {
+      const targetStateString = `${JSON.stringify(path.state.value)} ${
+        path.state.context === undefined
+          ? ''
+          : JSON.stringify(path.state.context)
+      }`;
+      let hasFailed = false;
+      err.message +=
+        '\nPath:\n' +
+        testPathResult.segments
+          .map(s => {
+            const stateString = `${JSON.stringify(s.segment.state.value)} ${
+              s.segment.state.context === undefined
+                ? ''
+                : JSON.stringify(s.segment.state.context)
+            }`;
+            const eventString = `${JSON.stringify(s.segment.event)}`;
+            const stateResult = `\tState: ${
+              hasFailed
+                ? slimChalk('gray', stateString)
+                : s.state.error
+                ? ((hasFailed = true), slimChalk('redBright', stateString))
+                : slimChalk('greenBright', stateString)
+            }`;
+            const eventResult = `\tEvent: ${
+              hasFailed
+                ? slimChalk('gray', eventString)
+                : s.event.error
+                ? ((hasFailed = true), slimChalk('red', eventString))
+                : slimChalk('green', eventString)
+            }`;
+            return [stateResult, eventResult].join('\n');
+          })
+          .concat(
+            `\tState: ${
+              hasFailed
+                ? slimChalk('gray', targetStateString)
+                : testPathResult.state.error
+                ? slimChalk('red', targetStateString)
+                : slimChalk('green', targetStateString)
+            }`
+          )
+          .concat(
+            testPathResult.chaos.error
+              ? `\t${slimChalk('red', 'Chaos:')} ${testPathResult.chaos.error}`
+              : ''
+          )
+          .filter(s => s.length)
+          .join('\n\n');
+      throw err;
+    }
+    return testPathResult;
+  };
+
+  async function chaosTest(
+    state: State<TContext, any, any, any>,
+    test: (testContext: TTestContext) => Promise<void>,
+    testContext: any
+  ) {
+    if (chaos) {
+      const allEvents = new Set(model.machine.events);
+      const validEvents = state.nextEvents;
+      validEvents.forEach(validEvent => {
+        allEvents.delete(validEvent);
+      });
+
+      for (const event of allEvents) {
+        try {
+          await model.executeEvent({ type: event }, testContext);
+        } catch (err) {
+          // gulp
+        }
+        // Assert that you are in the same state
+        try {
+          await test(testContext);
+        } catch (err) {
+          throw new Error(`Chaotic event "${event}": ${err.message}`);
+        }
+      }
+    }
   }
 }
 

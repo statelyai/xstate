@@ -17,11 +17,12 @@ interface TestStateResult {
 export interface TestSegmentResult {
   segment: TestSegment<any>;
   state: TestStateResult;
+  chaos: TestStateResult;
   event: {
     error: null | Error;
   };
 }
-interface TestPath<T> {
+export interface TestPath<T> {
   weight: number;
   segments: Array<TestSegment<T>>;
   description: string;
@@ -29,11 +30,15 @@ interface TestPath<T> {
    * Tests and executes each segment in `segments` sequentially, and then
    * tests the postcondition that the `state` is reached.
    */
-  test: (testContext: T) => Promise<TestPathResult>;
+  test: (
+    testContext: T,
+    options?: Partial<{ chaos: boolean }> | undefined
+  ) => Promise<TestPathResult>;
 }
 export interface TestPathResult {
   segments: TestSegmentResult[];
   state: TestStateResult;
+  chaos: TestStateResult; // todo: TestEventResult
 }
 
 /**
@@ -62,7 +67,8 @@ export interface TestPlan<TTestContext, TContext> {
     /**
      * The test context used for verifying the SUT.
      */
-    testContext: TTestContext
+    testContext: TTestContext,
+    options?: Partial<{ chaos: boolean }> | undefined
   ) => Promise<void> | void;
 }
 
