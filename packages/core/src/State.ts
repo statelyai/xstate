@@ -245,7 +245,7 @@ export class State<
 
     Object.defineProperty(this, 'nextEvents', {
       get: () => {
-        return nextEvents(config.configuration);
+        return nextEvents(this.configuration);
       }
     });
   }
