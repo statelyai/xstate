@@ -1,7 +1,7 @@
-import { Machine } from '../src/index';
+import { Machine, createMachine } from '../src/index';
 
 describe('history states', () => {
-  const historyMachine = Machine({
+  const historyMachine = createMachine({
     key: 'history',
     initial: 'off',
     states: {

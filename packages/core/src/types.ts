@@ -522,14 +522,15 @@ export interface StateNodeDefinition<
   id: string;
   version: string | undefined;
   key: string;
+  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  onEntry: Array<ActionObject<TContext, TEvent>>;
-  onExit: Array<ActionObject<TContext, TEvent>>;
+  entry: Array<ActionObject<TContext, TEvent>>;
+  exit: Array<ActionObject<TContext, TEvent>>;
   activities: Array<ActivityDefinition<TContext, TEvent>>;
   meta: any;
   order: number;

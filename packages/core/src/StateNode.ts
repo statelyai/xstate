@@ -476,6 +476,7 @@ class StateNode<
       id: this.id,
       key: this.key,
       version: this.version,
+      context: this.context!,
       type: this.type,
       initial: this.initial,
       history: this.history,
@@ -485,8 +486,8 @@ class StateNode<
       ) as StatesDefinition<TContext, TStateSchema, TEvent>,
       on: this.on,
       transitions: this.transitions,
-      onEntry: this.onEntry,
-      onExit: this.onExit,
+      entry: this.onEntry,
+      exit: this.onExit,
       activities: this.activities || [],
       meta: this.meta,
       order: this.order || -1,
@@ -1879,7 +1880,7 @@ class StateNode<
 
     const target = this.resolveTarget(normalizedTarget);
 
-    return {
+    const transition = {
       ...transitionConfig,
       actions: toActionObjects(toArray(transitionConfig.actions)),
       cond: toGuard(transitionConfig.cond, guards),
@@ -1888,6 +1889,18 @@ class StateNode<
       internal,
       eventType: transitionConfig.event
     };
+
+    Object.defineProperty(transition, 'toJSON', {
+      value: () => ({
+        ...transition,
+        target: transition.target
+          ? transition.target.map(t => `#${t.id}`)
+          : undefined,
+        source: `#{this.id}`
+      })
+    });
+
+    return transition;
   }
   private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
     let onConfig: Array<
