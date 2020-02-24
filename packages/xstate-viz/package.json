@@ -1,44 +1,75 @@
 {
   "name": "@xstate/viz",
-  "private": true,
-  "version": "0.1.0",
-  "license": "MIT",
-  "author": "David Khourshid",
-  "main": "dist/index.js",
-  "module": "dist/viz.esm.js",
-  "typings": "dist/index.d.ts",
-  "files": [
-    "dist"
+  "version": "0.0.1",
+  "description": "XState visualization tools",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state",
+    "graph",
+    "visualizer",
+    "visualization",
+    "react"
   ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-viz#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "types": "lib/index.d.ts",
+  "sideEffects": false,
+  "directories": {
+    "lib": "lib",
+    "test": "test"
+  },
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
   "scripts": {
-    "clean": "echo \"No clean script\"",
-    "start": "tsdx watch",
-    "build": "tsdx build",
-    "test": "tsdx test --env=jsdom",
-    "lint": "tsdx lint"
+    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "build": "tsc",
+    "test": "jest",
+    "prepublish": "npm run build && npm run test"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "react": ">=16"
+    "@xstate/fsm": "^1.0.0",
+    "react": "^16.8.0",
+    "xstate": "^4.7.0"
   },
-  "prettier": {
-    "printWidth": 80,
-    "semi": true,
-    "singleQuote": true,
-    "trailingComma": "es5"
-  },
-  "devDependencies": {
-    "@types/jest": "^24.0.23",
-    "@types/react": "^16.9.11",
-    "@types/react-dom": "^16.9.4",
-    "@types/styled-components": "^4.4.0",
-    "react": "^16.12.0",
-    "react-dom": "^16.12.0",
-    "tsdx": "^0.11.0",
-    "tslib": "^1.10.0",
-    "typescript": "^3.7.5"
+  "peerDependenciesMeta": {
+    "@xstate/fsm": {
+      "optional": true
+    },
+    "xstate": {
+      "optional": true
+    }
   },
   "dependencies": {
-    "immer": "^5.0.0",
-    "styled-components": "^4.4.1"
+    "use-subscription": "^1.3.0"
+  },
+  "devDependencies": {
+    "@testing-library/react": "^8.0.9",
+    "@types/jsdom": "^12.2.3",
+    "@types/react": "^16.9.11",
+    "@types/react-dom": "^16.9.4",
+    "@xstate/fsm": "*",
+    "jest": "^24.8.0",
+    "jsdom": "^14.0.0",
+    "jsdom-global": "^3.0.2",
+    "lerna-alias": "3.0.3-0",
+    "react": "^16.12.0",
+    "react-dom": "^16.12.0",
+    "ts-jest": "^24.1.9",
+    "typescript": "^3.7.5",
+    "xstate": "*"
   }
 }
