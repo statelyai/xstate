@@ -35,6 +35,7 @@ import {
   StateValueMap,
   AssignAction,
   RaiseAction,
+  CancelAction,
   SendAction,
   LogAction,
   PureAction,
@@ -61,6 +62,7 @@ import {
   resolveRaise,
   resolveSend,
   resolveLog,
+  resolveCancel,
   toActionObject
 } from './actions';
 import { IS_PRODUCTION } from './environment';
@@ -1491,6 +1493,12 @@ export function resolveTransition<
       switch (actionObject.type) {
         case actionTypes.raise:
           return resolveRaise(actionObject as RaiseAction<TEvent>);
+        case actionTypes.cancel:
+          return resolveCancel(
+            actionObject as CancelAction<TContext, TEvent>,
+            updatedContext,
+            _event
+          );
         case actionTypes.send:
           const sendAction = resolveSend(
             actionObject as SendAction<TContext, TEvent>,

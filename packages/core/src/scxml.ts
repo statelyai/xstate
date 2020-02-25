@@ -142,8 +142,19 @@ function mapActions<
 
           return evaluateExecutableContent(context, e, meta, fnBody);
         });
+      case 'cancel':
+        if ('sendid' in element.attributes!) {
+          return actions.cancel(element.attributes!.sendid! as string);
+        }
+        return actions.cancel((context, e, meta) => {
+          const fnBody = `
+            return ${element.attributes!.sendidexpr};
+          `;
+
+          return evaluateExecutableContent(context, e, meta, fnBody);
+        });
       case 'send':
-        const { event, eventexpr, target } = element.attributes!;
+        const { event, eventexpr, target, id } = element.attributes!;
 
         let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
         let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
@@ -189,7 +200,8 @@ function mapActions<
 
         return actions.send<TContext, TEvent>(convertedEvent, {
           delay: convertedDelay,
-          to: target as string | undefined
+          to: target as string | undefined,
+          id: id as string | undefined
         });
       case 'log':
         const label = element.attributes!.label;
