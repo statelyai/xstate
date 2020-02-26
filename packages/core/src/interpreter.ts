@@ -1,7 +1,7 @@
 import {
   Event,
   EventObject,
-  CancelAction,
+  CancelActionObject,
   DefaultContext,
   ActionObject,
   StateSchema,
@@ -802,7 +802,7 @@ export class Interpreter<
         break;
 
       case actionTypes.cancel:
-        this.cancel((action as CancelAction).sendId);
+        this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
 
         break;
       case actionTypes.start: {
