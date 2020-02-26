@@ -3,14 +3,14 @@ import { useContext, useEffect, useRef, useMemo } from 'react';
 import { StateContext } from './StateContext';
 import { StateNode } from 'xstate';
 import { EventViz } from './EventViz';
-import { getEdges, serializeTransition } from './utils';
+import { getEdges, serializeTransition, isActive } from './utils';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
 }
 
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
-  const { tracker } = useContext(StateContext);
+  const { tracker, state } = useContext(StateContext);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -22,8 +22,14 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
 
+  const active = isActive(state, stateNode);
+
   return (
-    <div data-xviz-element="stateNode" title={`state node: #${stateNode.id}`}>
+    <div
+      data-xviz-element="stateNode"
+      data-xviz-active={active || undefined}
+      title={`state node: #${stateNode.id}`}
+    >
       <div data-xviz-element="stateNode-state" ref={ref}>
         <header>
           <strong>{stateNode.key}</strong>

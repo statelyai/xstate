@@ -2,7 +2,8 @@ import {
   StateNode,
   AnyEventObject,
   TransitionDefinition,
-  StateMachine
+  StateMachine,
+  State
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
@@ -160,4 +161,14 @@ export function serializeTransition(
   return `event:${transition.source.id}:${transition.eventType}:${
     transition.cond ? transition.cond.toString() : ''
   }`;
+}
+
+export function isActive(
+  state: State<any, any>,
+  stateNode: StateNode<any, any>
+) {
+  const resolvedState = stateNode.machine.resolveState(state);
+  const active = resolvedState.configuration.includes(stateNode);
+
+  return active;
 }

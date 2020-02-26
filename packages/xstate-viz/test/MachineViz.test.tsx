@@ -11,7 +11,7 @@ import { MachineViz } from '../src';
 // } from 'xstate';
 import {
   render,
-  // fireEvent,
+  fireEvent,
   cleanup
   // waitForElement
 } from '@testing-library/react';
@@ -51,6 +51,47 @@ describe('MachineViz', () => {
 
     expect(activeStateEl).not.toBeNull();
     expect(inactiveStateEl).not.toBeNull();
+  });
+
+  it('should highlight the active state', async () => {
+    const { getByTitle } = render(
+      <MachineViz machine={machine} state={machine.initialState} />
+    );
+    const activeStateEl = getByTitle(/state node: #simple.active/i);
+    const inactiveStateEl = getByTitle(/state node: #simple.inactive/i);
+
+    expect(activeStateEl.matches(`[data-xviz-active]`)).toBeTruthy();
+    expect(inactiveStateEl.matches(`[data-xviz-active]`)).toBeFalsy();
+  });
+
+  it('should update the active state', async () => {
+    const App = () => {
+      const [state, setState] = React.useState(machine.initialState);
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() =>
+              setState(machine.transition(machine.initialState, 'TOGGLE'))
+            }
+          ></button>
+          <MachineViz machine={machine} state={state} />
+        </>
+      );
+    };
+    const { getByTitle, getByTestId } = render(<App />);
+    const activeStateEl = getByTitle(/state node: #simple.active/i);
+    const inactiveStateEl = getByTitle(/state node: #simple.inactive/i);
+    const buttonEl = getByTestId('button');
+
+    expect(activeStateEl.matches(`[data-xviz-active]`)).toBeTruthy();
+    expect(inactiveStateEl.matches(`[data-xviz-active]`)).toBeFalsy();
+
+    fireEvent.click(buttonEl);
+
+    expect(activeStateEl.matches(`[data-xviz-active]`)).toBeFalsy();
+    expect(inactiveStateEl.matches(`[data-xviz-active]`)).toBeTruthy();
   });
 
   it('should render the events', async () => {
