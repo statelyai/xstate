@@ -38,9 +38,10 @@ export function spawnMachine<
       ) as TMachine;
     }
     const childService = interpret(resolvedMachine, {
-      ...options, // inherit options from this interpreter
+      ...options,
       parent,
-      id: id || resolvedMachine.id
+      id: id || resolvedMachine.id,
+      clock: (parent as any).clock
     });
 
     const resolvedOptions = {
