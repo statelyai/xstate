@@ -3,7 +3,8 @@ import {
   AnyEventObject,
   TransitionDefinition,
   StateMachine,
-  State
+  State,
+  ActionObject
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 
@@ -171,4 +172,8 @@ export function isActive(
   const active = resolvedState.configuration.includes(stateNode);
 
   return active;
+}
+
+export function serializeAction(action: ActionObject<any, any>): string {
+  return JSON.stringify(action);
 }
