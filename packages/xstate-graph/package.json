@@ -14,11 +14,14 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -26,7 +29,8 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "build": "tsc && rollup -c && npm run annotate:es",
+    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
@@ -37,6 +41,15 @@
     "xstate": "^4.7.0"
   },
   "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "babel-plugin-annotate-pure-calls": "^0.4.0",
+    "rollup": "^1.26.3",
+    "rollup-plugin-filesize": "^6.2.1",
+    "rollup-plugin-replace": "^2.2.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.25.2",
+    "rollup-plugin-uglify": "^6.0.2",
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.1.9",
