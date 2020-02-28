@@ -2,6 +2,12 @@
 
 Thank you for your interest in contributing to XState! This project is made possible by contributors like you, and we welcome any contributions to the code base and the documentation.
 
+## Contribute using one-click online setup.
+
+Contribute to XState using a free fully featured VS Code like online development environment; cloned repo, pre-installed dependencies and web server + test suite running.
+
+[![Open in Gitpod](https://gitpod.io/button/open-in-gitpod.svg)](https://gitpod.io/#https://github.com/davidkpiano/xstate)
+
 ## Environment
 
 - Ensure you have the latest version of Node and Yarn.
