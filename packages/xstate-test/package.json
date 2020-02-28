@@ -17,6 +17,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "browser": {
     "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
@@ -24,7 +25,9 @@
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -43,6 +46,15 @@
     "xstate": "^4.7.6"
   },
   "devDependencies": {
+    "@babel/cli": "^7.6.0",
+    "@babel/core": "^7.6.0",
+    "babel-plugin-annotate-pure-calls": "^0.4.0",
+    "rollup": "^1.26.3",
+    "rollup-plugin-filesize": "^6.2.1",
+    "rollup-plugin-replace": "^2.2.0",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.25.2",
+    "rollup-plugin-uglify": "^6.0.2",
     "@types/jest-environment-puppeteer": "^4.0.0",
     "jest": "^24.8.0",
     "jest-environment-puppeteer": "^4.3.0",
