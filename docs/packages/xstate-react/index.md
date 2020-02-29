@@ -28,11 +28,11 @@ const toggleMachine = Machine({
 });
 
 export const Toggler = () => {
-  const [current, send] = useMachine(toggleMachine);
+  const [state, send] = useMachine(toggleMachine);
 
   return (
     <button onClick={() => send('TOGGLE')}>
-      {current.value === 'inactive'
+      {state.value === 'inactive'
         ? 'Click to activate'
         : 'Active! Click to deactivate'}
     </button>
@@ -51,9 +51,9 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
-**Returns** a tuple of `[current, send, service]`:
+**Returns** a tuple of `[state, send, service]`:
 
-- `current` - Represents the current state of the machine as an XState `State` object.
+- `state` - Represents the current state of the machine as an XState `State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created service.
 
@@ -65,9 +65,9 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 
 - `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
 
-**Returns** a tuple of `[current, send]`:
+**Returns** a tuple of `[state, send]`:
 
-- `current` - Represents the current state of the service as an XState `State` object.
+- `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
 ### `useMachine(machine)` with `@xstate/fsm` <Badge text="1.1+"/>
@@ -81,9 +81,9 @@ This special `useMachine` hook is imported from `@xstate/react/fsm`
 - `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
 - `options` - An optional `options` object.
 
-**Returns** a tuple of `[current, send, service]`:
+**Returns** a tuple of `[state, send, service]`:
 
-- `current` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
+- `state` - Represents the current state of the machine as an `@xstate/fsm` `StateMachine.State` object.
 - `send` - A function that sends events to the running service.
 - `service` - The created `@xstate/fsm` service.
 
@@ -121,7 +121,7 @@ const fetchMachine = createMachine({
 });
 
 const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
-  const [current, send] = useMachine(fetchMachine, {
+  const [state, send] = useMachine(fetchMachine, {
     actions: {
       load: () => {
         onFetch().then(res => {
@@ -131,7 +131,7 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
     }
   });
 
-  switch (current.value) {
+  switch (state.value) {
     case 'idle':
       return <button onClick={_ => send('FETCH')}>Fetch</button>;
     case 'loading':
@@ -139,7 +139,7 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
     case 'success':
       return (
         <div>
-          Success! Data: <div data-testid="data">{current.context.data}</div>
+          Success! Data: <div data-testid="data">{state.context.data}</div>
         </div>
       );
     default:
@@ -196,7 +196,7 @@ const fetchMachine = Machine({
 });
 
 const Fetcher = ({ onResolve }) => {
-  const [current, send] = useMachine(fetchMachine, {
+  const [state, send] = useMachine(fetchMachine, {
     actions: {
       notifySuccess: ctx => onResolve(ctx.data)
     },
@@ -205,7 +205,7 @@ const Fetcher = ({ onResolve }) => {
     }
   });
 
-  switch (current.value) {
+  switch (state.value) {
     case 'idle':
       return (
         <button onClick={() => send('FETCH', { query: 'something' })}>
@@ -215,11 +215,11 @@ const Fetcher = ({ onResolve }) => {
     case 'loading':
       return <div>Searching...</div>;
     case 'success':
-      return <div>Success! Data: {current.context.data}</div>;
+      return <div>Success! Data: {state.context.data}</div>;
     case 'failure':
       return (
         <>
-          <p>{current.context.error.message}</p>
+          <p>{state.context.error.message}</p>
           <button onClick={() => send('RETRY')}>Retry</button>
         </>
       );
@@ -235,11 +235,11 @@ Using a `switch` statement might suffice for a simple, non-hierarchical state ma
 
 ```js
 // ...
-if (current.matches('idle')) {
+if (state.matches('idle')) {
   return /* ... */;
-} else if (current.matches({ loading: 'user' })) {
+} else if (state.matches({ loading: 'user' })) {
   return /* ... */;
-} else if (current.matches({ loading: 'friends' })) {
+} else if (state.matches({ loading: 'friends' })) {
   return /* ... */;
 } else {
   return null;
@@ -250,15 +250,15 @@ A ternary statement can also be considered, especially within rendered JSX:
 
 ```jsx
 const Loader = () => {
-  const [current, send] = useMachine(/* ... */);
+  const [state, send] = useMachine(/* ... */);
 
   return (
     <div>
-      {current.matches('idle') ? (
+      {state.matches('idle') ? (
         <Loader.Idle />
-      ) : current.matches({ loading: 'user' }) ? (
+      ) : state.matches({ loading: 'user' }) ? (
         <Loader.LoadingUser />
-      ) : current.matches({ loading: 'friends' }) ? (
+      ) : state.matches({ loading: 'friends' }) ? (
         <Loader.LoadingFriends />
       ) : null}
     </div>
@@ -277,14 +277,38 @@ You can persist and rehydrate state with `useMachine(...)` via `options.state`:
 const persistedState = JSON.parse(localStorage.getItem('some-persisted-state-key'));
 
 const App = () => {
-  const [current, send] = useMachine(someMachine, {
+  const [state, send] = useMachine(someMachine, {
     state: persistedState // provide persisted state config object here
   });
 
-  // current will initially be that persisted state, not the machine's initialState
+  // state will initially be that persisted state, not the machine's initialState
 
   return (/* ... */)
 }
+```
+
+## Services
+
+The `service` created in `useMachine(machine)` can be referenced as the third returned value:
+
+```js
+//                  vvvvvvv
+const [state, send, service] = useMachine(someMachine);
+```
+
+You can subscribe to that service's state changes with the [`useEffect` hook](https://reactjs.org/docs/hooks-effect.html):
+
+```js
+// ...
+
+useEffect(() => {
+  const subscription = service.subscribe(state => {
+    // simple state logging
+    console.log(state);
+  });
+
+  return subscription.unsubscribe;
+}, [service]); // note: service should never change
 ```
 
 ## Resources

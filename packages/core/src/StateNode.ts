@@ -239,6 +239,7 @@ export class StateNode<
       id: this.id,
       key: this.key,
       version: this.machine.version,
+      context: this.machine.context!,
       type: this.type,
       initial: this.initial,
       history: this.history,

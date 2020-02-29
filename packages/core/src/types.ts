@@ -462,6 +462,7 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
+  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
