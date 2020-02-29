@@ -5,7 +5,8 @@ import {
   StateNode,
   ActionType,
   MachineNode,
-  flatten
+  flatten,
+  InitialTransitionDefinition
 } from 'xstate';
 
 function cleanAttributes(attributes: Attributes): Attributes {
@@ -55,8 +56,6 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 export function transitionToSCXML(
   transition: TransitionDefinition<any, any>
 ): XMLElement {
-  // console.log(transition.cond!.predicate);
-
   const elements = transition.actions.map(actionToSCXML);
 
   return {
@@ -102,6 +101,24 @@ function actionsToSCXML(
     elements: actions.map<XMLElement>(action => {
       return actionToSCXML(action);
     })
+  };
+}
+
+function initialToSCXML(
+  initial: InitialTransitionDefinition<any, any>
+): XMLElement {
+  return {
+    type: 'element',
+    name: 'initial',
+    elements: [
+      {
+        type: 'element',
+        name: 'transition',
+        attributes: {
+          target: `#${initial.target[0].id}`
+        }
+      }
+    ]
   };
 }
 
@@ -158,6 +175,12 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 export function toSCXML(machine: MachineNode<any, any, any>): string {
   const { states, initial } = machine;
 
+  const elements = Object.keys(states).map<XMLElement>(key => {
+    const stateNode = states[key];
+
+    return stateNodeToSCXML(stateNode);
+  });
+
   return js2xml(
     {
       elements: [
@@ -166,16 +189,12 @@ export function toSCXML(machine: MachineNode<any, any, any>): string {
           name: 'scxml',
           attributes: {
             xmlns: 'http://www.w3.org/2005/07/scxml',
-            initial,
+            initial: initial ? initial.target[0].key : undefined,
             // 'xmlns:xi': 'http://www.w3.org/2001/XInclude',
             version: '1.0',
             datamodel: 'ecmascript'
           },
-          elements: Object.keys(states).map<XMLElement>(key => {
-            const stateNode = states[key];
-
-            return stateNodeToSCXML(stateNode);
-          })
+          elements
         }
       ]
     },
