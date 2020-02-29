@@ -742,12 +742,10 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
       : toStateValue(state, stateNode.machine.delimiter);
 
   if (isString(stateValue)) {
-    const initialStateValue = getStateNode(stateNode, stateValue).initial;
+    const { initial } = getStateNode(stateNode, stateValue);
 
-    return initialStateValue !== undefined
-      ? getStateNodes(stateNode, {
-          [stateValue]: initialStateValue
-        } as StateValue)
+    return initial !== undefined
+      ? initial.target!
       : [stateNode.states[stateValue]];
   }
 
@@ -1330,7 +1328,7 @@ function addDescendentStatesToEnter<TContext, TEvent extends EventObject>(
     mutStatesToEnter.add(stateNode);
     if (stateNode.type === 'compound') {
       mutStatesForDefaultEntry.add(stateNode);
-      const initialStateNode = stateNode.states[stateNode.initial as string];
+      const initialStateNode = stateNode.initial!.target[0];
       addDescendentStatesToEnter(
         initialStateNode,
         state,

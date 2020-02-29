@@ -371,10 +371,9 @@ export interface StateNodeConfig<
    */
   key?: string;
   /**
-   * The initial state node key.
+   * The initial state transition.
    */
-  initial?: keyof TStateSchema['states'] | undefined;
-  _initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
+  initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
   /**
    * The type of this state node:
    *
@@ -470,7 +469,7 @@ export interface StateNodeDefinition<
   version?: string | undefined;
   key: string;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
+  initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;

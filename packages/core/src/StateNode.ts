@@ -228,20 +228,9 @@ export class StateNode<
   }
 
   /**
-   * The initial state node key.
-   */
-  public get initial(): keyof TStateSchema['states'] | undefined {
-    const init = this._initial;
-
-    return init
-      ? (init.target[0].key as keyof TStateSchema['states'])
-      : undefined;
-  }
-
-  /**
    * The initial state node transition.
    */
-  public get _initial():
+  public get initial():
     | InitialTransitionDefinition<TContext, TEvent>
     | undefined {
     return this.config.initial
@@ -436,16 +425,12 @@ export class StateNode<
         stateNode => !(stateNode.type === 'history')
       );
     } else if (this.initial !== undefined) {
-      if (!this.states[this.initial]) {
-        throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
-        );
-      }
+      const [initialTargetNode] = this.initial.target;
 
-      initialStateValue = (isLeafNode(this.states[this.initial])
-        ? this.initial
+      initialStateValue = (isLeafNode(initialTargetNode)
+        ? initialTargetNode.key
         : {
-            [this.initial]: this.states[this.initial].initialStateValue
+            [initialTargetNode.key]: initialTargetNode.initialStateValue
           }) as StateValue;
     }
 

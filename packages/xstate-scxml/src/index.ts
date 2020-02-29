@@ -149,7 +149,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
         : 'state',
     attributes: {
       id: stateNode.id,
-      initial: stateNode.initial as string
+      initial: stateNode.initial ? `${stateNode.initial.target[0]}` : undefined
     },
     elements
   };
