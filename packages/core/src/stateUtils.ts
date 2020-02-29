@@ -495,7 +495,14 @@ export function formatInitialTransition<TContext, TEvent extends EventObject>(
   }
 
   return formatTransition(stateNode, {
-    ..._target,
+    target: toArray(_target.target).map(t => {
+      if (isString(t)) {
+        return isStateId(t) ? t : `${stateNode.machine.delimiter}${t}`;
+      }
+
+      return t;
+    }),
+    actions: _target.actions,
     event: null as any
   }) as InitialTransitionDefinition<TContext, TEvent>;
 }
@@ -1171,10 +1178,15 @@ export function enterStates<TContext, TEvent extends EventObject>(
   for (const s of [...mutStatesToEnter].sort((a, b) => a.order - b.order)) {
     mutConfiguration.add(s);
     statesToInvoke.add(s);
+
+    // Add entry actions
     actions.push(...s.entry);
-    // if (statesForDefaultEntry.has(s)) {
-    //   // TODO: execute initial transition
-    // }
+
+    if (mutStatesForDefaultEntry.has(s)) {
+      mutStatesForDefaultEntry.forEach(s => {
+        actions.push(...s.initial!.actions);
+      });
+    }
     // if (defaultHistoryContent[s.id]) {
     //   actions.push(...defaultHistoryContent[s.id])
     // }

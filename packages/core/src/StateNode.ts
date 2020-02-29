@@ -234,7 +234,7 @@ export class StateNode<
     | InitialTransitionDefinition<TContext, TEvent>
     | undefined {
     return this.config.initial
-      ? formatInitialTransition(this, ['' + this.config.initial])
+      ? formatInitialTransition(this, this.config.initial)
       : undefined;
   }
   /**

@@ -1,4 +1,4 @@
-import { Machine } from '../src';
+import { createMachine } from '../src';
 
 const config = {
   initial: 'a',
@@ -18,9 +18,9 @@ const config = {
   }
 };
 
-const deepMachine = Machine(config);
+const deepMachine = createMachine(config);
 
-const parallelDeepMachine = Machine({
+const parallelDeepMachine = createMachine({
   type: 'parallel',
   states: {
     foo: config,
@@ -28,7 +28,7 @@ const parallelDeepMachine = Machine({
   }
 });
 
-const deepParallelMachine = Machine({
+const deepParallelMachine = createMachine({
   initial: 'one',
   states: {
     one: parallelDeepMachine.config,
