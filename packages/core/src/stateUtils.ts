@@ -72,6 +72,7 @@ import {
 } from './constants';
 import { createInvocableActor } from './Actor';
 import { MachineNode } from './MachineNode';
+import { toSCXMLEvent } from '../../../es/utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -914,9 +915,15 @@ export function resolveRaisedTransition<
   const currentActions = state.actions;
 
   state = machine.transition(state, _event as SCXML.Event<TEvent>);
+
   // Save original event to state
-  state._event = originalEvent;
-  state.event = originalEvent.data;
+  if (_event.type === NULL_EVENT) {
+    state._event = originalEvent;
+    state.event = originalEvent.data;
+  }
+
+  // Since macrostep actions have not been executed yet,
+  // prioritize them in the action queue
   state.actions.unshift(...currentActions);
   return state;
 }
@@ -1454,8 +1461,6 @@ export function resolveMicroTransition<
     currentState ? getStateNodes(machine, currentState.value) : [machine]
   );
 
-  const currentContext = currentState ? currentState.context : machine.context;
-
   const resolved = microstep(
     currentState
       ? transitions
@@ -1713,6 +1718,8 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
   nextState.actions = nonRaisedActions;
   nextState.changed =
     _event.name === actionTypes.update || tempContext !== currentContext;
+  nextState.children = children;
+  nextState.historyValue = resolved.historyValue;
 
   // Dispose of penultimate histories to prevent memory leaks
   const { history } = nextState;
@@ -1720,74 +1727,50 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
     delete history.history;
   }
 
-  return macrostep<TContext, TEvent>(
-    nextState,
-    machine,
-    _event,
-    raisedEvents,
-    history,
-    tempContext,
-    currentContext,
-    children,
-    resolved
-  );
+  const raisedSCXMLEvents: Array<
+    SCXML.Event<TEvent> | NullEvent
+  > = raisedEvents.map(event => event._event);
+
+  const isTransient = [...resolved.configuration].some(sn => sn.isTransient);
+
+  if (isTransient) {
+    raisedSCXMLEvents.unshift({
+      type: actionTypes.nullEvent
+    });
+  }
+
+  return macrostep<TContext, TEvent>(nextState, machine, raisedSCXMLEvents);
 }
 
 function macrostep<TContext, TEvent extends EventObject>(
   nextState: State<TContext, TEvent, any, Typestate<TContext>>,
   machine: MachineNode<TContext, any, TEvent, any>,
-  _event: SCXML.Event<TEvent>,
-  raisedEvents: Array<
-    RaiseActionObject<TEvent> | SendActionObject<TContext, TEvent>
-  >,
-  history: State<TContext, TEvent, any, any> | undefined,
-  tempContext: TContext,
-  currentContext: TContext,
-  children: Actor[],
-  resolved: {
-    actions: Array<ActionObject<TContext, TEvent>>;
-    configuration: Set<StateNode<TContext, any, TEvent>>;
-    historyValue: Record<string, Array<StateNode<TContext, any, TEvent>>>;
-  }
-) {
+  raisedEvents: Array<SCXML.Event<TEvent> | NullEvent>
+): State<TContext, TEvent> {
+  const { _event, history } = nextState;
   let maybeNextState = nextState;
-  if (!nextState.done) {
-    const isTransient = nextState.configuration.some(sn => sn.isTransient);
-    if (isTransient) {
-      maybeNextState = resolveRaisedTransition(
-        machine,
-        maybeNextState,
-        {
-          type: actionTypes.nullEvent
-        },
-        _event
-      );
-    }
-    while (raisedEvents.length) {
-      const raisedEvent = raisedEvents.shift()!;
-      maybeNextState = resolveRaisedTransition(
-        machine,
-        maybeNextState,
-        raisedEvent._event,
-        _event
-      );
-    }
+
+  while (raisedEvents.length && !maybeNextState.done) {
+    const raisedEvent = raisedEvents.shift()!;
+    maybeNextState = resolveRaisedTransition(
+      machine,
+      maybeNextState,
+      raisedEvent,
+      _event
+    );
   }
+
   // Detect if state changed
   const changed =
     maybeNextState.changed ||
     (history
       ? !!maybeNextState.actions.length ||
-        tempContext !== currentContext ||
         typeof history.value !== typeof maybeNextState.value ||
         !stateValuesEqual(maybeNextState.value, history.value)
       : undefined);
   maybeNextState.changed = changed;
-  // TODO: remove children if they are stopped
-  maybeNextState.children = children;
   // Preserve original history after raised events
   maybeNextState.history = history;
-  maybeNextState.historyValue = resolved.historyValue;
   return maybeNextState;
 }
 
