@@ -1720,11 +1720,39 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
     delete history.history;
   }
 
-  let maybeNextState = nextState;
+  return macrostep<TContext, TEvent>(
+    nextState,
+    machine,
+    _event,
+    raisedEvents,
+    history,
+    tempContext,
+    currentContext,
+    children,
+    resolved
+  );
+}
 
+function macrostep<TContext, TEvent extends EventObject>(
+  nextState: State<TContext, TEvent, any, Typestate<TContext>>,
+  machine: MachineNode<TContext, any, TEvent, any>,
+  _event: SCXML.Event<TEvent>,
+  raisedEvents: Array<
+    RaiseActionObject<TEvent> | SendActionObject<TContext, TEvent>
+  >,
+  history: State<TContext, TEvent, any, any> | undefined,
+  tempContext: TContext,
+  currentContext: TContext,
+  children: Actor[],
+  resolved: {
+    actions: Array<ActionObject<TContext, TEvent>>;
+    configuration: Set<StateNode<TContext, any, TEvent>>;
+    historyValue: Record<string, Array<StateNode<TContext, any, TEvent>>>;
+  }
+) {
+  let maybeNextState = nextState;
   if (!nextState.done) {
     const isTransient = nextState.configuration.some(sn => sn.isTransient);
-
     if (isTransient) {
       maybeNextState = resolveRaisedTransition(
         machine,
@@ -1735,7 +1763,6 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
         _event
       );
     }
-
     while (raisedEvents.length) {
       const raisedEvent = raisedEvents.shift()!;
       maybeNextState = resolveRaisedTransition(
@@ -1746,7 +1773,6 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
       );
     }
   }
-
   // Detect if state changed
   const changed =
     maybeNextState.changed ||
@@ -1756,16 +1782,12 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
         typeof history.value !== typeof maybeNextState.value ||
         !stateValuesEqual(maybeNextState.value, history.value)
       : undefined);
-
   maybeNextState.changed = changed;
-
   // TODO: remove children if they are stopped
   maybeNextState.children = children;
-
   // Preserve original history after raised events
   maybeNextState.history = history;
   maybeNextState.historyValue = resolved.historyValue;
-
   return maybeNextState;
 }
 
