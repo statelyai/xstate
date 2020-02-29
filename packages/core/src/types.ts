@@ -148,6 +148,12 @@ export type ConditionalTransitionConfig<
   TEvent extends EventObject = EventObject
 > = Array<TransitionConfig<TContext, TEvent>>;
 
+export interface InitialTransitionConfig<TContext, TEvent extends EventObject>
+  extends TransitionConfig<TContext, TEvent> {
+  cond?: never;
+  target: TransitionTarget<TContext, TEvent>;
+}
+
 export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | string
   | TransitionConfig<TContext, TEvent>
@@ -368,6 +374,7 @@ export interface StateNodeConfig<
    * The initial state node key.
    */
   initial?: keyof TStateSchema['states'] | undefined;
+  _initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
   /**
    * The type of this state node:
    *
@@ -772,6 +779,14 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
+}
+
+export interface InitialTransitionDefinition<
+  TContext,
+  TEvent extends EventObject
+> extends TransitionDefinition<TContext, TEvent> {
+  target: Array<StateNode<TContext, any, TEvent>>;
+  cond?: never;
 }
 
 export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {

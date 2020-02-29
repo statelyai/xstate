@@ -31,13 +31,14 @@ import {
   PropertyMapper,
   NullEvent,
   SCXML,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  InitialTransitionDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
-import { isLeafNode } from './stateUtils';
+import { isLeafNode, formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
@@ -83,10 +84,6 @@ export class StateNode<
    * The string path from the root machine node to this node.
    */
   public path: string[];
-  /**
-   * The initial state node key.
-   */
-  public initial?: keyof TStateSchema['states'];
   /**
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.
@@ -189,8 +186,6 @@ export class StateNode<
         ? 'history'
         : 'atomic');
 
-    this.initial = this.config.initial;
-
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
@@ -230,6 +225,28 @@ export class StateNode<
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
+  }
+
+  /**
+   * The initial state node key.
+   */
+  public get initial(): keyof TStateSchema['states'] | undefined {
+    const init = this._initial;
+
+    return init
+      ? (init.target[0].key as keyof TStateSchema['states'])
+      : undefined;
+  }
+
+  /**
+   * The initial state node transition.
+   */
+  public get _initial():
+    | InitialTransitionDefinition<TContext, TEvent>
+    | undefined {
+    return this.config.initial
+      ? formatInitialTransition(this, ['' + this.config.initial])
+      : undefined;
   }
   /**
    * The well-structured state node definition.

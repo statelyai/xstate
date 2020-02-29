@@ -42,7 +42,9 @@ import {
   SendActionObject,
   SpecialTargets,
   ActivityActionObject,
-  HistoryValue
+  HistoryValue,
+  InitialTransitionConfig,
+  InitialTransitionDefinition
 } from './types';
 import { State } from './State';
 import {
@@ -72,7 +74,6 @@ import {
 } from './constants';
 import { createInvocableActor } from './Actor';
 import { MachineNode } from './MachineNode';
-import { toSCXMLEvent } from '../../../es/utils';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>
@@ -347,7 +348,8 @@ export function getDelayedTransitions<TContext, TEvent extends EventObject>(
     };
   });
 }
-function formatTransition<TContext, TEvent extends EventObject>(
+
+export function formatTransition<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   transitionConfig: TransitionConfig<TContext, TEvent> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
@@ -457,7 +459,48 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
   }
   return formattedTransitions;
 }
-function resolveTarget<TContext, TEvent extends EventObject>(
+
+export function formatInitialTransition<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  _target: SingleOrArray<string> | InitialTransitionConfig<TContext, TEvent>
+): InitialTransitionDefinition<TContext, TEvent> {
+  if (isString(_target) || isArray(_target)) {
+    const targets = toArray(_target).map(t => {
+      // Resolve state string keys (which represent children)
+      // to their state node
+      const descStateNode = isString(t) ? stateNode.states[t] : t;
+
+      if (!descStateNode) {
+        throw new Error(
+          `Initial state node "${t}" not found on parent state node #${stateNode.id}`
+        );
+      }
+
+      if (!isDescendant(descStateNode, stateNode)) {
+        throw new Error(
+          `Invalid initial target: state node #${descStateNode.id} is not a descendant of #${stateNode.id}`
+        );
+      }
+
+      return descStateNode;
+    });
+    const resolvedTarget = resolveTarget(stateNode, targets);
+
+    return {
+      source: stateNode,
+      actions: [],
+      eventType: null as any,
+      target: resolvedTarget!
+    };
+  }
+
+  return formatTransition(stateNode, {
+    ..._target,
+    event: null as any
+  }) as InitialTransitionDefinition<TContext, TEvent>;
+}
+
+export function resolveTarget<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
 ): Array<StateNode<TContext, any, TEvent>> | undefined {
@@ -1576,12 +1619,16 @@ export function resolveMicroTransition<
   return nextState;
 }
 
-export function resolveTransition<TContext, TEvent extends EventObject>(
+export function resolveTransition<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+>(
   machine: MachineNode<TContext, any, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, any, Typestate<TContext>> {
+): State<TContext, TEvent, any, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
   // - OR there are transitions
@@ -1689,7 +1736,7 @@ export function resolveTransition<TContext, TEvent extends EventObject>(
           SpecialTargets.Internal)
   );
 
-  const nextState = resolveMicroTransition(
+  const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
     machine,
     transitions,
     currentState,
