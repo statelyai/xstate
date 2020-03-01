@@ -35,6 +35,7 @@ import {
   StateValueMap,
   AssignAction,
   RaiseAction,
+  CancelAction,
   SendAction,
   LogAction,
   PureAction,
@@ -63,6 +64,7 @@ import {
   resolveRaise,
   resolveSend,
   resolveLog,
+  resolveCancel,
   toActionObject
 } from './actions';
 import { IS_PRODUCTION } from './environment';

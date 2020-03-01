@@ -6,6 +6,7 @@ import {
   SendAction,
   SendActionOptions,
   CancelAction,
+  CancelActionObject,
   ActionObject,
   ActionType,
   Assigner,
@@ -325,11 +326,30 @@ export const resolveLog = <TContext, TEvent extends EventObject>(
  *
  * @param sendId The `id` of the `send(...)` action to cancel.
  */
-export const cancel = (sendId: string | number): CancelAction => {
+export const cancel = <TContext, TEvent extends EventObject>(
+  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>
+): CancelAction<TContext, TEvent> => {
   return {
     type: actionTypes.cancel,
     sendId
   };
+};
+
+export const resolveCancel = <TContext, TEvent extends EventObject>(
+  action: CancelAction<TContext, TEvent>,
+  ctx: TContext,
+  _event: SCXML.Event<TEvent>
+): CancelActionObject<TContext, TEvent> => {
+  if (typeof action.sendId === 'function') {
+    return {
+      ...action,
+      sendId: action.sendId(ctx, _event.data, {
+        _event
+      })
+    };
+  }
+
+  return action as CancelActionObject<TContext, TEvent>;
 };
 
 /**

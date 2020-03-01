@@ -209,7 +209,7 @@ export class State<
     Object.defineProperty(this, 'nextEvents', {
       enumerable: false,
       get: () => {
-        return nextEvents(config.configuration);
+        return nextEvents(this.configuration);
       }
     });
   }

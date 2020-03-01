@@ -468,6 +468,7 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
+  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
@@ -721,7 +722,13 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export interface CancelAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>;
+}
+
+export interface CancelActionObject<TContext, TEvent extends EventObject>
+  extends CancelAction<TContext, TEvent> {
   sendId: string | number;
 }
 

@@ -609,6 +609,43 @@ describe('interpreter', () => {
     expect(currentState!.value).toEqual('green');
   });
 
+  it('can cancel a delayed event using expression to resolve send id', done => {
+    const machine = Machine({
+      initial: 'first',
+      states: {
+        first: {
+          entry: [
+            send('FOO', {
+              id: 'foo',
+              delay: 100
+            }),
+            send('BAR', {
+              delay: 200
+            }),
+            actions.cancel(() => 'foo')
+          ],
+          on: {
+            FOO: 'fail',
+            BAR: 'pass'
+          }
+        },
+        fail: {
+          type: 'final'
+        },
+        pass: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.onDone(() => {
+      expect(service.state.value).toBe('pass');
+      done();
+    });
+  });
+
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
     const service = interpret(lightMachine, {
       clock: new SimulatedClock(),
