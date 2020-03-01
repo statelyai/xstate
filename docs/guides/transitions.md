@@ -230,7 +230,7 @@ const buttonMachine = Machine({
 
 External transitions _will_ exit and reenter the state node in which the transition is defined. In the above example, the parent `word` state node (the root state node) will have its `exit` and `entry` actions executed on its transitions.
 
-By default, transitions are external, but any transition can be made external by explicitly setting `{ internal: false }` on the transition.
+By default, transitions are internal, but any transition can be made external by explicitly setting `{ internal: false }` on the transition.
 
 ```js {4-7}
 // ...
