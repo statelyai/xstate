@@ -1759,7 +1759,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   return { actions: resActions, context };
 }
 
-function macrostep<TContext, TEvent extends EventObject>(
+export function macrostep<TContext, TEvent extends EventObject>(
   nextState: State<TContext, TEvent, any, Typestate<TContext>>,
   machine: MachineNode<TContext, any, TEvent, any>
 ): State<TContext, TEvent> {
