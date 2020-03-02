@@ -53,13 +53,5 @@ export default [
       format: 'umd',
       name: 'XStateGraph'
     }
-  }),
-  createUmdConfig({
-    input: 'src/index.ts',
-    output: {
-      file: 'dist/xstate-graph.web.js',
-      format: 'esm'
-    },
-    target: 'ES2015'
   })
 ];
