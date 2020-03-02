@@ -4,7 +4,6 @@ import * as pkgUp from 'pkg-up';
 
 import { toMachine } from '../src/scxml';
 import { interpret } from '../src/interpreter';
-import { SimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
@@ -356,6 +355,9 @@ interface SCIONTest {
   }>;
 }
 
+const sleep = (ms: number): Promise<void> =>
+  new Promise(resolve => setTimeout(resolve, ms));
+
 async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
   await new Promise((resolve, reject) => {
     let nextState: State<any>;
@@ -375,6 +377,8 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
   });
 }
 
+type MachineStatus = 'success' | 'failed' | 'running';
+
 async function runTestToCompletion(
   machine: MachineNode,
   test: SCIONTest
@@ -384,38 +388,37 @@ async function runTestToCompletion(
     return;
   }
 
-  let done = false;
+  let status: MachineStatus = 'running';
   let nextState: State<any> = machine.initialState;
 
-  const service = interpret(machine, {
-    clock: new SimulatedClock()
-  })
+  const service = interpret(machine)
     .onTransition(state => {
       nextState = state;
     })
     .onDone(() => {
-      if (nextState.value === 'fail') {
-        throw new Error('Reached "fail" state.');
-      }
-      done = true;
+      status = nextState.value === 'fail' ? 'failed' : 'success';
     })
     .start(nextState);
 
-  test.events.forEach(({ event, nextConfiguration, after }) => {
-    if (done) {
-      return;
-    }
-    if (after) {
-      (service.clock as SimulatedClock).increment(after);
-    }
-    service.send(event.name);
+  for (const { event, nextConfiguration, after } of test.events) {
+    switch (status as MachineStatus) {
+      case 'running':
+        if (after) {
+          await sleep(after);
+        }
+        service.send(event.name);
+        const stateIds = getStateNodes(machine, nextState).map(
+          stateNode => stateNode.id
+        );
 
-    const stateIds = getStateNodes(machine, nextState).map(
-      stateNode => stateNode.id
-    );
-
-    expect(stateIds).toContain(nextConfiguration[0]);
-  });
+        expect(stateIds).toContain(nextConfiguration[0]);
+        break;
+      case 'success':
+        return;
+      case 'failed':
+        throw new Error('Reached "fail" state.');
+    }
+  }
 }
 
 describe('scxml', () => {
