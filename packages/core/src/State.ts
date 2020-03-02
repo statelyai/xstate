@@ -197,6 +197,7 @@ export class State<
     this._sessionid = config._sessionid;
     this.event = this._event.data;
     this.history = config.history;
+    this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
     this.meta = config.meta || {};
     this.events = config.events || [];

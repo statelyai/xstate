@@ -1600,9 +1600,12 @@ export function resolveMicroTransition<
       configuration: resolvedConfiguration,
       transitions,
       children,
-      done: isDone
+      done: isDone,
+      historyValue: resolved.historyValue
     });
   }
+
+  const currentContext = currentState ? currentState.context : machine.context;
 
   const { actions: resolvedActions, context } = resolveActionsAndContext(
     resolved.actions,
@@ -1626,7 +1629,7 @@ export function resolveMicroTransition<
 
   const nextState = new State<TContext, TEvent, any, TTypestate>({
     value: getValue(machine, resolved.configuration),
-    context: currentState ? currentState.context : machine.context,
+    context,
     _event,
     // Persist _sessionid between states
     _sessionid: currentState ? currentState._sessionid : null,
@@ -1637,10 +1640,9 @@ export function resolveMicroTransition<
     configuration: resolvedConfiguration,
     transitions,
     children,
-    done: isDone
+    done: isDone,
+    historyValue: resolved.historyValue
   });
-
-  const currentContext = currentState ? currentState.context : machine.context;
 
   nextState.changed =
     _event.name === actionTypes.update || context !== currentContext;
@@ -1679,71 +1681,18 @@ export function resolveTransition<
   // - OR there are transitions
   const willTransition = !currentState || transitions.length > 0;
 
-  // Entry and exit set
-  const prevConfig = getConfiguration(
-    [],
-    currentState ? getStateNodes(machine, currentState.value) : [machine]
-  );
-
-  const resolved = microstep(
-    currentState
-      ? transitions
-      : [
-          {
-            target: [...prevConfig],
-            source: machine,
-            actions: [],
-            eventType: actionTypes.init
-          }
-        ],
-    currentState,
-    new Set(prevConfig)
-  );
-
-  if (currentState && !willTransition) {
-    const inertState = State.inert(currentState, currentState.context);
-    inertState.event = _event.data;
-    inertState._event = _event;
-    inertState.changed = _event.name === actionTypes.update;
-    return inertState;
-  }
-
   const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
     machine,
     transitions,
     currentState,
     _event
   );
-  const raisedEvents = nextState._internalQueue;
 
   if (!willTransition) {
     return nextState;
   }
 
-  let children = currentState ? currentState.children : ([] as Actor[]);
-  for (const action of nextState.actions) {
-    if (action.type === actionTypes.start) {
-      children.push(createInvocableActor((action as any).actor));
-    } else if (action.type === actionTypes.stop) {
-      children = children.filter(childActor => {
-        return (
-          childActor.id !==
-          (action as ActivityActionObject<TContext, TEvent>).actor.id
-        );
-      });
-    }
-  }
-
-  nextState.children = children;
-  nextState.historyValue = resolved.historyValue;
-
-  // Dispose of penultimate histories to prevent memory leaks
-  const { history } = nextState;
-  if (history) {
-    delete history.history;
-  }
-
-  return macrostep<TContext, TEvent>(nextState, machine, raisedEvents);
+  return macrostep<TContext, TEvent>(nextState, machine);
 }
 
 function resolveActionsAndContext<TContext, TEvent extends EventObject>(
@@ -1812,10 +1761,9 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
 
 function macrostep<TContext, TEvent extends EventObject>(
   nextState: State<TContext, TEvent, any, Typestate<TContext>>,
-  machine: MachineNode<TContext, any, TEvent, any>,
-  raisedEvents: Array<SCXML.Event<TEvent> | NullEvent>
+  machine: MachineNode<TContext, any, TEvent, any>
 ): State<TContext, TEvent> {
-  const { _event, history } = nextState;
+  const { _event, history, _internalQueue: raisedEvents } = nextState;
   let maybeNextState = nextState;
 
   while (raisedEvents.length && !maybeNextState.done) {
