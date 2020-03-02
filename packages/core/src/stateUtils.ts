@@ -1553,19 +1553,6 @@ export function resolveMicroTransition<
     return inertState;
   }
 
-  const [raisedEvents, nonRaisedActions] = partition(
-    resolved.actions,
-    (
-      action
-    ): action is
-      | RaiseActionObject<TEvent>
-      | SendActionObject<TContext, TEvent> =>
-      action.type === actionTypes.raise ||
-      (action.type === actionTypes.send &&
-        (action as SendActionObject<TContext, TEvent>).to ===
-          SpecialTargets.Internal)
-  );
-
   let children = currentState ? [...currentState.children] : ([] as Actor[]);
 
   for (const action of resolved.actions) {
@@ -1617,6 +1604,26 @@ export function resolveMicroTransition<
     });
   }
 
+  const { actions: resolvedActions, context } = resolveActionsAndContext(
+    resolved.actions,
+    machine,
+    _event,
+    currentState
+  );
+
+  const [raisedEventActions, nonRaisedActions] = partition(
+    resolvedActions,
+    (
+      action
+    ): action is
+      | RaiseActionObject<TEvent>
+      | SendActionObject<TContext, TEvent> =>
+      action.type === actionTypes.raise ||
+      (action.type === actionTypes.send &&
+        (action as SendActionObject<TContext, TEvent>).to ===
+          SpecialTargets.Internal)
+  );
+
   const nextState = new State<TContext, TEvent, any, TTypestate>({
     value: getValue(machine, resolved.configuration),
     context: currentState ? currentState.context : machine.context,
@@ -1633,8 +1640,20 @@ export function resolveMicroTransition<
     done: isDone
   });
 
-  nextState.changed = _event.name === actionTypes.update;
-  nextState._internalQueue = raisedEvents.map(r => r._event);
+  const currentContext = currentState ? currentState.context : machine.context;
+
+  nextState.changed =
+    _event.name === actionTypes.update || context !== currentContext;
+  nextState._internalQueue = raisedEventActions.map(r => r._event);
+  nextState.context = context;
+
+  const isTransient = [...resolvedConfiguration].some(sn => sn.isTransient);
+
+  if (isTransient) {
+    nextState._internalQueue.unshift({
+      type: actionTypes.nullEvent
+    });
+  }
 
   // Dispose of penultimate histories to prevent memory leaks
   const { history } = nextState;
@@ -1666,8 +1685,6 @@ export function resolveTransition<
     currentState ? getStateNodes(machine, currentState.value) : [machine]
   );
 
-  const currentContext = currentState ? currentState.context : machine.context;
-
   const resolved = microstep(
     currentState
       ? transitions
@@ -1691,95 +1708,17 @@ export function resolveTransition<
     return inertState;
   }
 
-  let tempContext: TContext = currentContext;
-
-  const resActions: Array<ActionObject<TContext, TEvent>> = flatten(
-    toActionObjects(resolved.actions, machine.options.actions).map(
-      actionObject => {
-        switch (actionObject.type) {
-          case actionTypes.raise:
-            return resolveRaise(actionObject as RaiseAction<TEvent>);
-          case actionTypes.cancel:
-            return resolveCancel(
-              actionObject as CancelAction<TContext, TEvent>,
-              tempContext,
-              _event
-            );
-          case actionTypes.send:
-            const sendAction = resolveSend(
-              actionObject as SendAction<TContext, TEvent>,
-              tempContext,
-              _event,
-              machine.machine.options.delays
-            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
-
-            if (!IS_PRODUCTION) {
-              // warn after resolving as we can create better contextual message here
-              warn(
-                !isString(actionObject.delay) ||
-                  typeof sendAction.delay === 'number',
-                // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
-              );
-            }
-
-            return sendAction;
-          case actionTypes.log:
-            return resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
-              tempContext,
-              _event
-            );
-          case actionTypes.pure:
-            return (
-              (actionObject as PureAction<TContext, TEvent>).get(
-                tempContext,
-                _event.data
-              ) || []
-            );
-          case actionTypes.assign:
-            tempContext = updateContext(
-              tempContext,
-              _event,
-              [actionObject as AssignAction<TContext, TEvent>],
-              currentState
-            );
-            return actionObject;
-          default:
-            return toActionObject(
-              actionObject,
-              machine.machine.options.actions
-            );
-        }
-      }
-    )
-  );
-
-  const [raisedEvents, nonRaisedActions] = partition(
-    resActions,
-    (
-      action
-    ): action is
-      | RaiseActionObject<TEvent>
-      | SendActionObject<TContext, TEvent> =>
-      action.type === actionTypes.raise ||
-      (action.type === actionTypes.send &&
-        (action as SendActionObject<TContext, TEvent>).to ===
-          SpecialTargets.Internal)
-  );
-
   const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
     machine,
     transitions,
     currentState,
     _event
   );
+  const raisedEvents = nextState._internalQueue;
 
   if (!willTransition) {
     return nextState;
   }
-
-  nextState.context = tempContext;
 
   let children = currentState ? currentState.children : ([] as Actor[]);
   for (const action of nextState.actions) {
@@ -1794,9 +1733,7 @@ export function resolveTransition<
       });
     }
   }
-  nextState.actions = nonRaisedActions;
-  nextState.changed =
-    _event.name === actionTypes.update || tempContext !== currentContext;
+
   nextState.children = children;
   nextState.historyValue = resolved.historyValue;
 
@@ -1806,19 +1743,71 @@ export function resolveTransition<
     delete history.history;
   }
 
-  const raisedSCXMLEvents: Array<
-    SCXML.Event<TEvent> | NullEvent
-  > = raisedEvents.map(event => event._event);
+  return macrostep<TContext, TEvent>(nextState, machine, raisedEvents);
+}
 
-  const isTransient = [...resolved.configuration].some(sn => sn.isTransient);
-
-  if (isTransient) {
-    raisedSCXMLEvents.unshift({
-      type: actionTypes.nullEvent
-    });
-  }
-
-  return macrostep<TContext, TEvent>(nextState, machine, raisedSCXMLEvents);
+function resolveActionsAndContext<TContext, TEvent extends EventObject>(
+  actions: Array<ActionObject<TContext, TEvent>>,
+  machine: MachineNode<TContext, any, TEvent, any>,
+  _event: SCXML.Event<TEvent>,
+  currentState: State<TContext, TEvent, any, any> | undefined
+) {
+  let context: TContext = currentState ? currentState.context : machine.context;
+  const resActions: Array<ActionObject<TContext, TEvent>> = flatten(
+    toActionObjects(actions, machine.options.actions).map(actionObject => {
+      switch (actionObject.type) {
+        case actionTypes.raise:
+          return resolveRaise(actionObject as RaiseAction<TEvent>);
+        case actionTypes.cancel:
+          return resolveCancel(
+            actionObject as CancelAction<TContext, TEvent>,
+            context,
+            _event
+          );
+        case actionTypes.send:
+          const sendAction = resolveSend(
+            actionObject as SendAction<TContext, TEvent>,
+            context,
+            _event,
+            machine.machine.options.delays
+          ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
+          if (!IS_PRODUCTION) {
+            // warn after resolving as we can create better contextual message here
+            warn(
+              !isString(actionObject.delay) ||
+                typeof sendAction.delay === 'number',
+              // tslint:disable-next-line:max-line-length
+              `No delay reference for delay expression '${actionObject.delay}' was found on machine '${machine.machine.id}'`
+            );
+          }
+          return sendAction;
+        case actionTypes.log:
+          return resolveLog(
+            actionObject as LogAction<TContext, TEvent>,
+            context,
+            _event
+          );
+        case actionTypes.pure:
+          return (
+            (actionObject as PureAction<TContext, TEvent>).get(
+              context,
+              _event.data
+            ) || []
+          );
+        case actionTypes.assign:
+          context = updateContext(
+            context,
+            _event,
+            [actionObject as AssignAction<TContext, TEvent>],
+            currentState
+          );
+          return actionObject;
+        default:
+          return toActionObject(actionObject, machine.machine.options.actions);
+      }
+    })
+  );
+  return { actions: resActions, context };
 }
 
 function macrostep<TContext, TEvent extends EventObject>(

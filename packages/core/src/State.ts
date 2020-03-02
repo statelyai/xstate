@@ -8,7 +8,8 @@ import {
   StateSchema,
   TransitionDefinition,
   Typestate,
-  HistoryValue
+  HistoryValue,
+  NullEvent
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
@@ -61,7 +62,7 @@ export class State<
   public meta: any = {};
   public events: TEvent[] = [];
   public event: TEvent;
-  public _internalQueue: Array<SCXML.Event<TEvent>> = [];
+  public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
   /**
