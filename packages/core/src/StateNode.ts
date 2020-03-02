@@ -247,11 +247,26 @@ export class StateNode<
       version: this.machine.version,
       context: this.machine.context!,
       type: this.type,
-      initial: this.initial,
+      initial: this.initial
+        ? {
+            target: this.initial.target,
+            source: this,
+            actions: this.initial.actions,
+            eventType: null as any,
+            toJSON: () => ({
+              target: this.initial!.target!.map(t => `#${t.id}`),
+              source: `#${this.id}`,
+              actions: this.initial!.actions,
+              eventType: null as any
+            })
+          }
+        : undefined,
       history: this.history,
       states: mapValues(
         this.states,
-        (state: StateNode<TContext, any, TEvent>) => state.definition
+        (state: StateNode<TContext, any, TEvent>) => {
+          return state.definition;
+        }
       ) as StatesDefinition<TContext, TStateSchema, TEvent>,
       on: this.on,
       transitions: this.transitions,

@@ -369,15 +369,22 @@ export function formatTransition<TContext, TEvent extends EventObject>(
       : true;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
-  return {
+  const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
     cond: toGuard(transitionConfig.cond, guards),
     target,
     source: stateNode,
     internal,
-    eventType: transitionConfig.event
+    eventType: transitionConfig.event,
+    toJSON: () => ({
+      ...transition,
+      source: `#${stateNode.id}`,
+      target: target ? target.map(t => `#${t.id}`) : undefined
+    })
   };
+
+  return transition;
 }
 export function formatTransitions<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
@@ -488,12 +495,19 @@ export function formatInitialTransition<TContext, TEvent extends EventObject>(
     });
     const resolvedTarget = resolveTarget(stateNode, targets);
 
-    return {
+    const transition = {
       source: stateNode,
       actions: [],
       eventType: null as any,
-      target: resolvedTarget!
+      target: resolvedTarget!,
+      toJSON: () => ({
+        ...transition,
+        source: `#${stateNode.id}`,
+        target: resolvedTarget ? resolvedTarget.map(t => `#${t.id}`) : undefined
+      })
     };
+
+    return transition;
   }
 
   return formatTransition(stateNode, {
@@ -1662,7 +1676,7 @@ export function resolveTransition<
             target: [...prevConfig],
             source: machine,
             actions: [],
-            eventType: 'init'
+            eventType: actionTypes.init
           }
         ],
     currentState,
@@ -1685,6 +1699,12 @@ export function resolveTransition<
         switch (actionObject.type) {
           case actionTypes.raise:
             return resolveRaise(actionObject as RaiseAction<TEvent>);
+          case actionTypes.cancel:
+            return resolveCancel(
+              actionObject as CancelAction<TContext, TEvent>,
+              tempContext,
+              _event
+            );
           case actionTypes.send:
             const sendAction = resolveSend(
               actionObject as SendAction<TContext, TEvent>,

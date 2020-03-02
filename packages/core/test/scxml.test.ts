@@ -172,7 +172,7 @@ const testGroups = {
     'test205.txml',
     'test207.txml',
     'test208.txml',
-    'test210.txml',
+    // 'test210.txml', // delayexpr
     // 'test215.txml', // <invoke typeexpr="...">
     // 'test216.txml', // <invoke srcexpr="...">
     // 'test220.txml', // done.invoke used as inexact event descriptor
@@ -420,11 +420,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['parallel+interrupt'];
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach(testGroupName => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test17'];
+    // const testNames = ['test210.txml'];
 
     testNames.forEach(testName => {
       const scxmlSource =
@@ -455,7 +455,7 @@ describe('scxml', () => {
           await runTestToCompletion(machine, scxmlTest);
         } catch (e) {
           // console.log(testName);
-          // console.dir(JSON.stringify(machine.config, null, 2));
+          console.log(JSON.stringify(machine.config, null, 2));
           throw e;
         }
       });
