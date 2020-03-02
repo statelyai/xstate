@@ -53,13 +53,5 @@ export default [
       format: 'umd',
       name: 'XStateTest'
     }
-  }),
-  createUmdConfig({
-    input: 'src/index.ts',
-    output: {
-      file: 'dist/xstate-test.web.js',
-      format: 'esm'
-    },
-    target: 'ES2015'
   })
 ];
