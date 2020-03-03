@@ -372,7 +372,13 @@ function toConfig(
 
     return {
       id,
-      ...(initial ? { initial: `#${initial}` } : undefined),
+      ...(initial
+        ? {
+            initial: String(initial)
+              .split(' ')
+              .map(id => `#${id}`)
+          }
+        : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
       ...(stateElements.length
         ? {
