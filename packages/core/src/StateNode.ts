@@ -463,7 +463,7 @@ class StateNode<
    * @param context Custom context (will override predefined context, not recursive)
    */
   public withContext(
-    context: TContext
+    context: Partial<TContext>
   ): StateNode<TContext, TStateSchema, TEvent> {
     return new StateNode(this.config, this.options, context);
   }
