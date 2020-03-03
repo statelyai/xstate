@@ -331,7 +331,7 @@ const testGroups = {
     // 'test567.txml', // Basic HTTP Event I/O processor not implemented
     // 'test569.txml', // _ioprocessors not yet available for expressions
     'test570.txml',
-    'test576.txml' // deep initial states not implemented yet
+    'test576.txml'
     // 'test577.txml', // Basic HTTP Event I/O processor not implemented
     // 'test578.txml', // conversion of <content> in <send> not implemented yet
     // 'test579.txml' // executable content in history states not implemented yet
