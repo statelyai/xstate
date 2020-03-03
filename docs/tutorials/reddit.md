@@ -20,7 +20,7 @@ The Reddit app we're creating can be modeled with two top-level states:
 - `'selected'` - a subreddit is selected
 
 ```js {6-9}
-import { Machine } from 'xstate';
+import { Machine, assign } from 'xstate';
 
 const redditMachine = Machine({
   id: 'reddit',
