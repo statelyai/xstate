@@ -290,7 +290,7 @@ class StateNode<
     /**
      * The initial extended state
      */
-    public context?: Readonly<TContext>
+    public context?: Readonly<Partial<TContext>>
   ) {
     this.options = Object.assign(createDefaultOptions<TContext>(), options);
     this.parent = this.options._parent;
