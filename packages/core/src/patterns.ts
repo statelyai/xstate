@@ -40,7 +40,7 @@ export function sequence<
   items: Array<keyof TStateSchema['states']>,
   options?: Partial<SequencePatternOptions<TEvent>>
 ): {
-  initial: keyof TStateSchema['states'];
+  initial: string;
   states: StatesConfig<any, TStateSchema, TEvent>;
 } {
   const resolvedOptions = { ...defaultSequencePatternOptions, ...options };
@@ -75,7 +75,7 @@ export function sequence<
   });
 
   return {
-    initial: items[0] as keyof TStateSchema['states'],
+    initial: items[0] as string,
     states: states as StatesConfig<any, TStateSchema, TEvent>
   };
 }

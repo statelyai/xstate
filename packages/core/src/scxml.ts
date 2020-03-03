@@ -302,7 +302,7 @@ function toConfig(
       initial = initialElement.elements!.find(
         element => element.name === 'transition'
       )!.attributes!.target;
-    } else if (!initialElement && stateElements.length) {
+    } else if (!initial && !initialElement && stateElements.length) {
       initial = stateElements[0].attributes!.id;
     }
 
@@ -372,7 +372,7 @@ function toConfig(
 
     return {
       id,
-      ...(initial ? { initial } : undefined),
+      ...(initial ? { initial: `#${initial}` } : undefined),
       ...(parallel ? { type: 'parallel' } : undefined),
       ...(stateElements.length
         ? {

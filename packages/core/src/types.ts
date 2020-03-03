@@ -366,7 +366,7 @@ export interface StateNodeConfig<
   /**
    * The initial state node key.
    */
-  initial?: keyof TStateSchema['states'] | undefined;
+  initial?: SingleOrArray<string>;
   /**
    * The type of this state node:
    *
@@ -487,7 +487,7 @@ export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
 export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvent> {
   history: 'shallow' | 'deep' | true;
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>

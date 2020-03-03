@@ -238,14 +238,6 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const { initialStateValue } = this;
-
-    if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}'.`
-      );
-    }
-
     return getInitialState(this);
   }
 

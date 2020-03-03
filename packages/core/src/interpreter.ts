@@ -443,6 +443,8 @@ export class Interpreter<
     this.initialized = true;
     this._status = InterpreterStatus.Running;
 
+    // TODO: is withServiceScope needed here?
+
     const resolvedState =
       initialState === undefined
         ? this.initialState

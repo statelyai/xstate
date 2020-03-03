@@ -398,7 +398,7 @@ async function runTestToCompletion(
     .onDone(() => {
       status = nextState.value === 'fail' ? 'failed' : 'success';
     })
-    .start(nextState);
+    .start();
 
   for (const { event, nextConfiguration, after } of test.events) {
     switch (status as MachineStatus) {
