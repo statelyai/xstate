@@ -3,7 +3,6 @@ import {
   keys,
   flatten,
   toStatePath,
-  toStatePaths,
   toArray,
   warn,
   isArray,
@@ -73,7 +72,6 @@ import {
 } from './constants';
 import { createInvocableActor } from './Actor';
 import { MachineNode } from './MachineNode';
-import { config } from 'rxjs';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
   StateNode<TC, any, TE>

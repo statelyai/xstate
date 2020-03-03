@@ -3,7 +3,6 @@ import {
   toStateValue,
   mapValues,
   path,
-  pathToStateValue,
   flatten,
   toArray,
   keys,

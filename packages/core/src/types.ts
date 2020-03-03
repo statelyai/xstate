@@ -551,7 +551,7 @@ export interface MachineConfig<
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export type HistoryValue<TContext, TEvent extends EventObject> = Record<
