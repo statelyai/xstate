@@ -506,79 +506,17 @@ function resolveHistoryTarget<TContext, TEvent extends EventObject>(
   );
 }
 
-// /**
-//  * Resolves to the historical value(s) of the parent state node,
-//  * represented by state nodes.
-//  */
-// function resolveHistory<TContext, TEvent extends EventObject>(
-//   stateNode: StateNode<TContext, any, TEvent> & { type: 'history' },
-//   state?: State<TContext, TEvent>
-// ): Array<StateNode<TContext, any, TEvent>> {
-//   const parent = stateNode.parent!;
-//   if (!state || !state.historyValue[stateNode.id]) {
-//     const historyTarget = stateNode.target;
-//     return historyTarget
-//       ? flatten(
-//           toStatePaths(historyTarget).map(relativeChildPath =>
-//             getFromRelativePath(parent, relativeChildPath)
-//           )
-//         )
-//       : getInitialStateNodes(parent);
-//   }
-
-//   return state.historyValue[stateNode.id];
-// }
-
 function isHistoryNode<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
 ): stateNode is StateNode<TContext, any, TEvent> & { type: 'history' } {
   return stateNode.type === 'history';
 }
 
-/**
- * Retrieves state nodes from a relative path to the state node.
- *
- * @param relativePath The relative path from the state node
- */
-// function getFromRelativePath<TContext, TEvent extends EventObject>(
-//   stateNode: StateNode<TContext, any, TEvent>,
-//   relativePath: string[]
-// ): Array<StateNode<TContext, any, TEvent>> {
-//   if (!relativePath.length) {
-//     return [stateNode];
-//   }
-//   const [stateKey, ...childStatePath] = relativePath;
-//   if (!stateNode.states) {
-//     throw new Error(
-//       `Cannot retrieve subPath '${stateKey}' from node with no states`
-//     );
-//   }
-//   const childStateNode = getStateNode(stateNode, stateKey);
-//   if (isHistoryNode(childStateNode)) {
-//     return resolveHistory(childStateNode);
-//   }
-//   if (!stateNode.states[stateKey]) {
-//     throw new Error(
-//       `Child state '${stateKey}' does not exist on '${stateNode.id}'`
-//     );
-//   }
-//   return getFromRelativePath(stateNode.states[stateKey], childStatePath);
-// }
-
 export function getInitialStateNodes<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
-  // const prevConfig: Array<StateNode<TContext, any, TEvent>> = [];
-
-  // let marker: StateNode<TContext, any, TEvent> | undefined = stateNode;
-  // while (marker) {
-  //   prevConfig.push(marker);
-  //   marker = marker.parent;
-  // }
-
   const transitions = [
     {
-      // target: [...prevConfig],
       target: [stateNode],
       source: stateNode,
       actions: [],
@@ -1228,16 +1166,7 @@ function addDescendantStatesToEnter<TContext, TEvent extends EventObject>(
         );
       }
     } else {
-      // defaultHistoryContent[stateNode.parent.id] = state.transition.content
       const targets = resolveHistoryTarget(stateNode);
-      // const targets = resolveTarget(stateNode, historyTarget);
-      // const targets = historyTarget
-      //   ? flatten(
-      //       toStatePaths(historyTarget).map(relativeChildPath =>
-      //         getFromRelativePath(stateNode.parent!, relativeChildPath)
-      //       )
-      //     )
-      //   : [];
       for (const s of targets) {
         addDescendantStatesToEnter(
           s,
