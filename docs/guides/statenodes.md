@@ -73,7 +73,9 @@ const fetchMachine = Machine({
       }
     },
     failure: {
-      RETRY: 'pending'
+      on: {
+        RETRY: 'pending'
+      }
     }
   }
 });
