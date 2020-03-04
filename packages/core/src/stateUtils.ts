@@ -1043,7 +1043,10 @@ function hasIntersection<T>(s1: Iterable<T>, s2: Iterable<T>): boolean {
   return false;
 }
 
-function removeConflictingTransitions<TContext, TEvent extends EventObject>(
+export function removeConflictingTransitions<
+  TContext,
+  TEvent extends EventObject
+>(
   enabledTransitions: Array<TransitionDefinition<TContext, TEvent>>,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
