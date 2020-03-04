@@ -41,7 +41,9 @@ import {
   SendActionObject,
   SpecialTargets,
   ActivityActionObject,
-  HistoryValue
+  HistoryValue,
+  InitialTransitionConfig,
+  InitialTransitionDefinition
 } from './types';
 import { State } from './State';
 import {
@@ -448,6 +450,65 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
   }
   return formattedTransitions;
 }
+
+export function formatInitialTransition<TContext, TEvent extends EventObject>(
+  stateNode: StateNode<TContext, any, TEvent>,
+  _target: SingleOrArray<string> | InitialTransitionConfig<TContext, TEvent>
+): InitialTransitionDefinition<TContext, TEvent> {
+  if (isString(_target) || isArray(_target)) {
+    const targets = toArray(_target).map(t => {
+      // Resolve state string keys (which represent children)
+      // to their state node
+      const descStateNode = isString(t)
+        ? isStateId(t)
+          ? stateNode.machine.getStateNodeById(t)
+          : stateNode.states[t]
+        : t;
+
+      if (!descStateNode) {
+        throw new Error(
+          `Initial state node "${t}" not found on parent state node #${stateNode.id}`
+        );
+      }
+
+      if (!isDescendant(descStateNode, stateNode)) {
+        throw new Error(
+          `Invalid initial target: state node #${descStateNode.id} is not a descendant of #${stateNode.id}`
+        );
+      }
+
+      return descStateNode;
+    });
+    const resolvedTarget = resolveTarget(stateNode, targets);
+
+    const transition = {
+      source: stateNode,
+      actions: [],
+      eventType: null as any,
+      target: resolvedTarget!,
+      toJSON: () => ({
+        ...transition,
+        source: `#${stateNode.id}`,
+        target: resolvedTarget ? resolvedTarget.map(t => `#${t.id}`) : undefined
+      })
+    };
+
+    return transition;
+  }
+
+  return formatTransition(stateNode, {
+    target: toArray(_target.target).map(t => {
+      if (isString(t)) {
+        return isStateId(t) ? t : `${stateNode.machine.delimiter}${t}`;
+      }
+
+      return t;
+    }),
+    actions: _target.actions,
+    event: null as any
+  }) as InitialTransitionDefinition<TContext, TEvent>;
+}
+
 function resolveTarget<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
   _target: Array<string | StateNode<TContext, any, TEvent>> | undefined
@@ -490,7 +551,7 @@ function resolveHistoryTarget<TContext, TEvent extends EventObject>(
 ): Array<StateNode<TContext, any, TEvent>> {
   const normalizedTarget = normalizeTarget<TContext, TEvent>(stateNode.target);
   if (!normalizedTarget) {
-    return stateNode.parent!.initial;
+    return stateNode.parent!.initial.target;
   }
   return normalizedTarget.map(t =>
     typeof t === 'string' ? getStateNodeByPath(stateNode, t) : t
@@ -1179,7 +1240,7 @@ function addDescendantStatesToEnter<TContext, TEvent extends EventObject>(
     mutStatesToEnter.add(stateNode);
     if (stateNode.type === 'compound') {
       mutStatesForDefaultEntry.add(stateNode);
-      const initialStates = stateNode.initial;
+      const initialStates = stateNode.initial.target;
 
       for (const initialState of initialStates) {
         addDescendantStatesToEnter(

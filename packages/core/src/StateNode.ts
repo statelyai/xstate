@@ -28,12 +28,14 @@ import {
   PropertyMapper,
   NullEvent,
   SCXML,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  InitialTransitionDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
+import { formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
@@ -229,7 +231,20 @@ export class StateNode<
       key: this.key,
       version: this.machine.version,
       type: this.type,
-      initial: this.initial.map(node => node.id),
+      initial: this.initial
+        ? {
+            target: this.initial.target,
+            source: this,
+            actions: this.initial.actions,
+            eventType: null as any,
+            toJSON: () => ({
+              target: this.initial!.target!.map(t => `#${t.id}`),
+              source: `#${this.id}`,
+              actions: this.initial!.actions,
+              eventType: null as any
+            })
+          }
+        : undefined,
       history: this.history,
       states: mapValues(
         this.states,
@@ -325,17 +340,8 @@ export class StateNode<
     );
   }
 
-  public get initial(): StateNode<TContext, any, TEvent>[] {
-    return toArray(this.config.initial).map(path => {
-      if (isStateId(path)) {
-        return this.machine.getStateNodeById(path);
-      }
-
-      if (!this.states[path]) {
-        throw new Error(`Initial state '${path}' not found on '${this.key}'`);
-      }
-      return this.states[path];
-    });
+  public get initial(): InitialTransitionDefinition<TContext, TEvent> {
+    return formatInitialTransition(this, this.config.initial || []);
   }
 
   /**

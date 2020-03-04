@@ -644,9 +644,9 @@ describe('interpreter', () => {
 
     expect(() => service.send('SOME_EVENT'))
       .toThrowErrorMatchingInlineSnapshot(`
-"Event \\"SOME_EVENT\\" was sent to uninitialized service \\"light\\". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.
-Event: {\\"type\\":\\"SOME_EVENT\\"}"
-`);
+      "Event \\"SOME_EVENT\\" was sent to uninitialized service \\"light\\". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.
+      Event: {\\"type\\":\\"SOME_EVENT\\"}"
+    `);
 
     service.start();
 
@@ -731,7 +731,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
     expect(() => {
       interpret(Machine(invalidMachine)).start();
     }).toThrowErrorMatchingInlineSnapshot(
-      `"Initial state 'create' not found on 'fetchMachine'"`
+      `"Initial state node \\"create\\" not found on parent state node #fetchMachine"`
     );
   });
 
