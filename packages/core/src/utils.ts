@@ -213,25 +213,6 @@ export const path = <T extends Record<string, any>>(props: string[]): any => (
   return result;
 };
 
-/**
- * Retrieves a value at the given path via the nested accessor prop.
- * @param props The deep path to the prop of the desired value
- */
-export function nestedPath<T extends Record<string, any>>(
-  props: string[],
-  accessorProp: keyof T
-): (object: T) => T {
-  return object => {
-    let result: T = object;
-
-    for (const prop of props) {
-      result = result[accessorProp][prop];
-    }
-
-    return result;
-  };
-}
-
 export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   if (!stateValue) {
     return [[]];
@@ -257,31 +238,6 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
       });
     })
   );
-
-  return result;
-}
-
-export function pathsToStateValue(paths: string[][]): StateValue {
-  const result: StateValue = {};
-
-  if (paths && paths.length === 1 && paths[0].length === 1) {
-    return paths[0][0];
-  }
-
-  for (const currentPath of paths) {
-    let marker = result;
-    // tslint:disable-next-line:prefer-for-of
-    for (let i = 0; i < currentPath.length; i++) {
-      const subPath = currentPath[i];
-
-      if (i === currentPath.length - 2) {
-        marker[subPath] = currentPath[i + 1];
-        break;
-      }
-      marker[subPath] = marker[subPath] || {};
-      marker = marker[subPath] as {};
-    }
-  }
 
   return result;
 }
@@ -438,18 +394,6 @@ export function isFunction(value: any): value is Function {
 export function isString(value: any): value is string {
   return typeof value === 'string';
 }
-
-// export function memoizedGetter<T, TP extends { prototype: object }>(
-//   o: TP,
-//   property: string,
-//   getter: () => T
-// ): void {
-//   Object.defineProperty(o.prototype, property, {
-//     get: getter,
-//     enumerable: false,
-//     configurable: false
-//   });
-// }
 
 export function toGuard<TContext, TEvent extends EventObject>(
   condition?: Condition<TContext, TEvent>,

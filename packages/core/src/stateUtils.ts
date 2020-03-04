@@ -240,7 +240,7 @@ export function getAdjList<TC, TE extends EventObject>(
   return adjList;
 }
 
-export function getValue<TC, TE extends EventObject>(
+export function getStateValue<TC, TE extends EventObject>(
   rootNode: StateNode<TC, any, TE>,
   configuration: Configuration<TC, TE>
 ): StateValue {
@@ -617,24 +617,6 @@ function getFromRelativePath<TContext, TEvent extends EventObject>(
   }
   return getFromRelativePath(stateNode.states[stateKey], childStatePath);
 }
-/**
- * Returns the leaf nodes from a state path relative to the state node.
- *
- * @param relativeStateNode The relative state node to retrieve the state nodes
- * @param state The previous state to retrieve history
- * @param resolveInitialStateNodes Whether state nodes should resolve to initial child state nodes
- */
-export function getRelativeStateNodes<TContext, TEvent extends EventObject>(
-  relativeStateNode: StateNode<TContext, any, TEvent>,
-  state?: State<TContext, TEvent>,
-  resolveInitialStateNodes: boolean = true
-): Array<StateNode<TContext, any, TEvent>> {
-  return resolveInitialStateNodes
-    ? isHistoryNode(relativeStateNode)
-      ? resolveHistory(relativeStateNode, state)
-      : getInitialStateNodes(relativeStateNode)
-    : [relativeStateNode];
-}
 
 export function getInitialStateNodes<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
@@ -790,50 +772,6 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
       [] as Array<StateNode<TContext, any, TEvent>>
     )
   );
-}
-
-export function nodesFromChild<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
-  childStateNode: StateNode<TContext, any, TEvent>
-): Array<StateNode<TContext, any, TEvent>> {
-  if (escapes(childStateNode, stateNode)) {
-    return [];
-  }
-
-  const nodes: Array<StateNode<TContext, any, TEvent>> = [];
-  let marker: StateNode<TContext, any, TEvent> | undefined = childStateNode;
-
-  while (marker && marker !== stateNode) {
-    nodes.push(marker);
-    marker = marker.parent;
-  }
-  nodes.push(stateNode); // inclusive
-
-  return nodes;
-}
-
-/**
- * Whether the given state node "escapes" the state node. If the `stateNode` is equal to or the parent of
- * the state node, it does not escape.
- */
-export function escapes<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
-  escapeeNode: StateNode<TContext, any, TEvent>
-): boolean {
-  if (stateNode === escapeeNode) {
-    return false;
-  }
-
-  let parent = stateNode.parent;
-
-  while (parent) {
-    if (parent === escapeeNode) {
-      return false;
-    }
-    parent = parent.parent;
-  }
-
-  return true;
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
@@ -1635,7 +1573,7 @@ export function resolveMicroTransition<
   );
 
   const nextState = new State<TContext, TEvent, any, TTypestate>({
-    value: getValue(machine, resolved.configuration),
+    value: getStateValue(machine, resolved.configuration),
     context,
     _event,
     // Persist _sessionid between states
@@ -1786,6 +1724,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
       _event
     );
   }
+
   return maybeNextState;
 }
 
@@ -1881,6 +1820,10 @@ export function stateValuesEqual(
   a: StateValue | undefined,
   b: StateValue | undefined
 ): boolean {
+  if (typeof a !== typeof b) {
+    return false;
+  }
+
   if (a === b) {
     return true;
   }
