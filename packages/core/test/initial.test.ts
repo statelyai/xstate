@@ -137,10 +137,5 @@ describe('Initial states', () => {
     });
     interpret(machine).start();
     expect(called).toEqual(false);
-
-    // service.onDone(() => {
-    //   expect(service.state.value).toBe('pass');
-    //   done();
-    // });
   });
 });
