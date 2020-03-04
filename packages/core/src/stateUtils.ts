@@ -1191,27 +1191,31 @@ export function enterStates<TContext, TEvent extends EventObject>(
     mutStatesForDefaultEntry
   );
 
-  for (const s of [...mutStatesToEnter].sort((a, b) => a.order - b.order)) {
-    mutConfiguration.add(s);
-    statesToInvoke.add(s);
+  for (const stateNodeToEnter of [...mutStatesToEnter].sort(
+    (a, b) => a.order - b.order
+  )) {
+    mutConfiguration.add(stateNodeToEnter);
+    statesToInvoke.add(stateNodeToEnter);
 
     // Add entry actions
-    actions.push(...s.entry);
+    actions.push(...stateNodeToEnter.entry);
 
-    if (mutStatesForDefaultEntry.has(s)) {
-      mutStatesForDefaultEntry.forEach(s => {
-        actions.push(...s.initial!.actions);
+    if (mutStatesForDefaultEntry.has(stateNodeToEnter)) {
+      mutStatesForDefaultEntry.forEach(stateNode => {
+        actions.push(...stateNode.initial!.actions);
       });
     }
     // if (defaultHistoryContent[s.id]) {
     //   actions.push(...defaultHistoryContent[s.id])
     // }
-    if (s.type === 'final') {
-      const parent = s.parent!;
+    if (stateNodeToEnter.type === 'final') {
+      const parent = stateNodeToEnter.parent!;
       internalQueue.push(
         done(
           parent!.id,
-          s.data ? mapContext(s.data, state.context, state._event) : undefined
+          stateNodeToEnter.data
+            ? mapContext(stateNodeToEnter.data, state.context, state._event)
+            : undefined
         )
       );
 
@@ -1763,11 +1767,11 @@ export function macrostep<TContext, TEvent extends EventObject>(
   nextState: State<TContext, TEvent, any, Typestate<TContext>>,
   machine: MachineNode<TContext, any, TEvent, any>
 ): State<TContext, TEvent> {
-  const { _event, history, _internalQueue: raisedEvents } = nextState;
+  const { _event, history, _internalQueue } = nextState;
   let maybeNextState = nextState;
 
-  while (raisedEvents.length && !maybeNextState.done) {
-    const raisedEvent = raisedEvents.shift()!;
+  while (_internalQueue.length && !maybeNextState.done) {
+    const raisedEvent = _internalQueue.shift()!;
     maybeNextState = resolveRaisedTransition(
       machine,
       maybeNextState,
