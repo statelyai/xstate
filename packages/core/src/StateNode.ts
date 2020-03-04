@@ -38,7 +38,7 @@ import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
-import { isLeafNode, formatInitialTransition } from './stateUtils';
+import { isAtomicStateNode, formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
@@ -443,7 +443,7 @@ export class StateNode<
     } else if (this.initial !== undefined) {
       const [initialTargetNode] = this.initial.target;
 
-      initialStateValue = (isLeafNode(initialTargetNode)
+      initialStateValue = (isAtomicStateNode(initialTargetNode)
         ? initialTargetNode.key
         : {
             [initialTargetNode.key]: initialTargetNode.initialStateValue

@@ -308,10 +308,7 @@ describe('transient states (eventless transitions)', () => {
     expect(greetingMachine.initialState.value).toEqual('morning');
   });
 
-  // TODO: determine proper behavior here -
-  // Should an internal transition on the parent node activate the parent node
-  // or all previous state nodes?
-  xit('should determine the resolved state from a root transient state', () => {
+  it('should determine the resolved state from a root transient state', () => {
     const morningState = greetingMachine.initialState;
     expect(morningState.value).toEqual('morning');
     const stillMorningState = greetingMachine.transition(

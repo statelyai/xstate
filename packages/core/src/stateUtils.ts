@@ -86,7 +86,7 @@ type AdjList<TC, TE extends EventObject> = Map<
   Array<StateNode<TC, any, TE>>
 >;
 
-export const isLeafNode = (stateNode: StateNode<any, any, any>) =>
+export const isAtomicStateNode = (stateNode: StateNode<any, any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
 export function getChildren<TC, TE extends EventObject>(
@@ -116,7 +116,7 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 ): Array<StateNode<TC, any, TE>> {
   const stateNodes = [stateNode];
 
-  if (isLeafNode(stateNode)) {
+  if (isAtomicStateNode(stateNode)) {
     return stateNodes;
   }
 
@@ -202,7 +202,7 @@ function getValueFromAdj<TC, TE extends EventObject>(
   if (baseNode.type === 'compound') {
     const childStateNode = childStateNodes[0];
     if (childStateNode) {
-      if (isLeafNode(childStateNode)) {
+      if (isAtomicStateNode(childStateNode)) {
         return childStateNode.key;
       }
     } else {
@@ -639,7 +639,7 @@ export function getRelativeStateNodes<TContext, TEvent extends EventObject>(
 export function getInitialStateNodes<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
-  if (isLeafNode(stateNode)) {
+  if (isAtomicStateNode(stateNode)) {
     return [stateNode];
   }
   // Case when state node is compound but no initial state is defined
@@ -1808,7 +1808,8 @@ function resolveHistoryValue<TContext, TEvent extends EventObject>(
       for (const historyNode of getHistoryNodes(exitStateNode)) {
         let predicate: (sn: StateNode<TContext, any, TEvent>) => boolean;
         if (historyNode.history === 'deep') {
-          predicate = sn => isLeafNode(sn) && isDescendant(sn, exitStateNode);
+          predicate = sn =>
+            isAtomicStateNode(sn) && isDescendant(sn, exitStateNode);
         } else {
           predicate = sn => {
             return sn.parent === exitStateNode;

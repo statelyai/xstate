@@ -132,10 +132,6 @@ describe('deterministic machine', () => {
       expect(() => testMachine.transition('fake', 'T')).toThrow();
     });
 
-    xit('should throw an error for transitions to invalid states', () => {
-      expect(() => testMachine.transition('a', 'F')).toThrow();
-    });
-
     it('should throw an error for transitions from invalid substates', () => {
       expect(() => testMachine.transition('a.fake', 'T')).toThrow();
     });

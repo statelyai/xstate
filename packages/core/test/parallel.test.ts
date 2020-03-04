@@ -633,7 +633,7 @@ describe('parallel states', () => {
     });
   });
 
-  xit('should handle simultaneous orthogonal transitions', () => {
+  it('should handle simultaneous orthogonal transitions', () => {
     type Events = { type: 'CHANGE'; value: string } | { type: 'SAVE' };
     const simultaneousMachine = Machine<{ value: string }, Events>({
       id: 'yamlEditor',
@@ -681,7 +681,14 @@ describe('parallel states', () => {
       value: 'something'
     });
 
-    expect(unsavedState.value).toEqual({});
+    expect(unsavedState.value).toEqual({
+      editing: {},
+      status: 'unsaved'
+    });
+
+    expect(unsavedState.context).toEqual({
+      value: 'something'
+    });
   });
 
   describe('transitions with nested parallel states', () => {
