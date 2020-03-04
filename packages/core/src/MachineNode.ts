@@ -27,8 +27,7 @@ import {
   getInitialState,
   getStateNodes,
   transitionNode,
-  resolveStateValue,
-  resolveTransition
+  resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
 

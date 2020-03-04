@@ -1,6 +1,6 @@
 import { createMachine } from '../src';
 import { raise } from '../src/actions';
-import { toSCXMLEvent } from '../../../es/utils';
+import { toSCXMLEvent } from '../src/utils';
 
 describe('machine.microstep()', () => {
   it('should return the state from microstep (transient)', () => {

@@ -9,7 +9,11 @@ const validate = ajv.compile(machineSchema);
 // TODO: fix schema
 describe.skip('json', () => {
   it('should serialize the machine', () => {
-    const machine = createMachine<{ [key: string]: any }>({
+    interface Context {
+      [key: string]: any;
+    }
+
+    const machine = createMachine<Context>({
       initial: 'foo',
       version: '1.0.0',
       context: {
