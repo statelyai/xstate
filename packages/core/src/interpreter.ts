@@ -443,18 +443,14 @@ export class Interpreter<
     this.initialized = true;
     this._status = InterpreterStatus.Running;
 
-    // TODO: is withServiceScope needed here?
-
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : withServiceScope(this, () => {
-            return isState<TContext, TEvent>(initialState)
-              ? this.machine.resolveState(initialState)
-              : this.machine.resolveState(
-                  State.from(initialState, this.machine.context)
-                );
-          });
+        : isState<TContext, TEvent>(initialState)
+        ? this.machine.resolveState(initialState)
+        : this.machine.resolveState(
+            State.from(initialState, this.machine.context)
+          );
 
     if (this.options.devTools) {
       this.attachDev();
