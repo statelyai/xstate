@@ -12,7 +12,6 @@
     "experimentalDecorators": true,
     "skipLibCheck": true,
     "jsx": "react",
-    "lib": ["es6", "dom"],
-    "strictPropertyInitialization": true
+    "lib": ["es6", "dom"]
   }
 }
