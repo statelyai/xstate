@@ -1346,11 +1346,9 @@ export function resolveTransition<
   // - OR there are transitions
   const willTransition = !currentState || transitions.length > 0;
 
-  // TODO: we shouldnt have to recompute prevConfig if we have currentState.configuration
-  // Entry and exit set
   const prevConfig = getConfiguration(
     [],
-    currentState ? getStateNodes(machine, currentState.value) : [machine]
+    currentState ? currentState.configuration : [machine]
   );
 
   const currentContext = currentState ? currentState.context : context;
