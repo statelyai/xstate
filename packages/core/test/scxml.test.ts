@@ -257,7 +257,7 @@ const testGroups = {
     'test377.txml',
     // 'test378.txml', // executable blocks not implemented
     'test387.txml',
-    // 'test388.txml', // not sure yet why
+    // 'test388.txml', // computed historyValue not being available immediately after exiting states for the following synchronous enterStates
     'test396.txml',
     // 'test399.txml', // inexact prefix event matching not implemented
     // 'test401.txml', // error.execution when evaluating assign

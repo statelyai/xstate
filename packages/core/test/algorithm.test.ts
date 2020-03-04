@@ -86,7 +86,6 @@ describe('algorithm', () => {
       'a',
       'b1',
       'c1',
-      'c2',
       'c3',
       'd1',
       'd4',

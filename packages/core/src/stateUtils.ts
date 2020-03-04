@@ -129,27 +129,18 @@ export function getConfiguration<TC, TE extends EventObject>(
   const prevAdjList = getAdjList(prevConfiguration);
 
   const configuration = new Set(stateNodes);
+  const mutConfiguration = new Set(stateNodes);
 
-  // add all ancestors
-  for (const stateNode of configuration) {
-    let m = stateNode.parent;
-
-    while (m && !configuration.has(m)) {
-      configuration.add(m);
-      m = m.parent;
-    }
-  }
-
-  const adjList = getAdjList(configuration);
+  const adjList = getAdjList(mutConfiguration);
 
   // add descendants
   for (const s of configuration) {
     // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
       if (prevAdjList.get(s)) {
-        prevAdjList.get(s)!.forEach(sn => configuration.add(sn));
+        prevAdjList.get(s)!.forEach(sn => mutConfiguration.add(sn));
       } else {
-        getInitialStateNodes(s).forEach(sn => configuration.add(sn));
+        getInitialStateNodes(s).forEach(sn => mutConfiguration.add(sn));
       }
     } else {
       if (s.type === 'parallel') {
@@ -158,13 +149,15 @@ export function getConfiguration<TC, TE extends EventObject>(
             continue;
           }
 
-          if (!configuration.has(child)) {
-            configuration.add(child);
+          if (!mutConfiguration.has(child)) {
+            mutConfiguration.add(child);
 
             if (prevAdjList.get(child)) {
-              prevAdjList.get(child)!.forEach(sn => configuration.add(sn));
+              prevAdjList.get(child)!.forEach(sn => mutConfiguration.add(sn));
             } else {
-              getInitialStateNodes(child).forEach(sn => configuration.add(sn));
+              getInitialStateNodes(child).forEach(sn =>
+                mutConfiguration.add(sn)
+              );
             }
           }
         }
@@ -173,16 +166,16 @@ export function getConfiguration<TC, TE extends EventObject>(
   }
 
   // add all ancestors
-  for (const s of configuration) {
+  for (const s of mutConfiguration) {
     let m = s.parent;
 
-    while (m && !configuration.has(m)) {
-      configuration.add(m);
+    while (m && !mutConfiguration.has(m)) {
+      mutConfiguration.add(m);
       m = m.parent;
     }
   }
 
-  return configuration;
+  return mutConfiguration;
 }
 
 function getValueFromAdj<TC, TE extends EventObject>(
@@ -1023,7 +1016,6 @@ export function enterStates<TContext, TEvent extends EventObject>(
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
 ) {
-  const defaultHistoryContent = {};
   const statesToInvoke: typeof mutConfiguration = new Set();
   const internalQueue: EventObject[] = [];
 
@@ -1074,11 +1066,8 @@ export function enterStates<TContext, TEvent extends EventObject>(
   }
 
   return {
-    defaultHistoryContent,
-    configuration: mutConfiguration,
     statesToInvoke,
     internalQueue,
-    statesForDefaultEntry: mutStatesForDefaultEntry,
     actions
   };
 }
@@ -1121,7 +1110,8 @@ function computeEntrySet<TContext, TEvent extends EventObject>(
       );
     }
     const ancestor = getTransitionDomain(t, state);
-    for (const s of getEffectiveTargetStates(t, state)) {
+    const targetStates = getEffectiveTargetStates(t, state);
+    for (const s of targetStates) {
       addAncestorStatesToEnter(
         s,
         ancestor,
@@ -1129,7 +1119,6 @@ function computeEntrySet<TContext, TEvent extends EventObject>(
         mutStatesToEnter,
         mutStatesForDefaultEntry
       );
-      mutStatesForDefaultEntry.forEach(se => mutStatesForDefaultEntry.add(se));
     }
   }
 }
@@ -1236,7 +1225,8 @@ function addAncestorStatesToEnter<TContext, TEvent extends EventObject>(
   mutStatesToEnter: Set<typeof stateNode>,
   mutStatesForDefaultEntry: Set<typeof stateNode>
 ) {
-  for (const anc of getProperAncestors(stateNode, toStateNode)) {
+  const properAncestors = getProperAncestors(stateNode, toStateNode);
+  for (const anc of properAncestors) {
     mutStatesToEnter.add(anc);
     if (anc.type === 'parallel') {
       for (const child of getChildren(anc).filter(sn => !isHistoryNode(sn))) {
@@ -1295,10 +1285,6 @@ export function microstep<TContext, TEvent extends EventObject>(
     historyValue = exitHistoryValue;
 
     actions.push(...flatten(transitions.map(t => t.actions)));
-
-    mutConfiguration.forEach(sn => {
-      mutConfiguration.add(sn);
-    });
   }
 
   // Enter states
@@ -1358,7 +1344,7 @@ export function resolveTransition<
       ? transitions
       : [
           {
-            target: [...prevConfig],
+            target: [...prevConfig].filter(isLeafNode),
             source: machine,
             actions: [],
             eventType: 'init'
@@ -1569,7 +1555,7 @@ function resolveHistoryValue<TContext, TEvent extends EventObject>(
   > = currentState ? currentState.historyValue : {};
   if (currentState && currentState.configuration) {
     // From SCXML algorithm: https://www.w3.org/TR/scxml/#exitStates
-    for (const exitStateNode of new Set(exitSet)) {
+    for (const exitStateNode of exitSet) {
       for (const historyNode of getHistoryNodes(exitStateNode)) {
         let predicate: (sn: StateNode<TContext, any, TEvent>) => boolean;
         if (historyNode.history === 'deep') {
