@@ -1,6 +1,5 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { Clock } from './interpreter';
 import { Actor } from './Actor';
 import { MachineNode } from './MachineNode';
 
@@ -907,7 +906,6 @@ export interface InterpreterOptions {
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute: boolean;
-  clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Actor<any>;
   /**
