@@ -19,7 +19,8 @@ import {
   getConfiguration,
   getChildren,
   getAllStateNodes,
-  resolveMicroTransition
+  resolveMicroTransition,
+  macrostep
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -205,36 +206,9 @@ export class MachineNode<
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent>;
+    const nextState = this.microstep(state, event);
 
-    if (state instanceof State) {
-      currentState = state;
-    } else {
-      const resolvedStateValue = resolveStateValue(this, state);
-      const resolvedContext = this.machine.context!;
-
-      currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
-      );
-    }
-
-    if (!IS_PRODUCTION && _event.name === WILDCARD) {
-      throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
-    }
-
-    if (this.strict) {
-      if (!this.events.includes(_event.name) && !isBuiltInEvent(_event.name)) {
-        throw new Error(
-          `Machine '${this.id}' does not accept event '${_event.name}'`
-        );
-      }
-    }
-
-    const transitions: Transitions<TContext, TEvent> =
-      transitionNode(this, currentState.value, currentState, _event) || [];
-
-    return resolveTransition(this, transitions, currentState, _event);
+    return macrostep(nextState, this);
   }
 
   public microstep(

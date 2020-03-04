@@ -1651,8 +1651,12 @@ export function resolveMicroTransition<
     historyValue: resolved.historyValue
   });
 
-  nextState.changed =
-    _event.name === actionTypes.update || context !== currentContext;
+  nextState.changed = !currentState
+    ? undefined
+    : !stateValuesEqual(nextState.value, currentState.value) ||
+      _event.name === actionTypes.update ||
+      nextState.actions.length > 0 ||
+      context !== currentContext;
   nextState._internalQueue = raisedEventActions.map(r => r._event);
   nextState.context = context;
 
@@ -1770,7 +1774,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
   nextState: State<TContext, TEvent, any, Typestate<TContext>>,
   machine: MachineNode<TContext, any, TEvent, any>
 ): State<TContext, TEvent> {
-  const { _event, history, _internalQueue } = nextState;
+  const { _event, _internalQueue } = nextState;
   let maybeNextState = nextState;
 
   while (_internalQueue.length && !maybeNextState.done) {
@@ -1782,18 +1786,6 @@ export function macrostep<TContext, TEvent extends EventObject>(
       _event
     );
   }
-
-  // Detect if state changed
-  const changed =
-    maybeNextState.changed ||
-    (history
-      ? !!maybeNextState.actions.length ||
-        typeof history.value !== typeof maybeNextState.value ||
-        !stateValuesEqual(maybeNextState.value, history.value)
-      : undefined);
-  maybeNextState.changed = changed;
-  // Preserve original history after raised events
-  maybeNextState.history = history;
   return maybeNextState;
 }
 
