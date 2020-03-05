@@ -40,7 +40,8 @@ export function spawnMachine<
     const childService = interpret(resolvedMachine, {
       ...options,
       parent,
-      id: id || resolvedMachine.id
+      id: id || resolvedMachine.id,
+      clock: (parent as any).clock
     });
 
     const resolvedOptions = {

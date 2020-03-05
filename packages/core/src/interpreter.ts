@@ -71,6 +71,11 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 
 export type Listener = () => void;
 
+export interface Clock {
+  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
+  clearTimeout(id: any): void;
+}
+
 interface SpawnOptions {
   name?: string;
   autoForward?: boolean;
@@ -118,11 +123,20 @@ export class Interpreter<
   /**
    * The default interpreter options:
    *
+   * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
   public static defaultOptions: InterpreterOptions = (global => ({
     execute: true,
     deferEvents: true,
+    clock: {
+      setTimeout: (fn, ms) => {
+        return global.setTimeout.call(null, fn, ms);
+      },
+      clearTimeout: id => {
+        return global.clearTimeout.call(null, id);
+      }
+    },
     logger: global.console.log.bind(console),
     devTools: false
   }))(typeof window === 'undefined' ? global : window);
@@ -131,7 +145,10 @@ export class Interpreter<
    */
   private _state?: State<TContext, TEvent>;
   private _initialState?: State<TContext, TEvent>;
-
+  /**
+   * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
+   */
+  public clock: Clock;
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
@@ -178,12 +195,13 @@ export class Interpreter<
       ...options
     };
 
-    const { logger, parent, id } = resolvedOptions;
+    const { clock, logger, parent, id } = resolvedOptions;
 
     const resolvedId = id !== undefined ? id : machine.id;
 
     this.id = resolvedId;
     this.logger = logger;
+    this.clock = clock;
     this.parent = parent;
 
     this.options = resolvedOptions;
@@ -492,7 +510,7 @@ export class Interpreter<
 
     // Cancel all delayed events
     for (const key of keys(this.delayedEventsMap)) {
-      clearTimeout(this.delayedEventsMap[key]);
+      this.clock.clearTimeout(this.delayedEventsMap[key]);
     }
 
     this.scheduler.clear();
@@ -719,7 +737,7 @@ export class Interpreter<
     }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = setTimeout(
+    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(
       () => {
         if (sendAction.to) {
           this.sendTo(sendAction._event, sendAction.to);
@@ -731,7 +749,7 @@ export class Interpreter<
     );
   }
   private cancel(sendId: string | number): void {
-    clearTimeout(this.delayedEventsMap[sendId]);
+    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
     delete this.delayedEventsMap[sendId];
   }
   private exec(
