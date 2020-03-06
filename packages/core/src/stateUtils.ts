@@ -1393,6 +1393,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>;
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
+  internalQueue: EventObject[];
 } {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
@@ -1450,7 +1451,8 @@ export function microstep<TContext, TEvent extends EventObject>(
   return {
     actions,
     configuration: mutConfiguration,
-    historyValue
+    historyValue,
+    internalQueue: res.internalQueue
   };
 }
 
@@ -1820,10 +1822,6 @@ export function stateValuesEqual(
   a: StateValue | undefined,
   b: StateValue | undefined
 ): boolean {
-  if (typeof a !== typeof b) {
-    return false;
-  }
-
   if (a === b) {
     return true;
   }

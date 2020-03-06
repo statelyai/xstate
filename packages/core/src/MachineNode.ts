@@ -1,4 +1,4 @@
-import { toArray, isBuiltInEvent, toSCXMLEvent } from './utils';
+import { toArray, isBuiltInEvent, toSCXMLEvent, toEventObject } from './utils';
 import {
   Event,
   StateValue,
@@ -20,7 +20,9 @@ import {
   getChildren,
   getAllStateNodes,
   resolveMicroTransition,
-  macrostep
+  macrostep,
+  getStateValue,
+  stateValuesEqual
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -30,6 +32,7 @@ import {
   resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
+import { macrostep as newmacrostep } from './macrostep';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -207,7 +210,52 @@ export class MachineNode<
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const nextState = this.microstep(state, event);
 
-    return macrostep(nextState, this);
+    const otherState = this._transition(state, event);
+
+    const resultState = macrostep(nextState, this);
+
+    if (!stateValuesEqual(nextState.value, otherState.value)) {
+      throw new Error(
+        `Mismatch for ${
+          typeof state === 'string' ? state : state.value
+        } on ${JSON.stringify(event)}\n\nExpected ${JSON.stringify(
+          nextState.value
+        )}, got ${JSON.stringify(otherState.value)}`
+      );
+    }
+
+    return resultState;
+  }
+
+  public _transition(
+    state: StateValue | State<TContext, TEvent> = this.initialState,
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    const _event = toSCXMLEvent(event);
+    let currentState: State<TContext, TEvent>;
+
+    if (state instanceof State) {
+      currentState = this.resolveState(state);
+    } else {
+      const resolvedStateValue = resolveStateValue(this, state);
+      const resolvedContext = this.machine.context!;
+
+      currentState = this.resolveState(
+        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+      );
+    }
+
+    const res = newmacrostep(currentState, _event, this);
+
+    return new State({
+      value: getStateValue(this, res.configuration),
+      _event,
+      _sessionid: currentState._sessionid,
+      context: currentState.context,
+      configuration: Array.from(res.configuration),
+      transitions: [],
+      children: []
+    });
   }
 
   public microstep(
