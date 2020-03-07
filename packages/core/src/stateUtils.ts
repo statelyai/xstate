@@ -16,7 +16,8 @@ import {
   mapContext,
   partition,
   updateContext,
-  mapValues
+  mapValues,
+  toSCXMLEvent
 } from './utils';
 import {
   TransitionConfig,
@@ -1119,7 +1120,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
 ) {
   const defaultHistoryContent = {};
   const statesToInvoke: typeof mutConfiguration = new Set();
-  const internalQueue: EventObject[] = [];
+  const internalQueue: Array<SCXML.Event<TEvent>> = [];
 
   const actions: Array<ActionObject<TContext, TEvent>> = [];
   const mutStatesToEnter = new Set<StateNode<TContext, any, TEvent>>();
@@ -1152,11 +1153,13 @@ export function enterStates<TContext, TEvent extends EventObject>(
     if (stateNodeToEnter.type === 'final') {
       const parent = stateNodeToEnter.parent!;
       internalQueue.push(
-        done(
-          parent!.id,
-          stateNodeToEnter.data
-            ? mapContext(stateNodeToEnter.data, state.context, state._event)
-            : undefined
+        toSCXMLEvent(
+          done(
+            parent!.id,
+            stateNodeToEnter.data
+              ? mapContext(stateNodeToEnter.data, state.context, state._event)
+              : undefined
+          )
         )
       );
 
@@ -1169,7 +1172,9 @@ export function enterStates<TContext, TEvent extends EventObject>(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(done(grandparent.id, grandparent.data));
+            internalQueue.push(
+              toSCXMLEvent(done(grandparent.id, grandparent.data))
+            );
           }
         }
       }
@@ -1393,7 +1398,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>;
   configuration: typeof mutConfiguration;
   historyValue: HistoryValue<TContext, TEvent>;
-  internalQueue: EventObject[];
+  internalQueue: Array<SCXML.Event<TEvent>>;
 } {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
@@ -1719,12 +1724,36 @@ export function macrostep<TContext, TEvent extends EventObject>(
 
   while (_internalQueue.length && !maybeNextState.done) {
     const raisedEvent = _internalQueue.shift()!;
-    maybeNextState = resolveRaisedTransition(
-      machine,
+    const currentActions = maybeNextState.actions;
+
+    // maybeNextState = machine.transition(
+    //   maybeNextState,
+    //   raisedEvent as SCXML.Event<TEvent>
+    // );
+
+    maybeNextState = machine.microstep(
       maybeNextState,
-      raisedEvent,
-      _event
+      raisedEvent as SCXML.Event<TEvent>
     );
+
+    maybeNextState = macrostep(maybeNextState, machine);
+
+    // Save original event to state
+    if (raisedEvent.type === NULL_EVENT) {
+      maybeNextState._event = _event;
+      maybeNextState.event = _event.data;
+    }
+
+    // Since macrostep actions have not been executed yet,
+    // prioritize them in the action queue
+    maybeNextState.actions.unshift(...currentActions);
+    // return state;
+    // maybeNextState = resolveRaisedTransition(
+    //   machine,
+    //   maybeNextState,
+    //   raisedEvent,
+    //   _event
+    // );
   }
 
   return maybeNextState;

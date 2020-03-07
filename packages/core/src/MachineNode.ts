@@ -210,19 +210,20 @@ export class MachineNode<
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const nextState = this.microstep(state, event);
 
-    const otherState = this._transition(state, event);
+    // const otherState = this._transition(state, event);
+    // console.log('Returned:', otherState.value);
 
     const resultState = macrostep(nextState, this);
 
-    if (!stateValuesEqual(nextState.value, otherState.value)) {
-      throw new Error(
-        `Mismatch for ${
-          typeof state === 'string' ? state : state.value
-        } on ${JSON.stringify(event)}\n\nExpected ${JSON.stringify(
-          nextState.value
-        )}, got ${JSON.stringify(otherState.value)}`
-      );
-    }
+    // if (!stateValuesEqual(resultState.value, otherState.value)) {
+    // throw new Error(
+    //   `Mismatch for ${
+    //     typeof state === 'string' ? state : state.value
+    //   } on ${JSON.stringify(event)}\n\nExpected ${JSON.stringify(
+    //     resultState.value
+    //   )}, got ${JSON.stringify(otherState.value)}`
+    // );
+    // }
 
     return resultState;
   }
@@ -245,17 +246,11 @@ export class MachineNode<
       );
     }
 
-    const res = newmacrostep(currentState, _event, this);
+    const nextState = newmacrostep(currentState, _event, this);
 
-    return new State({
-      value: getStateValue(this, res.configuration),
-      _event,
-      _sessionid: currentState._sessionid,
-      context: currentState.context,
-      configuration: Array.from(res.configuration),
-      transitions: [],
-      children: []
-    });
+    console.log('_transition returning', nextState.value);
+
+    return nextState;
   }
 
   public microstep(

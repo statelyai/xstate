@@ -21,22 +21,27 @@ import { toSCXMLEvent } from './utils';
 import { MachineNode } from './MachineNode';
 
 function log(...msgs) {
-  if (1 + 1 === 3) {
-    log(...msgs);
+  if (1 + 1 === 23) {
+    console.log(...msgs);
   }
 }
 
+let count = 0;
 export function macrostep<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>,
   machine: MachineNode<TContext, any, TEvent, any>
-) {
+): State<TContext, TEvent> {
+  if (count++ > 100) {
+    throw new Error('overflow');
+  }
+  log('===============');
   log(`State: ${JSON.stringify(state.value)}`);
   log(`Event: ${JSON.stringify(_event.data)}`);
   const statesToInvoke = new Set<StateNode<TContext, any, TEvent>>();
   const configuration = new Set(state.configuration);
   let macrostepDone = false;
-  const internalQueue: TEvent[] = [];
+  const internalQueue = state._internalQueue;
 
   const actions: Array<ActionObject<any, any>> = [];
   let enabledTransitions = new Set<TransitionDefinition<TContext, TEvent>>();
@@ -51,8 +56,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
     historyValue: state.historyValue
   };
 
-  let counter = 0;
-  while (!macrostepDone || counter++ < 5) {
+  while (!macrostepDone) {
     if (!enabledTransitions.size) {
       if (!internalQueue.length) {
         macrostepDone = true;
@@ -71,7 +75,9 @@ export function macrostep<TContext, TEvent extends EventObject>(
       `Enabled eventless transitions: (${enabledTransitions.size})\n` +
         [...enabledTransitions]
           .map(t => {
-            return t.target ? t.target.map(target => target.id) : '--';
+            return t.target
+              ? t.eventType + ' -> ' + t.target.map(target => target.id)
+              : '--';
           })
           .join(', ')
     );
@@ -85,6 +91,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
       res.actions.push(...microstepRes.actions);
       res.configuration = microstepRes.configuration;
       res.historyValue = microstepRes.historyValue;
+      internalQueue.push(...microstepRes.internalQueue);
     }
   }
 
@@ -107,7 +114,9 @@ export function macrostep<TContext, TEvent extends EventObject>(
     `Enabled transitions: (${enabledTransitions.size})\n` +
       [...enabledTransitions]
         .map(t => {
-          return t.target ? t.target.map(target => target.id) : '--';
+          return t.target
+            ? t.eventType + ' -> ' + t.target.map(target => target.id)
+            : '--';
         })
         .join(', ')
   );
@@ -122,17 +131,34 @@ export function macrostep<TContext, TEvent extends EventObject>(
     res.actions = res.actions.concat(...microstepRes.actions);
     res.configuration = microstepRes.configuration;
     res.historyValue = microstepRes.historyValue;
+    internalQueue.push(...(microstepRes.internalQueue as any));
   }
 
-  return new State({
-    value: getStateValue(machine, Array.from(res.configuration)),
+  const value = getStateValue(machine, Array.from(res.configuration));
+  log('value:', value);
+  log('actions:', JSON.stringify(res.actions, null, 2));
+  log('internal queue:', JSON.stringify(internalQueue, null, 2));
+
+  const nextState = new State({
+    value,
     context: state.context, // todo: evaluate
     _event: toSCXMLEvent(_event),
     _sessionid: state._sessionid,
     configuration: Array.from(res.configuration),
     transitions: Array.from(enabledTransitions),
+    actions: res.actions,
     children: []
   });
+
+  nextState._internalQueue = internalQueue as any[];
+
+  if (internalQueue.length > 0) {
+    return macrostep(nextState, nextState._internalQueue.shift()!, machine);
+  }
+
+  log('Returning:', nextState.value);
+
+  return nextState;
 
   return res;
 }
