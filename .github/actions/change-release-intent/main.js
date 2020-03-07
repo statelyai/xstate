@@ -23,12 +23,7 @@ async function execWithOutput(command, args, options) {
   };
 }
 
-const publishablePackages = [
-  'xstate',
-  '@xstate/fsm',
-  '@xstate/test',
-  '@xstate/vue'
-];
+const publishablePackages = ['xstate', '@xstate/fsm', '@xstate/test'];
 
 (async () => {
   const currentBranchName = (await execWithOutput('git', [

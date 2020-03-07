@@ -863,7 +863,10 @@ describe('parallel states', () => {
                 id: 'Opened',
                 on: {
                   toggle: '#Closed',
-                  'go to dashboard': '#Dashboard'
+                  'go to dashboard': {
+                    // TODO: see if just '#Dashboard' conforms to SCXML spec
+                    target: ['#Dashboard', '#Opened']
+                  }
                 }
               }
             }

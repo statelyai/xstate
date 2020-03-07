@@ -4,9 +4,11 @@ import {
   DefaultContext,
   Event,
   EventObject,
-  AnyEventObject
+  AnyEventObject,
+  MachineNode,
+  flatten,
+  keys
 } from 'xstate';
-import { flatten, keys } from 'xstate/lib/utils';
 import {
   StatePathsMap,
   StatePaths,
@@ -14,7 +16,6 @@ import {
   Segments,
   ValueAdjMapOptions
 } from './types';
-import { MachineNode } from 'xstate/lib/MachineNode';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>

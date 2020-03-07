@@ -3,7 +3,7 @@ import { mapState } from './mapState';
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Machine, createMachine } from './Machine';
-import { Actor } from './Actor';
+import { Actor as ActorType } from './Actor';
 import {
   raise,
   send,
@@ -24,6 +24,7 @@ import {
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
+export { SimulatedClock } from './SimulatedClock';
 
 const actions = {
   raise,
@@ -43,7 +44,6 @@ const actions = {
 };
 
 export {
-  Actor,
   Machine,
   StateNode,
   State,
@@ -63,4 +63,11 @@ export {
   createMachine
 };
 
+export type Actor = ActorType;
+
 export * from './types';
+
+// TODO: decide from where those should be exported
+export { pathToStateValue, flatten, keys } from './utils';
+export { getStateNodes } from './stateUtils';
+export { toMachine } from './scxml';

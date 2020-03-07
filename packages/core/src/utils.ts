@@ -7,14 +7,12 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  HistoryValue,
   Condition,
   Guard,
   Subscribable,
   ConditionPredicate,
   SCXML,
   StateLike,
-  EventData,
   TransitionConfig,
   TransitionConfigTargetShortcut,
   NullEvent,
@@ -365,38 +363,44 @@ export function partition<T, A extends T, B extends T>(
   return [truthy, falsy];
 }
 
-export function updateHistoryStates(
-  hist: HistoryValue,
-  stateValue: StateValue
-): Record<string, HistoryValue | undefined> {
-  return mapValues(hist.states, (subHist, key) => {
-    if (!subHist) {
-      return undefined;
-    }
-    const subStateValue =
-      (isString(stateValue) ? undefined : stateValue[key]) ||
-      (subHist ? subHist.current : undefined);
+// export function updateContext<TContext, TEvent extends EventObject>(
+//   context: TContext,
+//   _event: SCXML.Event<TEvent>,
+//   assignActions: Array<AssignAction<TContext, TEvent>>,
+//   state?: State<TContext, TEvent>
+// ): TContext {
+//   if (!IS_PRODUCTION) {
+//     warn(!!context, 'Attempting to update undefined context');
+//   }
+//   const updatedContext = context
+//     ? assignActions.reduce((acc, assignAction) => {
+//         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-    if (!subStateValue) {
-      return undefined;
-    }
+//         const meta = {
+//           state,
+//           action: assignAction,
+//           _event
+//         };
 
-    return {
-      current: subStateValue,
-      states: updateHistoryStates(subHist, subStateValue)
-    };
-  });
-}
+//         let partialUpdate: Partial<TContext> = {};
 
-export function updateHistoryValue(
-  hist: HistoryValue,
-  stateValue: StateValue
-): HistoryValue {
-  return {
-    current: stateValue,
-    states: updateHistoryStates(hist, stateValue)
-  };
-}
+//         if (isFunction(assignment)) {
+//           partialUpdate = assignment(acc, _event.data, meta);
+//         } else {
+//           for (const key of keys(assignment)) {
+//             const propAssignment = assignment[key];
+
+//             partialUpdate[key] = isFunction(propAssignment)
+//               ? propAssignment(acc, _event.data, meta)
+//               : propAssignment;
+//           }
+//         }
+
+//         return Object.assign({}, acc, partialUpdate);
+//       }, context)
+//     : context;
+//   return updatedContext;
+// }
 
 // tslint:disable-next-line:no-empty
 export let warn: (condition: boolean | Error, message: string) => void = () => {
@@ -508,12 +512,10 @@ export const uniqueId = (() => {
 })();
 
 export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>,
-  payload?: EventData
-  // id?: TEvent['type']
+  event: Event<TEvent>
 ): TEvent {
-  if (isString(event) || typeof event === 'number') {
-    return { type: event, ...payload } as TEvent;
+  if (isString(event)) {
+    return { type: event } as TEvent;
   }
 
   return event;

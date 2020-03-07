@@ -14,7 +14,7 @@ import {
 import {
   Event,
   StateValue,
-  StateTransition,
+  Transitions,
   EventObject,
   HistoryStateNodeConfig,
   StateNodeDefinition,
@@ -43,8 +43,6 @@ import {
   formatTransitions,
   getCandidates,
   getStateNodeById,
-  getRelativeStateNodes,
-  nodesFromChild,
   evaluateGuard,
   isStateId
 } from './stateUtils';
@@ -136,7 +134,6 @@ export class StateNode<
 
   protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
-    relativeValue: new Map() as Map<StateNode<TContext>, StateValue>,
     initialStateValue: undefined as StateValue | undefined,
     initialState: undefined as State<TContext, TEvent> | undefined,
     on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
@@ -242,6 +239,7 @@ export class StateNode<
       id: this.id,
       key: this.key,
       version: this.machine.version,
+      context: this.machine.context!,
       type: this.type,
       initial: this.initial,
       history: this.history,
@@ -353,11 +351,10 @@ export class StateNode<
   public next(
     state: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent>
-  ): StateTransition<TContext, TEvent> | undefined {
+  ): Transitions<TContext, TEvent> | undefined {
     const eventName = _event.name;
     const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-    let nextStateNodes: Array<StateNode<TContext, any, TEvent>> = [];
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
     const candidates =
@@ -400,53 +397,13 @@ export class StateNode<
       }
 
       if (guardPassed && isInState) {
-        if (candidate.target !== undefined) {
-          nextStateNodes = candidate.target;
-        }
         actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;
       }
     }
 
-    if (!selectedTransition) {
-      return undefined;
-    }
-    if (!nextStateNodes.length) {
-      return {
-        transitions: [selectedTransition],
-        entrySet: [],
-        exitSet: [],
-        configuration: state.value ? [this] : [],
-        source: state,
-        actions
-      };
-    }
-
-    const allNextStateNodes = flatten(
-      nextStateNodes.map(stateNode => {
-        return getRelativeStateNodes(stateNode, state.historyValue);
-      })
-    );
-
-    const isInternal = !!selectedTransition.internal;
-
-    const reentryNodes = isInternal
-      ? []
-      : flatten(
-          allNextStateNodes.map(nextStateNode =>
-            nodesFromChild(this, nextStateNode)
-          )
-        );
-
-    return {
-      transitions: [selectedTransition],
-      entrySet: reentryNodes,
-      exitSet: isInternal ? [] : [this],
-      configuration: allNextStateNodes,
-      source: state,
-      actions
-    };
+    return selectedTransition ? [selectedTransition] : undefined;
   }
 
   public get initialStateValue(): StateValue | undefined {

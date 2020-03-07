@@ -14,7 +14,7 @@
 import { useMachine } from '../src';
 import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
 import { watch } from '@vue/composition-api';
-import { spawnPromise } from 'xstate/lib/invoke';
+import { spawnPromise } from 'xstate/invoke';
 
 const context = {
   data: undefined

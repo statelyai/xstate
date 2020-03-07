@@ -3,10 +3,10 @@ import {
   ActionObject,
   TransitionDefinition,
   StateNode,
-  ActionType
+  ActionType,
+  MachineNode,
+  flatten
 } from 'xstate';
-import { MachineNode } from 'xstate/lib/MachineNode';
-import { flatten } from 'xstate/lib/utils';
 
 function cleanAttributes(attributes: Attributes): Attributes {
   for (const key of Object.keys(attributes)) {

@@ -16,26 +16,21 @@
   "author": "David Khourshid <davidkpiano@gmail.com>",
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
-  "main": "lib/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/test.cjs.js",
+  "module": "dist/test.esm.js",
   "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
+    "./dist/test.cjs.js": "./dist/test.browser.cjs.js",
+    "./dist/test.esm.js": "./dist/test.browser.esm.js"
   },
   "sideEffects": false,
   "files": [
-    "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "dist"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
-  "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "test": "jest --runInBand",
-    "build": "tsc",
-    "prepublish": "npm run build && npm run test"
-  },
+  "scripts": {},
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
@@ -43,15 +38,7 @@
     "xstate": "^4.7.6"
   },
   "devDependencies": {
-    "@types/jest-environment-puppeteer": "^4.0.0",
-    "jest": "^24.8.0",
-    "jest-environment-puppeteer": "^4.3.0",
-    "jest-puppeteer": "^4.3.0",
-    "lerna-alias": "3.0.3-0",
-    "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.7.5",
     "xstate": "*"
   },
   "dependencies": {

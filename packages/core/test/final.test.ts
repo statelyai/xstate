@@ -126,7 +126,7 @@ describe('final states', () => {
             },
             barFinal: {
               type: 'final',
-              onDone: { actions: 'barAction' }
+              entry: 'barAction'
             }
           }
         }

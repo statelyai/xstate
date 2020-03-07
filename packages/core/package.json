@@ -2,9 +2,8 @@
   "name": "xstate",
   "version": "4.7.8",
   "description": "Finite State Machines and Statecharts for the Modern Web.",
-  "main": "lib/index.js",
-  "module": "es/index.js",
-  "types": "lib/index.d.ts",
+  "main": "dist/xstate.cjs.js",
+  "module": "dist/xstate.esm.js",
   "sideEffects": false,
   "funding": {
     "type": "opencollective",
@@ -12,10 +11,8 @@
   },
   "files": [
     "dist",
-    "lib/**/*.js",
-    "lib/**/*.d.ts",
-    "es/**/*.js",
-    "es/**/*.d.ts"
+    "actions",
+    "invoke"
   ],
   "keywords": [
     "statechart",
@@ -26,17 +23,7 @@
     "state",
     "interpreter"
   ],
-  "scripts": {
-    "clean": "rm -rf lib es dist tsconfig.tsbuildinfo",
-    "test": "jest",
-    "build": "tsc && rollup -c && npm run annotate:es",
-    "annotate:es": "babel es --out-dir es --no-babelrc --plugins annotate-pure-calls",
-    "preversion": "npm run test",
-    "version": "npm run build",
-    "postversion": "git push --follow-tags",
-    "prepublishOnly": "npm run build",
-    "publish:next": "npm version prerelease && npm publish --tag next"
-  },
+  "scripts": {},
   "repository": {
     "type": "git",
     "url": "git+https://github.com/davidkpiano/xstate.git"
@@ -47,26 +34,22 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
+  "dependencies": {
+    "xml-js": "^1.6.11"
+  },
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
     "@scion-scxml/test-framework": "^2.0.15",
-    "babel-plugin-annotate-pure-calls": "^0.4.0",
-    "jest": "^24.8.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
-    "lerna-alias": "3.0.3-0",
     "pkg-up": "^3.1.0",
-    "rollup": "^1.26.3",
-    "rollup-plugin-filesize": "^6.2.1",
-    "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.25.2",
-    "rollup-plugin-uglify": "^6.0.2",
-    "rxjs": "^6.5.1",
-    "ts-jest": "^24.1.9",
-    "tslib": "^1.10.0",
-    "typescript": "^3.7.5",
-    "xml-js": "^1.6.11"
+    "rxjs": "^6.5.1"
+  },
+  "preconstruct": {
+    "umdName": "XState",
+    "entrypoints": [
+      ".",
+      "actions",
+      "invoke"
+    ]
   }
 }

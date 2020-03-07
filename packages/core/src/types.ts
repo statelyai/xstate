@@ -40,8 +40,6 @@ export interface ActionObject<TContext, TEvent extends EventObject> {
 
 export type DefaultContext = Record<string, any> | undefined;
 
-export type EventData = Record<string, any> & { type?: never };
-
 /**
  * The specified string event types or the specified event objects.
  */
@@ -103,11 +101,6 @@ export interface StateValueMap {
  * - For complex state nodes, this is an object, e.g., `{ success: "someChildState" }`.
  */
 export type StateValue = string | StateValueMap;
-
-export interface HistoryValue {
-  states: Record<string, HistoryValue | undefined>;
-  current: StateValue | undefined;
-}
 
 export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
@@ -493,6 +486,7 @@ export interface StateNodeDefinition<
   id: string;
   version?: string | undefined;
   key: string;
+  context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
   history: boolean | 'shallow' | 'deep' | undefined;
@@ -588,22 +582,18 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
+export type HistoryValue<TContext, TEvent extends EventObject> = Record<
+  string,
+  Array<StateNode<TContext, any, TEvent>>
+>;
+
 export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
   TMachine['transition']
 >;
 
-// tslint:disable-next-line:class-name
-export interface StateTransition<TContext, TEvent extends EventObject> {
-  transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
-  entrySet: Array<StateNode<TContext, any, TEvent>>;
-  exitSet: Array<StateNode<TContext, any, TEvent>>;
-  /**
-   * The source state that preceded the transition.
-   */
-  source: State<TContext> | undefined;
-  actions: Array<ActionObject<TContext, TEvent>>;
-}
+export type Transitions<TContext, TEvent extends EventObject> = Array<
+  TransitionDefinition<TContext, TEvent>
+>;
 
 export enum ActionTypes {
   Start = 'xstate.start',
@@ -750,7 +740,13 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
 }
 
-export interface CancelAction extends ActionObject<any, any> {
+export interface CancelAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  sendId: string | number | ExprWithMeta<TContext, TEvent, string | number>;
+}
+
+export interface CancelActionObject<TContext, TEvent extends EventObject>
+  extends CancelAction<TContext, TEvent> {
   sendId: string | number;
 }
 
@@ -911,8 +907,8 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   context: TContext;
   _event: SCXML.Event<TEvent>;
   _sessionid: string | null;
-  historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent>;
+  historyValue?: HistoryValue<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;
   events?: TEvent[];
@@ -959,7 +955,7 @@ export interface InterpreterOptions {
   [option: string]: any;
 }
 
-export namespace SCXML {
+export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
   export interface Event<TEvent extends EventObject> {
     /**

@@ -7,7 +7,8 @@ import {
   StateSchema,
   MachineConfig,
   SCXML,
-  Typestate
+  Typestate,
+  Transitions
 } from './types';
 import { State } from './State';
 
@@ -223,31 +224,10 @@ export class MachineNode<
       }
     }
 
-    const stateTransition = transitionNode(
-      this,
-      currentState.value,
-      currentState,
-      _event
-    ) || {
-      transitions: [],
-      configuration: [],
-      entrySet: [],
-      exitSet: [],
-      source: currentState,
-      actions: []
-    };
+    const transitions: Transitions<TContext, TEvent> =
+      transitionNode(this, currentState.value, currentState, _event) || [];
 
-    const prevConfig = getConfiguration(
-      [],
-      getStateNodes(this, currentState.value)
-    );
-    const resolvedConfig = stateTransition.configuration.length
-      ? getConfiguration(prevConfig, stateTransition.configuration)
-      : prevConfig;
-
-    stateTransition.configuration = [...resolvedConfig];
-
-    return resolveTransition(this, stateTransition, currentState, _event);
+    return resolveTransition(this, transitions, currentState, _event);
   }
 
   /**
@@ -264,7 +244,7 @@ export class MachineNode<
       );
     }
 
-    return getInitialState(this, initialStateValue);
+    return getInitialState(this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

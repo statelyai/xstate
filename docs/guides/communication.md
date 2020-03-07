@@ -19,10 +19,10 @@ An invocation is defined in a state node's configuration with the `invoke` prope
 
 - `src` - the source of the service to invoke, which can be:
   - a machine
-  - a string, which refers to a machine defined in this machine's `options.services`
   - a function that returns a `Promise`
   - a function that returns a "callback handler"
   - a function that returns an observable
+  - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
 - `id` - the unique identifier for the invoked service
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or
@@ -510,7 +510,7 @@ const pingMachine = Machine({
       invoke: {
         id: 'pong',
         src: pongMachine
-      }
+      },
       // Sends 'PING' event to child machine with ID 'pong'
       entry: send('PING', { to: 'pong' }),
       on: {

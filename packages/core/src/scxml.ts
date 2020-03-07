@@ -7,7 +7,7 @@ import {
   DelayExpr
 } from './types';
 import { Machine } from './index';
-import { mapValues, keys, isString } from './utils';
+import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
 import { spawnMachine } from './invoke';
 import { MachineNode } from './MachineNode';
@@ -142,8 +142,19 @@ function mapActions<
 
           return evaluateExecutableContent(context, e, meta, fnBody);
         });
-      case 'send':
-        const { event, eventexpr, target } = element.attributes!;
+      case 'cancel':
+        if ('sendid' in element.attributes!) {
+          return actions.cancel(element.attributes!.sendid! as string);
+        }
+        return actions.cancel((context, e, meta) => {
+          const fnBody = `
+            return ${element.attributes!.sendidexpr};
+          `;
+
+          return evaluateExecutableContent(context, e, meta, fnBody);
+        });
+      case 'send': {
+        const { event, eventexpr, target, id } = element.attributes!;
 
         let convertedEvent: TEvent['type'] | SendExpr<TContext, TEvent>;
         let convertedDelay: number | DelayExpr<TContext, TEvent> | undefined;
@@ -189,8 +200,10 @@ function mapActions<
 
         return actions.send<TContext, TEvent>(convertedEvent, {
           delay: convertedDelay,
-          to: target as string | undefined
+          to: target as string | undefined,
+          id: id as string | undefined
         });
+      }
       case 'log':
         const label = element.attributes!.label;
 
@@ -268,11 +281,11 @@ function toConfig(
       element => element.name === 'invoke'
     );
 
-    const onEntryElement = nodeJson.elements.find(
+    const onEntryElements = nodeJson.elements.filter(
       element => element.name === 'onentry'
     );
 
-    const onExitElement = nodeJson.elements.find(
+    const onExitElements = nodeJson.elements.filter(
       element => element.name === 'onexit'
     );
 
@@ -295,6 +308,14 @@ function toConfig(
 
     const on = transitionElements.map(value => {
       const event = getAttribute(value, 'event') || '';
+
+      if (event === 'done.invoke') {
+        throw new Error(
+          'done.invoke gets often used in SCXML tests as inexact event descriptor.' +
+            " As long as this stay unimplemented or done.invoke doesn't get a specialcased while converting throw when seeing it to avoid tests using this to pass by accident."
+        );
+      }
+
       const targets = getAttribute(value, 'target');
       const internal = getAttribute(value, 'type') === 'internal';
 
@@ -317,12 +338,16 @@ function toConfig(
       };
     });
 
-    const onEntry = onEntryElement
-      ? mapActions(onEntryElement.elements!)
+    const onEntry = onEntryElements
+      ? flatten(
+          onEntryElements.map(onEntryElement =>
+            mapActions(onEntryElement.elements!)
+          )
+        )
       : undefined;
 
-    const onExit = onExitElement
-      ? mapActions(onExitElement.elements!)
+    const onExit = onExitElements
+      ? onExitElements.map(onExitElement => mapActions(onExitElement.elements!))
       : undefined;
 
     const invoke = invokeElements.map(element => {
@@ -338,7 +363,11 @@ function toConfig(
         el => el.name === 'content'
       ) as XMLElement;
 
-      return spawnMachine(scxmlToMachine(content, options));
+      return {
+        ...(element.attributes!.id && { id: element.attributes!.id as string }),
+        src: spawnMachine(scxmlToMachine(content, options)),
+        autoForward: element.attributes!.autoforward === 'true'
+      };
     });
 
     return {
@@ -378,7 +407,7 @@ function scxmlToMachine(
     element => element.name === 'datamodel'
   )[0];
 
-  const extState = dataModelEl
+  const context = dataModelEl
     ? dataModelEl
         .elements!.filter(element => element.name === 'data')
         .reduce((acc, element) => {
@@ -397,7 +426,7 @@ function scxmlToMachine(
 
   return Machine({
     ...toConfig(machineElement, '(machine)', options),
-    context: extState,
+    context,
     delimiter: options.delimiter
   });
 }

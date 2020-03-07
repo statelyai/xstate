@@ -146,8 +146,8 @@ describe('spawning machines', () => {
       })
       .start();
 
-    service.send('ADD', { id: 42 });
-    service.send('SET_COMPLETE', { id: 42 });
+    service.send({ type: 'ADD', id: 42 });
+    service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
   it('should invoke actors (when sending batch)', done => {
@@ -158,7 +158,7 @@ describe('spawning machines', () => {
       .start();
 
     service.send([{ type: 'ADD', id: 42 }]);
-    service.send('SET_COMPLETE', { id: 42 });
+    service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
   it('should invoke a null actor if spawned outside of a service', () => {

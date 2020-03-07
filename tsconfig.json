@@ -1,11 +1,10 @@
 {
   "compilerOptions": {
     "allowSyntheticDefaultImports": true,
-    "composite": true,
-    "target": "es5",
-    "declaration": true,
-    "declarationMap": true,
+    "target": "esnext",
+    "isolatedModules": true,
     "moduleResolution": "node",
+    "noEmit": true,
     "noUnusedLocals": true,
     "noUnusedParameters": true,
     "strictNullChecks": true,
