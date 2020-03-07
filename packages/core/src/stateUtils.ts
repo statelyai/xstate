@@ -1745,13 +1745,6 @@ export function macrostep<TContext, TEvent extends EventObject>(
     // Since macrostep actions have not been executed yet,
     // prioritize them in the action queue
     maybeNextState.actions.unshift(...currentActions);
-    // return state;
-    // maybeNextState = resolveRaisedTransition(
-    //   machine,
-    //   maybeNextState,
-    //   raisedEvent,
-    //   _event
-    // );
   }
 
   return maybeNextState;
