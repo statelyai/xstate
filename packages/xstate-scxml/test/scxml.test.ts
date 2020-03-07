@@ -3,6 +3,7 @@ import {
   State,
   interpret,
   MachineNode,
+  SimulatedClock,
   toMachine,
   getStateNodes
 } from 'xstate';
@@ -19,44 +20,39 @@ interface SCIONTest {
   }>;
 }
 
-const sleep = (ms: number): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
-
-type MachineStatus = 'success' | 'running';
-
 async function runTestToCompletion(
   machine: MachineNode,
   test: SCIONTest
 ): Promise<void> {
-  let status: 'success' | 'running' = 'running';
+  let done = false;
   let nextState: State<any> = machine.initialState;
 
-  const service = interpret(machine)
+  const service = interpret(machine, {
+    clock: new SimulatedClock()
+  })
     .onTransition(state => {
       nextState = state;
     })
     .onDone(() => {
-      status = 'success';
+      done = true;
     })
     .start(nextState);
 
-  for (const { event, nextConfiguration, after } of test.events) {
-    switch (status as MachineStatus) {
-      case 'running':
-        if (after) {
-          await sleep(after);
-        }
-        service.send(event.name);
-        const stateIds = getStateNodes(machine, nextState).map(
-          stateNode => stateNode.id
-        );
-
-        expect(stateIds).toContain(nextConfiguration[0]);
-        break;
-      case 'success':
-        return;
+  test.events.forEach(({ event, nextConfiguration, after }) => {
+    if (done) {
+      return;
     }
-  }
+    if (after) {
+      (service.clock as SimulatedClock).increment(after);
+    }
+    service.send(event.name);
+
+    const stateIds = getStateNodes(machine, nextState).map(
+      stateNode => stateNode.id
+    );
+
+    expect(stateIds).toContain(nextConfiguration[0]);
+  });
 }
 
 const testGroups = {

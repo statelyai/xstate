@@ -1,4 +1,5 @@
 import { interpret, Interpreter, spawn } from '../src/interpreter';
+import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
   Machine,
@@ -22,9 +23,6 @@ import {
   spawnPromise,
   spawnActivity
 } from '../src/invoke';
-
-const sleep = (ms: number): Promise<void> =>
-  new Promise(resolve => setTimeout(resolve, ms));
 
 const lightMachine = Machine({
   id: 'light',
@@ -157,7 +155,9 @@ describe('interpreter', () => {
     it('returns the next state for the given event without changing the interpreter state', () => {
       let state: any;
 
-      const service = interpret(lightMachine)
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      })
         .onTransition(s => {
           state = s;
         })
@@ -170,186 +170,202 @@ describe('interpreter', () => {
   });
 
   describe('send with delay', () => {
-    it('can send an event after a delay', async () => {
-      const machine = createMachine({
-        initial: 'first',
-        states: {
-          first: {
-            entry: send('NEXT', { delay: 50 }),
-            on: {
-              NEXT: 'second'
-            }
-          },
-          second: {
-            entry: send('NEXT', { delay: 50 }),
-            on: {
-              NEXT: 'third'
-            }
-          },
-          third: {}
+    it('can send an event after a delay', () => {
+      const currentStates: Array<State<any>> = [];
+      const listener = state => {
+        currentStates.push(state);
+
+        if (currentStates.length === 4) {
+          expect(currentStates.map(s => s.value)).toEqual([
+            'green',
+            'yellow',
+            'red',
+            'green'
+          ]);
         }
-      });
+      };
 
-      const service = interpret(machine).start();
+      const service = interpret(lightMachine, {
+        clock: new SimulatedClock()
+      }).onTransition(listener);
+      const clock = service.clock as SimulatedClock;
+      service.start();
 
-      expect(service.state.value).toBe('first');
-      await sleep(60);
-      expect(service.state.value).toBe('second');
-      await sleep(60);
-      expect(service.state.value).toBe('third');
+      clock.increment(5);
+      expect(currentStates[0]!.value).toEqual('green');
+
+      clock.increment(5);
+      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
+
+      clock.increment(5);
+      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
+
+      clock.increment(5);
+      expect(currentStates.map(s => s.value)).toEqual([
+        'green',
+        'yellow',
+        'red'
+      ]);
+
+      clock.increment(5);
+      expect(currentStates.map(s => s.value)).toEqual([
+        'green',
+        'yellow',
+        'red'
+      ]);
+
+      clock.increment(5);
+      expect(currentStates.map(s => s.value)).toEqual([
+        'green',
+        'yellow',
+        'red',
+        'green'
+      ]);
     });
 
-    it('can send a delayed event using delay expression', async () => {
-      const machine = createMachine({
-        initial: 'first',
-        states: {
-          first: {
-            entry: send('NEXT', { delay: () => 50 }),
-            on: {
-              NEXT: 'second'
-            }
-          },
-          second: {
-            entry: send('NEXT', { delay: () => 50 }),
-            on: {
-              NEXT: 'third'
-            }
-          },
-          third: {}
-        }
-      });
+    it('can send an event after a delay (expression)', () => {
+      interface DelayExprMachineCtx {
+        initialDelay: number;
+      }
 
-      const service = interpret(machine).start();
+      type DelayExpMachineEvents =
+        | { type: 'ACTIVATE'; wait: number }
+        | { type: 'FINISH' };
 
-      expect(service.state.value).toBe('first');
-      await sleep(60);
-      expect(service.state.value).toBe('second');
-      await sleep(60);
-      expect(service.state.value).toBe('third');
-    });
-
-    it('can send a delayed event using delay expression using context', async () => {
-      const machine = createMachine<{ baseDelay: number }>({
-        initial: 'first',
+      const delayExprMachine = Machine<
+        DelayExprMachineCtx,
+        DelayExpMachineEvents
+      >({
+        id: 'delayExpr',
         context: {
-          baseDelay: 70
+          initialDelay: 100
         },
+        initial: 'idle',
         states: {
-          first: {
-            entry: send('NEXT', { delay: ctx => ctx.baseDelay }),
+          idle: {
             on: {
-              NEXT: 'second'
+              ACTIVATE: 'pending'
             }
           },
-          second: {
-            entry: send('NEXT', { delay: ctx => ctx.baseDelay }),
+          pending: {
+            entry: send('FINISH', {
+              delay: (ctx, e) =>
+                ctx.initialDelay +
+                ('wait' in e
+                  ? (e as Extract<DelayExpMachineEvents, { type: 'ACTIVATE' }>)
+                      .wait
+                  : 0)
+            }),
             on: {
-              NEXT: 'third'
+              FINISH: 'finished'
             }
           },
-          third: {}
+          finished: { type: 'final' }
         }
       });
 
-      const service = interpret(machine).start();
+      let stopped = false;
 
-      expect(service.state.value).toBe('first');
-      await sleep(80);
-      expect(service.state.value).toBe('second');
-      await sleep(80);
-      expect(service.state.value).toBe('third');
+      const clock = new SimulatedClock();
+
+      const delayExprService = interpret(delayExprMachine, {
+        clock
+      })
+        .onDone(() => {
+          stopped = true;
+        })
+        .start();
+
+      delayExprService.send({
+        type: 'ACTIVATE',
+        wait: 50
+      });
+
+      clock.increment(101);
+
+      expect(stopped).toBe(false);
+
+      clock.increment(50);
+
+      expect(stopped).toBe(true);
     });
 
-    it('can send a delayed event using delay expression using received event', async () => {
-      type MachineEvent =
-        | { type: 'NEXT' }
-        | { type: 'SCHEDULE_NEXT'; wait: number };
+    it('can send an event after a delay (expression using _event)', () => {
+      interface DelayExprMachineCtx {
+        initialDelay: number;
+      }
 
-      const machine = createMachine<{}, MachineEvent>({
-        initial: 'first',
-        on: {
-          SCHEDULE_NEXT: {
-            actions: send('NEXT', {
-              delay: (_ctx, event) =>
-                (event as Extract<MachineEvent, { type: 'SCHEDULE_NEXT' }>).wait
-            })
+      type DelayExpMachineEvents =
+        | {
+            type: 'ACTIVATE';
+            wait: number;
           }
+        | {
+            type: 'FINISH';
+          };
+
+      const delayExprMachine = Machine<
+        DelayExprMachineCtx,
+        DelayExpMachineEvents
+      >({
+        id: 'delayExpr',
+        context: {
+          initialDelay: 100
         },
+        initial: 'idle',
         states: {
-          first: {
+          idle: {
             on: {
-              NEXT: 'second'
+              ACTIVATE: 'pending'
             }
           },
-          second: {
-            on: {
-              NEXT: 'third'
-            }
-          },
-          third: {}
-        }
-      });
-
-      const service = interpret(machine).start();
-
-      expect(service.state.value).toBe('first');
-
-      service.send({ type: 'SCHEDULE_NEXT', wait: 20 });
-      await sleep(30);
-      expect(service.state.value).toBe('second');
-
-      service.send({ type: 'SCHEDULE_NEXT', wait: 20 });
-      await sleep(30);
-      expect(service.state.value).toBe('third');
-    });
-
-    it('can send a delayed event using delay expression using _event from meta argument', async () => {
-      type MachineEvent =
-        | { type: 'NEXT' }
-        | { type: 'SCHEDULE_NEXT'; wait: number };
-
-      const machine = createMachine<{}, MachineEvent>({
-        initial: 'first',
-        on: {
-          SCHEDULE_NEXT: {
-            actions: send('NEXT', {
-              delay: (_ctx, _ev, { _event }) =>
+          pending: {
+            entry: send('FINISH', {
+              delay: (ctx, _, { _event }) =>
+                ctx.initialDelay +
                 (_event.data as Extract<
-                  MachineEvent,
-                  { type: 'SCHEDULE_NEXT' }
+                  DelayExpMachineEvents,
+                  { type: 'ACTIVATE' }
                 >).wait
-            })
+            }),
+            on: {
+              FINISH: 'finished'
+            }
+          },
+          finished: {
+            type: 'final'
           }
-        },
-        states: {
-          first: {
-            on: {
-              NEXT: 'second'
-            }
-          },
-          second: {
-            on: {
-              NEXT: 'third'
-            }
-          },
-          third: {}
         }
       });
 
-      const service = interpret(machine).start();
+      let stopped = false;
 
-      expect(service.state.value).toBe('first');
+      const clock = new SimulatedClock();
 
-      service.send({ type: 'SCHEDULE_NEXT', wait: 20 });
-      await sleep(30);
-      expect(service.state.value).toBe('second');
+      const delayExprService = interpret(delayExprMachine, {
+        clock
+      })
+        .onDone(() => {
+          stopped = true;
+        })
+        .start();
 
-      service.send({ type: 'SCHEDULE_NEXT', wait: 20 });
-      await sleep(30);
-      expect(service.state.value).toBe('third');
+      delayExprService.send({
+        type: 'ACTIVATE',
+        wait: 50
+      });
+
+      clock.increment(101);
+
+      expect(stopped).toBe(false);
+
+      clock.increment(50);
+
+      expect(stopped).toBe(true);
     });
 
-    it('can send an event after a delay (delayed transitions)', async () => {
+    it('can send an event after a delay (delayed transitions)', done => {
+      const clock = new SimulatedClock();
       const letterMachine = Machine(
         {
           id: 'letter',
@@ -412,23 +428,25 @@ describe('interpreter', () => {
 
       let state: any;
 
-      interpret(letterMachine)
+      interpret(letterMachine, { clock })
         .onTransition(s => {
           state = s;
+        })
+        .onDone(() => {
+          done();
         })
         .start();
 
       expect(state.value).toEqual('a');
-      await sleep(100);
+      clock.increment(100);
       expect(state.value).toEqual('b');
-      await sleep(100 + 50);
+      clock.increment(100 + 50);
       expect(state.value).toEqual('c');
-      await sleep(20);
+      clock.increment(20);
       expect(state.value).toEqual('d');
-      await sleep(100 + 200);
+      clock.increment(100 + 200);
       expect(state.value).toEqual('e');
-      await sleep(100 + 50);
-      expect(state.value).toEqual('f');
+      clock.increment(100 + 50);
     });
   });
 
@@ -573,31 +591,22 @@ describe('interpreter', () => {
     });
   });
 
-  it('can cancel a delayed event', async () => {
-    const machine = createMachine({
-      initial: 'first',
-      on: {
-        CANCEL_NEXT: {
-          actions: actions.cancel('NEXT')
-        }
-      },
-      states: {
-        first: {
-          entry: send('NEXT', { delay: 10 }),
-          on: {
-            NEXT: 'second'
-          }
-        },
-        second: {}
-      }
-    });
+  it('can cancel a delayed event', () => {
+    let currentState: State<any>;
+    const listener = state => (currentState = state);
 
-    const service = interpret(machine).start();
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock()
+    }).onTransition(listener);
+    const clock = service.clock as SimulatedClock;
+    service.start();
 
-    expect(service.state.value).toBe('first');
-    service.send('CANCEL_NEXT');
-    await sleep(50);
-    expect(service.state.value).toBe('first');
+    clock.increment(5);
+    service.send('KEEP_GOING');
+
+    expect(currentState!.value).toEqual('green');
+    clock.increment(10);
+    expect(currentState!.value).toEqual('green');
   });
 
   it('can cancel a delayed event using expression to resolve send id', done => {
@@ -639,6 +648,7 @@ describe('interpreter', () => {
 
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
     const service = interpret(lightMachine, {
+      clock: new SimulatedClock(),
       deferEvents: false
     });
 
@@ -653,6 +663,7 @@ describe('interpreter', () => {
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
     const service = interpret(lightMachine, {
+      clock: new SimulatedClock(),
       deferEvents: true
     });
 
@@ -664,7 +675,9 @@ describe('interpreter', () => {
   });
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
-    const service = interpret(lightMachine);
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock()
+    });
 
     expect(() => service.send('SOME_EVENT')).not.toThrow();
 
@@ -733,46 +746,22 @@ describe('interpreter', () => {
     );
   });
 
-  it('should not update when stopped', async () => {
-    const machine = createMachine({
-      initial: 'first',
-      on: {
-        SCHEDULE_NEXT: {
-          actions: send('NEXT', {
-            delay: 50
-          })
-        }
-      },
-      states: {
-        first: {
-          on: {
-            NEXT: 'second'
-          }
-        },
-        second: {
-          on: {
-            NEXT: 'third'
-          }
-        },
-        third: {}
-      }
-    });
+  it('should not update when stopped', () => {
+    let state = lightMachine.initialState;
+    const service = interpret(lightMachine, {
+      clock: new SimulatedClock()
+    }).onTransition(s => (state = s));
 
-    const service = interpret(machine).start();
-
-    expect(service.state.value).toBe('first');
-
-    service.send('SCHEDULE_NEXT');
-    await sleep(60);
-    expect(service.state.value).toBe('second');
+    service.start();
+    service.send('TIMER'); // yellow
+    expect(state.value).toEqual('yellow');
 
     service.stop();
-
     try {
-      service.send('SCHEDULE_NEXT');
-    } catch (_err) {}
-
-    expect(service.state.value).toBe('second');
+      service.send('TIMER'); // red if interpreter is not stopped
+    } catch (e) {
+      expect(state.value).toEqual('yellow');
+    }
   });
 
   it('should be able to log (log action)', () => {
