@@ -1440,7 +1440,7 @@ export function microstep<TContext, TEvent extends EventObject>(
 
   // internal queue events
   actions.push(
-    ...res.internalQueue.map(event => raise<TContext, TEvent>(event as TEvent))
+    ...res.internalQueue.map(event => raise<TContext, TEvent>(event.data))
   );
 
   actions.push(
@@ -1520,24 +1520,6 @@ export function resolveMicroTransition<
     }
   }
 
-  const resolvedConfiguration = willTransition
-    ? Array.from(resolved.configuration)
-    : currentState
-    ? currentState.configuration
-    : [];
-
-  const meta = resolvedConfiguration.reduce(
-    (acc, subStateNode) => {
-      if (subStateNode.meta !== undefined) {
-        acc[subStateNode.id] = subStateNode.meta;
-      }
-      return acc;
-    },
-    {} as Record<string, string>
-  );
-
-  const isDone = isInFinalState(resolvedConfiguration, machine);
-
   if (!willTransition) {
     return new State<TContext, TEvent, any, TTypestate>({
       value: currentState!.value,
@@ -1549,13 +1531,30 @@ export function resolveMicroTransition<
       actions: [],
       meta: currentState!.meta,
       events: [],
-      configuration: resolvedConfiguration,
+      configuration: currentState!.configuration,
       transitions,
-      children,
-      done: isDone,
-      historyValue: resolved.historyValue
+      children: currentState!.children,
+      done: currentState!.done,
+      historyValue: currentState!.historyValue
     });
   }
+
+  const resolvedConfiguration = willTransition
+    ? Array.from(resolved.configuration)
+    : currentState
+    ? currentState.configuration
+    : [];
+  const isDone = isInFinalState(resolvedConfiguration, machine);
+
+  const meta = resolvedConfiguration.reduce(
+    (acc, subStateNode) => {
+      if (subStateNode.meta !== undefined) {
+        acc[subStateNode.id] = subStateNode.meta;
+      }
+      return acc;
+    },
+    {} as Record<string, string>
+  );
 
   const currentContext = currentState ? currentState.context : machine.context;
 
@@ -1603,7 +1602,6 @@ export function resolveMicroTransition<
       nextState.actions.length > 0 ||
       context !== currentContext;
   nextState._internalQueue = raisedEventActions.map(r => r._event);
-  nextState.context = context;
 
   const isTransient = [...resolvedConfiguration].some(sn => sn.isTransient);
 

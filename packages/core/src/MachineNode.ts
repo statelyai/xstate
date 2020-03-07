@@ -20,9 +20,7 @@ import {
   getChildren,
   getAllStateNodes,
   resolveMicroTransition,
-  macrostep,
-  getStateValue,
-  stateValuesEqual
+  macrostep
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -32,7 +30,6 @@ import {
   resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
-import { macrostep as newmacrostep } from './macrostep';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -208,49 +205,37 @@ export class MachineNode<
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    // Assume the state is at rest (no raised events)
+    // Determine the next state based on the next microstep
     const nextState = this.microstep(state, event);
 
-    // const otherState = this._transition(state, event);
-    // console.log('Returned:', otherState.value);
+    const { _event, _internalQueue } = nextState;
+    const internalQueue = [..._internalQueue];
+    let maybeNextState = nextState;
 
-    const resultState = macrostep(nextState, this);
+    while (internalQueue.length && !maybeNextState.done) {
+      const raisedEvent = internalQueue.shift()!;
+      const currentActions = maybeNextState.actions;
 
-    // if (!stateValuesEqual(resultState.value, otherState.value)) {
-    // throw new Error(
-    //   `Mismatch for ${
-    //     typeof state === 'string' ? state : state.value
-    //   } on ${JSON.stringify(event)}\n\nExpected ${JSON.stringify(
-    //     resultState.value
-    //   )}, got ${JSON.stringify(otherState.value)}`
-    // );
-    // }
-
-    return resultState;
-  }
-
-  public _transition(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent>;
-
-    if (state instanceof State) {
-      currentState = this.resolveState(state);
-    } else {
-      const resolvedStateValue = resolveStateValue(this, state);
-      const resolvedContext = this.machine.context!;
-
-      currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+      maybeNextState = this.microstep(
+        maybeNextState,
+        raisedEvent as SCXML.Event<TEvent>
       );
+
+      maybeNextState = macrostep(maybeNextState, this);
+
+      // Save original event to state
+      if (raisedEvent.type === NULL_EVENT) {
+        maybeNextState._event = _event;
+        maybeNextState.event = _event.data;
+      }
+
+      // Since macrostep actions have not been executed yet,
+      // prioritize them in the action queue
+      maybeNextState.actions.unshift(...currentActions);
     }
 
-    const nextState = newmacrostep(currentState, _event, this);
-
-    console.log('_transition returning', nextState.value);
-
-    return nextState;
+    return maybeNextState;
   }
 
   public microstep(
