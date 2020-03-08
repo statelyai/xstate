@@ -77,19 +77,6 @@ export function getEventType<TEvent extends EventObject = EventObject>(
     );
   }
 }
-export function getActionType(action: Action<any, any>): ActionType {
-  try {
-    return isString(action) || typeof action === 'number'
-      ? `${action}`
-      : isFunction(action)
-      ? action.name
-      : action.type;
-  } catch (e) {
-    throw new Error(
-      'Actions must be strings or objects with a string action.type property.'
-    );
-  }
-}
 
 export function toStatePath(
   stateId: string | string[],

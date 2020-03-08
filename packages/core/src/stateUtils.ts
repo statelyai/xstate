@@ -906,32 +906,6 @@ export function transitionNode<TContext, TEvent extends EventObject>(
   return transitionParallelNode(stateNode, stateValue, state, _event);
 }
 
-export function resolveRaisedTransition<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, any, TEvent>,
-  state: State<TContext, TEvent, any, TTypestate>,
-  _event: SCXML.Event<TEvent> | NullEvent,
-  originalEvent: SCXML.Event<TEvent>
-): State<TContext, TEvent, any, TTypestate> {
-  const currentActions = state.actions;
-
-  state = machine.transition(state, _event as SCXML.Event<TEvent>);
-
-  // Save original event to state
-  if (_event.type === NULL_EVENT) {
-    state._event = originalEvent;
-    state.event = originalEvent.data;
-  }
-
-  // Since macrostep actions have not been executed yet,
-  // prioritize them in the action queue
-  state.actions.unshift(...currentActions);
-  return state;
-}
-
 function getHistoryNodes<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
@@ -1513,7 +1487,7 @@ export function resolveMicroTransition<
             target: [...prevConfig],
             source: machine,
             actions: [],
-            eventType: 'init'
+            eventType: null as any
           }
         ],
     currentState,
@@ -1541,25 +1515,6 @@ export function resolveMicroTransition<
         );
       });
     }
-  }
-
-  if (!willTransition) {
-    return new State<TContext, TEvent, any, TTypestate>({
-      value: currentState!.value,
-      context: currentState!.context,
-      _event,
-      // Persist _sessionid between states
-      _sessionid: currentState!._sessionid,
-      history: currentState,
-      actions: [],
-      meta: currentState!.meta,
-      events: [],
-      configuration: currentState!.configuration,
-      transitions,
-      children: currentState!.children,
-      done: currentState!.done,
-      historyValue: currentState!.historyValue
-    });
   }
 
   const resolvedConfiguration = willTransition
@@ -1624,6 +1579,7 @@ export function resolveMicroTransition<
       _event.name === actionTypes.update ||
       nextState.actions.length > 0 ||
       context !== currentContext;
+  nextState._internalQueue = resolved.internalQueue;
   nextState._internalQueue = raisedEventActions.map(r => r._event);
 
   const isTransient =
