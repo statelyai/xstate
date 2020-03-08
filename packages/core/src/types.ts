@@ -373,7 +373,8 @@ export interface StateNodeConfig<
   /**
    * The initial state transition.
    */
-  initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
+  // initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
+  initial?: SingleOrArray<string>;
   /**
    * The type of this state node:
    *
@@ -495,7 +496,7 @@ export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
 export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvent> {
   history: 'shallow' | 'deep' | true;
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
@@ -559,7 +560,7 @@ export interface MachineConfig<
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export type HistoryValue<TContext, TEvent extends EventObject> = Record<

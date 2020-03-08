@@ -248,22 +248,7 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const { initialStateValue } = this;
-
-    if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}'.`
-      );
-    }
-
-    const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
-      this,
-      [],
-      undefined,
-      undefined
-    );
-
-    return macrostep<TContext, TEvent>(nextState, null, this);
+    return getinitialstate(this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

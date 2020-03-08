@@ -166,7 +166,9 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
         : 'state',
     attributes: {
       id: stateNode.id,
-      initial: stateNode.initial ? `${stateNode.initial.target[0]}` : undefined
+      ...(stateNode.initial.target.length && {
+        initial: stateNode.initial.target.map(s => s.id).join(' ')
+      })
     },
     elements
   };
@@ -189,7 +191,7 @@ export function toSCXML(machine: MachineNode<any, any, any>): string {
           name: 'scxml',
           attributes: {
             xmlns: 'http://www.w3.org/2005/07/scxml',
-            initial: initial ? initial.target[0].key : undefined,
+            initial: initial.target.map(s => s.id).join(' '),
             // 'xmlns:xi': 'http://www.w3.org/2001/XInclude',
             version: '1.0',
             datamodel: 'ecmascript'

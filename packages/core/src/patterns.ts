@@ -75,7 +75,7 @@ export function sequence<
   });
 
   return {
-    initial: items[0] as keyof TStateSchema['states'],
+    initial: items[0] as string,
     states: states as StatesConfig<any, TStateSchema, TEvent>
   };
 }

@@ -251,14 +251,14 @@ const testGroups = {
     // 'test352.txml', // _event.origintype not implemented yet
     // 'test354.txml', // conversion of namelist not implemented yet
     'test355.txml',
-    // 'test364.txml', // deep initial states not implemented yet
+    'test364.txml',
     // 'test372.txml', // microstep not implemented correctly
     'test375.txml',
     // 'test376.txml', // executable blocks not implemented
     'test377.txml',
     // 'test378.txml', // executable blocks not implemented
     'test387.txml',
-    // 'test388.txml', // deep initial states not implemented yet
+    // 'test388.txml', // computed historyValue not being available immediately after exiting states for the following synchronous enterStates
     'test396.txml',
     // 'test399.txml', // inexact prefix event matching not implemented
     // 'test401.txml', // error.execution when evaluating assign
@@ -273,7 +273,7 @@ const testGroups = {
     'test409.txml',
     // 'test411.txml', // conversion of In() predicate not implemented yet + <if> not implemented yet + microstep not implemented correctly
     // 'test412.txml', // initial transitions with executable content not implemented yet
-    // 'test413.txml', // deep initial states not implemented yet
+    // 'test413.txml', // conversion of In() predicate not implemented yet
     'test416.txml',
     'test417.txml',
     'test419.txml',
@@ -331,8 +331,8 @@ const testGroups = {
     // 'test562.txml', // test that processor creates space normalized string in _event.data when receiving anything other than KVPs or XML in an event
     // 'test567.txml', // Basic HTTP Event I/O processor not implemented
     // 'test569.txml', // _ioprocessors not yet available for expressions
-    'test570.txml'
-    // 'test576.txml', // deep initial states not implemented yet
+    'test570.txml',
+    'test576.txml'
     // 'test577.txml', // Basic HTTP Event I/O processor not implemented
     // 'test578.txml', // conversion of <content> in <send> not implemented yet
     // 'test579.txml' // executable content in history states not implemented yet
@@ -399,7 +399,7 @@ async function runTestToCompletion(
       }
       done = true;
     })
-    .start(nextState);
+    .start();
 
   test.events.forEach(({ event, nextConfiguration, after }) => {
     if (done) {
