@@ -3,9 +3,7 @@ import {
   toStateValue,
   mapValues,
   path,
-  pathToStateValue,
   flatten,
-  mapFilterValues,
   toArray,
   keys,
   isString,
@@ -13,7 +11,6 @@ import {
 } from './utils';
 import {
   Event,
-  StateValue,
   Transitions,
   EventObject,
   HistoryStateNodeConfig,
@@ -31,13 +28,14 @@ import {
   PropertyMapper,
   NullEvent,
   SCXML,
-  TransitionDefinitionMap
+  TransitionDefinitionMap,
+  InitialTransitionDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
-import { isLeafNode } from './stateUtils';
+import { formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
@@ -83,10 +81,6 @@ export class StateNode<
    * The string path from the root machine node to this node.
    */
   public path: string[];
-  /**
-   * The initial state node key.
-   */
-  public initial?: keyof TStateSchema['states'];
   /**
    * Whether the state node is "transient". A state node is considered transient if it has
    * an immediate transition from a "null event" (empty string), taken upon entering the state node.
@@ -134,7 +128,6 @@ export class StateNode<
 
   protected __cache = {
     events: undefined as Array<TEvent['type']> | undefined,
-    initialStateValue: undefined as StateValue | undefined,
     initialState: undefined as State<TContext, TEvent> | undefined,
     on: undefined as TransitionDefinitionMap<TContext, TEvent> | undefined,
     transitions: undefined as
@@ -189,8 +182,6 @@ export class StateNode<
         ? 'history'
         : 'atomic');
 
-    this.initial = this.config.initial;
-
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
@@ -241,7 +232,20 @@ export class StateNode<
       version: this.machine.version,
       context: this.machine.context!,
       type: this.type,
-      initial: this.initial,
+      initial: this.initial
+        ? {
+            target: this.initial.target,
+            source: this,
+            actions: this.initial.actions,
+            eventType: null as any,
+            toJSON: () => ({
+              target: this.initial!.target!.map(t => `#${t.id}`),
+              source: `#${this.id}`,
+              actions: this.initial!.actions,
+              eventType: null as any
+            })
+          }
+        : undefined,
       history: this.history,
       states: mapValues(
         this.states,
@@ -337,6 +341,10 @@ export class StateNode<
     );
   }
 
+  public get initial(): InitialTransitionDefinition<TContext, TEvent> {
+    return formatInitialTransition(this, this.config.initial || []);
+  }
+
   /**
    * Returns `true` if this state node explicitly handles the given event.
    *
@@ -406,60 +414,18 @@ export class StateNode<
     return selectedTransition ? [selectedTransition] : undefined;
   }
 
-  public get initialStateValue(): StateValue | undefined {
-    if (this.__cache.initialStateValue) {
-      return this.__cache.initialStateValue;
-    }
-
-    let initialStateValue: StateValue | undefined;
-
-    if (this.type === 'parallel') {
-      initialStateValue = mapFilterValues(
-        this.states as Record<string, StateNode<TContext, any, TEvent>>,
-        state => state.initialStateValue || EMPTY_OBJECT,
-        stateNode => !(stateNode.type === 'history')
-      );
-    } else if (this.initial !== undefined) {
-      if (!this.states[this.initial]) {
-        throw new Error(
-          `Initial state '${this.initial}' not found on '${this.key}'`
-        );
-      }
-
-      initialStateValue = (isLeafNode(this.states[this.initial])
-        ? this.initial
-        : {
-            [this.initial]: this.states[this.initial].initialStateValue
-          }) as StateValue;
-    }
-
-    this.__cache.initialStateValue = initialStateValue;
-
-    return this.__cache.initialStateValue;
-  }
-
   /**
    * The target state value of the history state node, if it exists. This represents the
    * default state value to transition to if no history value exists yet.
    */
-  public get target(): StateValue | undefined {
-    let target;
+  public get target(): string | undefined {
+    let target: string | undefined;
     if (this.type === 'history') {
       const historyConfig = this.config as HistoryStateNodeConfig<
         TContext,
         TEvent
       >;
-      if (isString(historyConfig.target)) {
-        target = isStateId(historyConfig.target)
-          ? pathToStateValue(
-              getStateNodeById(this.machine, historyConfig.target).path.slice(
-                this.path.length - 1
-              )
-            )
-          : historyConfig.target;
-      } else {
-        target = historyConfig.target;
-      }
+      return historyConfig.target;
     }
 
     return target;
