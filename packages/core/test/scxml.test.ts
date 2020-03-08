@@ -420,11 +420,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['w3c-ecma'];
+  // const testGroupKeys = ['assign-current-small-step'];
 
   testGroupKeys.forEach(testGroupName => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test210.txml'];
+    // const testNames = ['test2'];
 
     testNames.forEach(testName => {
       const scxmlSource =

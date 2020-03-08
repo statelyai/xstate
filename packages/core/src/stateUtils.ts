@@ -776,13 +776,13 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  stateNode: StateNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
   state: State<TContext, TEvent>
 ): boolean {
-  const { guards } = stateNode.machine.options;
+  const { guards } = machine.options;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     cond: guard,
@@ -801,7 +801,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
 
   if (!condFn) {
     throw new Error(
-      `Guard '${guard.type}' is not implemented on machine '${stateNode.machine.id}'.`
+      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
     );
   }
 
@@ -1461,6 +1461,28 @@ export function microstep<TContext, TEvent extends EventObject>(
   };
 }
 
+function selectEventlessTransitions<TContext, TEvent extends EventObject>(
+  state: State<TContext, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>
+): Transitions<TContext, TEvent> {
+  const transientNodes = state.configuration.filter(sn => sn.isTransient);
+
+  const transitions = flatten(transientNodes.map(sn => sn.transitions));
+  return transitions.filter(t => {
+    return (
+      t.eventType === NULL_EVENT &&
+      (t.cond === undefined ||
+        evaluateGuard(
+          machine,
+          t.cond,
+          state.context,
+          toSCXMLEvent(NULL_EVENT),
+          state
+        ))
+    );
+  });
+}
+
 export function resolveMicroTransition<
   TContext,
   TEvent extends EventObject,
@@ -1603,7 +1625,9 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = raisedEventActions.map(r => r._event);
 
-  const isTransient = [...resolvedConfiguration].some(sn => sn.isTransient);
+  const isTransient =
+    [...resolvedConfiguration].some(sn => sn.isTransient) &&
+    selectEventlessTransitions(nextState, machine).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({

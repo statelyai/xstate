@@ -195,11 +195,11 @@ export class MachineNode<
   }
 
   /**
-   * Determines the next state given the current `state` and sent `event`.
+   * Determines the next state given the current `state` and received `event`.
+   * Calculates a full macrostep from all microsteps.
    *
    * @param state The current State instance or state value
-   * @param event The event that was sent at the current state
-   * @param context The current context (extended state) of the current state
+   * @param event The received event
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
@@ -222,7 +222,7 @@ export class MachineNode<
         raisedEvent as SCXML.Event<TEvent>
       );
 
-      maybeNextState = macrostep(maybeNextState, this);
+      internalQueue.unshift(...maybeNextState._internalQueue);
 
       // Save original event to state
       if (raisedEvent.type === NULL_EVENT) {
@@ -238,6 +238,13 @@ export class MachineNode<
     return maybeNextState;
   }
 
+  /**
+   * Determines the next state given the current `state` and `event`.
+   * Calculates a microstep.
+   *
+   * @param state The current state
+   * @param event The received event
+   */
   public microstep(
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>

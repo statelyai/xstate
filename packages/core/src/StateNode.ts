@@ -406,7 +406,8 @@ export class StateNode<
 
       try {
         guardPassed =
-          !cond || evaluateGuard(this, cond, resolvedContext, _event, state);
+          !cond ||
+          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||
