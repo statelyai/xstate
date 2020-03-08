@@ -20,7 +20,8 @@ import {
   getChildren,
   getAllStateNodes,
   resolveMicroTransition,
-  macrostep
+  macrostep,
+  toState
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -205,37 +206,9 @@ export class MachineNode<
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
-    // Assume the state is at rest (no raised events)
-    // Determine the next state based on the next microstep
-    const nextState = this.microstep(state, event);
+    const currentState = toState(state, this);
 
-    const { _event, _internalQueue } = nextState;
-    const internalQueue = [..._internalQueue];
-    let maybeNextState = nextState;
-
-    while (internalQueue.length && !maybeNextState.done) {
-      const raisedEvent = internalQueue.shift()!;
-      const currentActions = maybeNextState.actions;
-
-      maybeNextState = this.microstep(
-        maybeNextState,
-        raisedEvent as SCXML.Event<TEvent>
-      );
-
-      internalQueue.unshift(...maybeNextState._internalQueue);
-
-      // Save original event to state
-      if (raisedEvent.type === NULL_EVENT) {
-        maybeNextState._event = _event;
-        maybeNextState.event = _event.data;
-      }
-
-      // Since macrostep actions have not been executed yet,
-      // prioritize them in the action queue
-      maybeNextState.actions.unshift(...currentActions);
-    }
-
-    return maybeNextState;
+    return macrostep(currentState, event, this);
   }
 
   /**
@@ -249,19 +222,8 @@ export class MachineNode<
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent>;
-
-    if (state instanceof State) {
-      currentState = state;
-    } else {
-      const resolvedStateValue = resolveStateValue(this, state);
-      const resolvedContext = this.machine.context!;
-
-      currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
-      );
-    }
 
     if (!IS_PRODUCTION && _event.name === WILDCARD) {
       throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
@@ -276,9 +238,9 @@ export class MachineNode<
     }
 
     const transitions: Transitions<TContext, TEvent> =
-      transitionNode(this, currentState.value, currentState, _event) || [];
+      transitionNode(this, resolvedState.value, resolvedState, _event) || [];
 
-    return resolveMicroTransition(this, transitions, currentState, _event);
+    return resolveMicroTransition(this, transitions, resolvedState, _event);
   }
 
   /**
@@ -295,7 +257,14 @@ export class MachineNode<
       );
     }
 
-    return getInitialState(this);
+    const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
+      this,
+      [],
+      undefined,
+      undefined
+    );
+
+    return macrostep<TContext, TEvent>(nextState, null, this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

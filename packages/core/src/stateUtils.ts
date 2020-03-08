@@ -46,7 +46,8 @@ import {
   ActivityActionObject,
   HistoryValue,
   InitialTransitionConfig,
-  InitialTransitionDefinition
+  InitialTransitionDefinition,
+  Event
 } from './types';
 import { State } from './State';
 import {
@@ -642,16 +643,16 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
     )
   );
 }
-export function getInitialState<
-  TContext,
-  TStateSchema,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, TStateSchema, TEvent>
-): State<TContext, TEvent, TStateSchema, TTypestate> {
-  return resolveTransition(machine, [], undefined, undefined);
-}
+// function getInitialState<
+//   TContext,
+//   TStateSchema,
+//   TEvent extends EventObject,
+//   TTypestate extends Typestate<TContext>
+// >(
+//   machine: MachineNode<TContext, TStateSchema, TEvent>
+// ): State<TContext, TEvent, TStateSchema, TTypestate> {
+//   return resolveTransition(machine, [], undefined, undefined);
+// }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
  */
@@ -1472,11 +1473,11 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
     return (
       t.eventType === NULL_EVENT &&
       (t.cond === undefined ||
-        evaluateGuard(
+        evaluateGuard<TContext, TEvent>(
           machine,
           t.cond,
           state.context,
-          toSCXMLEvent(NULL_EVENT),
+          toSCXMLEvent(NULL_EVENT as Event<TEvent>),
           state
         ))
     );
@@ -1644,35 +1645,6 @@ export function resolveMicroTransition<
   return nextState;
 }
 
-export function resolveTransition<
-  TContext,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, any, TEvent>,
-  transitions: Transitions<TContext, TEvent>,
-  currentState?: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
-): State<TContext, TEvent, any, TTypestate> {
-  // Transition will "apply" if:
-  // - the state node is the initial state (there is no current state)
-  // - OR there are transitions
-  const willTransition = !currentState || transitions.length > 0;
-
-  const nextState = resolveMicroTransition<TContext, TEvent, TTypestate>(
-    machine,
-    transitions,
-    currentState,
-    _event
-  );
-
-  if (!willTransition) {
-    return nextState;
-  }
-
-  return macrostep<TContext, TEvent>(nextState, machine);
-}
-
 function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: MachineNode<TContext, any, TEvent, any>,
@@ -1738,9 +1710,14 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
 }
 
 export function macrostep<TContext, TEvent extends EventObject>(
-  nextState: State<TContext, TEvent, any, Typestate<TContext>>,
+  state: State<TContext, TEvent, any, Typestate<TContext>>,
+  event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: MachineNode<TContext, any, TEvent, any>
 ): State<TContext, TEvent> {
+  // Assume the state is at rest (no raised events)
+  // Determine the next state based on the next microstep
+  const nextState = event === null ? state : machine.microstep(state, event);
+
   const { _event, _internalQueue } = nextState;
   let maybeNextState = nextState;
 
@@ -1748,17 +1725,12 @@ export function macrostep<TContext, TEvent extends EventObject>(
     const raisedEvent = _internalQueue.shift()!;
     const currentActions = maybeNextState.actions;
 
-    // maybeNextState = machine.transition(
-    //   maybeNextState,
-    //   raisedEvent as SCXML.Event<TEvent>
-    // );
-
     maybeNextState = machine.microstep(
       maybeNextState,
       raisedEvent as SCXML.Event<TEvent>
     );
 
-    maybeNextState = macrostep(maybeNextState, machine);
+    _internalQueue.unshift(...maybeNextState._internalQueue);
 
     // Save original event to state
     if (raisedEvent.type === NULL_EVENT) {
@@ -1859,6 +1831,22 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
 
     default:
       return stateValue || {};
+  }
+}
+
+export function toState<TContext, TEvent extends EventObject>(
+  state: StateValue | State<TContext, TEvent>,
+  machine: MachineNode<TContext, any, TEvent>
+): State<TContext, TEvent> {
+  if (state instanceof State) {
+    return state;
+  } else {
+    const resolvedStateValue = resolveStateValue(machine, state);
+    const resolvedContext = machine.context!;
+
+    return machine.resolveState(
+      State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
+    );
   }
 }
 
