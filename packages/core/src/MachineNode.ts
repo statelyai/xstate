@@ -25,7 +25,6 @@ import {
 } from './stateUtils';
 import {
   getStateNodeById,
-  getInitialState,
   getStateNodes,
   transitionNode,
   resolveStateValue
