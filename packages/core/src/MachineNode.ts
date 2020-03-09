@@ -21,7 +21,8 @@ import {
   getAllStateNodes,
   resolveMicroTransition,
   macrostep,
-  toState
+  toState,
+  getInitialState
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -248,7 +249,8 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    return getinitialstate(this);
+    const nextState = getInitialState(this);
+    return macrostep(nextState, null as any, this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

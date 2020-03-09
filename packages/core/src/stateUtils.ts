@@ -597,16 +597,16 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
 
   return [...mutStatesToEnter];
 }
-// function getInitialState<
-//   TContext,
-//   TStateSchema,
-//   TEvent extends EventObject,
-//   TTypestate extends Typestate<TContext>
-// >(
-//   machine: MachineNode<TContext, TStateSchema, TEvent>
-// ): State<TContext, TEvent, TStateSchema, TTypestate> {
-//   return resolveTransition(machine, [], undefined, undefined);
-// }
+export function getInitialState<
+  TContext,
+  TStateSchema,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+>(
+  machine: MachineNode<TContext, TStateSchema, TEvent>
+): State<TContext, TEvent, TStateSchema, TTypestate> {
+  return resolveMicroTransition(machine, [], undefined, undefined);
+}
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
  */
