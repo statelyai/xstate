@@ -3,7 +3,7 @@
 The most straightforward way of using XState with React is through local component state. The machine used should always be decoupled from implementation details; e.g., it should never know that it is in React (or Vue, or Angular, etc.):
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { Machine } from 'xstate';
 
 // This machine is completely decoupled from React
 export const toggleMachine = Machine({
