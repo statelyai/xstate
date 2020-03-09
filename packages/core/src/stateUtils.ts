@@ -358,7 +358,8 @@ function formatTransition<TContext, TEvent extends EventObject>(
       : true;
   const { guards } = stateNode.machine.options;
   const target = resolveTarget(stateNode, normalizedTarget);
-  return {
+
+  const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
     cond: toGuard(transitionConfig.cond, guards),
@@ -367,6 +368,18 @@ function formatTransition<TContext, TEvent extends EventObject>(
     internal,
     eventType: transitionConfig.event
   };
+
+  Object.defineProperty(transition, 'toJSON', {
+    value: () => ({
+      ...transition,
+      target: transition.target
+        ? transition.target.map(t => `#${t.id}`)
+        : undefined,
+      source: `#${stateNode.id}`
+    })
+  });
+
+  return transition;
 }
 export function formatTransitions<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>
