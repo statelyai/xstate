@@ -11,6 +11,7 @@
     "downlevelIteration": true,
     "experimentalDecorators": true,
     "skipLibCheck": true,
+    "resolveJsonModule": true,
     "jsx": "react",
     "lib": ["es6", "dom"],
     "strictPropertyInitialization": true

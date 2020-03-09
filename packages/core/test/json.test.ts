@@ -34,11 +34,12 @@ describe('json', () => {
             function actionFunction() {
               return true;
             },
+            // TODO: investigate why this had to be casted to any to satisfy TS
             assign({
               number: 10,
               string: 'test',
               evalNumber: () => 42
-            }),
+            }) as any,
             assign(ctx => ({
               ...ctx
             }))
