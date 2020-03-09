@@ -124,12 +124,8 @@ export function getAllStateNodes<TC, TE extends EventObject>(
 }
 
 export function getConfiguration<TC, TE extends EventObject>(
-  prevStateNodes: Iterable<StateNode<TC, any, TE>>,
   stateNodes: Iterable<StateNode<TC, any, TE>>
 ): Iterable<StateNode<TC, any, TE>> {
-  const prevConfiguration = new Set(prevStateNodes);
-  const prevAdjList = getAdjList(prevConfiguration);
-
   const configuration = new Set(stateNodes);
   const mutConfiguration = new Set(stateNodes);
 
@@ -139,11 +135,7 @@ export function getConfiguration<TC, TE extends EventObject>(
   for (const s of configuration) {
     // if previously active, add existing child nodes
     if (s.type === 'compound' && (!adjList.get(s) || !adjList.get(s)!.length)) {
-      if (prevAdjList.get(s)) {
-        prevAdjList.get(s)!.forEach(sn => mutConfiguration.add(sn));
-      } else {
-        getInitialStateNodes(s).forEach(sn => mutConfiguration.add(sn));
-      }
+      getInitialStateNodes(s).forEach(sn => mutConfiguration.add(sn));
     } else {
       if (s.type === 'parallel') {
         for (const child of getChildren(s)) {
@@ -152,15 +144,7 @@ export function getConfiguration<TC, TE extends EventObject>(
           }
 
           if (!mutConfiguration.has(child)) {
-            mutConfiguration.add(child);
-
-            if (prevAdjList.get(child)) {
-              prevAdjList.get(child)!.forEach(sn => mutConfiguration.add(sn));
-            } else {
-              getInitialStateNodes(child).forEach(sn =>
-                mutConfiguration.add(sn)
-              );
-            }
+            getInitialStateNodes(child).forEach(sn => mutConfiguration.add(sn));
           }
         }
       }
@@ -171,7 +155,7 @@ export function getConfiguration<TC, TE extends EventObject>(
   for (const s of mutConfiguration) {
     let m = s.parent;
 
-    while (m && !mutConfiguration.has(m)) {
+    while (m) {
       mutConfiguration.add(m);
       m = m.parent;
     }
@@ -235,7 +219,7 @@ export function getValue<TC, TE extends EventObject>(
   rootNode: StateNode<TC, any, TE>,
   configuration: Configuration<TC, TE>
 ): StateValue {
-  const config = getConfiguration([rootNode], configuration);
+  const config = getConfiguration(configuration);
   return getValueFromAdj(rootNode, getAdjList(config));
 }
 
@@ -1398,7 +1382,6 @@ export function resolveTransition<
   const willTransition = !currentState || transitions.length > 0;
 
   const prevConfig = getConfiguration(
-    [],
     currentState ? currentState.configuration : [machine]
   );
 
@@ -1649,7 +1632,6 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
   stateValue: StateValue
 ): StateValue {
   const configuration = getConfiguration(
-    [],
     getStateNodes(rootNode.machine, stateValue)
   );
   return getValue(rootNode, [...configuration]);
