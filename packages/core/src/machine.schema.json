@@ -57,7 +57,7 @@
               }
             },
             "initial": {
-              "type": "string"
+              "$ref": "#/definitions/initialTransitionObject"
             },
             "invoke": {
               "$ref": "#/definitions/invokeArray"
@@ -192,6 +192,17 @@
         }
       }
     },
+    "initialTransitionObject": {
+      "type": "object",
+      "properties": {
+        "target": {
+          "type": "array",
+          "items": {
+            "type": "string"
+          }
+        }
+      }
+    },
     "transitionsObject": {
       "type": "object",
       "patternProperties": {
@@ -271,7 +282,7 @@
       "type": "string"
     },
     "initial": {
-      "type": "string"
+      "$ref": "#/definitions/initialTransitionObject"
     },
     "key": {
       "type": "string"
