@@ -180,7 +180,7 @@ export class MachineNode<
    */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
     const configuration = Array.from(
-      getConfiguration([], getStateNodes(this, state.value))
+      getConfiguration(getStateNodes(this, state.value))
     );
     return new State({
       ...state,
