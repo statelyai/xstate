@@ -615,9 +615,8 @@ export function getInitialState<
  */
 export function getStateNode<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
-  stateKey: string,
-  discardInvalidNodes: boolean = false
-): StateNode<TContext, any, TEvent> | undefined {
+  stateKey: string
+): StateNode<TContext, any, TEvent> {
   if (isStateId(stateKey)) {
     return getStateNodeById(stateNode.machine, stateKey);
   }
@@ -627,7 +626,7 @@ export function getStateNode<TContext, TEvent extends EventObject>(
     );
   }
   const result = stateNode.states[stateKey];
-  if (!discardInvalidNodes && !result) {
+  if (!result) {
     throw new Error(
       `Child state '${stateKey}' does not exist on '${stateNode.id}'`
     );
@@ -684,7 +683,7 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
     if (!key.length) {
       break;
     }
-    currentStateNode = getStateNode(currentStateNode, key)!;
+    currentStateNode = getStateNode(currentStateNode, key);
   }
   return currentStateNode;
 }
@@ -696,8 +695,7 @@ function getStateNodeByPath<TContext, TEvent extends EventObject>(
  */
 export function getStateNodes<TContext, TEvent extends EventObject>(
   stateNode: StateNode<TContext, any, TEvent>,
-  state: StateValue | State<TContext, TEvent>,
-  discardInvalidNodes?: boolean
+  state: StateValue | State<TContext, TEvent>
 ): Array<StateNode<TContext, any, TEvent>> {
   const stateValue =
     state instanceof State
@@ -712,26 +710,19 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
   const subStateNodes: Array<
     StateNode<TContext, any, TEvent>
   > = subStateKeys
-    .map(
-      subStateKey => getStateNode(stateNode, subStateKey, discardInvalidNodes)!
-    )
+    .map(subStateKey => getStateNode(stateNode, subStateKey))
     .filter(Boolean);
 
   return subStateNodes.concat(
     subStateKeys.reduce(
       (allSubStateNodes, subStateKey) => {
-        const subStateNode = getStateNode(
-          stateNode,
-          subStateKey,
-          discardInvalidNodes
-        );
+        const subStateNode = getStateNode(stateNode, subStateKey);
         if (!subStateNode) {
           return allSubStateNodes;
         }
         const subStateNodes = getStateNodes(
           subStateNode,
-          stateValue[subStateKey],
-          discardInvalidNodes
+          stateValue[subStateKey]
         );
 
         return allSubStateNodes.concat(subStateNodes);
@@ -780,7 +771,7 @@ export function transitionLeafNode<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent>
 ): Transitions<TContext, TEvent> | undefined {
-  const childStateNode = getStateNode(stateNode, stateValue)!;
+  const childStateNode = getStateNode(stateNode, stateValue);
   const next = childStateNode.next(state, _event);
 
   if (!next || !next.length) {
@@ -798,7 +789,7 @@ export function transitionCompoundNode<TContext, TEvent extends EventObject>(
 ): Transitions<TContext, TEvent> | undefined {
   const subStateKeys = keys(stateValue);
 
-  const childStateNode = getStateNode(stateNode, subStateKeys[0])!;
+  const childStateNode = getStateNode(stateNode, subStateKeys[0]);
   const next = transitionNode(
     childStateNode,
     stateValue[subStateKeys[0]],
@@ -827,7 +818,7 @@ export function transitionParallelNode<TContext, TEvent extends EventObject>(
       continue;
     }
 
-    const subStateNode = getStateNode(stateNode, subStateKey)!;
+    const subStateNode = getStateNode(stateNode, subStateKey);
     const nextStateNode = transitionNode(
       subStateNode,
       subStateValue,
@@ -1659,7 +1650,7 @@ export function resolveStateValue<TContext, TEvent extends EventObject>(
 ): StateValue {
   const configuration = getConfiguration(
     [],
-    getStateNodes(rootNode.machine, stateValue, true)
+    getStateNodes(rootNode.machine, stateValue)
   );
   return getValue(rootNode, [...configuration]);
 }
