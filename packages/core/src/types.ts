@@ -160,6 +160,12 @@ export type ConditionalTransitionConfig<
   TEvent extends EventObject = EventObject
 > = Array<TransitionConfig<TContext, TEvent>>;
 
+export interface InitialTransitionConfig<TContext, TEvent extends EventObject>
+  extends TransitionConfig<TContext, TEvent> {
+  cond?: never;
+  target: TransitionTarget<TContext, TEvent>;
+}
+
 export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | string
   | TransitionConfig<TContext, TEvent>
@@ -388,7 +394,7 @@ export interface StateNodeConfig<
   /**
    * The initial state node key.
    */
-  initial?: keyof TStateSchema['states'] | undefined;
+  initial?: SingleOrArray<string>;
   /**
    * The type of this state node:
    *
@@ -488,7 +494,7 @@ export interface StateNodeDefinition<
   key: string;
   context: TContext;
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
-  initial: StateNodeConfig<TContext, TStateSchema, TEvent>['initial'];
+  initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
   states: StatesDefinition<TContext, TStateSchema, TEvent>;
   on: TransitionDefinitionMap<TContext, TEvent>;
@@ -513,7 +519,7 @@ export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
 export interface HistoryStateNodeConfig<TContext, TEvent extends EventObject>
   extends AtomicStateNodeConfig<TContext, TEvent> {
   history: 'shallow' | 'deep' | true;
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
@@ -579,7 +585,7 @@ export interface MachineConfig<
 
 export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   history: 'shallow' | 'deep';
-  target: StateValue | undefined;
+  target: string | undefined;
 }
 
 export type HistoryValue<TContext, TEvent extends EventObject> = Record<
@@ -803,6 +809,15 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
+  toJSON?: any;
+}
+
+export interface InitialTransitionDefinition<
+  TContext,
+  TEvent extends EventObject
+> extends TransitionDefinition<TContext, TEvent> {
+  target: Array<StateNode<TContext, any, TEvent>>;
+  cond?: never;
 }
 
 export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {

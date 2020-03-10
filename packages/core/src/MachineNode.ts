@@ -178,7 +178,7 @@ export class MachineNode<
    */
   public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
     const configuration = Array.from(
-      getConfiguration([], getStateNodes(this, state.value))
+      getConfiguration(getStateNodes(this, state.value))
     );
     return new State({
       ...state,
@@ -236,14 +236,6 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const { initialStateValue } = this;
-
-    if (!initialStateValue) {
-      throw new Error(
-        `Cannot retrieve initial state from simple state '${this.id}'.`
-      );
-    }
-
     return getInitialState(this);
   }
 
