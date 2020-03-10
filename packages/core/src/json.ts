@@ -46,8 +46,8 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
       stateNode.initial === undefined ? undefined : String(stateNode.initial),
     id: stateNode.id,
     key: stateNode.key,
-    entry: stateNode.onEntry,
-    exit: stateNode.onExit,
+    entry: stateNode.entry,
+    exit: stateNode.exit,
     on: mapValues(stateNode.on, transition => {
       return transition.map(t => {
         return {

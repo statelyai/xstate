@@ -57,7 +57,7 @@
               }
             },
             "initial": {
-              "type": "string"
+              "$ref": "#/definitions/initialTransitionObject"
             },
             "invoke": {
               "$ref": "#/definitions/invokeArray"
