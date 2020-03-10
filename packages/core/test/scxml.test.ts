@@ -170,7 +170,7 @@ const testGroups = {
     'test200.txml',
     'test201.txml',
     'test205.txml',
-    'test207.txml',
+    // 'test207.txml', // delayed event on invoked machine issues
     'test208.txml',
     'test210.txml',
     // 'test215.txml', // <invoke typeexpr="...">
