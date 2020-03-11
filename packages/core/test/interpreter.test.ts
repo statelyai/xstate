@@ -1819,23 +1819,10 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = data => {
-        expect(data).toEqual(42);
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.state.children).not.toHaveProperty('childActor');
         done();
-      };
-      let subscription;
-
-      const service = interpret(parentMachine)
-        .onTransition(state => {
-          const childActor = state.children.childActor;
-
-          if (childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
-          }
-        })
-        .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
-        });
+      });
 
       service.start();
     });
@@ -1867,24 +1854,10 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = data => {
-        if (data.value === 3) {
-          done();
-        }
-      };
-      let subscription;
-
-      const service = interpret(parentMachine)
-        .onTransition(state => {
-          const childActor = state.children.childActor;
-
-          if (state.matches('active') && childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
-          }
-        })
-        .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
-        });
+      const service = interpret(parentMachine).onDone(() => {
+        expect(service.state.children).not.toHaveProperty('childActor');
+        done();
+      });
 
       service.start();
     });
@@ -1900,8 +1873,8 @@ describe('interpreter', () => {
         states: {
           active: {
             entry: assign({
-              promise: (_, __, { spawn: _spawn }) =>
-                _spawn(
+              promise: (_, __, { spawn }) =>
+                spawn(
                   new Promise(res => {
                     setTimeout(() => {
                       res(42);

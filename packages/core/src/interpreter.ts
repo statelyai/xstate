@@ -36,7 +36,6 @@ import {
   isFunction,
   isString,
   isObservable,
-  uniqueId,
   isMachineNode,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
@@ -77,31 +76,6 @@ interface SpawnOptions {
   autoForward?: boolean;
   sync?: boolean;
 }
-
-/**
- * Maintains a stack of the current service in scope.
- * This is used to provide the correct service to spawn().
- *
- * @private
- */
-const withServiceScope = (() => {
-  const serviceStack = [] as Array<Interpreter<any, any, any>>;
-
-  return <T, TService extends Interpreter<any, any, any>>(
-    service: TService | undefined,
-    fn: (service: TService) => T
-  ) => {
-    service && serviceStack.push(service);
-
-    const result = fn(
-      service || (serviceStack[serviceStack.length - 1] as TService)
-    );
-
-    service && serviceStack.pop();
-
-    return result;
-  };
-})();
 
 enum InterpreterStatus {
   NotStarted,
@@ -213,11 +187,9 @@ export class Interpreter<
       return this._initialState;
     }
 
-    return withServiceScope(this, () => {
-      this._initialState = this.machine.initialState;
+    this._initialState = this.machine.initialState;
 
-      return this._initialState;
-    });
+    return this._initialState;
   }
   public get state(): State<TContext, TEvent> {
     if (!IS_PRODUCTION) {
@@ -619,9 +591,7 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = withServiceScope(this, () => {
-          return this.machine.transition(nextState, _event);
-        });
+        nextState = this.machine.transition(nextState, _event);
 
         batchedActions.push(
           ...(nextState.actions.map(a =>
@@ -708,9 +678,7 @@ export class Interpreter<
       throw (_event.data as any).data;
     }
 
-    const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.state, _event);
-    });
+    const nextState = this.machine.transition(this.state, _event);
 
     return nextState;
   }
@@ -1180,48 +1148,6 @@ export class Interpreter<
   public [symbolObservable]() {
     return this;
   }
-}
-
-const createNullActor = (name: string = 'null'): Actor => ({
-  id: name,
-  send: () => void 0,
-  toJSON: () => ({ id: name })
-});
-
-const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
-  if (isString(nameOrOptions)) {
-    return { ...DEFAULT_SPAWN_OPTIONS, name: nameOrOptions };
-  }
-
-  return {
-    ...DEFAULT_SPAWN_OPTIONS,
-    name: uniqueId(),
-    ...nameOrOptions
-  };
-};
-
-export function spawn<TE extends EventObject>(
-  entity: Spawnable<TE>,
-  nameOrOptions?: string | SpawnOptions
-): Actor {
-  const resolvedOptions = resolveSpawnOptions(nameOrOptions);
-
-  return withServiceScope(undefined, service => {
-    if (!IS_PRODUCTION) {
-      warn(
-        !!service,
-        `Attempted to spawn an Actor (ID: "${
-          isMachineNode(entity) ? entity.id : 'undefined'
-        }") outside of a service. This will have no effect.`
-      );
-    }
-
-    if (service) {
-      return service.spawn(entity, resolvedOptions.name, resolvedOptions);
-    } else {
-      return createNullActor(resolvedOptions.name);
-    }
-  });
 }
 
 /**

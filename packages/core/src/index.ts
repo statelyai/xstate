@@ -21,7 +21,7 @@ import {
   forwardTo,
   escalate
 } from './actions';
-import { interpret, Interpreter, spawn } from './interpreter';
+import { interpret, Interpreter } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
 export { SimulatedClock } from './SimulatedClock';
@@ -58,7 +58,6 @@ export {
   interpret,
   Interpreter,
   matchState,
-  spawn,
   doneInvoke,
   createMachine
 };
