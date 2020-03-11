@@ -26,17 +26,18 @@ const getServiceState = <
 };
 
 export function useMachine<
-  TC extends object,
-  TE extends EventObject = EventObject
+  TContext extends object,
+  TEvent extends EventObject = EventObject,
+  TState extends Typestate<TContext> = any
 >(
-  stateMachine: StateMachine.Machine<TC, TE, any>,
+  stateMachine: StateMachine.Machine<TContext, TEvent, TState>,
   options?: {
-    actions?: StateMachine.ActionMap<TC, TE>;
+    actions?: StateMachine.ActionMap<TContext, TEvent>;
   }
 ): [
-  StateMachine.State<TC, TE, any>,
-  StateMachine.Service<TC, TE>['send'],
-  StateMachine.Service<TC, TE>
+  StateMachine.State<TContext, TEvent, TState>,
+  StateMachine.Service<TContext, TEvent>['send'],
+  StateMachine.Service<TContext, TEvent>
 ] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(stateMachine);
