@@ -562,7 +562,9 @@ An invoked service (or [spawned actor](./actors.md)) can _respond_ to another se
 For example, the `'client'` machine below sends the `'CODE'` event to the invoked `'auth-server'` service, which then responds with a `'TOKEN'` event after 1 second.
 
 ```js
-import { Machine, send, respond } from 'xstate';
+import { Machine, send, actions } from 'xstate';
+
+const { respond } = actions;
 
 const authServerMachine = Machine({
   id: 'server',
