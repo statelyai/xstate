@@ -912,16 +912,20 @@ export class Interpreter<
 
     return undefined;
   }
+  private removeChild(childId: string): void {
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    delete this.state.children[childId];
+  }
+
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
     if (!child) {
       return;
     }
 
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    delete this.state.children[childId];
+    this.removeChild(childId);
 
     if (isFunction(child.stop)) {
       child.stop();
@@ -972,12 +976,6 @@ export class Interpreter<
       });
     }
 
-    childService
-      .onDone(doneEvent => {
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
-      })
-      .start();
-
     const actor = childService;
 
     this.children.set(childService.id, actor as Actor<
@@ -989,6 +987,13 @@ export class Interpreter<
       this.forwardTo.add(childService.id);
     }
 
+    childService
+      .onDone(doneEvent => {
+        this.removeChild(childService.id);
+        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
+      })
+      .start();
+
     return actor;
   }
   private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T, never> {
@@ -997,6 +1002,7 @@ export class Interpreter<
     promise.then(
       response => {
         if (!canceled) {
+          this.removeChild(id);
           this.send(
             toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
           );
@@ -1004,6 +1010,7 @@ export class Interpreter<
       },
       errorData => {
         if (!canceled) {
+          this.removeChild(id);
           const errorEvent = error(id, errorData);
           try {
             // Send "error.platform.id" to this (parent).
@@ -1130,9 +1137,11 @@ export class Interpreter<
         this.send(toSCXMLEvent(value, { origin: id }));
       },
       err => {
+        this.removeChild(id);
         this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {
+        this.removeChild(id);
         this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
       }
     );
