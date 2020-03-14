@@ -70,7 +70,7 @@ export type Action<TContext, TEvent extends EventObject> =
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | AssignAction<Required<TContext>, TEvent>
-  | SendAction<TContext, TEvent>
+  | SendAction<TContext, AnyEventObject>
   | RaiseAction<AnyEventObject>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
