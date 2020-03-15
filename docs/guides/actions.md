@@ -535,6 +535,17 @@ endState.actions;
 
 Without any arguments, `log()` is an action that logs an object with `context` and `event` properties, containing the current context and triggering event, respectively.
 
+## Pure Action
+
+The `pure()` action creator allows you to dynamically specify zero or more actions, based on the current `context` and `event` that triggered the action. The function that returns these action(s) _must be pure_ (hence the name), such that:
+
+- Given the same `context` and `event`, the exact same actions will be returned
+- No side-effects are executed when determining these actions.
+
+| Argument     | Type     | Description                                                                                               |
+| ------------ | -------- | --------------------------------------------------------------------------------------------------------- |
+| `getActions` | function | A pure function that takes the `context` and `event` as arguments and returns zero or more action objects |
+
 ## Actions on self-transitions
 
 A [self-transition](./transitions.md#self-transitions) is when a state transitions to itself, in which it _may_ exit and then reenter itself. Self-transitions can either be an **internal** or **external** transition:
