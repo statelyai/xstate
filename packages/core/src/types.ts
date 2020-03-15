@@ -373,7 +373,10 @@ export interface StateNodeConfig<
   /**
    * The initial state transition.
    */
-  initial?: InitialTransitionConfig<TContext, TEvent> | string | undefined;
+  initial?:
+    | InitialTransitionConfig<TContext, TEvent>
+    | SingleOrArray<string>
+    | undefined;
   /**
    * The type of this state node:
    *

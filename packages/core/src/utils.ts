@@ -1,8 +1,6 @@
 import {
   Event,
   StateValue,
-  ActionType,
-  Action,
   EventObject,
   PropertyMapper,
   Mapper,

@@ -104,24 +104,6 @@ function actionsToSCXML(
   };
 }
 
-function initialToSCXML(
-  initial: InitialTransitionDefinition<any, any>
-): XMLElement {
-  return {
-    type: 'element',
-    name: 'initial',
-    elements: [
-      {
-        type: 'element',
-        name: 'transition',
-        attributes: {
-          target: `#${initial.target[0].id}`
-        }
-      }
-    ]
-  };
-}
-
 function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   const childStates = Object.keys(stateNode.states).map(key => {
     const childStateNode = stateNode.states[key];

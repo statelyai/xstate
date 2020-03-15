@@ -1,4 +1,4 @@
-import { toArray, isBuiltInEvent, toSCXMLEvent, toEventObject } from './utils';
+import { toArray, isBuiltInEvent, toSCXMLEvent } from './utils';
 import {
   Event,
   StateValue,
