@@ -4580,7 +4580,7 @@ Object {
             "changed": true,
             "children": Array [],
             "context": Object {
-              "count": 2,
+              "count": 3,
             },
             "done": false,
             "event": Object {
@@ -4657,7 +4657,7 @@ Object {
         "changed": true,
         "children": Array [],
         "context": Object {
-          "count": 2,
+          "count": 3,
         },
         "done": false,
         "event": Object {
