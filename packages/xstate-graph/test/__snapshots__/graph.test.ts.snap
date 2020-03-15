@@ -32,7 +32,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -65,7 +64,6 @@ Object {
             "id": "whatever",
             "type": "EVENT",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -87,7 +85,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -126,7 +123,6 @@ Object {
         "id": "whatever",
         "type": "EVENT",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -148,7 +144,6 @@ Object {
         "event": Object {
           "type": "xstate.init",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -191,7 +186,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -222,7 +216,6 @@ Object {
           "event": Object {
             "type": "STATE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -244,7 +237,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -281,7 +273,6 @@ Object {
       "event": Object {
         "type": "STATE",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -303,7 +294,6 @@ Object {
         "event": Object {
           "type": "xstate.init",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -342,7 +332,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -374,7 +363,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -411,7 +399,6 @@ Object {
           "event": Object {
             "type": "1",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -431,7 +418,6 @@ Object {
             "event": Object {
               "type": "2",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -472,7 +458,6 @@ Object {
       "event": Object {
         "type": "1",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -492,7 +477,6 @@ Object {
         "event": Object {
           "type": "2",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -539,7 +523,6 @@ Object {
               "event": Object {
                 "type": "1",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -559,7 +542,6 @@ Object {
                 "event": Object {
                   "type": "2",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -599,7 +581,6 @@ Object {
           "event": Object {
             "type": "2",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -619,7 +600,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -660,7 +640,6 @@ Object {
       "event": Object {
         "type": "2",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -680,7 +659,6 @@ Object {
         "event": Object {
           "type": "xstate.init",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -727,7 +705,6 @@ Object {
               "event": Object {
                 "type": "1",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -747,7 +724,6 @@ Object {
                 "event": Object {
                   "type": "2",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -787,7 +763,6 @@ Object {
           "event": Object {
             "type": "3",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -807,7 +782,6 @@ Object {
             "event": Object {
               "type": "2",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -848,7 +822,6 @@ Object {
       "event": Object {
         "type": "3",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -868,7 +841,6 @@ Object {
         "event": Object {
           "type": "2",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -916,7 +888,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -936,7 +907,6 @@ Object {
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -973,7 +943,6 @@ Object {
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -993,7 +962,6 @@ Object {
         "event": Object {
           "type": "PED_COUNTDOWN",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -1036,7 +1004,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -1056,7 +1023,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -1092,7 +1058,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -1121,7 +1086,6 @@ Object {
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -1156,7 +1120,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -1176,7 +1139,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -1212,7 +1174,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -1232,7 +1193,6 @@ Object {
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -1271,7 +1231,6 @@ Object {
       "event": Object {
         "type": "POWER_OUTAGE",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -1291,7 +1250,6 @@ Object {
         "event": Object {
           "type": "PED_COUNTDOWN",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -1336,7 +1294,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -1356,7 +1313,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -1395,7 +1351,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1426,7 +1381,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1464,7 +1418,6 @@ Object {
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1494,7 +1447,6 @@ Object {
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -1525,7 +1477,6 @@ Object {
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -1562,7 +1513,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -1582,7 +1532,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -1621,7 +1570,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1652,7 +1600,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1687,7 +1634,6 @@ Object {
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -1723,7 +1669,6 @@ Object {
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -1760,7 +1705,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -1780,7 +1724,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -1819,7 +1762,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -1847,7 +1789,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -1878,7 +1819,6 @@ Object {
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -1916,7 +1856,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -1946,7 +1885,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -1982,7 +1920,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -2011,7 +1948,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -2040,7 +1976,6 @@ Object {
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -2075,7 +2010,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -2095,7 +2029,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -2134,7 +2067,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2165,7 +2097,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2195,7 +2126,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -2231,7 +2161,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -2251,7 +2180,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -2290,7 +2218,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2321,7 +2248,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2359,7 +2285,6 @@ Object {
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2389,7 +2314,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -2414,7 +2338,6 @@ Object {
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -2458,7 +2381,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -2478,7 +2400,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -2517,7 +2438,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2548,7 +2468,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2586,7 +2505,6 @@ Object {
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2619,7 +2537,6 @@ Object {
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2649,7 +2566,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -2669,7 +2585,6 @@ Object {
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -2713,7 +2628,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -2733,7 +2647,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -2772,7 +2685,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -2800,7 +2712,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -2820,7 +2731,6 @@ Object {
             "event": Object {
               "type": "TIMER",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -2862,7 +2772,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -2882,7 +2791,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -2918,7 +2826,6 @@ Object {
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -2938,7 +2845,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -2975,7 +2881,6 @@ Object {
       "event": Object {
         "type": "POWER_OUTAGE",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -3012,7 +2917,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -3032,7 +2936,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -3071,7 +2974,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3102,7 +3004,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3140,7 +3041,6 @@ Object {
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3170,7 +3070,6 @@ Object {
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -3201,7 +3100,6 @@ Object {
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -3238,7 +3136,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -3258,7 +3155,6 @@ Object {
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -3297,7 +3193,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3328,7 +3223,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3363,7 +3257,6 @@ Object {
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -3399,7 +3292,6 @@ Object {
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -3436,7 +3328,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -3456,7 +3347,6 @@ Object {
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -3495,7 +3385,6 @@ Object {
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -3523,7 +3412,6 @@ Object {
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -3554,7 +3442,6 @@ Object {
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -3592,7 +3479,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -3625,7 +3511,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -3664,7 +3549,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -3696,7 +3580,6 @@ Object {
           "event": Object {
             "type": "2",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -3716,7 +3599,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -3757,7 +3639,6 @@ Object {
       "event": Object {
         "type": "2",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -3777,7 +3658,6 @@ Object {
         "event": Object {
           "type": "xstate.init",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -3824,7 +3704,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -3859,7 +3738,6 @@ Object {
               "event": Object {
                 "type": "2",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -3879,7 +3757,6 @@ Object {
                 "event": Object {
                   "type": "xstate.init",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -3919,7 +3796,6 @@ Object {
           "event": Object {
             "type": "3",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -3939,7 +3815,6 @@ Object {
             "event": Object {
               "type": "2",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -3985,7 +3860,6 @@ Object {
               "event": Object {
                 "type": "1",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -4005,7 +3879,6 @@ Object {
                 "event": Object {
                   "type": "2",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -4045,7 +3918,6 @@ Object {
           "event": Object {
             "type": "3",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -4065,7 +3937,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -4106,7 +3977,6 @@ Object {
       "event": Object {
         "type": "3",
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -4126,7 +3996,6 @@ Object {
         "event": Object {
           "type": "2",
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -4174,7 +4043,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -4204,7 +4072,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -4240,7 +4107,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -4269,7 +4135,6 @@ Object {
           "event": Object {
             "type": "FOO",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4303,7 +4168,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -4332,7 +4196,6 @@ Object {
           "event": Object {
             "type": "BAR",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -4352,7 +4215,6 @@ Object {
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -4387,7 +4249,6 @@ Object {
       "event": Object {
         "type": "FOO",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -4430,7 +4291,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -4474,7 +4334,6 @@ Object {
                 "type": "INC",
                 "value": 1,
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4517,7 +4376,6 @@ Object {
                 "type": "INC",
                 "value": 1,
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4556,7 +4414,6 @@ Object {
             "type": "INC",
             "value": 1,
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -4587,7 +4444,6 @@ Object {
               "type": "INC",
               "value": 1,
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -4633,7 +4489,6 @@ Object {
         "type": "INC",
         "value": 1,
       },
-      "events": Array [],
       "history": Object {
         "_event": Object {
           "$$type": "scxml",
@@ -4664,7 +4519,6 @@ Object {
           "type": "INC",
           "value": 1,
         },
-        "events": Array [],
         "historyValue": Object {},
         "matches": [Function],
         "meta": Object {},
@@ -4703,7 +4557,6 @@ Object {
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -4735,7 +4588,6 @@ Object {
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -4774,7 +4626,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -4814,7 +4665,6 @@ Object {
             "type": "INC",
             "value": 1,
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -4854,7 +4704,6 @@ Object {
         "type": "INC",
         "value": 1,
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -4892,7 +4741,6 @@ Object {
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -4936,7 +4784,6 @@ Object {
                 "type": "INC",
                 "value": 1,
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -4975,7 +4822,6 @@ Object {
             "type": "INC",
             "value": 1,
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5015,7 +4861,6 @@ Object {
         "type": "INC",
         "value": 1,
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -5051,7 +4896,6 @@ Array [
           "event": Object {
             "type": "xstate.init",
           },
-          "events": Array [],
           "history": undefined,
           "historyValue": Object {},
           "matches": [Function],
@@ -5081,7 +4925,6 @@ Array [
       "event": Object {
         "type": "xstate.init",
       },
-      "events": Array [],
       "history": undefined,
       "historyValue": Object {},
       "matches": [Function],
@@ -5117,7 +4960,6 @@ Array [
               "event": Object {
                 "type": "xstate.init",
               },
-              "events": Array [],
               "history": undefined,
               "historyValue": Object {},
               "matches": [Function],
@@ -5146,7 +4988,6 @@ Array [
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5175,7 +5016,6 @@ Array [
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -5210,7 +5050,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -5230,7 +5069,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -5269,7 +5107,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5297,7 +5134,6 @@ Array [
           "event": Object {
             "type": "TIMER",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5328,7 +5164,6 @@ Array [
       "event": Object {
         "type": "TIMER",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -5365,7 +5200,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -5385,7 +5219,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -5424,7 +5257,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5455,7 +5287,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5485,7 +5316,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -5521,7 +5351,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -5541,7 +5370,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -5580,7 +5408,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5611,7 +5438,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5649,7 +5475,6 @@ Array [
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5679,7 +5504,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -5704,7 +5528,6 @@ Array [
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -5748,7 +5571,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -5768,7 +5590,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -5807,7 +5628,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5838,7 +5658,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5876,7 +5695,6 @@ Array [
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5909,7 +5727,6 @@ Array [
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -5939,7 +5756,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -5959,7 +5775,6 @@ Array [
             "event": Object {
               "type": "PED_COUNTDOWN",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -6003,7 +5818,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -6023,7 +5837,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -6062,7 +5875,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6090,7 +5902,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -6110,7 +5921,6 @@ Array [
             "event": Object {
               "type": "TIMER",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -6152,7 +5962,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -6172,7 +5981,6 @@ Array [
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -6208,7 +6016,6 @@ Array [
           "event": Object {
             "type": "POWER_OUTAGE",
           },
-          "events": Array [],
           "history": Object {
             "_event": Object {
               "$$type": "scxml",
@@ -6228,7 +6035,6 @@ Array [
             "event": Object {
               "type": "xstate.init",
             },
-            "events": Array [],
             "historyValue": Object {},
             "matches": [Function],
             "meta": Object {},
@@ -6265,7 +6071,6 @@ Array [
       "event": Object {
         "type": "POWER_OUTAGE",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -6302,7 +6107,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -6322,7 +6126,6 @@ Array [
                 "event": Object {
                   "type": "PED_COUNTDOWN",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -6361,7 +6164,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6392,7 +6194,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6427,7 +6228,6 @@ Array [
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -6463,7 +6263,6 @@ Array [
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
@@ -6500,7 +6299,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "history": Object {
                 "_event": Object {
                   "$$type": "scxml",
@@ -6520,7 +6318,6 @@ Array [
                 "event": Object {
                   "type": "POWER_OUTAGE",
                 },
-                "events": Array [],
                 "historyValue": Object {},
                 "matches": [Function],
                 "meta": Object {},
@@ -6559,7 +6356,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6590,7 +6386,6 @@ Array [
               "event": Object {
                 "type": "TIMER",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6628,7 +6423,6 @@ Array [
               "event": Object {
                 "type": "PED_COUNTDOWN",
               },
-              "events": Array [],
               "historyValue": Object {},
               "matches": [Function],
               "meta": Object {},
@@ -6658,7 +6452,6 @@ Array [
           "event": Object {
             "type": "PED_COUNTDOWN",
           },
-          "events": Array [],
           "historyValue": Object {},
           "matches": [Function],
           "meta": Object {},
@@ -6689,7 +6482,6 @@ Array [
       "event": Object {
         "type": "PED_COUNTDOWN",
       },
-      "events": Array [],
       "historyValue": Object {},
       "matches": [Function],
       "meta": Object {},
