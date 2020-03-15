@@ -7,7 +7,7 @@ const ajv = new Ajv();
 const validate = ajv.compile(machineSchema);
 
 // TODO: fix schema
-describe.skip('json', () => {
+describe('json', () => {
   it('should serialize the machine', () => {
     interface Context {
       [key: string]: any;
