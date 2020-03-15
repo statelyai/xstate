@@ -5,8 +5,7 @@ import {
   StateNode,
   ActionType,
   MachineNode,
-  flatten,
-  InitialTransitionDefinition
+  flatten
 } from 'xstate';
 
 function cleanAttributes(attributes: Attributes): Attributes {
