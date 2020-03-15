@@ -911,7 +911,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;
-  events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Actor[];

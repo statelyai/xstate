@@ -288,23 +288,6 @@ export function isPromiseLike(value: any): value is PromiseLike<any> {
   return false;
 }
 
-export function partition<T, A extends T, B extends T>(
-  items: T[],
-  predicate: (item: T) => item is A
-): [A[], B[]] {
-  const [truthy, falsy] = [[], []] as [A[], B[]];
-
-  for (const item of items) {
-    if (predicate(item)) {
-      truthy.push(item);
-    } else {
-      falsy.push(item as B);
-    }
-  }
-
-  return [truthy, falsy];
-}
-
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   _event: SCXML.Event<TEvent>,

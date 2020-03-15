@@ -13,7 +13,6 @@ import {
   normalizeTarget,
   toStateValue,
   mapContext,
-  partition,
   updateContext,
   toSCXMLEvent
 } from './utils';
@@ -57,7 +56,6 @@ import {
   error,
   toActionObjects,
   start,
-  raise,
   stop,
   initEvent,
   actionTypes,
@@ -1500,7 +1498,6 @@ export function resolveMicroTransition<
     history: currentState,
     actions: nonRaisedActions,
     meta,
-    events: [],
     configuration: resolvedConfiguration,
     transitions,
     children,

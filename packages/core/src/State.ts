@@ -60,7 +60,6 @@ export class State<
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
-  public events: TEvent[] = [];
   public event: TEvent;
   public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
   public _event: SCXML.Event<TEvent>;
@@ -114,7 +113,6 @@ export class State<
           history: stateValue.history,
           actions: [],
           meta: {},
-          events: [],
           configuration: [], // TODO: fix,
           transitions: [],
           children: []
@@ -134,7 +132,6 @@ export class State<
       history: undefined,
       actions: [],
       meta: undefined,
-      events: [],
       configuration: [],
       transitions: [],
       children: []
@@ -200,7 +197,6 @@ export class State<
     this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
     this.meta = config.meta || {};
-    this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;

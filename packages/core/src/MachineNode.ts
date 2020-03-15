@@ -180,7 +180,7 @@ export class MachineNode<
   /**
    * Resolves the given `state` to a new `State` instance relative to this machine.
    *
-   * This ensures that `.events` and `.nextEvents` represent the correct values.
+   * This ensures that `.nextEvents` represent the correct values.
    *
    * @param state The state to resolve
    */
