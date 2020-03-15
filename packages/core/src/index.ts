@@ -19,7 +19,8 @@ import {
   respond,
   doneInvoke,
   forwardTo,
-  escalate
+  escalate,
+  pure
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
@@ -38,7 +39,8 @@ const actions = {
   done,
   respond,
   forwardTo,
-  escalate
+  escalate,
+  pure
 };
 
 export {
@@ -54,6 +56,7 @@ export {
   sendParent,
   sendUpdate,
   forwardTo,
+  pure,
   interpret,
   Interpreter,
   matchState,

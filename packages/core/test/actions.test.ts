@@ -1,5 +1,14 @@
-import { Machine, assign, forwardTo, interpret, spawn } from '../src/index';
-import { pure, sendParent, log } from '../src/actions';
+import {
+  Machine,
+  assign,
+  forwardTo,
+  interpret,
+  spawn,
+  createMachine,
+  pure,
+  sendParent
+} from '../src/index';
+import { log } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -1027,5 +1036,100 @@ describe('log()', () => {
         "value": "expr 42",
       }
     `);
+  });
+});
+
+describe('pure()', () => {
+  it('should support representing multiple actions', () => {
+    interface Context {
+      count: number;
+    }
+    const machine = createMachine<Context>({
+      initial: 'active',
+      context: {
+        count: 2
+      },
+      states: {
+        active: {
+          entry: pure<Context, any>(ctx => {
+            return [
+              assign({
+                count: ctx.count * 2
+              }),
+              log('test')
+            ];
+          })
+        }
+      }
+    });
+
+    expect(machine.initialState.actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "assignment": Object {
+            "count": 4,
+          },
+          "type": "xstate.assign",
+        },
+        Object {
+          "expr": "test",
+          "label": undefined,
+          "type": "xstate.log",
+        },
+      ]
+    `);
+  });
+
+  it('should support representing a single action', () => {
+    interface Context {
+      count: number;
+    }
+    const machine = createMachine<Context>({
+      initial: 'active',
+      context: {
+        count: 2
+      },
+      states: {
+        active: {
+          entry: pure<Context, any>(ctx => {
+            return ctx.count === 2 ? log('pass') : log('fail');
+          })
+        }
+      }
+    });
+
+    expect(machine.initialState.actions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "expr": "pass",
+          "label": undefined,
+          "type": "xstate.log",
+        },
+      ]
+    `);
+  });
+
+  it('should support outputting no actions (void)', () => {
+    interface Context {
+      count: number;
+    }
+    const machine = createMachine<Context>({
+      initial: 'active',
+      context: {
+        count: 2
+      },
+      states: {
+        active: {
+          entry: pure<Context, any>(ctx => {
+            if (ctx.count === 2) {
+              return;
+            }
+            return log('fail');
+          })
+        }
+      }
+    });
+
+    expect(machine.initialState.actions).toHaveLength(0);
   });
 });
