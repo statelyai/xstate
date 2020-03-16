@@ -14,7 +14,6 @@ import {
   isBuiltInEvent,
   partition,
   updateHistoryValue,
-  updateContext,
   warn,
   isArray,
   isFunction,
@@ -24,7 +23,8 @@ import {
   toSCXMLEvent,
   mapContext,
   toTransitionConfigArray,
-  normalizeTarget
+  normalizeTarget,
+  evaluateGuard
 } from './utils';
 import {
   Event,
@@ -38,7 +38,6 @@ import {
   HistoryValue,
   StateNodeDefinition,
   TransitionDefinition,
-  AssignAction,
   DelayedTransitionDefinition,
   ActivityDefinition,
   StateNodeConfig,
@@ -50,20 +49,13 @@ import {
   ActionObject,
   Mapper,
   PropertyMapper,
-  SendAction,
   NullEvent,
-  Guard,
-  GuardPredicate,
-  GuardMeta,
   MachineConfig,
-  PureAction,
   InvokeCreator,
   DoneEventObject,
   SingleOrArray,
-  LogAction,
   SendActionObject,
   SpecialTargets,
-  RaiseAction,
   SCXML,
   RaiseActionObject,
   ActivityActionObject,
@@ -87,14 +79,12 @@ import {
   doneInvoke,
   error,
   toActionObject,
-  resolveSend,
   initEvent,
   toActionObjects,
-  resolveLog,
-  resolveRaise
+  resolveActions
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import { DEFAULT_GUARD_TYPE, STATE_DELIMITER } from './constants';
+import { STATE_DELIMITER } from './constants';
 import {
   getValue,
   getConfiguration,
@@ -824,7 +814,8 @@ class StateNode<
 
       try {
         guardPassed =
-          !cond || this.evaluateGuard(cond, resolvedContext, _event, state);
+          !cond ||
+          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||
@@ -919,38 +910,6 @@ class StateNode<
     }
 
     return true;
-  }
-  private evaluateGuard(
-    guard: Guard<TContext, TEvent>,
-    context: TContext,
-    _event: SCXML.Event<TEvent>,
-    state: State<TContext, TEvent>
-  ): boolean {
-    const { guards } = this.machine.options;
-    const guardMeta: GuardMeta<TContext, TEvent> = {
-      state,
-      cond: guard,
-      _event
-    };
-
-    // TODO: do not hardcode!
-    if (guard.type === DEFAULT_GUARD_TYPE) {
-      return (guard as GuardPredicate<TContext, TEvent>).predicate(
-        context,
-        _event.data,
-        guardMeta
-      );
-    }
-
-    const condFn = guards[guard.type];
-
-    if (!condFn) {
-      throw new Error(
-        `Guard '${guard.type}' is not implemented on machine '${this.machine.id}'.`
-      );
-    }
-
-    return condFn(context, _event.data, guardMeta);
   }
 
   private getActions(
@@ -1177,57 +1136,12 @@ class StateNode<
       }
     }
 
-    const [assignActions, otherActions] = partition(
-      actions,
-      (action): action is AssignAction<TContext, TEvent> =>
-        action.type === actionTypes.assign
-    );
-
-    const updatedContext = assignActions.length
-      ? updateContext(currentContext, _event, assignActions, currentState)
-      : currentContext;
-
-    const resolvedActions = flatten(
-      otherActions.map(actionObject => {
-        switch (actionObject.type) {
-          case actionTypes.raise:
-            return resolveRaise(actionObject as RaiseAction<TEvent>);
-          case actionTypes.send:
-            const sendAction = resolveSend(
-              actionObject as SendAction<TContext, TEvent>,
-              updatedContext,
-              _event,
-              this.machine.options.delays
-            ) as ActionObject<TContext, TEvent>; // TODO: fix ActionTypes.Init
-
-            if (!IS_PRODUCTION) {
-              // warn after resolving as we can create better contextual message here
-              warn(
-                !isString(actionObject.delay) ||
-                  typeof sendAction.delay === 'number',
-                // tslint:disable-next-line:max-line-length
-                `No delay reference for delay expression '${actionObject.delay}' was found on machine '${this.machine.id}'`
-              );
-            }
-
-            return sendAction;
-          case actionTypes.log:
-            return resolveLog(
-              actionObject as LogAction<TContext, TEvent>,
-              updatedContext,
-              _event
-            );
-          case actionTypes.pure:
-            return (
-              (actionObject as PureAction<TContext, TEvent>).get(
-                updatedContext,
-                _event.data
-              ) || []
-            );
-          default:
-            return toActionObject(actionObject, this.options.actions);
-        }
-      })
+    const [resolvedActions, updatedContext] = resolveActions(
+      this,
+      currentState,
+      currentContext,
+      _event,
+      actions
     );
 
     const [raisedEvents, nonRaisedActions] = partition(
@@ -1297,7 +1211,7 @@ class StateNode<
         !resolvedStateValue || stateTransition.source
           ? currentState
           : undefined,
-      actions: resolvedStateValue ? nonRaisedActions : [],
+      actions: resolvedStateValue ? nonRaisedActions : ([] as any[]),
       activities: resolvedStateValue
         ? activities
         : currentState
@@ -1315,8 +1229,9 @@ class StateNode<
       done: isDone
     });
 
-    nextState.changed =
-      _event.name === actionTypes.update || !!assignActions.length;
+    const didUpdateContext = currentContext !== updatedContext;
+
+    nextState.changed = _event.name === actionTypes.update || didUpdateContext;
 
     // Dispose of penultimate histories to prevent memory leaks
     const { history } = nextState;
@@ -1360,7 +1275,6 @@ class StateNode<
       maybeNextState.changed ||
       (history
         ? !!maybeNextState.actions.length ||
-          !!assignActions.length ||
           typeof history.value !== typeof maybeNextState.value ||
           !stateValuesEqual(maybeNextState.value, history.value)
         : undefined);

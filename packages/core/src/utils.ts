@@ -10,7 +10,6 @@ import {
   HistoryValue,
   AssignAction,
   Condition,
-  Guard,
   Subscribable,
   StateMachine,
   ConditionPredicate,
@@ -20,7 +19,10 @@ import {
   TransitionConfig,
   TransitionConfigTargetShortcut,
   NullEvent,
-  SingleOrArray
+  SingleOrArray,
+  Guard,
+  GuardPredicate,
+  GuardMeta
 } from './types';
 import {
   STATE_DELIMITER,
@@ -643,4 +645,38 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
+}
+
+export function evaluateGuard<TContext, TEvent extends EventObject>(
+  machine: StateNode<TContext, any, TEvent>,
+  guard: Guard<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+): boolean {
+  const { guards } = machine.options;
+  const guardMeta: GuardMeta<TContext, TEvent> = {
+    state,
+    cond: guard,
+    _event
+  };
+
+  // TODO: do not hardcode!
+  if (guard.type === DEFAULT_GUARD_TYPE) {
+    return (guard as GuardPredicate<TContext, TEvent>).predicate(
+      context,
+      _event.data,
+      guardMeta
+    );
+  }
+
+  const condFn = guards[guard.type];
+
+  if (!condFn) {
+    throw new Error(
+      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
+    );
+  }
+
+  return condFn(context, _event.data, guardMeta);
 }
