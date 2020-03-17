@@ -11,4 +11,4 @@ In statecharts, "side-effects" can be grouped into two categories:
 
 - [Invoked Promises](./communication.md#invoking-promises) - single, discrete effects over time that may `resolve` or `reject` once, which are sent as events to the parent machine
 - [Invoked Callbacks](./communication.md#invoking-callbacks) - continuous effects over time that may send multiple events, as well as listen for events sent directly to it, to/from the parent machine
-- [Invoked Machines](./communication.md) - continuous effects represented by `Machine` instances that can send/receive events, but also notify the parent machine when it has reached its [final state](./final.md)
+- [Invoked Machines](./communication.md#invoking-machines) - continuous effects represented by `Machine` instances that can send/receive events, but also notify the parent machine when it has reached its [final state](./final.md)
