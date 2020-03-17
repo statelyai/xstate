@@ -132,15 +132,16 @@ const service = interpret(stateMachine);
 // This will compile
 service.send({ type: "TEST", value: "testvalue" });
 
-// This will have an
+// This will have an compile error on the value type
 service.send({ type: "TEST", value: 1 });
-
 ```
 
-If you use the following pattern, you'll lose type safety:
+If you use the following pattern, you'll lose type safety, so both of these will compile:
 
 ```ts
 service.send('TEST', { value: "testvalue" });
+
+service.send('TEST', { value: 1 });
 ```
 ## Typestates <Badge text="4.7+" />
 
