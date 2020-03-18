@@ -374,7 +374,6 @@ export class StateNode<
 
     for (const candidate of candidates) {
       const { cond, in: stateIn } = candidate;
-      const resolvedContext = state.context;
 
       const isInState = stateIn
         ? isString(stateIn) && isStateId(stateIn)
@@ -395,9 +394,7 @@ export class StateNode<
       let guardPassed = false;
 
       try {
-        guardPassed =
-          !cond ||
-          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
+        guardPassed = !cond || evaluateGuard(this.machine, cond, state, _event);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||

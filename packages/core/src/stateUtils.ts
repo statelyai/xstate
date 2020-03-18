@@ -724,9 +724,8 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
 export function evaluateGuard<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
   guard: Guard<TContext, TEvent>,
-  context: TContext,
-  _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent>,
+  _event: SCXML.Event<TEvent>
 ): boolean {
   const { guards } = machine.options;
   const guardMeta: GuardMeta<TContext, TEvent> = {
@@ -737,7 +736,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
 
   if (guard.type === DEFAULT_GUARD_TYPE) {
     return (guard as GuardPredicate<TContext, TEvent>).predicate(
-      context,
+      state.context,
       _event.data,
       guardMeta
     );
@@ -751,7 +750,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
     );
   }
 
-  return condFn(context, _event.data, guardMeta);
+  return condFn(state.context, _event.data, guardMeta);
 }
 
 export function transitionLeafNode<TContext, TEvent extends EventObject>(
@@ -1327,13 +1326,6 @@ export function microstep<TContext, TEvent extends EventObject>(
   let historyValue: HistoryValue<TContext, TEvent> = {};
 
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
-  const isRaisedAction = (
-    action: ActionObject<TContext, TEvent>
-  ): action is RaiseActionObject<TEvent> =>
-    action.type === actionTypes.raise ||
-    (action.type === actionTypes.send &&
-      (action as SendActionObject<TContext, TEvent>).to ===
-        SpecialTargets.Internal);
 
   // Exit states
   if (currentState) {
@@ -1387,6 +1379,17 @@ export function microstep<TContext, TEvent extends EventObject>(
   };
 }
 
+function isRaisedAction<TContext, TEvent extends EventObject>(
+  action: ActionObject<TContext, TEvent>
+): action is RaiseActionObject<TEvent> {
+  return (
+    action.type === actionTypes.raise ||
+    (action.type === actionTypes.send &&
+      (action as SendActionObject<TContext, TEvent>).to ===
+        SpecialTargets.Internal)
+  );
+}
+
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>,
   machine: MachineNode<TContext, any, TEvent>
@@ -1401,9 +1404,8 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
         evaluateGuard<TContext, TEvent>(
           machine,
           t.cond,
-          state.context,
-          toSCXMLEvent(NULL_EVENT as Event<TEvent>),
-          state
+          state,
+          toSCXMLEvent(NULL_EVENT as Event<TEvent>)
         ))
     );
   });
