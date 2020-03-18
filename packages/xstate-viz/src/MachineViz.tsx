@@ -1,10 +1,11 @@
 import * as React from 'react';
 import { StateNodeViz } from './StateNodeViz';
 import { StateContext } from './StateContext';
-import { EdgeViz } from './EdgeViz';
+import { EdgesViz } from './EdgesViz';
 
 import { tracker } from './tracker';
 import { State, StateMachine } from 'xstate';
+import { getAllEdges } from './utils';
 
 interface MachineVizProps {
   state: State<any, any>;
@@ -16,7 +17,7 @@ export function MachineViz({ machine, state }: MachineVizProps) {
     <div data-xviz-element="machine" title={`machine: #${machine.id}`}>
       <StateContext.Provider value={{ state, tracker }}>
         <StateNodeViz stateNode={machine} />
-        <EdgeViz />
+        <EdgesViz edges={getAllEdges(machine)} />
       </StateContext.Provider>
     </div>
   );

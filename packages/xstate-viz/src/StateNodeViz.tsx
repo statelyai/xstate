@@ -27,8 +27,10 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   return (
     <div
       data-xviz-element="stateNode"
+      data-xviz-type={stateNode.type}
       data-xviz-active={active || undefined}
       title={`state node: #${stateNode.id}`}
+      // onClick={active}
     >
       <div data-xviz-element="stateNode-state" ref={ref}>
         <div data-xviz-element="stateNode-content">

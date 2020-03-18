@@ -1,15 +1,76 @@
-interface TrackerData {
-  rect: null | ClientRect;
+export interface TrackerData {
+  rect: null | Rect;
   listeners: Set<TrackerListener>;
 }
 
 type TrackerListener = (data: TrackerData) => void;
 
+export interface Point {
+  x: number;
+  y: number;
+}
+
+class Rect implements ClientRect {
+  public top: number;
+  public left: number;
+  public bottom: number;
+  public right: number;
+  public width: number;
+  public height: number;
+  public x: number;
+  public y: number;
+  constructor(rect: ClientRect) {
+    this.top = rect.top;
+    this.left = rect.left;
+    this.bottom = rect.bottom;
+    this.right = rect.right;
+    this.width = rect.width;
+    this.height = rect.height;
+    this.x = rect.left;
+    this.y = rect.top;
+  }
+
+  public point(x: string, y: string): Point {
+    const point: Point = { x: 0, y: 0 };
+
+    switch (x) {
+      case 'left':
+        point.x = this.left;
+        break;
+      case 'right':
+        point.x = this.right;
+        break;
+
+      case 'center':
+        point.x = this.left + this.width / 2;
+        break;
+      default:
+        break;
+    }
+    switch (y) {
+      case 'top':
+        point.y = this.top;
+        break;
+      case 'bottom':
+        point.y = this.bottom;
+        break;
+
+      case 'center':
+        point.y = this.top + this.height / 2;
+        break;
+      default:
+        break;
+    }
+
+    return point;
+  }
+}
+
 class Tracker {
   public data: Record<string, TrackerData> = {};
 
   public update(id: string, el: Element) {
-    const rect = el.getBoundingClientRect();
+    const clientRect = el.getBoundingClientRect();
 
     if (!this.data[id]) {
       this.register(id);
@@ -17,14 +78,7 @@ class Tracker {
 
     const currentData = this.data[id];
 
-    currentData.rect = {
-      top: rect.top,
-      left: rect.left,
-      bottom: rect.bottom,
-      right: rect.right,
-      width: rect.width,
-      height: rect.height
-    };
+    currentData.rect = new Rect(clientRect);
     currentData.listeners.forEach(listener => {
       listener(currentData);
     });
@@ -52,4 +106,19 @@ class Tracker {
   }
 }
 
-export const tracker = new Tracker();
+const tracker = new Tracker();
+
+export function relative(childRect: ClientRect, parentElement: Element): Rect {
+  const parentRect = parentElement.getBoundingClientRect();
+
+  return new Rect({
+    top: childRect.top - parentRect.top,
+    right: childRect.right - parentRect.left,
+    bottom: childRect.bottom - parentRect.top,
+    left: childRect.left - parentRect.left,
+    width: childRect.width,
+    height: childRect.height
+  });
+}
+
+export { tracker };

@@ -1,23 +1,12 @@
 import {
   StateNode,
-  AnyEventObject,
   TransitionDefinition,
   StateMachine,
   State,
   ActionObject
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
-
-export interface Edge<
-  TContext,
-  TEvent extends AnyEventObject,
-  TEventType extends TEvent['type'] = string
-> {
-  event: TEventType;
-  source: StateNode<TContext, any, TEvent>;
-  target: StateNode<TContext, any, TEvent>;
-  transition: TransitionDefinition<TContext, TEvent>;
-}
+import { Edge } from './types';
 
 export function getChildren(machine: StateNode): StateNode[] {
   if (!machine.states) {
@@ -137,22 +126,6 @@ export function relativePoint(point: Point, parentElement: Element): Point {
   return {
     x: point.x - parentRect.left,
     y: point.y - parentRect.top
-  };
-}
-
-export function relative(
-  childRect: ClientRect,
-  parentElement: Element
-): ClientRect {
-  const parentRect = parentElement.getBoundingClientRect();
-
-  return {
-    top: childRect.top - parentRect.top,
-    right: childRect.right - parentRect.left,
-    bottom: childRect.bottom - parentRect.top,
-    left: childRect.left - parentRect.left,
-    width: childRect.width,
-    height: childRect.height
   };
 }
 
