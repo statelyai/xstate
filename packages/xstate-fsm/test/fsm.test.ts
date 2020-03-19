@@ -258,4 +258,20 @@ describe('interpreter', () => {
 
     expect(executed).toBe(true);
   });
+
+  it('should reveal the current state', () => {
+    const machine = createMachine({
+      initial: 'test',
+      context: { foo: 'bar' },
+      states: {
+        test: {}
+      }
+    });
+    const service = interpret(machine);
+
+    service.start();
+
+    expect(service.state.value).toEqual('test');
+    expect(service.state.context).toEqual({ foo: 'bar' });
+  });
 });

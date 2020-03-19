@@ -99,7 +99,7 @@ export function createMachine<
     },
     transition: (
       state: string | StateMachine.State<TContext, TEvent, TState>,
-      event: string | Record<string, any> & { type: string }
+      event: string | (Record<string, any> & { type: string })
     ): StateMachine.State<TContext, TEvent, TState> => {
       const { value, context } =
         typeof state === 'string'
@@ -229,6 +229,9 @@ export function interpret<
       status = InterpreterStatus.Stopped;
       listeners.clear();
       return service;
+    },
+    get state() {
+      return state;
     },
     get status() {
       return status;
