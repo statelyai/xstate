@@ -10,9 +10,9 @@ import {
   StateConfig,
   Typestate
 } from 'xstate';
-import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
 import { useActor } from './useActor';
+import { ActorRef, Sender } from './ActorRef';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
@@ -113,38 +113,18 @@ export function useMachine<
   return [state, service.send, service];
 }
 
-export function xuseService<
+export function useService<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
-): [
-  State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
-] {
-  const subscription: Subscription<State<
-    TContext,
-    TEvent,
-    any,
-    TTypestate
-  >> = useMemo(
-    () => ({
-      getCurrentValue: () => service.state || service.initialState,
-      subscribe: callback => {
-        const { unsubscribe } = service.subscribe(state => {
-          if (state.changed !== false) {
-            callback();
-          }
-        });
-        return unsubscribe;
-      }
-    }),
-    [service]
-  );
+): [State<TContext, TEvent>, Sender<TEvent>] {
+  const actorRef = useMemo(() => {
+    return ActorRef.fromService(service);
+  }, [service]);
 
-  const state = useSubscription(subscription);
+  const [state, send] = useActor(actorRef);
 
-  return [state, service.send, service];
+  return [state, send];
 }

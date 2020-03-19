@@ -13,45 +13,81 @@ export interface Subscribable<T> {
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
-  send: (event: TEvent) => void;
+  send: Sender<TEvent>;
 }
 
 export interface ActorRef<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
-  send: (event: TEvent) => void;
+  send: Sender<TEvent>;
   current: TCurrent;
 }
 
-export class ActorRef<TCurrent, TEvent extends EventObject> {
+export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
+
+export class ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
   constructor(
-    private ref: ActorLike<TCurrent, TEvent>,
-    public current: TCurrent
-  ) {
-    this.send = this.ref.send.bind(ref);
-    this.subscribe = this.ref.subscribe.bind(ref);
-  }
+    public send: Sender<TEvent>,
+    public subscribe: Subscribable<TCurrent>['subscribe'],
+    public current: TCurrent,
+    public ref: TRef
+  ) {}
 
   public static fromObservable<T>(
     observable: Subscribable<T>
   ): ActorRef<T | undefined, never> {
-    return new ActorRef<T | undefined, never>(
-      {
-        send: () => void 0,
-        subscribe: observable.subscribe.bind(observable)
+    return new ActorRef<T | undefined, never, typeof observable>(
+      () => void 0,
+      observable.subscribe.bind(observable),
+      undefined,
+      observable
+    );
+  }
+
+  public static fromPromise<T>(
+    promise: PromiseLike<T>
+  ): ActorRef<T | undefined, never> {
+    return new ActorRef<T | undefined, never, typeof promise>(
+      () => void 0,
+      (next, handleError, complete) => {
+        let unsubscribed = false;
+        promise.then(
+          response => {
+            if (unsubscribed) {
+              return;
+            }
+            next && next(response);
+            if (unsubscribed) {
+              return;
+            }
+            complete && complete();
+          },
+          err => {
+            if (unsubscribed) {
+              return;
+            }
+            handleError && handleError(err);
+          }
+        );
+
+        return {
+          unsubscribe: () => (unsubscribed = true)
+        };
       },
-      undefined
+      undefined,
+      promise
     );
   }
 
   public static fromService<TContext, TEvent extends EventObject>(
-    service: Interpreter<TContext, any, TEvent>
-  ): ActorRef<State<TContext, TEvent>, TEvent> {
+    service: ActorLike<State<TContext, TEvent>, TEvent> & {
+      state: State<TContext, TEvent>;
+    }
+  ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
     return new ActorRef(
-      {
-        send: service.send.bind(service),
-        subscribe: service.subscribe.bind(service)
-      },
-      service.state
+      service.send.bind(service),
+      service.subscribe.bind(service),
+      service.state,
+      service
     );
   }
 }
