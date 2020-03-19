@@ -12,7 +12,7 @@ import {
 } from 'xstate';
 import useConstant from './useConstant';
 import { useActor } from './useActor';
-import { ActorRef, Sender } from './ActorRef';
+import { Sender, fromService } from './ActorRef';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
@@ -121,7 +121,7 @@ export function useService<
   service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [State<TContext, TEvent>, Sender<TEvent>] {
   const actorRef = useMemo(() => {
-    return ActorRef.fromService(service);
+    return fromService<TContext, TEvent>(service);
   }, [service]);
 
   const [state, send] = useActor(actorRef);
