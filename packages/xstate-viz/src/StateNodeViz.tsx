@@ -4,6 +4,7 @@ import { StateContext } from './StateContext';
 import { StateNode } from 'xstate';
 import { EventViz } from './EventViz';
 import { getEdges, serializeTransition, isActive } from './utils';
+import { ActionViz } from './ActionViz';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
@@ -38,11 +39,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           {stateNode.onEntry.length > 0 && (
             <ul data-xviz-element="stateNode-actions" data-xviz-actions="entry">
               {stateNode.onEntry.map((entryAction, i) => {
-                return (
-                  <li data-xviz-element="stateNode-action" key={i}>
-                    {entryAction.type}
-                  </li>
-                );
+                return <ActionViz action={entryAction} key={i} />;
               })}
             </ul>
           )}
@@ -65,11 +62,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           {stateNode.onExit.length > 0 && (
             <ul data-xviz-element="stateNode-actions" data-xviz-actions="exit">
               {stateNode.onExit.map((exitAction, i) => {
-                return (
-                  <li data-xviz-element="stateNode-action" key={i}>
-                    {exitAction.type}
-                  </li>
-                );
+                return <ActionViz action={exitAction} key={i} />;
               })}
             </ul>
           )}

@@ -34,6 +34,7 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc",
+    "watch": "tsc -w",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
@@ -46,16 +47,11 @@
     "xstate": "^4.7.0"
   },
   "peerDependenciesMeta": {
-    "@xstate/fsm": {
-      "optional": true
-    },
     "xstate": {
       "optional": true
     }
   },
-  "dependencies": {
-    "use-subscription": "^1.3.0"
-  },
+  "dependencies": {},
   "devDependencies": {
     "@testing-library/react": "^8.0.9",
     "@types/jsdom": "^12.2.3",

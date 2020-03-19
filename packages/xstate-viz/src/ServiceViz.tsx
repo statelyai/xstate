@@ -16,7 +16,7 @@ export function ServiceViz({ service }: { service: Interpreter<any, any> }) {
   const [actors, setActors] = React.useState<Array<Actor<any, any>>>([]);
 
   React.useEffect(() => {
-    const { unsubscribe } = service.subscribe(state => {
+    const { unsubscribe } = service.subscribe(_ => {
       setActors(getChildActors(service));
     });
 

@@ -18,8 +18,6 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
     tracker.listen(edge.target.id, data => setTargetRect(data));
   }, []);
 
-  console.log({ c: ref.current, sourceRect, targetRect });
-
   const path =
     !sourceRect ||
     !targetRect ||
@@ -28,18 +26,23 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
     !targetRect.rect
       ? null
       : (() => {
+          const elMachine = ref.current.closest(
+            `[data-xviz-element="machine"]`
+          );
+
+          if (!elMachine) {
+            console.warn(
+              'EdgeViz component rendered outside of a MachineViz component'
+            );
+            return null;
+          }
+
           if (edge.source === edge.target) {
             return null;
           }
-          const relativeSourceRect = relative(
-            sourceRect.rect!,
-            ref.current.ownerSVGElement!
-          );
+          const relativeSourceRect = relative(sourceRect.rect!, elMachine);
 
-          const relativeTargetRect = relative(
-            targetRect.rect!,
-            ref.current.ownerSVGElement!
-          );
+          const relativeTargetRect = relative(targetRect.rect!, elMachine);
 
           const startPoint = relativeSourceRect.point('right', 'center');
 
