@@ -195,4 +195,26 @@ describe('final states', () => {
 
     service.send('REQUEST_SECRET');
   });
+
+  it("should only call data expression once when entering root's final state", () => {
+    const spy = jest.fn();
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: 'end'
+          }
+        },
+        end: {
+          type: 'final',
+          data: spy
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'FINISH', value: 1 });
+    expect(spy).toBeCalledTimes(1);
+  });
 });
