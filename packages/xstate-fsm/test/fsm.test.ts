@@ -274,4 +274,28 @@ describe('interpreter', () => {
     expect(service.state.value).toEqual('test');
     expect(service.state.context).toEqual({ foo: 'bar' });
   });
+
+  it('should reveal the current state after transition', done => {
+    const machine = createMachine({
+      initial: 'test',
+      context: { foo: 'bar' },
+      states: {
+        test: {
+          on: { CHANGE: 'success' }
+        },
+        success: {}
+      }
+    });
+    const service = interpret(machine);
+
+    service.start();
+
+    service.subscribe(() => {
+      if (service.state.value === 'success') {
+        done();
+      }
+    });
+
+    service.send('CHANGE');
+  });
 });
