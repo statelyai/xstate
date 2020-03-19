@@ -12,6 +12,7 @@ import {
 } from 'xstate';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
+import { useActor } from './useActor';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
@@ -112,7 +113,7 @@ export function useMachine<
   return [state, service.send, service];
 }
 
-export function useService<
+export function xuseService<
   TContext,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = any
@@ -123,9 +124,12 @@ export function useService<
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
   Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const subscription: Subscription<
-    State<TContext, TEvent, any, TTypestate>
-  > = useMemo(
+  const subscription: Subscription<State<
+    TContext,
+    TEvent,
+    any,
+    TTypestate
+  >> = useMemo(
     () => ({
       getCurrentValue: () => service.state || service.initialState,
       subscribe: callback => {
