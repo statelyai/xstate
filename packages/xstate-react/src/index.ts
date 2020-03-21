@@ -1,4 +1,4 @@
-import { useState, useMemo, useEffect } from 'react';
+import { useState, useMemo, useEffect, useCallback } from 'react';
 import {
   interpret,
   EventObject,
@@ -8,7 +8,8 @@ import {
   InterpreterOptions,
   MachineOptions,
   StateConfig,
-  Typestate
+  Typestate,
+  Event
 } from 'xstate';
 import useConstant from './useConstant';
 import { useActor } from './useActor';
@@ -119,12 +120,20 @@ export function useService<
   TTypestate extends Typestate<TContext> = any
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
-): [State<TContext, TEvent>, Sender<TEvent>] {
+): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
   const actorRef = useMemo(() => {
     return fromService<TContext, TEvent>(service);
   }, [service]);
 
-  const [state, send] = useActor(actorRef);
+  const [state, sendActor] = useActor(actorRef);
+
+  const send = useCallback(
+    (event: Event<TEvent>) => {
+      const eventObject = typeof event === 'string' ? { type: event } : event;
+      return void sendActor(eventObject as TEvent);
+    },
+    [sendActor]
+  );
 
   return [state, send];
 }

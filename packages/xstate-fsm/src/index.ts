@@ -235,9 +235,6 @@ export function interpret<
     },
     get status() {
       return status;
-    },
-    get state() {
-      return state;
     }
   };
 
