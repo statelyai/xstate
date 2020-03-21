@@ -166,7 +166,9 @@ const Fetcher = ({ onResolve }) => {
 
 ## Matching States
 
-Using a `switch` statement might suffice for a simple, non-hierarchical state machine, but for [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it's better to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters):
+When using [hierarchical](https://xstate.js.org/docs/guides/hierarchical.html) and [parallel](https://xstate.js.org/docs/guides/parallel.html) machines, the state values will be objects, not strings. In this case, it is best to use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters).
+
+We can do this with `if/else if/else` blocks:
 
 ```js
 // ...
@@ -178,6 +180,21 @@ if (current.matches('idle')) {
   return /* ... */;
 } else {
   return null;
+}
+```
+
+We can also continue to use `switch`, but we must make an adjustment to our approach. By setting the expression of the `switch` to `true`, we can use [`state.matches(...)`](https://xstate.js.org/docs/guides/states.html#state-methods-and-getters) as a predicate in each `case`:
+
+```js
+switch (true) {
+  case current.matches('idle'):
+    return /* ... */;
+  case current.matches({ loading: 'user' }):
+    return /* ... */;
+  case current.matches({ loading: 'friends' }):
+    return /* ... */;
+  default:
+    return null;
 }
 ```
 
