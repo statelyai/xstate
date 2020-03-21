@@ -116,6 +116,7 @@ export namespace StateMachine {
     start: () => Service<TContext, TEvent, TState>;
     stop: () => Service<TContext, TEvent, TState>;
     readonly status: InterpreterStatus;
+    readonly state: State<TContext, TEvent, TState>;
   }
 
   export type Assigner<TContext extends object, TEvent extends EventObject> = (

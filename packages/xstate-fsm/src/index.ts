@@ -230,6 +230,9 @@ export function interpret<
       listeners.clear();
       return service;
     },
+    get state() {
+      return state;
+    },
     get status() {
       return status;
     },

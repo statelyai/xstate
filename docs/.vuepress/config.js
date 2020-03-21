@@ -76,7 +76,12 @@ module.exports = {
       },
       {
         title: 'Recipes',
-        children: ['/recipes/react', '/recipes/vue', '/recipes/rxjs']
+        children: [
+          '/recipes/react',
+          '/recipes/vue',
+          '/recipes/rxjs',
+          '/recipes/ember'
+        ]
       },
       {
         title: 'Packages',

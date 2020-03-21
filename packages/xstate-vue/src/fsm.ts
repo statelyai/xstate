@@ -76,9 +76,13 @@ export function useService<
   send: StateMachine.Service<TContext, TEvent, TState>['send'];
   service: Ref<StateMachine.Service<TContext, TEvent, TState>>;
 } {
-  const serviceRef = isRef(service) ? service : ref(service);
+  const serviceRef: Ref<StateMachine.Service<TContext, TEvent, TState>> = isRef(
+    service
+  )
+    ? service
+    : ref(service);
   const state = ref<StateMachine.State<TContext, TEvent, TState>>(
-    getServiceValue(serviceRef.value)
+    serviceRef.value.state
   );
 
   watch(serviceRef, (service, _, onCleanup) => {
