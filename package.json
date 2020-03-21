@@ -10,7 +10,7 @@
   },
   "scripts": {
     "preinstall": "node ./scripts/ensure-yarn.js",
-    "postinstall": "manypkg check",
+    "postinstall": "manypkg check && patch-package",
     "clean:packages": "yarn workspaces run clean",
     "build": "tsc -b ./tsconfig.monorepo.json",
     "test": "jest",
@@ -59,7 +59,8 @@
     "lint-staged": "^8.2.1",
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mermaid": "^8.2.3",
-    "prettier": "^1.18.2",
+    "patch-package": "^6.2.0",
+    "prettier": "^1.19.1",
     "spawn-command": "0.0.2-1",
     "ts-jest": "^24.1.9",
     "tslint": "^5.11.0",
