@@ -1,4 +1,4 @@
-## Usage with Vue
+# Usage with Vue
 
 Vue follows a similar pattern to [React](./react.md):
 
@@ -13,21 +13,21 @@ Vue follows a similar pattern to [React](./react.md):
 import { Machine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-  const toggleMachine = Machine({
-    id: 'toggle',
-    context: {
-      /* some data */
+const toggleMachine = Machine({
+  id: 'toggle',
+  context: {
+    /* some data */
+  },
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: { TOGGLE: 'active' }
     },
-    initial: 'inactive',
-    states: {
-      inactive: {
-        on: { TOGGLE: 'active' }
-      },
-      active: {
-        on: { TOGGLE: 'inactive' }
-      }
+    active: {
+      on: { TOGGLE: 'inactive' }
     }
-  });
+  }
+});
 ```
 
 ```html
@@ -62,7 +62,7 @@ import { Machine } from 'xstate';
 
         // Start with the machine's initial state
         current: toggleMachine.initialState,
-  
+
         // Start with the machine's initial context
         context: toggleMachine.context
       };
