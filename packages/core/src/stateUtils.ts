@@ -907,9 +907,9 @@ export function removeConflictingTransitions<
   TEvent extends EventObject
 >(
   enabledTransitions: Array<TransitionDefinition<TContext, TEvent>>,
-  mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
+  configuration: Set<StateNode<TContext, any, TEvent>>,
   state: State<TContext, TEvent>
-) {
+): Array<TransitionDefinition<TContext, TEvent>> {
   const filteredTransitions = new Set<TransitionDefinition<TContext, TEvent>>();
 
   for (const t1 of enabledTransitions) {
@@ -920,8 +920,8 @@ export function removeConflictingTransitions<
     for (const t2 of filteredTransitions) {
       if (
         hasIntersection(
-          computeExitSet([t1], mutConfiguration, state),
-          computeExitSet([t2], mutConfiguration, state)
+          computeExitSet([t1], configuration, state),
+          computeExitSet([t2], configuration, state)
         )
       ) {
         if (isDescendant(t1.source, t2.source)) {
@@ -940,7 +940,7 @@ export function removeConflictingTransitions<
     }
   }
 
-  return filteredTransitions;
+  return Array.from(filteredTransitions);
 }
 
 function findLCCA<TContext, TEvent extends EventObject>(
@@ -1316,12 +1316,10 @@ export function microstep<TContext, TEvent extends EventObject>(
 } {
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
-  const filteredTransitions = Array.from(
-    removeConflictingTransitions(
-      transitions,
-      mutConfiguration,
-      currentState || State.from({})
-    )
+  const filteredTransitions = removeConflictingTransitions(
+    transitions,
+    mutConfiguration,
+    currentState || State.from({})
   );
 
   let historyValue: HistoryValue<TContext, TEvent> = {};
@@ -1391,22 +1389,40 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent>,
   machine: MachineNode<TContext, any, TEvent>
 ): Transitions<TContext, TEvent> {
-  const transientNodes = state.configuration.filter(sn => sn.isTransient);
+  const enabledTransitions: Set<
+    TransitionDefinition<TContext, TEvent>
+  > = new Set();
 
-  const transitions = flatten(transientNodes.map(sn => sn.transitions));
-  return transitions.filter(t => {
-    return (
-      t.eventType === NULL_EVENT &&
-      (t.cond === undefined ||
-        evaluateGuard<TContext, TEvent>(
-          machine,
-          t.cond,
-          state.context,
-          toSCXMLEvent(NULL_EVENT as Event<TEvent>),
-          state
-        ))
-    );
-  });
+  const atomicStates = state.configuration.filter(isAtomicStateNode);
+
+  for (const stateNode of atomicStates) {
+    loop: for (const s of [stateNode].concat(
+      getProperAncestors(stateNode, null)
+    )) {
+      for (const t of s.transitions) {
+        if (
+          t.eventType === NULL_EVENT &&
+          (t.cond === undefined ||
+            evaluateGuard<TContext, TEvent>(
+              machine,
+              t.cond,
+              state.context,
+              toSCXMLEvent(NULL_EVENT as Event<TEvent>),
+              state
+            ))
+        ) {
+          enabledTransitions.add(t);
+          break loop;
+        }
+      }
+    }
+  }
+
+  return removeConflictingTransitions(
+    Array.from(enabledTransitions),
+    new Set(state.configuration),
+    state
+  );
 }
 
 export function resolveMicroTransition<
