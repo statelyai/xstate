@@ -45,7 +45,7 @@ import {
   isStateId
 } from './stateUtils';
 import { MachineNode } from './MachineNode';
-import { STATE_DELIMITER, NULL_EVENT } from './constants';
+import { STATE_DELIMITER } from './constants';
 
 const EMPTY_OBJECT = {};
 
