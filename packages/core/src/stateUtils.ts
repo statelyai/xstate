@@ -1323,13 +1323,6 @@ export function microstep<TContext, TEvent extends EventObject>(
   let historyValue: HistoryValue<TContext, TEvent> = {};
 
   const internalQueue: Array<SCXML.Event<TEvent>> = [];
-  const isRaisedAction = (
-    action: ActionObject<TContext, TEvent>
-  ): action is RaiseActionObject<TEvent> =>
-    action.type === actionTypes.raise ||
-    (action.type === actionTypes.send &&
-      (action as SendActionObject<TContext, TEvent>).to ===
-        SpecialTargets.Internal);
 
   // Exit states
   if (currentState) {
@@ -1652,7 +1645,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
   let maybeNextState = nextState;
 
   while (_internalQueue.length && !maybeNextState.done) {
-    const previousEvent = maybeNextState._event;
+    const _previousEvent = maybeNextState._event;
     const raisedEvent = _internalQueue.shift()!;
     const currentActions = maybeNextState.actions;
 
@@ -1665,8 +1658,8 @@ export function macrostep<TContext, TEvent extends EventObject>(
 
     // Save original event to state
     if (raisedEvent.type === NULL_EVENT) {
-      maybeNextState._event = previousEvent;
-      maybeNextState.event = previousEvent.data;
+      maybeNextState._event = _previousEvent;
+      maybeNextState.event = _previousEvent.data;
     }
 
     // Since macrostep actions have not been executed yet,
