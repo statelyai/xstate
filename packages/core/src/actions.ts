@@ -456,7 +456,7 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 
   eventObject.toString = () => type;
 
-  return eventObject as (ErrorPlatformEvent & string);
+  return eventObject as ErrorPlatformEvent & string;
 }
 
 export function pure<TContext, TEvent extends EventObject>(
@@ -574,35 +574,53 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             updatedContext,
             _event
           );
-        case actionTypes.decide:{
-          const decideAction = actionObject as DecideAction<TContext, TEvent>
-          const matchedActions = decideAction.conds.find(
-            condition => {
-              const guard = toGuard(condition.cond, machine.options.guards)
-              return !guard || evaluateGuard(machine, guard, updatedContext, _event, currentState as any)
-            }
-          )?.actions;
+        case actionTypes.decide: {
+          const decideAction = actionObject as DecideAction<TContext, TEvent>;
+          const matchedActions = decideAction.conds.find(condition => {
+            const guard = toGuard(condition.cond, machine.options.guards);
+            return (
+              !guard ||
+              evaluateGuard(
+                machine,
+                guard,
+                updatedContext,
+                _event,
+                currentState as any
+              )
+            );
+          })?.actions;
 
           if (!matchedActions) {
-            return []
+            return [];
           }
 
-          const resolved = resolveActions(machine, currentState, updatedContext, _event, toActionObjects(toArray(matchedActions)))
-          updatedContext = resolved[1]
-          return resolved[0]
+          const resolved = resolveActions(
+            machine,
+            currentState,
+            updatedContext,
+            _event,
+            toActionObjects(toArray(matchedActions))
+          );
+          updatedContext = resolved[1];
+          return resolved[0];
         }
-        case actionTypes.pure:{
-          const matchedActions = (
-            (actionObject as PureAction<TContext, TEvent>).get(
-              updatedContext,
-              _event.data
-            ))
-            if (!matchedActions) {
-              return []
-            }
-          const resolved = resolveActions(machine, currentState, updatedContext, _event, toActionObjects(toArray(matchedActions)))
-          updatedContext = resolved[1]
-          return resolved[0]
+        case actionTypes.pure: {
+          const matchedActions = (actionObject as PureAction<
+            TContext,
+            TEvent
+          >).get(updatedContext, _event.data);
+          if (!matchedActions) {
+            return [];
+          }
+          const resolved = resolveActions(
+            machine,
+            currentState,
+            updatedContext,
+            _event,
+            toActionObjects(toArray(matchedActions))
+          );
+          updatedContext = resolved[1];
+          return resolved[0];
         }
         default:
           return toActionObject(actionObject, machine.options.actions);

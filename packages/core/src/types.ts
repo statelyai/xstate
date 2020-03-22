@@ -76,7 +76,8 @@ type Action<TContext, TEvent extends EventObject> =
   | ActionFunction<TContext, TEvent>
   | AssignAction<Required<TContext>, TEvent>
   | SendAction<TContext, AnyEventObject>
-  | RaiseAction<AnyEventObject>;
+  | RaiseAction<AnyEventObject>
+  | DecideAction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -128,9 +129,9 @@ export interface GuardPredicate<TContext, TEvent extends EventObject> {
 
 export type Guard<TContext, TEvent extends EventObject> =
   | GuardPredicate<TContext, TEvent>
-  | Record<string, any> & {
+  | (Record<string, any> & {
       type: string;
-    };
+    });
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
