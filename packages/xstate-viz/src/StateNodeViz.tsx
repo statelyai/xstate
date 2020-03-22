@@ -1,25 +1,21 @@
 import * as React from 'react';
-import { useContext, useEffect, useRef, useMemo } from 'react';
+import { useContext, useMemo } from 'react';
 import { StateContext } from './StateContext';
 import { StateNode } from 'xstate';
 import { EventViz } from './EventViz';
 import { getEdges, serializeTransition, isActive } from './utils';
 import { ActionViz } from './ActionViz';
+import { InvokeViz } from './InvokeViz';
+
+import { useTracker } from './useTracker';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
 }
 
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
-  const { tracker, state } = useContext(StateContext);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    tracker.update(stateNode.id, ref.current!);
-  }, []);
+  const { state } = useContext(StateContext);
+  const ref = useTracker(stateNode.id);
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
 
@@ -44,20 +40,11 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
             </ul>
           )}
           {stateNode.invoke.length > 0 && (
-            <ul data-xviz-element="stateNode-invocations">
+            <div data-xviz-element="stateNode-invocations">
               {stateNode.invoke.map((invokeDef, i) => {
-                return (
-                  <li data-xviz-element="stateNode-invocation" key={i}>
-                    <div data-xviz-element="stateNode-invocation-src">
-                      {invokeDef.src}
-                    </div>
-                    <div data-xviz-element="stateNode-invocation-id">
-                      {invokeDef.id}
-                    </div>
-                  </li>
-                );
+                return <InvokeViz invoke={invokeDef} key={i} />;
               })}
-            </ul>
+            </div>
           )}
           {stateNode.onExit.length > 0 && (
             <ul data-xviz-element="stateNode-actions" data-xviz-actions="exit">
@@ -67,17 +54,19 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
             </ul>
           )}
         </div>
-        <div data-xviz-element="stateNode-children">
-          {Object.keys(stateNode.states).map(key => {
-            const childStateNode = stateNode.states[key];
-            return (
-              <StateNodeViz
-                stateNode={stateNode.states[key]}
-                key={childStateNode.id}
-              />
-            );
-          })}
-        </div>
+        {Object.keys(stateNode.states).length > 0 && (
+          <div data-xviz-element="stateNode-children">
+            {Object.keys(stateNode.states).map(key => {
+              const childStateNode = stateNode.states[key];
+              return (
+                <StateNodeViz
+                  stateNode={stateNode.states[key]}
+                  key={childStateNode.id}
+                />
+              );
+            })}
+          </div>
+        )}
       </div>
       <div data-xviz-element="events">
         {edges.map(edge => {

@@ -10,12 +10,14 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
   const ref = useRef<SVGGElement>(null);
   const [sourceRect, setSourceRect] = useState<TrackerData | undefined>();
   const [targetRect, setTargetRect] = useState<TrackerData | undefined>();
+  const [machineRect, setMachineRect] = useState<TrackerData | undefined>();
 
   useEffect(() => {
     tracker.listen(serializeTransition(edge.transition), data =>
       setSourceRect(data)
     );
     tracker.listen(edge.target.id, data => setTargetRect(data));
+    tracker.listen(edge.target.machine.id, data => setMachineRect(data));
   }, []);
 
   const path =
@@ -23,35 +25,33 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
     !targetRect ||
     !ref.current ||
     !sourceRect.rect ||
-    !targetRect.rect
+    !targetRect.rect ||
+    !machineRect ||
+    !machineRect.rect
       ? null
       : (() => {
-          const elMachine = ref.current.closest(
-            `[data-xviz-element="machine"]`
-          );
-
-          if (!elMachine) {
-            console.warn(
-              'EdgeViz component rendered outside of a MachineViz component'
-            );
-            return null;
-          }
-
           if (edge.source === edge.target) {
             return null;
           }
-          const relativeSourceRect = relative(sourceRect.rect!, elMachine);
+          const relativeSourceRect = relative(
+            sourceRect.rect!,
+            machineRect.rect
+          );
 
-          const relativeTargetRect = relative(targetRect.rect!, elMachine);
+          const relativeTargetRect = relative(
+            targetRect.rect!,
+            machineRect.rect
+          );
 
           const startPoint = relativeSourceRect.point('right', 'center');
 
           const targetPoints = {
             top: relativeTargetRect.point('center', 'top'),
             bottom: relativeTargetRect.point('center', 'bottom'),
-            left: relativeTargetRect.point('left', 'center'),
-            right: relativeTargetRect.point('right', 'center')
+            left: relativeTargetRect.point('left', 'center')
+            // right:  relativeTargetRect.point('right', 'center')
           };
+
           const targetPointEntries = Object.entries(targetPoints);
 
           const [minLocation, minPoint] = targetPointEntries.reduce(

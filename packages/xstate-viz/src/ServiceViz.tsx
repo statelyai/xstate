@@ -24,24 +24,15 @@ export function ServiceViz({ service }: { service: Interpreter<any, any> }) {
   }, []);
 
   return (
-    <div>
-      <details open={!service.parent || true}>
-        <summary>{service.id}</summary>
-
+    <div data-xviz-element="service">
+      <div data-xviz-element="service-machine">
         <MachineViz machine={service.machine} state={service.state} />
-      </details>
-      <div>
-        <strong>{service.id}</strong>
       </div>
-      <ul>
+      <div data-xviz-element="service-children">
         {actors.map(actor => {
-          return (
-            <li>
-              <ServiceViz service={actor as any} />
-            </li>
-          );
+          return <ServiceViz service={actor as any} key={actor.id} />;
         })}
-      </ul>
+      </div>
     </div>
   );
 }

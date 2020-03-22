@@ -108,8 +108,14 @@ class Tracker {
 
 const tracker = new Tracker();
 
-export function relative(childRect: ClientRect, parentElement: Element): Rect {
-  const parentRect = parentElement.getBoundingClientRect();
+export function relative(
+  childRect: ClientRect,
+  parentElement: Element | ClientRect
+): Rect {
+  const parentRect =
+    'getBoundingClientRect' in parentElement
+      ? parentElement.getBoundingClientRect()
+      : parentElement;
 
   return new Rect({
     top: childRect.top - parentRect.top,

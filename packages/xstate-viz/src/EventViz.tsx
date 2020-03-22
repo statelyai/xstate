@@ -25,8 +25,9 @@ export function EventViz({ edge }: EventVizProps) {
   const { transition } = edge;
 
   return (
-    <div data-xviz-element="event" title={`event: ${edge.event}`} ref={ref}>
+    <div data-xviz-element="event" title={`event: ${edge.event}`}>
       <div
+        ref={ref}
         data-xviz-element="event-type"
         data-xviz-builtin={edge.event.startsWith('xstate.') || undefined}
       >

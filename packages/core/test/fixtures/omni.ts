@@ -10,10 +10,14 @@ const omniMachine = Machine({
     compound: {
       type: 'compound',
       initial: 'deep',
+      entry: ['action1', 'action2'],
+      exit: ['action3', 'action4'],
       states: {
         deep: {
           type: 'compound',
           initial: 'first',
+          entry: ['action1', 'action2'],
+          exit: ['action3', 'action4'],
           states: {
             first: {
               type: 'compound',
