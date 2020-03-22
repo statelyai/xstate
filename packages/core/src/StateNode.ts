@@ -441,7 +441,7 @@ class StateNode<
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>,
     context: TContext | undefined = this.context
-  ): StateNode<TContext, TStateSchema, TEvent> {
+  ): StateNode<TContext, TStateSchema, TEvent, TTypestate> {
     const { actions, activities, guards, services, delays } = this.options;
 
     return new StateNode(

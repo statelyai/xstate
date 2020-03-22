@@ -226,7 +226,7 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent> {
+  public get state(): State<TContext, TEvent, any, TTypestate> {
     if (!IS_PRODUCTION) {
       warn(
         this._status !== InterpreterStatus.NotStarted,
@@ -454,7 +454,7 @@ export class Interpreter<
    */
   public start(
     initialState?: State<TContext, TEvent> | StateValue
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this._status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
