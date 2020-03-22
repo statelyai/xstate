@@ -1106,9 +1106,7 @@ export function enterStates<TContext, TEvent extends EventObject>(
               isInFinalState([...mutConfiguration], parentNode)
             )
           ) {
-            internalQueue.push(
-              toSCXMLEvent(done(grandparent.id, grandparent.data))
-            );
+            internalQueue.push(toSCXMLEvent(done(grandparent.id)));
           }
         }
       }
