@@ -13,7 +13,7 @@ Vue follows a similar pattern to [React](./react.md):
 import { Machine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-const toggleMachine = Machine({
+export const toggleMachine = Machine({
   id: 'toggle',
   context: {
     /* some data */
