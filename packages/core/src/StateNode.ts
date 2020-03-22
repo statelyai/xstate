@@ -363,9 +363,9 @@ class StateNode<
     this.strict = !!this.config.strict;
 
     // TODO: deprecate (entry)
-    this.onEntry = toArray(this.config.entry || this.config.onEntry).map(
-      action => toActionObject(action)
-    );
+    this.onEntry = toArray(
+      this.config.entry || this.config.onEntry
+    ).map(action => toActionObject(action));
     // TODO: deprecate (exit)
     this.onExit = toArray(this.config.exit || this.config.onExit).map(action =>
       toActionObject(action)
@@ -500,14 +500,11 @@ class StateNode<
 
     const transitions = this.transitions;
 
-    return (this.__cache.on = transitions.reduce(
-      (map, transition) => {
-        map[transition.eventType] = map[transition.eventType] || [];
-        map[transition.eventType].push(transition as any);
-        return map;
-      },
-      {} as TransitionDefinitionMap<TContext, TEvent>
-    ));
+    return (this.__cache.on = transitions.reduce((map, transition) => {
+      map[transition.eventType] = map[transition.eventType] || [];
+      map[transition.eventType].push(transition as any);
+      return map;
+    }, {} as TransitionDefinitionMap<TContext, TEvent>));
   }
 
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
@@ -632,21 +629,20 @@ class StateNode<
     }
 
     const subStateKeys = keys(stateValue);
-    const subStateNodes: Array<
-      StateNode<TContext, any, TEvent>
-    > = subStateKeys.map(subStateKey => this.getStateNode(subStateKey));
+    const subStateNodes: Array<StateNode<
+      TContext,
+      any,
+      TEvent
+    >> = subStateKeys.map(subStateKey => this.getStateNode(subStateKey));
 
     return subStateNodes.concat(
-      subStateKeys.reduce(
-        (allSubStateNodes, subStateKey) => {
-          const subStateNode = this.getStateNode(subStateKey).getStateNodes(
-            stateValue[subStateKey]
-          );
+      subStateKeys.reduce((allSubStateNodes, subStateKey) => {
+        const subStateNode = this.getStateNode(subStateKey).getStateNodes(
+          stateValue[subStateKey]
+        );
 
-          return allSubStateNodes.concat(subStateNode);
-        },
-        [] as Array<StateNode<TContext, any, TEvent>>
-      )
+        return allSubStateNodes.concat(subStateNode);
+      }, [] as Array<StateNode<TContext, any, TEvent>>)
     );
   }
 
@@ -1182,15 +1178,12 @@ class StateNode<
       ? currentState.configuration
       : [];
 
-    const meta = resolvedConfiguration.reduce(
-      (acc, stateNode) => {
-        if (stateNode.meta !== undefined) {
-          acc[stateNode.id] = stateNode.meta;
-        }
-        return acc;
-      },
-      {} as Record<string, string>
-    );
+    const meta = resolvedConfiguration.reduce((acc, stateNode) => {
+      if (stateNode.meta !== undefined) {
+        acc[stateNode.id] = stateNode.meta;
+      }
+      return acc;
+    }, {} as Record<string, string>);
 
     const isDone = isInFinalState(resolvedConfiguration, this);
 
@@ -1275,6 +1268,7 @@ class StateNode<
       maybeNextState.changed ||
       (history
         ? !!maybeNextState.actions.length ||
+          didUpdateContext ||
           typeof history.value !== typeof maybeNextState.value ||
           !stateValuesEqual(maybeNextState.value, history.value)
         : undefined);
@@ -1663,9 +1657,10 @@ class StateNode<
         : parent.initialStateNodes;
     }
 
-    const subHistoryValue = nestedPath<HistoryValue>(parent.path, 'states')(
-      historyValue
-    ).current;
+    const subHistoryValue = nestedPath<HistoryValue>(
+      parent.path,
+      'states'
+    )(historyValue).current;
 
     if (isString(subHistoryValue)) {
       return [parent.getStateNode(subHistoryValue)];
@@ -1817,11 +1812,9 @@ class StateNode<
     return transition;
   }
   private formatTransitions(): Array<TransitionDefinition<TContext, TEvent>> {
-    let onConfig: Array<
-      TransitionConfig<TContext, EventObject> & {
-        event: string;
-      }
-    >;
+    let onConfig: Array<TransitionConfig<TContext, EventObject> & {
+      event: string;
+    }>;
 
     if (!this.config.on) {
       onConfig = [];
@@ -1846,11 +1839,14 @@ class StateNode<
             return arrayified;
           })
           .concat(
-            toTransitionConfigArray(WILDCARD, wildcardConfigs as SingleOrArray<
-              TransitionConfig<TContext, EventObject> & {
-                event: '*';
-              }
-            >)
+            toTransitionConfigArray(
+              WILDCARD,
+              wildcardConfigs as SingleOrArray<
+                TransitionConfig<TContext, EventObject> & {
+                  event: '*';
+                }
+              >
+            )
           )
       );
     }

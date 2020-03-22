@@ -13,9 +13,11 @@ import { pathsToStateValue } from '../src/utils';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
-const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
-  cwd: require.resolve('@scion-scxml/test-framework')
-}) as string);
+const TEST_FRAMEWORK = path.dirname(
+  pkgUp.sync({
+    cwd: require.resolve('@scion-scxml/test-framework')
+  }) as string
+);
 
 const testGroups = {
   actionSend: [
@@ -32,9 +34,15 @@ const testGroups = {
   ],
   assign: [
     // 'assign_invalid', // TODO: handle error.execution event
-    'assign_obj_literal'
+    // 'assign_obj_literal' // <script/> conversion not implemented
   ],
-  'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
+  'assign-current-small-step': [
+    // 'test0', // <script/> conversion not implemented
+    'test1',
+    'test2',
+    'test3',
+    'test4'
+  ],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [
