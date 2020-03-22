@@ -38,7 +38,6 @@ import {
   LogAction,
   PureAction,
   RaiseActionObject,
-  SendActionObject,
   SpecialTargets,
   ActivityActionObject,
   HistoryValue,
