@@ -1648,10 +1648,11 @@ export function macrostep<TContext, TEvent extends EventObject>(
   // Determine the next state based on the next microstep
   const nextState = event === null ? state : machine.microstep(state, event);
 
-  const { _event, _internalQueue } = nextState;
+  const { _internalQueue } = nextState;
   let maybeNextState = nextState;
 
   while (_internalQueue.length && !maybeNextState.done) {
+    const previousEvent = maybeNextState._event;
     const raisedEvent = _internalQueue.shift()!;
     const currentActions = maybeNextState.actions;
 
@@ -1664,8 +1665,8 @@ export function macrostep<TContext, TEvent extends EventObject>(
 
     // Save original event to state
     if (raisedEvent.type === NULL_EVENT) {
-      maybeNextState._event = _event;
-      maybeNextState.event = _event.data;
+      maybeNextState._event = previousEvent;
+      maybeNextState.event = previousEvent.data;
     }
 
     // Since macrostep actions have not been executed yet,
