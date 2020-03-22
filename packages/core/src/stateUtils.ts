@@ -1377,7 +1377,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   internalQueue.push(...raised.map(a => a._event));
 
   return {
-    actions: resolvedActions.filter(action => !isRaisedAction(action)),
+    actions: resolvedActions,
     configuration: mutConfiguration,
     historyValue,
     internalQueue,
