@@ -13,7 +13,7 @@ import {
 } from 'xstate';
 import useConstant from './useConstant';
 import { useActor } from './useActor';
-import { Sender, fromService } from './ActorRef';
+import { fromService } from './ActorRef';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
