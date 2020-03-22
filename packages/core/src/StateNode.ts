@@ -82,11 +82,6 @@ export class StateNode<
    */
   public path: string[];
   /**
-   * Whether the state node is "transient". A state node is considered transient if it has
-   * an immediate transition from a "null event" (empty string), taken upon entering the state node.
-   */
-  public isTransient: boolean;
-  /**
    * The child state nodes.
    */
   public states: StateNodesConfig<TContext, TStateSchema, TEvent>;
@@ -202,14 +197,6 @@ export class StateNode<
     // History config
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
-
-    this.isTransient = !this.config.on
-      ? false
-      : Array.isArray(this.config.on)
-      ? this.config.on.some(({ event }: { event: string }) => {
-          return event === NULL_EVENT;
-        })
-      : NULL_EVENT in this.config.on;
 
     this.entry = toArray(this.config.entry).map(action =>
       toActionObject(action)
@@ -423,7 +410,6 @@ export class StateNode<
    * default state value to transition to if no history value exists yet.
    */
   public get target(): string | undefined {
-    let target: string | undefined;
     if (this.type === 'history') {
       const historyConfig = this.config as HistoryStateNodeConfig<
         TContext,
@@ -432,7 +418,7 @@ export class StateNode<
       return historyConfig.target;
     }
 
-    return target;
+    return undefined;
   }
 
   /**

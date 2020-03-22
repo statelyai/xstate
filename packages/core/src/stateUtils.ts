@@ -1519,9 +1519,7 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
 
-  const isTransient =
-    [...resolvedConfiguration].some(sn => sn.isTransient) &&
-    selectEventlessTransitions(nextState, machine).length;
+  const isTransient = selectEventlessTransitions(nextState, machine).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({
