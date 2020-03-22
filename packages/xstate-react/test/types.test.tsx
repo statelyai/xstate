@@ -7,7 +7,7 @@ import {
   Interpreter,
   spawn,
   createMachine
-} from '../../core/src';
+} from 'xstate';
 import { useService, useMachine } from '../src';
 
 describe('useService', () => {
@@ -102,12 +102,14 @@ describe('useMachine', () => {
       if (state.matches('no')) {
         const undefinedValue: undefined = state.context.value;
 
-        return null;
+        return <span>{undefinedValue ? 'Yes' : 'No'}</span>;
       } else if (state.matches('yes')) {
-        const numbericValue: number = state.context.value;
+        const numericValue: number = state.context.value;
 
-        return null;
+        return <span>{numericValue ? 'Yes' : 'No'}</span>;
       }
+
+      return <span>No</span>;
     };
 
     render(<YesNo />);
