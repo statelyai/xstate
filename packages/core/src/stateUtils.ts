@@ -1662,7 +1662,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
       raisedEvent as SCXML.Event<TEvent>
     );
 
-    _internalQueue.unshift(...maybeNextState._internalQueue);
+    _internalQueue.push(...maybeNextState._internalQueue);
 
     // Save original event to state
     if (raisedEvent.type === NULL_EVENT) {
