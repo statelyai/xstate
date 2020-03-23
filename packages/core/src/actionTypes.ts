@@ -17,4 +17,5 @@ export const errorExecution = ActionTypes.ErrorExecution;
 export const errorPlatform = ActionTypes.ErrorPlatform;
 export const error = ActionTypes.ErrorCustom;
 export const update = ActionTypes.Update;
+export const decide = ActionTypes.Decide;
 export const pure = ActionTypes.Pure;

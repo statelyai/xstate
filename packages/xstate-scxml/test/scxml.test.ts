@@ -81,15 +81,15 @@ const testGroups = {
     'send8',
     'send8b',
     'send9'
-  ],
-  assign: [
-    'assign_obj_literal'
-    // 'assign_invalid', // TODO: error handling for assign()
-  ],
-  'assign-current-small-step': [
-    'test0'
-    // 'test1',
   ]
+  // assign: [
+  // 'assign_obj_literal' // <script/> conversion not implemented
+  // 'assign_invalid', // TODO: error handling for assign()
+  // ],
+  // 'assign-current-small-step': [
+  // 'test0' // <script/> conversion not implemented
+  // 'test1',
+  // ]
 };
 
 describe('scxml', () => {

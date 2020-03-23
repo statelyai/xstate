@@ -1,5 +1,12 @@
-import { Machine, assign, forwardTo, interpret, spawn } from '../src/index';
-import { pure, sendParent, log } from '../src/actions';
+import {
+  Machine,
+  createMachine,
+  assign,
+  forwardTo,
+  interpret,
+  spawn
+} from '../src/index';
+import { pure, sendParent, log, decide } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -1027,5 +1034,205 @@ describe('log()', () => {
         "value": "expr 42",
       }
     `);
+  });
+});
+
+describe('decide', () => {
+  it('should execute a single conditional action', () => {
+    type Ctx = { answer?: number };
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+  });
+
+  it('should execute a multiple conditional actions', () => {
+    let executed = false;
+
+    type Ctx = { answer?: number };
+
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            {
+              cond: () => true,
+              actions: [() => (executed = true), assign<Ctx>({ answer: 42 })]
+            }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+    expect(executed).toBeTruthy();
+  });
+
+  it('should only execute matched actions', () => {
+    type Ctx = { answer?: number; shouldNotAppear?: boolean };
+
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            {
+              cond: () => false,
+              actions: assign<Ctx>({ shouldNotAppear: true })
+            },
+            { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+  });
+
+  it('should allow for fallback unguarded actions', () => {
+    type Ctx = { answer?: number; shouldNotAppear?: boolean };
+
+    const machine = createMachine<Ctx>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            {
+              cond: () => false,
+              actions: assign<Ctx>({ shouldNotAppear: true })
+            },
+            { actions: assign<Ctx>({ answer: 42 }) }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+  });
+
+  it('should allow for nested conditional actions', () => {
+    type Ctx = {
+      firstLevel: boolean;
+      secondLevel: boolean;
+      thirdLevel: boolean;
+    };
+
+    const machine = createMachine<Ctx>({
+      context: {
+        firstLevel: false,
+        secondLevel: false,
+        thirdLevel: false
+      },
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            {
+              cond: () => true,
+              actions: [
+                assign<Ctx>({ firstLevel: true }),
+                decide([
+                  {
+                    cond: () => true,
+                    actions: [
+                      assign<Ctx>({ secondLevel: true }),
+                      decide([
+                        {
+                          cond: () => true,
+                          actions: [assign<Ctx>({ thirdLevel: true })]
+                        }
+                      ])
+                    ]
+                  }
+                ])
+              ]
+            }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({
+      firstLevel: true,
+      secondLevel: true,
+      thirdLevel: true
+    });
+  });
+
+  it('should provide context to a condition expression', () => {
+    type Ctx = { counter: number; answer?: number };
+    const machine = createMachine<Ctx>({
+      context: {
+        counter: 101
+      },
+      initial: 'foo',
+      states: {
+        foo: {
+          entry: decide([
+            {
+              cond: ctx => ctx.counter > 100,
+              actions: assign<Ctx>({ answer: 42 })
+            }
+          ])
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ counter: 101, answer: 42 });
+  });
+
+  it('should provide event to a condition expression', () => {
+    type Ctx = { answer?: number };
+    type Events = { type: 'NEXT'; counter: number };
+
+    const machine = createMachine<Ctx, Events>({
+      context: {},
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            NEXT: {
+              target: 'bar',
+              actions: decide<Ctx, Events>([
+                {
+                  cond: (_, event) => event.counter > 100,
+                  actions: assign<Ctx>({ answer: 42 })
+                }
+              ])
+            }
+          }
+        },
+        bar: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'NEXT', counter: 101 });
+    expect(service.state.context).toEqual({ answer: 42 });
   });
 });
