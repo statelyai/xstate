@@ -20,7 +20,8 @@
   "module": "es/index.js",
   "types": "lib/index.d.ts",
   "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
+    "./lib/slimChalk.js": "./lib/slimChalk.browser.js",
+    "./es/slimChalk.js": "./es/slimChalk.browser.js"
   },
   "sideEffects": false,
   "files": [
@@ -36,7 +37,7 @@
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest --runInBand",
-    "build": "tsc && rollup -c",
+    "build": "tsc && tsc --outDir es --module es2015",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
@@ -52,12 +53,6 @@
     "jest-puppeteer": "^4.3.0",
     "lerna-alias": "3.0.3-0",
     "puppeteer": "^1.19.0",
-    "rollup": "^1.26.3",
-    "rollup-plugin-filesize": "^6.2.1",
-    "rollup-plugin-replace": "^2.2.0",
-    "rollup-plugin-terser": "^5.1.2",
-    "rollup-plugin-typescript2": "^0.25.2",
-    "rollup-plugin-uglify": "^6.0.2",
     "strip-ansi": "^5.2.0",
     "ts-jest": "^24.1.9",
     "typescript": "^3.7.5",
