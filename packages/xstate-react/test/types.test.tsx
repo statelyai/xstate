@@ -1,7 +1,14 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { Machine, interpret, assign, Interpreter, spawn } from 'xstate';
-import { useService } from '../src';
+import {
+  Machine,
+  interpret,
+  assign,
+  Interpreter,
+  spawn,
+  createMachine
+} from 'xstate';
+import { useService, useMachine } from '../src';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -55,5 +62,56 @@ describe('useService', () => {
     service.send('CREATE');
 
     render(<Todo index={0} />);
+  });
+});
+
+describe('useMachine', () => {
+  it('should preserve typestate information.', () => {
+    type YesNoContext = { value?: number };
+
+    type YesNoEvent = { type: 'YES' };
+
+    type YesNoTypestate =
+      | { value: 'no'; context: { value: undefined } }
+      | { value: 'yes'; context: { value: number } };
+
+    const yesNoMachine = createMachine<
+      YesNoContext,
+      YesNoEvent,
+      YesNoTypestate
+    >({
+      context: {
+        value: undefined
+      },
+      initial: 'no',
+      states: {
+        no: {
+          on: {
+            YES: 'yes'
+          }
+        },
+        yes: {
+          type: 'final'
+        }
+      }
+    });
+
+    const YesNo = () => {
+      const [state] = useMachine(yesNoMachine);
+
+      if (state.matches('no')) {
+        const undefinedValue: undefined = state.context.value;
+
+        return <span>{undefinedValue ? 'Yes' : 'No'}</span>;
+      } else if (state.matches('yes')) {
+        const numericValue: number = state.context.value;
+
+        return <span>{numericValue ? 'Yes' : 'No'}</span>;
+      }
+
+      return <span>No</span>;
+    };
+
+    render(<YesNo />);
   });
 });
