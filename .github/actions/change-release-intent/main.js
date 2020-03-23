@@ -23,24 +23,25 @@ async function execWithOutput(command, args, options) {
   };
 }
 
-const publishablePackages = ['xstate', '@xstate/fsm', '@xstate/test'];
+const publishablePackages = [
+  'xstate',
+  '@xstate/fsm',
+  '@xstate/graph',
+  '@xstate/test'
+];
 
 (async () => {
-  const currentBranchName = (await execWithOutput('git', [
-    'rev-parse',
-    '--abbrev-ref',
-    'HEAD'
-  ])).stdout.trim();
+  const currentBranchName = (
+    await execWithOutput('git', ['rev-parse', '--abbrev-ref', 'HEAD'])
+  ).stdout.trim();
 
   if (!/^changeset-release\//.test(currentBranchName)) {
     return;
   }
 
-  const latestCommitMessage = (await execWithOutput('git', [
-    'log',
-    '-1',
-    '--pretty=%B'
-  ])).stdout.trim();
+  const latestCommitMessage = (
+    await execWithOutput('git', ['log', '-1', '--pretty=%B'])
+  ).stdout.trim();
 
   await exec('git', ['reset', '--mixed', 'HEAD~1']);
 
