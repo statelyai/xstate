@@ -14,19 +14,22 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "build": "tsc && tsc --outDir es --module es2015",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },

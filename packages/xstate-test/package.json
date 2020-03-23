@@ -17,23 +17,27 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "browser": {
-    "./lib/slimChalk.js": "./lib/slimChalk.browser.js"
+    "./lib/slimChalk.js": "./lib/slimChalk.browser.js",
+    "./es/slimChalk.js": "./es/slimChalk.browser.js"
   },
   "sideEffects": false,
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
     "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
   },
   "scripts": {
-    "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest --runInBand",
-    "build": "tsc",
+    "build": "tsc && tsc --outDir es --module es2015",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
