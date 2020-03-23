@@ -132,7 +132,7 @@ const service = interpret(stateMachine);
 // This will compile
 service.send({ type: "TEST", value: "testvalue" });
 
-// This will have an compile error on the value type
+// This will have a compile error on the `value` type
 service.send({ type: "TEST", value: 1 });
 ```
 
