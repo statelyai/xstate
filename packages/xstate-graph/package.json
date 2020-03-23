@@ -40,9 +40,6 @@
     "xstate": "^4.7.0"
   },
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
-    "babel-plugin-annotate-pure-calls": "^0.4.0",
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
     "rollup": "^1.26.3",

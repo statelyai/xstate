@@ -46,8 +46,6 @@
     "xstate": "^4.7.6"
   },
   "devDependencies": {
-    "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
     "@types/jest-environment-puppeteer": "^4.0.0",
     "jest": "^24.8.0",
     "jest-environment-puppeteer": "^4.3.0",
