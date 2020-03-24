@@ -6,7 +6,7 @@ import {
   interpret,
   spawn
 } from '../src/index';
-import { pure, sendParent, log, decide } from '../src/actions';
+import { pure, sendParent, log, choose } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -1037,7 +1037,7 @@ describe('log()', () => {
   });
 });
 
-describe('decide', () => {
+describe('choose', () => {
   it('should execute a single conditional action', () => {
     type Ctx = { answer?: number };
     const machine = createMachine<Ctx>({
@@ -1045,7 +1045,7 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
           ])
         }
@@ -1067,7 +1067,7 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             {
               cond: () => true,
               actions: [() => (executed = true), assign<Ctx>({ answer: 42 })]
@@ -1091,7 +1091,7 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             {
               cond: () => false,
               actions: assign<Ctx>({ shouldNotAppear: true })
@@ -1115,7 +1115,7 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             {
               cond: () => false,
               actions: assign<Ctx>({ shouldNotAppear: true })
@@ -1147,17 +1147,17 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             {
               cond: () => true,
               actions: [
                 assign<Ctx>({ firstLevel: true }),
-                decide([
+                choose([
                   {
                     cond: () => true,
                     actions: [
                       assign<Ctx>({ secondLevel: true }),
-                      decide([
+                      choose([
                         {
                           cond: () => true,
                           actions: [assign<Ctx>({ thirdLevel: true })]
@@ -1191,7 +1191,7 @@ describe('decide', () => {
       initial: 'foo',
       states: {
         foo: {
-          entry: decide([
+          entry: choose([
             {
               cond: ctx => ctx.counter > 100,
               actions: assign<Ctx>({ answer: 42 })
@@ -1218,7 +1218,7 @@ describe('decide', () => {
           on: {
             NEXT: {
               target: 'bar',
-              actions: decide<Ctx, Events>([
+              actions: choose<Ctx, Events>([
                 {
                   cond: (_, event) => event.counter > 100,
                   actions: assign<Ctx>({ answer: 42 })
