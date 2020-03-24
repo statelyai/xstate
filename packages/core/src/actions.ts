@@ -31,8 +31,8 @@ import {
   DelayFunctionMap,
   SCXML,
   ExprWithMeta,
-  DecideConditon,
-  DecideAction
+  ChooseConditon,
+  ChooseAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -518,11 +518,11 @@ export function escalate<
   );
 }
 
-export function decide<TContext, TEvent extends EventObject>(
-  conds: DecideConditon<TContext, TEvent>[]
-): DecideAction<TContext, TEvent> {
+export function choose<TContext, TEvent extends EventObject>(
+  conds: ChooseConditon<TContext, TEvent>[]
+): ChooseAction<TContext, TEvent> {
   return {
-    type: ActionTypes.Decide,
+    type: ActionTypes.Choose,
     conds
   };
 }
@@ -574,9 +574,9 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             updatedContext,
             _event
           );
-        case actionTypes.decide: {
-          const decideAction = actionObject as DecideAction<TContext, TEvent>;
-          const matchedActions = decideAction.conds.find(condition => {
+        case actionTypes.choose: {
+          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+          const matchedActions = chooseAction.conds.find(condition => {
             const guard = toGuard(condition.cond, machine.options.guards);
             return (
               !guard ||

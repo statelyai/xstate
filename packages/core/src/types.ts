@@ -64,7 +64,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   meta: ActionMeta<TContext, TEvent>
 ) => any | void;
 
-export interface DecideConditon<TContext, TEvent extends EventObject> {
+export interface ChooseConditon<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
@@ -77,7 +77,7 @@ type Action<TContext, TEvent extends EventObject> =
   | AssignAction<Required<TContext>, TEvent>
   | SendAction<TContext, AnyEventObject>
   | RaiseAction<AnyEventObject>
-  | DecideAction<TContext, TEvent>;
+  | ChooseAction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -724,7 +724,7 @@ export enum ActionTypes {
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
   Pure = 'xstate.pure',
-  Decide = 'xstate.decide'
+  Choose = 'xstate.choose'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -902,10 +902,10 @@ export interface PureAction<TContext, TEvent extends EventObject>
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
 }
 
-export interface DecideAction<TContext, TEvent extends EventObject>
+export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
-  type: ActionTypes.Decide;
-  conds: DecideConditon<TContext, TEvent>[];
+  type: ActionTypes.Choose;
+  conds: ChooseConditon<TContext, TEvent>[];
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
