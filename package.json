@@ -60,7 +60,7 @@
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mermaid": "^8.2.3",
     "patch-package": "^6.2.0",
-    "prettier": "^1.19.1",
+    "prettier": "^2.0.2",
     "spawn-command": "0.0.2-1",
     "ts-jest": "^24.1.9",
     "tslint": "^5.11.0",
