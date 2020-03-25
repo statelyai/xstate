@@ -6,7 +6,7 @@ Added support for conditional actions. It's possible now to have actions execute
 
 ```js
 entry: [
-  decide([
+  choose([
     { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
     {
       cond: 'hasMagicBottle',
