@@ -150,3 +150,19 @@ export function isActive(
 export function serializeAction(action: ActionObject<any, any>): string {
   return JSON.stringify(action);
 }
+
+export function isBuiltinEvent(eventType: string): boolean {
+  return (
+    eventType.startsWith('xstate.') ||
+    eventType.startsWith('done.state.') ||
+    eventType.startsWith('error.execution.') ||
+    eventType.startsWith('error.platform.')
+  );
+}
+
+export function toDelayString(delay: string | number): string {
+  if (typeof delay === 'number' || !isNaN(+delay)) {
+    return `${delay} ms`;
+  }
+  return delay;
+}

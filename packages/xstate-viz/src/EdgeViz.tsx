@@ -3,10 +3,11 @@ import { useState, useEffect, useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
 import { TrackerData, relative, Point } from './tracker';
-import { serializeTransition } from './utils';
+import { serializeTransition, isActive } from './utils';
 
 export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
-  const { tracker } = useContext(StateContext);
+  const { tracker, state } = useContext(StateContext);
+  const isCurrent = isActive(state, edge.source);
   const ref = useRef<SVGGElement>(null);
   const [sourceRect, setSourceRect] = useState<TrackerData | undefined>();
   const [targetRect, setTargetRect] = useState<TrackerData | undefined>();
@@ -91,11 +92,11 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
             // `Q  `
           ].join(' ');
 
-          return <path d={d} stroke="black" fill="none" />;
+          return <path data-xviz="edge-path" d={d} fill="none" />;
         })();
 
   return (
-    <g data-xviz-element="edge" ref={ref}>
+    <g data-xviz="edge" data-xviz-current={isCurrent || undefined} ref={ref}>
       {path}
     </g>
   );

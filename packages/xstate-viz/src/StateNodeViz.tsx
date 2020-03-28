@@ -23,39 +23,40 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
 
   return (
     <div
-      data-xviz-element="stateNode"
+      data-xviz="stateNode"
       data-xviz-type={stateNode.type}
+      data-xviz-history={stateNode.history || undefined}
       data-xviz-active={active || undefined}
       title={`state node: #${stateNode.id}`}
       // onClick={active}
     >
-      <div data-xviz-element="stateNode-state" ref={ref}>
-        <div data-xviz-element="stateNode-content">
-          <strong>{stateNode.key}</strong>
+      <div data-xviz="stateNode-state" ref={ref}>
+        <div data-xviz="stateNode-content">
+          <div data-xviz="stateNode-key">{stateNode.key}</div>
           {stateNode.onEntry.length > 0 && (
-            <ul data-xviz-element="stateNode-actions" data-xviz-actions="entry">
+            <div data-xviz="stateNode-actions" data-xviz-actions="entry">
               {stateNode.onEntry.map((entryAction, i) => {
                 return <ActionViz action={entryAction} key={i} />;
               })}
-            </ul>
+            </div>
           )}
           {stateNode.invoke.length > 0 && (
-            <div data-xviz-element="stateNode-invocations">
+            <div data-xviz="stateNode-invocations">
               {stateNode.invoke.map((invokeDef, i) => {
                 return <InvokeViz invoke={invokeDef} key={i} />;
               })}
             </div>
           )}
           {stateNode.onExit.length > 0 && (
-            <ul data-xviz-element="stateNode-actions" data-xviz-actions="exit">
+            <div data-xviz="stateNode-actions" data-xviz-actions="exit">
               {stateNode.onExit.map((exitAction, i) => {
                 return <ActionViz action={exitAction} key={i} />;
               })}
-            </ul>
+            </div>
           )}
         </div>
         {Object.keys(stateNode.states).length > 0 && (
-          <div data-xviz-element="stateNode-children">
+          <div data-xviz="stateNode-children">
             {Object.keys(stateNode.states).map(key => {
               const childStateNode = stateNode.states[key];
               return (
@@ -68,7 +69,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           </div>
         )}
       </div>
-      <div data-xviz-element="events">
+      <div data-xviz="events">
         {edges.map(edge => {
           return (
             <EventViz edge={edge} key={serializeTransition(edge.transition)} />

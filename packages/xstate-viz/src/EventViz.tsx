@@ -4,11 +4,43 @@ import * as React from 'react';
 import { Edge } from './types';
 import { useEffect, useContext, useRef } from 'react';
 import { StateContext } from './StateContext';
-import { serializeTransition } from './utils';
+import { serializeTransition, isBuiltinEvent, toDelayString } from './utils';
 import { ActionViz } from './ActionViz';
 
 interface EventVizProps {
   edge: Edge<any, any>;
+}
+
+function getEventMeta(eventType: string): Record<string, any> | undefined {
+  if (eventType.startsWith('xstate.after')) {
+    const [, delay] = eventType.match(/^xstate\.after\((.*)\)#.*$/);
+
+    return { delay };
+  }
+
+  return undefined;
+}
+
+function stringify(value: any): string | number {
+  if (typeof value === 'string' || typeof value === 'number') {
+    return value;
+  }
+
+  return JSON.stringify(value);
+}
+
+function formatEvent(event: string): JSX.Element | string {
+  if (event.startsWith('done.state.')) {
+    return 'onDone';
+  }
+
+  if (event.startsWith('xstate.after')) {
+    const [, delay] = event.match(/^xstate\.after\((.*)\)#.*$/);
+
+    return `after ${toDelayString(delay)}`;
+  }
+
+  return event;
 }
 
 export function EventViz({ edge }: EventVizProps) {
@@ -24,19 +56,36 @@ export function EventViz({ edge }: EventVizProps) {
 
   const { transition } = edge;
 
+  const meta = getEventMeta(transition.eventType);
+
   return (
-    <div data-xviz-element="event" title={`event: ${edge.event}`}>
-      <div
-        ref={ref}
-        data-xviz-element="event-type"
-        data-xviz-builtin={edge.event.startsWith('xstate.') || undefined}
-      >
-        {transition.eventType}
-      </div>
-      {transition.cond && (
-        <div data-xviz-element="event-cond">{transition.cond.type}</div>
+    <div
+      ref={ref}
+      data-xviz="event"
+      data-xviz-event={edge.event}
+      data-xviz-builtin={isBuiltinEvent(edge.event) || undefined}
+      data-xviz-transient={edge.event === '' || undefined}
+      title={`event: ${edge.event}`}
+    >
+      <div data-xviz="event-type">{formatEvent(transition.eventType)}</div>
+      {meta && (
+        <div data-xviz="event-meta">
+          {Object.entries(meta).map(([key, value]) => {
+            return (
+              <div data-xviz="event-meta-entry" data-xviz-key={key} key={key}>
+                <div data-xviz="event-meta-key">{key}</div>
+                <div data-xviz="event-meta-value">{stringify(value)}</div>
+              </div>
+            );
+          })}
+        </div>
       )}
-      <dl data-xviz-element="event-actions">
+      {transition.cond && (
+        <div data-xviz="event-cond" data-xviz-name={transition.cond.name}>
+          <div data-xviz="event-cond-name">{transition.cond.name}</div>
+        </div>
+      )}
+      <dl data-xviz="event-actions">
         {transition.actions.map((action, i) => {
           return <ActionViz action={action} key={i} />;
         })}

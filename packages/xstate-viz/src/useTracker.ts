@@ -4,7 +4,6 @@ import { useContext, useRef } from 'react';
 import { StateContext } from './StateContext';
 
 export function useTracker(id: string) {
-  console.log('updating', id);
   const { tracker } = useContext(StateContext);
   const ref = useRef<HTMLDivElement>(null);
 

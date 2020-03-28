@@ -5,7 +5,7 @@ import { EdgeViz } from './EdgeViz';
 export function EdgesViz({ edges }: { edges: Array<Edge<any, any, any>> }) {
   return (
     <svg
-      data-xviz-element="edges"
+      data-xviz="edges"
       style={{ overflow: 'visible', position: 'absolute', top: 0, left: 0 }}
     >
       {edges.map((edge, i) => {
