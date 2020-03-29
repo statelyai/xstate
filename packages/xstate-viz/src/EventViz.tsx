@@ -60,14 +60,21 @@ export function EventViz({ edge }: EventVizProps) {
 
   return (
     <div
-      ref={ref}
       data-xviz="event"
       data-xviz-event={edge.event}
       data-xviz-builtin={isBuiltinEvent(edge.event) || undefined}
       data-xviz-transient={edge.event === '' || undefined}
       title={`event: ${edge.event}`}
     >
-      <div data-xviz="event-type">{formatEvent(transition.eventType)}</div>
+      <div data-xviz="event-type" ref={ref}>
+        {formatEvent(transition.eventType)}
+      </div>
+      <div data-xviz="event-targets">
+        {transition.target &&
+          transition.target.map(target => {
+            return <div data-xviz="event-target">#{target.id}</div>;
+          })}
+      </div>
       {meta && (
         <div data-xviz="event-meta">
           {Object.entries(meta).map(([key, value]) => {

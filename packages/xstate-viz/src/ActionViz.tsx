@@ -11,7 +11,7 @@ function formatAction(action: ActionObject<any, any>): JSX.Element | string {
     }
   }
   if (action.type === 'xstate.cancel') {
-    const [_, delay] = action.sendId!.match(/^xstate\.after\((.*)\)#.*$/);
+    const [, delay] = action.sendId!.match(/^xstate\.after\((.*)\)#.*$/);
 
     return `cancel ${toDelayString(delay)} delay`;
   }
@@ -27,29 +27,31 @@ export function ActionViz({ action }: { action: ActionObject<any, any> }) {
       data-xviz-raw={JSON.stringify(action)}
     >
       <div data-xviz="action-type">{formatAction(action)}</div>
-      {Object.keys(action).map(key => {
-        if (key === 'type') {
-          return null;
-        }
-        const value = action[key];
+      <div data-xviz="action-entries">
+        {Object.keys(action).map(key => {
+          if (key === 'type') {
+            return null;
+          }
+          const value = action[key];
 
-        return (
-          <div
-            data-xviz="action-entry"
-            data-xviz-entry-type={typeof value}
-            key={key}
-          >
+          return (
             <div
-              title={key}
-              data-xviz="action-property"
-              data-xviz-action-property={key}
+              data-xviz="action-entry"
+              data-xviz-entry-type={typeof value}
+              key={key}
             >
-              {key}
+              <div
+                title={key}
+                data-xviz="action-key"
+                data-xviz-action-key={key}
+              >
+                {key}
+              </div>
+              <div data-xviz="action-value">{JSON.stringify(value)}</div>
             </div>
-            <div data-xviz="action-value">{JSON.stringify(value)}</div>
-          </div>
-        );
-      })}
+          );
+        })}
+      </div>
     </div>
   );
 }

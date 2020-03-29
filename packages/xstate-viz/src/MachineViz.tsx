@@ -21,14 +21,15 @@ export function MachineViz({ machine, state }: MachineVizProps) {
         // @ts-ignore
         '--xviz-color-foreground': 'black',
         '--xviz-color-background': 'white',
-        '--xviz-color-active': 'green',
+        '--xviz-color-primary': 'rgba(87,176,234,1)',
+        '--xviz-color-active': 'rgba(87,176,234,1)',
         '--xviz-border-width': '2px',
         '--xviz-stroke-width': 'var(--xviz-border-width)'
       }}
     >
       <StateContext.Provider value={{ state, tracker }}>
         <StateNodeViz stateNode={machine} />
-        <EdgesViz edges={getAllEdges(machine)} />
+        <EdgesViz edges={getAllEdges(machine)} machine={machine} />
       </StateContext.Provider>
     </div>
   );

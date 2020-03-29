@@ -1,9 +1,10 @@
 import * as React from 'react';
-import { useContext, useRef } from 'react';
+import { useContext, useRef, useState } from 'react';
 
 import { StateContext } from './StateContext';
+import { TrackerData } from './tracker';
 
-export function useTracker(id: string) {
+export function useTracking(id: string) {
   const { tracker } = useContext(StateContext);
   const ref = useRef<HTMLDivElement>(null);
 
@@ -16,4 +17,16 @@ export function useTracker(id: string) {
   }, []);
 
   return ref;
+}
+
+export function useTracked(id: string) {
+  const { tracker } = useContext(StateContext);
+
+  const [rect, setRect] = useState<TrackerData | undefined>();
+
+  React.useEffect(() => {
+    tracker.listen(id, data => setRect(data));
+  }, [id]);
+
+  return rect;
 }

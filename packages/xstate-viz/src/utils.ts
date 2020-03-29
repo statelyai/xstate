@@ -166,3 +166,16 @@ export function toDelayString(delay: string | number): string {
   }
   return delay;
 }
+
+export function getLevel(stateNode: StateNode<any, any, any>): number {
+  let level = 0;
+
+  let marker = stateNode.parent;
+
+  while (marker) {
+    level++;
+    marker = marker.parent;
+  }
+
+  return level;
+}

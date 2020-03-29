@@ -3,11 +3,11 @@ import { useContext, useMemo } from 'react';
 import { StateContext } from './StateContext';
 import { StateNode } from 'xstate';
 import { EventViz } from './EventViz';
-import { getEdges, serializeTransition, isActive } from './utils';
+import { getEdges, serializeTransition, isActive, getLevel } from './utils';
 import { ActionViz } from './ActionViz';
 import { InvokeViz } from './InvokeViz';
 
-import { useTracker } from './useTracker';
+import { useTracking } from './useTracker';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
@@ -15,7 +15,7 @@ interface StateNodeVizProps {
 
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   const { state } = useContext(StateContext);
-  const ref = useTracker(stateNode.id);
+  const ref = useTracking(stateNode.id);
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
 
@@ -27,8 +27,16 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       data-xviz-type={stateNode.type}
       data-xviz-history={stateNode.history || undefined}
       data-xviz-active={active || undefined}
-      title={`state node: #${stateNode.id}`}
-      // onClick={active}
+      data-xviz-level={getLevel(stateNode)}
+      title={`#${stateNode.id} ${
+        ['history', 'final'].includes(stateNode.type)
+          ? `(${stateNode.type})`
+          : ''
+      }`}
+      style={{
+        // @ts-ignore
+        '--xviz-level': getLevel(stateNode)
+      }}
     >
       <div data-xviz="stateNode-state" ref={ref}>
         <div data-xviz="stateNode-content">
