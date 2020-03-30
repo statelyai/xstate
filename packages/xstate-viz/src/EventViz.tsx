@@ -72,7 +72,11 @@ export function EventViz({ edge }: EventVizProps) {
       <div data-xviz="event-targets">
         {transition.target &&
           transition.target.map(target => {
-            return <div data-xviz="event-target">#{target.id}</div>;
+            return (
+              <div data-xviz="event-target" key={target.id}>
+                #{target.id}
+              </div>
+            );
           })}
       </div>
       {meta && (
@@ -92,11 +96,11 @@ export function EventViz({ edge }: EventVizProps) {
           <div data-xviz="event-cond-name">{transition.cond.name}</div>
         </div>
       )}
-      <dl data-xviz="event-actions">
+      <div data-xviz="actions">
         {transition.actions.map((action, i) => {
           return <ActionViz action={action} key={i} />;
         })}
-      </dl>
+      </div>
     </div>
   );
 }

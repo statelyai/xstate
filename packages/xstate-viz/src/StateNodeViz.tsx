@@ -25,6 +25,9 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
     <div
       data-xviz="stateNode"
       data-xviz-type={stateNode.type}
+      data-xviz-parent-type={
+        stateNode.parent ? stateNode.parent.type : 'machine'
+      }
       data-xviz-history={stateNode.history || undefined}
       data-xviz-active={active || undefined}
       data-xviz-level={getLevel(stateNode)}
@@ -42,7 +45,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         <div data-xviz="stateNode-content">
           <div data-xviz="stateNode-key">{stateNode.key}</div>
           {stateNode.onEntry.length > 0 && (
-            <div data-xviz="stateNode-actions" data-xviz-actions="entry">
+            <div data-xviz="actions" data-xviz-actions="entry">
               {stateNode.onEntry.map((entryAction, i) => {
                 return <ActionViz action={entryAction} key={i} />;
               })}
@@ -56,7 +59,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
             </div>
           )}
           {stateNode.onExit.length > 0 && (
-            <div data-xviz="stateNode-actions" data-xviz-actions="exit">
+            <div data-xviz="actions" data-xviz-actions="exit">
               {stateNode.onExit.map((exitAction, i) => {
                 return <ActionViz action={exitAction} key={i} />;
               })}

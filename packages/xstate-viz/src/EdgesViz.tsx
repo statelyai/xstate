@@ -16,7 +16,6 @@ export function EdgesViz({
     sn => sn.parent && sn.parent.initial === sn.key
   );
 
-  console.log({ childNodes });
   return (
     <svg
       data-xviz="edges"

@@ -133,7 +133,7 @@ export function serializeTransition(
   transition: TransitionDefinition<any, any>
 ): string {
   return `event:${transition.source.id}:${transition.eventType}:${
-    transition.cond ? transition.cond.toString() : ''
+    transition.cond ? transition.cond.predicate.toString() : ''
   }`;
 }
 

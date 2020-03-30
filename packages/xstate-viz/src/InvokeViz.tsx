@@ -18,11 +18,11 @@ function isUnnamed(src: string): boolean {
 export function InvokeViz({ invoke }: { invoke: InvokeDefinition<any, any> }) {
   return (
     <div
-      data-xviz="stateNode-invoke"
+      data-xviz="invoke"
       data-xviz-unnamed={isUnnamed(invoke.src) || undefined}
     >
-      <div data-xviz="stateNode-invoke-src">{formatInvoke(invoke.src)}</div>
-      <div data-xviz="stateNode-invoke-id">{invoke.id}</div>
+      <div data-xviz="invoke-src">{formatInvoke(invoke.src)}</div>
+      <div data-xviz="invoke-id">{invoke.id}</div>
     </div>
   );
 }
