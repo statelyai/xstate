@@ -345,14 +345,16 @@ type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
-  {
-    [K in TEvent['type'] | NullEvent['type'] | '*']: TransitionConfig<
-      TContext,
-      TEvent extends { type: K } ? TEvent : never
-    > & {
-      event: K;
-    };
-  }[TEvent['type'] | NullEvent['type'] | '*']
+  | {
+      [K in TEvent['type']]: TransitionConfig<
+        TContext,
+        TEvent extends { type: K } ? TEvent : never
+      > & {
+        event: K;
+      };
+    }[TEvent['type']]
+  | (TransitionConfig<TContext, TEvent> & { event: '' })
+  | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> =
