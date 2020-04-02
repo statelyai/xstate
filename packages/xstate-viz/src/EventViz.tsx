@@ -64,10 +64,16 @@ export function EventViz({ edge }: EventVizProps) {
       data-xviz-event={edge.event}
       data-xviz-builtin={isBuiltinEvent(edge.event) || undefined}
       data-xviz-transient={edge.event === '' || undefined}
+      data-xviz-guarded={!!transition.cond || undefined}
       title={`event: ${edge.event}`}
     >
-      <div data-xviz="event-type" ref={ref}>
-        {formatEvent(transition.eventType)}
+      <div data-xviz="event-label" ref={ref}>
+        <div data-xviz="event-type">{formatEvent(transition.eventType)}</div>
+        {transition.cond && (
+          <div data-xviz="event-cond" data-xviz-name={transition.cond.name}>
+            <div data-xviz="event-cond-name">{transition.cond.name}</div>
+          </div>
+        )}
       </div>
       <div data-xviz="event-targets">
         {transition.target &&
@@ -91,11 +97,7 @@ export function EventViz({ edge }: EventVizProps) {
           })}
         </div>
       )}
-      {transition.cond && (
-        <div data-xviz="event-cond" data-xviz-name={transition.cond.name}>
-          <div data-xviz="event-cond-name">{transition.cond.name}</div>
-        </div>
-      )}
+
       <div data-xviz="actions">
         {transition.actions.map((action, i) => {
           return <ActionViz action={action} key={i} />;

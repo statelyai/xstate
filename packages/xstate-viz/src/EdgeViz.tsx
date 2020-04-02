@@ -84,23 +84,26 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
   const { tracker, state } = useContext(StateContext);
   const isCurrent = isActive(state, edge.source);
   const ref = useRef<SVGGElement>(null);
-  const [sourceRect, setSourceRect] = useState<TrackerData | undefined>();
+  const sourceData = useTracked(edge.source.id);
+  const [eventRect, setEventRect] = useState<TrackerData | undefined>();
   const [targetRect, setTargetRect] = useState<TrackerData | undefined>();
   const [machineRect, setMachineRect] = useState<TrackerData | undefined>();
 
   useEffect(() => {
     tracker.listen(serializeTransition(edge.transition), data =>
-      setSourceRect(data)
+      setEventRect(data)
     );
     tracker.listen(edge.target.id, data => setTargetRect(data));
     tracker.listen(edge.target.machine.id, data => setMachineRect(data));
   }, []);
 
   const path =
-    !sourceRect ||
+    !sourceData ||
+    !sourceData.rect ||
+    !eventRect ||
     !targetRect ||
     !ref.current ||
-    !sourceRect.rect ||
+    !eventRect.rect ||
     !targetRect.rect ||
     !machineRect ||
     !machineRect.rect
@@ -110,16 +113,17 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
             return null;
           }
           const relativeSourceRect = relative(
-            sourceRect.rect!,
+            sourceData.rect,
             machineRect.rect
           );
+          const relativeEventRect = relative(eventRect.rect!, machineRect.rect);
 
           const relativeTargetRect = relative(
             targetRect.rect!,
             machineRect.rect
           );
 
-          const startPoint = relativeSourceRect.point('right', 'center');
+          const startPoint = relativeEventRect.point('right', 'center');
           const [minLocation, minPoint] = findMinLocation(
             startPoint,
             relativeTargetRect,
@@ -189,7 +193,16 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
             }
           } as Record<typeof minLocation, Point>)[minLocation];
 
+          const sourcePoint = {
+            x: relativeSourceRect.right,
+            y: Math.min(relativeSourceRect.bottom, startPoint.y)
+          };
+          const preStartPoint = relativeEventRect.point('left', 'center');
+
           const d = [
+            `M ${sourcePoint.x} ${sourcePoint.y}`,
+            `L ${preStartPoint.x} ${preStartPoint.y}`,
+
             `M ${startPoint.x} ${startPoint.y}`,
             // `L ${startPoint.x + 10} ${startPoint.y}`,
             `C ${startControl.x} ${startControl.y} ${endControl.x} ${

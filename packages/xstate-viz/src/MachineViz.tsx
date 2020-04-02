@@ -6,6 +6,7 @@ import { EdgesViz } from './EdgesViz';
 import { tracker } from './tracker';
 import { State, StateMachine } from 'xstate';
 import { getAllEdges } from './utils';
+import { StateViz } from './StateViz';
 
 interface MachineVizProps {
   state: State<any, any>;
@@ -19,10 +20,9 @@ export function MachineViz({ machine, state }: MachineVizProps) {
       title={`machine: #${machine.id}`}
       style={{
         // @ts-ignore
-        '--xviz-color-foreground': 'black',
-        '--xviz-color-background': 'white',
-        '--xviz-color-primary': 'rgba(87,176,234,1)',
-        '--xviz-color-active': 'rgba(87,176,234,1)',
+        '--xviz-color-foreground': 'white',
+        '--xviz-color-background': 'black',
+        '--xviz-color-active': 'rgb(19, 129, 201)',
         '--xviz-border-width': '2px',
         '--xviz-stroke-width': 'var(--xviz-border-width)'
       }}
@@ -30,6 +30,7 @@ export function MachineViz({ machine, state }: MachineVizProps) {
       <StateContext.Provider value={{ state, tracker }}>
         <StateNodeViz stateNode={machine} />
         <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+        <StateViz state={state} />
       </StateContext.Provider>
     </div>
   );
