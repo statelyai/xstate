@@ -308,7 +308,7 @@ describe('transient states (eventless transitions)', () => {
     expect(greetingMachine.initialState.value).toEqual('morning');
   });
 
-  it('should determine the resolved state from a root transient state', () => {
+  it('should determine the resolved state from an initial transient state', () => {
     const morningState = greetingMachine.initialState;
     expect(morningState.value).toEqual('morning');
     const stillMorningState = greetingMachine.transition(
