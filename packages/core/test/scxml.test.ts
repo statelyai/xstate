@@ -172,7 +172,7 @@ const testGroups = {
     'test205.txml',
     'test207.txml',
     'test208.txml',
-    // 'test210.txml', // delayexpr
+    // 'test210.txml', // sendidexpr not supported yet
     // 'test215.txml', // <invoke typeexpr="...">
     // 'test216.txml', // <invoke srcexpr="...">
     // 'test220.txml', // done.invoke used as inexact event descriptor
