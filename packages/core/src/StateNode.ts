@@ -45,7 +45,7 @@ import {
   isStateId
 } from './stateUtils';
 import { MachineNode } from './MachineNode';
-import { STATE_DELIMITER, NULL_EVENT } from './constants';
+import { STATE_DELIMITER } from './constants';
 
 const EMPTY_OBJECT = {};
 
@@ -81,11 +81,6 @@ export class StateNode<
    * The string path from the root machine node to this node.
    */
   public path: string[];
-  /**
-   * Whether the state node is "transient". A state node is considered transient if it has
-   * an immediate transition from a "null event" (empty string), taken upon entering the state node.
-   */
-  public isTransient: boolean;
   /**
    * The child state nodes.
    */
@@ -203,14 +198,6 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.isTransient = !this.config.on
-      ? false
-      : Array.isArray(this.config.on)
-      ? this.config.on.some(({ event }: { event: string }) => {
-          return event === NULL_EVENT;
-        })
-      : NULL_EVENT in this.config.on;
-
     this.entry = toArray(this.config.entry).map(action =>
       toActionObject(action)
     );
@@ -222,6 +209,7 @@ export class StateNode<
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
   }
+
   /**
    * The well-structured state node definition.
    */
@@ -249,7 +237,9 @@ export class StateNode<
       history: this.history,
       states: mapValues(
         this.states,
-        (state: StateNode<TContext, any, TEvent>) => state.definition
+        (state: StateNode<TContext, any, TEvent>) => {
+          return state.definition;
+        }
       ) as StatesDefinition<TContext, TStateSchema, TEvent>,
       on: this.on,
       transitions: this.transitions,
@@ -393,7 +383,8 @@ export class StateNode<
 
       try {
         guardPassed =
-          !cond || evaluateGuard(this, cond, resolvedContext, _event, state);
+          !cond ||
+          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${cond!.name ||
@@ -419,7 +410,6 @@ export class StateNode<
    * default state value to transition to if no history value exists yet.
    */
   public get target(): string | undefined {
-    let target: string | undefined;
     if (this.type === 'history') {
       const historyConfig = this.config as HistoryStateNodeConfig<
         TContext,
@@ -428,7 +418,7 @@ export class StateNode<
       return historyConfig.target;
     }
 
-    return target;
+    return undefined;
   }
 
   /**

@@ -235,7 +235,9 @@ describe('invoke', () => {
               FORWARD_DEC: undefined,
               '': {
                 target: 'stop',
-                cond: ctx => ctx.count === -3
+                cond: ctx => {
+                  return ctx.count === -3;
+                }
               }
             }
           },

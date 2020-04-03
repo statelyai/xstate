@@ -1,4 +1,4 @@
-import { interpret, Machine } from '../src';
+import { interpret, createMachine } from '../src';
 
 const config = {
   initial: 'a',
@@ -18,9 +18,9 @@ const config = {
   }
 };
 
-const deepMachine = Machine(config);
+const deepMachine = createMachine(config);
 
-const parallelDeepMachine = Machine({
+const parallelDeepMachine = createMachine({
   type: 'parallel',
   states: {
     foo: config,
@@ -28,7 +28,7 @@ const parallelDeepMachine = Machine({
   }
 });
 
-const deepParallelMachine = Machine({
+const deepParallelMachine = createMachine({
   initial: 'one',
   states: {
     one: parallelDeepMachine.config,
@@ -58,7 +58,7 @@ describe('Initial states', () => {
   });
 
   it('should resolve deep initial state', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: '#deep_id',
       states: {
         foo: {
@@ -77,7 +77,7 @@ describe('Initial states', () => {
   });
 
   it.only('should resolve multiple deep initial states', () => {
-    const machine = Machine({
+    const machine = createMachine({
       initial: ['#foo_deep_id', '#bar_deep_id'],
       states: {
         root: {
@@ -117,7 +117,7 @@ describe('Initial states', () => {
   it('should not entry default initial state of the parent if deep state is targeted with initial', () => {
     let called = false;
 
-    const machine = Machine({
+    const machine = createMachine({
       initial: '#deep_id',
       states: {
         foo: {

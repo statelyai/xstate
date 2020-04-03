@@ -55,8 +55,6 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 export function transitionToSCXML(
   transition: TransitionDefinition<any, any>
 ): XMLElement {
-  // console.log(transition.cond!.predicate);
-
   const elements = transition.actions.map(actionToSCXML);
 
   return {
@@ -160,6 +158,12 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 export function toSCXML(machine: MachineNode<any, any, any>): string {
   const { states, initial } = machine;
 
+  const elements = Object.keys(states).map<XMLElement>(key => {
+    const stateNode = states[key];
+
+    return stateNodeToSCXML(stateNode);
+  });
+
   return js2xml(
     {
       elements: [
@@ -173,11 +177,7 @@ export function toSCXML(machine: MachineNode<any, any, any>): string {
             version: '1.0',
             datamodel: 'ecmascript'
           },
-          elements: Object.keys(states).map<XMLElement>(key => {
-            const stateNode = states[key];
-
-            return stateNodeToSCXML(stateNode);
-          })
+          elements
         }
       ]
     },

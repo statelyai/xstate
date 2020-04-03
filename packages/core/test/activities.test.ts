@@ -303,7 +303,7 @@ describe('transient activities', () => {
     expect(state.children.find(child => child.meta!.src === 'C1')).toBeTruthy();
   });
 
-  it.skip('should have stopped after automatic transitions', () => {
+  it('should have stopped after automatic transitions', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'A');
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C1' });

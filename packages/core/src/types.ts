@@ -371,9 +371,12 @@ export interface StateNodeConfig<
    */
   key?: string;
   /**
-   * The initial state node key.
+   * The initial state transition.
    */
-  initial?: SingleOrArray<string>;
+  initial?:
+    | InitialTransitionConfig<TContext, TEvent>
+    | SingleOrArray<string>
+    | undefined;
   /**
    * The type of this state node:
    *
@@ -785,7 +788,13 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
-  toJSON?: any;
+  toJSON?: () => {
+    target: string[] | undefined;
+    source: string;
+    actions: Array<ActionObject<TContext, TEvent>>;
+    cond?: Guard<TContext, TEvent>;
+    eventType: TEvent['type'] | NullEvent['type'] | '*';
+  };
 }
 
 export interface InitialTransitionDefinition<
@@ -902,7 +911,6 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;
-  events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Actor[];

@@ -37,7 +37,7 @@ export function sequence<
   TStateSchema extends StateSchema,
   TEvent extends EventObject
 >(
-  items: Array<keyof TStateSchema['states']>,
+  items: string[],
   options?: Partial<SequencePatternOptions<TEvent>>
 ): {
   initial: string;

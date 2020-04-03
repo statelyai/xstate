@@ -15,14 +15,20 @@ import { State } from './State';
 import { toActionObject } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_DELIMITER } from './constants';
-import { getConfiguration, getChildren, getAllStateNodes } from './stateUtils';
+import {
+  getConfiguration,
+  getChildren,
+  getAllStateNodes,
+  resolveMicroTransition,
+  macrostep,
+  toState,
+  getInitialState
+} from './stateUtils';
 import {
   getStateNodeById,
-  getInitialState,
   getStateNodes,
   transitionNode,
-  resolveStateValue,
-  resolveTransition
+  resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
 
@@ -174,7 +180,7 @@ export class MachineNode<
   /**
    * Resolves the given `state` to a new `State` instance relative to this machine.
    *
-   * This ensures that `.events` and `.nextEvents` represent the correct values.
+   * This ensures that `.nextEvents` represent the correct values.
    *
    * @param state The state to resolve
    */
@@ -190,29 +196,34 @@ export class MachineNode<
   }
 
   /**
-   * Determines the next state given the current `state` and sent `event`.
+   * Determines the next state given the current `state` and received `event`.
+   * Calculates a full macrostep from all microsteps.
    *
    * @param state The current State instance or state value
-   * @param event The event that was sent at the current state
-   * @param context The current context (extended state) of the current state
+   * @param event The received event
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    const currentState = toState(state, this);
+
+    return macrostep(currentState, event, this);
+  }
+
+  /**
+   * Determines the next state given the current `state` and `event`.
+   * Calculates a microstep.
+   *
+   * @param state The current state
+   * @param event The received event
+   */
+  public microstep(
+    state: StateValue | State<TContext, TEvent> = this.initialState,
+    event: Event<TEvent> | SCXML.Event<TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+    const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
-    let currentState: State<TContext, TEvent>;
-
-    if (state instanceof State) {
-      currentState = state;
-    } else {
-      const resolvedStateValue = resolveStateValue(this, state);
-      const resolvedContext = this.machine.context!;
-
-      currentState = this.resolveState(
-        State.from<TContext, TEvent>(resolvedStateValue, resolvedContext)
-      );
-    }
 
     if (!IS_PRODUCTION && _event.name === WILDCARD) {
       throw new Error(`An event cannot have the wildcard type ('${WILDCARD}')`);
@@ -227,9 +238,9 @@ export class MachineNode<
     }
 
     const transitions: Transitions<TContext, TEvent> =
-      transitionNode(this, currentState.value, currentState, _event) || [];
+      transitionNode(this, resolvedState.value, resolvedState, _event) || [];
 
-    return resolveTransition(this, transitions, currentState, _event);
+    return resolveMicroTransition(this, transitions, resolvedState, _event);
   }
 
   /**
@@ -238,7 +249,8 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    return getInitialState(this);
+    const nextState = getInitialState(this);
+    return macrostep(nextState, null as any, this);
   }
 
   public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {

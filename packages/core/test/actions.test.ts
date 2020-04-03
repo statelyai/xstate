@@ -592,6 +592,75 @@ describe('entry/exit actions', () => {
   });
 });
 
+describe('initial actions', () => {
+  const machine = Machine({
+    initial: {
+      target: 'a',
+      actions: 'initialA'
+    },
+    states: {
+      a: {
+        entry: 'entryA',
+        on: {
+          NEXT: 'b'
+        }
+      },
+      b: {
+        entry: 'entryB',
+        initial: {
+          target: 'foo',
+          actions: 'initialFoo'
+        },
+        states: {
+          foo: {
+            entry: 'entryFoo'
+          }
+        },
+        on: { NEXT: 'c' }
+      },
+      c: {
+        entry: 'entryC',
+        initial: {
+          target: '#bar',
+          actions: 'initialBar'
+        },
+        states: {
+          bar: {
+            id: 'bar',
+            entry: 'entryBar'
+          }
+        }
+      }
+    }
+  });
+
+  it.skip('should support initial actions', () => {
+    // TODO: fix initial state actions on root node
+    expect(machine.initialState.actions.map(a => a.type)).toEqual([
+      'initialA',
+      'entryA'
+    ]);
+  });
+
+  it('should support initial actions from transition', () => {
+    const nextState = machine.transition(undefined, 'NEXT');
+    expect(nextState.actions.map(a => a.type)).toEqual([
+      'entryB',
+      'initialFoo',
+      'entryFoo'
+    ]);
+  });
+
+  it('should support initial actions from transition with target ID', () => {
+    const nextState = machine.transition('b', 'NEXT');
+    expect(nextState.actions.map(a => a.type)).toEqual([
+      'entryC',
+      'initialBar',
+      'entryBar'
+    ]);
+  });
+});
+
 describe('actions on invalid transition', () => {
   const stopMachine = Machine({
     initial: 'idle',
@@ -667,6 +736,7 @@ describe('actions config', () => {
       }
     }
   );
+
   it('should reference actions defined in actions parameter of machine options', () => {
     const { initialState } = simpleMachine;
     const nextState = simpleMachine.transition(initialState, 'E');
@@ -691,10 +761,41 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const state = simpleMachine.transition('a', 'EVENT');
+    const machine = Machine<Context, State, EventType>(
+      {
+        initial: 'a',
+        context: {
+          count: 0
+        },
+        states: {
+          a: {
+            entry: [
+              'definedAction',
+              { type: 'definedAction' },
+              'undefinedAction'
+            ],
+            on: {
+              EVENT: {
+                target: 'b',
+                actions: [{ type: 'definedAction' }, { type: 'updateContext' }]
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        actions: {
+          definedAction,
+          updateContext: assign({ count: 10 })
+        }
+      }
+    );
+    const state = machine.transition('a', 'EVENT');
 
     expect(state.actions).toEqual([
-      { type: 'definedAction', exec: definedAction }
+      { type: 'definedAction', exec: definedAction },
+      assign({ count: 10 })
     ]);
 
     expect(state.context).toEqual({ count: 10 });

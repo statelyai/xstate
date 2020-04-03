@@ -8,7 +8,8 @@ import {
   StateSchema,
   TransitionDefinition,
   Typestate,
-  HistoryValue
+  HistoryValue,
+  NullEvent
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
@@ -59,8 +60,8 @@ export class State<
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
-  public events: TEvent[] = [];
   public event: TEvent;
+  public _internalQueue: Array<SCXML.Event<TEvent> | NullEvent> = [];
   public _event: SCXML.Event<TEvent>;
   public _sessionid: string | null;
   /**
@@ -112,7 +113,6 @@ export class State<
           history: stateValue.history,
           actions: [],
           meta: {},
-          events: [],
           configuration: [], // TODO: fix,
           transitions: [],
           children: []
@@ -132,7 +132,6 @@ export class State<
       history: undefined,
       actions: [],
       meta: undefined,
-      events: [],
       configuration: [],
       transitions: [],
       children: []
@@ -170,7 +169,7 @@ export class State<
         history: stateValue.history,
         configuration: stateValue.configuration,
         transitions: [],
-        children: []
+        children: stateValue.children
       });
     }
 
@@ -195,9 +194,9 @@ export class State<
     this._sessionid = config._sessionid;
     this.event = this._event.data;
     this.history = config.history;
+    this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
     this.meta = config.meta || {};
-    this.events = config.events || [];
     this.matches = this.matches.bind(this);
     this.toStrings = this.toStrings.bind(this);
     this.configuration = config.configuration;

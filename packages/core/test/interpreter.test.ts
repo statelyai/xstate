@@ -652,8 +652,8 @@ describe('interpreter', () => {
       deferEvents: false
     });
 
-    expect(() => service.send('SOME_EVENT')).toThrow(
-      `Event "SOME_EVENT" was sent to uninitialized service "light". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.\nEvent: {"type":"SOME_EVENT"}`
+    expect(() => service.send('SOME_EVENT')).toThrowError(
+      /Event \"SOME_EVENT\" was sent to uninitialized service \"light\"/
     );
 
     service.start();
@@ -1074,9 +1074,13 @@ describe('interpreter', () => {
               expect(state.value).toEqual('even');
               expect(state.context).toEqual({ count: 4 });
               expect(state.actions.map(a => a.type)).toEqual([
+                actionTypes.assign,
                 'evenAction',
+                actionTypes.assign,
                 'oddAction',
+                actionTypes.assign,
                 'evenAction',
+                actionTypes.assign,
                 'oddAction'
               ]);
 

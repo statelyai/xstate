@@ -883,6 +883,8 @@ export class Interpreter<
           this.logger(value);
         }
         break;
+      case actionTypes.assign:
+        break;
       default:
         if (!IS_PRODUCTION) {
           warn(
