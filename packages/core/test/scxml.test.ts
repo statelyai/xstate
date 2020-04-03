@@ -9,9 +9,11 @@ import { State } from '../src';
 import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
 
-const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
-  cwd: require.resolve('@scion-scxml/test-framework')
-}) as string);
+const TEST_FRAMEWORK = path.dirname(
+  pkgUp.sync({
+    cwd: require.resolve('@scion-scxml/test-framework')
+  }) as string
+);
 
 // @ts-ignore
 const testGroups = {
@@ -60,7 +62,7 @@ const testGroups = {
     'history6'
   ],
   'if-else': [
-    // 'test0', // not implemented
+    // 'test0', // microstep not implemented correctly
   ],
   in: [
     // 'TestInPredicate', // conversion of In() predicate not implemented yet
@@ -138,13 +140,13 @@ const testGroups = {
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
   'w3c-ecma': [
     'test144.txml',
-    // 'test147.txml', // <if> not implemented yet
-    // 'test148.txml', // <if> not implemented yet
+    'test147.txml',
+    'test148.txml',
     'test149.txml',
     // 'test150.txml', // <foreach> not implemented yet
     // 'test151.txml', // <foreach> not implemented yet
     // 'test152.txml', // <foreach> not implemented yet
-    'test153.txml',
+    // 'test153.txml', // <foreach> not implemented yet
     // 'test155.txml', // <foreach> not implemented yet
     // 'test156.txml', // <foreach> not implemented yet
     'test158.txml',
@@ -270,8 +272,8 @@ const testGroups = {
     'test405.txml',
     'test406.txml',
     'test407.txml',
-    'test409.txml',
-    // 'test411.txml', // conversion of In() predicate not implemented yet + <if> not implemented yet + microstep not implemented correctly
+    // 'test409.txml', // conversion of In() predicate not implemented yet
+    // 'test411.txml', // conversion of In() predicate not implemented yet + microstep not implemented correctly
     // 'test412.txml', // initial transitions with executable content not implemented yet
     // 'test413.txml', // conversion of In() predicate not implemented yet
     'test416.txml',
@@ -291,7 +293,7 @@ const testGroups = {
     'test453.txml',
     // 'test456.txml', // conversion of <script> not implemented yet
     // 'test457.txml', // <foreach> not implemented yet
-    // 'test459.txml', // <foreach> not implemented yet + <if> not implemented yet
+    // 'test459.txml', // <foreach> not implemented yet
     // 'test460.txml', // <foreach> not implemented yet
     // 'test487.txml', // error.execution when evaluating assign
     // 'test488.txml', // error.execution when evaluating param
@@ -361,7 +363,7 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
     let nextState: State<any>;
 
     interpret(machine)
-      .onTransition(state => {
+      .onTransition((state) => {
         nextState = state;
       })
       .onDone(() => {
@@ -390,7 +392,7 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
-    .onTransition(state => {
+    .onTransition((state) => {
       nextState = state;
     })
     .onDone(() => {
@@ -411,7 +413,7 @@ async function runTestToCompletion(
     service.send(event.name);
 
     const stateIds = getStateNodes(machine, nextState).map(
-      stateNode => stateNode.id
+      (stateNode) => stateNode.id
     );
 
     expect(stateIds).toContain(nextConfiguration[0]);
@@ -422,11 +424,11 @@ describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['assign-current-small-step'];
 
-  testGroupKeys.forEach(testGroupName => {
+  testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
     // const testNames = ['test2'];
 
-    testNames.forEach(testName => {
+    testNames.forEach((testName) => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1

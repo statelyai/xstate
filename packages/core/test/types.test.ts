@@ -1,4 +1,4 @@
-import { Machine, assign } from '../src/index';
+import { Machine, assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
 
 function noop(_x) {
@@ -244,11 +244,11 @@ describe('Raise events', () => {
                 actions: raise<GreetingContext, { type: 'MORNING' }>({
                   type: 'MORNING'
                 }),
-                cond: ctx => ctx.hour < 12
+                cond: (ctx) => ctx.hour < 12
               },
               {
                 actions: raise({ type: 'EVENING' }),
-                cond: ctx => ctx.hour < 22
+                cond: (ctx) => ctx.hour < 22
               }
             ]
           }
@@ -270,5 +270,81 @@ describe('Raise events', () => {
 
     noop(raiseGreetingMachine);
     expect(true).toBeTruthy();
+  });
+});
+
+describe('Typestates', () => {
+  // Using "none" because undefined and null are unavailable when not in strict mode.
+  type None = { type: 'none' };
+  const none: None = { type: 'none' };
+
+  const taskMachineConfiguration = {
+    id: 'task',
+    initial: 'idle',
+    context: {
+      result: none as None | number,
+      error: none as None | string
+    },
+    states: {
+      idle: {
+        on: { RUN: 'running' }
+      },
+      running: {
+        invoke: {
+          id: 'task-1',
+          src: 'taskService',
+          onDone: { target: 'succeeded', actions: 'assignSuccess' },
+          onError: { target: 'failed', actions: 'assignFailure' }
+        }
+      },
+      succeeded: {},
+      failed: {}
+    }
+  };
+
+  type TaskContext = typeof taskMachineConfiguration.context;
+
+  type TaskTypestate =
+    | { value: 'idle'; context: { result: None; error: None } }
+    | { value: 'running'; context: { result: None; error: None } }
+    | { value: 'succeeded'; context: { result: number; error: None } }
+    | { value: 'failed'; context: { result: None; error: string } };
+
+  type ExtractTypeState<T extends TaskTypestate['value']> = Extract<
+    TaskTypestate,
+    { value: T }
+  >['context'];
+  type Idle = ExtractTypeState<'idle'>;
+  type Running = ExtractTypeState<'running'>;
+  type Succeeded = ExtractTypeState<'succeeded'>;
+  type Failed = ExtractTypeState<'failed'>;
+
+  const machine = createMachine<TaskContext, any, TaskTypestate>(
+    taskMachineConfiguration
+  );
+
+  it("should preserve typestate for the service returned by Interpreter.start() and a servcie's .state getter.", () => {
+    const service = interpret(machine);
+    const startedService = service.start();
+
+    const idle: Idle = startedService.state.matches('idle')
+      ? startedService.state.context
+      : { result: none, error: none };
+    expect(idle).toEqual({ result: none, error: none });
+
+    const running: Running = startedService.state.matches('running')
+      ? startedService.state.context
+      : { result: none, error: none };
+    expect(running).toEqual({ result: none, error: none });
+
+    const succeeded: Succeeded = startedService.state.matches('succeeded')
+      ? startedService.state.context
+      : { result: 12, error: none };
+    expect(succeeded).toEqual({ result: 12, error: none });
+
+    const failed: Failed = startedService.state.matches('failed')
+      ? startedService.state.context
+      : { result: none, error: 'oops' };
+    expect(failed).toEqual({ result: none, error: 'oops' });
   });
 });

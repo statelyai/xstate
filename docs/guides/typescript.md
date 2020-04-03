@@ -117,6 +117,33 @@ const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
 };
 ```
 
+## Actions
+
+The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
+
+```ts
+type UserEvents = {
+  type: 'TEST';
+  value: string;
+};
+
+const service = interpret(stateMachine);
+
+// This will compile
+service.send({ type: 'TEST', value: 'testvalue' });
+
+// This will have a compile error on the `value` type
+service.send({ type: 'TEST', value: 1 });
+```
+
+If you use the following pattern, you'll lose type safety, so both of these will compile:
+
+```ts
+service.send('TEST', { value: 'testvalue' });
+
+service.send('TEST', { value: 1 });
+```
+
 ## Typestates <Badge text="4.7+" />
 
 Typestates are a concept that narrow down the shape of the overall state `context` based on the state `value`. This can be helpful in preventing impossible states and narrowing down what the `context` should be in a given state, without having to write excessive assertions.
@@ -189,7 +216,7 @@ const userMachine = createMachine<UserContext, UserEvent, UserState>({
 
 const userService = interpret(userMachine);
 
-userService.subscribe(state => {
+userService.subscribe((state) => {
   if (state.matches('success')) {
     // from the UserState typestate, `user` will be defined
     state.context.user.name;

@@ -63,14 +63,20 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   meta: ActionMeta<TContext, TEvent>
 ) => any | void;
 
-// export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
-export type Action<TContext, TEvent extends EventObject> =
+export interface ChooseConditon<TContext, TEvent extends EventObject> {
+  cond?: Condition<TContext, TEvent>;
+  actions: Actions<TContext, TEvent>;
+}
+
+export // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
+type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | AssignAction<Required<TContext>, TEvent>
-  | SendAction<TContext, TEvent>
-  | RaiseAction<AnyEventObject>;
+  | SendAction<TContext, AnyEventObject>
+  | RaiseAction<AnyEventObject>
+  | ChooseAction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -106,9 +112,9 @@ export interface GuardPredicate<TContext, TEvent extends EventObject> {
 
 export type Guard<TContext, TEvent extends EventObject> =
   | GuardPredicate<TContext, TEvent>
-  | Record<string, any> & {
+  | (Record<string, any> & {
       type: string;
-    };
+    });
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
@@ -597,7 +603,8 @@ export enum ActionTypes {
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
-  Pure = 'xstate.pure'
+  Pure = 'xstate.pure',
+  Choose = 'xstate.choose'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -779,6 +786,12 @@ export interface PureAction<TContext, TEvent extends EventObject>
     context: TContext,
     event: TEvent
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+}
+
+export interface ChooseAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Choose;
+  conds: ChooseConditon<TContext, TEvent>[];
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

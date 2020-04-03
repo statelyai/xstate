@@ -31,7 +31,9 @@ import {
   LogActionObject,
   DelayFunctionMap,
   SCXML,
-  ExprWithMeta
+  ExprWithMeta,
+  ChooseConditon,
+  ChooseAction
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -122,7 +124,9 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
 
   const actions = isArray(action) ? action : [action];
 
-  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
+  return actions.map((subAction) =>
+    toActionObject(subAction, actionFunctionMap)
+  );
 };
 
 export function toActivityDefinition<TContext, TEvent extends EventObject>(
@@ -464,7 +468,7 @@ export function error(id: string, data?: any): ErrorPlatformEvent & string {
 
   eventObject.toString = () => type;
 
-  return eventObject as (ErrorPlatformEvent & string);
+  return eventObject as ErrorPlatformEvent & string;
 }
 
 export function pure<TContext, TEvent extends EventObject>(
@@ -524,4 +528,13 @@ export function escalate<
       to: SpecialTargets.Parent
     }
   );
+}
+
+export function choose<TContext, TEvent extends EventObject>(
+  conds: ChooseConditon<TContext, TEvent>[]
+): ChooseAction<TContext, TEvent> {
+  return {
+    type: ActionTypes.Choose,
+    conds
+  };
 }

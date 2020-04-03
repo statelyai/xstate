@@ -198,11 +198,13 @@ export class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this.entry = toArray(this.config.entry).map(action =>
+    this.entry = toArray(this.config.entry).map((action) =>
       toActionObject(action)
     );
 
-    this.exit = toArray(this.config.exit).map(action => toActionObject(action));
+    this.exit = toArray(this.config.exit).map((action) =>
+      toActionObject(action)
+    );
     this.meta = this.config.meta;
     this.data =
       this.type === 'final'
@@ -227,7 +229,7 @@ export class StateNode<
             actions: this.initial.actions,
             eventType: null as any,
             toJSON: () => ({
-              target: this.initial!.target!.map(t => `#${t.id}`),
+              target: this.initial!.target!.map((t) => `#${t.id}`),
               source: `#${this.id}`,
               actions: this.initial!.actions,
               eventType: null as any
@@ -302,14 +304,11 @@ export class StateNode<
 
     const transitions = this.transitions;
 
-    return (this.__cache.on = transitions.reduce(
-      (map, transition) => {
-        map[transition.eventType] = map[transition.eventType] || [];
-        map[transition.eventType].push(transition as any);
-        return map;
-      },
-      {} as TransitionDefinitionMap<TContext, TEvent>
-    ));
+    return (this.__cache.on = transitions.reduce((map, transition) => {
+      map[transition.eventType] = map[transition.eventType] || [];
+      map[transition.eventType].push(transition as any);
+      return map;
+    }, {} as TransitionDefinitionMap<TContext, TEvent>));
   }
 
   public get after(): Array<DelayedTransitionDefinition<TContext, TEvent>> {
@@ -387,9 +386,9 @@ export class StateNode<
           evaluateGuard(this.machine, cond, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
-          `Unable to evaluate guard '${cond!.name ||
-            cond!
-              .type}' in transition for event '${eventName}' in state node '${
+          `Unable to evaluate guard '${
+            cond!.name || cond!.type
+          }' in transition for event '${eventName}' in state node '${
             this.id
           }':\n${err.message}`
         );
@@ -426,7 +425,7 @@ export class StateNode<
    */
   public get stateIds(): string[] {
     const childStateIds = flatten(
-      keys(this.states).map(stateKey => {
+      keys(this.states).map((stateKey) => {
         return this.states[stateKey].stateIds;
       })
     );
@@ -465,14 +464,14 @@ export class StateNode<
   public get ownEvents(): Array<TEvent['type']> {
     const events = new Set(
       this.transitions
-        .filter(transition => {
+        .filter((transition) => {
           return !(
             !transition.target &&
             !transition.actions.length &&
             transition.internal
           );
         })
-        .map(transition => transition.eventType)
+        .map((transition) => transition.eventType)
     );
 
     return Array.from(events);

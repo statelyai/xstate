@@ -135,14 +135,14 @@ describe('final states', () => {
 
     const { initialState } = nestedFinalMachine;
 
-    expect(initialState.actions.map(a => a.type)).toEqual([
+    expect(initialState.actions.map((a) => a.type)).toEqual([
       'bazAction',
       'barAction',
       'fooAction'
     ]);
   });
 
-  it('should call data expressions on nested final nodes', done => {
+  it('should call data expressions on nested final nodes', (done) => {
     interface Ctx {
       revealedSecret?: string;
     }
@@ -186,7 +186,7 @@ describe('final states', () => {
     let _context: any;
 
     const service = interpret(machine)
-      .onTransition(state => (_context = state.context))
+      .onTransition((state) => (_context = state.context))
       .onDone(() => {
         expect(_context).toEqual({ revealedSecret: 'the secret' });
         done();
@@ -194,5 +194,27 @@ describe('final states', () => {
       .start();
 
     service.send('REQUEST_SECRET');
+  });
+
+  it("should only call data expression once when entering root's final state", () => {
+    const spy = jest.fn();
+    const machine = Machine({
+      initial: 'start',
+      states: {
+        start: {
+          on: {
+            FINISH: 'end'
+          }
+        },
+        end: {
+          type: 'final',
+          data: spy
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.send({ type: 'FINISH', value: 1 });
+    expect(spy).toBeCalledTimes(1);
   });
 });

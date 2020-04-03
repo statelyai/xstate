@@ -7,7 +7,6 @@ import {
   EventType,
   AssignAction,
   Condition,
-  Guard,
   Subscribable,
   ConditionPredicate,
   SCXML,
@@ -15,7 +14,8 @@ import {
   TransitionConfig,
   TransitionConfigTargetShortcut,
   NullEvent,
-  SingleOrArray
+  SingleOrArray,
+  Guard
 } from './types';
 import {
   STATE_DELIMITER,
@@ -53,7 +53,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return keys(parentStateValue).every(key => {
+  return keys(parentStateValue).every((key) => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -94,10 +94,10 @@ export function toStatePath(
 export function isStateLike(state: any): state is StateLike<any> {
   return (
     typeof state === 'object' &&
-    ('value' in state &&
-      'context' in state &&
-      'event' in state &&
-      '_event' in state)
+    'value' in state &&
+    'context' in state &&
+    'event' in state &&
+    '_event' in state
   );
 }
 
@@ -208,7 +208,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   }
 
   const result = flatten(
-    keys(stateValue).map(key => {
+    keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
       if (
@@ -218,7 +218,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
         return [[key]];
       }
 
-      return toStatePaths(stateValue[key]).map(subPath => {
+      return toStatePaths(stateValue[key]).map((subPath) => {
         return [key].concat(subPath);
       });
     })
@@ -464,7 +464,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
-  const transitions = toArrayStrict(configLike).map(transitionLike => {
+  const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||

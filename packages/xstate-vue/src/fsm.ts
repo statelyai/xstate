@@ -23,7 +23,7 @@ const getServiceValue = <
 ): StateMachine.State<TContext, TEvent, TState> => {
   let currentValue: StateMachine.State<TContext, TEvent, TState>;
   service
-    .subscribe(state => {
+    .subscribe((state) => {
       currentValue = state;
     })
     .unsubscribe();
@@ -55,7 +55,7 @@ export function useMachine<
   );
 
   onMounted(() => {
-    service.subscribe(currentState => (state.value = currentState));
+    service.subscribe((currentState) => (state.value = currentState));
   });
 
   onBeforeUnmount(service.stop);
@@ -76,15 +76,19 @@ export function useService<
   send: StateMachine.Service<TContext, TEvent, TState>['send'];
   service: Ref<StateMachine.Service<TContext, TEvent, TState>>;
 } {
-  const serviceRef = isRef(service) ? service : ref(service);
+  const serviceRef: Ref<StateMachine.Service<TContext, TEvent, TState>> = isRef(
+    service
+  )
+    ? service
+    : ref(service);
   const state = ref<StateMachine.State<TContext, TEvent, TState>>(
-    getServiceValue(serviceRef.value)
+    serviceRef.value.state
   );
 
   watch(serviceRef, (service, _, onCleanup) => {
     state.value = getServiceValue(service);
 
-    const { unsubscribe } = service.subscribe(currentState => {
+    const { unsubscribe } = service.subscribe((currentState) => {
       if (currentState.changed) {
         state.value = currentState;
       }

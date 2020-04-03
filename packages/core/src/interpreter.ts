@@ -126,14 +126,14 @@ export class Interpreter<
    * - `clock` uses the global `setTimeout` and `clearTimeout` functions
    * - `logger` uses the global `console.log()` method
    */
-  public static defaultOptions: InterpreterOptions = (global => ({
+  public static defaultOptions: InterpreterOptions = ((global) => ({
     execute: true,
     deferEvents: true,
     clock: {
       setTimeout: (fn, ms) => {
         return global.setTimeout.call(null, fn, ms);
       },
-      clearTimeout: id => {
+      clearTimeout: (id) => {
         return global.clearTimeout.call(null, id);
       }
     },
@@ -223,7 +223,7 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent> {
+  public get state(): State<TContext, TEvent, any, TTypestate> {
     if (!IS_PRODUCTION) {
       warn(
         this._status !== InterpreterStatus.NotStarted,
@@ -291,7 +291,7 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        sn => sn.type === 'final' && sn.parent === this.machine
+        (sn) => sn.type === 'final' && sn.parent === this.machine
       );
 
       const doneData =
@@ -451,7 +451,7 @@ export class Interpreter<
    */
   public start(
     initialState?: State<TContext, TEvent> | StateValue
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this._status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -500,7 +500,7 @@ export class Interpreter<
     }
 
     // Stop all children
-    this.children.forEach(child => {
+    this.children.forEach((child) => {
       if (isFunction(child.stop)) {
         child.stop();
       }
@@ -628,7 +628,7 @@ export class Interpreter<
         });
 
         batchedActions.push(
-          ...(nextState.actions.map(a =>
+          ...(nextState.actions.map((a) =>
             bindActionToState(a, nextState)
           ) as Array<ActionObject<TContext, TEvent>>)
         );
@@ -709,7 +709,7 @@ export class Interpreter<
     if (
       _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
       !this.state.nextEvents.some(
-        nextEvent => nextEvent.indexOf(actionTypes.errorPlatform) === 0
+        (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
       throw (_event.data as any).data;
@@ -735,16 +735,13 @@ export class Interpreter<
     }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(
-      () => {
-        if (sendAction.to) {
-          this.sendTo(sendAction._event, sendAction.to);
-        } else {
-          this.send(sendAction._event);
-        }
-      },
-      sendAction.delay as number
-    );
+    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
+      if (sendAction.to) {
+        this.sendTo(sendAction._event, sendAction.to);
+      } else {
+        this.send(sendAction._event);
+      }
+    }, sendAction.delay as number);
   }
   private cancel(sendId: string | number): void {
     this.clock.clearTimeout(this.delayedEventsMap[sendId]);
@@ -854,7 +851,7 @@ export class Interpreter<
           this.children.set(id, actor);
 
           const childIndex = this.state.children.findIndex(
-            child => child.id === id
+            (child) => child.id === id
           );
 
           this.state.children[childIndex] = actor;
@@ -897,19 +894,23 @@ export class Interpreter<
 
     return undefined;
   }
+  private removeChild(childId: string): void {
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    const childIndex = this.state.children.findIndex(
+      (actor) => actor.id === childId
+    );
+    this.state.children.splice(childIndex, 1);
+  }
+
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
     if (!child) {
       return;
     }
 
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    const childIndex = this.state.children.findIndex(
-      actor => actor.id === childId
-    );
-    this.state.children.splice(childIndex, 1);
+    this.removeChild(childId);
 
     if (isFunction(child.stop)) {
       child.stop();
@@ -952,7 +953,7 @@ export class Interpreter<
     };
 
     if (resolvedOptions.sync) {
-      childService.onTransition(state => {
+      childService.onTransition((state) => {
         this.send({
           type: actionTypes.update,
           state,
@@ -961,22 +962,23 @@ export class Interpreter<
       });
     }
 
-    childService
-      .onDone(doneEvent => {
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
-      })
-      .start();
-
     const actor = childService;
 
-    this.children.set(childService.id, actor as Actor<
-      State<TChildContext, TChildEvent>,
-      TChildEvent
-    >);
+    this.children.set(
+      childService.id,
+      actor as Actor<State<TChildContext, TChildEvent>, TChildEvent>
+    );
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
     }
+
+    childService
+      .onDone((doneEvent) => {
+        this.removeChild(childService.id);
+        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
+      })
+      .start();
 
     return actor;
   }
@@ -984,15 +986,17 @@ export class Interpreter<
     let canceled = false;
 
     promise.then(
-      response => {
+      (response) => {
         if (!canceled) {
+          this.removeChild(id);
           this.send(
             toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
           );
         }
       },
-      errorData => {
+      (errorData) => {
         if (!canceled) {
+          this.removeChild(id);
           const errorEvent = error(id, errorData);
           try {
             // Send "error.platform.id" to this (parent).
@@ -1020,7 +1024,7 @@ export class Interpreter<
       subscribe: (next, handleError, complete) => {
         let unsubscribed = false;
         promise.then(
-          response => {
+          (response) => {
             if (unsubscribed) {
               return;
             }
@@ -1030,7 +1034,7 @@ export class Interpreter<
             }
             complete && complete();
           },
-          err => {
+          (err) => {
             if (unsubscribed) {
               return;
             }
@@ -1060,7 +1064,7 @@ export class Interpreter<
     const listeners = new Set<(e: EventObject) => void>();
 
     const receive = (e: TEvent) => {
-      listeners.forEach(listener => listener(e));
+      listeners.forEach((listener) => listener(e));
       if (canceled) {
         return;
       }
@@ -1070,7 +1074,7 @@ export class Interpreter<
     let callbackStop;
 
     try {
-      callbackStop = callback(receive, newListener => {
+      callbackStop = callback(receive, (newListener) => {
         receivers.add(newListener);
       });
     } catch (err) {
@@ -1085,8 +1089,8 @@ export class Interpreter<
 
     const actor = {
       id,
-      send: event => receivers.forEach(receiver => receiver(event)),
-      subscribe: next => {
+      send: (event) => receivers.forEach((receiver) => receiver(event)),
+      subscribe: (next) => {
         listeners.add(next);
 
         return {
@@ -1115,13 +1119,15 @@ export class Interpreter<
     id: string
   ): Actor<any> {
     const subscription = source.subscribe(
-      value => {
+      (value) => {
         this.send(toSCXMLEvent(value, { origin: id }));
       },
-      err => {
+      (err) => {
+        this.removeChild(id);
         this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {
+        this.removeChild(id);
         this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
       }
     );
@@ -1265,7 +1271,7 @@ export function spawn(
 ): Actor {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
-  return withServiceScope(undefined, service => {
+  return withServiceScope(undefined, (service) => {
     if (!IS_PRODUCTION) {
       warn(
         !!service,

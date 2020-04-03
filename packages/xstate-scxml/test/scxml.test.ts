@@ -30,7 +30,7 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
-    .onTransition(state => {
+    .onTransition((state) => {
       nextState = state;
     })
     .onDone(() => {
@@ -48,7 +48,7 @@ async function runTestToCompletion(
     service.send(event.name);
 
     const stateIds = getStateNodes(machine, nextState).map(
-      stateNode => stateNode.id
+      (stateNode) => stateNode.id
     );
 
     expect(stateIds).toContain(nextConfiguration[0]);
@@ -67,23 +67,23 @@ const testGroups = {
     'send8',
     'send8b',
     'send9'
-  ],
-  assign: [
-    // 'assign_obj_literal'
-    // 'assign_invalid', // TODO: error handling for assign()
-  ],
-  'assign-current-small-step': [
-    'test0'
-    // 'test1',
   ]
+  // assign: [
+  // 'assign_obj_literal' // <script/> conversion not implemented
+  // 'assign_invalid', // TODO: error handling for assign()
+  // ],
+  // 'assign-current-small-step': [
+  // 'test0' // <script/> conversion not implemented
+  // 'test1',
+  // ]
 };
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
-  testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+  testGroupKeys.forEach((testGroupName) => {
+    testGroups[testGroupName].forEach((testName) => {
       const originalMachine = require(`./fixtures/${testGroupName}/${testName}`)
         .default;
       const scxmlDefinition = toSCXML(originalMachine);
