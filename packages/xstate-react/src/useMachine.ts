@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   interpret,
   EventObject,
@@ -59,6 +59,11 @@ export function useMachine<
     ...interpreterOptions
   } = options;
 
+  // Capture all actions (side-effects) to be executed.
+  // These will be flushed when they are executed, and avoids the issue of batched events
+  // sent to the interpreter, which might ignore actions.
+  const actionStatesRef = useRef<Array<State<TContext, TEvent>>>([]);
+
   // Keep a single reference to the invoked machine (the service)
   const service = useConstant(() => {
     const machineConfig = {
@@ -73,6 +78,9 @@ export function useMachine<
       ...machine.context,
       ...context
     } as TContext);
+
+    // Ensure that actions are not executed (until useEffect() below)
+    interpreterOptions.execute = false;
 
     return interpret(createdMachine, interpreterOptions).start(
       rehydratedState ? State.create(rehydratedState) : undefined
@@ -98,6 +106,10 @@ export function useMachine<
     // that state has changed.
     service.onTransition((currentState) => {
       if (currentState.changed) {
+        // capture side-effects to be executed
+        actionStatesRef.current.push(currentState);
+
+        // change state
         setState(currentState);
       }
     });
@@ -106,6 +118,16 @@ export function useMachine<
       service.stop();
     };
   }, []);
+
+  useEffect(() => {
+    // Flush all actions to be executed (per state)
+    actionStatesRef.current.forEach((actionState) => {
+      // Execute all actions for the captured state
+      service.execute(actionState);
+    });
+
+    actionStatesRef.current = [];
+  }, [state]);
 
   return [state, service.send, service];
 }
