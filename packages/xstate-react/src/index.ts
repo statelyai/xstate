@@ -84,7 +84,7 @@ export function useMachine<
   const [state, setState] = useState(service.state);
 
   useEffect(() => {
-    service.onTransition(currentState => {
+    service.onTransition((currentState) => {
       if (currentState.changed) {
         setState(currentState);
       }
@@ -123,13 +123,16 @@ export function useService<
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
   Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const subscription: Subscription<
-    State<TContext, TEvent, any, TTypestate>
-  > = useMemo(
+  const subscription: Subscription<State<
+    TContext,
+    TEvent,
+    any,
+    TTypestate
+  >> = useMemo(
     () => ({
       getCurrentValue: () => service.state || service.initialState,
-      subscribe: callback => {
-        const { unsubscribe } = service.subscribe(currentState => {
+      subscribe: (callback) => {
+        const { unsubscribe } = service.subscribe((currentState) => {
           if (currentState.changed !== false) {
             callback();
           }

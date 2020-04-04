@@ -3,7 +3,7 @@ import { respond, send } from '../src/actions';
 import { spawnMachine } from '../src/invoke';
 
 describe('SCXML events', () => {
-  it('should have the origin (id) from the sending service', done => {
+  it('should have the origin (id) from the sending service', (done) => {
     const childMachine = Machine({
       initial: 'active',
       states: {
@@ -41,7 +41,7 @@ describe('SCXML events', () => {
       .start();
   });
 
-  it('respond() should be able to respond to sender', done => {
+  it('respond() should be able to respond to sender', (done) => {
     const authServerMachine = Machine({
       initial: 'waitingForCode',
       states: {

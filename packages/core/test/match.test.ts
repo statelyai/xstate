@@ -13,8 +13,12 @@ describe('matchState()', () => {
     expect(
       matchState(
         simpleState,
-        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-        _ => false
+        [
+          ['b', () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -23,8 +27,12 @@ describe('matchState()', () => {
     expect(
       matchState(
         'a',
-        [['b', () => false], ['a', () => true], [{ a: 'b' }, () => false]],
-        _ => false
+        [
+          ['b', () => false],
+          ['a', () => true],
+          [{ a: 'b' }, () => false]
+        ],
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -41,7 +49,7 @@ describe('matchState()', () => {
           [{ a: 'b' }, () => true],
           ['a', () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -58,7 +66,7 @@ describe('matchState()', () => {
           ['a', () => true],
           [{ a: 'b' }, () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -78,7 +86,7 @@ describe('matchState()', () => {
           ['a', () => true],
           [{ a: 'b' }, () => false]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -91,7 +99,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b' }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -104,7 +112,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: {} }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -117,7 +125,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: { d: 'e' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -130,7 +138,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ a: 'b', c: { d: 'e', f: 'g' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -143,7 +151,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: {} }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -156,7 +164,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: { d: 'e' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
 
@@ -169,7 +177,7 @@ describe('matchState()', () => {
           [{ a: 'b', c: 'e' }, () => false],
           [{ c: { d: 'e', f: 'g' } }, () => true]
         ],
-        _ => false
+        (_) => false
       )
     ).toBeTruthy();
   });
@@ -178,7 +186,7 @@ describe('matchState()', () => {
     const simpleState = State.from('a', undefined);
 
     expect(
-      matchState(simpleState, [['b', () => false]], _ => true)
+      matchState(simpleState, [['b', () => false]], (_) => true)
     ).toBeTruthy();
   });
 });

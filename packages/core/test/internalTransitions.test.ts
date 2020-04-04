@@ -73,7 +73,7 @@ describe('internal transitions', () => {
 
     expect(nextState.value).toEqual({ direction: 'right' });
     expect(nextState.actions.length).toBe(2);
-    expect(nextState.actions.map(a => a.type)).toEqual([
+    expect(nextState.actions.map((a) => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -83,7 +83,7 @@ describe('internal transitions', () => {
     const resetState = wordMachine.transition('direction.center', 'RESET');
 
     expect(resetState.value).toEqual({ direction: 'left' });
-    expect(resetState.actions.map(a => a.type)).toEqual([
+    expect(resetState.actions.map((a) => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -96,7 +96,7 @@ describe('internal transitions', () => {
     );
 
     expect(resetState.value).toEqual({ direction: 'center' });
-    expect(resetState.actions.map(a => a.type)).toEqual([
+    expect(resetState.actions.map((a) => a.type)).toEqual([
       'EXIT_DIRECTION',
       'ENTER_DIRECTION'
     ]);
@@ -111,19 +111,19 @@ describe('internal transitions', () => {
   it('should work with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_ARRAY');
 
-    expect(sameState.actions.map(a => a.type)).toEqual(['doSomething']);
+    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
   });
 
   it('should work with targetless transitions (in object)', () => {
     const sameState = topLevelMachine.transition('Hidden', 'TARGETLESS_OBJECT');
 
-    expect(sameState.actions.map(a => a.type)).toEqual(['doSomething']);
+    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomething']);
   });
 
   it('should work on parent with targetless transitions (in conditional array)', () => {
     const sameState = topLevelMachine.transition('Failure', 'TARGETLESS_ARRAY');
 
-    expect(sameState.actions.map(a => a.type)).toEqual(['doSomethingParent']);
+    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should work with targetless transitions (in object)', () => {
@@ -132,7 +132,7 @@ describe('internal transitions', () => {
       'TARGETLESS_OBJECT'
     );
 
-    expect(sameState.actions.map(a => a.type)).toEqual(['doSomethingParent']);
+    expect(sameState.actions.map((a) => a.type)).toEqual(['doSomethingParent']);
   });
 
   it('should maintain the child state when targetless transition is handled by parent', () => {

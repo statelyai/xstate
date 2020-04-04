@@ -14,7 +14,7 @@ import { useEffect } from 'react';
 export function getChildren(machine: StateNode): StateNode[] {
   if (!machine.states) return [];
 
-  return Object.keys(machine.states).map(key => {
+  return Object.keys(machine.states).map((key) => {
     return machine.states[key];
   });
 }
@@ -67,7 +67,7 @@ const StateNodeViz: React.FC<{
     >
       <header>{stateNode.key}</header>
       <StyledStateNodeChildrenViz>
-        {childNodes.map(childNode => {
+        {childNodes.map((childNode) => {
           return <StateNodeViz stateNode={childNode} key={childNode.id} />;
         })}
       </StyledStateNodeChildrenViz>
@@ -118,7 +118,7 @@ export const ExtViz: React.FC = () => {
 
   const services = (
     <>
-      {Array.from(serviceSet).map(s => {
+      {Array.from(serviceSet).map((s) => {
         const serv = s as Interpreter<any, any>;
 
         console.log(serv.id);

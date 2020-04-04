@@ -97,8 +97,8 @@ export class TestModel<TTestContext, TContext> {
   ): Array<TestPlan<TTestContext, TContext>> {
     const predicate =
       typeof stateValue === 'function'
-        ? plan => stateValue(plan.state)
-        : plan => plan.state.matches(stateValue);
+        ? (plan) => stateValue(plan.state)
+        : (plan) => plan.state.matches(stateValue);
     return testPlans.filter(predicate);
   }
 
@@ -122,15 +122,15 @@ export class TestModel<TTestContext, TContext> {
   public getTestPlans(
     statePathsMap: StatePathsMap<TContext, any>
   ): Array<TestPlan<TTestContext, TContext>> {
-    return Object.keys(statePathsMap).map(key => {
+    return Object.keys(statePathsMap).map((key) => {
       const testPlan = statePathsMap[key];
-      const paths = testPlan.paths.map(path => {
-        const segments = path.segments.map(segment => {
+      const paths = testPlan.paths.map((path) => {
+        const segments = path.segments.map((segment) => {
           return {
             ...segment,
             description: getDescription(segment.state),
-            test: testContext => this.testState(segment.state, testContext),
-            exec: testContext => this.executeEvent(segment.event, testContext)
+            test: (testContext) => this.testState(segment.state, testContext),
+            exec: (testContext) => this.executeEvent(segment.event, testContext)
           };
         });
 
@@ -145,14 +145,14 @@ export class TestModel<TTestContext, TContext> {
         }
 
         const eventsString = path.segments
-          .map(s => formatEvent(s.event))
+          .map((s) => formatEvent(s.event))
           .join(' → ');
 
         return {
           ...path,
           segments,
           description: `via ${eventsString}`,
-          test: async testContext => {
+          test: async (testContext) => {
             const testPathResult: TestPathResult = {
               segments: [],
               state: {
@@ -204,7 +204,7 @@ export class TestModel<TTestContext, TContext> {
               err.message +=
                 '\nPath:\n' +
                 testPathResult.segments
-                  .map(s => {
+                  .map((s) => {
                     const stateString = `${JSON.stringify(
                       s.segment.state.value
                     )} ${
@@ -253,7 +253,7 @@ export class TestModel<TTestContext, TContext> {
 
       return {
         ...testPlan,
-        test: async testContext => {
+        test: async (testContext) => {
           for (const path of paths) {
             await path.test(testContext);
           }
@@ -329,14 +329,14 @@ export class TestModel<TTestContext, TContext> {
 
   public testCoverage(options?: CoverageOptions<TContext>): void {
     const coverage = this.getCoverage(options);
-    const missingStateNodes = Object.keys(coverage.stateNodes).filter(id => {
+    const missingStateNodes = Object.keys(coverage.stateNodes).filter((id) => {
       return !coverage.stateNodes[id];
     });
 
     if (missingStateNodes.length) {
       throw new Error(
         'Missing coverage for state nodes:\n' +
-          missingStateNodes.map(id => `\t${id}`).join('\n')
+          missingStateNodes.map((id) => `\t${id}`).join('\n')
       );
     }
   }
@@ -355,7 +355,7 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
     state.context === undefined ? '' : `(${JSON.stringify(state.context)})`;
 
   const stateStrings = state.configuration
-    .filter(sn => sn.type === 'atomic')
+    .filter((sn) => sn.type === 'atomic')
     .map(({ id }) => {
       const meta = state.meta[id] as TestMeta<T, TContext>;
       if (!meta) {
@@ -381,7 +381,7 @@ function getDescription<T, TContext>(state: State<TContext, any>): string {
 function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
   const result = {};
 
-  Object.keys(eventsOptions).forEach(key => {
+  Object.keys(eventsOptions).forEach((key) => {
     const eventConfig = eventsOptions[key];
     if (typeof eventConfig === 'function') {
       return [
@@ -392,7 +392,7 @@ function getEventSamples<T>(eventsOptions: TestModelOptions<T>['events']) {
     }
 
     result[key] = eventConfig.cases
-      ? eventConfig.cases.map(sample => ({
+      ? eventConfig.cases.map((sample) => ({
           type: key,
           ...sample
         }))

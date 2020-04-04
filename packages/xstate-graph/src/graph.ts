@@ -105,8 +105,8 @@ export function getAdjacencyMap<
     adjacency[stateHash] = {};
 
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map(nextEvent => events[nextEvent] || [])
-    ).map(event => toEventObject(event));
+      nextEvents.map((nextEvent) => events[nextEvent] || [])
+    ).map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
       let nextState: State<TContext, TEvent>;
@@ -318,5 +318,5 @@ export function getSimplePathsAsArray<
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
-  return keys(result).map(key => result[key]);
+  return keys(result).map((key) => result[key]);
 }

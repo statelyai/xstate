@@ -71,7 +71,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
   const state = ref<State<TContext, TEvent>>(service.state);
 
   onMounted(() => {
-    service.onTransition(currentState => {
+    service.onTransition((currentState) => {
       if (currentState.changed) {
         state.value = currentState;
       }
@@ -103,7 +103,7 @@ export function useService<TContext, TEvent extends EventObject>(
 
   watch(serviceRef, (watchedService, _, onCleanup) => {
     state.value = watchedService.state;
-    const { unsubscribe } = watchedService.subscribe(currentState => {
+    const { unsubscribe } = watchedService.subscribe((currentState) => {
       if (currentState.changed) {
         state.value = currentState;
       }

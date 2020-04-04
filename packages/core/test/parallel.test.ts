@@ -542,8 +542,8 @@ describe('parallel states', () => {
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(eventTypes => {
+  Object.keys(expected).forEach((fromState) => {
+    Object.keys(expected[fromState]).forEach((eventTypes) => {
       const toState = expected[fromState][eventTypes];
 
       it(`should go from ${fromState} to ${JSON.stringify(
@@ -912,7 +912,7 @@ describe('parallel states', () => {
                 }
               },
               foobaz: {
-                entry: assign({ log: ctx => [...ctx.log, 'entered foobaz'] }),
+                entry: assign({ log: (ctx) => [...ctx.log, 'entered foobaz'] }),
                 on: {
                   GOTO_FOOBAZ: 'foobaz'
                 }

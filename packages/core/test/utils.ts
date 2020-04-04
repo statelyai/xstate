@@ -21,8 +21,8 @@ export function testMultiTransition<TContext>(
 }
 
 export function testAll(machine: MachineNode, expected: {}): void {
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(eventTypes => {
+  Object.keys(expected).forEach((fromState) => {
+    Object.keys(expected[fromState]).forEach((eventTypes) => {
       const toState = expected[fromState][eventTypes];
 
       it(`should go from ${fromState} to ${JSON.stringify(

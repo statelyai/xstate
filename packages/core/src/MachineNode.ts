@@ -124,11 +124,13 @@ export class MachineNode<
 
     this.strict = !!this.config.strict;
 
-    this.entry = toArray(this.config.entry).map(action =>
+    this.entry = toArray(this.config.entry).map((action) =>
       toActionObject(action)
     );
 
-    this.exit = toArray(this.config.exit).map(action => toActionObject(action));
+    this.exit = toArray(this.config.exit).map((action) =>
+      toActionObject(action)
+    );
     this.meta = this.config.meta;
     this.transition = this.transition.bind(this);
   }
@@ -137,7 +139,7 @@ export class MachineNode<
     if (this.__cache.transitions) {
       return;
     }
-    getAllStateNodes(this).forEach(stateNode => stateNode.on);
+    getAllStateNodes(this).forEach((stateNode) => stateNode.on);
   }
 
   /**

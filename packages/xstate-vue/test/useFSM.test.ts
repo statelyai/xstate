@@ -12,7 +12,7 @@ afterEach(cleanup);
 
 const renderWithCompositionApi = (component, options?) =>
   // @ts-ignore
-  render(component, options, vue => vue.use(VueCompositionApi));
+  render(component, options, (vue) => vue.use(VueCompositionApi));
 
 describe('UseFSM composable function', () => {
   it('should work ', async () => {

@@ -14,7 +14,7 @@ afterEach(cleanup);
 
 const renderWithCompositionApi = (component, options?) =>
   // @ts-ignore
-  render(component, options, vue => vue.use(VueCompositionApi));
+  render(component, options, (vue) => vue.use(VueCompositionApi));
 
 describe('useMachine composition function', () => {
   const context = {

@@ -66,7 +66,7 @@ export function transitionToSCXML(
         ? functionToExpr(transition.cond.predicate)
         : undefined,
       target: (transition.target || [])
-        .map(stateNode => stateNode.id)
+        .map((stateNode) => stateNode.id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
     }),
@@ -97,14 +97,14 @@ function actionsToSCXML(
   return {
     type: 'element',
     name,
-    elements: actions.map<XMLElement>(action => {
+    elements: actions.map<XMLElement>((action) => {
       return actionToSCXML(action);
     })
   };
 }
 
 function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
-  const childStates = Object.keys(stateNode.states).map(key => {
+  const childStates = Object.keys(stateNode.states).map((key) => {
     const childStateNode = stateNode.states[key];
 
     return stateNodeToSCXML(childStateNode);
@@ -123,10 +123,10 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   }
 
   const transitionElements = flatten(
-    Object.keys(stateNode.on).map(event => {
+    Object.keys(stateNode.on).map((event) => {
       const transitions = stateNode.on[event];
 
-      return transitions.map(transition => transitionToSCXML(transition));
+      return transitions.map((transition) => transitionToSCXML(transition));
     })
   );
 
@@ -148,7 +148,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
     attributes: {
       id: stateNode.id,
       ...(stateNode.initial.target.length && {
-        initial: stateNode.initial.target.map(s => s.id).join(' ')
+        initial: stateNode.initial.target.map((s) => s.id).join(' ')
       })
     },
     elements
@@ -158,7 +158,7 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
 export function toSCXML(machine: MachineNode<any, any, any>): string {
   const { states, initial } = machine;
 
-  const elements = Object.keys(states).map<XMLElement>(key => {
+  const elements = Object.keys(states).map<XMLElement>((key) => {
     const stateNode = states[key];
 
     return stateNodeToSCXML(stateNode);
@@ -172,7 +172,7 @@ export function toSCXML(machine: MachineNode<any, any, any>): string {
           name: 'scxml',
           attributes: {
             xmlns: 'http://www.w3.org/2005/07/scxml',
-            initial: initial.target.map(s => s.id).join(' '),
+            initial: initial.target.map((s) => s.id).join(' '),
             // 'xmlns:xi': 'http://www.w3.org/2001/XInclude',
             version: '1.0',
             datamodel: 'ecmascript'

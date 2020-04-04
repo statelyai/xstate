@@ -50,8 +50,8 @@ describe('Example 6.17', () => {
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(eventTypes => {
+  Object.keys(expected).forEach((fromState) => {
+    Object.keys(expected[fromState]).forEach((eventTypes) => {
       const toState = expected[fromState][eventTypes];
 
       it(`should go from ${fromState} to ${JSON.stringify(
@@ -115,8 +115,8 @@ describe('Jump to ID', () => {
     }
   };
 
-  Object.keys(expected).forEach(fromState => {
-    Object.keys(expected[fromState]).forEach(eventTypes => {
+  Object.keys(expected).forEach((fromState) => {
+    Object.keys(expected[fromState]).forEach((eventTypes) => {
       const toState = expected[fromState][eventTypes];
 
       it(`should go from ${fromState} to ${JSON.stringify(

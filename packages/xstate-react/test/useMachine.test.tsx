@@ -59,7 +59,7 @@ describe('useMachine hook', () => {
     onFetch: () => Promise<any>;
     persistedState?: State<any, any>;
   }> = ({
-    onFetch = () => new Promise(res => res('some data')),
+    onFetch = () => new Promise((res) => res('some data')),
     persistedState
   }) => {
     const [current, send] = useMachine(fetchMachine, {
@@ -71,7 +71,7 @@ describe('useMachine hook', () => {
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={_ => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -87,7 +87,7 @@ describe('useMachine hook', () => {
 
   it('should work with the useMachine hook', async () => {
     const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise(res => res('fake data'))} />
+      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
     );
     const button = getByText('Fetch');
     fireEvent.click(button);
@@ -100,7 +100,7 @@ describe('useMachine hook', () => {
   it('should work with the useMachine hook (rehydrated state)', async () => {
     const { getByText, getByTestId } = render(
       <Fetcher
-        onFetch={() => new Promise(res => res('fake data'))}
+        onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchState}
       />
     );
@@ -116,7 +116,7 @@ describe('useMachine hook', () => {
     );
     const { getByText, getByTestId } = render(
       <Fetcher
-        onFetch={() => new Promise(res => res('fake data'))}
+        onFetch={() => new Promise((res) => res('fake data'))}
         persistedState={persistedFetchStateConfig}
       />
     );
@@ -182,7 +182,7 @@ describe('useMachine hook', () => {
     render(<Test />);
   });
 
-  it('should not spawn actors until service is started', async done => {
+  it('should not spawn actors until service is started', async (done) => {
     const spawnMachine = Machine<any>({
       id: 'spawn',
       initial: 'start',
@@ -190,7 +190,7 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: () => spawn(new Promise(res => res(42)), 'my-promise')
+            ref: () => spawn(new Promise((res) => res(42)), 'my-promise')
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'
@@ -220,7 +220,7 @@ describe('useMachine hook', () => {
     done();
   });
 
-  it('actions should not have stale data', async done => {
+  it('actions should not have stale data', async (done) => {
     const toggleMachine = Machine({
       initial: 'inactive',
       states: {
@@ -251,13 +251,13 @@ describe('useMachine hook', () => {
         <>
           <button
             data-testid="extbutton"
-            onClick={_ => {
+            onClick={(_) => {
               setExt(true);
             }}
           />
           <button
             data-testid="button"
-            onClick={_ => {
+            onClick={(_) => {
               send('TOGGLE');
             }}
           />

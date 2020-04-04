@@ -50,7 +50,7 @@ export function spawnMachine<
     };
 
     if (resolvedOptions.sync) {
-      childService.onTransition(state => {
+      childService.onTransition((state) => {
         parent.send({
           type: actionTypes.update,
           state,
@@ -60,7 +60,7 @@ export function spawnMachine<
     }
 
     childService
-      .onDone(doneEvent => {
+      .onDone((doneEvent) => {
         parent.send(
           toSCXMLEvent(doneInvoke(id, doneEvent.data), {
             origin: childService.id
@@ -86,14 +86,14 @@ export function spawnPromise<T>(
     const resolvedPromise = isFunction(promise) ? promise(ctx, e) : promise;
 
     resolvedPromise.then(
-      response => {
+      (response) => {
         if (!canceled) {
           parent.send(
             toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
           );
         }
       },
-      errorData => {
+      (errorData) => {
         if (!canceled) {
           const errorEvent = error(id, errorData);
           try {
@@ -122,7 +122,7 @@ export function spawnPromise<T>(
       subscribe: (next, handleError, complete) => {
         let unsubscribed = false;
         resolvedPromise.then(
-          response => {
+          (response) => {
             if (unsubscribed) {
               return;
             }
@@ -132,7 +132,7 @@ export function spawnPromise<T>(
             }
             complete && complete();
           },
-          err => {
+          (err) => {
             if (unsubscribed) {
               return;
             }
@@ -192,7 +192,7 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
     const listeners = new Set<(e: EventObject) => void>();
 
     const receive = (receivedEvent: TE) => {
-      listeners.forEach(listener => listener(receivedEvent));
+      listeners.forEach((listener) => listener(receivedEvent));
       if (canceled) {
         return;
       }
@@ -202,7 +202,7 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
     let callbackStop;
 
     try {
-      callbackStop = callback(receive, newListener => {
+      callbackStop = callback(receive, (newListener) => {
         receivers.add(newListener);
       });
     } catch (err) {
@@ -221,9 +221,9 @@ export function spawnCallback<TE extends EventObject = AnyEventObject>(
 
     const actor = {
       id,
-      send: receivedEvent =>
-        receivers.forEach(receiver => receiver(receivedEvent)),
-      subscribe: next => {
+      send: (receivedEvent) =>
+        receivers.forEach((receiver) => receiver(receivedEvent)),
+      subscribe: (next) => {
         listeners.add(next);
 
         return {
@@ -253,10 +253,10 @@ export function spawnObservable<T extends EventObject = AnyEventObject>(
   return (ctx, e, { parent, id }) => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
     const subscription = resolvedSource.subscribe(
-      value => {
+      (value) => {
         parent.send(toSCXMLEvent(value, { origin: id }));
       },
-      err => {
+      (err) => {
         parent.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {

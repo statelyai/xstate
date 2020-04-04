@@ -84,7 +84,7 @@ export function createAnalyzer(
           return (
             this.count /
             Object.keys(analysis.transitions[prevStateSerial])
-              .map(key => analysis.transitions[prevStateSerial][key])
+              .map((key) => analysis.transitions[prevStateSerial][key])
               .reduce((acc, a) => {
                 return a.count + acc;
               }, 0)

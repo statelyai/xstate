@@ -50,7 +50,7 @@ export default {
   props: ['persistedState'],
   setup({ persistedState }: { persistedState: State<any, any> }) {
     const onFetch = () =>
-      new Promise(res => setTimeout(() => res('some data'), 50));
+      new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
       services: {

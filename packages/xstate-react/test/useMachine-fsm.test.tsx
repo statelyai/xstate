@@ -39,11 +39,11 @@ describe('useMachine hook for fsm', () => {
 
   const Fetcher: React.FC<{
     onFetch: () => Promise<any>;
-  }> = ({ onFetch = () => new Promise(res => res('some data')) }) => {
+  }> = ({ onFetch = () => new Promise((res) => res('some data')) }) => {
     const [current, send] = useMachine(fetchMachine, {
       actions: {
         load: () =>
-          onFetch().then(res => {
+          onFetch().then((res) => {
             send({ type: 'RESOLVE', data: res });
           })
       }
@@ -51,7 +51,7 @@ describe('useMachine hook for fsm', () => {
 
     switch (current.value) {
       case 'idle':
-        return <button onClick={_ => send('FETCH')}>Fetch</button>;
+        return <button onClick={(_) => send('FETCH')}>Fetch</button>;
       case 'loading':
         return <div>Loading...</div>;
       case 'success':
@@ -67,7 +67,7 @@ describe('useMachine hook for fsm', () => {
 
   it('should work with the useMachine hook', async () => {
     const { getByText, getByTestId } = render(
-      <Fetcher onFetch={() => new Promise(res => res('fake data'))} />
+      <Fetcher onFetch={() => new Promise((res) => res('fake data'))} />
     );
     const button = getByText('Fetch');
     fireEvent.click(button);
@@ -89,7 +89,7 @@ describe('useMachine hook for fsm', () => {
     render(<Test />);
   });
 
-  it('actions should not have stale data', async done => {
+  it('actions should not have stale data', async (done) => {
     const toggleMachine = createMachine({
       initial: 'inactive',
       states: {
@@ -120,13 +120,13 @@ describe('useMachine hook for fsm', () => {
         <>
           <button
             data-testid="extbutton"
-            onClick={_ => {
+            onClick={(_) => {
               setExt(true);
             }}
           />
           <button
             data-testid="button"
-            onClick={_ => {
+            onClick={(_) => {
               send('TOGGLE');
             }}
           />
@@ -143,7 +143,7 @@ describe('useMachine hook for fsm', () => {
     fireEvent.click(button);
   });
 
-  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async done => {
+  it('should keep options defined on a machine when they are not possed to `useMachine` hook', async (done) => {
     let actual = false;
 
     const toggleMachine = createMachine(
@@ -182,7 +182,7 @@ describe('useMachine hook for fsm', () => {
     render(<Comp />);
   });
 
-  it('should be able to lookup initial action passed to the hook', async done => {
+  it('should be able to lookup initial action passed to the hook', async (done) => {
     let outer = false;
 
     const machine = createMachine(

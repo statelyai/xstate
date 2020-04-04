@@ -59,7 +59,7 @@ describe('interpreter', () => {
   });
 
   describe('initial state', () => {
-    it('immediately notifies the listener with the initial state and event', done => {
+    it('immediately notifies the listener with the initial state and event', (done) => {
       const service = interpret(idMachine).onTransition(
         (initialState, event) => {
           expect(initialState).toBeInstanceOf(State);
@@ -78,7 +78,7 @@ describe('interpreter', () => {
       expect(service.initialState.value).toEqual(idMachine.initialState.value);
     });
 
-    it('initial state should be cached', done => {
+    it('initial state should be cached', (done) => {
       let entryCalled = 0;
       let promiseSpawned = 0;
 
@@ -132,19 +132,19 @@ describe('interpreter', () => {
       }
     });
 
-    it('should notify subscribers of the current state upon subscription (subscribe)', done => {
+    it('should notify subscribers of the current state upon subscription (subscribe)', (done) => {
       const service = interpret(machine).start();
 
-      service.subscribe(state => {
+      service.subscribe((state) => {
         expect(state.value).toBe('active');
         done();
       });
     });
 
-    it('should notify subscribers of the current state upon subscription (onTransition)', done => {
+    it('should notify subscribers of the current state upon subscription (onTransition)', (done) => {
       const service = interpret(machine).start();
 
-      service.onTransition(state => {
+      service.onTransition((state) => {
         expect(state.value).toBe('active');
         done();
       });
@@ -158,7 +158,7 @@ describe('interpreter', () => {
       const service = interpret(lightMachine, {
         clock: new SimulatedClock()
       })
-        .onTransition(s => {
+        .onTransition((s) => {
           state = s;
         })
         .start();
@@ -172,11 +172,11 @@ describe('interpreter', () => {
   describe('send with delay', () => {
     it('can send an event after a delay', () => {
       const currentStates: Array<State<any>> = [];
-      const listener = state => {
+      const listener = (state) => {
         currentStates.push(state);
 
         if (currentStates.length === 4) {
-          expect(currentStates.map(s => s.value)).toEqual([
+          expect(currentStates.map((s) => s.value)).toEqual([
             'green',
             'yellow',
             'red',
@@ -195,27 +195,27 @@ describe('interpreter', () => {
       expect(currentStates[0]!.value).toEqual('green');
 
       clock.increment(5);
-      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
+      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
       clock.increment(5);
-      expect(currentStates.map(s => s.value)).toEqual(['green', 'yellow']);
+      expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
       clock.increment(5);
-      expect(currentStates.map(s => s.value)).toEqual([
+      expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
       clock.increment(5);
-      expect(currentStates.map(s => s.value)).toEqual([
+      expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
       clock.increment(5);
-      expect(currentStates.map(s => s.value)).toEqual([
+      expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red',
@@ -364,7 +364,7 @@ describe('interpreter', () => {
       expect(stopped).toBe(true);
     });
 
-    it('can send an event after a delay (delayed transitions)', done => {
+    it('can send an event after a delay (delayed transitions)', (done) => {
       const clock = new SimulatedClock();
       const letterMachine = Machine(
         {
@@ -377,7 +377,7 @@ describe('interpreter', () => {
             a: {
               after: [
                 {
-                  delay: ctx => ctx.delay,
+                  delay: (ctx) => ctx.delay,
                   target: 'b'
                 }
               ]
@@ -419,7 +419,7 @@ describe('interpreter', () => {
         },
         {
           delays: {
-            someDelay: ctx => {
+            someDelay: (ctx) => {
               return ctx.delay + 50;
             }
           }
@@ -429,7 +429,7 @@ describe('interpreter', () => {
       let state: any;
 
       interpret(letterMachine, { clock })
-        .onTransition(s => {
+        .onTransition((s) => {
           state = s;
         })
         .onDone(() => {
@@ -533,7 +533,7 @@ describe('interpreter', () => {
       expect(stopActivityState!).toEqual('off');
     });
 
-    it('should not restart activities from a compound state', done => {
+    it('should not restart activities from a compound state', (done) => {
       let activityActive = false;
 
       const toggleMachine = Machine(
@@ -576,14 +576,14 @@ describe('interpreter', () => {
       let state: any;
 
       interpret(toggleMachine)
-        .onTransition(s => {
+        .onTransition((s) => {
           state = s;
         })
         .start(bState);
 
       setTimeout(() => {
         expect(
-          state.children.find(child => child.meta!.src === 'blink')
+          state.children.find((child) => child.meta!.src === 'blink')
         ).toBeTruthy();
         expect(activityActive).toBeFalsy();
         done();
@@ -593,7 +593,7 @@ describe('interpreter', () => {
 
   it('can cancel a delayed event', () => {
     let currentState: State<any>;
-    const listener = state => (currentState = state);
+    const listener = (state) => (currentState = state);
 
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
@@ -609,7 +609,7 @@ describe('interpreter', () => {
     expect(currentState!.value).toEqual('green');
   });
 
-  it('can cancel a delayed event using expression to resolve send id', done => {
+  it('can cancel a delayed event using expression to resolve send id', (done) => {
     const machine = Machine({
       initial: 'first',
       states: {
@@ -686,7 +686,7 @@ describe('interpreter', () => {
     expect(() => service.send('SOME_EVENT')).not.toThrow();
   });
 
-  it('should defer events sent to an uninitialized service', done => {
+  it('should defer events sent to an uninitialized service', (done) => {
     const deferMachine = Machine({
       id: 'defer',
       initial: 'a',
@@ -705,7 +705,7 @@ describe('interpreter', () => {
 
     let state: any;
     const deferService = interpret(deferMachine)
-      .onTransition(s => {
+      .onTransition((s) => {
         state = s;
       })
       .onDone(() => done());
@@ -750,7 +750,7 @@ describe('interpreter', () => {
     let state = lightMachine.initialState;
     const service = interpret(lightMachine, {
       clock: new SimulatedClock()
-    }).onTransition(s => (state = s));
+    }).onTransition((s) => (state = s));
 
     service.start();
     service.send('TIMER'); // yellow
@@ -776,8 +776,8 @@ describe('interpreter', () => {
           on: {
             LOG: {
               actions: [
-                assign({ count: ctx => ctx.count + 1 }),
-                log(ctx => ctx)
+                assign({ count: (ctx) => ctx.count + 1 }),
+                log((ctx) => ctx)
               ]
             }
           }
@@ -786,7 +786,7 @@ describe('interpreter', () => {
     });
 
     const service = interpret(logMachine, {
-      logger: msg => logs.push(msg)
+      logger: (msg) => logs.push(msg)
     }).start();
 
     service.send('LOG');
@@ -836,7 +836,7 @@ describe('interpreter', () => {
     });
 
     const service = interpret(parentMachine, {
-      logger: msg => logs.push(msg)
+      logger: (msg) => logs.push(msg)
     }).start();
 
     service.send('PING_CHILD');
@@ -874,7 +874,7 @@ describe('interpreter', () => {
     });
 
     const service = interpret(parentMachine, {
-      logger: msg => logs.push(msg)
+      logger: (msg) => logs.push(msg)
     }).start();
 
     service.send('EXTERNAL_EVENT');
@@ -899,7 +899,7 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          entry: send(ctx => ({ type: 'NEXT', password: ctx.password })),
+          entry: send((ctx) => ({ type: 'NEXT', password: ctx.password })),
           on: {
             NEXT: {
               target: 'finish',
@@ -913,7 +913,7 @@ describe('interpreter', () => {
       }
     });
 
-    it('should resolve send event expressions', done => {
+    it('should resolve send event expressions', (done) => {
       interpret(machine)
         .onDone(() => done())
         .start();
@@ -942,7 +942,7 @@ describe('interpreter', () => {
       let state: State<any>;
 
       interpret(raiseMachine)
-        .onTransition(s => {
+        .onTransition((s) => {
           state = s;
         })
         .onDone(() => {
@@ -968,7 +968,7 @@ describe('interpreter', () => {
       },
       states: {
         start: {
-          entry: sendParent(ctx => {
+          entry: sendParent((ctx) => {
             return { type: 'NEXT', password: ctx.password };
           })
         }
@@ -998,12 +998,12 @@ describe('interpreter', () => {
       }
     });
 
-    it('should resolve sendParent event expressions', done => {
+    it('should resolve sendParent event expressions', (done) => {
       interpret(parentMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           if (state.matches('start')) {
             const childActor = state.children.find(
-              child => child.id === 'child'
+              (child) => child.id === 'child'
             );
 
             expect(typeof childActor!.send).toBe('function');
@@ -1021,11 +1021,11 @@ describe('interpreter', () => {
       context: { count: 0 },
       states: {
         even: {
-          exit: [assign({ count: ctx => ctx.count + 1 }), 'evenAction'],
+          exit: [assign({ count: (ctx) => ctx.count + 1 }), 'evenAction'],
           on: { INC: 'odd' }
         },
         odd: {
-          exit: [assign({ count: ctx => ctx.count + 1 }), 'oddAction'],
+          exit: [assign({ count: (ctx) => ctx.count + 1 }), 'oddAction'],
           on: { INC: 'even' }
         }
       }
@@ -1045,23 +1045,23 @@ describe('interpreter', () => {
       }
     });
 
-    it('should batch send events', done => {
+    it('should batch send events', (done) => {
       let transitions = 0;
       const evenCounts: number[] = [];
       const oddCounts: number[] = [];
       const countService = interpret(
         countMachine.withConfig({
           actions: {
-            evenAction: ctx => {
+            evenAction: (ctx) => {
               evenCounts.push(ctx.count);
             },
-            oddAction: ctx => {
+            oddAction: (ctx) => {
               oddCounts.push(ctx.count);
             }
           }
         })
       )
-        .onTransition(state => {
+        .onTransition((state) => {
           transitions++;
 
           switch (transitions) {
@@ -1073,7 +1073,7 @@ describe('interpreter', () => {
             case 2:
               expect(state.value).toEqual('even');
               expect(state.context).toEqual({ count: 4 });
-              expect(state.actions.map(a => a.type)).toEqual([
+              expect(state.actions.map((a) => a.type)).toEqual([
                 actionTypes.assign,
                 'evenAction',
                 actionTypes.assign,
@@ -1095,11 +1095,11 @@ describe('interpreter', () => {
       countService.send(['INC', 'INC', { type: 'INC' }, 'INC']);
     });
 
-    it('state changed property should be true if any intermediate state is changed', done => {
+    it('state changed property should be true if any intermediate state is changed', (done) => {
       let transitions = 0;
 
       const countService = interpret(countMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           transitions++;
 
           if (transitions === 2) {
@@ -1112,11 +1112,11 @@ describe('interpreter', () => {
       countService.send(['INC', 'bar']);
     });
 
-    it('state changed property should be false if no intermediate state is changed', done => {
+    it('state changed property should be false if no intermediate state is changed', (done) => {
       let transitions = 0;
 
       const countService = interpret(countMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           transitions++;
           if (transitions === 2) {
             expect(state.changed).toBe(false);
@@ -1128,11 +1128,11 @@ describe('interpreter', () => {
       countService.send(['foo', 'bar']);
     });
 
-    it('state changed property should be true if a subsequent send call changes the state', done => {
+    it('state changed property should be true if a subsequent send call changes the state', (done) => {
       let transitions = 0;
 
       const countService = interpret(countMachineNoActions)
-        .onTransition(state => {
+        .onTransition((state) => {
           transitions++;
           if (transitions === 3) {
             expect(state.changed).toBe(true);
@@ -1145,11 +1145,11 @@ describe('interpreter', () => {
       countService.send(['EVEN']);
     });
 
-    it('state changed property should be false if a subsequent send call did not actually change the state', done => {
+    it('state changed property should be false if a subsequent send call did not actually change the state', (done) => {
       let transitions = 0;
 
       const countService = interpret(countMachineNoActions)
-        .onTransition(state => {
+        .onTransition((state) => {
           transitions++;
           if (transitions === 3) {
             expect(state.changed).toBe(false);
@@ -1183,7 +1183,7 @@ describe('interpreter', () => {
       }
     });
 
-    it('can send events with a string', done => {
+    it('can send events with a string', (done) => {
       const service = interpret(sendMachine)
         .onDone(() => done())
         .start();
@@ -1191,7 +1191,7 @@ describe('interpreter', () => {
       service.send('ACTIVATE');
     });
 
-    it('can send events with an object', done => {
+    it('can send events with an object', (done) => {
       const service = interpret(sendMachine)
         .onDone(() => done())
         .start();
@@ -1199,7 +1199,7 @@ describe('interpreter', () => {
       service.send({ type: 'ACTIVATE' });
     });
 
-    it('can send events with an object with payload', done => {
+    it('can send events with an object with payload', (done) => {
       const service = interpret(sendMachine)
         .onDone(() => done())
         .start();
@@ -1207,7 +1207,7 @@ describe('interpreter', () => {
       service.send({ type: 'EVENT', id: 42 });
     });
 
-    it('should receive and process all events sent simultaneously', done => {
+    it('should receive and process all events sent simultaneously', (done) => {
       const toggleMachine = Machine({
         id: 'toggle',
         initial: 'inactive',
@@ -1256,9 +1256,9 @@ describe('interpreter', () => {
       }
     });
 
-    it('should initialize the service', done => {
+    it('should initialize the service', (done) => {
       let state: any;
-      const startService = interpret(startMachine).onTransition(s => {
+      const startService = interpret(startMachine).onTransition((s) => {
         state = s;
         expect(s).toBeDefined();
         expect(s.value).toEqual(startMachine.initialState.value);
@@ -1283,8 +1283,8 @@ describe('interpreter', () => {
       expect(stateCount).toEqual(1);
     });
 
-    it('should be able to be initialized at a custom state', done => {
-      const startService = interpret(startMachine).onTransition(state => {
+    it('should be able to be initialized at a custom state', (done) => {
+      const startService = interpret(startMachine).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1292,8 +1292,8 @@ describe('interpreter', () => {
       startService.start(State.from('bar'));
     });
 
-    it('should be able to be initialized at a custom state value', done => {
-      const startService = interpret(startMachine).onTransition(state => {
+    it('should be able to be initialized at a custom state value', (done) => {
+      const startService = interpret(startMachine).onTransition((state) => {
         expect(state.matches('bar')).toBeTruthy();
         done();
       });
@@ -1301,8 +1301,8 @@ describe('interpreter', () => {
       startService.start('bar');
     });
 
-    it('should be able to resolve a custom initialized state', done => {
-      const startService = interpret(startMachine).onTransition(state => {
+    it('should be able to resolve a custom initialized state', (done) => {
+      const startService = interpret(startMachine).onTransition((state) => {
         expect(state.matches({ foo: 'one' })).toBeTruthy();
         done();
       });
@@ -1312,7 +1312,7 @@ describe('interpreter', () => {
   });
 
   describe('stop()', () => {
-    it('should cancel delayed events', done => {
+    it('should cancel delayed events', (done) => {
       let called = false;
       const delayedMachine = Machine({
         id: 'delayed',
@@ -1342,7 +1342,7 @@ describe('interpreter', () => {
       }, 60);
     });
 
-    it('should not execute transitions after being stopped', done => {
+    it('should not execute transitions after being stopped', (done) => {
       let called = false;
 
       const testMachine = Machine({
@@ -1416,7 +1416,7 @@ describe('interpreter', () => {
 
   describe('options', () => {
     describe('execute', () => {
-      it('should not execute actions if execute is false', done => {
+      it('should not execute actions if execute is false', (done) => {
         let effect = false;
 
         const machine = Machine({
@@ -1440,7 +1440,7 @@ describe('interpreter', () => {
           .start();
       });
 
-      it('should not execute actions if execute is true (default)', done => {
+      it('should not execute actions if execute is true (default)', (done) => {
         let effect = false;
 
         const machine = Machine({
@@ -1464,7 +1464,7 @@ describe('interpreter', () => {
           .start();
       });
 
-      it('actions should be able to be executed manually with execute()', done => {
+      it('actions should be able to be executed manually with execute()', (done) => {
         let effect = false;
 
         const machine = Machine({
@@ -1476,7 +1476,7 @@ describe('interpreter', () => {
           states: {
             active: {
               type: 'final',
-              entry: ctx => {
+              entry: (ctx) => {
                 effect = ctx.value;
               }
             }
@@ -1484,7 +1484,7 @@ describe('interpreter', () => {
         });
 
         const service = interpret(machine, { execute: false })
-          .onTransition(state => {
+          .onTransition((state) => {
             setTimeout(() => {
               service.execute(state);
               expect(effect).toBe(true);
@@ -1497,7 +1497,7 @@ describe('interpreter', () => {
           .start();
       });
 
-      it('actions should be configurable with execute()', done => {
+      it('actions should be configurable with execute()', (done) => {
         let effect = false;
 
         const machine = Machine({
@@ -1515,10 +1515,10 @@ describe('interpreter', () => {
         });
 
         const service = interpret(machine, { execute: false })
-          .onTransition(state => {
+          .onTransition((state) => {
             setTimeout(() => {
               service.execute(state, {
-                doEffect: ctx => {
+                doEffect: (ctx) => {
                   effect = ctx.value;
                 }
               });
@@ -1571,7 +1571,7 @@ describe('interpreter', () => {
 
       const stateValues: StateValue[] = [];
       const service = interpret(stateMachine)
-        .onTransition(current => stateValues.push(current.value))
+        .onTransition((current) => stateValues.push(current.value))
         .start();
       service.send('START');
 
@@ -1607,7 +1607,7 @@ describe('interpreter', () => {
 
       const stateValues: StateValue[] = [];
       const service = interpret(stateMachine)
-        .onTransition(current => stateValues.push(current.value))
+        .onTransition((current) => stateValues.push(current.value))
         .start();
       service.send('START');
 
@@ -1630,13 +1630,13 @@ describe('interpreter', () => {
           after: {
             10: {
               target: 'active',
-              actions: assign({ count: ctx => ctx.count + 1 })
+              actions: assign({ count: (ctx) => ctx.count + 1 })
             }
           },
           on: {
             '': {
               target: 'finished',
-              cond: ctx => ctx.count >= 5
+              cond: (ctx) => ctx.count >= 5
             }
           }
         },
@@ -1646,14 +1646,14 @@ describe('interpreter', () => {
       }
     });
 
-    it('should be subscribable', done => {
+    it('should be subscribable', (done) => {
       let count: number;
       const intervalService = interpret(intervalMachine).start();
 
       expect(isObservable(intervalService)).toBeTruthy();
 
       intervalService.subscribe(
-        state => (count = state.context.count),
+        (state) => (count = state.context.count),
         undefined,
         () => {
           expect(count).toEqual(5);
@@ -1662,7 +1662,7 @@ describe('interpreter', () => {
       );
     });
 
-    it('should be interoperable with RxJS, etc. via Symbol.observable', done => {
+    it('should be interoperable with RxJS, etc. via Symbol.observable', (done) => {
       let count = 0;
       const intervalService = interpret(intervalMachine).start();
 
@@ -1682,7 +1682,7 @@ describe('interpreter', () => {
       }).not.toThrow();
     });
 
-    it('should be unsubscribable', done => {
+    it('should be unsubscribable', (done) => {
       const countContext = { count: 0 };
       const machine = Machine<typeof countContext>({
         context: countContext,
@@ -1691,11 +1691,11 @@ describe('interpreter', () => {
           active: {
             on: {
               INC: {
-                actions: assign({ count: ctx => ctx.count + 1 })
+                actions: assign({ count: (ctx) => ctx.count + 1 })
               },
               '': {
                 target: 'finished',
-                cond: ctx => ctx.count >= 5
+                cond: (ctx) => ctx.count >= 5
               }
             }
           },
@@ -1714,7 +1714,7 @@ describe('interpreter', () => {
         .start();
 
       const subscription = service.subscribe(
-        state => (count = state.context.count)
+        (state) => (count = state.context.count)
       );
 
       service.send('INC');
@@ -1754,7 +1754,7 @@ describe('interpreter', () => {
   });
 
   describe('children', () => {
-    it('state.children should reference invoked child actors (machine)', done => {
+    it('state.children should reference invoked child actors (machine)', (done) => {
       const childMachine = Machine({
         initial: 'active',
         states: {
@@ -1787,9 +1787,9 @@ describe('interpreter', () => {
       });
 
       const service = interpret(parentMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           const childActor = state.children.find(
-            child => child.id === 'childActor'
+            (child) => child.id === 'childActor'
           );
 
           if (state.matches('active') && childActor) {
@@ -1804,7 +1804,7 @@ describe('interpreter', () => {
       service.start();
     });
 
-    it('state.children should reference invoked child actors (promise)', done => {
+    it('state.children should reference invoked child actors (promise)', (done) => {
       const parentMachine = Machine({
         initial: 'active',
         states: {
@@ -1813,7 +1813,7 @@ describe('interpreter', () => {
               id: 'childActor',
               src: spawnPromise(
                 () =>
-                  new Promise(res => {
+                  new Promise((res) => {
                     setTimeout(() => {
                       res(42);
                     }, 100);
@@ -1831,16 +1831,16 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = data => {
+      const subscriber = (data) => {
         expect(data).toEqual(42);
         done();
       };
       let subscription;
 
       const service = interpret(parentMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           const childActor = state.children.find(
-            child => child.id === 'childActor'
+            (child) => child.id === 'childActor'
           );
 
           if (childActor && !subscription) {
@@ -1854,7 +1854,7 @@ describe('interpreter', () => {
       service.start();
     });
 
-    it('state.children should reference invoked child actors (observable)', done => {
+    it('state.children should reference invoked child actors (observable)', (done) => {
       const interval$ = interval(10);
 
       const parentMachine = Machine({
@@ -1864,7 +1864,7 @@ describe('interpreter', () => {
             invoke: {
               id: 'childActor',
               src: spawnObservable(() =>
-                interval$.pipe(map(value => ({ type: 'FIRED', value })))
+                interval$.pipe(map((value) => ({ type: 'FIRED', value })))
               )
             },
             on: {
@@ -1882,7 +1882,7 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = data => {
+      const subscriber = (data) => {
         if (data.value === 3) {
           done();
         }
@@ -1890,9 +1890,9 @@ describe('interpreter', () => {
       let subscription;
 
       const service = interpret(parentMachine)
-        .onTransition(state => {
+        .onTransition((state) => {
           const childActor = state.children.find(
-            child => child.id === 'childActor'
+            (child) => child.id === 'childActor'
           );
 
           if (state.matches('active') && childActor && !subscription) {

@@ -8,7 +8,7 @@ afterEach(cleanup);
 
 const renderWithCompositionApi = (component, options?) =>
   // @ts-ignore
-  render(component, options, vue => vue.use(VueCompositionApi));
+  render(component, options, (vue) => vue.use(VueCompositionApi));
 
 describe('useService composable function', () => {
   const counterMachine = Machine<{ count: number }>({
@@ -18,7 +18,7 @@ describe('useService composable function', () => {
     states: {
       active: {
         on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
           SOMETHING: { actions: 'doSomething' }
         }
       }
@@ -47,13 +47,13 @@ describe('useService composable function', () => {
 
     expect(countEls.length).toBe(2);
 
-    countEls.forEach(countEl => expect(countEl.textContent).toBe('0'));
+    countEls.forEach((countEl) => expect(countEl.textContent).toBe('0'));
 
     counterService.send('INC');
 
     await wait();
 
-    countEls.forEach(countEl => expect(countEl.textContent).toBe('1'));
+    countEls.forEach((countEl) => expect(countEl.textContent).toBe('1'));
   });
 
   it('service should be updated when it changes', async () => {

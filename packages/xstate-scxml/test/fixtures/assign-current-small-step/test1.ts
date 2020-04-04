@@ -21,19 +21,19 @@ export default Machine<any>({
         '': [
           {
             target: 'b',
-            cond: ctx => {
+            cond: (ctx) => {
               return ctx.i < 10;
             },
             actions: [
               assign({
-                i: ctx => ctx.i + 1
+                i: (ctx) => ctx.i + 1
               }),
               log()
             ]
           },
           {
             target: '#c',
-            cond: ctx => ctx.i === 10
+            cond: (ctx) => ctx.i === 10
           }
         ]
       }
