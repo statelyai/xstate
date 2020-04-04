@@ -55,7 +55,7 @@
     "puppeteer": "^1.19.0",
     "strip-ansi": "^5.2.0",
     "ts-jest": "^24.1.9",
-    "typescript": "^3.7.5",
+    "typescript": "^3.8.3",
     "xstate": "*"
   },
   "dependencies": {

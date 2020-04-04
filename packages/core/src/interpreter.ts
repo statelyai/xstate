@@ -778,7 +778,7 @@ export class Interpreter<
           this.parent.send({
             type: 'xstate.error',
             data: err
-          });
+          } as EventObject);
         }
 
         throw err;

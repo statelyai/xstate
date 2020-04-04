@@ -111,7 +111,10 @@ describe('action creators', () => {
       const resolvedAction = actions.resolveSend(
         action,
         { delay: 100 },
-        toSCXMLEvent({ type: 'EVENT', value: 50 })
+        toSCXMLEvent({ type: 'EVENT', value: 50 } as {
+          type: 'EVENT';
+          value: number;
+        })
       );
 
       expect(resolvedAction.delay).toEqual(150);

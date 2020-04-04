@@ -17,7 +17,7 @@ import {
   StateLike,
   EventData,
   TransitionConfig,
-  TransitionConfigTargetShortcut,
+  TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
   Guard,
@@ -584,7 +584,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
     | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTargetShortcut<TContext, TEvent>
+    | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
