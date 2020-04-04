@@ -659,7 +659,7 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<TEvent>,
-    to: string | number | Actor | Array<string | number | Actor>
+    to: SingleOrArray<string | number | Actor>
   ) => {
     // Recursively call this.sendTo for each target if the event's .to target is a list
     if (Array.isArray(to)) {

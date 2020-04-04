@@ -805,15 +805,8 @@ export interface LogActionObject<TContext, TEvent extends EventObject>
 export interface SendAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   to:
-    | string
-    | number
-    | Actor
-    | Array<string | number | Actor>
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | Actor | Array<string | number | Actor>
-      >
+    | SingleOrArray<string | number | Actor>
+    | ExprWithMeta<TContext, TEvent, SingleOrArray<string | number | Actor>>
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -822,7 +815,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
 
 export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
-  to: string | number | Actor | Array<string | number | Actor> | undefined;
+  to: SingleOrArray<string | number | Actor> | undefined;
   _event: SCXML.Event<TEvent>;
   event: TEvent;
   delay?: number;
@@ -857,11 +850,7 @@ export interface SendActionOptions<TContext, TEvent extends EventObject> {
   to?:
     | string
     | string[]
-    | ExprWithMeta<
-        TContext,
-        TEvent,
-        string | number | Actor | Array<string | number | Actor>
-      >;
+    | ExprWithMeta<TContext, TEvent, SingleOrArray<string | number | Actor>>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {
