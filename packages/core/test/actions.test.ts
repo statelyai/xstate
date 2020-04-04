@@ -4,9 +4,10 @@ import {
   assign,
   forwardTo,
   interpret,
-  spawn
+  spawn,
+  AnyEventObject
 } from '../src/index';
-import { pure, sendParent, log, choose, send } from '../src/actions';
+import { pure, sendParent, log, choose, send, respond } from '../src/actions';
 
 describe('onEntry/onExit actions', () => {
   const pedestrianStates = {
@@ -1237,17 +1238,97 @@ describe('choose', () => {
   });
 });
 
-describe.only('send()', () => {
-  it('should allow multiple targets', done => {
+describe('send()', () => {
+  const childMachine = createMachine({
+    initial: 'FALSE',
+    states: {
+      FALSE: {
+        on: {
+          TOGGLE: {
+            target: 'TRUE',
+            actions: respond('INCREMENT', { delay: 10 })
+          }
+        }
+      },
+      TRUE: {
+        after: {
+          10: 'DONE'
+        }
+      },
+      DONE: {
+        type: 'final'
+      }
+    }
+  });
+
+  const parentMachine = createMachine({
+    context: {
+      ref1: undefined,
+      ref2: undefined
+    },
+    initial: 'zero',
+    on: {
+      BY_STRING: {
+        actions: send<any, any>('TOGGLE', { to: ['ref1', 'ref2'] })
+      },
+      BY_TARGET_EXPR_STRING: {
+        actions: send<any, any>('TOGGLE', { to: (_ctx, evt) => evt.target })
+      },
+      BY_TARGET_EXPR_REF: {
+        actions: send<any, any>('TOGGLE', { to: ctx => [ctx.ref1, ctx.ref2] })
+      }
+    },
+    states: {
+      zero: {
+        entry: assign<any, any>({
+          ref1: () => spawn(childMachine, 'ref1'),
+          ref2: () => spawn(childMachine, 'ref2')
+        }),
+        on: {
+          INCREMENT: 'one'
+        }
+      },
+      one: {
+        on: { INCREMENT: 'two' }
+      },
+      two: {
+        type: 'final'
+      }
+    }
+  });
+
+  const makeTest = (description: string, evt: string | AnyEventObject) =>
+    it(description, done => {
+      const parentService = interpret(parentMachine).onDone(() => {
+        done();
+      });
+
+      parentService.start();
+
+      parentService.send(evt);
+    });
+
+  makeTest('should allow multiple targets', 'BY_STRING');
+
+  makeTest(
+    "should allow multiple targets using a target expression for the .to property with access to an event's data",
+    { type: 'BY_TARGET_EXPR_STRING', target: ['ref1', 'ref2'] }
+  );
+
+  makeTest(
+    'should allow multiple targets using a target expression for the .to property returning a list of actors',
+    'BY_TARGET_EXPR_REF'
+  );
+
+  it('should support targetting multiple invoked machines by providing an list of ids for the .to property', done => {
     const childMachine = createMachine({
       initial: 'FALSE',
       states: {
         FALSE: {
-          entry: log((_, evt) => `Spawning a machine ${evt.type}`),
           on: {
             TOGGLE: {
-              target: 'TRUE',
-              actions: [log((_, _evt) => `Toggle`), sendParent('INCREMENT')]
+              target: 'TRUE'
+              // actions: respond('INCREMENT', { delay: 10 })
             }
           }
         },
@@ -1258,31 +1339,29 @@ describe.only('send()', () => {
     });
 
     const parentMachine = createMachine({
-      context: {
-        ref1: undefined,
-        ref2: undefined
-      },
       initial: 'zero',
       on: {
-        INCREMENT: {
-          actions: [
-            log(() => 'INCREMENT'),
-            log((_, evt) => JSON.stringify(evt, null, 2))
-          ] as any
-        },
         RUN: {
-          actions: send<any, any>('TOGGLE', { to: ['ref1', 'ref2'] })
+          actions: send<any, any>('TOGGLE', { to: ['child1', 'child2'] })
         }
       },
       states: {
         zero: {
-          entry: assign<any, any>({
-            ref1: () => spawn(childMachine, 'ref1'),
-            ref2: () => spawn(childMachine, 'ref2')
-          }),
           on: {
             INCREMENT: 'one'
-          }
+          },
+          invoke: [
+            {
+              src: childMachine,
+              id: 'child1',
+              onDone: { actions: send('INCREMENT') }
+            },
+            {
+              src: childMachine,
+              id: 'child2',
+              onDone: { actions: send('INCREMENT') }
+            }
+          ]
         },
         one: {
           on: { INCREMENT: 'two' }
@@ -1293,13 +1372,9 @@ describe.only('send()', () => {
       }
     });
 
-    const parentService = interpret(parentMachine)
-      .onDone(() => {
-        done();
-      })
-      .onTransition(state => {
-        console.log('Next:', state.value, JSON.stringify(state.event, null, 2));
-      });
+    const parentService = interpret(parentMachine).onDone(() => {
+      done();
+    });
 
     parentService.start();
 

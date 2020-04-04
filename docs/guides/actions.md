@@ -295,6 +295,29 @@ entry: assign({
 }
 ```
 
+The target may also be an array of targets or a **target expression** returning an array of targets:
+
+```js
+entry: assign({
+  actorRef1: spawn(someMachine, 'ref1'),
+  actorRef2: spawn(someMachine, 'ref2')
+}),
+  // Send { type: 'SOME_EVENT' } to the spawned actors.
+  {
+    actions: send('SOME_EVENT', {
+      to: ['ref1', 'ref2']
+    })
+  };
+// ...
+
+// Send { type: 'SOME_EVENT' } to the spawned actors using a target expression
+{
+  actions: send('SOME_EVENT', {
+    to: context => [context.actoreRef1.ref, context.actorRef2.ref]
+  });
+}
+```
+
 ::: warning
 Again, the `send(...)` function is an action creator and **will not imperatively send an event.** Instead, it returns an action object that describes where the event will be sent to:
 
