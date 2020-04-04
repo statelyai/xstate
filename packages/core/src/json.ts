@@ -48,8 +48,8 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
     key: stateNode.key,
     entry: stateNode.onEntry,
     exit: stateNode.onExit,
-    on: mapValues(stateNode.on, transition => {
-      return transition.map(t => {
+    on: mapValues(stateNode.on, (transition) => {
+      return transition.map((t) => {
         return {
           target: t.target ? t.target.map(getStateNodeId) : [],
           source: getStateNodeId(t.source),
@@ -63,7 +63,7 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
     states: {}
   };
 
-  Object.values(stateNode.states).forEach(sn => {
+  Object.values(stateNode.states).forEach((sn) => {
     config.states[sn.key] = machineToJSON(sn);
   });
 
@@ -94,12 +94,12 @@ export function parse(machineString: string): StateNodeConfig {
 export function jsonify<T extends Record<string, any>>(value: T): T {
   Object.defineProperty(value, 'toJSON', {
     value: () =>
-      mapValues(value, subValue => {
+      mapValues(value, (subValue) => {
         if (isFunction(subValue)) {
           return stringifyFunction(subValue);
         } else if (typeof subValue === 'object' && !Array.isArray(subValue)) {
           // mostly for assignments
-          return mapValues(subValue, subSubValue => {
+          return mapValues(subValue, (subSubValue) => {
             if (isFunction(subSubValue)) {
               return stringifyFunction(subSubValue);
             }

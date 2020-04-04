@@ -25,10 +25,10 @@ function indexedRecord<T extends {}>(
   const record: Record<string, T> = {};
 
   const identifierFn = isString(identifier)
-    ? item => item[identifier]
+    ? (item) => item[identifier]
     : identifier;
 
-  items.forEach(item => {
+  items.forEach((item) => {
     const key = identifierFn(item);
 
     record[key] = item;
@@ -48,7 +48,7 @@ function executableContent(elements: XMLElement[]) {
 function getTargets(targetAttr?: string | number): string[] | undefined {
   // return targetAttr ? [`#${targetAttr}`] : undefined;
   return targetAttr
-    ? `${targetAttr}`.split(/\s+/).map(target => `#${target}`)
+    ? `${targetAttr}`.split(/\s+/).map((target) => `#${target}`)
     : undefined;
 }
 
@@ -103,7 +103,7 @@ const evaluateExecutableContent = <
 ) => {
   const datamodel = context
     ? keys(context)
-        .map(key => `const ${key} = context['${key}'];`)
+        .map((key) => `const ${key} = context['${key}'];`)
         .join('\n')
     : '';
 
@@ -137,8 +137,9 @@ function mapAction<
 >(element: XMLElement): ActionObject<TContext, TEvent> {
   switch (element.name) {
     case 'raise': {
-      return actions.raise<TContext, TEvent>(element.attributes!
-        .event! as string);
+      return actions.raise<TContext, TEvent>(
+        element.attributes!.event! as string
+      );
     }
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
@@ -290,7 +291,7 @@ function toConfig(
       }
 
       const [transitionElement] = elements.filter(
-        element => element.name === 'transition'
+        (element) => element.name === 'transition'
       );
 
       const target = getAttribute(transitionElement, 'target');
@@ -314,7 +315,7 @@ function toConfig(
 
   if (nodeJson.elements) {
     const stateElements = nodeJson.elements.filter(
-      element =>
+      (element) =>
         element.name === 'state' ||
         element.name === 'parallel' ||
         element.name === 'final' ||
@@ -322,39 +323,39 @@ function toConfig(
     );
 
     const transitionElements = nodeJson.elements.filter(
-      element => element.name === 'transition'
+      (element) => element.name === 'transition'
     );
 
     const invokeElements = nodeJson.elements.filter(
-      element => element.name === 'invoke'
+      (element) => element.name === 'invoke'
     );
 
     const onEntryElement = nodeJson.elements.find(
-      element => element.name === 'onentry'
+      (element) => element.name === 'onentry'
     );
 
     const onExitElement = nodeJson.elements.find(
-      element => element.name === 'onexit'
+      (element) => element.name === 'onexit'
     );
 
     const states: Record<string, any> = indexedRecord(
       stateElements,
-      item => `${item.attributes!.id}`
+      (item) => `${item.attributes!.id}`
     );
 
     const initialElement = !initial
-      ? nodeJson.elements.find(element => element.name === 'initial')
+      ? nodeJson.elements.find((element) => element.name === 'initial')
       : undefined;
 
     if (initialElement && initialElement.elements!.length) {
       initial = initialElement.elements!.find(
-        element => element.name === 'transition'
+        (element) => element.name === 'transition'
       )!.attributes!.target;
     } else if (!initialElement && stateElements.length) {
       initial = stateElements[0].attributes!.id;
     }
 
-    const on = transitionElements.map(value => {
+    const on = transitionElements.map((value) => {
       const event = getAttribute(value, 'event') || '';
       const targets = getAttribute(value, 'target');
       const internal = getAttribute(value, 'type') === 'internal';
@@ -380,17 +381,18 @@ function toConfig(
       ? mapActions(onExitElement.elements!)
       : undefined;
 
-    const invoke = invokeElements.map(element => {
+    const invoke = invokeElements.map((element) => {
       if (
-        !['scxml', 'http://www.w3.org/TR/scxml/'].includes(element.attributes!
-          .type as string)
+        !['scxml', 'http://www.w3.org/TR/scxml/'].includes(
+          element.attributes!.type as string
+        )
       ) {
         throw new Error(
           'Currently only converting invoke elements of type SCXML is supported.'
         );
       }
       const content = element.elements!.find(
-        el => el.name === 'content'
+        (el) => el.name === 'content'
       ) as XMLElement;
 
       return scxmlToMachine(content, options);
@@ -426,16 +428,16 @@ function scxmlToMachine(
   options: ScxmlToMachineOptions
 ): StateNode {
   const machineElement = scxmlJson.elements!.find(
-    element => element.name === 'scxml'
+    (element) => element.name === 'scxml'
   ) as XMLElement;
 
   const dataModelEl = machineElement.elements!.filter(
-    element => element.name === 'datamodel'
+    (element) => element.name === 'datamodel'
   )[0];
 
   const extState = dataModelEl
     ? dataModelEl
-        .elements!.filter(element => element.name === 'data')
+        .elements!.filter((element) => element.name === 'data')
         .reduce((acc, element) => {
           if (element.attributes!.src) {
             throw new Error(

@@ -360,7 +360,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
     let nextState: State<any>;
 
     interpret(machine)
-      .onTransition(state => {
+      .onTransition((state) => {
         nextState = state;
       })
       .onDone(() => {
@@ -384,7 +384,7 @@ async function runTestToCompletion(
   }
   const resolvedStateValue = machine.resolve(
     pathsToStateValue(
-      test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+      test.initialConfiguration.map((id) => machine.getStateNodeById(id).path)
     )
   );
   let done = false;
@@ -392,7 +392,7 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
-    .onTransition(state => {
+    .onTransition((state) => {
       nextState = state;
     })
     .onDone(() => {
@@ -411,7 +411,7 @@ async function runTestToCompletion(
 
     const stateIds = machine
       .getStateNodes(nextState)
-      .map(stateNode => stateNode.id);
+      .map((stateNode) => stateNode.id);
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });
@@ -421,8 +421,8 @@ describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
-  testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+  testGroupKeys.forEach((testGroupName) => {
+    testGroups[testGroupName].forEach((testName) => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1

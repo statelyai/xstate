@@ -244,11 +244,11 @@ describe('Raise events', () => {
                 actions: raise<GreetingContext, { type: 'MORNING' }>({
                   type: 'MORNING'
                 }),
-                cond: ctx => ctx.hour < 12
+                cond: (ctx) => ctx.hour < 12
               },
               {
                 actions: raise({ type: 'EVENING' }),
-                cond: ctx => ctx.hour < 22
+                cond: (ctx) => ctx.hour < 22
               }
             ]
           }

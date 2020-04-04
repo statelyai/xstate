@@ -47,12 +47,12 @@ describe('delayed transitions', () => {
 
     const transitions = greenNode.transitions;
 
-    expect(transitions.map(t => t.eventType)).toEqual([
+    expect(transitions.map((t) => t.eventType)).toEqual([
       after(1000, greenNode.id)
     ]);
   });
 
-  it('should be able to transition with delay from nested initial state', done => {
+  it('should be able to transition with delay from nested initial state', (done) => {
     const machine = Machine({
       initial: 'nested',
       states: {
@@ -80,7 +80,7 @@ describe('delayed transitions', () => {
       .start();
   });
 
-  it('parent state should enter child state without re-entering self (relative target)', done => {
+  it('parent state should enter child state without re-entering self (relative target)', (done) => {
     const actual: string[] = [];
     const machine = Machine({
       initial: 'one',
@@ -163,7 +163,7 @@ describe('delayed transitions', () => {
           inactive: {
             after: [
               {
-                delay: ctx => ctx.delay,
+                delay: (ctx) => ctx.delay,
                 target: 'active'
               }
             ],
@@ -201,7 +201,7 @@ describe('delayed transitions', () => {
       const { initialState } = delayExprMachine;
 
       const sendActions = initialState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -217,7 +217,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -233,7 +233,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        a => a.type === actionTypes.send
+        (a) => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);

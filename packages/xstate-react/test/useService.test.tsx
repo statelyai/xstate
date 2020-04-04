@@ -14,7 +14,7 @@ describe('useService hook', () => {
     states: {
       active: {
         on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
           SOMETHING: { actions: 'doSomething' }
         }
       }
@@ -41,7 +41,7 @@ describe('useService hook', () => {
 
     expect(countEls.length).toBe(2);
 
-    countEls.forEach(countEl => {
+    countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('0');
     });
 
@@ -49,7 +49,7 @@ describe('useService hook', () => {
       counterService.send('INC');
     });
 
-    countEls.forEach(countEl => {
+    countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
     });
   });
@@ -69,7 +69,7 @@ describe('useService hook', () => {
 
       return (
         <>
-          <button data-testid="button" onClick={_ => send('SOMETHING')} />
+          <button data-testid="button" onClick={(_) => send('SOMETHING')} />
           <div data-testid="count">{state.context.count}</div>
           <div data-testid="other">{otherState}</div>
         </>
@@ -88,17 +88,17 @@ describe('useService hook', () => {
 
     expect(countEls.length).toBe(2);
 
-    countEls.forEach(countEl => {
+    countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('0');
     });
 
-    buttonEls.forEach(buttonEl => {
+    buttonEls.forEach((buttonEl) => {
       fireEvent.click(buttonEl);
     });
 
     const otherEls = getAllByTestId('other');
 
-    otherEls.forEach(otherEl => {
+    otherEls.forEach((otherEl) => {
       expect(otherEl.textContent).toBe('test');
     });
   });
@@ -112,7 +112,7 @@ describe('useService hook', () => {
 
       return (
         <>
-          <button data-testid="inc" onClick={_ => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send('INC')} />
           <div data-testid="count">{state.context.count}</div>
         </>
       );
@@ -158,7 +158,7 @@ describe('useService hook', () => {
 
       return (
         <>
-          <button data-testid="inc" onClick={_ => send('INC')} />
+          <button data-testid="inc" onClick={(_) => send('INC')} />
           <CounterDisplay service={service} />
         </>
       );

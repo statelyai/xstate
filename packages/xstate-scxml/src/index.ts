@@ -68,7 +68,7 @@ export function transitionToSCXML(
         ? functionToExpr(transition.cond.predicate)
         : undefined,
       target: (transition.target || [])
-        .map(stateNode => stateNode.id)
+        .map((stateNode) => stateNode.id)
         .join(' '),
       type: transition.internal ? 'internal' : undefined
     }),
@@ -99,14 +99,14 @@ function actionsToSCXML(
   return {
     type: 'element',
     name,
-    elements: actions.map<XMLElement>(action => {
+    elements: actions.map<XMLElement>((action) => {
       return actionToSCXML(action);
     })
   };
 }
 
 function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
-  const childStates = Object.keys(stateNode.states).map(key => {
+  const childStates = Object.keys(stateNode.states).map((key) => {
     const childStateNode = stateNode.states[key];
 
     return stateNodeToSCXML(childStateNode);
@@ -125,10 +125,10 @@ function stateNodeToSCXML(stateNode: StateNode<any, any, any>): XMLElement {
   }
 
   const transitionElements = flatten(
-    Object.keys(stateNode.on).map(event => {
+    Object.keys(stateNode.on).map((event) => {
       const transitions = stateNode.on[event];
 
-      return transitions.map(transition => transitionToSCXML(transition));
+      return transitions.map((transition) => transitionToSCXML(transition));
     })
   );
 
@@ -171,7 +171,7 @@ export function toSCXML(machine: StateMachine<any, any, any>): string {
             version: '1.0',
             datamodel: 'ecmascript'
           },
-          elements: Object.keys(states).map<XMLElement>(key => {
+          elements: Object.keys(states).map<XMLElement>((key) => {
             const stateNode = states[key];
 
             return stateNodeToSCXML(stateNode);

@@ -11,8 +11,8 @@ describe('toSCXML', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
-  testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+  testGroupKeys.forEach((testGroupName) => {
+    testGroups[testGroupName].forEach((testName) => {
       const scxmlSource = `@scion-scxml/test-framework/test/${testGroupName}/${testName}.scxml`;
       const scxmlDefinition = fs.readFileSync(require.resolve(scxmlSource), {
         encoding: 'utf-8'

@@ -4,7 +4,7 @@ import { toSCXMLEvent } from '../src/utils';
 const { actionTypes } = actions;
 
 describe('action creators', () => {
-  ['start', 'stop'].forEach(actionKey => {
+  ['start', 'stop'].forEach((actionKey) => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
         const action = actions[actionKey]('test');

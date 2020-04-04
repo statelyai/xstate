@@ -133,7 +133,9 @@ export const toActionObjects = <TContext, TEvent extends EventObject>(
 
   const actions = isArray(action) ? action : [action];
 
-  return actions.map(subAction => toActionObject(subAction, actionFunctionMap));
+  return actions.map((subAction) =>
+    toActionObject(subAction, actionFunctionMap)
+  );
 };
 
 export function toActivityDefinition<TContext, TEvent extends EventObject>(
@@ -545,7 +547,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
     : currentContext;
 
   const resolvedActions = flatten(
-    otherActions.map(actionObject => {
+    otherActions.map((actionObject) => {
       switch (actionObject.type) {
         case actionTypes.raise:
           return resolveRaise(actionObject as RaiseAction<TEvent>);
@@ -576,7 +578,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           );
         case actionTypes.choose: {
           const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = chooseAction.conds.find(condition => {
+          const matchedActions = chooseAction.conds.find((condition) => {
             const guard = toGuard(condition.cond, machine.options.guards);
             return (
               !guard ||

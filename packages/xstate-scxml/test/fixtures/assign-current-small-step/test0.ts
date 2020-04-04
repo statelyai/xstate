@@ -12,11 +12,11 @@ export default Machine<any>({
       on: {
         t: {
           target: 'b',
-          cond: ctx => {
+          cond: (ctx) => {
             return ctx.x === 99;
           },
           actions: assign({
-            x: ctx => ctx.x + 1
+            x: (ctx) => ctx.x + 1
           })
         }
       }
@@ -26,13 +26,13 @@ export default Machine<any>({
       //   ctx.x *= 2;
       // },
       entry: assign({
-        x: ctx => ctx.x * 2
+        x: (ctx) => ctx.x * 2
       }),
       on: {
         '': [
           {
             target: 'c',
-            cond: ctx => ctx.x === 200
+            cond: (ctx) => ctx.x === 200
           },
           { target: 'f' }
         ]

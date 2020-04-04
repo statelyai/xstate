@@ -42,7 +42,7 @@ describe('useService', () => {
       states: { working: {} },
       on: {
         CREATE: {
-          actions: assign(ctx => ({
+          actions: assign((ctx) => ({
             ...ctx,
             todos: ctx.todos.concat(spawn(todoMachine))
           }))
