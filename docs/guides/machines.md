@@ -20,6 +20,9 @@ const lightMachine = Machine({
 
   // Initial state
   initial: 'green',
+ 
+  // Ensures the machine only accepts allowed events, default: false
+  strict: true,
 
   // Local context for entire machine
   context: {
