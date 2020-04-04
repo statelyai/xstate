@@ -10,7 +10,8 @@ export function useActor<TCurrent, TEvent extends EventObject>(
   const send = useMemo(() => actorRef.send, [actorRef]);
 
   useEffect(() => {
-    const sub = actorRef.subscribe(latest => {
+    const sub = actorRef.subscribe((latest) => {
+      // this will be called with the current value immediately
       setCurrent(latest);
     });
 
