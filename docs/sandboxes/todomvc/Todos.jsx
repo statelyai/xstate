@@ -1,39 +1,39 @@
-import React, { useEffect } from "react";
-import cn from "classnames";
-import "todomvc-app-css/index.css";
-import { useMachine } from "@xstate/react";
-import { useHashChange } from "./useHashChange";
-import { Todo } from "./Todo";
-import { todosMachine } from "./todosMachine";
+import React, { useEffect } from 'react';
+import cn from 'classnames';
+import 'todomvc-app-css/index.css';
+import { useMachine } from '@xstate/react';
+import { useHashChange } from './useHashChange';
+import { Todo } from './Todo';
+import { todosMachine } from './todosMachine';
 
 function filterTodos(state, todos) {
-  if (state.matches("all")) {
+  if (state.matches('all')) {
     return todos;
   }
 
-  if (state.matches("active")) {
-    return todos.filter(todo => !todo.completed);
+  if (state.matches('active')) {
+    return todos.filter((todo) => !todo.completed);
   }
 
-  if (state.matches("completed")) {
-    return todos.filter(todo => todo.completed);
+  if (state.matches('completed')) {
+    return todos.filter((todo) => todo.completed);
   }
 }
 
 const persistedTodosMachine = todosMachine.withConfig(
   {
     actions: {
-      persist: ctx => {
-        localStorage.setItem("todos-xstate", JSON.stringify(ctx.todos));
+      persist: (ctx) => {
+        localStorage.setItem('todos-xstate', JSON.stringify(ctx.todos));
       }
     }
   },
   // initial state from localstorage
   {
-    todo: "Learn state machines",
+    todo: 'Learn state machines',
     todos: (() => {
       try {
-        return JSON.parse(localStorage.getItem("todos-xstate")) || [];
+        return JSON.parse(localStorage.getItem('todos-xstate')) || [];
       } catch (e) {
         return [];
       }
@@ -44,15 +44,15 @@ const persistedTodosMachine = todosMachine.withConfig(
 export function Todos() {
   const [state, send] = useMachine(persistedTodosMachine);
 
-  useHashChange(e => {
-    send(`SHOW.${window.location.hash.slice(2) || "all"}`);
+  useHashChange((e) => {
+    send(`SHOW.${window.location.hash.slice(2) || 'all'}`);
   });
 
   const { todos, todo } = state.context;
 
-  const numActiveTodos = todos.filter(todo => !todo.completed).length;
+  const numActiveTodos = todos.filter((todo) => !todo.completed).length;
   const allCompleted = todos.length > 0 && numActiveTodos === 0;
-  const mark = !allCompleted ? "completed" : "active";
+  const mark = !allCompleted ? 'completed' : 'active';
   const markEvent = `MARK.${mark}`;
   const filteredTodos = filterTodos(state, todos);
 
@@ -64,14 +64,14 @@ export function Todos() {
           className="new-todo"
           placeholder="What needs to be done?"
           autoFocus
-          onKeyPress={e => {
-            if (e.key === "Enter") {
-              send({ type: "NEWTODO.COMMIT", value: e.target.value });
+          onKeyPress={(e) => {
+            if (e.key === 'Enter') {
+              send({ type: 'NEWTODO.COMMIT', value: e.target.value });
             }
           }}
-          onChange={e =>
+          onChange={(e) =>
             send({
-              type: "NEWTODO.CHANGE",
+              type: 'NEWTODO.CHANGE',
               value: e.target.value
             })
           }
@@ -84,7 +84,7 @@ export function Todos() {
           className="toggle-all"
           type="checkbox"
           checked={allCompleted}
-          onChange={e => {
+          onChange={(e) => {
             send(markEvent);
           }}
         />
@@ -92,12 +92,12 @@ export function Todos() {
           Mark all as {mark}
         </label>
         <ul className="todo-list">
-          {filteredTodos.map(todo => (
+          {filteredTodos.map((todo) => (
             <Todo
               key={todo.id}
               todo={todo}
-              onChange={todo => send({ type: "TODO.COMMIT", todo })}
-              onDelete={id => send({ type: "TODO.DELETE", id })}
+              onChange={(todo) => send({ type: 'TODO.COMMIT', todo })}
+              onDelete={(id) => send({ type: 'TODO.DELETE', id })}
             />
           ))}
         </ul>
@@ -106,13 +106,13 @@ export function Todos() {
         <footer className="footer">
           <span className="todo-count">
             <strong>{numActiveTodos}</strong> item
-            {numActiveTodos === 1 ? "" : "s"} left
+            {numActiveTodos === 1 ? '' : 's'} left
           </span>
           <ul className="filters">
             <li>
               <a
                 className={cn({
-                  selected: state.matches("all")
+                  selected: state.matches('all')
                 })}
                 href="#/"
               >
@@ -122,7 +122,7 @@ export function Todos() {
             <li>
               <a
                 className={cn({
-                  selected: state.matches("active")
+                  selected: state.matches('active')
                 })}
                 href="#/active"
               >
@@ -132,7 +132,7 @@ export function Todos() {
             <li>
               <a
                 className={cn({
-                  selected: state.matches("completed")
+                  selected: state.matches('completed')
                 })}
                 href="#/completed"
               >
@@ -142,7 +142,7 @@ export function Todos() {
           </ul>
           {numActiveTodos < todos.length && (
             <button
-              onClick={_ => send("CLEAR_COMPLETED")}
+              onClick={(_) => send('CLEAR_COMPLETED')}
               className="clear-completed"
             >
               Clear completed

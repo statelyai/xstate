@@ -39,14 +39,14 @@ describe('json', () => {
               string: 'test',
               evalNumber: () => 42
             }),
-            assign(ctx => ({
+            assign((ctx) => ({
               ...ctx
             }))
           ],
           on: {
             TO_FOO: {
               target: ['foo', 'bar'],
-              cond: ctx => !!ctx.string
+              cond: (ctx) => !!ctx.string
             }
           }
         },

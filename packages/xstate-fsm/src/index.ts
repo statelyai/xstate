@@ -53,7 +53,7 @@ function toActionObject<TContext extends object, TEvent extends EventObject>(
 const IS_PRODUCTION = process.env.NODE_ENV === 'production';
 
 function createMatcher(value: string) {
-  return stateValue => value === stateValue;
+  return (stateValue) => value === stateValue;
 }
 
 function toEventObject<TEvent extends EventObject>(
@@ -91,9 +91,9 @@ export function createMachine<
     _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(fsmConfig.states[fsmConfig.initial].entry).map(action =>
-        toActionObject(action, options.actions)
-      ),
+      actions: toArray(
+        fsmConfig.states[fsmConfig.initial].entry
+      ).map((action) => toActionObject(action, options.actions)),
       context: fsmConfig.context!,
       matches: createMatcher(fsmConfig.initial)
     },
@@ -138,11 +138,11 @@ export function createMachine<
             let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
-              .filter(a => a)
-              .map<StateMachine.ActionObject<TContext, TEvent>>(action =>
+              .filter((a) => a)
+              .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
                 toActionObject(action, (machine as any)._options.actions)
               )
-              .filter(action => {
+              .filter((action) => {
                 if (action.type === ASSIGN_ACTION) {
                   assigned = true;
                   let tmpContext = Object.assign({}, nextContext);
@@ -150,7 +150,7 @@ export function createMachine<
                   if (typeof action.assignment === 'function') {
                     tmpContext = action.assignment(nextContext, eventObject);
                   } else {
-                    Object.keys(action.assignment).forEach(key => {
+                    Object.keys(action.assignment).forEach((key) => {
                       tmpContext[key] =
                         typeof action.assignment[key] === 'function'
                           ? action.assignment[key](nextContext, eventObject)
@@ -210,7 +210,7 @@ export function interpret<
       }
       state = machine.transition(state, event);
       executeStateActions(state, toEventObject(event));
-      listeners.forEach(listener => listener(state));
+      listeners.forEach((listener) => listener(state));
     },
     subscribe: (listener: StateMachine.StateListener<typeof state>) => {
       listeners.add(listener);

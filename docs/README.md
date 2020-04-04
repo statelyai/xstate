@@ -34,11 +34,11 @@ npm install xstate
 ```
 
 ```js
-import { Machine, interpret } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 
 // Stateless machine definition
 // machine.transition(...) is a pure function used by the interpreter.
-const toggleMachine = Machine({
+const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
@@ -49,7 +49,7 @@ const toggleMachine = Machine({
 
 // Machine instance with internal state
 const toggleService = interpret(toggleMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => 'inactive'
 
@@ -58,6 +58,54 @@ toggleService.send('TOGGLE');
 
 toggleService.send('TOGGLE');
 // => 'inactive'
+```
+
+## Promise example
+
+[📉 See the visualization on xstate.js.org/viz](https://xstate.js.org/viz/?gist=bbcb4379b36edea0458f597e5eec2f91)
+
+```js
+import { createMachine, interpret, assign } from 'xstate';
+
+const fetchMachine = createMachine({
+  id: 'SWAPI',
+  initial: 'idle',
+  context: {
+    user: null
+  },
+  states: {
+    idle: {
+      on: {
+        FETCH: 'loading'
+      }
+    },
+    loading: {
+      invoke: {
+        id: 'fetchLuke',
+        src: (context, event) =>
+          fetch('https://swapi.co/api/people/1').then((data) => data.json()),
+        onDone: {
+          target: 'resolved',
+          actions: assign({
+            user: (_, event) => event.data
+          })
+        },
+        onError: 'rejected'
+      },
+      on: {
+        CANCEL: 'idle'
+      }
+    },
+    resolved: {
+      type: 'final'
+    },
+    rejected: {
+      on: {
+        FETCH: 'loading'
+      }
+    }
+  }
+});
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->

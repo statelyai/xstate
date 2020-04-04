@@ -86,7 +86,7 @@ export function useMachine<
   const [state, setState] = useState(service.state);
 
   useEffect(() => {
-    service.onTransition(currentState => {
+    service.onTransition((currentState) => {
       if (currentState.changed) {
         setState(currentState);
       }

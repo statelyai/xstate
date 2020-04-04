@@ -4,67 +4,72 @@
     class="algolia-search-wrapper search-box"
     role="search"
   >
-    <input
-      id="algolia-search-input"
-      class="search-query"
-    >
+    <input id="algolia-search-input" class="search-query" />
   </form>
 </template>
 
 <script>
 export default {
   props: ['options'],
-  mounted () {
-    this.initialize(this.options, this.$lang)
+  mounted() {
+    this.initialize(this.options, this.$lang);
   },
   methods: {
-    initialize (userOptions, lang) {
+    initialize(userOptions, lang) {
       Promise.all([
-        import(/* webpackChunkName: "docsearch" */ 'docsearch.js/dist/cdn/docsearch.min.js'),
-        import(/* webpackChunkName: "docsearch" */ 'docsearch.js/dist/cdn/docsearch.min.css')
+        import(
+          /* webpackChunkName: "docsearch" */ 'docsearch.js/dist/cdn/docsearch.min.js'
+        ),
+        import(
+          /* webpackChunkName: "docsearch" */ 'docsearch.js/dist/cdn/docsearch.min.css'
+        )
       ]).then(([docsearch]) => {
-        docsearch = docsearch.default
-        const { algoliaOptions = {}} = userOptions
-        docsearch(Object.assign(
-          {},
-          userOptions,
-          {
+        docsearch = docsearch.default;
+        const { algoliaOptions = {} } = userOptions;
+        docsearch(
+          Object.assign({}, userOptions, {
             inputSelector: '#algolia-search-input',
             // #697 Make docsearch work well at i18n mode.
-            algoliaOptions: Object.assign({
-              'facetFilters': [`lang:${lang}`].concat(algoliaOptions.facetFilters || [])
-            }, algoliaOptions),
+            algoliaOptions: Object.assign(
+              {
+                facetFilters: [`lang:${lang}`].concat(
+                  algoliaOptions.facetFilters || []
+                )
+              },
+              algoliaOptions
+            ),
             handleSelected: (input, event, suggestion) => {
               // MODIFICATION_FROM_THEME - old
               // this.$router.push(new URL(suggestion.url).pathname)
               // issue: this will redirect the page with duplicate site base
               // MODIFICATION_FROM_THEME - new
-              let { pathname, hash } = new URL(suggestion.url)
+              let { pathname, hash } = new URL(suggestion.url);
               const baseUrl = this.$site.base;
               if (baseUrl && pathname.substr(0, baseUrl.length) === baseUrl) {
-                pathname = pathname.substr(baseUrl.length - 1)
+                pathname = pathname.substr(baseUrl.length - 1);
               }
-              this.$router.push(`${pathname}${hash}`)
+              this.$router.push(`${pathname}${hash}`);
               // MODIFICATION_FROM_THEME - end
             }
-          }
-        ))
-      })
+          })
+        );
+      });
     },
-    update (options, lang) {
-      this.$el.innerHTML = '<input id="algolia-search-input" class="search-query">dddd'
-      this.initialize(options, lang)
+    update(options, lang) {
+      this.$el.innerHTML =
+        '<input id="algolia-search-input" class="search-query">dddd';
+      this.initialize(options, lang);
     }
   },
   watch: {
-    $lang (newValue) {
-      this.update(this.options, newValue)
+    $lang(newValue) {
+      this.update(this.options, newValue);
     },
-    options (newValue) {
-      this.update(newValue, this.$lang)
+    options(newValue) {
+      this.update(newValue, this.$lang);
     }
   }
-}
+};
 </script>
 
 <style lang="stylus">

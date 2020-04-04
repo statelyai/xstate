@@ -8,7 +8,7 @@ interface DieHardContext {
   five: number;
 }
 
-const pour3to5 = assign<DieHardContext>(ctx => {
+const pour3to5 = assign<DieHardContext>((ctx) => {
   const poured = Math.min(5 - ctx.five, ctx.three);
 
   return {
@@ -16,7 +16,7 @@ const pour3to5 = assign<DieHardContext>(ctx => {
     five: ctx.five + poured
   };
 });
-const pour5to3 = assign<DieHardContext>(ctx => {
+const pour5to3 = assign<DieHardContext>((ctx) => {
   const poured = Math.min(3 - ctx.three, ctx.five);
 
   const res = {
@@ -63,7 +63,7 @@ const dieHardMachine = Machine<DieHardContext>(
           }
         },
         meta: {
-          description: state => {
+          description: (state) => {
             return `pending with (${state.context.three}, ${state.context.five})`;
           },
           test: async ({ jugs }, state) => {
@@ -86,7 +86,7 @@ const dieHardMachine = Machine<DieHardContext>(
   },
   {
     guards: {
-      weHave4Gallons: ctx => ctx.five === 4
+      weHave4Gallons: (ctx) => ctx.five === 4
     }
   }
 );
@@ -157,9 +157,9 @@ const dieHardModel = createModel<{ jugs: Jugs }>(dieHardMachine).withEvents({
 describe('testing a model (shortestPathsTo)', () => {
   dieHardModel
     .getShortestPathPlansTo('success') // ...
-    .forEach(plan => {
+    .forEach((plan) => {
       describe(plan.description, () => {
-        plan.paths.forEach(path => {
+        plan.paths.forEach((path) => {
           it(path.description, () => {
             const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
@@ -172,11 +172,11 @@ describe('testing a model (shortestPathsTo)', () => {
 describe('testing a model (simplePathsTo)', () => {
   dieHardModel
     .getSimplePathPlansTo('success') // ...
-    .forEach(plan => {
+    .forEach((plan) => {
       describe(`reaches state ${JSON.stringify(
         plan.state.value
       )} (${JSON.stringify(plan.state.context)})`, () => {
-        plan.paths.forEach(path => {
+        plan.paths.forEach((path) => {
           it(path.description, () => {
             const testJugs = new Jugs();
             return path.test({ jugs: testJugs });
@@ -187,15 +187,15 @@ describe('testing a model (simplePathsTo)', () => {
 });
 
 describe('path.test()', () => {
-  const plans = dieHardModel.getSimplePathPlansTo(state => {
+  const plans = dieHardModel.getSimplePathPlansTo((state) => {
     return state.matches('success') && state.context.three === 0;
   });
 
-  plans.forEach(plan => {
+  plans.forEach((plan) => {
     describe(`reaches state ${JSON.stringify(
       plan.state.value
     )} (${JSON.stringify(plan.state.context)})`, () => {
-      plan.paths.forEach(path => {
+      plan.paths.forEach((path) => {
         describe(path.description, () => {
           it(`reaches the target state`, () => {
             const testJugs = new Jugs();
@@ -234,8 +234,8 @@ describe('error path trace', () => {
       }
     });
 
-    testModel.getShortestPathPlansTo('third').forEach(plan => {
-      plan.paths.forEach(path => {
+    testModel.getShortestPathPlansTo('third').forEach((plan) => {
+      plan.paths.forEach((path) => {
         it('should show an error path trace', async () => {
           try {
             await path.test(undefined);
@@ -369,7 +369,7 @@ describe('coverage', () => {
     const testPlans = testModel.getShortestPathPlans();
 
     const promises: any[] = [];
-    testPlans.forEach(plan => {
+    testPlans.forEach((plan) => {
       plan.paths.forEach(() => {
         promises.push(plan.test(undefined));
       });
@@ -379,7 +379,7 @@ describe('coverage', () => {
 
     expect(() => {
       testModel.testCoverage({
-        filter: stateNode => {
+        filter: (stateNode) => {
           return !!stateNode.meta;
         }
       });
@@ -528,7 +528,7 @@ describe('state limiting', () => {
           on: {
             INC: {
               actions: assign({
-                count: ctx => ctx.count + 1
+                count: (ctx) => ctx.count + 1
               })
             }
           }
@@ -538,7 +538,7 @@ describe('state limiting', () => {
 
     const testModel = createModel(machine);
     const testPlans = testModel.getShortestPathPlans({
-      filter: state => {
+      filter: (state) => {
         return state.context.count < 5;
       }
     });
@@ -598,7 +598,7 @@ describe('plan description', () => {
   const testPlans = testModel.getShortestPathPlans();
 
   it('should give a description for every plan', () => {
-    const planDescriptions = testPlans.map(plan => plan.description);
+    const planDescriptions = testPlans.map((plan) => plan.description);
 
     expect(planDescriptions).toMatchInlineSnapshot(`
       Array [

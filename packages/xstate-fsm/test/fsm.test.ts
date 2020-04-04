@@ -31,10 +31,10 @@ describe('@xstate/fsm', () => {
         entry: 'enterGreen',
         exit: [
           'exitGreen',
-          assign({ count: ctx => ctx.count + 1 }),
-          assign({ count: ctx => ctx.count + 1 }),
+          assign({ count: (ctx) => ctx.count + 1 }),
+          assign({ count: (ctx) => ctx.count + 1 }),
           assign<LightContext>({ foo: 'static' }),
-          assign({ foo: ctx => ctx.foo + '++' })
+          assign({ foo: (ctx) => ctx.foo + '++' })
         ],
         on: {
           TIMER: {
@@ -46,7 +46,7 @@ describe('@xstate/fsm', () => {
       yellow: {
         entry: assign<LightContext>({ go: false }),
         on: {
-          INC: { actions: assign({ count: ctx => ctx.count + 1 }) },
+          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
           EMERGENCY: {
             target: 'red',
             cond: (ctx, e) => ctx.count + e.value === 2
@@ -71,7 +71,7 @@ describe('@xstate/fsm', () => {
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');
-    expect(nextState.actions.map(action => action.type)).toEqual([
+    expect(nextState.actions.map((action) => action.type)).toEqual([
       'exitGreen',
       'g-y 1',
       'g-y 2'
@@ -161,20 +161,20 @@ describe('interpreter', () => {
     }
   });
 
-  it('listeners should immediately get the initial state', done => {
+  it('listeners should immediately get the initial state', (done) => {
     const toggleService = interpret(toggleMachine).start();
 
-    toggleService.subscribe(state => {
+    toggleService.subscribe((state) => {
       if (state.matches('active')) {
         done();
       }
     });
   });
 
-  it('listeners should subscribe to state changes', done => {
+  it('listeners should subscribe to state changes', (done) => {
     const toggleService = interpret(toggleMachine).start();
 
-    toggleService.subscribe(state => {
+    toggleService.subscribe((state) => {
       if (state.matches('inactive')) {
         done();
       }
@@ -183,7 +183,7 @@ describe('interpreter', () => {
     toggleService.send('TOGGLE');
   });
 
-  it('should execute actions', done => {
+  it('should execute actions', (done) => {
     let executed = false;
 
     const actionMachine = createMachine({
@@ -275,7 +275,7 @@ describe('interpreter', () => {
     expect(service.state.context).toEqual({ foo: 'bar' });
   });
 
-  it('should reveal the current state after transition', done => {
+  it('should reveal the current state after transition', (done) => {
     const machine = createMachine({
       initial: 'test',
       context: { foo: 'bar' },

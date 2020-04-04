@@ -70,7 +70,7 @@ export default Vue.extend({
     this.service = interpret(
       machineWithConfig,
       interpreterOptions
-    ).onTransition(state => {
+    ).onTransition((state) => {
       if (state.changed) {
         this.$emit('change', state);
         this.current = state;

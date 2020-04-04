@@ -13,7 +13,7 @@ Vue follows a similar pattern to [React](./react.md):
 import { Machine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-const toggleMachine = Machine({
+export const toggleMachine = Machine({
   id: 'toggle',
   context: {
     /* some data */
@@ -47,7 +47,7 @@ const toggleMachine = Machine({
     created() {
       // Start service on component creation
       this.toggleService
-        .onTransition(state => {
+        .onTransition((state) => {
           // Update the current state component data property with the next state
           this.current = state;
           // Update the context component data property with the updated context

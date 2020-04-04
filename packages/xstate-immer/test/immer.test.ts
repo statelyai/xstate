@@ -14,7 +14,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             INC: {
-              actions: assign<typeof context>(ctx => ctx.count++)
+              actions: assign<typeof context>((ctx) => ctx.count++)
             }
           }
         }
@@ -51,7 +51,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          increment: assign<typeof context>(ctx => ctx.count++)
+          increment: assign<typeof context>((ctx) => ctx.count++)
         }
       }
     );
@@ -88,7 +88,7 @@ describe('@xstate/immer', () => {
       },
       {
         actions: {
-          pushBaz: assign<typeof context>(ctx => ctx.foo.bar.baz.push(0))
+          pushBaz: assign<typeof context>((ctx) => ctx.foo.bar.baz.push(0))
         }
       }
     );
@@ -127,7 +127,7 @@ describe('@xstate/immer', () => {
     const somePatchEvent = patchEvent(
       'UPDATE_BAZ',
       countMachine.initialState.context,
-      ctx => {
+      (ctx) => {
         ctx.foo.bar.baz.push(4);
       }
     );

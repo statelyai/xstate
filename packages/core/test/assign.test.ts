@@ -15,7 +15,7 @@ const counterMachine = Machine<CounterContext>({
         INC: [
           {
             target: 'counting',
-            actions: assign(ctx => ({
+            actions: assign((ctx) => ({
               count: ctx.count + 1
             }))
           }
@@ -25,7 +25,7 @@ const counterMachine = Machine<CounterContext>({
             target: 'counting',
             actions: [
               assign({
-                count: ctx => ctx.count - 1
+                count: (ctx) => ctx.count - 1
               })
             ]
           }
@@ -346,7 +346,7 @@ describe('assign meta', () => {
     let state: any;
 
     const service = interpret(parentMachine)
-      .onTransition(s => {
+      .onTransition((s) => {
         state = s;
       })
       .start();
