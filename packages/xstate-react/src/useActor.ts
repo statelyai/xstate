@@ -7,7 +7,7 @@ export function useActor<TCurrent, TEvent extends EventObject>(
 ): [TCurrent, Sender<TEvent>] {
   const [current, setCurrent] = useState(actorRef.current);
 
-  const send = useMemo(() => actorRef.send, [actorRef]);
+  const send = actorRef.send;
 
   useEffect(() => {
     const sub = actorRef.subscribe((latest) => {
