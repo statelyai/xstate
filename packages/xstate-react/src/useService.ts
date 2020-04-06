@@ -19,7 +19,7 @@ export function useService<
   const send = useCallback(
     (event: Event<TEvent>) => {
       const eventObject = typeof event === 'string' ? { type: event } : event;
-      return void sendActor(eventObject as TEvent);
+      sendActor(eventObject as TEvent);
     },
     [sendActor]
   );
