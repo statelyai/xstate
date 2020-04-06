@@ -13,8 +13,7 @@ import {
   render,
   fireEvent,
   cleanup,
-  waitForElement,
-  act
+  waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
 
@@ -380,12 +379,38 @@ describe('useMachine hook', () => {
 
     const countEl = getByTestId('count');
 
-    act(() => {
-      // 1 for the initial state
-      // and 1 for the two (batched) events
-      expect(countEl.textContent).toEqual('2');
-      expect(count).toEqual(2);
-      done();
+    // 1 for the initial state
+    // and 1 for the two (batched) events
+    expect(countEl.textContent).toEqual('2');
+    expect(count).toEqual(2);
+    done();
+  });
+
+  it('should capture initial actions', (done) => {
+    let count = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: () => {
+            count++;
+          }
+        }
+      }
     });
+
+    const App = () => {
+      useMachine(machine, {
+        execute: false
+      });
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(count).toEqual(1);
+    done();
   });
 });

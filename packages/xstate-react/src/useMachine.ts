@@ -59,11 +59,6 @@ export function useMachine<
     ...interpreterOptions
   } = options;
 
-  // Capture all actions (side-effects) to be executed.
-  // These will be flushed when they are executed, and avoids the issue of batched events
-  // sent to the interpreter, which might ignore actions.
-  const actionStatesRef = useRef<Array<State<TContext, TEvent>>>([]);
-
   // Keep a single reference to the invoked machine (the service)
   const service = useConstant(() => {
     const machineConfig = {
@@ -87,6 +82,14 @@ export function useMachine<
     );
   });
 
+  // Initialize the state with the initial state.
+  const [state, setState] = useState(service.state);
+
+  // Capture all actions (side-effects) to be executed.
+  // These will be flushed when they are executed, and avoids the issue of batched events
+  // sent to the interpreter, which might ignore actions.
+  const actionStatesRef = useRef<Array<State<TContext, TEvent>>>([state]);
+
   // Make sure actions and services are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
   // in one place -- this hook's caller.
@@ -96,9 +99,6 @@ export function useMachine<
   useEffect(() => {
     Object.assign(service.machine.options.services, services);
   }, [services]);
-
-  // Initialize the state with the initial state.
-  const [state, setState] = useState(service.state);
 
   useEffect(() => {
     // Whenever a new state is emitted from the service,
