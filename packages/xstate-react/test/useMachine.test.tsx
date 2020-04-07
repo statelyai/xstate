@@ -366,6 +366,8 @@ describe('useMachine hook', () => {
       React.useEffect(() => {
         send('EVENT');
         send('EVENT');
+        send('EVENT');
+        send('EVENT');
       }, []);
 
       React.useEffect(() => {
@@ -379,10 +381,11 @@ describe('useMachine hook', () => {
 
     const countEl = getByTestId('count');
 
-    // 1 for the initial state
-    // and 1 for the two (batched) events
+    // Component should only rerender twice:
+    // - 1 time for the initial state
+    // - and 1 time for the four (batched) events
     expect(countEl.textContent).toEqual('2');
-    expect(count).toEqual(2);
+    expect(count).toEqual(4);
     done();
   });
 
