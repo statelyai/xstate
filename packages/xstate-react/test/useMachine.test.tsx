@@ -141,9 +141,7 @@ describe('useMachine hook', () => {
 
   it('should provide options for the service', () => {
     const Test = () => {
-      const [, , service] = useMachine(fetchMachine, {
-        execute: false
-      });
+      const [, , service] = useMachine(fetchMachine);
 
       expect(service.options.execute).toBe(false);
 
@@ -359,9 +357,7 @@ describe('useMachine hook', () => {
 
     const App = () => {
       const [stateCount, setStateCount] = useState(0);
-      const [state, send] = useMachine(machine, {
-        execute: false
-      });
+      const [state, send] = useMachine(machine);
 
       React.useEffect(() => {
         send('EVENT');
@@ -404,9 +400,7 @@ describe('useMachine hook', () => {
     });
 
     const App = () => {
-      useMachine(machine, {
-        execute: false
-      });
+      useMachine(machine);
 
       return <div />;
     };
