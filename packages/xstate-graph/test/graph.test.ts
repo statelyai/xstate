@@ -56,7 +56,7 @@ describe('@xstate/graph', () => {
   });
 
   interface CondMachineCtx {
-    id: string;
+    id?: string;
   }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
