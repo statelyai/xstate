@@ -8,7 +8,7 @@ export interface Subscribable<T> {
     next?: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
-  ): Unsubscribable;
+  ): Unsubscribable | undefined;
 }
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
@@ -25,20 +25,20 @@ export interface ActorRef<TCurrent, TEvent extends EventObject>
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export class ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
-  private subscription: Unsubscribable;
+  private subscription?: Unsubscribable;
   constructor(
     public send: Sender<TEvent>,
     public subscribe: Subscribable<TCurrent>['subscribe'],
     public current: TCurrent,
     public ref: TRef
   ) {
-    this.subscription = subscribe(latest => {
+    this.subscription = subscribe((latest) => {
       this.current = latest;
     });
   }
 
   public stop() {
-    this.subscription.unsubscribe();
+    this.subscription && this.subscription.unsubscribe();
   }
 }
 
@@ -61,7 +61,7 @@ export function fromPromise<T>(
     (next, handleError, complete) => {
       let unsubscribed = false;
       promise.then(
-        response => {
+        (response) => {
           if (unsubscribed) {
             return;
           }
@@ -71,7 +71,7 @@ export function fromPromise<T>(
           }
           complete && complete();
         },
-        err => {
+        (err) => {
           if (unsubscribed) {
             return;
           }
@@ -86,6 +86,46 @@ export function fromPromise<T>(
     undefined,
     promise
   );
+}
+
+export function fromCallback<TEmitted, TEvent extends EventObject>(
+  fn: (
+    emit: (emitted: TEmitted) => void,
+    receive: (receiver: (event: TEvent) => void) => void
+  ) => () => void
+) {
+  const receivers = new Set<(e: TEvent) => void>();
+  const listeners = new Set<(e: TEmitted) => void>();
+
+  const listenForEmitted = (e: TEmitted) => {
+    listeners.forEach((listener) => listener(e));
+  };
+
+  const stop = fn(listenForEmitted, (newListener) => {
+    receivers.add(newListener);
+  });
+
+  const actorRef = new ActorRef<TEmitted | undefined, TEvent>(
+    (event: TEvent) => receivers.forEach((receiver) => receiver(event)),
+    (next) => {
+      if (!next) {
+        return;
+      }
+
+      next && listeners.add(next);
+
+      return {
+        unsubscribe: () => {
+          listeners.delete(next);
+          stop && stop();
+        }
+      };
+    },
+    undefined as TEmitted | undefined,
+    fn
+  );
+
+  return actorRef;
 }
 
 export function fromService<TContext, TEvent extends EventObject>(

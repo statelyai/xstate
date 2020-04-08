@@ -15,7 +15,7 @@ export function useActor<TCurrent, TEvent extends EventObject>(
       setCurrent(latest);
     });
 
-    return () => sub.unsubscribe();
+    return () => void (sub && sub.unsubscribe());
   }, [actorRef]);
 
   return [current, send];
