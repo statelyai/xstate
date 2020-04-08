@@ -78,7 +78,7 @@
     "prettier": "^2.0.2",
     "tslint": "^5.11.0",
     "typedoc": "^0.15.2",
-    "typescript": "^3.7.5",
+    "typescript": "^3.8.3",
     "vue-jest": "^3.0.5",
     "vuepress": "^1.2.0",
     "vuepress-plugin-export": "^0.2.0",

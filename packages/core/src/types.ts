@@ -297,32 +297,40 @@ export type StatesDefinition<
   >;
 };
 
-export type TransitionConfigTargetShortcut<
+export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
+  | string
+  | undefined
+  | StateNode<TContext, any, TEvent>;
+
+export type TransitionConfigOrTarget<
   TContext,
   TEvent extends EventObject
-> = string | undefined | StateNode<TContext, any, TEvent>;
+> = SingleOrArray<
+  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+>;
 
 type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type'] | NullEvent['type'] | '*']?: SingleOrArray<
-    | TransitionConfigTargetShortcut<TContext, TEvent>
-    | (TransitionConfig<
-        TContext,
-        K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-      > & {
-        event?: undefined;
-      })
+  [K in TEvent['type']]?: TransitionConfigOrTarget<
+    TContext,
+    TEvent extends { type: K } ? TEvent : never
   >;
+} & {
+  ''?: TransitionConfigOrTarget<TContext, TEvent>;
+} & {
+  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
-  {
-    [K in TEvent['type'] | NullEvent['type'] | '*']: TransitionConfig<
-      TContext,
-      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-    > & {
-      event: K;
-    };
-  }[TEvent['type'] | NullEvent['type'] | '*']
+  | {
+      [K in TEvent['type']]: TransitionConfig<
+        TContext,
+        TEvent extends { type: K } ? TEvent : never
+      > & {
+        event: K;
+      };
+    }[TEvent['type']]
+  | (TransitionConfig<TContext, TEvent> & { event: '' })
+  | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> =
@@ -791,7 +799,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  conds: ChooseConditon<TContext, TEvent>[];
+  conds: Array<ChooseConditon<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

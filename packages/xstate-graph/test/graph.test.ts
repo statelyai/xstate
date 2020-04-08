@@ -1,7 +1,6 @@
-import { Machine, StateNode } from 'xstate';
+import { Machine, StateNode, assign } from 'xstate';
 import { getStateNodes, getSimplePaths, getShortestPaths } from '../src/index';
 import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
-import { assign } from 'xstate';
 
 describe('@xstate/graph', () => {
   const pedestrianStates = {
@@ -57,7 +56,7 @@ describe('@xstate/graph', () => {
   });
 
   interface CondMachineCtx {
-    id?: string;
+    id: string;
   }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
