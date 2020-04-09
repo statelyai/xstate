@@ -72,7 +72,7 @@ console.log(state.matches('green'));
 ```
 
 ::: tip
-If you want to match one of multiple states, you can use `.some()` to accomplish this:
+If you want to match one of multiple states, you can use [`.some()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some) on an array of state values to accomplish this:
 
 ```js
 const isMatch = [{ customer: 'deposit' }, { customer: 'withdrawal' }].some(
