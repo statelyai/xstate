@@ -1472,18 +1472,16 @@ export function resolveMicroTransition<
     return inertState;
   }
 
-  let children = currentState ? [...currentState.children] : ([] as Actor[]);
+  let children = currentState ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.start) {
-      children.push(createInvocableActor((action as any).actor));
+      const invocableActor = createInvocableActor((action as any).actor);
+      children[invocableActor.id] = invocableActor;
     } else if (action.type === actionTypes.stop) {
-      children = children.filter((childActor) => {
-        return (
-          childActor.id !==
-          (action as ActivityActionObject<TContext, TEvent>).actor.id
-        );
-      });
+      delete children[
+        (action as ActivityActionObject<TContext, TEvent>).actor.id
+      ];
     }
   }
 

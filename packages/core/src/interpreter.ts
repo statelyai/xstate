@@ -850,14 +850,10 @@ export class Interpreter<
 
           this.children.set(id, actor);
 
-          const childIndex = this.state.children.findIndex(
-            (child) => child.id === id
-          );
+          this.state.children[id] = actor;
 
-          this.state.children[childIndex] = actor;
-
-          this.state.children[childIndex].meta = {
-            ...this.state.children[childIndex].meta,
+          this.state.children[id].meta = {
+            ...this.state.children[id].meta,
             ...activity
           };
         } else {
@@ -898,10 +894,7 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    const childIndex = this.state.children.findIndex(
-      (actor) => actor.id === childId
-    );
-    this.state.children.splice(childIndex, 1);
+    delete this.state.children[childId];
   }
 
   private stopChild(childId: string): void {

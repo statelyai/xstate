@@ -57,7 +57,9 @@ describe('activities with guarded transitions', () => {
     state = machine.transition(state, 'E');
 
     expect(
-      state.children.find((child) => child.meta!.src === 'B_ACTIVITY')
+      Object.values(state.children).find(
+        (child) => child.meta!.src === 'B_ACTIVITY'
+      )
     ).toBeTruthy();
     expect(state.actions).toContainEqual(
       expect.objectContaining({ type: actionTypes.start })
@@ -88,7 +90,9 @@ describe('remembering activities', () => {
     state = machine.transition(state, 'E');
     state = machine.transition(state, 'IGNORE');
     expect(
-      state.children.find((child) => child.meta!.src === 'B_ACTIVITY')
+      Object.values(state.children).find(
+        (child) => child.meta!.src === 'B_ACTIVITY'
+      )
     ).toBeTruthy();
   });
 });
@@ -98,13 +102,15 @@ describe('activities', () => {
     const { initialState } = lightMachine;
 
     expect(
-      initialState.children.find((child) => child.meta!.src === 'fadeInGreen')
+      Object.values(initialState.children).find(
+        (child) => child.meta!.src === 'fadeInGreen'
+      )
     ).toBeTruthy();
   });
   it('identifies start activities', () => {
     const nextState = lightMachine.transition('yellow', 'TIMER');
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'activateCrosswalkLight'
       )
     ).toBeTruthy();
@@ -119,12 +125,12 @@ describe('activities', () => {
     const redWalkState = lightMachine.transition('yellow', 'TIMER');
     const nextState = lightMachine.transition(redWalkState, 'PED_WAIT');
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'activateCrosswalkLight'
       )
     ).toBeTruthy();
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'blinkCrosswalkLight'
       )
     ).toBeTruthy();
@@ -144,12 +150,12 @@ describe('activities', () => {
     const nextState = lightMachine.transition(redWaitState, 'PED_STOP');
 
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'activateCrosswalkLight'
       )
     ).toBeTruthy();
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'blinkCrosswalkLight'
       )
     ).toBeFalsy();
@@ -168,15 +174,17 @@ describe('activities', () => {
     const nextState = lightMachine.transition(redStopState, 'TIMER');
 
     expect(
-      nextState.children.find((child) => child.meta!.src === 'fadeInGreen')
+      Object.values(nextState.children).find(
+        (child) => child.meta!.src === 'fadeInGreen'
+      )
     ).toBeTruthy();
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'activateCrosswalkLight'
       )
     ).toBeFalsy();
     expect(
-      nextState.children.find(
+      Object.values(nextState.children).find(
         (child) => child.meta!.src === 'blinkCrosswalkLight'
       )
     ).toBeFalsy();
@@ -278,14 +286,14 @@ describe('transient activities', () => {
   it('should have started initial activities', () => {
     const state = machine.initialState;
     expect(
-      state.children.find((child) => child.meta!.src === 'A')
+      Object.values(state.children).find((child) => child.meta!.src === 'A')
     ).toBeTruthy();
   });
 
   it('should have started deep initial activities', () => {
     const state = machine.initialState;
     expect(
-      state.children.find((child) => child.meta!.src === 'A1')
+      Object.values(state.children).find((child) => child.meta!.src === 'A1')
     ).toBeTruthy();
   });
 
@@ -293,7 +301,7 @@ describe('transient activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'A');
     expect(
-      state.children.find((child) => child.meta!.src === 'A')
+      Object.values(state.children).find((child) => child.meta!.src === 'A')
     ).toBeTruthy();
   });
 
@@ -301,7 +309,7 @@ describe('transient activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'C_SIMILAR');
     expect(
-      state.children.find((child) => child.meta!.src === 'C1')
+      Object.values(state.children).find((child) => child.meta!.src === 'C1')
     ).toBeTruthy();
   });
 
@@ -309,7 +317,7 @@ describe('transient activities', () => {
     let state = machine.initialState;
     state = machine.transition(state, 'C');
     expect(
-      state.children.find((child) => child.meta!.src === 'C1')
+      Object.values(state.children).find((child) => child.meta!.src === 'C1')
     ).toBeTruthy();
   });
 
@@ -318,7 +326,7 @@ describe('transient activities', () => {
     state = machine.transition(state, 'A');
     expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C1' });
     expect(
-      state.children.find((child) => child.meta!.src === 'B2')
+      Object.values(state.children).find((child) => child.meta!.src === 'B2')
     ).toBeTruthy();
   });
 });
