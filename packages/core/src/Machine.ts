@@ -38,7 +38,7 @@ export function Machine<
 ): StateMachine<TContext, TStateSchema, TEvent> {
   const resolvedInitialContext =
     typeof initialContext === 'function'
-      ? (initialContext as (() => TContext))()
+      ? (initialContext as () => TContext)()
       : initialContext;
 
   return new StateNode<TContext, TStateSchema, TEvent, any>(
@@ -58,7 +58,7 @@ export function createMachine<
 ): StateMachine<TContext, any, TEvent, TTypestate> {
   const resolvedInitialContext =
     typeof config.context === 'function'
-      ? (config.context as (() => TContext))()
+      ? (config.context as () => TContext)()
       : config.context;
 
   return new StateNode<TContext, any, TEvent, TTypestate>(

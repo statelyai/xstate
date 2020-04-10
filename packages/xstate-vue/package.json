@@ -24,7 +24,8 @@
   },
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "dist/**/*.js"
   ],
   "repository": {
     "type": "git",
@@ -32,7 +33,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "build": "tsc && rollup -c",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
@@ -62,8 +63,11 @@
     "babel-core": "^6.26.3",
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
+    "rollup": "^1.26.3",
+    "rollup-plugin-terser": "^5.1.2",
+    "rollup-plugin-typescript2": "^0.25.2",
     "ts-jest": "^24.1.9",
-    "typescript": "^3.7.5",
+    "typescript": "^3.8.3",
     "vue": "^2.6.10",
     "vue-jest": "^3.0.5",
     "xstate": "*"

@@ -56,7 +56,9 @@ describe('@xstate/graph', () => {
     }
   });
 
-  type CondMachineCtx = { id: string };
+  interface CondMachineCtx {
+    id: string;
+  }
   type CondMachineEvents = { type: 'EVENT'; id: string } | { type: 'STATE' };
 
   const condMachine = Machine<CondMachineCtx, CondMachineEvents>({
@@ -75,7 +77,7 @@ describe('@xstate/graph', () => {
           STATE: [
             {
               target: 'foo',
-              cond: s => s.id === 'foo'
+              cond: (s) => s.id === 'foo'
             },
             { target: 'bar' }
           ]
@@ -120,8 +122,8 @@ describe('@xstate/graph', () => {
   describe('getNodes()', () => {
     it('should return an array of all nodes', () => {
       const nodes = getStateNodes(lightMachine);
-      expect(nodes.every(node => node instanceof StateNode)).toBe(true);
-      expect(nodes.map(node => node.id).sort()).toEqual([
+      expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
+      expect(nodes.map((node) => node.id).sort()).toEqual([
         'light.green',
         'light.red',
         'light.red.flashing',
@@ -134,8 +136,8 @@ describe('@xstate/graph', () => {
 
     it('should return an array of all nodes (parallel)', () => {
       const nodes = getStateNodes(parallelMachine);
-      expect(nodes.every(node => node instanceof StateNode)).toBe(true);
-      expect(nodes.map(node => node.id).sort()).toEqual([
+      expect(nodes.every((node) => node instanceof StateNode)).toBe(true);
+      expect(nodes.map((node) => node.id).sort()).toEqual([
         'p.a',
         'p.a.a1',
         'p.a.a2',
@@ -254,11 +256,11 @@ describe('@xstate/graph', () => {
             on: {
               '': {
                 target: 'finish',
-                cond: ctx => ctx.count === 3
+                cond: (ctx) => ctx.count === 3
               },
               INC: {
                 actions: assign({
-                  count: ctx => ctx.count + 1
+                  count: (ctx) => ctx.count + 1
                 })
               }
             }
@@ -306,7 +308,7 @@ describe('@xstate/graph', () => {
             on: {
               '': {
                 target: 'full',
-                cond: ctx => ctx.count === 5
+                cond: (ctx) => ctx.count === 5
               },
               INC: {
                 actions: assign({
@@ -315,7 +317,7 @@ describe('@xstate/graph', () => {
               },
               DEC: {
                 actions: assign({
-                  count: ctx => ctx.count - 1
+                  count: (ctx) => ctx.count - 1
                 })
               }
             }
@@ -326,8 +328,8 @@ describe('@xstate/graph', () => {
 
       // explicit type arguments could be removed once davidkpiano/xstate#652 gets resolved
       const adj = getAdjacencyMap<Ctx, Events>(counterMachine, {
-        filter: state => state.context.count >= 0 && state.context.count <= 5,
-        stateSerializer: state => {
+        filter: (state) => state.context.count >= 0 && state.context.count <= 5,
+        stateSerializer: (state) => {
           const ctx = {
             count: state.context.count
           };

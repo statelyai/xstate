@@ -21,7 +21,7 @@ export function assign<TContext, TEvent extends EventObject = EventObject>(
 ): AssignAction<TContext, TEvent> {
   // @ts-ignore (possibly infinite TS bug)
   return xstateAssign((context, event) => {
-    return produce(context, draft => void assignment(draft, event));
+    return produce(context, (draft) => void assignment(draft, event));
   });
 }
 

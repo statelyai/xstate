@@ -180,7 +180,7 @@ describe('State', () => {
           same: {
             on: {
               EVENT: {
-                actions: assign({ count: ctx => ctx.count + 1 })
+                actions: assign({ count: (ctx) => ctx.count + 1 })
               }
             }
           }
@@ -438,7 +438,7 @@ describe('State', () => {
         expect(testMachine.initialState._sessionid).toBeNull();
       });
 
-      it('_sessionid should be the service sessionId for invoked machines', done => {
+      it('_sessionid should be the service sessionId for invoked machines', (done) => {
         const testMachine = Machine({
           initial: 'active',
           states: {
@@ -456,7 +456,7 @@ describe('State', () => {
         const service = interpret(testMachine);
 
         service
-          .onTransition(state => {
+          .onTransition((state) => {
             expect(state._sessionid).toEqual(service.sessionId);
           })
           .onDone(() => {

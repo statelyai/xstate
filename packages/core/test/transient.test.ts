@@ -10,8 +10,8 @@ const greetingMachine = Machine<typeof greetingContext>({
     pending: {
       on: {
         '': [
-          { target: 'morning', cond: ctx => ctx.hour < 12 },
-          { target: 'afternoon', cond: ctx => ctx.hour < 18 },
+          { target: 'morning', cond: (ctx) => ctx.hour < 12 },
+          { target: 'afternoon', cond: (ctx) => ctx.hour < 18 },
           { target: 'evening' }
         ]
       }
@@ -108,7 +108,7 @@ describe('transient states (eventless transitions)', () => {
 
     const state = machine.transition('A', 'TIMER');
 
-    expect(state.actions.map(a => a.type)).toEqual([
+    expect(state.actions.map((a) => a.type)).toEqual([
       'exit_A',
       'timer',
       'enter_B'
@@ -388,7 +388,10 @@ describe('transient states (eventless transitions)', () => {
           on: { FOO: 'b' }
         },
         b: {
-          on: [{ event: '*', target: 'fail' }, { event: '', target: 'pass' }]
+          on: [
+            { event: '*', target: 'fail' },
+            { event: '', target: 'pass' }
+          ]
         },
         fail: {},
         pass: {}
@@ -399,7 +402,7 @@ describe('transient states (eventless transitions)', () => {
     expect(state.value).toBe('pass');
   });
 
-  it('should work with transient transition on root', done => {
+  it('should work with transient transition on root', (done) => {
     const machine = createMachine<any, any>({
       id: 'machine',
       initial: 'first',
@@ -408,7 +411,7 @@ describe('transient states (eventless transitions)', () => {
         first: {
           on: {
             ADD: {
-              actions: assign({ count: ctx => ctx.count + 1 })
+              actions: assign({ count: (ctx) => ctx.count + 1 })
             }
           }
         },
@@ -420,7 +423,7 @@ describe('transient states (eventless transitions)', () => {
         '': [
           {
             target: '.success',
-            cond: ctx => {
+            cond: (ctx) => {
               return ctx.count > 0;
             }
           }

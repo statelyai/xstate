@@ -1,4 +1,4 @@
-## Usage with Vue
+# Usage with Vue
 
 Vue follows a similar pattern to [React](./react.md):
 
@@ -10,10 +10,10 @@ Vue follows a similar pattern to [React](./react.md):
 - Events are sent to the service via `service.send(event)`.
 
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Vue
-const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   context: {
     /* some data */
@@ -47,7 +47,7 @@ const toggleMachine = Machine({
     created() {
       // Start service on component creation
       this.toggleService
-        .onTransition(state => {
+        .onTransition((state) => {
           // Update the current state component data property with the next state
           this.current = state;
           // Update the context component data property with the updated context

@@ -64,14 +64,20 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   meta: ActionMeta<TContext, TEvent>
 ) => any | void;
 
-// export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
-export type Action<TContext, TEvent extends EventObject> =
+export interface ChooseConditon<TContext, TEvent extends EventObject> {
+  cond?: Condition<TContext, TEvent>;
+  actions: Actions<TContext, TEvent>;
+}
+
+export // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
+type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | AssignAction<Required<TContext>, TEvent>
   | SendAction<TContext, AnyEventObject>
-  | RaiseAction<AnyEventObject>;
+  | RaiseAction<AnyEventObject>
+  | ChooseAction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -123,9 +129,9 @@ export interface GuardPredicate<TContext, TEvent extends EventObject> {
 
 export type Guard<TContext, TEvent extends EventObject> =
   | GuardPredicate<TContext, TEvent>
-  | Record<string, any> & {
+  | (Record<string, any> & {
       type: string;
-    };
+    });
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
@@ -315,32 +321,40 @@ export type StatesDefinition<
   >;
 };
 
-export type TransitionConfigTargetShortcut<
+export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
+  | string
+  | undefined
+  | StateNode<TContext, any, TEvent>;
+
+export type TransitionConfigOrTarget<
   TContext,
   TEvent extends EventObject
-> = string | undefined | StateNode<TContext, any, TEvent>;
+> = SingleOrArray<
+  TransitionConfigTarget<TContext, TEvent> | TransitionConfig<TContext, TEvent>
+>;
 
 type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
-  [K in TEvent['type'] | NullEvent['type'] | '*']?: SingleOrArray<
-    | TransitionConfigTargetShortcut<TContext, TEvent>
-    | (TransitionConfig<
-        TContext,
-        K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-      > & {
-        event?: undefined;
-      })
+  [K in TEvent['type']]?: TransitionConfigOrTarget<
+    TContext,
+    TEvent extends { type: K } ? TEvent : never
   >;
+} & {
+  ''?: TransitionConfigOrTarget<TContext, TEvent>;
+} & {
+  '*'?: TransitionConfigOrTarget<TContext, TEvent>;
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
-  {
-    [K in TEvent['type'] | NullEvent['type'] | '*']: TransitionConfig<
-      TContext,
-      K extends TEvent['type'] ? Extract<TEvent, { type: K }> : EventObject
-    > & {
-      event: K;
-    };
-  }[TEvent['type'] | NullEvent['type'] | '*']
+  | {
+      [K in TEvent['type']]: TransitionConfig<
+        TContext,
+        TEvent extends { type: K } ? TEvent : never
+      > & {
+        event: K;
+      };
+    }[TEvent['type']]
+  | (TransitionConfig<TContext, TEvent> & { event: '' })
+  | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;
 
 export type TransitionsConfig<TContext, TEvent extends EventObject> =
@@ -717,7 +731,8 @@ export enum ActionTypes {
   ErrorPlatform = 'error.platform',
   ErrorCustom = 'xstate.error',
   Update = 'xstate.update',
-  Pure = 'xstate.pure'
+  Pure = 'xstate.pure',
+  Choose = 'xstate.choose'
 }
 
 export interface RaiseAction<TEvent extends EventObject> {
@@ -893,6 +908,12 @@ export interface PureAction<TContext, TEvent extends EventObject>
     context: TContext,
     event: TEvent
   ) => SingleOrArray<ActionObject<TContext, TEvent>> | undefined;
+}
+
+export interface ChooseAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Choose;
+  conds: Array<ChooseConditon<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

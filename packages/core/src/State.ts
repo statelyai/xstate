@@ -40,7 +40,7 @@ export function stateValuesEqual(
 
   return (
     aKeys.length === bKeys.length &&
-    aKeys.every(key => stateValuesEqual(a[key], b[key]))
+    aKeys.every((key) => stateValuesEqual(a[key], b[key]))
   );
 }
 
@@ -265,8 +265,10 @@ export class State<
     const valueKeys = keys(stateValue);
 
     return valueKeys.concat(
-      ...valueKeys.map(key =>
-        this.toStrings(stateValue[key], delimiter).map(s => key + delimiter + s)
+      ...valueKeys.map((key) =>
+        this.toStrings(stateValue[key], delimiter).map(
+          (s) => key + delimiter + s
+        )
       )
     );
   }

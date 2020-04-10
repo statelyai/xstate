@@ -4,7 +4,7 @@ const spawnCommand = require('spawn-command');
 // following startup of the build watcher is going to be really fast, thanks to TS incrememental builds
 spawnCommand('npm run build', {
   stdio: 'inherit'
-}).on('exit', exitCode => {
+}).on('exit', (exitCode) => {
   if (exitCode !== 0) {
     process.exit(exitCode);
   }

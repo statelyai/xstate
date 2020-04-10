@@ -4,7 +4,7 @@ import { toSCXMLEvent } from '../src/utils';
 const { actionTypes } = actions;
 
 describe('action creators', () => {
-  ['start', 'stop'].forEach(actionKey => {
+  ['start', 'stop'].forEach((actionKey) => {
     describe(`${actionKey}()`, () => {
       it('should accept a string action', () => {
         const action = actions[actionKey]('test');
@@ -111,7 +111,10 @@ describe('action creators', () => {
       const resolvedAction = actions.resolveSend(
         action,
         { delay: 100 },
-        toSCXMLEvent({ type: 'EVENT', value: 50 })
+        toSCXMLEvent({ type: 'EVENT', value: 50 } as {
+          type: 'EVENT';
+          value: number;
+        })
       );
 
       expect(resolvedAction.delay).toEqual(150);

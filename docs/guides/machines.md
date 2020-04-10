@@ -42,12 +42,9 @@ const lightMachine = Machine({
 });
 ```
 
-The machine config is the same as the [state node config](./statenodes.md), with the addition of the following properties:
+The machine config is the same as the [state node config](./statenodes.md), with the addition of the context property:
 
 - `context` - represents the local "extended state" for all of the machine's nested states. See [the docs for context](./context.md) for more details.
-- `strict` - if `true`, ensures the following constraints are met. Defaults to `false`.
-  - Any events that are sent to the machine but not accepted (i.e., there doesn't exist any transitions in any state for the given event) will throw an error.
-  - Any unhandled Promise rejections will stop the machine ([Promise Rejection](./communication.md#promise-rejection)/Async [Invoking Callbacks](./communication.md#invoking-callbacks)).
 
 ## Options
 

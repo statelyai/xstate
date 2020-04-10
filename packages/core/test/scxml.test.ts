@@ -13,9 +13,11 @@ import { pathsToStateValue } from '../src/utils';
 // import { Event, StateValue, ActionObject } from '../src/types';
 // import { actionTypes } from '../src/actions';
 
-const TEST_FRAMEWORK = path.dirname(pkgUp.sync({
-  cwd: require.resolve('@scion-scxml/test-framework')
-}) as string);
+const TEST_FRAMEWORK = path.dirname(
+  pkgUp.sync({
+    cwd: require.resolve('@scion-scxml/test-framework')
+  }) as string
+);
 
 const testGroups = {
   actionSend: [
@@ -32,9 +34,15 @@ const testGroups = {
   ],
   assign: [
     // 'assign_invalid', // TODO: handle error.execution event
-    'assign_obj_literal'
+    // 'assign_obj_literal' // <script/> conversion not implemented
   ],
-  'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
+  'assign-current-small-step': [
+    // 'test0', // <script/> conversion not implemented
+    'test1',
+    'test2',
+    'test3',
+    'test4'
+  ],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
   data: [
@@ -63,7 +71,7 @@ const testGroups = {
     'history6'
   ],
   'if-else': [
-    // 'test0', // not implemented
+    // 'test0', // microstep not implemented correctly
   ],
   in: [
     // 'TestInPredicate', // In() conversion not implemented yet
@@ -140,12 +148,12 @@ const testGroups = {
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
   'w3c-ecma': [
     'test144.txml',
-    // 'test147.txml',
-    // 'test148.txml',
+    'test147.txml',
+    'test148.txml',
     'test149.txml',
     // 'test150.txml',
     // 'test151.txml',
-    // 'test152.txml',
+    // 'test152.txml', // <foreach> not implemented yet
     // 'test153.txml',
     // 'test155.txml',
     // 'test156.txml',
@@ -272,7 +280,7 @@ const testGroups = {
     'test405.txml',
     'test406.txml',
     'test407.txml',
-    'test409.txml',
+    // 'test409.txml', // conversion of In() predicate not implemented yet
     // 'test411.txml',
     // 'test412.txml',
     // 'test413.txml',
@@ -352,7 +360,7 @@ async function runW3TestToCompletion(machine: StateNode): Promise<void> {
     let nextState: State<any>;
 
     interpret(machine)
-      .onTransition(state => {
+      .onTransition((state) => {
         nextState = state;
       })
       .onDone(() => {
@@ -376,7 +384,7 @@ async function runTestToCompletion(
   }
   const resolvedStateValue = machine.resolve(
     pathsToStateValue(
-      test.initialConfiguration.map(id => machine.getStateNodeById(id).path)
+      test.initialConfiguration.map((id) => machine.getStateNodeById(id).path)
     )
   );
   let done = false;
@@ -384,7 +392,7 @@ async function runTestToCompletion(
   const service = interpret(machine, {
     clock: new SimulatedClock()
   })
-    .onTransition(state => {
+    .onTransition((state) => {
       nextState = state;
     })
     .onDone(() => {
@@ -403,7 +411,7 @@ async function runTestToCompletion(
 
     const stateIds = machine
       .getStateNodes(nextState)
-      .map(stateNode => stateNode.id);
+      .map((stateNode) => stateNode.id);
 
     expect(stateIds).toContain(nextConfiguration[0]);
   });
@@ -413,8 +421,8 @@ describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
   // const testGroupKeys = ['scxml-prefix-event-name-matching'];
 
-  testGroupKeys.forEach(testGroupName => {
-    testGroups[testGroupName].forEach(testName => {
+  testGroupKeys.forEach((testGroupName) => {
+    testGroups[testGroupName].forEach((testName) => {
       const scxmlSource =
         overrides[testGroupName] &&
         overrides[testGroupName].indexOf(testName) !== -1

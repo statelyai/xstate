@@ -10,7 +10,6 @@ import {
   HistoryValue,
   AssignAction,
   Condition,
-  Guard,
   Subscribable,
   StateMachine,
   ConditionPredicate,
@@ -18,9 +17,12 @@ import {
   StateLike,
   EventData,
   TransitionConfig,
-  TransitionConfigTargetShortcut,
+  TransitionConfigTarget,
   NullEvent,
-  SingleOrArray
+  SingleOrArray,
+  Guard,
+  GuardPredicate,
+  GuardMeta
 } from './types';
 import {
   STATE_DELIMITER,
@@ -57,7 +59,7 @@ export function matchesState(
     return parentStateValue in childStateValue;
   }
 
-  return keys(parentStateValue).every(key => {
+  return keys(parentStateValue).every((key) => {
     if (!(key in childStateValue)) {
       return false;
     }
@@ -111,10 +113,10 @@ export function toStatePath(
 export function isStateLike(state: any): state is StateLike<any> {
   return (
     typeof state === 'object' &&
-    ('value' in state &&
-      'context' in state &&
-      'event' in state &&
-      '_event' in state)
+    'value' in state &&
+    'context' in state &&
+    'event' in state &&
+    '_event' in state
   );
 }
 
@@ -223,7 +225,7 @@ export function nestedPath<T extends Record<string, any>>(
   props: string[],
   accessorProp: keyof T
 ): (object: T) => T {
-  return object => {
+  return (object) => {
     let result: T = object;
 
     for (const prop of props) {
@@ -244,7 +246,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
   }
 
   const result = flatten(
-    keys(stateValue).map(key => {
+    keys(stateValue).map((key) => {
       const subStateValue = stateValue[key];
 
       if (
@@ -254,7 +256,7 @@ export function toStatePaths(stateValue: StateValue | undefined): string[][] {
         return [[key]];
       }
 
-      return toStatePaths(stateValue[key]).map(subPath => {
+      return toStatePaths(stateValue[key]).map((subPath) => {
         return [key].concat(subPath);
       });
     })
@@ -582,14 +584,14 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
     | TransitionConfig<TContext, TEvent>
-    | TransitionConfigTargetShortcut<TContext, TEvent>
+    | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
   TransitionConfig<TContext, TEvent> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
-  const transitions = toArrayStrict(configLike).map(transitionLike => {
+  const transitions = toArrayStrict(configLike).map((transitionLike) => {
     if (
       typeof transitionLike === 'undefined' ||
       typeof transitionLike === 'string' ||
@@ -643,4 +645,38 @@ export function reportUnhandledExceptionOnInvocation(
       );
     }
   }
+}
+
+export function evaluateGuard<TContext, TEvent extends EventObject>(
+  machine: StateNode<TContext, any, TEvent>,
+  guard: Guard<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+): boolean {
+  const { guards } = machine.options;
+  const guardMeta: GuardMeta<TContext, TEvent> = {
+    state,
+    cond: guard,
+    _event
+  };
+
+  // TODO: do not hardcode!
+  if (guard.type === DEFAULT_GUARD_TYPE) {
+    return (guard as GuardPredicate<TContext, TEvent>).predicate(
+      context,
+      _event.data,
+      guardMeta
+    );
+  }
+
+  const condFn = guards[guard.type];
+
+  if (!condFn) {
+    throw new Error(
+      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
+    );
+  }
+
+  return condFn(context, _event.data, guardMeta);
 }

@@ -43,12 +43,12 @@ const fetchMachine = createMachine<typeof context, any>({
 export default {
   setup() {
     const onFetch = () =>
-      new Promise(res => setTimeout(() => res('some data'), 50));
+      new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
       actions: {
         load: () => {
-          onFetch().then(res => {
+          onFetch().then((res) => {
             send({ type: 'RESOLVE', data: res });
           });
         }
