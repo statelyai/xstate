@@ -81,7 +81,7 @@ export function createMachine<
   TEvent extends EventObject = EventObject,
   TState extends Typestate<TContext> = any
 >(
-  fsmConfig: StateMachine.Config<TContext, TEvent>,
+  fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   options: {
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
