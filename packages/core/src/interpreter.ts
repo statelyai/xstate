@@ -47,7 +47,7 @@ import {
   symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor } from './Actor';
+import { Actor, isActor, ActorRef, fromService } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
@@ -70,6 +70,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 ) => void;
 
 export type Listener = () => void;
+export type ErrorListener = (error: Error) => void;
 
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
@@ -156,6 +157,7 @@ export class Interpreter<
   private listeners: Set<StateListener<TContext, TEvent>> = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
+  private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
@@ -167,14 +169,14 @@ export class Interpreter<
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
-  public parent?: Actor<any>;
+  public parent?: ActorRef<any, any>;
   public id: string;
 
   /**
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, Actor> = new Map();
+  public children: Map<string | number, ActorRef<any, any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -414,6 +416,12 @@ export class Interpreter<
     listener: Listener
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.stopListeners.add(listener);
+    return this;
+  }
+  public onError(
+    listener: ErrorListener
+  ): Interpreter<TContext, TStateSchema, TEvent> {
+    this.errorListeners.add(listener);
     return this;
   }
   /**
@@ -680,19 +688,26 @@ export class Interpreter<
       return;
     }
 
-    if ('machine' in (target as any)) {
-      const scxmlEvent = {
-        ...event,
-        name:
-          event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-        origin: this.sessionId
-      };
-      // Send SCXML events to machines
-      target.send(scxmlEvent);
-    } else {
-      // Send normal events to other targets
-      target.send(event.data);
-    }
+    target.send({
+      ...event,
+      name: event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+      origin: this
+    });
+
+    // if ('machine' in (target as any)) {
+    //   const scxmlEvent = {
+    //     ...event,
+    //     name:
+    //       event.name === actionTypes.error ? `${error(this.id)}` : event.name,
+    //     origin: this.sessionId
+    //   };
+    //   // Send SCXML events to machines
+    //   target.send(scxmlEvent);
+    // } else {
+    //   console.log('no machine in', target);
+    //   // Send normal events to other targets
+    //   target.send(event.data);
+    // }
   };
   /**
    * Returns the next state given the interpreter's current state and the event.
@@ -712,7 +727,14 @@ export class Interpreter<
         (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
-      throw (_event.data as any).data;
+      // TODO: refactor into proper error handler
+      if (this.errorListeners.size > 0) {
+        this.errorListeners.forEach((listener) => {
+          listener((_event.data as any).data);
+        });
+      } else {
+        throw (_event.data as any).data;
+      }
     }
 
     const nextState = withServiceScope(this, () => {
@@ -837,25 +859,29 @@ export class Interpreter<
             return;
           }
 
-          const actor = serviceCreator(context, _event.data, {
-            parent: this as any,
-            id,
-            data,
-            _event
-          });
+          try {
+            const actor = serviceCreator(context, _event.data, {
+              parent: this as any,
+              id,
+              data,
+              _event
+            });
 
-          if (autoForward) {
-            this.forwardTo.add(id);
+            if (autoForward) {
+              this.forwardTo.add(id);
+            }
+
+            this.children.set(id, actor);
+
+            this.state.children[id] = actor;
+
+            this.state.children[id].meta = {
+              ...this.state.children[id].meta,
+              ...activity
+            };
+          } catch (err) {
+            this.send(error(id, err));
           }
-
-          this.children.set(id, actor);
-
-          this.state.children[id] = actor;
-
-          this.state.children[id].meta = {
-            ...this.state.children[id].meta,
-            ...activity
-          };
         } else {
           this.spawnActivity(activity);
         }
@@ -936,7 +962,7 @@ export class Interpreter<
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
     const childService = interpret(machine, {
       ...this.options, // inherit options from this interpreter
-      parent: this as Actor<any>,
+      parent: fromService(this as any), // TODO: fix any
       id: options.id || machine.id
     });
 
@@ -957,10 +983,7 @@ export class Interpreter<
 
     const actor = childService;
 
-    this.children.set(
-      childService.id,
-      actor as Actor<State<TChildContext, TChildEvent>, TChildEvent>
-    );
+    this.children.set(childService.id, (actor as any) as ActorRef<any, any>); // TODO: fix types
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
@@ -969,7 +992,11 @@ export class Interpreter<
     childService
       .onDone((doneEvent) => {
         this.removeChild(childService.id);
-        this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
+        this.send(
+          toSCXMLEvent(doneEvent as any, {
+            origin: (childService as any) as ActorRef<any, any> // TODO: fix types
+          })
+        );
       })
       .start();
 
@@ -1113,15 +1140,15 @@ export class Interpreter<
   ): Actor<any> {
     const subscription = source.subscribe(
       (value) => {
-        this.send(toSCXMLEvent(value, { origin: id }));
+        this.send(toSCXMLEvent(value));
       },
       (err) => {
         this.removeChild(id);
-        this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
+        this.send(toSCXMLEvent(error(id, err) as any));
       },
       () => {
         this.removeChild(id);
-        this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
+        this.send(toSCXMLEvent(doneInvoke(id) as any));
       }
     );
 

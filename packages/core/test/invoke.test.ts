@@ -933,7 +933,7 @@ describe('invoke', () => {
           .start();
       });
 
-      it('should be invoked with a promise factory and ignore unhandled onError target', (done) => {
+      it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
         const doneSpy = jest.fn();
         const stopSpy = jest.fn();
 
@@ -957,14 +957,14 @@ describe('invoke', () => {
           }
         });
 
-        interpret(promiseMachine).onDone(doneSpy).onStop(stopSpy).start();
-
-        // assumes that error was ignored before the timeout is processed
-        setTimeout(() => {
-          expect(doneSpy).not.toHaveBeenCalled();
-          expect(stopSpy).not.toHaveBeenCalled();
-          done();
-        }, 10);
+        const service = interpret(promiseMachine)
+          .onDone(doneSpy)
+          .onStop(stopSpy)
+          .onError((err) => {
+            expect(err.message).toEqual(expect.stringMatching(/test/));
+            done();
+          })
+          .start();
       });
 
       it.skip(
@@ -1761,68 +1761,6 @@ describe('invoke', () => {
 
       const service = interpret(errorMachine);
       expect(() => service.start()).toThrow();
-    });
-
-    it.skip('should stop machine if unhandled error and on strict mode (async)', (done) => {
-      const errorMachine = Machine({
-        id: 'asyncError',
-        initial: 'safe',
-        // if not in strict mode we have no way to know if there
-        // was an error with processing rejected promise
-        strict: true,
-        states: {
-          safe: {
-            invoke: {
-              src: spawnCallback(() => async () => {
-                await true;
-                throw new Error('test');
-              })
-            }
-          },
-          failed: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(errorMachine)
-        .onStop(() => done())
-        .start();
-    });
-
-    it('should ignore error if unhandled error and not on strict mode (async)', (done) => {
-      const doneSpy = jest.fn();
-      const stopSpy = jest.fn();
-
-      const errorMachine = Machine({
-        id: 'asyncError',
-        initial: 'safe',
-        // if not in strict mode we have no way to know if there
-        // was an error with processing rejected promise
-        strict: false,
-        states: {
-          safe: {
-            invoke: {
-              src: spawnCallback(() => async () => {
-                await true;
-                throw new Error('test');
-              })
-            }
-          },
-          failed: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(errorMachine).onDone(doneSpy).onStop(stopSpy).start();
-
-      // assumes that error was ignored before the timeout is processed
-      setTimeout(() => {
-        expect(doneSpy).not.toHaveBeenCalled();
-        expect(stopSpy).not.toHaveBeenCalled();
-        done();
-      }, 20);
     });
 
     describe('sub invoke race condition', () => {

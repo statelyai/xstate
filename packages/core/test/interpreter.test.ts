@@ -847,9 +847,15 @@ describe('interpreter', () => {
     expect(logs.length).toBe(4);
     expect(logs).toEqual([
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: expect.stringMatching(/.+/) },
+      {
+        event: 'PONG',
+        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
+      },
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: expect.stringMatching(/.+/) }
+      {
+        event: 'PONG',
+        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
+      }
     ]);
   });
 
@@ -1817,34 +1823,38 @@ describe('interpreter', () => {
                     }, 100);
                   })
               ),
-              onDone: {
-                target: 'success',
-                cond: (_, e) => e.data === 42
-              }
+              onDone: [
+                {
+                  target: 'success',
+                  cond: (_, e) => {
+                    return e.data === 42;
+                  }
+                },
+                { target: 'failure' }
+              ]
             }
           },
           success: {
+            type: 'final'
+          },
+          failure: {
             type: 'final'
           }
         }
       });
 
-      const subscriber = (data) => {
-        expect(data).toEqual(42);
-        done();
-      };
-      let subscription;
-
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          const childActor = state.children.childActor;
+          if (state.matches('active')) {
+            const childActor = state.children.childActor;
 
-          if (childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
+            expect(childActor).toHaveProperty('send');
           }
         })
         .onDone(() => {
+          expect(service.state.matches('success')).toBeTruthy();
           expect(service.state.children).not.toHaveProperty('childActor');
+          done();
         });
 
       service.start();

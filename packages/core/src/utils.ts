@@ -24,7 +24,7 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { State, InvokeConfig, InvokeCreator } from '.';
+import { State, InvokeConfig, ActorCreator } from '.';
 import { Actor } from './Actor';
 import { MachineNode } from './MachineNode';
 
@@ -524,7 +524,7 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | InvokeCreator<TContext, TEvent>,
+    | ActorCreator<TContext, TEvent>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object' && 'src' in invocable) {

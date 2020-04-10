@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue, Actor } from '.';
+import { EventObject, StateNode, StateValue } from '.';
 import {
   keys,
   flatten,

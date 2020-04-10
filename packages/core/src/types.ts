@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
-import { Actor } from './Actor';
+import { Actor, ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 export type EventType = string;
@@ -205,11 +205,16 @@ export type InvokeCallback = (
  * @param context The current machine `context`
  * @param event The event that invoked the service
  */
-export type InvokeCreator<TContext, TEvent extends EventObject> = (
+export type ActorCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
-  meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
-) => Actor;
+  meta: {
+    parent: ActorRef<State<TContext, TEvent>, TEvent>;
+    id: string;
+    data?: any;
+    _event: SCXML.Event<TEvent>;
+  }
+) => ActorRef<any, any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
@@ -346,7 +351,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeCreator<any, any>;
+  src: string | ActorCreator<any, any>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -421,7 +426,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | InvokeCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    string | ActorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -545,7 +550,7 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
 
 export type ServiceConfig<TContext, TEvent extends EventObject> =
   | string
-  | InvokeCreator<TContext, TEvent>;
+  | ActorCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -555,7 +560,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, InvokeCreator<TContext, TEvent>>;
+  services: Record<string, ActorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -953,7 +958,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Actor<any>;
+  parent?: ActorRef<any, any>;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown
@@ -1008,7 +1013,7 @@ export declare namespace SCXML {
      * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origin?: string;
+    origin?: ActorRef<any, any>;
     /**
      * This is equivalent to the 'type' field on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,
@@ -1039,18 +1044,6 @@ export declare namespace SCXML {
   }
 }
 
-// Taken from RxJS
-export interface Unsubscribable {
-  unsubscribe(): any | void;
-}
-export interface Subscribable<T> {
-  subscribe(
-    next?: (value: T) => void,
-    error?: (error: any) => void,
-    complete?: () => void
-  ): Unsubscribable;
-}
-
 export interface Observer<T> {
   next: (value: T) => void;
   error: (err: any) => void;
@@ -1062,3 +1055,20 @@ export type Spawnable =
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;
+
+// Taken from RxJS
+export interface Unsubscribable {
+  unsubscribe(): any | void;
+}
+export interface Subscribable<T> {
+  subscribe(
+    next?: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Unsubscribable | undefined;
+}
+
+export interface ActorLike<TCurrent, TEvent extends EventObject>
+  extends Subscribable<TCurrent> {
+  send: Sender<TEvent>;
+}

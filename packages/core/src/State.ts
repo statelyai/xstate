@@ -15,7 +15,7 @@ import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
-import { Actor } from './Actor';
+import { Actor, ActorRef } from './Actor';
 
 export function isState<TContext, TEvent extends EventObject>(
   state: object | string
@@ -93,7 +93,7 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
-  public children: Record<string, Actor>;
+  public children: Record<string, ActorRef<any, any>>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

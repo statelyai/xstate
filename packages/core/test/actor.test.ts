@@ -218,40 +218,40 @@ describe('spawning promises', () => {
 });
 
 describe('spawning callbacks', () => {
-  const callbackMachine = Machine<any>({
-    id: 'callback',
-    initial: 'idle',
-    context: {
-      callbackRef: undefined
-    },
-    states: {
-      idle: {
-        entry: assign({
-          callbackRef: () =>
-            spawn((cb, receive) => {
-              receive((event) => {
-                if (event.type === 'START') {
-                  setTimeout(() => {
-                    cb('SEND_BACK');
-                  }, 10);
-                }
-              });
-            })
-        }),
-        on: {
-          START_CB: {
-            actions: send('START', { to: (ctx) => ctx.callbackRef })
-          },
-          SEND_BACK: 'success'
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    }
-  });
-
   it('should be able to spawn an actor from a callback', (done) => {
+    const callbackMachine = Machine<any>({
+      id: 'callback',
+      initial: 'idle',
+      context: {
+        callbackRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            callbackRef: () =>
+              spawn((cb, receive) => {
+                receive((event) => {
+                  if (event.type === 'START') {
+                    setTimeout(() => {
+                      cb('SEND_BACK');
+                    }, 10);
+                  }
+                });
+              })
+          }),
+          on: {
+            START_CB: {
+              actions: send('START', { to: (ctx) => ctx.callbackRef })
+            },
+            SEND_BACK: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
     const callbackService = interpret(callbackMachine).onDone(() => {
       done();
     });

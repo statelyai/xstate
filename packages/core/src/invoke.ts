@@ -1,10 +1,12 @@
+import { EventObject, ActorCreator, InvokeCallback, Subscribable } from '.';
+
 import {
-  EventObject,
-  Actor,
-  InvokeCreator,
-  InvokeCallback,
-  Subscribable
-} from '.';
+  ActorRef,
+  fromService,
+  fromCallback,
+  fromObservable,
+  fromPromise
+} from './Actor';
 
 import { interpret } from './interpreter';
 
@@ -29,7 +31,7 @@ export function spawnMachine<
 >(
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { sync?: boolean } = {}
-): InvokeCreator<TContext, TEvent> {
+): ActorCreator<TContext, TEvent> {
   return (ctx, event, { parent, id, data, _event }) => {
     let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
     if (data) {
@@ -51,27 +53,27 @@ export function spawnMachine<
 
     if (resolvedOptions.sync) {
       childService.onTransition((state) => {
-        parent.send({
+        parent.send(({
           type: actionTypes.update,
           state,
           id: childService.id
-        });
+        } as any) as TEvent); // todo: fix or remove
       });
     }
+
+    const actorRef = fromService(childService);
 
     childService
       .onDone((doneEvent) => {
         parent.send(
-          toSCXMLEvent(doneInvoke(id, doneEvent.data), {
-            origin: childService.id
-          })
+          (toSCXMLEvent(doneInvoke(id, doneEvent.data), {
+            origin: actorRef
+          }) as any) as TEvent // todo: fix or remove
         );
       })
       .start();
 
-    const actor = childService;
-
-    return actor as Actor;
+    return actorRef;
   };
 }
 
@@ -79,17 +81,19 @@ export function spawnPromise<T>(
   promise:
     | PromiseLike<T>
     | ((ctx: any, event: AnyEventObject) => PromiseLike<T>)
-): InvokeCreator<any, AnyEventObject> {
+): ActorCreator<any, AnyEventObject> {
   return (ctx, e, { parent, id }) => {
     let canceled = false;
 
     const resolvedPromise = isFunction(promise) ? promise(ctx, e) : promise;
 
+    const actorRef = fromPromise(resolvedPromise, parent, id);
+
     resolvedPromise.then(
       (response) => {
         if (!canceled) {
           parent.send(
-            toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
+            toSCXMLEvent(doneInvoke(id, response) as any, { origin: actorRef })
           );
         }
       },
@@ -98,9 +102,13 @@ export function spawnPromise<T>(
           const errorEvent = error(id, errorData);
           try {
             // Send "error.platform.id" to this (parent).
-            parent.send(toSCXMLEvent(errorEvent as any, { origin: id }));
-          } catch (error) {
-            reportUnhandledExceptionOnInvocation(errorData, error, id);
+            parent.send(toSCXMLEvent(errorEvent as any, { origin: actorRef }));
+          } catch (communicationError) {
+            reportUnhandledExceptionOnInvocation(
+              errorData,
+              communicationError,
+              id
+            );
             // if (this.devTools) {
             //   this.devTools.send(errorEvent, this.state);
             // }
@@ -116,166 +124,193 @@ export function spawnPromise<T>(
       }
     );
 
-    const actor = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError, complete) => {
-        let unsubscribed = false;
-        resolvedPromise.then(
-          (response) => {
-            if (unsubscribed) {
-              return;
-            }
-            next && next(response);
-            if (unsubscribed) {
-              return;
-            }
-            complete && complete();
-          },
-          (err) => {
-            if (unsubscribed) {
-              return;
-            }
-            handleError(err);
-          }
-        );
+    return actorRef;
+    // const actor = {
+    //   id,
+    //   send: () => void 0,
+    //   subscribe: (next, handleError, complete) => {
+    //     let unsubscribed = false;
+    //     resolvedPromise.then(
+    //       (response) => {
+    //         if (unsubscribed) {
+    //           return;
+    //         }
+    //         next && next(response);
+    //         if (unsubscribed) {
+    //           return;
+    //         }
+    //         complete && complete();
+    //       },
+    //       (err) => {
+    //         if (unsubscribed) {
+    //           return;
+    //         }
+    //         handleError(err);
+    //       }
+    //     );
 
-        return {
-          unsubscribe: () => (unsubscribed = true)
-        };
-      },
-      stop: () => {
-        canceled = true;
-      },
-      toJSON() {
-        return { id };
-      }
-    };
+    //     return {
+    //       unsubscribe: () => (unsubscribed = true)
+    //     };
+    //   },
+    //   stop: () => {
+    //     canceled = true;
+    //   },
+    //   toJSON() {
+    //     return { id };
+    //   }
+    // };
 
-    return actor;
+    // return actor;
   };
 }
 
 export function spawnActivity<TC, TE extends EventObject>(
   activityCreator: (ctx: TC, event: TE) => any
-): InvokeCreator<TC, TE> {
-  return (ctx, e, { parent, id }) => {
-    let dispose;
-    try {
-      dispose = activityCreator(ctx, e);
-    } catch (err) {
-      parent.send(error(id, err) as any);
-    }
-
-    return {
-      id,
-      send: () => void 0,
-      toJSON: () => ({ id }),
-      subscribe() {
-        // do nothing
-        return {
-          unsubscribe: () => void 0
-        };
-      },
-      stop: isFunction(dispose) ? () => dispose() : undefined
-    };
+): ActorCreator<TC, TE> {
+  const callbackCreator = (ctx: TC, event: TE) => () => {
+    return activityCreator(ctx, event);
   };
+  return spawnCallback<TC, TE>(callbackCreator);
+  //   return (ctx, e, { parent, id }) => {
+  //     let dispose;
+  //     try {
+  //       dispose = activityCreator(ctx, e);
+  //     } catch (err) {
+  //       parent.send(error(id, err) as any);
+  //     }
+
+  //     return new ActorRef(
+  //       () => void 0,
+
+  //       () => {
+  //         return {
+  //           unsubscribe: () => (isFunction(dispose) ? dispose() : undefined)
+  //         };
+  //       },
+  //       undefined,
+  //       undefined
+  //     );
+
+  //     // return {
+  //     //   id,
+  //     //   send: () => void 0,
+  //     //   toJSON: () => ({ id }),
+  //     //   subscribe() {
+  //     //     // do nothing
+  //     //     return {
+  //     //       unsubscribe: () => void 0
+  //     //     };
+  //     //   },
+  //     //   stop: isFunction(dispose) ? () => dispose() : undefined
+  //     // };
+  //   };
 }
 
-export function spawnCallback<TE extends EventObject = AnyEventObject>(
+export function spawnCallback<TC, TE extends EventObject = AnyEventObject>(
   callbackCreator: (ctx: any, e: any) => InvokeCallback
-): InvokeCreator<any, AnyEventObject> {
+): ActorCreator<any, AnyEventObject> {
   return (ctx, event, { parent, id, _event }) => {
     const callback = callbackCreator(ctx, event);
-    let canceled = false;
-    const receivers = new Set<(e: EventObject) => void>();
-    const listeners = new Set<(e: EventObject) => void>();
+    // let canceled = false;
+    // const receivers = new Set<(e: EventObject) => void>();
+    // const listeners = new Set<(e: EventObject) => void>();
 
-    const receive = (receivedEvent: TE) => {
-      listeners.forEach((listener) => listener(receivedEvent));
-      if (canceled) {
-        return;
-      }
-      parent.send(receivedEvent);
-    };
+    // console.log(callback);
 
-    let callbackStop;
+    // const receive = (receivedEvent: TE) => {
+    //   listeners.forEach((listener) => listener(receivedEvent));
+    //   if (canceled) {
+    //     return;
+    //   }
+    //   parent.send(receivedEvent);
+    // };
 
-    try {
-      callbackStop = callback(receive, (newListener) => {
-        receivers.add(newListener);
-      });
-    } catch (err) {
-      parent.send(error(id, err) as any);
-    }
+    // let callbackStop;
 
-    if (isPromiseLike(callbackStop)) {
-      // it turned out to be an async function, can't reliably check this before calling `callback`
-      // because transpiled async functions are not recognizable
-      return spawnPromise(callbackStop as Promise<any>)(ctx, event, {
-        parent,
-        id,
-        _event
-      });
-    }
+    // try {
+    //   callbackStop = callback(receive, (newListener) => {
+    //     receivers.add(newListener);
+    //   });
+    // } catch (err) {
+    //   parent.send(error(id, err) as any);
+    // }
 
-    const actor = {
-      id,
-      send: (receivedEvent) =>
-        receivers.forEach((receiver) => receiver(receivedEvent)),
-      subscribe: (next) => {
-        listeners.add(next);
+    // if (isPromiseLike(callbackStop)) {
+    //   // it turned out to be an async function, can't reliably check this before calling `callback`
+    //   // because transpiled async functions are not recognizable
+    //   return spawnPromise(callbackStop as Promise<any>)(ctx, event, {
+    //     parent,
+    //     id,
+    //     _event
+    //   });
+    // }
 
-        return {
-          unsubscribe: () => {
-            listeners.delete(next);
-          }
-        };
-      },
-      stop: () => {
-        canceled = true;
-        if (isFunction(callbackStop)) {
-          callbackStop();
-        }
-      },
-      toJSON() {
-        return { id };
-      }
-    };
+    const actorRef = fromCallback(callback, parent, id);
 
-    return actor;
+    return actorRef;
+
+    // const actor = {
+    //   id,
+    //   send: (receivedEvent) =>
+    //     receivers.forEach((receiver) => receiver(receivedEvent)),
+    //   subscribe: (next) => {
+    //     listeners.add(next);
+
+    //     return {
+    //       unsubscribe: () => {
+    //         listeners.delete(next);
+    //       }
+    //     };
+    //   },
+    //   stop: () => {
+    //     canceled = true;
+    //     if (isFunction(callbackStop)) {
+    //       callbackStop();
+    //     }
+    //   },
+    //   toJSON() {
+    //     return { id };
+    //   }
+    // };
+
+    // return actor;
   };
 }
 
 export function spawnObservable<T extends EventObject = AnyEventObject>(
   source: Subscribable<T> | ((ctx: any, event: any) => Subscribable<T>)
-): InvokeCreator<any, any> {
+): ActorCreator<any, any> {
   return (ctx, e, { parent, id }) => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
-    const subscription = resolvedSource.subscribe(
-      (value) => {
-        parent.send(toSCXMLEvent(value, { origin: id }));
-      },
-      (err) => {
-        parent.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
-      },
-      () => {
-        parent.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
-      }
-    );
+    // const subscription = resolvedSource.subscribe(
+    //   (value) => {
+    //     parent.send(toSCXMLEvent(value, { origin: id }));
+    //   },
+    //   (err) => {
+    //     parent.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
+    //   },
+    //   () => {
+    //     parent.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
+    //   }
+    // );
 
-    const actor = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError, complete) => {
-        return resolvedSource.subscribe(next, handleError, complete);
-      },
-      stop: () => subscription.unsubscribe(),
-      toJSON() {
-        return { id };
-      }
-    };
+    const actorRef = fromObservable(resolvedSource, parent, id);
 
-    return actor;
+    return actorRef;
+
+    // const actor = {
+    //   id,
+    //   send: () => void 0,
+    //   subscribe: (next, handleError, complete) => {
+    //     return resolvedSource.subscribe(next, handleError, complete);
+    //   },
+    //   stop: () => subscription.unsubscribe(),
+    //   toJSON() {
+    //     return { id };
+    //   }
+    // };
+
+    // return actor;
   };
 }
