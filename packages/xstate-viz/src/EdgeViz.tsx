@@ -5,7 +5,7 @@ import { StateContext } from './StateContext';
 import { TrackerData, relative, Point } from './tracker';
 import { serializeTransition, isActive } from './utils';
 import { useTracked } from './useTracker';
-import { StateNode } from 'xstate/src';
+import { StateNode } from 'xstate';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
@@ -90,11 +90,11 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
   const [machineRect, setMachineRect] = useState<TrackerData | undefined>();
 
   useEffect(() => {
-    tracker.listen(serializeTransition(edge.transition), data =>
+    tracker.listen(serializeTransition(edge.transition), (data) =>
       setEventRect(data)
     );
-    tracker.listen(edge.target.id, data => setTargetRect(data));
-    tracker.listen(edge.target.machine.id, data => setMachineRect(data));
+    tracker.listen(edge.target.id, (data) => setTargetRect(data));
+    tracker.listen(edge.target.machine.id, (data) => setMachineRect(data));
   }, []);
 
   const path =

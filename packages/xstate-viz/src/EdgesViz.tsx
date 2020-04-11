@@ -2,7 +2,7 @@ import * as React from 'react';
 import { Edge } from './types';
 import { EdgeViz, InitialEdgeViz } from './EdgeViz';
 import { ArrowMarker } from './ArrowMarker';
-import { StateMachine } from 'xstate/src';
+import { StateMachine } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
 
 export function EdgesViz({
@@ -13,7 +13,7 @@ export function EdgesViz({
   machine: StateMachine<any, any, any>;
 }) {
   const childNodes = getAllStateNodes(machine).filter(
-    sn => sn.parent && sn.parent.initial === sn.key
+    (sn) => sn.parent && sn.parent.initial === sn.key
   );
 
   return (
@@ -24,7 +24,7 @@ export function EdgesViz({
       <defs>
         <ArrowMarker />
       </defs>
-      {childNodes.map(cn => {
+      {childNodes.map((cn) => {
         return <InitialEdgeViz stateNode={cn} key={cn.id} />;
       })}
       {edges.map((edge, i) => {
