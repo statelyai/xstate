@@ -253,11 +253,11 @@ We can also continue to use `switch`, but we must make an adjustment to our appr
 
 ```js
 switch (true) {
-  case current.matches('idle'):
+  case state.matches('idle'):
     return /* ... */;
-  case current.matches({ loading: 'user' }):
+  case state.matches({ loading: 'user' }):
     return /* ... */;
-  case current.matches({ loading: 'friends' }):
+  case state.matches({ loading: 'friends' }):
     return /* ... */;
   default:
     return null;
