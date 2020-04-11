@@ -3,7 +3,7 @@ import { InvokeDefinition } from 'xstate';
 
 function formatInvoke(src: string): string {
   if (isUnnamed(src)) {
-    const [_, index] = src.match(/:invocation\[(\d+)\]$/);
+    const [, index] = src.match(/:invocation\[(\d+)\]$/);
 
     return `anonymous (${index})`;
   }
