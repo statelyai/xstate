@@ -81,7 +81,7 @@ export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
 class ObservableActorRef<TCurrent extends EventObject>
   implements ActorRef<TCurrent | undefined, never, Subscribable<TCurrent>> {
   public current = undefined;
-  private subscription: Unsubscribable;
+  private subscription?: Unsubscribable;
 
   constructor(
     public ref: Subscribable<TCurrent>,
@@ -108,7 +108,7 @@ class ObservableActorRef<TCurrent extends EventObject>
     return this.ref.subscribe(...args);
   }
   public stop() {
-    this.subscription.unsubscribe();
+    this.subscription && this.subscription.unsubscribe();
   }
 }
 
@@ -120,9 +120,9 @@ export function fromObservable<T extends EventObject>(
   return new ObservableActorRef<T>(observable, parent, id);
 }
 
-class PromiseActorRef<T> implements ActorRef<T, never, Promise<T>> {
+class PromiseActorRef<T> implements ActorRef<T | undefined, never, Promise<T>> {
   private canceled = false;
-  public current = undefined;
+  public current: T | undefined = undefined;
 
   constructor(public ref: Promise<T>, parent: ActorRef<any, any>, id: string) {
     this.ref.then(
@@ -159,13 +159,15 @@ export function fromPromise<T>(
   return new PromiseActorRef<T>(Promise.resolve(promise), parent, id);
 }
 
-class CallbackActorRef<TEmitted, TEvent extends EventObject>
-  implements ActorRef<TEmitted, SCXML.Event<TEvent>> {
+class CallbackActorRef<
+  TEmitted extends EventObject = AnyEventObject,
+  TEvent extends EventObject = AnyEventObject
+> implements ActorRef<TEmitted | undefined, SCXML.Event<TEvent>> {
   private receivers = new Set<(e: EventObject) => void>();
   private listeners = new Set<(e: EventObject) => void>();
   private dispose;
   private canceled = false;
-  public current = undefined;
+  public current: TEmitted | undefined = undefined;
 
   constructor(
     public ref: InvokeCallback,
@@ -173,7 +175,7 @@ class CallbackActorRef<TEmitted, TEvent extends EventObject>
     id: string
   ) {
     const dispose = this.ref(
-      (e: TEvent) => {
+      (e: TEmitted) => {
         if (this.canceled) {
           return;
         }
@@ -217,12 +219,11 @@ class CallbackActorRef<TEmitted, TEvent extends EventObject>
   }
 }
 
-export function fromCallback<TEmitted, TEvent extends EventObject>(
-  fn: InvokeCallback,
-  parent: ActorRef<any, any>,
-  id: string
-) {
-  return new CallbackActorRef(fn, parent, id);
+export function fromCallback<
+  TEmitted extends EventObject,
+  TEvent extends EventObject
+>(fn: InvokeCallback, parent: ActorRef<any, any>, id: string) {
+  return new CallbackActorRef<TEmitted, TEvent>(fn, parent, id);
   // const receivers = new Set<(e: TEvent) => void>();
   // const listeners = new Set<(e: TEmitted) => void>();
 
@@ -263,7 +264,7 @@ export function fromCallback<TEmitted, TEvent extends EventObject>(
 class ServiceActorRef<TContext, TEvent extends EventObject>
   implements ActorRef<State<TContext, TEvent>, TEvent> {
   public current: State<TContext, TEvent>;
-  private subscription: Unsubscribable;
+  private subscription?: Unsubscribable;
 
   constructor(
     public ref: ActorLike<State<TContext, TEvent>, TEvent> & {
@@ -280,7 +281,7 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
     this.ref.send(event);
   }
   public stop() {
-    this.subscription.unsubscribe();
+    this.subscription && this.subscription.unsubscribe();
   }
 }
 

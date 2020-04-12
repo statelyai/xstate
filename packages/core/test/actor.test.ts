@@ -608,7 +608,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'a-service'
         }).onTransition((s) => {
-          if (s.context.ref.state.context.value === 42) {
+          if (s.context.ref.current.context.value === 42) {
             res();
           }
         });
@@ -621,14 +621,16 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'b-service'
         }).onTransition((s) => {
-          if (s.context.refNoSync.state.context.value === 42) {
+          if (s.context.refNoSync.current.context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
         service.start();
 
         setTimeout(() => {
-          expect(service.state.context.refNoSync.state.context.value).toBe(42);
+          expect(service.current.context.refNoSync.current.context.value).toBe(
+            42
+          );
           res();
         }, 30);
       });
@@ -639,7 +641,7 @@ describe('actors', () => {
         const service = interpret(parentMachine, {
           id: 'c-service'
         }).onTransition((s) => {
-          if (s.context.refNoSyncDefault.state.context.value === 42) {
+          if (s.context.refNoSyncDefault.current.context.value === 42) {
             rej(new Error('value change caused transition'));
           }
         });
@@ -647,7 +649,7 @@ describe('actors', () => {
 
         setTimeout(() => {
           expect(
-            service.state.context.refNoSyncDefault.state.context.value
+            service.current.context.refNoSyncDefault.current.context.value
           ).toBe(42);
           res();
         }, 30);
@@ -685,7 +687,7 @@ describe('actors', () => {
         .onTransition((state) => {
           if (
             state.context.ref &&
-            state.context.ref.state.matches('inactive')
+            state.context.ref.current.matches('inactive')
           ) {
             expect(state.changed).toBe(true);
             done();
@@ -730,7 +732,7 @@ describe('actors', () => {
           .onTransition((state) => {
             if (
               state.context.ref &&
-              state.context.ref.state.matches('inactive')
+              state.context.ref.current.matches('inactive')
             ) {
               expect(state.changed).toBe(false);
             }
@@ -738,7 +740,7 @@ describe('actors', () => {
           .start();
 
         setTimeout(() => {
-          expect(service.state.context.ref!.state.matches('inactive')).toBe(
+          expect(service.current.context.ref!.current.matches('inactive')).toBe(
             true
           );
           done();
@@ -780,7 +782,7 @@ describe('actors', () => {
           .onTransition((state) => {
             if (
               state.context.ref &&
-              state.context.ref.state.matches('inactive')
+              state.context.ref.current.matches('inactive')
             ) {
               expect(state.changed).toBe(true);
               done();

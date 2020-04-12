@@ -643,7 +643,7 @@ describe('interpreter', () => {
     const service = interpret(machine).start();
 
     service.onDone(() => {
-      expect(service.state.value).toBe('pass');
+      expect(service.current.value).toBe('pass');
       done();
     });
   });
@@ -1801,7 +1801,7 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.current.children).not.toHaveProperty('childActor');
           done();
         });
 
@@ -1852,8 +1852,8 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.matches('success')).toBeTruthy();
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.current.matches('success')).toBeTruthy();
+          expect(service.current.children).not.toHaveProperty('childActor');
           done();
         });
 
@@ -1904,7 +1904,7 @@ describe('interpreter', () => {
           }
         })
         .onDone(() => {
-          expect(service.state.children).not.toHaveProperty('childActor');
+          expect(service.current.children).not.toHaveProperty('childActor');
         });
 
       service.start();

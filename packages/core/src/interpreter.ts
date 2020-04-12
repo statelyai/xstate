@@ -125,7 +125,7 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
-> implements Actor<State<TContext, TEvent>, TEvent> {
+> implements ActorRef<State<TContext, TEvent>, TEvent> {
   /**
    * The default interpreter options:
    *
@@ -173,9 +173,10 @@ export class Interpreter<
   public initialized = false;
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
-  // Actor
+  // Actor Ref
   public parent?: ActorRef<any, any>;
   public id: string;
+  public ref: MachineNode<TContext, any, TEvent>;
 
   /**
    * The globally unique process ID for this invocation.
@@ -210,6 +211,7 @@ export class Interpreter<
     this.logger = logger;
     this.clock = clock;
     this.parent = parent;
+    this.ref = machine;
 
     this.options = resolvedOptions;
 
@@ -230,7 +232,7 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent, any, TTypestate> {
+  public get current(): State<TContext, TEvent, any, TTypestate> {
     if (!IS_PRODUCTION) {
       warn(
         this._status !== InterpreterStatus.NotStarted,
@@ -267,7 +269,7 @@ export class Interpreter<
 
     // Execute actions
     if (this.options.execute) {
-      this.execute(this.state);
+      this.execute(this.current);
     }
 
     // Dev tools
@@ -288,14 +290,14 @@ export class Interpreter<
 
     for (const contextListener of this.contextListeners) {
       contextListener(
-        this.state.context,
-        this.state.history ? this.state.history.context : undefined
+        this.current.context,
+        this.current.history ? this.current.history.context : undefined
       );
     }
 
     const isDone = isInFinalState(state.configuration || [], this.machine);
 
-    if (this.state.configuration && isDone) {
+    if (this.current.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === this.machine
@@ -325,7 +327,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
-      listener(this.state, this.state.event);
+      listener(this.current, this.current.event);
     }
 
     return this;
@@ -367,7 +369,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
-      listener(this.state);
+      listener(this.current);
     }
 
     if (resolvedCompleteListener) {
@@ -545,7 +547,7 @@ export class Interpreter<
   ): State<TContext, TEvent> => {
     if (isArray(event)) {
       this.batch(event);
-      return this.state;
+      return this.current;
     }
 
     const _event = toSCXMLEvent(event);
@@ -562,7 +564,7 @@ export class Interpreter<
           )}`
         );
       }
-      return this.state;
+      return this.current;
     }
 
     if (
@@ -628,7 +630,7 @@ export class Interpreter<
     }
 
     this.scheduler.schedule(() => {
-      let nextState = this.state;
+      let nextState = this.current;
       let batchChanged = false;
       const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
       for (const event of events) {
@@ -668,8 +670,7 @@ export class Interpreter<
     event: SCXML.Event<TEvent>,
     to: string | number | Actor
   ) => {
-    const isParent =
-      this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
+    const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
       : isActor(to)
@@ -728,7 +729,7 @@ export class Interpreter<
 
     if (
       _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.state.nextEvents.some(
+      !this.current.nextEvents.some(
         (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
@@ -743,7 +744,7 @@ export class Interpreter<
     }
 
     const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.state, _event);
+      return this.machine.transition(this.current, _event);
     });
 
     return nextState;
@@ -792,7 +793,7 @@ export class Interpreter<
       try {
         return exec(context, _event.data, {
           action,
-          state: this.state,
+          state: this.current,
           _event
         });
       } catch (err) {
@@ -878,10 +879,10 @@ export class Interpreter<
 
             this.children.set(id, actor);
 
-            this.state.children[id] = actor;
+            this.current.children[id] = actor;
 
-            this.state.children[id].meta = {
-              ...this.state.children[id].meta,
+            this.current.children[id].meta = {
+              ...this.current.children[id].meta,
               ...activity
             };
           } catch (err) {
@@ -925,7 +926,7 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    delete this.state.children[childId];
+    delete this.current.children[childId];
   }
 
   private stopChild(childId: string): void {
@@ -940,7 +941,11 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
+  public spawn(
+    entity: Spawnable,
+    name: string,
+    options?: SpawnOptions
+  ): ActorRef<any, any> {
     if (isPromiseLike(entity)) {
       const actor = fromPromise(entity, this, name);
       this.children.set(name, actor);
@@ -1033,7 +1038,7 @@ export class Interpreter<
     }
 
     // Start implementation
-    const dispose = implementation(this.state.context, activity);
+    const dispose = implementation(this.current.context, activity);
     this.spawnEffect(activity.id, dispose);
   }
   private spawnEffect(
@@ -1082,7 +1087,7 @@ export class Interpreter<
           },
           this.machine
         );
-        this.devTools.init(this.state);
+        this.devTools.init(this.current);
       }
 
       // add XState-specific dev tooling hook

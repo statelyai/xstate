@@ -327,23 +327,23 @@ describe('Typestates', () => {
     const service = interpret(machine);
     const startedService = service.start();
 
-    const idle: Idle = startedService.state.matches('idle')
-      ? startedService.state.context
+    const idle: Idle = startedService.current.matches('idle')
+      ? startedService.current.context
       : { result: none, error: none };
     expect(idle).toEqual({ result: none, error: none });
 
-    const running: Running = startedService.state.matches('running')
-      ? startedService.state.context
+    const running: Running = startedService.current.matches('running')
+      ? startedService.current.context
       : { result: none, error: none };
     expect(running).toEqual({ result: none, error: none });
 
-    const succeeded: Succeeded = startedService.state.matches('succeeded')
-      ? startedService.state.context
+    const succeeded: Succeeded = startedService.current.matches('succeeded')
+      ? startedService.current.context
       : { result: 12, error: none };
     expect(succeeded).toEqual({ result: 12, error: none });
 
-    const failed: Failed = startedService.state.matches('failed')
-      ? startedService.state.context
+    const failed: Failed = startedService.current.matches('failed')
+      ? startedService.current.context
       : { result: none, error: 'oops' };
     expect(failed).toEqual({ result: none, error: 'oops' });
   });

@@ -68,7 +68,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     rehydratedState ? State.create(rehydratedState) : undefined
   );
 
-  const state = ref<State<TContext, TEvent>>(service.state);
+  const state = ref<State<TContext, TEvent>>(service.current);
 
   onMounted(() => {
     service.onTransition((currentState) => {
@@ -77,7 +77,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
       }
     });
 
-    state.value = service.state;
+    state.value = service.current;
   });
 
   onBeforeUnmount(() => {
@@ -99,10 +99,10 @@ export function useService<TContext, TEvent extends EventObject>(
   const serviceRef = isRef(service)
     ? service
     : ref<Interpreter<TContext, any, TEvent>>(service);
-  const state = ref<State<TContext, TEvent>>(serviceRef.value.state);
+  const state = ref<State<TContext, TEvent>>(serviceRef.value.current);
 
   watch(serviceRef, (watchedService, _, onCleanup) => {
-    state.value = watchedService.state;
+    state.value = watchedService.current;
     const { unsubscribe } = watchedService.subscribe((currentState) => {
       if (currentState.changed) {
         state.value = currentState;

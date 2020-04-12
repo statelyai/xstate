@@ -350,7 +350,7 @@ it('internal transition to a history state should enter default history state co
   service.send('NEXT');
   service.send('NEXT');
 
-  expect(service.state.value).toEqual({
+  expect(service.current.value).toEqual({
     second: 'nested'
   });
 });
