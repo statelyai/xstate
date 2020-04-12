@@ -94,7 +94,9 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
       setEventRect(data)
     );
     tracker.listen(edge.target.id, (data) => setTargetRect(data));
-    tracker.listen(edge.target.machine.id, (data) => setMachineRect(data));
+    tracker.listen(`machine:${edge.target.machine.id}`, (data) =>
+      setMachineRect(data)
+    );
   }, []);
 
   const path =
@@ -233,7 +235,7 @@ export function InitialEdgeViz({
   stateNode: StateNode<any, any, any>;
 }) {
   const data = useTracked(stateNode.id);
-  const machineData = useTracked(stateNode.machine.id);
+  const machineData = useTracked(`machine:${stateNode.machine.id}`);
 
   if (!data) {
     return null;

@@ -1,25 +1,14 @@
-*,
-*:before,
-*:after {
-  box-sizing: border-box;
-  position: relative; }
-
-html,
-body {
-  height: 100%;
-  width: 100%;
-  margin: 0;
-  padding: 0;
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; }
-
-body {
-  padding: 2rem; }
-
 [data-xviz='machine'] {
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --gap: 0.5rem;
   background: #111;
   color: white;
-  --xviz-color-background: rgba(255, 255, 255, 0.2) !important; }
+  --xviz-color-background: rgba(255, 255, 255, 0.2) !important;
+  padding: 1rem; }
+  [data-xviz='machine'],
+  [data-xviz='machine'] * {
+    box-sizing: border-box;
+    position: relative; }
 
 [data-xviz='stateNode'] {
   --child-border-style: solid;

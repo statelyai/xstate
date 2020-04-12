@@ -8,15 +8,19 @@ import { tracker } from './tracker';
 import { State, StateMachine } from 'xstate';
 import { getAllEdges } from './utils';
 import { StateViz } from './StateViz';
+import { useTracking } from './useTracker';
 
 interface MachineVizProps {
   state: State<any, any>;
   machine: StateMachine<any, any, any>;
 }
 
-export function MachineViz({ machine, state }: MachineVizProps) {
+const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, state }) => {
+  const ref = useTracking(`machine:${machine.id}`);
+
   return (
     <div
+      ref={ref}
       data-xviz="machine"
       title={`machine: #${machine.id}`}
       style={{
@@ -28,11 +32,17 @@ export function MachineViz({ machine, state }: MachineVizProps) {
         '--xviz-stroke-width': 'var(--xviz-border-width)'
       }}
     >
-      <StateContext.Provider value={{ state, tracker }}>
-        <StateNodeViz stateNode={machine} />
-        <EdgesViz edges={getAllEdges(machine)} machine={machine} />
-        <StateViz state={state} />
-      </StateContext.Provider>
+      <StateNodeViz stateNode={machine} />
+      <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+      <StateViz state={state} />
     </div>
+  );
+};
+
+export function MachineViz({ machine, state }: MachineVizProps) {
+  return (
+    <StateContext.Provider value={{ state, tracker }}>
+      <MachineVizContainer machine={machine} state={state} />
+    </StateContext.Provider>
   );
 }
