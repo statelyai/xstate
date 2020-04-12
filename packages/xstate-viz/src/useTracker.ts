@@ -25,7 +25,9 @@ export function useTracked(id: string) {
   const [rect, setRect] = useState<TrackerData | undefined>();
 
   React.useEffect(() => {
-    tracker.listen(id, data => setRect(data));
+    tracker.listen(id, (data) => {
+      setRect({ ...data });
+    });
   }, [id]);
 
   return rect;

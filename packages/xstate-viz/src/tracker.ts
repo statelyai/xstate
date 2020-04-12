@@ -1,5 +1,6 @@
 export interface TrackerData {
   rect: null | Rect;
+  element: null | Element;
   listeners: Set<TrackerListener>;
 }
 
@@ -69,6 +70,22 @@ class Rect implements ClientRect {
 class Tracker {
   public data: Record<string, TrackerData> = {};
 
+  constructor() {
+    // listen for resize events
+    if (window !== undefined) {
+      let timeout: number;
+      window.addEventListener('resize', () => {
+        if (timeout) {
+          cancelAnimationFrame(timeout);
+        }
+        timeout = requestAnimationFrame(() => {
+          console.log('updati');
+          this.updateAll();
+        });
+      });
+    }
+  }
+
   public update(id: string, el: Element) {
     const clientRect = el.getBoundingClientRect();
 
@@ -78,15 +95,26 @@ class Tracker {
 
     const currentData = this.data[id];
 
+    currentData.element = el;
     currentData.rect = new Rect(clientRect);
-    currentData.listeners.forEach(listener => {
+    currentData.listeners.forEach((listener) => {
       listener(currentData);
+    });
+  }
+
+  public updateAll() {
+    Object.entries(this.data).forEach(([, value]) => {
+      if (value.element) {
+        value.rect = new Rect(value.element.getBoundingClientRect());
+        value.listeners.forEach((listener) => listener(value));
+      }
     });
   }
 
   public register(id: string) {
     this.data[id] = {
       rect: null,
+      element: null,
       listeners: new Set()
     };
   }
@@ -107,6 +135,8 @@ class Tracker {
 }
 
 const tracker = new Tracker();
+
+(window as any).tracker = tracker;
 
 export function relative(
   childRect: ClientRect,
