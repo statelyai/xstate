@@ -35,9 +35,11 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc",
-    "watch": "concurrently \"tsc -w\" \"node-sass -w ./themes/dark.scss ./themes/dark.css\"",
+    "watch": "yarn link:react && concurrently \"tsc -w\" \"node-sass -w ./themes/dark.scss ./themes/dark.css\"",
     "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build && npm run unlink:react && npm run test",
+    "unlink:react": "yarn unlink react && yarn unlink react-dom",
+    "link:react": "yarn link react && yarn link react-dom"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
