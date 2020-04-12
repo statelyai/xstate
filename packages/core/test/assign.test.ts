@@ -356,9 +356,19 @@ describe('assign meta', () => {
     expect(state.context).toEqual({
       eventLog: [
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) },
+        {
+          event: 'PONG',
+          origin: expect.objectContaining({
+            id: expect.stringMatching(/.+/)
+          })
+        },
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) }
+        {
+          event: 'PONG',
+          origin: expect.objectContaining({
+            id: expect.stringMatching(/.+/)
+          })
+        }
       ]
     });
   });

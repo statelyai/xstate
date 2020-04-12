@@ -252,9 +252,13 @@ describe('spawning callbacks', () => {
       }
     });
 
-    const callbackService = interpret(callbackMachine).onDone(() => {
-      done();
-    });
+    const callbackService = interpret(callbackMachine)
+      .onTransition((state) => {
+        console.log(state.event);
+      })
+      .onDone(() => {
+        done();
+      });
 
     callbackService.start();
     callbackService.send('START_CB');

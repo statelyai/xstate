@@ -11,13 +11,11 @@ import {
   InvokeDefinition,
   SendActionObject,
   ServiceConfig,
-  InvokeCallback,
   DisposeActivityFunction,
   StateValue,
   InterpreterOptions,
   ActivityDefinition,
   SingleOrArray,
-  Subscribable,
   DoneEvent,
   Unsubscribable,
   MachineOptions,
@@ -43,11 +41,18 @@ import {
   uniqueId,
   isMachineNode,
   toSCXMLEvent,
-  reportUnhandledExceptionOnInvocation,
   symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor, ActorRef, fromService } from './Actor';
+import {
+  Actor,
+  isActor,
+  ActorRef,
+  fromService,
+  fromCallback,
+  fromPromise,
+  fromObservable
+} from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
@@ -937,13 +942,19 @@ export class Interpreter<
   }
   public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
     if (isPromiseLike(entity)) {
-      return this.spawnPromise(Promise.resolve(entity), name);
+      const actor = fromPromise(entity, this, name);
+      this.children.set(name, actor);
+      return actor;
     } else if (isFunction(entity)) {
-      return this.spawnCallback(entity as InvokeCallback, name);
+      const actor = fromCallback(entity, this, name);
+      this.children.set(name, actor);
+      return actor;
     } else if (isActor(entity)) {
       return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
-      return this.spawnObservable(entity, name);
+      const actor = fromObservable(entity, this, name);
+      this.children.set(name, actor);
+      return actor;
     } else if (isMachineNode(entity)) {
       return this.spawnMachine(entity, { ...options, id: name });
     } else {
@@ -999,172 +1010,6 @@ export class Interpreter<
         );
       })
       .start();
-
-    return actor;
-  }
-  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T> {
-    let canceled = false;
-
-    promise.then(
-      (response) => {
-        if (!canceled) {
-          this.removeChild(id);
-          this.send(
-            toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
-          );
-        }
-      },
-      (errorData) => {
-        if (!canceled) {
-          this.removeChild(id);
-          const errorEvent = error(id, errorData);
-          try {
-            // Send "error.platform.id" to this (parent).
-            this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
-          } catch (error) {
-            reportUnhandledExceptionOnInvocation(errorData, error, id);
-            if (this.devTools) {
-              this.devTools.send(errorEvent, this.state);
-            }
-            if (this.machine.strict) {
-              // it would be better to always stop the state machine if unhandled
-              // exception/promise rejection happens but because we don't want to
-              // break existing code so enforce it on strict mode only especially so
-              // because documentation says that onError is optional
-              this.stop();
-            }
-          }
-        }
-      }
-    );
-
-    const actor = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError, complete) => {
-        let unsubscribed = false;
-        promise.then(
-          (response) => {
-            if (unsubscribed) {
-              return;
-            }
-            next && next(response);
-            if (unsubscribed) {
-              return;
-            }
-            complete && complete();
-          },
-          (err) => {
-            if (unsubscribed) {
-              return;
-            }
-            handleError(err);
-          }
-        );
-
-        return {
-          unsubscribe: () => (unsubscribed = true)
-        };
-      },
-      stop: () => {
-        canceled = true;
-      },
-      toJSON() {
-        return { id };
-      }
-    };
-
-    this.children.set(id, actor);
-
-    return actor;
-  }
-  private spawnCallback(callback: InvokeCallback, id: string): Actor {
-    let canceled = false;
-    const receivers = new Set<(e: EventObject) => void>();
-    const listeners = new Set<(e: EventObject) => void>();
-
-    const receive = (e: TEvent) => {
-      listeners.forEach((listener) => listener(e));
-      if (canceled) {
-        return;
-      }
-      this.send(e);
-    };
-
-    let callbackStop;
-
-    try {
-      callbackStop = callback(receive, (newListener) => {
-        receivers.add(newListener);
-      });
-    } catch (err) {
-      this.send(error(id, err) as any);
-    }
-
-    if (isPromiseLike(callbackStop)) {
-      // it turned out to be an async function, can't reliably check this before calling `callback`
-      // because transpiled async functions are not recognizable
-      return this.spawnPromise(callbackStop as Promise<any>, id);
-    }
-
-    const actor = {
-      id,
-      send: (event) => receivers.forEach((receiver) => receiver(event)),
-      subscribe: (next) => {
-        listeners.add(next);
-
-        return {
-          unsubscribe: () => {
-            listeners.delete(next);
-          }
-        };
-      },
-      stop: () => {
-        canceled = true;
-        if (isFunction(callbackStop)) {
-          callbackStop();
-        }
-      },
-      toJSON() {
-        return { id };
-      }
-    };
-
-    this.children.set(id, actor);
-
-    return actor;
-  }
-  private spawnObservable<T extends TEvent>(
-    source: Subscribable<T>,
-    id: string
-  ): Actor<any> {
-    const subscription = source.subscribe(
-      (value) => {
-        this.send(toSCXMLEvent(value));
-      },
-      (err) => {
-        this.removeChild(id);
-        this.send(toSCXMLEvent(error(id, err) as any));
-      },
-      () => {
-        this.removeChild(id);
-        this.send(toSCXMLEvent(doneInvoke(id) as any));
-      }
-    );
-
-    const actor = {
-      id,
-      send: () => void 0,
-      subscribe: (next, handleError, complete) => {
-        return source.subscribe(next, handleError, complete);
-      },
-      stop: () => subscription.unsubscribe(),
-      toJSON() {
-        return { id };
-      }
-    };
-
-    this.children.set(id, actor);
 
     return actor;
   }
