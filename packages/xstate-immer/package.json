@@ -38,11 +38,11 @@
   },
   "dependencies": {},
   "peerDependencies": {
-    "immer": "^5.0.0",
+    "immer": "^6.0.3",
     "xstate": "^4.6.0"
   },
   "devDependencies": {
-    "immer": "^5.0.0",
+    "immer": "^6.0.3",
     "lerna-alias": "3.0.3-0",
     "typescript": "^3.8.3",
     "xstate": "*"

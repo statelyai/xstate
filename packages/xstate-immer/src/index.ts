@@ -4,7 +4,15 @@ import {
   AssignAction,
   assign as xstateAssign
 } from 'xstate';
-import { produce, Draft, produceWithPatches, applyPatches } from 'immer';
+import {
+  produce,
+  Draft,
+  produceWithPatches,
+  applyPatches,
+  enablePatches
+} from 'immer';
+
+enablePatches();
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
   context: Draft<TContext>,
