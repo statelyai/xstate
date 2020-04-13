@@ -27,7 +27,6 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
 export function assign<TContext, TEvent extends EventObject = EventObject>(
   assignment: ImmerAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> {
-  // @ts-ignore (possibly infinite TS bug)
   return xstateAssign((context, event) => {
     return produce(context, (draft) => void assignment(draft, event));
   });
@@ -42,9 +41,11 @@ export function patchEvent<TContext>(
   context: TContext,
   recipe: (draftContext: TContext) => void
 ): PatchEventObject {
+  const patches = produceWithPatches(context, recipe);
+
   return {
     type,
-    patches: produceWithPatches(context, recipe)
+    patches
   };
 }
 

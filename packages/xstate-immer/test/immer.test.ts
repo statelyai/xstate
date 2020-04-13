@@ -1,4 +1,4 @@
-import { Machine } from 'xstate';
+import { createMachine, interpret } from 'xstate';
 import { assign, assignPatch, patchEvent } from '../src';
 
 describe('@xstate/immer', () => {
@@ -6,7 +6,7 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = Machine<typeof context>({
+    const countMachine = createMachine<typeof context>({
       id: 'count',
       context,
       initial: 'active',
@@ -34,7 +34,7 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = Machine<typeof context>(
+    const countMachine = createMachine<typeof context>(
       {
         id: 'count',
         context,
@@ -71,7 +71,7 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = Machine<typeof context>(
+    const countMachine = createMachine<typeof context>(
       {
         id: 'count',
         context,
@@ -108,7 +108,7 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = Machine<typeof context>({
+    const countMachine = createMachine<typeof context>({
       id: 'count',
       context,
       initial: 'active',
@@ -135,5 +135,57 @@ describe('@xstate/immer', () => {
 
     expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 4]);
+  });
+
+  it('should patch updates (form example)', (done) => {
+    const context = {
+      name: '',
+      age: undefined as number | undefined
+    };
+
+    const formMachine = createMachine<typeof context>({
+      initial: 'editing',
+      context,
+      states: {
+        editing: {
+          on: {
+            UPDATE: { actions: assignPatch() },
+            SUBMIT: 'submitting'
+          }
+        },
+        submitting: {
+          on: {
+            '': {
+              target: 'success',
+              cond: (ctx) => {
+                return ctx.name === 'David' && ctx.age === 42;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(formMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+
+    service.send(
+      patchEvent('UPDATE', formMachine.initialState.context, (ctx) => {
+        ctx.name = 'David';
+      })
+    );
+    service.send(
+      patchEvent('UPDATE', formMachine.initialState.context, (ctx) => {
+        ctx.age = 42;
+      })
+    );
+
+    service.send('SUBMIT');
   });
 });
