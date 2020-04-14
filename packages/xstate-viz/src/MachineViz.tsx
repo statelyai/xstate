@@ -34,7 +34,6 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, state }) => {
     >
       <StateNodeViz stateNode={machine} />
       <EdgesViz edges={getAllEdges(machine)} machine={machine} />
-      <StateViz state={state} />
     </div>
   );
 };

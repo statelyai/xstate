@@ -79,7 +79,6 @@ class Tracker {
           cancelAnimationFrame(timeout);
         }
         timeout = requestAnimationFrame(() => {
-          console.log('updati');
           this.updateAll();
         });
       });

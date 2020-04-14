@@ -4,7 +4,8 @@
   background: #111;
   color: white;
   --xviz-color-background: rgba(255, 255, 255, 0.2) !important;
-  padding: 1rem; }
+  padding: 1rem;
+  display: grid; }
   [data-xviz='machine'],
   [data-xviz='machine'] * {
     box-sizing: border-box;
@@ -222,3 +223,6 @@
 
 [data-xviz='action-entries'] {
   display: none; }
+
+[data-xviz='sequence'] td {
+  border: 1px solid black; }

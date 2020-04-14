@@ -5,6 +5,7 @@
   color: white;
   --xviz-color-background: #{rgba(white, 0.2)} !important;
   padding: 1rem;
+  display: grid;
 
   &,
   * {
@@ -349,4 +350,11 @@
 
 [data-xviz='action-entries'] {
   display: none;
+}
+
+[data-xviz='sequence'] {
+  td {
+    border: 1px solid black;
+  }
+  // display: grid;
 }
