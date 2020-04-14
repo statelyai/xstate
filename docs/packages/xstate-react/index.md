@@ -198,10 +198,11 @@ const fetchMachine = Machine({
 const Fetcher = ({ onResolve }) => {
   const [state, send] = useMachine(fetchMachine, {
     actions: {
-      notifySuccess: ctx => onResolve(ctx.data)
+      notifySuccess: (ctx) => onResolve(ctx.data)
     },
     services: {
-      fetchData: (_, e) => fetch(`some/api/${e.query}`).then(res => res.json())
+      fetchData: (_, e) =>
+        fetch(`some/api/${e.query}`).then((res) => res.json())
     }
   });
 
@@ -252,11 +253,11 @@ We can also continue to use `switch`, but we must make an adjustment to our appr
 
 ```js
 switch (true) {
-  case current.matches('idle'):
+  case state.matches('idle'):
     return /* ... */;
-  case current.matches({ loading: 'user' }):
+  case state.matches({ loading: 'user' }):
     return /* ... */;
-  case current.matches({ loading: 'friends' }):
+  case state.matches({ loading: 'friends' }):
     return /* ... */;
   default:
     return null;
@@ -319,7 +320,7 @@ You can subscribe to that service's state changes with the [`useEffect` hook](ht
 // ...
 
 useEffect(() => {
-  const subscription = service.subscribe(state => {
+  const subscription = service.subscribe((state) => {
     // simple state logging
     console.log(state);
   });
