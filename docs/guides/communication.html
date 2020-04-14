@@ -5,10 +5,11 @@
     <meta name="viewport" content="width=device-width,initial-scale=1">
     <title>Invoking Services | XState Docs</title>
     <meta name="description" content="Documentation for XState: State Machines and Statecharts for the Modern Web">
+    <meta name="generator" content="VuePress 1.4.0">
     
     
-    <link rel="preload" href="/docs/assets/css/0.styles.659f5dc6.css" as="style"><link rel="preload" href="/docs/assets/js/app.755f90ec.js" as="script"><link rel="preload" href="/docs/assets/js/3.f9247c6f.js" as="script"><link rel="preload" href="/docs/assets/js/4.d4469ede.js" as="script"><link rel="preload" href="/docs/assets/js/19.86fe022d.js" as="script"><link rel="preload" href="/docs/assets/js/5.9b3a7591.js" as="script"><link rel="prefetch" href="/docs/assets/js/10.5440283f.js"><link rel="prefetch" href="/docs/assets/js/11.8bcc2a13.js"><link rel="prefetch" href="/docs/assets/js/12.e17e3b70.js"><link rel="prefetch" href="/docs/assets/js/13.6ff0cefd.js"><link rel="prefetch" href="/docs/assets/js/14.6131ab3b.js"><link rel="prefetch" href="/docs/assets/js/15.7af91612.js"><link rel="prefetch" href="/docs/assets/js/16.7d43b8aa.js"><link rel="prefetch" href="/docs/assets/js/17.439a1309.js"><link rel="prefetch" href="/docs/assets/js/18.bc3326a5.js"><link rel="prefetch" href="/docs/assets/js/20.be6045be.js"><link rel="prefetch" href="/docs/assets/js/21.54417fcf.js"><link rel="prefetch" href="/docs/assets/js/22.9a29f9bc.js"><link rel="prefetch" href="/docs/assets/js/23.87dce22c.js"><link rel="prefetch" href="/docs/assets/js/24.196feeae.js"><link rel="prefetch" href="/docs/assets/js/25.2539d6c5.js"><link rel="prefetch" href="/docs/assets/js/26.72d5e5d7.js"><link rel="prefetch" href="/docs/assets/js/27.522ffaab.js"><link rel="prefetch" href="/docs/assets/js/28.4dc8f232.js"><link rel="prefetch" href="/docs/assets/js/29.f1232bc2.js"><link rel="prefetch" href="/docs/assets/js/30.ee68b09d.js"><link rel="prefetch" href="/docs/assets/js/31.56bf4b04.js"><link rel="prefetch" href="/docs/assets/js/32.f5e14357.js"><link rel="prefetch" href="/docs/assets/js/33.6c74149c.js"><link rel="prefetch" href="/docs/assets/js/34.d0e561f0.js"><link rel="prefetch" href="/docs/assets/js/35.f0d305bd.js"><link rel="prefetch" href="/docs/assets/js/36.1ec0c364.js"><link rel="prefetch" href="/docs/assets/js/37.128bff91.js"><link rel="prefetch" href="/docs/assets/js/38.b77cfc88.js"><link rel="prefetch" href="/docs/assets/js/39.141e5e10.js"><link rel="prefetch" href="/docs/assets/js/40.58170807.js"><link rel="prefetch" href="/docs/assets/js/41.4accda15.js"><link rel="prefetch" href="/docs/assets/js/42.3a0791de.js"><link rel="prefetch" href="/docs/assets/js/43.6f8dc069.js"><link rel="prefetch" href="/docs/assets/js/44.67a4504b.js"><link rel="prefetch" href="/docs/assets/js/45.714b92a1.js"><link rel="prefetch" href="/docs/assets/js/46.093f0faf.js"><link rel="prefetch" href="/docs/assets/js/47.0d4cf8b6.js"><link rel="prefetch" href="/docs/assets/js/48.2e07022f.js"><link rel="prefetch" href="/docs/assets/js/49.21b96389.js"><link rel="prefetch" href="/docs/assets/js/50.d3af64d5.js"><link rel="prefetch" href="/docs/assets/js/51.346f180f.js"><link rel="prefetch" href="/docs/assets/js/52.bdcb9db1.js"><link rel="prefetch" href="/docs/assets/js/53.76726abe.js"><link rel="prefetch" href="/docs/assets/js/54.d8a7b8a1.js"><link rel="prefetch" href="/docs/assets/js/55.06fcd9b0.js"><link rel="prefetch" href="/docs/assets/js/56.06689a9e.js"><link rel="prefetch" href="/docs/assets/js/57.4c43bcac.js"><link rel="prefetch" href="/docs/assets/js/58.3e219460.js"><link rel="prefetch" href="/docs/assets/js/59.040d1c16.js"><link rel="prefetch" href="/docs/assets/js/6.3f044db2.js"><link rel="prefetch" href="/docs/assets/js/60.babd5425.js"><link rel="prefetch" href="/docs/assets/js/61.ae2b7132.js"><link rel="prefetch" href="/docs/assets/js/62.a16ab33c.js"><link rel="prefetch" href="/docs/assets/js/63.20b5524f.js"><link rel="prefetch" href="/docs/assets/js/7.f3bf1ddd.js"><link rel="prefetch" href="/docs/assets/js/8.0c7ae288.js"><link rel="prefetch" href="/docs/assets/js/9.21197102.js"><link rel="prefetch" href="/docs/assets/js/vendors~docsearch.6617829c.js">
-    <link rel="stylesheet" href="/docs/assets/css/0.styles.659f5dc6.css">
+    <link rel="preload" href="/docs/assets/css/0.styles.9a9c7777.css" as="style"><link rel="preload" href="/docs/assets/js/app.8b0e9cb9.js" as="script"><link rel="preload" href="/docs/assets/js/3.39876971.js" as="script"><link rel="preload" href="/docs/assets/js/4.1ba11c2e.js" as="script"><link rel="preload" href="/docs/assets/js/19.90707546.js" as="script"><link rel="preload" href="/docs/assets/js/5.a4df1746.js" as="script"><link rel="prefetch" href="/docs/assets/js/10.60d33cef.js"><link rel="prefetch" href="/docs/assets/js/11.afb028e8.js"><link rel="prefetch" href="/docs/assets/js/12.9edb7a33.js"><link rel="prefetch" href="/docs/assets/js/13.3ef53a64.js"><link rel="prefetch" href="/docs/assets/js/14.81f125e7.js"><link rel="prefetch" href="/docs/assets/js/15.183ca8c1.js"><link rel="prefetch" href="/docs/assets/js/16.91fd34b4.js"><link rel="prefetch" href="/docs/assets/js/17.744e9041.js"><link rel="prefetch" href="/docs/assets/js/18.da3717e0.js"><link rel="prefetch" href="/docs/assets/js/20.db612bf8.js"><link rel="prefetch" href="/docs/assets/js/21.ec95430a.js"><link rel="prefetch" href="/docs/assets/js/22.a8df2eda.js"><link rel="prefetch" href="/docs/assets/js/23.59d76861.js"><link rel="prefetch" href="/docs/assets/js/24.8ac0b7eb.js"><link rel="prefetch" href="/docs/assets/js/25.e8071394.js"><link rel="prefetch" href="/docs/assets/js/26.11ad24f2.js"><link rel="prefetch" href="/docs/assets/js/27.eaec1057.js"><link rel="prefetch" href="/docs/assets/js/28.4d6649f0.js"><link rel="prefetch" href="/docs/assets/js/29.3375764c.js"><link rel="prefetch" href="/docs/assets/js/30.44939abb.js"><link rel="prefetch" href="/docs/assets/js/31.6dd5a4c1.js"><link rel="prefetch" href="/docs/assets/js/32.4b13ac82.js"><link rel="prefetch" href="/docs/assets/js/33.89ca5bbd.js"><link rel="prefetch" href="/docs/assets/js/34.5ef86cc8.js"><link rel="prefetch" href="/docs/assets/js/35.5b4fa09f.js"><link rel="prefetch" href="/docs/assets/js/36.5b86050c.js"><link rel="prefetch" href="/docs/assets/js/37.d8e4736e.js"><link rel="prefetch" href="/docs/assets/js/38.d8af5836.js"><link rel="prefetch" href="/docs/assets/js/39.fabd59e9.js"><link rel="prefetch" href="/docs/assets/js/40.4fceb5a0.js"><link rel="prefetch" href="/docs/assets/js/41.491c02ff.js"><link rel="prefetch" href="/docs/assets/js/42.8904915a.js"><link rel="prefetch" href="/docs/assets/js/43.7149fccf.js"><link rel="prefetch" href="/docs/assets/js/44.8e17e801.js"><link rel="prefetch" href="/docs/assets/js/45.f14fa806.js"><link rel="prefetch" href="/docs/assets/js/46.143498bd.js"><link rel="prefetch" href="/docs/assets/js/47.25b01bfa.js"><link rel="prefetch" href="/docs/assets/js/48.074aaf46.js"><link rel="prefetch" href="/docs/assets/js/49.7374f874.js"><link rel="prefetch" href="/docs/assets/js/50.39d1265e.js"><link rel="prefetch" href="/docs/assets/js/51.2c8832fd.js"><link rel="prefetch" href="/docs/assets/js/52.d775b510.js"><link rel="prefetch" href="/docs/assets/js/53.8b790f45.js"><link rel="prefetch" href="/docs/assets/js/54.cbfd0442.js"><link rel="prefetch" href="/docs/assets/js/55.83a700c0.js"><link rel="prefetch" href="/docs/assets/js/56.27f3a321.js"><link rel="prefetch" href="/docs/assets/js/57.6bd72a62.js"><link rel="prefetch" href="/docs/assets/js/58.5b3a20ce.js"><link rel="prefetch" href="/docs/assets/js/59.6d63873f.js"><link rel="prefetch" href="/docs/assets/js/6.8ebf6343.js"><link rel="prefetch" href="/docs/assets/js/60.cff6554b.js"><link rel="prefetch" href="/docs/assets/js/61.5dfb92c3.js"><link rel="prefetch" href="/docs/assets/js/62.2b03f798.js"><link rel="prefetch" href="/docs/assets/js/63.535dc2ab.js"><link rel="prefetch" href="/docs/assets/js/7.c2d87c3e.js"><link rel="prefetch" href="/docs/assets/js/8.d600a3b8.js"><link rel="prefetch" href="/docs/assets/js/9.016ff694.js"><link rel="prefetch" href="/docs/assets/js/vendors~docsearch.a632fa6b.js">
+    <link rel="stylesheet" href="/docs/assets/css/0.styles.9a9c7777.css">
   </head>
   <body>
     <div id="app" data-server-rendered="true"><div class="theme-container"><header class="navbar"><div class="sidebar-button"><svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" role="img" viewBox="0 0 448 512" class="icon"><path fill="currentColor" d="M436 124H12c-6.627 0-12-5.373-12-12V80c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12zm0 160H12c-6.627 0-12-5.373-12-12v-32c0-6.627 5.373-12 12-12h424c6.627 0 12 5.373 12 12v32c0 6.627-5.373 12-12 12z"></path></svg></div> <a href="/docs/" class="home-link router-link-active"><img src="/docs/logo.svg" alt="XState Docs" class="logo"> <span class="site-name can-hide">XState Docs</span></a> <div class="links"><form id="search-form" role="search" class="algolia-search-wrapper search-box"><input id="algolia-search-input" class="search-query"></form> <nav class="nav-links can-hide"><div class="nav-item"><a href="https://xstate.js.org/api" target="_blank" rel="noopener noreferrer" class="nav-link external">
@@ -31,73 +32,73 @@
   Community
   <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></div> <a href="https://github.com/davidkpiano/xstate" target="_blank" rel="noopener noreferrer" class="repo-link">
     GitHub
-    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav>  <ul class="sidebar-links"><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>About</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/docs/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/docs/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/docs/guides/machines.html" class="sidebar-link">Machines</a></li><li><a href="/docs/guides/states.html" class="sidebar-link">States</a></li><li><a href="/docs/guides/statenodes.html" class="sidebar-link">State Nodes</a></li><li><a href="/docs/guides/events.html" class="sidebar-link">Events</a></li><li><a href="/docs/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/docs/guides/hierarchical.html" class="sidebar-link">Hierarchical State Nodes</a></li><li><a href="/docs/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/docs/guides/effects.html" class="sidebar-link">Effects</a></li><li><a href="/docs/guides/actions.html" class="sidebar-link">Actions</a></li><li><a href="/docs/guides/guards.html" class="sidebar-link">Guarded Transitions</a></li><li><a href="/docs/guides/context.html" class="sidebar-link">Context</a></li><li><a href="/docs/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/docs/guides/communication.html" class="active sidebar-link">Invoking Services</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#the-invoke-property" class="sidebar-link">The invoke Property</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-promises" class="sidebar-link">Invoking Promises</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-callbacks" class="sidebar-link">Invoking Callbacks</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-observables" class="sidebar-link">Invoking Observables</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-machines" class="sidebar-link">Invoking Machines</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#sending-responses" class="sidebar-link">Sending Responses</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#multiple-services" class="sidebar-link">Multiple Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#configuring-services" class="sidebar-link">Configuring Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#testing" class="sidebar-link">Testing</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#referencing-services" class="sidebar-link">Referencing Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#quick-reference" class="sidebar-link">Quick Reference</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#scxml" class="sidebar-link">SCXML</a></li></ul></li><li><a href="/docs/guides/actors.html" class="sidebar-link">Actors</a></li><li><a href="/docs/guides/delays.html" class="sidebar-link">Delayed Events and Transitions</a></li><li><a href="/docs/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/docs/guides/history.html" class="sidebar-link">History</a></li><li><a href="/docs/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/docs/guides/interpretation.html" class="sidebar-link">Interpreting Machines</a></li><li><a href="/docs/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Tutorials</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Packages</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Patterns</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Examples</span> <span class="arrow right"></span></p> <!----></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="invoking-services"><a href="#invoking-services" aria-hidden="true" class="header-anchor">#</a> Invoking Services</h1> <p><a href="#quick-reference">🚀 Quick Reference</a></p> <p>Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the <a href="https://www.brianstorti.com/the-actor-model/" target="_blank" rel="noopener noreferrer">Actor model<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>, where each machine instance is considered an &quot;actor&quot; that can send and receive events (messages) to and from other &quot;actors&quot; (such as Promises or other machines) and react to them.</p> <p>For machines to communicate with each other, the parent machine <strong>invokes</strong> a child machine and listens to events sent from the child machine via <code>sendParent(...)</code>, or waits for the child machine to reach its <a href="/docs/guides/final.html">final state</a>, which will then cause the <code>onDone</code> transition to be taken.</p> <p>You can invoke:</p> <ul><li><a href="#invoking-promises">Promises</a>, which will take the <code>onDone</code> transition on <code>resolve</code>, or the <code>onError</code> transition on <code>reject</code></li> <li><a href="#invoking-callbacks">Callbacks</a>, which can send events to and receive events from the parent machine</li> <li><a href="#invoking-observables">Observables</a>, which can send events to the parent machine, as well as a signal when it is completed</li> <li><a href="#invoking-machines">Machines</a>, which can also send/receive events, and also notify the parent machine when it reaches its <a href="/docs/guides/final.html">final state</a></li></ul> <h2 id="the-invoke-property"><a href="#the-invoke-property" aria-hidden="true" class="header-anchor">#</a> The <code>invoke</code> Property</h2> <p>An invocation is defined in a state node's configuration with the <code>invoke</code> property, whose value is an object that contains:</p> <ul><li><code>src</code> - the source of the service to invoke, which can be:
+    <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a></nav>  <ul class="sidebar-links"><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>About</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading open"><span>Guides</span> <span class="arrow down"></span></p> <ul class="sidebar-links sidebar-group-items"><li><a href="/docs/guides/start.html" class="sidebar-link">Getting Started</a></li><li><a href="/docs/guides/installation.html" class="sidebar-link">Installation</a></li><li><a href="/docs/guides/machines.html" class="sidebar-link">Machines</a></li><li><a href="/docs/guides/states.html" class="sidebar-link">States</a></li><li><a href="/docs/guides/statenodes.html" class="sidebar-link">State Nodes</a></li><li><a href="/docs/guides/events.html" class="sidebar-link">Events</a></li><li><a href="/docs/guides/transitions.html" class="sidebar-link">Transitions</a></li><li><a href="/docs/guides/hierarchical.html" class="sidebar-link">Hierarchical State Nodes</a></li><li><a href="/docs/guides/parallel.html" class="sidebar-link">Parallel State Nodes</a></li><li><a href="/docs/guides/effects.html" class="sidebar-link">Effects</a></li><li><a href="/docs/guides/actions.html" class="sidebar-link">Actions</a></li><li><a href="/docs/guides/guards.html" class="sidebar-link">Guarded Transitions</a></li><li><a href="/docs/guides/context.html" class="sidebar-link">Context</a></li><li><a href="/docs/guides/activities.html" class="sidebar-link">Activities</a></li><li><a href="/docs/guides/communication.html" class="active sidebar-link">Invoking Services</a><ul class="sidebar-sub-headers"><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#the-invoke-property" class="sidebar-link">The invoke Property</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-promises" class="sidebar-link">Invoking Promises</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-callbacks" class="sidebar-link">Invoking Callbacks</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-observables" class="sidebar-link">Invoking Observables</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#invoking-machines" class="sidebar-link">Invoking Machines</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#sending-responses" class="sidebar-link">Sending Responses</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#multiple-services" class="sidebar-link">Multiple Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#configuring-services" class="sidebar-link">Configuring Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#testing" class="sidebar-link">Testing</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#referencing-services" class="sidebar-link">Referencing Services</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#quick-reference" class="sidebar-link">Quick Reference</a></li><li class="sidebar-sub-header"><a href="/docs/guides/communication.html#scxml" class="sidebar-link">SCXML</a></li></ul></li><li><a href="/docs/guides/actors.html" class="sidebar-link">Actors</a></li><li><a href="/docs/guides/delays.html" class="sidebar-link">Delayed Events and Transitions</a></li><li><a href="/docs/guides/final.html" class="sidebar-link">Final States</a></li><li><a href="/docs/guides/history.html" class="sidebar-link">History</a></li><li><a href="/docs/guides/ids.html" class="sidebar-link">Identifying State Nodes</a></li><li><a href="/docs/guides/interpretation.html" class="sidebar-link">Interpreting Machines</a></li><li><a href="/docs/guides/typescript.html" class="sidebar-link">Using TypeScript</a></li></ul></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Tutorials</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Recipes</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Packages</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Patterns</span> <span class="arrow right"></span></p> <!----></section></li><li><section class="sidebar-group collapsable depth-0"><p class="sidebar-heading"><span>Examples</span> <span class="arrow right"></span></p> <!----></section></li></ul> </aside> <main class="page"> <div class="theme-default-content content__default"><h1 id="invoking-services"><a href="#invoking-services" class="header-anchor">#</a> Invoking Services</h1> <p><a href="#quick-reference">🚀 Quick Reference</a></p> <p>Expressing the entire app's behavior in a single machine can quickly become complex and unwieldy. It is natural (and encouraged!) to use multiple machines that communicate with each other to express complex logic instead. This closely resembles the <a href="https://www.brianstorti.com/the-actor-model/" target="_blank" rel="noopener noreferrer">Actor model<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>, where each machine instance is considered an &quot;actor&quot; that can send and receive events (messages) to and from other &quot;actors&quot; (such as Promises or other machines) and react to them.</p> <p>For machines to communicate with each other, the parent machine <strong>invokes</strong> a child machine and listens to events sent from the child machine via <code>sendParent(...)</code>, or waits for the child machine to reach its <a href="/docs/guides/final.html">final state</a>, which will then cause the <code>onDone</code> transition to be taken.</p> <p>You can invoke:</p> <ul><li><a href="#invoking-promises">Promises</a>, which will take the <code>onDone</code> transition on <code>resolve</code>, or the <code>onError</code> transition on <code>reject</code></li> <li><a href="#invoking-callbacks">Callbacks</a>, which can send events to and receive events from the parent machine</li> <li><a href="#invoking-observables">Observables</a>, which can send events to the parent machine, as well as a signal when it is completed</li> <li><a href="#invoking-machines">Machines</a>, which can also send/receive events, and also notify the parent machine when it reaches its <a href="/docs/guides/final.html">final state</a></li></ul> <h2 id="the-invoke-property"><a href="#the-invoke-property" class="header-anchor">#</a> The <code>invoke</code> Property</h2> <p>An invocation is defined in a state node's configuration with the <code>invoke</code> property, whose value is an object that contains:</p> <ul><li><code>src</code> - the source of the service to invoke, which can be:
 <ul><li>a machine</li> <li>a function that returns a <code>Promise</code></li> <li>a function that returns a &quot;callback handler&quot;</li> <li>a function that returns an observable</li> <li>a string, which refers to any of the 4 listed options defined in this machine's <code>options.services</code></li></ul></li> <li><code>id</code> - the unique identifier for the invoked service</li> <li><code>onDone</code> - (optional) the <a href="/docs/guides/transitions.html">transition</a> to be taken when:
 <ul><li>the child machine reaches its <a href="/docs/guides/final.html">final state</a>, or</li> <li>the invoked promise resolves, or</li> <li>the invoked observable completes</li></ul></li> <li><code>onError</code> - (optional) the transition to be taken when the invoked service encounters an execution error.</li> <li><code>autoForward</code> - (optional) <code>true</code> if all events sent to this machine should also be sent (or <em>forwarded</em>) to the invoked child (<code>false</code> by default)</li> <li><code>data</code> - (optional, used only when invoking machines) an object that maps properties of the child machine's <a href="/docs/guides/context.html">context</a> to a function that returns the corresponding value from the parent machine's <code>context</code>.</li></ul> <div class="custom-block warning"><p class="custom-block-title">WARNING</p> <p>Don't get the <code>onDone</code> property on a state confused with <code>invoke.onDone</code> - they are similar transitions, but refer to different things.</p> <ul><li>The <code>onDone</code> property on a <a href="/docs/guides/statenodes.html">state node</a> refers to the compound state node reaching a <a href="/docs/guides/final.html">final state</a>.</li> <li>The <code>invoke.onDone</code> property refers to the invocation (<code>invoke.src</code>) being done.</li></ul> <div class="language-js extra-class"><div class="highlight-lines"><br><br><br><br><div class="highlighted"> </div><br><br><br><br><br><br><br><div class="highlighted"> </div><br><br><br></div><pre class="language-js"><code><span class="token comment">// ...</span>
-loading<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    src<span class="token punctuation">:</span> someSrc<span class="token punctuation">,</span>
-    onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span> <span class="token comment">// refers to `someSrc` being done</span>
+loading<span class="token operator">:</span> <span class="token punctuation">{</span>
+  invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+    src<span class="token operator">:</span> someSrc<span class="token punctuation">,</span>
+    onDone<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span> <span class="token comment">// refers to `someSrc` being done</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'loadFoo'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    loadFoo<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
-    loadBar<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
-    loadingComplete<span class="token punctuation">:</span> <span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span>
+  initial<span class="token operator">:</span> <span class="token string">'loadFoo'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    loadFoo<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    loadBar<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token comment">/* ... */</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    loadingComplete<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  onDone<span class="token punctuation">:</span> <span class="token string">'loaded'</span> <span class="token comment">// refers to 'loading.loadingComplete' being reached</span>
+  onDone<span class="token operator">:</span> <span class="token string">'loaded'</span> <span class="token comment">// refers to 'loading.loadingComplete' being reached</span>
 <span class="token punctuation">}</span>
 <span class="token comment">// ...</span>
-</code></pre></div></div> <h2 id="invoking-promises"><a href="#invoking-promises" aria-hidden="true" class="header-anchor">#</a> Invoking Promises</h2> <p>Since every promise can be modeled as a state machine, XState can invoke promises as-is. Promises can either:</p> <ul><li><code>resolve()</code>, which will take the <code>onDone</code> transition</li> <li><code>reject()</code> (or throw an error), which will take the <code>onError</code> transition</li></ul> <p>If the state where the invoked promise is active is exited before the promise settles, the result of the promise is discarded.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// Function that returns a promise</span>
+</code></pre></div></div> <h2 id="invoking-promises"><a href="#invoking-promises" class="header-anchor">#</a> Invoking Promises</h2> <p>Since every promise can be modeled as a state machine, XState can invoke promises as-is. Promises can either:</p> <ul><li><code>resolve()</code>, which will take the <code>onDone</code> transition</li> <li><code>reject()</code> (or throw an error), which will take the <code>onError</code> transition</li></ul> <p>If the state where the invoked promise is active is exited before the promise settles, the result of the promise is discarded.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// Function that returns a promise</span>
 <span class="token comment">// This promise might resolve with, e.g.,</span>
 <span class="token comment">// { name: 'David', location: 'Florida' }</span>
 <span class="token keyword">const</span> <span class="token function-variable function">fetchUser</span> <span class="token operator">=</span> <span class="token parameter">userId</span> <span class="token operator">=&gt;</span>
   <span class="token function">fetch</span><span class="token punctuation">(</span><span class="token template-string"><span class="token template-punctuation string">`</span><span class="token string">url/to/user/</span><span class="token interpolation"><span class="token interpolation-punctuation punctuation">${</span>userId<span class="token interpolation-punctuation punctuation">}</span></span><span class="token template-punctuation string">`</span></span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">then</span><span class="token punctuation">(</span><span class="token parameter">response</span> <span class="token operator">=&gt;</span> response<span class="token punctuation">.</span><span class="token function">json</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> userMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'user'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    userId<span class="token punctuation">:</span> <span class="token number">42</span><span class="token punctuation">,</span>
-    user<span class="token punctuation">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
-    error<span class="token punctuation">:</span> <span class="token keyword">undefined</span>
+  id<span class="token operator">:</span> <span class="token string">'user'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    userId<span class="token operator">:</span> <span class="token number">42</span><span class="token punctuation">,</span>
+    user<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
+    error<span class="token operator">:</span> <span class="token keyword">undefined</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    idle<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">FETCH</span><span class="token punctuation">:</span> <span class="token string">'loading'</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    idle<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">FETCH</span><span class="token operator">:</span> <span class="token string">'loading'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    loading<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'getUser'</span><span class="token punctuation">,</span>
-        <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>userId<span class="token punctuation">)</span><span class="token punctuation">,</span>
-        onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          target<span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
-          actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">user</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
+    loading<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'getUser'</span><span class="token punctuation">,</span>
+        <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>userId<span class="token punctuation">)</span><span class="token punctuation">,</span>
+        onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">user</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span><span class="token punctuation">,</span>
-        onError<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          target<span class="token punctuation">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
-          actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">error</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
+        onError<span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">error</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    success<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
-    failure<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">RETRY</span><span class="token punctuation">:</span> <span class="token string">'loading'</span>
+    success<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    failure<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">RETRY</span><span class="token operator">:</span> <span class="token string">'loading'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 </code></pre></div><p>The resolved data is placed into a <code>'done.invoke.&lt;id&gt;'</code> event, under the <code>data</code> property, e.g.:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token punctuation">{</span>
-  type<span class="token punctuation">:</span> <span class="token string">'done.invoke.getUser'</span><span class="token punctuation">,</span>
-  data<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    name<span class="token punctuation">:</span> <span class="token string">'David'</span><span class="token punctuation">,</span>
-    location<span class="token punctuation">:</span> <span class="token string">'Florida'</span>
+  type<span class="token operator">:</span> <span class="token string">'done.invoke.getUser'</span><span class="token punctuation">,</span>
+  data<span class="token operator">:</span> <span class="token punctuation">{</span>
+    name<span class="token operator">:</span> <span class="token string">'David'</span><span class="token punctuation">,</span>
+    location<span class="token operator">:</span> <span class="token string">'Florida'</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
-</code></pre></div><h3 id="promise-rejection"><a href="#promise-rejection" aria-hidden="true" class="header-anchor">#</a> Promise Rejection</h3> <p>If a Promise rejects, the <code>onError</code> transition will be taken with a <code>{ type: 'error.execution' }</code> event. The error data is available on the event's <code>data</code> property:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> <span class="token function-variable function">search</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">Promise</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">resolve<span class="token punctuation">,</span> reject</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+</code></pre></div><h3 id="promise-rejection"><a href="#promise-rejection" class="header-anchor">#</a> Promise Rejection</h3> <p>If a Promise rejects, the <code>onError</code> transition will be taken with a <code>{ type: 'error.execution' }</code> event. The error data is available on the event's <code>data</code> property:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> <span class="token function-variable function">search</span> <span class="token operator">=</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token keyword">new</span> <span class="token class-name">Promise</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token parameter">resolve<span class="token punctuation">,</span> reject</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
   <span class="token keyword">if</span> <span class="token punctuation">(</span><span class="token operator">!</span>event<span class="token punctuation">.</span>query<span class="token punctuation">.</span>length<span class="token punctuation">)</span> <span class="token punctuation">{</span>
     <span class="token keyword">return</span> <span class="token function">reject</span><span class="token punctuation">(</span><span class="token string">'No query specified'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
     <span class="token comment">// or:</span>
@@ -109,45 +110,45 @@ loading<span class="token punctuation">:</span> <span class="token punctuation">
 
 <span class="token comment">// ...</span>
 <span class="token keyword">const</span> searchMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'search'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    results<span class="token punctuation">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
-    errorMessage<span class="token punctuation">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
+  id<span class="token operator">:</span> <span class="token string">'search'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    results<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
+    errorMessage<span class="token operator">:</span> <span class="token keyword">undefined</span><span class="token punctuation">,</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    idle<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">SEARCH</span><span class="token punctuation">:</span> <span class="token string">'searching'</span> <span class="token punctuation">}</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    idle<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token constant">SEARCH</span><span class="token operator">:</span> <span class="token string">'searching'</span> <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    searching<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'search'</span>
-        src<span class="token punctuation">:</span> search<span class="token punctuation">,</span>
-        onError<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          target<span class="token punctuation">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
-          actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-            <span class="token function-variable function">errorMessage</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+    searching<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'search'</span>
+        src<span class="token operator">:</span> search<span class="token punctuation">,</span>
+        onError<span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            <span class="token function-variable function">errorMessage</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
               <span class="token comment">// event is:</span>
               <span class="token comment">// { type: 'error.execution', data: 'No query specified' }</span>
               <span class="token keyword">return</span> event<span class="token punctuation">.</span>data<span class="token punctuation">;</span>
             <span class="token punctuation">}</span>
           <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span><span class="token punctuation">,</span>
-        onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          target<span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
-          actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">results</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">_<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
+        onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">results</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">_<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>data <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    success<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
-    failure<span class="token punctuation">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
+    success<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span><span class="token punctuation">,</span>
+    failure<span class="token operator">:</span> <span class="token punctuation">{</span><span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><div class="custom-block warning"><p class="custom-block-title">WARNING</p> <p>If the <code>onError</code> transition is missing and the Promise is rejected, the error will be ignored unless you have specified <a href="/docs/guides/machines.html#configuration">strict mode</a> for the machine. Strict mode will stop the machine and throw an error in this case.</p></div> <h2 id="invoking-callbacks"><a href="#invoking-callbacks" aria-hidden="true" class="header-anchor">#</a> Invoking Callbacks</h2> <p>Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:</p> <ul><li><code>callback</code> - called with the event to be sent</li> <li><code>onReceive</code> - called with a listener that <a href="#listening-to-parent-events">listens to events from the parent</a></li></ul> <p>The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// ...</span>
-counting<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    id<span class="token punctuation">:</span> <span class="token string">'incInterval'</span><span class="token punctuation">,</span>
-    <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+</code></pre></div><div class="custom-block warning"><p class="custom-block-title">WARNING</p> <p>If the <code>onError</code> transition is missing and the Promise is rejected, the error will be ignored unless you have specified <a href="/docs/guides/machines.html#configuration">strict mode</a> for the machine. Strict mode will stop the machine and throw an error in this case.</p></div> <h2 id="invoking-callbacks"><a href="#invoking-callbacks" class="header-anchor">#</a> Invoking Callbacks</h2> <p>Streams of events sent to the parent machine can be modeled via a callback handler, which is a function that takes in two arguments:</p> <ul><li><code>callback</code> - called with the event to be sent</li> <li><code>onReceive</code> - called with a listener that <a href="#listening-to-parent-events">listens to events from the parent</a></li></ul> <p>The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// ...</span>
+counting<span class="token operator">:</span> <span class="token punctuation">{</span>
+  invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+    id<span class="token operator">:</span> <span class="token string">'incInterval'</span><span class="token punctuation">,</span>
+    <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
       <span class="token comment">// This will send the 'INC' event to the parent every second</span>
       <span class="token keyword">const</span> id <span class="token operator">=</span> <span class="token function">setInterval</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">callback</span><span class="token punctuation">(</span><span class="token string">'INC'</span><span class="token punctuation">)</span><span class="token punctuation">,</span> <span class="token number">1000</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
@@ -155,19 +156,19 @@ counting<span class="token punctuation">:</span> <span class="token punctuation"
       <span class="token keyword">return</span> <span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">clearInterval</span><span class="token punctuation">(</span>id<span class="token punctuation">)</span><span class="token punctuation">;</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    <span class="token constant">INC</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">counter</span><span class="token punctuation">:</span> <span class="token parameter">context</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>counter <span class="token operator">+</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">}</span>
+  on<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token constant">INC</span><span class="token operator">:</span> <span class="token punctuation">{</span> actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token function-variable function">counter</span><span class="token operator">:</span> <span class="token parameter">context</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>counter <span class="token operator">+</span> <span class="token number">1</span> <span class="token punctuation">}</span><span class="token punctuation">)</span> <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
 <span class="token comment">// ...</span>
-</code></pre></div><h3 id="listening-to-parent-events"><a href="#listening-to-parent-events" aria-hidden="true" class="header-anchor">#</a> Listening to Parent Events</h3> <p>Invoked callback handlers are also given a second argument, <code>onReceive</code>, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.</p> <p>For example, the parent machine sends the child <code>'ponger'</code> service a <code>'PING'</code> event. The child service can listen for that event using <code>onReceive(listener)</code>, and send a <code>'PONG'</code> event back to the parent in response:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> pingPongMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'pinger'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'ponger'</span><span class="token punctuation">,</span>
-        <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+</code></pre></div><h3 id="listening-to-parent-events"><a href="#listening-to-parent-events" class="header-anchor">#</a> Listening to Parent Events</h3> <p>Invoked callback handlers are also given a second argument, <code>onReceive</code>, which registers listeners for events sent to the callback handler from the parent. This allows for parent-child communication between the parent machine and the invoked callback service.</p> <p>For example, the parent machine sends the child <code>'ponger'</code> service a <code>'PING'</code> event. The child service can listen for that event using <code>onReceive(listener)</code>, and send a <code>'PONG'</code> event back to the parent in response:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> pingPongMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'pinger'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'ponger'</span><span class="token punctuation">,</span>
+        <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
           <span class="token comment">// Whenever parent sends 'PING',</span>
           <span class="token comment">// send parent 'PONG' event</span>
           <span class="token function">onReceive</span><span class="token punctuation">(</span><span class="token parameter">e</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
@@ -177,13 +178,13 @@ counting<span class="token punctuation">:</span> <span class="token punctuation"
           <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span><span class="token punctuation">,</span>
-      entry<span class="token punctuation">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token punctuation">:</span> <span class="token string">'ponger'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">PONG</span><span class="token punctuation">:</span> <span class="token string">'done'</span>
+      entry<span class="token operator">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token operator">:</span> <span class="token string">'ponger'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">PONG</span><span class="token operator">:</span> <span class="token string">'done'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    done<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+    done<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -191,31 +192,31 @@ counting<span class="token punctuation">:</span> <span class="token punctuation"
 <span class="token function">interpret</span><span class="token punctuation">(</span>pingPongMachine<span class="token punctuation">)</span>
   <span class="token punctuation">.</span><span class="token function">onDone</span><span class="token punctuation">(</span><span class="token punctuation">(</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">done</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
   <span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><h2 id="invoking-observables"><a href="#invoking-observables" aria-hidden="true" class="header-anchor">#</a> Invoking Observables <span class="badge tip" style="vertical-align:top;" data-v-c13ee5b0>4.6</span></h2> <p><a href="https://github.com/tc39/proposal-observable" target="_blank" rel="noopener noreferrer">Observables<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a> are streams of values emitted over time. Think of them as an array/collection whose values are emitted asynchronously, instead of all at once. There are many implementations of observables in JavaScript; the most popular one is <a href="https://github.com/ReactiveX/rxjs" target="_blank" rel="noopener noreferrer">RxJS<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>.</p> <p>Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes <code>context</code> and <code>event</code> as arguments and returns an observable stream of events. The observable is unsubscribed when the state where it is invoked is exited.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="invoking-observables"><a href="#invoking-observables" class="header-anchor">#</a> Invoking Observables <span class="badge tip" style="vertical-align:top;" data-v-15b7b770>4.6</span></h2> <p><a href="https://github.com/tc39/proposal-observable" target="_blank" rel="noopener noreferrer">Observables<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a> are streams of values emitted over time. Think of them as an array/collection whose values are emitted asynchronously, instead of all at once. There are many implementations of observables in JavaScript; the most popular one is <a href="https://github.com/ReactiveX/rxjs" target="_blank" rel="noopener noreferrer">RxJS<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a>.</p> <p>Observables can be invoked, which is expected to send events (strings or objects) to the parent machine, yet not receive events (uni-directional). An observable invocation is a function that takes <code>context</code> and <code>event</code> as arguments and returns an observable stream of events. The observable is unsubscribed when the state where it is invoked is exited.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
 <span class="token keyword">import</span> <span class="token punctuation">{</span> interval <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'rxjs'</span><span class="token punctuation">;</span>
 <span class="token keyword">import</span> <span class="token punctuation">{</span> map<span class="token punctuation">,</span> take <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'rxjs/operators'</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> intervalMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'interval'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'counting'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span> myInterval<span class="token punctuation">:</span> <span class="token number">1000</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    counting<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
+  id<span class="token operator">:</span> <span class="token string">'interval'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'counting'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span> myInterval<span class="token operator">:</span> <span class="token number">1000</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    counting<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span>
           <span class="token function">interval</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>myInterval<span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">pipe</span><span class="token punctuation">(</span>
-            <span class="token function">map</span><span class="token punctuation">(</span><span class="token parameter">value</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'COUNT'</span><span class="token punctuation">,</span> value <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+            <span class="token function">map</span><span class="token punctuation">(</span><span class="token parameter">value</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'COUNT'</span><span class="token punctuation">,</span> value <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
             <span class="token function">take</span><span class="token punctuation">(</span><span class="token number">5</span><span class="token punctuation">)</span>
           <span class="token punctuation">)</span><span class="token punctuation">,</span>
-        onDone<span class="token punctuation">:</span> <span class="token string">'finished'</span>
+        onDone<span class="token operator">:</span> <span class="token string">'finished'</span>
       <span class="token punctuation">}</span><span class="token punctuation">,</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">COUNT</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> actions<span class="token punctuation">:</span> <span class="token string">'notifyCount'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
-        <span class="token constant">CANCEL</span><span class="token punctuation">:</span> <span class="token string">'finished'</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">COUNT</span><span class="token operator">:</span> <span class="token punctuation">{</span> actions<span class="token operator">:</span> <span class="token string">'notifyCount'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        <span class="token constant">CANCEL</span><span class="token operator">:</span> <span class="token string">'finished'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    finished<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+    finished<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -224,47 +225,47 @@ counting<span class="token punctuation">:</span> <span class="token punctuation"
 <span class="token keyword">const</span> mouseMove$ <span class="token operator">=</span> <span class="token function">fromEvent</span><span class="token punctuation">(</span>document<span class="token punctuation">.</span>body<span class="token punctuation">,</span> <span class="token string">'mousemove'</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> mouseMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'mouse'</span><span class="token punctuation">,</span>
+  id<span class="token operator">:</span> <span class="token string">'mouse'</span><span class="token punctuation">,</span>
   <span class="token comment">// ...</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> mouseMove$
+  invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> mouseMove$
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    mousemove<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+  on<span class="token operator">:</span> <span class="token punctuation">{</span>
+    mousemove<span class="token operator">:</span> <span class="token punctuation">{</span>
       <span class="token comment">/* ... */</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div></div> <h2 id="invoking-machines"><a href="#invoking-machines" aria-hidden="true" class="header-anchor">#</a> Invoking Machines</h2> <p>Machines communicate hierarchically, and invoked machines can communicate:</p> <ul><li>Parent-to-child via the <code>send(EVENT, { to: 'someChildId' })</code> action</li> <li>Child-to-parent via the <code>sendParent(EVENT)</code> action.</li></ul> <p>If the state where the machine is invoked is exited, the machine is stopped.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> interpret<span class="token punctuation">,</span> send<span class="token punctuation">,</span> sendParent <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+</code></pre></div></div> <h2 id="invoking-machines"><a href="#invoking-machines" class="header-anchor">#</a> Invoking Machines</h2> <p>Machines communicate hierarchically, and invoked machines can communicate:</p> <ul><li>Parent-to-child via the <code>send(EVENT, { to: 'someChildId' })</code> action</li> <li>Child-to-parent via the <code>sendParent(EVENT)</code> action.</li></ul> <p>If the state where the machine is invoked is exited, the machine is stopped.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> interpret<span class="token punctuation">,</span> send<span class="token punctuation">,</span> sendParent <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
 
 <span class="token comment">// Invoked child machine</span>
 <span class="token keyword">const</span> minuteMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      after<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token number">60000</span><span class="token punctuation">:</span> <span class="token string">'finished'</span>
+  id<span class="token operator">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      after<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token number">60000</span><span class="token operator">:</span> <span class="token string">'finished'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    finished<span class="token punctuation">:</span> <span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span>
+    finished<span class="token operator">:</span> <span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'final'</span> <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> parentMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        src<span class="token punctuation">:</span> minuteMachine<span class="token punctuation">,</span>
+  id<span class="token operator">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    pending<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        src<span class="token operator">:</span> minuteMachine<span class="token punctuation">,</span>
         <span class="token comment">// The onDone transition will be taken when the</span>
         <span class="token comment">// minuteMachine has reached its top-level final state.</span>
-        onDone<span class="token punctuation">:</span> <span class="token string">'timesUp'</span>
+        onDone<span class="token operator">:</span> <span class="token string">'timesUp'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    timesUp<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+    timesUp<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -275,82 +276,82 @@ counting<span class="token punctuation">:</span> <span class="token punctuation"
 <span class="token comment">// =&gt; 'pending'</span>
 <span class="token comment">// ... after 1 minute</span>
 <span class="token comment">// =&gt; 'timesUp'</span>
-</code></pre></div><h3 id="invoking-with-context"><a href="#invoking-with-context" aria-hidden="true" class="header-anchor">#</a> Invoking with Context</h3> <p>Child machines can be invoked with <code>context</code> that is derived from the parent machine's <code>context</code> with the <code>data</code> property. For example, the <code>parentMachine</code> below will invoke a new <code>timerMachine</code> service with initial context of <code>{ customDuration: 3000 }</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> timerMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    duration<span class="token punctuation">:</span> <span class="token number">1000</span> <span class="token comment">// default duration</span>
+</code></pre></div><h3 id="invoking-with-context"><a href="#invoking-with-context" class="header-anchor">#</a> Invoking with Context</h3> <p>Child machines can be invoked with <code>context</code> that is derived from the parent machine's <code>context</code> with the <code>data</code> property. For example, the <code>parentMachine</code> below will invoke a new <code>timerMachine</code> service with initial context of <code>{ customDuration: 3000 }</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> timerMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    duration<span class="token operator">:</span> <span class="token number">1000</span> <span class="token comment">// default duration</span>
   <span class="token punctuation">}</span>
   <span class="token comment">/* ... */</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> parentMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    customDuration<span class="token punctuation">:</span> <span class="token number">3000</span>
+  id<span class="token operator">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    customDuration<span class="token operator">:</span> <span class="token number">3000</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
-        src<span class="token punctuation">:</span> timerMachine<span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'timer'</span><span class="token punctuation">,</span>
+        src<span class="token operator">:</span> timerMachine<span class="token punctuation">,</span>
         <span class="token comment">// Deriving child context from parent context</span>
-        data<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          <span class="token function-variable function">duration</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>customDuration
+        data<span class="token operator">:</span> <span class="token punctuation">{</span>
+          <span class="token function-variable function">duration</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>customDuration
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 </code></pre></div><p>Just like <a href="/docs/guides/context.html"><code>assign(...)</code></a>, child context can be mapped as an object (preferred) or a function:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// Object (per-property):</span>
-data<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-  <span class="token function-variable function">duration</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>customDuration<span class="token punctuation">,</span>
-  <span class="token function-variable function">foo</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>value<span class="token punctuation">,</span>
-  bar<span class="token punctuation">:</span> <span class="token string">'static value'</span>
+data<span class="token operator">:</span> <span class="token punctuation">{</span>
+  <span class="token function-variable function">duration</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>customDuration<span class="token punctuation">,</span>
+  <span class="token function-variable function">foo</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> event<span class="token punctuation">.</span>value<span class="token punctuation">,</span>
+  bar<span class="token operator">:</span> <span class="token string">'static value'</span>
 <span class="token punctuation">}</span>
 
 <span class="token comment">// Function (aggregate), equivalent to above:</span>
-<span class="token function-variable function">data</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
-  duration<span class="token punctuation">:</span> context<span class="token punctuation">.</span>customDuration<span class="token punctuation">,</span>
-  foo<span class="token punctuation">:</span> event<span class="token punctuation">.</span>value<span class="token punctuation">,</span>
-  bar<span class="token punctuation">:</span> <span class="token string">'static value'</span>
+<span class="token function-variable function">data</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span>
+  duration<span class="token operator">:</span> context<span class="token punctuation">.</span>customDuration<span class="token punctuation">,</span>
+  foo<span class="token operator">:</span> event<span class="token punctuation">.</span>value<span class="token punctuation">,</span>
+  bar<span class="token operator">:</span> <span class="token string">'static value'</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span>
-</code></pre></div><h3 id="done-data"><a href="#done-data" aria-hidden="true" class="header-anchor">#</a> Done Data</h3> <p>When a child machine reaches its top-level <a href="/docs/guides/final.html">final state</a>, it can send data in the &quot;done&quot; event (e.g., <code>{ type: 'done.invoke.someId', data: ... })</code>). This &quot;done data&quot; is specified on the final state's <code>data</code> property:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> secretMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'secret'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'wait'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    secret<span class="token punctuation">:</span> <span class="token string">'42'</span>
+</code></pre></div><h3 id="done-data"><a href="#done-data" class="header-anchor">#</a> Done Data</h3> <p>When a child machine reaches its top-level <a href="/docs/guides/final.html">final state</a>, it can send data in the &quot;done&quot; event (e.g., <code>{ type: 'done.invoke.someId', data: ... })</code>). This &quot;done data&quot; is specified on the final state's <code>data</code> property:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> secretMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'secret'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'wait'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    secret<span class="token operator">:</span> <span class="token string">'42'</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    wait<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      after<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token number">1000</span><span class="token punctuation">:</span> <span class="token string">'reveal'</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    wait<span class="token operator">:</span> <span class="token punctuation">{</span>
+      after<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token number">1000</span><span class="token operator">:</span> <span class="token string">'reveal'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    reveal<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span><span class="token punctuation">,</span>
-      data<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token function-variable function">secret</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>secret
+    reveal<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span><span class="token punctuation">,</span>
+      data<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token function-variable function">secret</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> context<span class="token punctuation">.</span>secret
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> parentMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
-  context<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    revealedSecret<span class="token punctuation">:</span> <span class="token keyword">undefined</span>
+  id<span class="token operator">:</span> <span class="token string">'parent'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'pending'</span><span class="token punctuation">,</span>
+  context<span class="token operator">:</span> <span class="token punctuation">{</span>
+    revealedSecret<span class="token operator">:</span> <span class="token keyword">undefined</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    pending<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'secret'</span><span class="token punctuation">,</span>
-        src<span class="token punctuation">:</span> secretMachine<span class="token punctuation">,</span>
-        onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          target<span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
-          actions<span class="token punctuation">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-            <span class="token function-variable function">revealedSecret</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    pending<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'secret'</span><span class="token punctuation">,</span>
+        src<span class="token operator">:</span> secretMachine<span class="token punctuation">,</span>
+        onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+          target<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+          actions<span class="token operator">:</span> <span class="token function">assign</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+            <span class="token function-variable function">revealedSecret</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
               <span class="token comment">// event is:</span>
               <span class="token comment">// { type: 'done.invoke.secret', data: { secret: '42' } }</span>
               <span class="token keyword">return</span> event<span class="token punctuation">.</span>data<span class="token punctuation">.</span>secret<span class="token punctuation">;</span>
@@ -359,8 +360,8 @@ data<span class="token punctuation">:</span> <span class="token punctuation">{</
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    success<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+    success<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -371,28 +372,28 @@ data<span class="token punctuation">:</span> <span class="token punctuation">{</
 <span class="token comment">// =&gt; { revealedSecret: undefined }</span>
 <span class="token comment">// ...</span>
 <span class="token comment">// =&gt; { revealedSecret: '42' }</span>
-</code></pre></div><h3 id="sending-events"><a href="#sending-events" aria-hidden="true" class="header-anchor">#</a> Sending Events</h3> <ul><li>To send from a <strong>child</strong> machine to a <strong>parent</strong> machine, use <code>sendParent(event)</code> (takes the same arguments as <code>send(...)</code>)</li> <li>To send from a <strong>parent</strong> machine to a <strong>child</strong> machine, use <code>send(event, { to: &lt;child ID&gt; })</code></li></ul> <div class="custom-block warning"><p class="custom-block-title">WARNING</p> <p>The <code>send(...)</code> and <code>sendParent(...)</code> action creators do <em>not</em> imperatively send
+</code></pre></div><h3 id="sending-events"><a href="#sending-events" class="header-anchor">#</a> Sending Events</h3> <ul><li>To send from a <strong>child</strong> machine to a <strong>parent</strong> machine, use <code>sendParent(event)</code> (takes the same arguments as <code>send(...)</code>)</li> <li>To send from a <strong>parent</strong> machine to a <strong>child</strong> machine, use <code>send(event, { to: &lt;child ID&gt; })</code></li></ul> <div class="custom-block warning"><p class="custom-block-title">WARNING</p> <p>The <code>send(...)</code> and <code>sendParent(...)</code> action creators do <em>not</em> imperatively send
 events to machines. They are pure functions that return an action object
 describing what is to be sent, e.g., <code>{ type: 'xstate.send', event: ... }</code>. An
 <a href="/docs/guides/interpretation.html">interpreter</a> will read these objects and then send them.</p> <p><a href="/docs/guides/actions.html#send-action">Read more about <code>send</code></a></p></div> <p>Here is an example of two machines, <code>pingMachine</code> and <code>pongMachine</code>, communicating with each other:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> interpret<span class="token punctuation">,</span> send<span class="token punctuation">,</span> sendParent <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
 
 <span class="token comment">// Parent machine</span>
 <span class="token keyword">const</span> pingMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'ping'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
-        src<span class="token punctuation">:</span> pongMachine
+  id<span class="token operator">:</span> <span class="token string">'ping'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
+        src<span class="token operator">:</span> pongMachine
       <span class="token punctuation">}</span><span class="token punctuation">,</span>
       <span class="token comment">// Sends 'PING' event to child machine with ID 'pong'</span>
-      entry<span class="token punctuation">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token punctuation">:</span> <span class="token string">'pong'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">PONG</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          actions<span class="token punctuation">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
-            to<span class="token punctuation">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
-            delay<span class="token punctuation">:</span> <span class="token number">1000</span>
+      entry<span class="token operator">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token operator">:</span> <span class="token string">'pong'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">PONG</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          actions<span class="token operator">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'PING'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            to<span class="token operator">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
+            delay<span class="token operator">:</span> <span class="token number">1000</span>
           <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
@@ -402,15 +403,15 @@ describing what is to be sent, e.g., <code>{ type: 'xstate.send', event: ... }</
 
 <span class="token comment">// Invoked child machine</span>
 <span class="token keyword">const</span> pongMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    active<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">PING</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
+  id<span class="token operator">:</span> <span class="token string">'pong'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'active'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    active<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">PING</span><span class="token operator">:</span> <span class="token punctuation">{</span>
           <span class="token comment">// Sends 'PONG' event to parent machine</span>
-          actions<span class="token punctuation">:</span> <span class="token function">sendParent</span><span class="token punctuation">(</span><span class="token string">'PONG'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
-            delay<span class="token punctuation">:</span> <span class="token number">1000</span>
+          actions<span class="token operator">:</span> <span class="token function">sendParent</span><span class="token punctuation">(</span><span class="token string">'PONG'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
+            delay<span class="token operator">:</span> <span class="token number">1000</span>
           <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
@@ -428,18 +429,18 @@ describing what is to be sent, e.g., <code>{ type: 'xstate.send', event: ... }</
 <span class="token comment">// ...</span>
 <span class="token comment">// =&gt; 'pong'</span>
 <span class="token comment">// ...</span>
-</code></pre></div><h2 id="sending-responses"><a href="#sending-responses" aria-hidden="true" class="header-anchor">#</a> Sending Responses <span class="badge tip" style="vertical-align:top;" data-v-c13ee5b0>4.7+</span></h2> <p>An invoked service (or <a href="/docs/guides/actors.html">spawned actor</a>) can <em>respond</em> to another service/actor; i.e., it can send an event <em>in response to</em> an event sent by another service/actor. This is done with the <code>respond(...)</code> action creator.</p> <p>For example, the <code>'client'</code> machine below sends the <code>'CODE'</code> event to the invoked <code>'auth-server'</code> service, which then responds with a <code>'TOKEN'</code> event after 1 second.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> send<span class="token punctuation">,</span> actions <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="sending-responses"><a href="#sending-responses" class="header-anchor">#</a> Sending Responses <span class="badge tip" style="vertical-align:top;" data-v-15b7b770>4.7+</span></h2> <p>An invoked service (or <a href="/docs/guides/actors.html">spawned actor</a>) can <em>respond</em> to another service/actor; i.e., it can send an event <em>in response to</em> an event sent by another service/actor. This is done with the <code>respond(...)</code> action creator.</p> <p>For example, the <code>'client'</code> machine below sends the <code>'CODE'</code> event to the invoked <code>'auth-server'</code> service, which then responds with a <code>'TOKEN'</code> event after 1 second.</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> Machine<span class="token punctuation">,</span> send<span class="token punctuation">,</span> actions <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> <span class="token punctuation">{</span> respond <span class="token punctuation">}</span> <span class="token operator">=</span> actions<span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> authServerMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'server'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'waitingForCode'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    waitingForCode<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">CODE</span><span class="token punctuation">:</span> <span class="token punctuation">{</span>
-          actions<span class="token punctuation">:</span> <span class="token function">respond</span><span class="token punctuation">(</span><span class="token string">'TOKEN'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> delay<span class="token punctuation">:</span> <span class="token number">1000</span> <span class="token punctuation">}</span><span class="token punctuation">)</span>
+  id<span class="token operator">:</span> <span class="token string">'server'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'waitingForCode'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    waitingForCode<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">CODE</span><span class="token operator">:</span> <span class="token punctuation">{</span>
+          actions<span class="token operator">:</span> <span class="token function">respond</span><span class="token punctuation">(</span><span class="token string">'TOKEN'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> delay<span class="token operator">:</span> <span class="token number">1000</span> <span class="token punctuation">}</span><span class="token punctuation">)</span>
         <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span>
@@ -447,67 +448,67 @@ describing what is to be sent, e.g., <code>{ type: 'xstate.send', event: ... }</
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> authClientMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'client'</span><span class="token punctuation">,</span>
-  initial<span class="token punctuation">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    idle<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token constant">AUTH</span><span class="token punctuation">:</span> <span class="token string">'authorizing'</span> <span class="token punctuation">}</span>
+  id<span class="token operator">:</span> <span class="token string">'client'</span><span class="token punctuation">,</span>
+  initial<span class="token operator">:</span> <span class="token string">'idle'</span><span class="token punctuation">,</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    idle<span class="token operator">:</span> <span class="token punctuation">{</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token constant">AUTH</span><span class="token operator">:</span> <span class="token string">'authorizing'</span> <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    authorizing<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        id<span class="token punctuation">:</span> <span class="token string">'auth-server'</span><span class="token punctuation">,</span>
-        src<span class="token punctuation">:</span> authServerMachine
+    authorizing<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        id<span class="token operator">:</span> <span class="token string">'auth-server'</span><span class="token punctuation">,</span>
+        src<span class="token operator">:</span> authServerMachine
       <span class="token punctuation">}</span><span class="token punctuation">,</span>
-      entry<span class="token punctuation">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'CODE'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token punctuation">:</span> <span class="token string">'auth-server'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
-      on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        <span class="token constant">TOKEN</span><span class="token punctuation">:</span> <span class="token string">'authorized'</span>
+      entry<span class="token operator">:</span> <span class="token function">send</span><span class="token punctuation">(</span><span class="token string">'CODE'</span><span class="token punctuation">,</span> <span class="token punctuation">{</span> to<span class="token operator">:</span> <span class="token string">'auth-server'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">,</span>
+      on<span class="token operator">:</span> <span class="token punctuation">{</span>
+        <span class="token constant">TOKEN</span><span class="token operator">:</span> <span class="token string">'authorized'</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    authorized<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      type<span class="token punctuation">:</span> <span class="token string">'final'</span>
+    authorized<span class="token operator">:</span> <span class="token punctuation">{</span>
+      type<span class="token operator">:</span> <span class="token string">'final'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><p>This specific example can use <code>sendParent(...)</code> for the same effect; the difference is that <code>respond(...)</code> will send an event back to the received event's origin, which might not necessarily be the parent machine.</p> <h2 id="multiple-services"><a href="#multiple-services" aria-hidden="true" class="header-anchor">#</a> Multiple Services</h2> <p>You can invoke multiple services by specifying each in an array:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// ...</span>
-invoke<span class="token punctuation">:</span> <span class="token punctuation">[</span>
-  <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token string">'service1'</span><span class="token punctuation">,</span> src<span class="token punctuation">:</span> <span class="token string">'someService'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token string">'service2'</span><span class="token punctuation">,</span> src<span class="token punctuation">:</span> <span class="token string">'someService'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
-  <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token string">'logService'</span><span class="token punctuation">,</span> src<span class="token punctuation">:</span> <span class="token string">'logService'</span> <span class="token punctuation">}</span>
+</code></pre></div><p>This specific example can use <code>sendParent(...)</code> for the same effect; the difference is that <code>respond(...)</code> will send an event back to the received event's origin, which might not necessarily be the parent machine.</p> <h2 id="multiple-services"><a href="#multiple-services" class="header-anchor">#</a> Multiple Services</h2> <p>You can invoke multiple services by specifying each in an array:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// ...</span>
+invoke<span class="token operator">:</span> <span class="token punctuation">[</span>
+  <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'service1'</span><span class="token punctuation">,</span> src<span class="token operator">:</span> <span class="token string">'someService'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'service2'</span><span class="token punctuation">,</span> src<span class="token operator">:</span> <span class="token string">'someService'</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+  <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'logService'</span><span class="token punctuation">,</span> src<span class="token operator">:</span> <span class="token string">'logService'</span> <span class="token punctuation">}</span>
 <span class="token punctuation">]</span><span class="token punctuation">,</span>
 <span class="token comment">// ...</span>
-</code></pre></div><p>Each invocation will create a <em>new</em> instance of that service, so even if the <code>src</code> of multiple services are the same (e.g., <code>'someService'</code> above), multiple instances of <code>'someService'</code> will be invoked.</p> <h2 id="configuring-services"><a href="#configuring-services" aria-hidden="true" class="header-anchor">#</a> Configuring Services</h2> <p>The invocation sources (services) can be configured similar to how actions, guards, etc. are configured -- by specifying the <code>src</code> as a string and defining them in the <code>services</code> property of the Machine options:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> fetchUser <span class="token operator">=</span> <span class="token comment">// (same as the above example)</span>
+</code></pre></div><p>Each invocation will create a <em>new</em> instance of that service, so even if the <code>src</code> of multiple services are the same (e.g., <code>'someService'</code> above), multiple instances of <code>'someService'</code> will be invoked.</p> <h2 id="configuring-services"><a href="#configuring-services" class="header-anchor">#</a> Configuring Services</h2> <p>The invocation sources (services) can be configured similar to how actions, guards, etc. are configured -- by specifying the <code>src</code> as a string and defining them in the <code>services</code> property of the Machine options:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> fetchUser <span class="token operator">=</span> <span class="token comment">// (same as the above example)</span>
 
 <span class="token keyword">const</span> userMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  id<span class="token punctuation">:</span> <span class="token string">'user'</span><span class="token punctuation">,</span>
+  id<span class="token operator">:</span> <span class="token string">'user'</span><span class="token punctuation">,</span>
   <span class="token comment">// ...</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
     <span class="token comment">// ...</span>
-    loading<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-        src<span class="token punctuation">:</span> <span class="token string">'getUser'</span><span class="token punctuation">,</span>
+    loading<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+        src<span class="token operator">:</span> <span class="token string">'getUser'</span><span class="token punctuation">,</span>
         <span class="token comment">// ...</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span><span class="token punctuation">,</span>
     <span class="token comment">// ...</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">,</span> <span class="token punctuation">{</span>
-  services<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    <span class="token function-variable function">getUser</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>user<span class="token punctuation">.</span>id<span class="token punctuation">)</span>
+  services<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">getUser</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">fetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>user<span class="token punctuation">.</span>id<span class="token punctuation">)</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><h2 id="testing"><a href="#testing" aria-hidden="true" class="header-anchor">#</a> Testing</h2> <p>By specifying services as strings above, &quot;mocking&quot; services can be done by specifying an alternative implementation with <code>.withConfig()</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
+</code></pre></div><h2 id="testing"><a href="#testing" class="header-anchor">#</a> Testing</h2> <p>By specifying services as strings above, &quot;mocking&quot; services can be done by specifying an alternative implementation with <code>.withConfig()</code>:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> interpret <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'xstate'</span><span class="token punctuation">;</span>
 <span class="token keyword">import</span> <span class="token punctuation">{</span> assert <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'chai'</span><span class="token punctuation">;</span>
 <span class="token keyword">import</span> <span class="token punctuation">{</span> userMachine <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'../path/to/userMachine'</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> <span class="token function-variable function">mockFetchUser</span> <span class="token operator">=</span> <span class="token keyword">async</span> <span class="token parameter">userId</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
   <span class="token comment">// Mock however you want, but ensure that the same</span>
   <span class="token comment">// behavior and response format is used</span>
-  <span class="token keyword">return</span> <span class="token punctuation">{</span> name<span class="token punctuation">:</span> <span class="token string">'Test'</span><span class="token punctuation">,</span> location<span class="token punctuation">:</span> <span class="token string">'Anywhere'</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
+  <span class="token keyword">return</span> <span class="token punctuation">{</span> name<span class="token operator">:</span> <span class="token string">'Test'</span><span class="token punctuation">,</span> location<span class="token operator">:</span> <span class="token string">'Anywhere'</span> <span class="token punctuation">}</span><span class="token punctuation">;</span>
 <span class="token punctuation">}</span><span class="token punctuation">;</span>
 
 <span class="token keyword">const</span> testUserMachine <span class="token operator">=</span> userMachine<span class="token punctuation">.</span><span class="token function">withConfig</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
-  services<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    <span class="token function-variable function">getUser</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">mockFetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>id<span class="token punctuation">)</span>
+  services<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">getUser</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">mockFetchUser</span><span class="token punctuation">(</span>context<span class="token punctuation">.</span>id<span class="token punctuation">)</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
@@ -517,8 +518,8 @@ invoke<span class="token punctuation">:</span> <span class="token punctuation">[
       <span class="token punctuation">.</span><span class="token function">onTransition</span><span class="token punctuation">(</span><span class="token parameter">state</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
         <span class="token keyword">if</span> <span class="token punctuation">(</span>state<span class="token punctuation">.</span><span class="token function">matches</span><span class="token punctuation">(</span><span class="token string">'success'</span><span class="token punctuation">)</span><span class="token punctuation">)</span> <span class="token punctuation">{</span>
           assert<span class="token punctuation">.</span><span class="token function">deepEqual</span><span class="token punctuation">(</span>state<span class="token punctuation">.</span>context<span class="token punctuation">.</span>user<span class="token punctuation">,</span> <span class="token punctuation">{</span>
-            name<span class="token punctuation">:</span> <span class="token string">'Test'</span><span class="token punctuation">,</span>
-            location<span class="token punctuation">:</span> <span class="token string">'Anywhere'</span>
+            name<span class="token operator">:</span> <span class="token string">'Test'</span><span class="token punctuation">,</span>
+            location<span class="token operator">:</span> <span class="token string">'Anywhere'</span>
           <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
           <span class="token function">done</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -527,11 +528,11 @@ invoke<span class="token punctuation">:</span> <span class="token punctuation">[
       <span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
   <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><h2 id="referencing-services"><a href="#referencing-services" aria-hidden="true" class="header-anchor">#</a> Referencing Services <span class="badge tip" style="vertical-align:top;" data-v-c13ee5b0>4.7+</span></h2> <p>Services (and <a href="/docs/guides/actors.html">actors</a>, which are spawned services) can be referenced directly on the <a href="/docs/guides/states.html">state object</a> from the <code>.children</code> property. The <code>state.children</code> object is a mapping of service IDs (keys) to those service instances (values):</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+</code></pre></div><h2 id="referencing-services"><a href="#referencing-services" class="header-anchor">#</a> Referencing Services <span class="badge tip" style="vertical-align:top;" data-v-15b7b770>4.7+</span></h2> <p>Services (and <a href="/docs/guides/actors.html">actors</a>, which are spawned services) can be referenced directly on the <a href="/docs/guides/states.html">state object</a> from the <code>.children</code> property. The <code>state.children</code> object is a mapping of service IDs (keys) to those service instances (values):</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
   <span class="token comment">// ...</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">[</span>
-    <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token string">'notifier'</span><span class="token punctuation">,</span> src<span class="token punctuation">:</span> createNotifier <span class="token punctuation">}</span><span class="token punctuation">,</span>
-    <span class="token punctuation">{</span> id<span class="token punctuation">:</span> <span class="token string">'logger'</span><span class="token punctuation">,</span> src<span class="token punctuation">:</span> createLogger <span class="token punctuation">}</span>
+  invoke<span class="token operator">:</span> <span class="token punctuation">[</span>
+    <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'notifier'</span><span class="token punctuation">,</span> src<span class="token operator">:</span> createNotifier <span class="token punctuation">}</span><span class="token punctuation">,</span>
+    <span class="token punctuation">{</span> id<span class="token operator">:</span> <span class="token string">'logger'</span><span class="token punctuation">,</span> src<span class="token operator">:</span> createLogger <span class="token punctuation">}</span>
   <span class="token punctuation">]</span>
   <span class="token comment">// ...</span>
 <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
@@ -542,27 +543,27 @@ invoke<span class="token punctuation">:</span> <span class="token punctuation">[
     state<span class="token punctuation">.</span>children<span class="token punctuation">.</span>logger<span class="token punctuation">;</span> <span class="token comment">// service from createLogger()</span>
   <span class="token punctuation">}</span><span class="token punctuation">)</span>
   <span class="token punctuation">.</span><span class="token function">start</span><span class="token punctuation">(</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
-</code></pre></div><p>When JSON serialized, the <code>state.children</code> object is a mapping of service IDs (keys) to objects containing meta data about that service.</p> <h2 id="quick-reference"><a href="#quick-reference" aria-hidden="true" class="header-anchor">#</a> Quick Reference</h2> <p><strong>The <code>invoke</code> property</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
+</code></pre></div><p>When JSON serialized, the <code>state.children</code> object is a mapping of service IDs (keys) to objects containing meta data about that service.</p> <h2 id="quick-reference"><a href="#quick-reference" class="header-anchor">#</a> Quick Reference</h2> <p><strong>The <code>invoke</code> property</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> machine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span>
   <span class="token comment">// ...</span>
-  states<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    someState<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
+  states<span class="token operator">:</span> <span class="token punctuation">{</span>
+    someState<span class="token operator">:</span> <span class="token punctuation">{</span>
+      invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
         <span class="token comment">// The `src` property can be:</span>
         <span class="token comment">// - a string</span>
         <span class="token comment">// - a machine</span>
         <span class="token comment">// - a function that returns...</span>
-        <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+        <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
           <span class="token comment">// - a promise</span>
           <span class="token comment">// - a callback handler</span>
           <span class="token comment">// - an observable</span>
         <span class="token punctuation">}</span><span class="token punctuation">,</span>
-        id<span class="token punctuation">:</span> <span class="token string">'some-id'</span><span class="token punctuation">,</span>
+        id<span class="token operator">:</span> <span class="token string">'some-id'</span><span class="token punctuation">,</span>
         <span class="token comment">// (optional) forward machine events to invoked service</span>
-        autoForward<span class="token punctuation">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+        autoForward<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
         <span class="token comment">// (optional) the transition when the invoked promise/observable/machine is done</span>
-        onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span> target<span class="token punctuation">:</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
+        onDone<span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span><span class="token punctuation">,</span>
         <span class="token comment">// (optional) the transition when an error from the invoked service occurs</span>
-        onError<span class="token punctuation">:</span> <span class="token punctuation">{</span> target<span class="token punctuation">:</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
+        onError<span class="token operator">:</span> <span class="token punctuation">{</span> target<span class="token operator">:</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
       <span class="token punctuation">}</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
@@ -574,26 +575,26 @@ invoke<span class="token punctuation">:</span> <span class="token punctuation">[
 
 <span class="token comment">// ...</span>
 <span class="token punctuation">{</span>
-  <span class="token function-variable function">invoke</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> getDataFromAPI<span class="token punctuation">,</span>
+  <span class="token function-variable function">invoke</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> getDataFromAPI<span class="token punctuation">,</span>
   <span class="token comment">// resolved promise</span>
-  onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    target<span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+  onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+    target<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
     <span class="token comment">// resolved promise data is on event.data property</span>
-    <span class="token function-variable function">actions</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
+    <span class="token function-variable function">actions</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
   <span class="token comment">// rejected promise</span>
-  onError<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    target<span class="token punctuation">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
+  onError<span class="token operator">:</span> <span class="token punctuation">{</span>
+    target<span class="token operator">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
     <span class="token comment">// rejected promise data is on event.data property</span>
-    <span class="token function-variable function">actions</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
+    <span class="token function-variable function">actions</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
 <span class="token comment">// ...</span>
 </code></pre></div><p><strong>Invoking Callbacks</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// ...</span>
 <span class="token punctuation">{</span>
-  <span class="token function-variable function">invoke</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  <span class="token function-variable function">invoke</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token parameter">callback<span class="token punctuation">,</span> onReceive</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
     <span class="token comment">// Send event back to parent</span>
-    <span class="token function">callback</span><span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'SOME_EVENT'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
+    <span class="token function">callback</span><span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'SOME_EVENT'</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
     <span class="token comment">// Receive events from parent</span>
     <span class="token function">onReceive</span><span class="token punctuation">(</span><span class="token parameter">event</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
@@ -603,39 +604,39 @@ invoke<span class="token punctuation">:</span> <span class="token punctuation">[
     <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
   <span class="token punctuation">}</span><span class="token punctuation">,</span>
   <span class="token comment">// Error from callback</span>
-  onError<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    target<span class="token punctuation">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
+  onError<span class="token operator">:</span> <span class="token punctuation">{</span>
+    target<span class="token operator">:</span> <span class="token string">'failure'</span><span class="token punctuation">,</span>
     <span class="token comment">// Error data is on event.data property</span>
-    <span class="token function-variable function">actions</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
+    <span class="token function-variable function">actions</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">,</span>
-on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-  <span class="token constant">SOME_EVENT</span><span class="token punctuation">:</span> <span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
+on<span class="token operator">:</span> <span class="token punctuation">{</span>
+  <span class="token constant">SOME_EVENT</span><span class="token operator">:</span> <span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
 </code></pre></div><p><strong>Invoking Observables</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">import</span> <span class="token punctuation">{</span> map <span class="token punctuation">}</span> <span class="token keyword">from</span> <span class="token string">'rxjs/operators'</span><span class="token punctuation">;</span>
 
 <span class="token comment">// ...</span>
 <span class="token punctuation">{</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    <span class="token function-variable function">src</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">createSomeObservable</span><span class="token punctuation">(</span><span class="token comment">/* ... */</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">pipe</span><span class="token punctuation">(</span>
-        <span class="token function">map</span><span class="token punctuation">(</span><span class="token parameter">value</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token punctuation">:</span> <span class="token string">'SOME_EVENT'</span><span class="token punctuation">,</span> value <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
+  invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+    <span class="token function-variable function">src</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token function">createSomeObservable</span><span class="token punctuation">(</span><span class="token comment">/* ... */</span><span class="token punctuation">)</span><span class="token punctuation">.</span><span class="token function">pipe</span><span class="token punctuation">(</span>
+        <span class="token function">map</span><span class="token punctuation">(</span><span class="token parameter">value</span> <span class="token operator">=&gt;</span> <span class="token punctuation">(</span><span class="token punctuation">{</span> type<span class="token operator">:</span> <span class="token string">'SOME_EVENT'</span><span class="token punctuation">,</span> value <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">)</span>
       <span class="token punctuation">)</span><span class="token punctuation">,</span>
-    onDone<span class="token punctuation">:</span> <span class="token string">'finished'</span>
+    onDone<span class="token operator">:</span> <span class="token string">'finished'</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span><span class="token punctuation">,</span>
-on<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-  <span class="token constant">SOME_EVENT</span><span class="token punctuation">:</span> <span class="token comment">/* ... */</span>
+on<span class="token operator">:</span> <span class="token punctuation">{</span>
+  <span class="token constant">SOME_EVENT</span><span class="token operator">:</span> <span class="token comment">/* ... */</span>
 <span class="token punctuation">}</span>
 <span class="token comment">// ...</span>
 </code></pre></div><p><strong>Invoking Machines</strong></p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token keyword">const</span> someMachine <span class="token operator">=</span> <span class="token function">Machine</span><span class="token punctuation">(</span><span class="token punctuation">{</span> <span class="token comment">/* ... */</span> <span class="token punctuation">}</span><span class="token punctuation">)</span><span class="token punctuation">;</span>
 
 <span class="token comment">// ...</span>
 <span class="token punctuation">{</span>
-  invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    src<span class="token punctuation">:</span> someMachine<span class="token punctuation">,</span>
-    onDone<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      target<span class="token punctuation">:</span> <span class="token string">'finished'</span><span class="token punctuation">,</span>
-      <span class="token function-variable function">actions</span><span class="token punctuation">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
+  invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+    src<span class="token operator">:</span> someMachine<span class="token punctuation">,</span>
+    onDone<span class="token operator">:</span> <span class="token punctuation">{</span>
+      target<span class="token operator">:</span> <span class="token string">'finished'</span><span class="token punctuation">,</span>
+      <span class="token function-variable function">actions</span><span class="token operator">:</span> <span class="token punctuation">(</span><span class="token parameter">context<span class="token punctuation">,</span> event</span><span class="token punctuation">)</span> <span class="token operator">=&gt;</span> <span class="token punctuation">{</span>
         <span class="token comment">// Child machine's done data (.data property of its final state)</span>
         console<span class="token punctuation">.</span><span class="token function">log</span><span class="token punctuation">(</span>event<span class="token punctuation">.</span>data<span class="token punctuation">)</span><span class="token punctuation">;</span>
       <span class="token punctuation">}</span>
@@ -643,15 +644,15 @@ on<span class="token punctuation">:</span> <span class="token punctuation">{</sp
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
 <span class="token comment">// ...</span>
-</code></pre></div><h2 id="scxml"><a href="#scxml" aria-hidden="true" class="header-anchor">#</a> SCXML</h2> <p>The <code>invoke</code> property is synonymous to the SCXML <code>&lt;invoke&gt;</code> element:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// XState</span>
+</code></pre></div><h2 id="scxml"><a href="#scxml" class="header-anchor">#</a> SCXML</h2> <p>The <code>invoke</code> property is synonymous to the SCXML <code>&lt;invoke&gt;</code> element:</p> <div class="language-js extra-class"><pre class="language-js"><code><span class="token comment">// XState</span>
 <span class="token punctuation">{</span>
-  loading<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-    invoke<span class="token punctuation">:</span> <span class="token punctuation">{</span>
-      src<span class="token punctuation">:</span> <span class="token string">'someSource'</span><span class="token punctuation">,</span>
-      id<span class="token punctuation">:</span> <span class="token string">'someID'</span><span class="token punctuation">,</span>
-      autoForward<span class="token punctuation">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
-      onDone<span class="token punctuation">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
-      onError<span class="token punctuation">:</span> <span class="token string">'failure'</span>
+  loading<span class="token operator">:</span> <span class="token punctuation">{</span>
+    invoke<span class="token operator">:</span> <span class="token punctuation">{</span>
+      src<span class="token operator">:</span> <span class="token string">'someSource'</span><span class="token punctuation">,</span>
+      id<span class="token operator">:</span> <span class="token string">'someID'</span><span class="token punctuation">,</span>
+      autoForward<span class="token operator">:</span> <span class="token boolean">true</span><span class="token punctuation">,</span>
+      onDone<span class="token operator">:</span> <span class="token string">'success'</span><span class="token punctuation">,</span>
+      onError<span class="token operator">:</span> <span class="token string">'failure'</span>
     <span class="token punctuation">}</span>
   <span class="token punctuation">}</span>
 <span class="token punctuation">}</span>
@@ -663,9 +664,13 @@ on<span class="token punctuation">:</span> <span class="token punctuation">{</sp
 <span class="token tag"><span class="token tag"><span class="token punctuation">&lt;/</span>state</span><span class="token punctuation">&gt;</span></span>
 </code></pre></div><ul><li><a href="https://www.w3.org/TR/scxml/#invoke" target="_blank" rel="noopener noreferrer">https://www.w3.org/TR/scxml/#invoke<svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></a> - the definition of <code>&lt;invoke&gt;</code></li></ul></div> <footer class="page-edit"><div class="edit-link"><a href="https://github.com/davidkpiano/xstate/edit/master/docs/guides/communication.md" target="_blank" rel="noopener noreferrer">Edit this page</a> <svg xmlns="http://www.w3.org/2000/svg" aria-hidden="true" x="0px" y="0px" viewBox="0 0 100 100" width="15" height="15" class="icon outbound"><path fill="currentColor" d="M18.8,85.1h56l0,0c2.2,0,4-1.8,4-4v-32h-8v28h-48v-48h28v-8h-32l0,0c-2.2,0-4,1.8-4,4v56C14.8,83.3,16.6,85.1,18.8,85.1z"></path> <polygon fill="currentColor" points="45.7,48.7 51.3,54.3 77.2,28.5 77.2,37.2 85.2,37.2 85.2,14.9 62.8,14.9 62.8,22.9 71.5,22.9"></polygon></svg></div> <div class="last-updated"><span class="prefix">Last Updated:</span> <span class="time">3/12/2020, 3:42:39 AM</span></div></footer> <div class="page-nav"><p class="inner"><span class="prev">
       ←
-      <a href="/docs/guides/activities.html" class="prev">Activities</a></span> <span class="next"><a href="/docs/guides/actors.html">Actors</a>
+      <a href="/docs/guides/activities.html" class="prev">
+        Activities
+      </a></span> <span class="next"><a href="/docs/guides/actors.html">
+        Actors
+      </a>
       →
     </span></p></div> </main></div><div class="global-ui"></div></div>
-    <script src="/docs/assets/js/app.755f90ec.js" defer></script><script src="/docs/assets/js/3.f9247c6f.js" defer></script><script src="/docs/assets/js/4.d4469ede.js" defer></script><script src="/docs/assets/js/19.86fe022d.js" defer></script><script src="/docs/assets/js/5.9b3a7591.js" defer></script>
+    <script src="/docs/assets/js/app.8b0e9cb9.js" defer></script><script src="/docs/assets/js/3.39876971.js" defer></script><script src="/docs/assets/js/4.1ba11c2e.js" defer></script><script src="/docs/assets/js/19.90707546.js" defer></script><script src="/docs/assets/js/5.a4df1746.js" defer></script>
   </body>
 </html>
