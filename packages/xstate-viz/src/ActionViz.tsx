@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { ActionObject } from 'xstate';
+import { ActionObject, SpecialTargets } from 'xstate';
 import { toDelayString } from './utils';
 
 const BUILTIN_PREFIX = 'xstate.';
@@ -9,6 +9,16 @@ function formatAction(action: ActionObject<any, any>): JSX.Element | string {
     if (action.event!.type.startsWith('xstate.after')) {
       return `send ${toDelayString(action.delay!)} delay`;
     }
+
+    const target =
+      action.to === SpecialTargets.Parent ? <em>parent</em> : action.to;
+    const eventType = action.event.type;
+
+    return (
+      <>
+        send <strong>{eventType}</strong> to {target}
+      </>
+    );
   }
   if (action.type === 'xstate.cancel') {
     const [, delay] = action.sendId!.match(/^xstate\.after\((.*)\)#.*$/);
@@ -28,7 +38,7 @@ export function ActionViz({ action }: { action: ActionObject<any, any> }) {
     >
       <div data-xviz="action-type">{formatAction(action)}</div>
       <div data-xviz="action-entries">
-        {Object.keys(action).map(key => {
+        {Object.keys(action).map((key) => {
           if (key === 'type') {
             return null;
           }

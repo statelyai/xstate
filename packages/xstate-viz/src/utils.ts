@@ -13,7 +13,7 @@ export function getChildren(machine: StateNode): StateNode[] {
     return [];
   }
 
-  return Object.keys(machine.states).map(key => {
+  return Object.keys(machine.states).map((key) => {
     return machine.states[key];
   });
 }
@@ -21,11 +21,11 @@ export function getChildren(machine: StateNode): StateNode[] {
 export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
   const edges: Array<Edge<any, any, any>> = [];
 
-  Object.keys(stateNode.on).forEach(eventType => {
+  Object.keys(stateNode.on).forEach((eventType) => {
     const transitions = stateNode.on[eventType];
 
-    transitions.forEach(t => {
-      (t.target || [stateNode]).forEach(target => {
+    transitions.forEach((t) => {
+      (t.target || [stateNode]).forEach((target) => {
         edges.push({
           event: eventType,
           source: stateNode,
@@ -44,7 +44,7 @@ export function getAllEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
 
   return flatten([
     ...getEdges(stateNode),
-    ...children.map(child => getAllEdges(child))
+    ...children.map((child) => getAllEdges(child))
   ]);
 }
 
@@ -63,7 +63,7 @@ export function getIndexes(machine: StateMachine<any, any, any>): Indexes {
     transitions: {}
   };
 
-  edges.forEach(edge => {
+  edges.forEach((edge) => {
     if (!indexes.sources[edge.source.id]) {
       indexes.sources[edge.source.id] = [];
     }
@@ -162,7 +162,7 @@ export function isBuiltinEvent(eventType: string): boolean {
 
 export function toDelayString(delay: string | number): string {
   if (typeof delay === 'number' || !isNaN(+delay)) {
-    return `${delay} ms`;
+    return `${delay}ms`;
   }
   return delay;
 }

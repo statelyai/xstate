@@ -1,28 +1,28 @@
 import * as React from 'react';
 import { InvokeDefinition } from 'xstate';
 
-function formatInvoke(src: string): string {
-  if (isUnnamed(src)) {
-    const [, index] = src.match(/:invocation\[(\d+)\]$/);
+function formatInvoke(id: string): string {
+  if (isUnnamed(id)) {
+    const [, index] = id.match(/:invocation\[(\d+)\]$/);
 
     return `anonymous (${index})`;
   }
 
-  return src;
+  return id;
 }
 
-function isUnnamed(src: string): boolean {
-  return /:invocation\[/.test(src);
+function isUnnamed(id: string): boolean {
+  return /:invocation\[/.test(id);
 }
 
 export function InvokeViz({ invoke }: { invoke: InvokeDefinition<any, any> }) {
   return (
     <div
       data-xviz="invoke"
-      data-xviz-unnamed={isUnnamed(invoke.src) || undefined}
+      data-xviz-unnamed={isUnnamed(invoke.id) || undefined}
     >
-      <div data-xviz="invoke-src">{formatInvoke(invoke.src)}</div>
-      <div data-xviz="invoke-id">{invoke.id}</div>
+      <div data-xviz="invoke-src">{invoke.src}</div>
+      <div data-xviz="invoke-id">{formatInvoke(invoke.id)}</div>
     </div>
   );
 }

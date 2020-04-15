@@ -68,7 +68,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         </div>
         {Object.keys(stateNode.states).length > 0 && (
           <div data-xviz="stateNode-children">
-            {Object.keys(stateNode.states).map(key => {
+            {Object.keys(stateNode.states).map((key) => {
               const childStateNode = stateNode.states[key];
               return (
                 <StateNodeViz
@@ -81,7 +81,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         )}
       </div>
       <div data-xviz="events">
-        {edges.map(edge => {
+        {edges.map((edge) => {
           return (
             <EventViz edge={edge} key={serializeTransition(edge.transition)} />
           );

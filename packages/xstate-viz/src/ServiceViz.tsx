@@ -1,11 +1,11 @@
 import * as React from 'react';
-import { Interpreter, Actor } from 'xstate';
+import { Interpreter, Actor, State } from 'xstate';
 import { MachineViz } from './MachineViz';
 
 function getChildActors(service: Interpreter<any, any>): Actor<any, any>[] {
   const actors: Actor<any, any>[] = [];
 
-  service.children.forEach(child => {
+  service.children.forEach((child) => {
     actors.push(child);
   });
 
@@ -13,25 +13,25 @@ function getChildActors(service: Interpreter<any, any>): Actor<any, any>[] {
 }
 
 export function ServiceViz({ service }: { service: Interpreter<any, any> }) {
-  const [actors, setActors] = React.useState<Array<Actor<any, any>>>([]);
+  const [state, setState] = React.useState<State<any, any>>(service.state);
 
   React.useEffect(() => {
-    const { unsubscribe } = service.subscribe(_ => {
-      setActors(getChildActors(service));
+    const sub = service.subscribe((currentState) => {
+      setState(currentState);
     });
 
-    return unsubscribe;
+    return sub.unsubscribe;
   }, []);
+
+  if (!state) {
+    return null;
+  }
 
   return (
     <div data-xviz="service">
+      <div data-xviz="service-id">{service.id}</div>
       <div data-xviz="service-machine">
         <MachineViz machine={service.machine} state={service.state} />
-      </div>
-      <div data-xviz="service-children">
-        {actors.map(actor => {
-          return <ServiceViz service={actor as any} key={actor.id} />;
-        })}
       </div>
     </div>
   );

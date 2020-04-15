@@ -1,17 +1,26 @@
-[data-xviz='machine'] {
+[data-xviz='machine'],
+[data-xviz='service'] {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --gap: 0.5rem;
   background: #111;
   color: white;
   --xviz-color-background: #{rgba(white, 0.2)} !important;
-  padding: 1rem;
-  display: grid;
 
   &,
   * {
     box-sizing: border-box;
     position: relative;
   }
+}
+
+[data-xviz='service-id'] {
+  padding: 1rem;
+  font-size: 1.2rem;
+}
+
+[data-xviz='machine'] {
+  padding: 0 1rem;
+  display: grid;
 }
 
 [data-xviz='stateNode'] {
@@ -71,7 +80,6 @@
 
   &[data-xviz-active] {
     --background: var(--xviz-color-active);
-    // --color-background: rgba(8, 133, 222, 1);
   }
   &:not([data-xviz-active]) {
     --background: var(--xviz-color-background);
@@ -157,10 +165,10 @@
 
 %content-prefix {
   content: var(--content);
-  display: inline-block;
+  display: block;
   text-transform: uppercase;
   font-weight: bold;
-  font-size: 85%;
+  font-size: 75%;
   color: #999;
   margin-right: 1ch;
 }
@@ -194,6 +202,8 @@
 }
 
 [data-xviz='action'] {
+  padding-bottom: 0.5rem;
+
   &[data-xviz-builtin] {
     opacity: 0.5;
 
@@ -227,7 +237,10 @@
 [data-xviz='action-property'] {
   margin: 0;
 }
-[data-xviz='action-type'],
+[data-xviz='action-type'] {
+  max-width: 15rem;
+}
+
 [data-xviz='event-type'] {
   white-space: nowrap;
   overflow: hidden;
@@ -304,24 +317,25 @@
 
 [data-xviz='invoke'] {
   &[data-xviz-unnamed] {
-    [data-xviz='invoke-src'] {
+    [data-xviz='invoke-id'] {
       font-style: italic;
 
       &:before {
         font-style: normal;
       }
     }
-    [data-xviz='invoke-id'] {
-      display: none;
-    }
   }
 }
 
-[data-xviz='invoke-src'] {
+[data-xviz='invoke-id'] {
   &:before {
     @extend %content-prefix;
     content: 'invoke / ';
   }
+}
+
+[data-xviz='invoke-src'] {
+  display: none;
 }
 
 // JSON
