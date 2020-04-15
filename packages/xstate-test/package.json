@@ -1,6 +1,6 @@
 {
   "name": "@xstate/test",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "description": "XState test utilities",
   "keywords": [
     "state",
@@ -44,7 +44,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.7.6"
+    "xstate": "^4.9.0"
   },
   "devDependencies": {
     "@types/jest-environment-puppeteer": "^4.0.0",
@@ -59,7 +59,7 @@
     "xstate": "*"
   },
   "dependencies": {
-    "@xstate/graph": "^1.0.0",
+    "@xstate/graph": "^1.1.0",
     "chalk": "^2.4.2"
   }
 }

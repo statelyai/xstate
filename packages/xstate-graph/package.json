@@ -1,6 +1,6 @@
 {
   "name": "@xstate/graph",
-  "version": "1.0.0",
+  "version": "1.1.0",
   "description": "XState graph utilities",
   "keywords": [
     "state",
@@ -37,7 +37,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "xstate": "^4.7.0"
+    "xstate": "^4.9.0"
   },
   "devDependencies": {
     "jest": "^24.8.0",
