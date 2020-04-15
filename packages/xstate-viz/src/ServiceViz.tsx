@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { Interpreter, Actor, State } from 'xstate';
+import { Interpreter, State } from 'xstate';
 import { MachineViz } from './MachineViz';
 
 export function ServiceViz({ service }: { service: Interpreter<any, any> }) {

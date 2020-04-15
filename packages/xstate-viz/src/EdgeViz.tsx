@@ -1,8 +1,8 @@
 import * as React from 'react';
-import { useState, useEffect, useContext, useRef } from 'react';
+import { useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
-import { TrackerData, relative, Point } from './tracker';
+import { relative, Point } from './tracker';
 import { serializeTransition, isActive } from './utils';
 import { useTracked } from './useTracker';
 import { StateNode } from 'xstate';

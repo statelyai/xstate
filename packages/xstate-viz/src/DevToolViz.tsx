@@ -10,7 +10,6 @@ class LocalDevTools {
   constructor() {}
 
   register(service: Interpreter<any, any, any>) {
-    console.log('received', service.id, service.state);
     this.services.add(service);
 
     service.onStop(() => {

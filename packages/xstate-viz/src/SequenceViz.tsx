@@ -79,8 +79,6 @@ export function SequenceViz({ service }: { service: Interpreter<any, any> }) {
     return sub.unsubscribe;
   }, [service]);
 
-  console.log(Array.from(service.children.values()).map((x) => x.sessionId));
-
   const activeActorIds = Array.from(service.children.values()).map(
     (x) => x.sessionId
   );

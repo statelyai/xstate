@@ -7,7 +7,6 @@ import { EdgesViz } from './EdgesViz';
 import { tracker } from './tracker';
 import { State, StateMachine } from 'xstate';
 import { getAllEdges } from './utils';
-import { StateViz } from './StateViz';
 import { useTracking } from './useTracker';
 
 interface MachineVizProps {
@@ -15,7 +14,7 @@ interface MachineVizProps {
   machine: StateMachine<any, any, any>;
 }
 
-const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, state }) => {
+const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
   const ref = useTracking(`machine:${machine.id}`);
 
   return (
