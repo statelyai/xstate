@@ -81,49 +81,32 @@ function findMinLocation(
 }
 
 export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
-  const { tracker, state } = useContext(StateContext);
+  const { state } = useContext(StateContext);
   const isCurrent = isActive(state, edge.source);
   const ref = useRef<SVGGElement>(null);
-  const sourceData = useTracked(edge.source.id);
-  const [eventRect, setEventRect] = useState<TrackerData | undefined>();
-  const [targetRect, setTargetRect] = useState<TrackerData | undefined>();
-  const [machineRect, setMachineRect] = useState<TrackerData | undefined>();
+  const sourceRectData = useTracked(edge.source.id);
+  const sourceRect = sourceRectData ? sourceRectData.rect : undefined;
 
-  useEffect(() => {
-    tracker.listen(serializeTransition(edge.transition), (data) =>
-      setEventRect(data)
-    );
-    tracker.listen(edge.target.id, (data) => setTargetRect(data));
-    tracker.listen(`machine:${edge.target.machine.id}`, (data) =>
-      setMachineRect(data)
-    );
-  }, []);
+  const eventRectData = useTracked(serializeTransition(edge.transition));
+  const eventRect = eventRectData ? eventRectData.rect : undefined;
+
+  const targetRectData = useTracked(edge.target.id);
+  const targetRect = targetRectData ? targetRectData.rect : undefined;
+
+  const machineRectData = useTracked(`machine:${edge.target.machine.id}`);
+  const machineRect = machineRectData ? machineRectData.rect : undefined;
 
   const path =
-    !sourceData ||
-    !sourceData.rect ||
-    !eventRect ||
-    !targetRect ||
-    !ref.current ||
-    !eventRect.rect ||
-    !targetRect.rect ||
-    !machineRect ||
-    !machineRect.rect
+    !sourceRect || !eventRect || !targetRect || !ref.current || !machineRect
       ? null
       : (() => {
           if (edge.source === edge.target) {
             return null;
           }
-          const relativeSourceRect = relative(
-            sourceData.rect,
-            machineRect.rect
-          );
-          const relativeEventRect = relative(eventRect.rect!, machineRect.rect);
+          const relativeSourceRect = relative(sourceRect, machineRect);
+          const relativeEventRect = relative(eventRect!, machineRect);
 
-          const relativeTargetRect = relative(
-            targetRect.rect!,
-            machineRect.rect
-          );
+          const relativeTargetRect = relative(targetRect, machineRect);
 
           const startPoint = relativeEventRect.point('right', 'center');
           const [minLocation, minPoint] = findMinLocation(

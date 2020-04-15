@@ -1,15 +1,24 @@
-[data-xviz='machine'] {
+[data-xviz='machine'],
+[data-xviz='service'] {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --gap: 0.5rem;
   background: #111;
   color: white;
-  --xviz-color-background: rgba(255, 255, 255, 0.2) !important;
-  padding: 1rem;
-  display: grid; }
+  --xviz-color-background: rgba(255, 255, 255, 0.2) !important; }
   [data-xviz='machine'],
-  [data-xviz='machine'] * {
+  [data-xviz='machine'] *,
+  [data-xviz='service'],
+  [data-xviz='service'] * {
     box-sizing: border-box;
     position: relative; }
+
+[data-xviz='service-id'] {
+  padding: 1rem;
+  font-size: 1.2rem; }
+
+[data-xviz='machine'] {
+  padding: 0 1rem;
+  display: grid; }
 
 [data-xviz='stateNode'] {
   --child-border-style: solid;
@@ -102,12 +111,12 @@
 [data-xviz='event-meta'] {
   display: none; }
 
-[data-xviz='actions'] [data-xviz='action-type']:before, [data-xviz='invoke-src']:before {
+[data-xviz='actions'] [data-xviz='action-type']:before, [data-xviz='invoke-id']:before {
   content: var(--content);
-  display: inline-block;
+  display: block;
   text-transform: uppercase;
   font-weight: bold;
-  font-size: 85%;
+  font-size: 75%;
   color: #999;
   margin-right: 1ch; }
 
@@ -121,10 +130,12 @@
   [data-xviz='actions'][data-xviz-actions='exit'] [data-xviz='action-type']:before {
     --content: 'exit / '; }
 
-[data-xviz='action'][data-xviz-builtin] {
-  opacity: 0.5; }
-  [data-xviz='action'][data-xviz-builtin] [data-xviz='action-entry'] {
-    display: none; }
+[data-xviz='action'] {
+  padding-bottom: 0.5rem; }
+  [data-xviz='action'][data-xviz-builtin] {
+    opacity: 0.5; }
+    [data-xviz='action'][data-xviz-builtin] [data-xviz='action-entry'] {
+      display: none; }
 
 [data-xviz='action-payload'] {
   display: grid;
@@ -142,7 +153,9 @@
 [data-xviz='action-property'] {
   margin: 0; }
 
-[data-xviz='action-type'],
+[data-xviz='action-type'] {
+  max-width: 15rem; }
+
 [data-xviz='event-type'] {
   white-space: nowrap;
   overflow: hidden;
@@ -194,16 +207,16 @@
   [data-xviz='action-entry'] > * {
     display: table-cell; }
 
-[data-xviz='invoke'][data-xviz-unnamed] [data-xviz='invoke-src'] {
+[data-xviz='invoke'][data-xviz-unnamed] [data-xviz='invoke-id'] {
   font-style: italic; }
-  [data-xviz='invoke'][data-xviz-unnamed] [data-xviz='invoke-src']:before {
+  [data-xviz='invoke'][data-xviz-unnamed] [data-xviz='invoke-id']:before {
     font-style: normal; }
 
-[data-xviz='invoke'][data-xviz-unnamed] [data-xviz='invoke-id'] {
-  display: none; }
-
-[data-xviz='invoke-src']:before {
+[data-xviz='invoke-id']:before {
   content: 'invoke / '; }
+
+[data-xviz='invoke-src'] {
+  display: none; }
 
 [data-xviz^='json'] {
   font-family: monospace; }

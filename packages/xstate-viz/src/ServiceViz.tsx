@@ -2,16 +2,6 @@ import * as React from 'react';
 import { Interpreter, Actor, State } from 'xstate';
 import { MachineViz } from './MachineViz';
 
-function getChildActors(service: Interpreter<any, any>): Actor<any, any>[] {
-  const actors: Actor<any, any>[] = [];
-
-  service.children.forEach((child) => {
-    actors.push(child);
-  });
-
-  return actors;
-}
-
 export function ServiceViz({ service }: { service: Interpreter<any, any> }) {
   const [state, setState] = React.useState<State<any, any>>(service.state);
 
