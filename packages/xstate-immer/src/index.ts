@@ -4,15 +4,7 @@ import {
   AssignAction,
   assign as xstateAssign
 } from 'xstate';
-import {
-  produce,
-  Draft,
-  produceWithPatches,
-  applyPatches,
-  enablePatches
-} from 'immer';
-
-enablePatches();
+import { produce, Draft } from 'immer';
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
   context: Draft<TContext>,
@@ -24,7 +16,7 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
   assignment: ImmerAssigner<TContext, TEvent>;
 }
 
-export function assign<TContext, TEvent extends EventObject = EventObject>(
+function immerAssign<TContext, TEvent extends EventObject = EventObject>(
   assignment: ImmerAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> {
   return xstateAssign((context, event) => {
@@ -32,30 +24,43 @@ export function assign<TContext, TEvent extends EventObject = EventObject>(
   });
 }
 
-interface PatchEventObject extends EventObject {
-  patches: ReturnType<typeof produceWithPatches>;
+export { immerAssign as assign };
+
+export interface ImmerUpdateEventObject extends EventObject {
+  input: any;
 }
 
-export function patchEvent<TContext>(
-  type: string,
-  context: TContext,
-  recipe: (draftContext: TContext) => void
-): PatchEventObject {
-  const patches = produceWithPatches(context, recipe);
+export interface ImmerUpdateEvent<TType extends string, TInput = any> {
+  type: TType;
+  input: TInput;
+}
 
-  return {
-    type,
-    patches
+export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEventObject> {
+  (input: TEvent['input']): TEvent;
+  assign: ImmerAssignAction<TContext, TEvent>;
+  type: TEvent['type'];
+  validate?: (context: TContext, input: TEvent['input']) => boolean;
+}
+
+export function createUpdater<TContext, TEvent extends ImmerUpdateEventObject>(
+  type: TEvent['type'],
+  producer: (ctx: Draft<TContext>, input: TEvent['input']) => void,
+  validate?: (ctx: TContext, input: TEvent['input']) => boolean
+): ImmerUpdater<TContext, TEvent> {
+  const updater = (input: TEvent['input']): TEvent => {
+    return {
+      type,
+      input
+    } as TEvent;
   };
-}
 
-export function assignPatch<
-  TContext,
-  TEvent extends PatchEventObject
->(): AssignAction<TContext, TEvent> {
-  return xstateAssign((context, event) => {
-    const [, patches] = event.patches;
-
-    return applyPatches(context, patches);
+  Object.assign(updater, {
+    assign: immerAssign<TContext, TEvent>((ctx, event) => {
+      producer(ctx, event.input);
+    }),
+    validate,
+    type
   });
+
+  return updater as ImmerUpdater<TContext, TEvent>;
 }

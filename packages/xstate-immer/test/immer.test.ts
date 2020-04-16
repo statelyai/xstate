@@ -1,5 +1,6 @@
+// @ts-ignore
 import { createMachine, interpret } from 'xstate';
-import { assign, assignPatch, patchEvent } from '../src';
+import { assign, createUpdater, ImmerUpdateEvent } from '../src';
 
 describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {
@@ -100,7 +101,7 @@ describe('@xstate/immer', () => {
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 0, 0]);
   });
 
-  it('should patch updates', () => {
+  it('should create updates', () => {
     const context = {
       foo: {
         bar: {
@@ -108,6 +109,14 @@ describe('@xstate/immer', () => {
         }
       }
     };
+
+    const bazUpdater = createUpdater<
+      typeof context,
+      ImmerUpdateEvent<'UPDATE_BAZ', number>
+    >('UPDATE_BAZ', (ctx, input) => {
+      ctx.foo.bar.baz.push(input);
+    });
+
     const countMachine = createMachine<typeof context>({
       id: 'count',
       context,
@@ -115,8 +124,8 @@ describe('@xstate/immer', () => {
       states: {
         active: {
           on: {
-            UPDATE_BAZ: {
-              actions: assignPatch()
+            [bazUpdater.type]: {
+              actions: bazUpdater.assign
             }
           }
         }
@@ -124,32 +133,48 @@ describe('@xstate/immer', () => {
     });
 
     const zeroState = countMachine.initialState;
-    const somePatchEvent = patchEvent(
-      'UPDATE_BAZ',
-      countMachine.initialState.context,
-      (ctx) => {
-        ctx.foo.bar.baz.push(4);
-      }
-    );
-    const twoState = countMachine.transition(zeroState, somePatchEvent);
+
+    const twoState = countMachine.transition(zeroState, bazUpdater(4));
 
     expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 4]);
   });
 
-  it('should patch updates (form example)', (done) => {
+  it('should create updates (form example)', (done) => {
     const context = {
       name: '',
       age: undefined as number | undefined
     };
 
-    const formMachine = createMachine<typeof context>({
+    const nameUpdater = createUpdater<
+      typeof context,
+      ImmerUpdateEvent<'UPDATE_NAME', string>
+    >('UPDATE_NAME', (ctx, input) => {
+      ctx.name = input;
+    });
+
+    const ageUpdater = createUpdater<
+      typeof context,
+      ImmerUpdateEvent<'UPDATE_AGE', number>
+    >('UPDATE_AGE', (ctx, input) => {
+      ctx.age = input;
+    });
+
+    type FormEvent =
+      | ReturnType<typeof nameUpdater>
+      | ReturnType<typeof ageUpdater>
+      | {
+          type: 'SUBMIT';
+        };
+
+    const formMachine = createMachine<typeof context, FormEvent>({
       initial: 'editing',
       context,
       states: {
         editing: {
           on: {
-            UPDATE: { actions: assignPatch() },
+            [nameUpdater.type]: { actions: nameUpdater.assign },
+            [ageUpdater.type]: { actions: ageUpdater.assign },
             SUBMIT: 'submitting'
           }
         },
@@ -158,7 +183,7 @@ describe('@xstate/immer', () => {
             '': {
               target: 'success',
               cond: (ctx) => {
-                return ctx.name === 'David' && ctx.age === 42;
+                return ctx.name === 'David' && ctx.age === 0;
               }
             }
           }
@@ -175,16 +200,8 @@ describe('@xstate/immer', () => {
       })
       .start();
 
-    service.send(
-      patchEvent('UPDATE', formMachine.initialState.context, (ctx) => {
-        ctx.name = 'David';
-      })
-    );
-    service.send(
-      patchEvent('UPDATE', formMachine.initialState.context, (ctx) => {
-        ctx.age = 42;
-      })
-    );
+    service.send(nameUpdater('David'));
+    service.send(ageUpdater(0));
 
     service.send('SUBMIT');
   });
