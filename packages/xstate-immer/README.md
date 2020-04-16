@@ -64,13 +64,13 @@ const toggleService = interpret(toggleMachine)
 toggleService.send('TOGGLE');
 // { count: 1, level: 0 }
 
-toggleService.send(udpateLevel(9));
+toggleService.send(updateLevel(9));
 // { count: 1, level: 9 }
 
 toggleService.send('TOGGLE');
 // { count: 2, level: 9 }
 
-toggleService.send(udpateLevel(-100));
+toggleService.send(updateLevel(-100));
 // Notice how the level is not updated in 'inactive' state:
 // { count: 2, level: 9 }
 ```
