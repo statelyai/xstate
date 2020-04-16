@@ -38,7 +38,7 @@
     "typescript": "^3.8.3"
   },
   "dependencies": {
-    "immer": "^5.0.0",
+    "immer": "^6.0.3",
     "styled-components": "^4.4.1"
   }
 }
