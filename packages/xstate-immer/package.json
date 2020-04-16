@@ -1,6 +1,5 @@
 {
   "name": "@xstate/immer",
-  "private": true,
   "version": "0.0.1",
   "description": "XState with Immer",
   "keywords": [
