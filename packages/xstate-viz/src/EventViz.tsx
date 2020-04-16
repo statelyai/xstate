@@ -4,7 +4,12 @@ import * as React from 'react';
 import { Edge } from './types';
 import { useEffect, useContext, useRef } from 'react';
 import { StateContext } from './StateContext';
-import { serializeTransition, isBuiltinEvent, toDelayString } from './utils';
+import {
+  serializeTransition,
+  isBuiltinEvent,
+  toDelayString,
+  getPartialStateValue
+} from './utils';
 import { ActionViz } from './ActionViz';
 
 interface EventVizProps {
@@ -44,7 +49,7 @@ function formatEvent(event: string): JSX.Element | string {
 }
 
 export function EventViz({ edge }: EventVizProps) {
-  const { tracker } = useContext(StateContext);
+  const { tracker, state } = useContext(StateContext);
   const ref = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
@@ -58,6 +63,10 @@ export function EventViz({ edge }: EventVizProps) {
 
   const meta = getEventMeta(transition.eventType);
 
+  const triggered =
+    state.event.type === edge.event &&
+    state.history?.matches(getPartialStateValue(edge.source));
+
   return (
     <div
       data-xviz="event"
@@ -65,6 +74,7 @@ export function EventViz({ edge }: EventVizProps) {
       data-xviz-builtin={isBuiltinEvent(edge.event) || undefined}
       data-xviz-transient={edge.event === '' || undefined}
       data-xviz-guarded={!!transition.cond || undefined}
+      data-xviz-triggered={triggered || undefined}
       title={`event: ${edge.event}`}
     >
       <div data-xviz="event-label" ref={ref}>
@@ -77,7 +87,7 @@ export function EventViz({ edge }: EventVizProps) {
       </div>
       <div data-xviz="event-targets">
         {transition.target &&
-          transition.target.map(target => {
+          transition.target.map((target) => {
             return (
               <div data-xviz="event-target" key={target.id}>
                 #{target.id}

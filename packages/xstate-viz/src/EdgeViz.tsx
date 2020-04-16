@@ -3,7 +3,7 @@ import { useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
 import { relative, Point } from './tracker';
-import { serializeTransition, isActive } from './utils';
+import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
 import { StateNode } from 'xstate';
 
@@ -95,6 +95,10 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
 
   const machineRectData = useTracked(`machine:${edge.target.machine.id}`);
   const machineRect = machineRectData ? machineRectData.rect : undefined;
+
+  const triggered =
+    state.event.type === edge.event &&
+    state.history?.matches(getPartialStateValue(edge.source));
 
   const path =
     !sourceRect || !eventRect || !targetRect || !ref.current || !machineRect
@@ -196,17 +200,32 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
           ].join(' ');
 
           return (
-            <path
-              data-xviz="edge-path"
-              d={d}
-              fill="none"
-              markerEnd={`url(#marker)`}
-            />
+            <>
+              <path
+                data-xviz="edge-path"
+                d={d}
+                fill="none"
+                markerEnd={`url(#marker)`}
+                pathLength={1}
+              />
+              <path
+                data-xviz="edge-path"
+                data-xviz-secondary
+                d={d}
+                fill="none"
+                pathLength={1}
+              />
+            </>
           );
         })();
 
   return (
-    <g data-xviz="edge" data-xviz-current={isCurrent || undefined} ref={ref}>
+    <g
+      data-xviz="edge"
+      data-xviz-current={isCurrent || undefined}
+      data-xviz-triggered={triggered || undefined}
+      ref={ref}
+    >
       {path}
     </g>
   );

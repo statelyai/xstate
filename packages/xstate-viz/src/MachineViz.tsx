@@ -26,7 +26,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         // @ts-ignore
         '--xviz-color-foreground': 'white',
         '--xviz-color-background': 'black',
-        '--xviz-color-active': 'rgb(19, 129, 201)',
+        '--xviz-active-color': 'rgb(19, 129, 201)',
         '--xviz-border-width': '2px',
         '--xviz-stroke-width': 'var(--xviz-border-width)'
       }}

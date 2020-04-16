@@ -3,7 +3,8 @@ import {
   TransitionDefinition,
   StateMachine,
   State,
-  ActionObject
+  ActionObject,
+  StateValue
 } from 'xstate';
 import { flatten } from 'xstate/lib/utils';
 import { Edge } from './types';
@@ -179,3 +180,21 @@ export function getLevel(stateNode: StateNode<any, any, any>): number {
 
   return level;
 }
+
+export const getPartialStateValue = (
+  stateNode: StateNode<any, any>,
+  prev?: StateValue
+): StateValue => {
+  if (!stateNode.parent) {
+    return prev!;
+  }
+
+  return getPartialStateValue(
+    stateNode.parent,
+    prev
+      ? {
+          [stateNode.key]: prev
+        }
+      : stateNode.key
+  );
+};
