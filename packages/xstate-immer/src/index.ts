@@ -26,23 +26,22 @@ function immerAssign<TContext, TEvent extends EventObject = EventObject>(
 
 export { immerAssign as assign };
 
-export interface ImmerUpdateEventObject extends EventObject {
-  input: any;
-}
-
-export interface ImmerUpdateEvent<TType extends string, TInput = any> {
+export interface ImmerUpdateEvent<
+  TType extends string = string,
+  TInput = unknown
+> {
   type: TType;
   input: TInput;
 }
 
-export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEventObject> {
+export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
   (input: TEvent['input']): TEvent;
   assign: ImmerAssignAction<TContext, TEvent>;
   type: TEvent['type'];
   validate?: (context: TContext, input: TEvent['input']) => boolean;
 }
 
-export function createUpdater<TContext, TEvent extends ImmerUpdateEventObject>(
+export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
   type: TEvent['type'],
   producer: (ctx: Draft<TContext>, input: TEvent['input']) => void,
   validate?: (ctx: TContext, input: TEvent['input']) => boolean
