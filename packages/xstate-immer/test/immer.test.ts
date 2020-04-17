@@ -134,7 +134,7 @@ describe('@xstate/immer', () => {
 
     const zeroState = countMachine.initialState;
 
-    const twoState = countMachine.transition(zeroState, bazUpdater(4));
+    const twoState = countMachine.transition(zeroState, bazUpdater.update(4));
 
     expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 4]);
@@ -161,8 +161,8 @@ describe('@xstate/immer', () => {
     });
 
     type FormEvent =
-      | ReturnType<typeof nameUpdater>
-      | ReturnType<typeof ageUpdater>
+      | ImmerUpdateEvent<'UPDATE_NAME', string>
+      | ImmerUpdateEvent<'UPDATE_AGE', number>
       | {
           type: 'SUBMIT';
         };
@@ -200,8 +200,8 @@ describe('@xstate/immer', () => {
       })
       .start();
 
-    service.send(nameUpdater('David'));
-    service.send(ageUpdater(0));
+    service.send(nameUpdater.update('David'));
+    service.send(ageUpdater.update(0));
 
     service.send('SUBMIT');
   });

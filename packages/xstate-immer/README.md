@@ -21,7 +21,7 @@ npm install xstate @xstate/immer
 import { createMachine, interpret } from 'xstate';
 import { assign, createUpdater } from '@xstate/immer';
 
-const updateLevel = createUpdater('UPDATE_LEVEL', (ctx, level) => {
+const levelUpdater = createUpdater('UPDATE_LEVEL', (ctx, level) => {
   ctx.level = level;
 });
 
@@ -42,8 +42,8 @@ const toggleMachine = createMachine({
           actions: assign((ctx) => ctx.count++)
         },
         // Use the updater for more convenience:
-        [updateLevel.type]: {
-          actions: updateLevel.assign
+        [levelUpdater.type]: {
+          actions: levelUpdater.assign
         }
       }
     },
@@ -64,13 +64,13 @@ const toggleService = interpret(toggleMachine)
 toggleService.send('TOGGLE');
 // { count: 1, level: 0 }
 
-toggleService.send(updateLevel(9));
+toggleService.send(levelUpdater.update(9));
 // { count: 1, level: 9 }
 
 toggleService.send('TOGGLE');
 // { count: 2, level: 9 }
 
-toggleService.send(updateLevel(-100));
+toggleService.send(levelUpdater.update(-100));
 // Notice how the level is not updated in 'inactive' state:
 // { count: 2, level: 9 }
 ```

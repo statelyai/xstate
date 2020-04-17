@@ -35,8 +35,8 @@ export interface ImmerUpdateEvent<
 }
 
 export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
-  (input: TEvent['input']): TEvent;
-  assign: ImmerAssignAction<TContext, TEvent>;
+  update: (input: TEvent['input']) => TEvent;
+  assign: AssignAction<TContext, TEvent>;
   type: TEvent['type'];
   validate?: (context: TContext, input: TEvent['input']) => boolean;
 }
@@ -46,20 +46,19 @@ export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
   producer: (ctx: Draft<TContext>, input: TEvent['input']) => void,
   validate?: (ctx: TContext, input: TEvent['input']) => boolean
 ): ImmerUpdater<TContext, TEvent> {
-  const updater = (input: TEvent['input']): TEvent => {
+  const update = (input: TEvent['input']): TEvent => {
     return {
       type,
       input
     } as TEvent;
   };
 
-  Object.assign(updater, {
+  return {
+    update,
     assign: immerAssign<TContext, TEvent>((ctx, event) => {
       producer(ctx, event.input);
     }),
     validate,
     type
-  });
-
-  return updater as ImmerUpdater<TContext, TEvent>;
+  };
 }
