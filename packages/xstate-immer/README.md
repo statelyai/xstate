@@ -11,8 +11,6 @@
   </a>
 </p>
 
-
-
 This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/davidkpiano/xstate).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -64,16 +62,18 @@ const toggleMachine = createMachine({
           // Immutably update context the same "mutable"
           // way as you would do with Immer!
           actions: assign((ctx) => ctx.count++)
-        },
-        // Use the updater for more convenience:
-        [levelUpdater.type]: {
-          actions: levelUpdater.action
         }
       }
     },
     active: {
       on: {
-        TOGGLE: { target: 'inactive' }
+        TOGGLE: {
+          target: 'inactive'
+        },
+        // Use the updater for more convenience:
+        [levelUpdater.type]: {
+          actions: levelUpdater.action
+        }
       }
     }
   }
