@@ -1,13 +1,24 @@
 # @xstate/immer
 
-This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with XState.
+This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/davidkpiano/xstate).
+
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Quick Start](#quick-start)
+- [API](#api)
+  - [`assign(producer)`](#assignproducer)
+  - [`createUpdater(eventType, recipe)`](#createupdatereventtype-recipe)
+- [TypeScript](#typescript)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
+## Quick Start
 
 Included in `@xstate/immer`:
 
 - `assign()` - an Immer action that allows you to immutably assign to machine `context` in a convenient way
-- `createUpdater()` - a useful function that allows you to cohesively specify a context update event, assign action, and validator, all together. (See example below)
-
-## Quick Start
+- `createUpdater()` - a useful function that allows you to cohesively define a context update event event creator and assign action, all together. ([See an example](#createUpdater-eventType-recipe) below)
 
 1. Install `xstate` and `@xstate/immer`:
 
@@ -73,4 +84,238 @@ toggleService.send('TOGGLE');
 toggleService.send(levelUpdater.update(-100));
 // Notice how the level is not updated in 'inactive' state:
 // { count: 2, level: 9 }
+```
+
+## API
+
+### `assign(producer)`
+
+Returns an XState event object that will update the machine's `context` to reflect the changes ("mutations") to `context` made in the `recipe` function.
+
+The `recipe` is similar to the function that you would pass to [Immer's `produce(val, recipe)` function](https://immerjs.github.io/immer/docs/produce)), with the addition that you get the same arguments as a normal XState assigner passed to `assign(assigner)` (`context`, `event`, `meta`).
+
+**Arguments for `assign`:**
+
+| Argument | Type     | Description                                                                                                             |
+| -------- | -------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `recipe` | function | A function where "mutations" to `context` are made. See the [Immer docs](https://immerjs.github.io/immer/docs/produce). |
+
+**Arguments for `recipe`:**
+
+| Argument  | Type               | Description                                                              |
+| --------- | ------------------ | ------------------------------------------------------------------------ |
+| `context` | any                | The context data of the current state                                    |
+| `event`   | event object       | The received event object                                                |
+| `meta`    | assign meta object | An object containing meta data such as the `state`, SCXML `_event`, etc. |
+
+```js
+import { createMachine } from 'xstate';
+import { assign } from '@xstate/immer';
+
+const userMachine = createMachine({
+  id: 'user',
+  context: {
+    name: null,
+    address: {
+      city: null,
+      state: null,
+      country: null
+    }
+  },
+  initial: 'active',
+  states: {
+    active: {
+      on: {
+        CHANGE_COUNTRY: {
+          actions: assign((context, event) => {
+            context.address.country = event.value;
+          })
+        }
+      }
+    }
+  }
+});
+
+const { initialState } = userMachine;
+
+const nextState = userMachine.transition(initialState, {
+  type: 'UPDATE_COUNTRY',
+  country: 'USA'
+});
+
+nextState.context.address.country;
+// => 'USA'
+```
+
+### `createUpdater(eventType, recipe)`
+
+Returns an object that is useful for creating `context` updaters.
+
+| Argument    | Type     | Description                                                                       |
+| ----------- | -------- | --------------------------------------------------------------------------------- |
+| `eventType` | string   | The event type for the update event                                               |
+| `recipe`    | function | A function that takes in the `context` and some `input` to "mutate" the `context` |
+
+Returns an updater object containing:
+
+- `type`: the `eventType` passed into `createUpdater(eventType, ...)`. This is used for specifying transitions in which the update will occur.
+- `action`: the assign action object that will update the `context`.
+- `update`: the event creator function that takes in the `input` passed into `recipe(context, input)` and returns an event object with the specified `eventType`.
+
+**⚠️ Note:** The `.update(...)` event creator is pure; it only returns an assign action object, and doesn't directly update `context`.
+
+```js
+import { createMachine } from 'xstate';
+import { createUpdater } from '@xstate/immer';
+
+const nameUpdater = createUpdater('UPDATE_NAME', (ctx, input) => {
+  ctx.name = input;
+});
+
+const ageUpdater = createUpdater('UPDATE_AGE', (ctx, input) => {
+  ctx.age = input;
+});
+
+const formMachine = createMachine({
+  initial: 'editing',
+  context: {
+    name: '',
+    age: null
+  },
+  states: {
+    editing: {
+      on: {
+        // The updater.type can be used directly for transitions
+        // where the updater.assign function will be applied
+        [nameUpdater.type]: { actions: nameUpdater.assign },
+        [ageUpdater.type]: { actions: ageUpdater.assign }
+      }
+    }
+  }
+});
+
+const service = interpret(formMachine)
+  .onTransition((state) => {
+    console.log(state.context);
+  })
+  .start();
+
+// The event object sent will look like:
+// {
+//   type: 'UPDATE_NAME',
+//   input: 'David'
+// }
+service.send(nameUpdater.update('David'));
+// => { name: 'David', age: null }
+
+// The event object sent will look like:
+// {
+//   type: 'UPDATE_AGE',
+//   input: 100
+// }
+service.send(ageUpdater.update(100));
+// => { name: 'David', age: 100 }
+```
+
+## TypeScript
+
+To properly type the Immer `assign` action creator, pass in the `context` and `event` types as generic types:
+
+```ts
+interface SomeContext {
+  name: string;
+}
+
+interface SomeEvent {
+  type: 'SOME_EVENT';
+  value: string;
+}
+
+// ...
+
+{
+  actions: assign<SomeContext, SomeEvent>((context, event) => {
+    context.name = event.value;
+    // ... etc.
+  });
+}
+```
+
+To properly type `createUpdater`, pass in the `context` and the specific `ImmerUpdateEvent<...>` (see below) types as generic types:
+
+```ts
+import { createUpdater, ImmerUpdateEvent } from '@xstate/immer';
+
+// This is the same as:
+// {
+//   type: 'UPDATE_NAME';
+//   input: string;
+// }
+type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
+
+const nameUpdater = createUpdater<SomeContext, NameUpdateEvent>(
+  'UPDATE_NAME',
+  (ctx, input) => {
+    ctx.name = input;
+  }
+);
+
+// You should use NameUpdateEvent directly as part of the event type
+// in createMachine<SomeContext, SomeEvent>.
+```
+
+Here is a fully typed example of the previous form example:
+
+```ts
+import { createMachine } from 'xstate';
+import { createUpdater, ImmerUpdateEvent } from '@xstate/immer';
+
+interface FormContext {
+  name: string;
+  age: number | undefined;
+}
+
+type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
+type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
+
+const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
+  'UPDATE_NAME',
+  (ctx, input) => {
+    ctx.name = input;
+  }
+);
+
+const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
+  'UPDATE_AGE',
+  (ctx, input) => {
+    ctx.age = input;
+  }
+);
+
+type FormEvent =
+  | NameUpdateEvent
+  | AgeUpdateEvent
+  | {
+      type: 'SUBMIT';
+    };
+
+const formMachine = createMachine<FormContext, FormEvent>({
+  initial: 'editing',
+  context: {
+    name: '',
+    age: undefined
+  },
+  states: {
+    editing: {
+      on: {
+        [nameUpdater.type]: { actions: nameUpdater.assign },
+        [ageUpdater.type]: { actions: ageUpdater.assign },
+        SUBMIT: 'submitting'
+      }
+    },
+    submitting: {
+      // ...
+    }
+  }
+});
 ```

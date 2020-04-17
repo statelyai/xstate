@@ -2,13 +2,15 @@ import {
   EventObject,
   ActionObject,
   AssignAction,
-  assign as xstateAssign
+  assign as xstateAssign,
+  AssignMeta
 } from 'xstate';
 import { produce, Draft } from 'immer';
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
   context: Draft<TContext>,
-  event: TEvent
+  event: TEvent,
+  meta: AssignMeta<TContext, TEvent>
 ) => void;
 
 export interface ImmerAssignAction<TContext, TEvent extends EventObject>
@@ -17,10 +19,10 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
 }
 
 function immerAssign<TContext, TEvent extends EventObject = EventObject>(
-  assignment: ImmerAssigner<TContext, TEvent>
+  recipe: ImmerAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> {
-  return xstateAssign((context, event) => {
-    return produce(context, (draft) => void assignment(draft, event));
+  return xstateAssign((context, event, meta) => {
+    return produce(context, (draft) => void recipe(draft, event, meta));
   });
 }
 
@@ -36,15 +38,13 @@ export interface ImmerUpdateEvent<
 
 export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
   update: (input: TEvent['input']) => TEvent;
-  assign: AssignAction<TContext, TEvent>;
+  action: AssignAction<TContext, TEvent>;
   type: TEvent['type'];
-  validate?: (context: TContext, input: TEvent['input']) => boolean;
 }
 
 export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
   type: TEvent['type'],
-  producer: (ctx: Draft<TContext>, input: TEvent['input']) => void,
-  validate?: (ctx: TContext, input: TEvent['input']) => boolean
+  producer: (ctx: Draft<TContext>, input: TEvent['input']) => void
 ): ImmerUpdater<TContext, TEvent> {
   const update = (input: TEvent['input']): TEvent => {
     return {
@@ -55,10 +55,9 @@ export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
 
   return {
     update,
-    assign: immerAssign<TContext, TEvent>((ctx, event) => {
+    action: immerAssign<TContext, TEvent>((ctx, event) => {
       producer(ctx, event.input);
     }),
-    validate,
     type
   };
 }

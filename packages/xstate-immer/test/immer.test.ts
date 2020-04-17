@@ -125,7 +125,7 @@ describe('@xstate/immer', () => {
         active: {
           on: {
             [bazUpdater.type]: {
-              actions: bazUpdater.assign
+              actions: bazUpdater.action
             }
           }
         }
@@ -141,40 +141,46 @@ describe('@xstate/immer', () => {
   });
 
   it('should create updates (form example)', (done) => {
-    const context = {
-      name: '',
-      age: undefined as number | undefined
-    };
+    interface FormContext {
+      name: string;
+      age: number | undefined;
+    }
 
-    const nameUpdater = createUpdater<
-      typeof context,
-      ImmerUpdateEvent<'UPDATE_NAME', string>
-    >('UPDATE_NAME', (ctx, input) => {
-      ctx.name = input;
-    });
+    type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
+    type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
 
-    const ageUpdater = createUpdater<
-      typeof context,
-      ImmerUpdateEvent<'UPDATE_AGE', number>
-    >('UPDATE_AGE', (ctx, input) => {
-      ctx.age = input;
-    });
+    const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
+      'UPDATE_NAME',
+      (ctx, input) => {
+        ctx.name = input;
+      }
+    );
+
+    const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
+      'UPDATE_AGE',
+      (ctx, input) => {
+        ctx.age = input;
+      }
+    );
 
     type FormEvent =
-      | ImmerUpdateEvent<'UPDATE_NAME', string>
-      | ImmerUpdateEvent<'UPDATE_AGE', number>
+      | NameUpdateEvent
+      | AgeUpdateEvent
       | {
           type: 'SUBMIT';
         };
 
-    const formMachine = createMachine<typeof context, FormEvent>({
+    const formMachine = createMachine<FormContext, FormEvent>({
       initial: 'editing',
-      context,
+      context: {
+        name: '',
+        age: undefined
+      },
       states: {
         editing: {
           on: {
-            [nameUpdater.type]: { actions: nameUpdater.assign },
-            [ageUpdater.type]: { actions: ageUpdater.assign },
+            [nameUpdater.type]: { actions: nameUpdater.action },
+            [ageUpdater.type]: { actions: ageUpdater.action },
             SUBMIT: 'submitting'
           }
         },
