@@ -43,8 +43,8 @@ npm install xstate @xstate/immer
 import { createMachine, interpret } from 'xstate';
 import { assign, createUpdater } from '@xstate/immer';
 
-const levelUpdater = createUpdater('UPDATE_LEVEL', (ctx, level) => {
-  ctx.level = level;
+const levelUpdater = createUpdater('UPDATE_LEVEL', (ctx, { input }) => {
+  ctx.level = input;
 });
 
 const toggleMachine = createMachine({
