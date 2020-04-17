@@ -31,7 +31,7 @@ This package contains utilities for using [Immer](https://immerjs.github.io/imme
 Included in `@xstate/immer`:
 
 - `assign()` - an Immer action that allows you to immutably assign to machine `context` in a convenient way
-- `createUpdater()` - a useful function that allows you to cohesively define a context update event event creator and assign action, all together. ([See an example](#createUpdater-eventType-recipe) below)
+- `createUpdater()` - a useful function that allows you to cohesively define a context update event event creator and assign action, all together. ([See an example](#createupdatereventtype-recipe) below)
 
 1. Install `xstate` and `@xstate/immer`:
 
