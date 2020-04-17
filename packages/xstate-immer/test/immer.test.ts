@@ -112,7 +112,7 @@ describe('@xstate/immer', () => {
     const bazUpdater = createUpdater<
       typeof context,
       ImmerUpdateEvent<'UPDATE_BAZ', number>
-    >('UPDATE_BAZ', (ctx, input) => {
+    >('UPDATE_BAZ', (ctx, { input }) => {
       ctx.foo.bar.baz.push(input);
     });
 
@@ -150,14 +150,14 @@ describe('@xstate/immer', () => {
 
     const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
       'UPDATE_NAME',
-      (ctx, input) => {
+      (ctx, { input }) => {
         ctx.name = input;
       }
     );
 
     const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
       'UPDATE_AGE',
-      (ctx, input) => {
+      (ctx, { input }) => {
         ctx.age = input;
       }
     );

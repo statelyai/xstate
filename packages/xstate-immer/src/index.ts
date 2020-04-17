@@ -44,7 +44,7 @@ export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
 
 export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
   type: TEvent['type'],
-  recipe: (ctx: Draft<TContext>, input: TEvent['input']) => void
+  recipe: ImmerAssigner<TContext, TEvent>
 ): ImmerUpdater<TContext, TEvent> {
   const update = (input: TEvent['input']): TEvent => {
     return {
@@ -55,8 +55,8 @@ export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
 
   return {
     update,
-    action: immerAssign<TContext, TEvent>((ctx, event) => {
-      recipe(ctx, event.input);
+    action: immerAssign<TContext, TEvent>((ctx, event, meta) => {
+      recipe(ctx, event, meta);
     }),
     type
   };

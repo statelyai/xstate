@@ -151,16 +151,21 @@ nextState.context.address.country;
 
 Returns an object that is useful for creating `context` updaters.
 
-| Argument    | Type     | Description                                                                       |
-| ----------- | -------- | --------------------------------------------------------------------------------- |
-| `eventType` | string   | The event type for the update event                                               |
-| `recipe`    | function | A function that takes in the `context` and some `input` to "mutate" the `context` |
+| Argument    | Type     | Description                                                                                         |
+| ----------- | -------- | --------------------------------------------------------------------------------------------------- |
+| `eventType` | string   | The event type for the Immer update event                                                           |
+| `recipe`    | function | A function that takes in the `context` and an Immer update `event` object to "mutate" the `context` |
 
-Returns an updater object containing:
+An Immer update `event` object is an object that contains:
+
+- `type`: the `eventType` specified
+- `input`: the "payload" of the update event
+
+The object returned by `createUpdater(...)` is an updater object containing:
 
 - `type`: the `eventType` passed into `createUpdater(eventType, ...)`. This is used for specifying transitions in which the update will occur.
 - `action`: the assign action object that will update the `context`.
-- `update`: the event creator function that takes in the `input` passed into `recipe(context, input)` and returns an event object with the specified `eventType`.
+- `update`: the event creator that takes in the `input` and returns an `event` object with the specified `eventType` and `input` that will be passed to `recipe(context, event)`.
 
 **⚠️ Note:** The `.update(...)` event creator is pure; it only returns an assign action object, and doesn't directly update `context`.
 
@@ -168,12 +173,17 @@ Returns an updater object containing:
 import { createMachine } from 'xstate';
 import { createUpdater } from '@xstate/immer';
 
-const nameUpdater = createUpdater('UPDATE_NAME', (ctx, input) => {
-  ctx.name = input;
+// The second argument is an Immer update event that looks like:
+// {
+//   type: 'UPDATE_NAME',
+//   input: 'David' // or any string
+// }
+const nameUpdater = createUpdater('UPDATE_NAME', (context, { input }) => {
+  context.name = input;
 });
 
-const ageUpdater = createUpdater('UPDATE_AGE', (ctx, input) => {
-  ctx.age = input;
+const ageUpdater = createUpdater('UPDATE_AGE', (context, { input }) => {
+  context.age = input;
 });
 
 const formMachine = createMachine({
@@ -186,9 +196,9 @@ const formMachine = createMachine({
     editing: {
       on: {
         // The updater.type can be used directly for transitions
-        // where the updater.assign function will be applied
-        [nameUpdater.type]: { actions: nameUpdater.assign },
-        [ageUpdater.type]: { actions: ageUpdater.assign }
+        // where the updater.action function will be applied
+        [nameUpdater.type]: { actions: nameUpdater.action },
+        [ageUpdater.type]: { actions: ageUpdater.action }
       }
     }
   }
@@ -255,7 +265,7 @@ type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
 
 const nameUpdater = createUpdater<SomeContext, NameUpdateEvent>(
   'UPDATE_NAME',
-  (ctx, input) => {
+  (ctx, { input }) => {
     ctx.name = input;
   }
 );
@@ -280,14 +290,14 @@ type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
 
 const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
   'UPDATE_NAME',
-  (ctx, input) => {
+  (ctx, { input }) => {
     ctx.name = input;
   }
 );
 
 const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
   'UPDATE_AGE',
-  (ctx, input) => {
+  (ctx, { input }) => {
     ctx.age = input;
   }
 );
@@ -308,8 +318,8 @@ const formMachine = createMachine<FormContext, FormEvent>({
   states: {
     editing: {
       on: {
-        [nameUpdater.type]: { actions: nameUpdater.assign },
-        [ageUpdater.type]: { actions: ageUpdater.assign },
+        [nameUpdater.type]: { actions: nameUpdater.action },
+        [ageUpdater.type]: { actions: ageUpdater.action },
         SUBMIT: 'submitting'
       }
     },
