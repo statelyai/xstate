@@ -1,4 +1,3 @@
-// @ts-ignore
 import { createMachine, interpret } from 'xstate';
 import { assign, createUpdater, ImmerUpdateEvent } from '../src';
 
