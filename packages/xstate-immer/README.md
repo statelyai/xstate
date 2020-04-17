@@ -7,7 +7,7 @@ This package contains utilities for using [Immer](https://immerjs.github.io/imme
 
 - [Quick Start](#quick-start)
 - [API](#api)
-  - [`assign(producer)`](#assignproducer)
+  - [`assign(recipe)`](#assignrecipe)
   - [`createUpdater(eventType, recipe)`](#createupdatereventtype-recipe)
 - [TypeScript](#typescript)
 
@@ -88,7 +88,7 @@ toggleService.send(levelUpdater.update(-100));
 
 ## API
 
-### `assign(producer)`
+### `assign(recipe)`
 
 Returns an XState event object that will update the machine's `context` to reflect the changes ("mutations") to `context` made in the `recipe` function.
 
