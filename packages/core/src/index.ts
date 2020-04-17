@@ -20,7 +20,8 @@ import {
   doneInvoke,
   forwardTo,
   escalate,
-  choose
+  choose,
+  pure
 } from './actions';
 import { interpret, Interpreter, spawn } from './interpreter';
 import { matchState } from './match';
@@ -40,7 +41,8 @@ const actions = {
   respond,
   forwardTo,
   escalate,
-  choose
+  choose,
+  pure
 };
 
 export {

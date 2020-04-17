@@ -1041,7 +1041,10 @@ describe('log()', () => {
 
 describe('choose', () => {
   it('should execute a single conditional action', () => {
-    type Ctx = { answer?: number };
+    interface Ctx {
+      answer?: number;
+    }
+
     const machine = createMachine<Ctx>({
       context: {},
       initial: 'foo',
@@ -1062,7 +1065,9 @@ describe('choose', () => {
   it('should execute a multiple conditional actions', () => {
     let executed = false;
 
-    type Ctx = { answer?: number };
+    interface Ctx {
+      answer?: number;
+    }
 
     const machine = createMachine<Ctx>({
       context: {},
@@ -1086,7 +1091,10 @@ describe('choose', () => {
   });
 
   it('should only execute matched actions', () => {
-    type Ctx = { answer?: number; shouldNotAppear?: boolean };
+    interface Ctx {
+      answer?: number;
+      shouldNotAppear?: boolean;
+    }
 
     const machine = createMachine<Ctx>({
       context: {},
@@ -1110,7 +1118,10 @@ describe('choose', () => {
   });
 
   it('should allow for fallback unguarded actions', () => {
-    type Ctx = { answer?: number; shouldNotAppear?: boolean };
+    interface Ctx {
+      answer?: number;
+      shouldNotAppear?: boolean;
+    }
 
     const machine = createMachine<Ctx>({
       context: {},
@@ -1134,11 +1145,11 @@ describe('choose', () => {
   });
 
   it('should allow for nested conditional actions', () => {
-    type Ctx = {
+    interface Ctx {
       firstLevel: boolean;
       secondLevel: boolean;
       thirdLevel: boolean;
-    };
+    }
 
     const machine = createMachine<Ctx>({
       context: {
@@ -1185,7 +1196,10 @@ describe('choose', () => {
   });
 
   it('should provide context to a condition expression', () => {
-    type Ctx = { counter: number; answer?: number };
+    interface Ctx {
+      counter: number;
+      answer?: number;
+    }
     const machine = createMachine<Ctx>({
       context: {
         counter: 101
@@ -1209,8 +1223,13 @@ describe('choose', () => {
   });
 
   it('should provide event to a condition expression', () => {
-    type Ctx = { answer?: number };
-    type Events = { type: 'NEXT'; counter: number };
+    interface Ctx {
+      answer?: number;
+    }
+    interface Events {
+      type: 'NEXT';
+      counter: number;
+    }
 
     const machine = createMachine<Ctx, Events>({
       context: {},
