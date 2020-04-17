@@ -8,10 +8,10 @@ async function execWithOutput(command, args, options) {
   return {
     code: await exec(command, args, {
       listeners: {
-        stdout: data => {
+        stdout: (data) => {
           myOutput += data.toString();
         },
-        stderr: data => {
+        stderr: (data) => {
           myError += data.toString();
         }
       },
@@ -27,7 +27,8 @@ const publishablePackages = [
   'xstate',
   '@xstate/fsm',
   '@xstate/graph',
-  '@xstate/test'
+  '@xstate/test',
+  '@xstate/immer'
 ];
 
 (async () => {
