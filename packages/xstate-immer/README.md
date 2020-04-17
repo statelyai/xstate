@@ -1,5 +1,18 @@
 # @xstate/immer
 
+<p align="center">
+  <a href="https://xstate.js.org">
+  <br />
+  <img src="https://user-images.githubusercontent.com/1093738/79572515-1509e180-808b-11ea-92aa-10958521aa68.png" alt="XState Immer" width="200"/>
+  <br />
+    <sub><strong>XState with Immer</strong></sub>
+  <br />
+  <br />
+  </a>
+</p>
+
+
+
 This package contains utilities for using [Immer](https://immerjs.github.io/immer/docs/introduction) with [XState](https://github.com/davidkpiano/xstate).
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
@@ -54,7 +67,7 @@ const toggleMachine = createMachine({
         },
         // Use the updater for more convenience:
         [levelUpdater.type]: {
-          actions: levelUpdater.assign
+          actions: levelUpdater.action
         }
       }
     },
