@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>xstate</title>
-	<meta name="description" content="">
+	<meta name="description" content="Documentation for xstate">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="assets/css/main.css">
 </head>
@@ -13,7 +13,7 @@
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="assets/js/search.js" data-base=".">
+				<div class="table-cell" id="tsd-search" data-index="assets/js/search.json" data-base=".">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -56,7 +56,7 @@
 					<a href="globals.html">Globals</a>
 				</li>
 			</ul>
-			<h1> xstate</h1>
+			<h1>xstate</h1>
 		</div>
 	</div>
 </header>
@@ -85,7 +85,6 @@
 				</a>
 				<ul>
 					<li>🤖 <code>xstate</code> - Core finite state machine and statecharts library + interpreter</li>
-					<li>🔜 <code>xstate@next</code> - Release candidate for XState 4.7</li>
 					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-fsm">🔬 <code>@xstate/fsm</code></a> - Minimal finite state machine library</li>
 					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph">📉 <code>@xstate/graph</code></a> - Graph traversal utilities for XState</li>
 					<li><a href="https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react">⚛️ <code>@xstate/react</code></a> - React hooks and utilities for using XState in React applications</li>
@@ -385,7 +384,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class="globals  ">
 						<a href="globals.html"><em>Globals</em></a>
 					</li>
-					<li class=" tsd-kind-module">
+					<li class=" tsd-kind-namespace">
 						<a href="modules/scxml.html">SCXML</a>
 					</li>
 				</ul>
@@ -395,7 +394,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-enum">
 						<a href="enums/actiontypes.html" class="tsd-kind-icon">Action<wbr>Types</a>
 					</li>
-					<li class=" tsd-kind-enum tsd-is-not-exported">
+					<li class=" tsd-kind-enum">
 						<a href="enums/interpreterstatus.html" class="tsd-kind-icon">Interpreter<wbr>Status</a>
 					</li>
 					<li class=" tsd-kind-enum">
@@ -413,7 +412,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-class tsd-has-type-parameter">
 						<a href="classes/state.html" class="tsd-kind-icon">State</a>
 					</li>
-					<li class=" tsd-kind-class tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-class tsd-has-type-parameter">
 						<a href="classes/statenode.html" class="tsd-kind-icon">State<wbr>Node</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
@@ -458,6 +457,12 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-interface">
 						<a href="interfaces/cancelaction.html" class="tsd-kind-icon">Cancel<wbr>Action</a>
 					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/chooseaction.html" class="tsd-kind-icon">Choose<wbr>Action</a>
+					</li>
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
+						<a href="interfaces/chooseconditon.html" class="tsd-kind-icon">Choose<wbr>Conditon</a>
+					</li>
 					<li class=" tsd-kind-interface">
 						<a href="interfaces/clock.html" class="tsd-kind-icon">Clock</a>
 					</li>
@@ -466,6 +471,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/delayedtransitiondefinition.html" class="tsd-kind-icon">Delayed<wbr>Transition<wbr>Definition</a>
+					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/devinterface.html" class="tsd-kind-icon">Dev<wbr>Interface</a>
 					</li>
 					<li class=" tsd-kind-interface">
 						<a href="interfaces/doneeventobject.html" class="tsd-kind-icon">Done<wbr>Event<wbr>Object</a>
@@ -524,6 +532,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-interface">
 						<a href="interfaces/invokedpromiseoptions.html" class="tsd-kind-icon">Invoked<wbr>Promise<wbr>Options</a>
 					</li>
+					<li class=" tsd-kind-interface">
+						<a href="interfaces/jsonfunction.html" class="tsd-kind-icon">JSONFunction</a>
+					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/logaction.html" class="tsd-kind-icon">Log<wbr>Action</a>
 					</li>
@@ -578,7 +589,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/scxmleventmeta.html" class="tsd-kind-icon">SCXMLEvent<wbr>Meta</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-not-exported">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/scheduleroptions.html" class="tsd-kind-icon">Scheduler<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-interface">
@@ -596,13 +607,13 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/sendactionoptions.html" class="tsd-kind-icon">Send<wbr>Action<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-interface tsd-has-type-parameter">
 						<a href="interfaces/sequencepatternoptions.html" class="tsd-kind-icon">Sequence<wbr>Pattern<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-not-exported">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/simulatedtimeout.html" class="tsd-kind-icon">Simulated<wbr>Timeout</a>
 					</li>
-					<li class=" tsd-kind-interface tsd-is-not-exported">
+					<li class=" tsd-kind-interface">
 						<a href="interfaces/spawnoptions.html" class="tsd-kind-icon">Spawn<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-interface tsd-has-type-parameter">
@@ -686,8 +697,11 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#activityconfig" class="tsd-kind-icon">Activity<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#adjlist" class="tsd-kind-icon">Adj<wbr>List</a>
+					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#anyinterpreter" class="tsd-kind-icon">Any<wbr>Interpreter</a>
 					</li>
 					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#anystatenodedefinition" class="tsd-kind-icon">Any<wbr>State<wbr>Node<wbr>Definition</a>
@@ -704,7 +718,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#conditionaltransitionconfig" class="tsd-kind-icon">Conditional<wbr>Transition<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#configuration" class="tsd-kind-icon">Configuration</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
@@ -797,13 +811,16 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#serviceconfig" class="tsd-kind-icon">Service<wbr>Config</a>
 					</li>
+					<li class=" tsd-kind-type-alias">
+						<a href="globals.html#serviceslistener" class="tsd-kind-icon">Services<wbr>Listener</a>
+					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#simpleorstatenodeconfig" class="tsd-kind-icon">Simple<wbr>OrState<wbr>Node<wbr>Config</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#singleorarray" class="tsd-kind-icon">Single<wbr>OrArray</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#spawnable" class="tsd-kind-icon">Spawnable</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
@@ -837,7 +854,10 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 						<a href="globals.html#transition" class="tsd-kind-icon">Transition</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
-						<a href="globals.html#transitionconfigtargetshortcut" class="tsd-kind-icon">Transition<wbr>Config<wbr>Target<wbr>Shortcut</a>
+						<a href="globals.html#transitionconfigortarget" class="tsd-kind-icon">Transition<wbr>Config<wbr>OrTarget</a>
+					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#transitionconfigtarget" class="tsd-kind-icon">Transition<wbr>Config<wbr>Target</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitiondefinitionmap" class="tsd-kind-icon">Transition<wbr>Definition<wbr>Map</a>
@@ -851,10 +871,10 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitionsconfig" class="tsd-kind-icon">Transitions<wbr>Config</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitionsconfigarray" class="tsd-kind-icon">Transitions<wbr>Config<wbr>Array</a>
 					</li>
-					<li class=" tsd-kind-type-alias tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#transitionsconfigmap" class="tsd-kind-icon">Transitions<wbr>Config<wbr>Map</a>
 					</li>
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
@@ -866,44 +886,47 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#empty_activity_map" class="tsd-kind-icon">EMPTY_<wbr>ACTIVITY_<wbr>MAP</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#empty_object" class="tsd-kind-icon">EMPTY_<wbr>OBJECT</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#is_production" class="tsd-kind-icon">IS_<wbr>PRODUCTION</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#null_event" class="tsd-kind-icon">NULL_<wbr>EVENT</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#state_delimiter" class="tsd-kind-icon">STATE_<wbr>DELIMITER</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#state_identifier" class="tsd-kind-icon">STATE_<wbr>IDENTIFIER</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#targetless_key" class="tsd-kind-icon">TARGETLESS_<wbr>KEY</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#wildcard" class="tsd-kind-icon">WILDCARD</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#after" class="tsd-kind-icon">after</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#children" class="tsd-kind-icon">children</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
+						<a href="globals.html#choose" class="tsd-kind-icon">choose</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#donestate" class="tsd-kind-icon">done<wbr>State</a>
+					</li>
+					<li class=" tsd-kind-variable">
+						<a href="globals.html#error" class="tsd-kind-icon">error</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#errorexecution" class="tsd-kind-icon">error<wbr>Execution</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#errorplatform" class="tsd-kind-icon">error<wbr>Platform</a>
-					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
-						<a href="globals.html#idmap" class="tsd-kind-icon">id<wbr>Map</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#init" class="tsd-kind-icon">init</a>
@@ -921,12 +944,15 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 						<a href="globals.html#nullevent" class="tsd-kind-icon">null<wbr>Event</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-has-type-parameter">
+						<a href="globals.html#pure" class="tsd-kind-icon">pure</a>
+					</li>
+					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#raise" class="tsd-kind-icon">raise</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-has-type-parameter">
 						<a href="globals.html#send" class="tsd-kind-icon">send</a>
 					</li>
-					<li class=" tsd-kind-variable tsd-is-not-exported">
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#sessionidindex" class="tsd-kind-icon">session<wbr>IdIndex</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-has-type-parameter">
@@ -936,13 +962,13 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 						<a href="globals.html#stop" class="tsd-kind-icon">stop</a>
 					</li>
 					<li class=" tsd-kind-variable">
+						<a href="globals.html#symbolobservable" class="tsd-kind-icon">symbol<wbr>Observable</a>
+					</li>
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#uniqueid" class="tsd-kind-icon">unique<wbr>Id</a>
 					</li>
 					<li class=" tsd-kind-variable">
 						<a href="globals.html#update" class="tsd-kind-icon">update</a>
-					</li>
-					<li class=" tsd-kind-variable tsd-is-private tsd-is-not-exported">
-						<a href="globals.html#withservicescope" class="tsd-kind-icon">with<wbr>Service<wbr>Scope</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#machine" class="tsd-kind-icon">Machine</a>
@@ -956,7 +982,10 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function">
 						<a href="globals.html#cancel" class="tsd-kind-icon">cancel</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#createcond" class="tsd-kind-icon">create<wbr>Cond</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#createdefaultoptions" class="tsd-kind-icon">create<wbr>Default<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -965,16 +994,13 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#createmachine" class="tsd-kind-icon">create<wbr>Machine</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#createnullactor" class="tsd-kind-icon">create<wbr>Null<wbr>Actor</a>
 					</li>
-					<li class=" tsd-kind-function">
-						<a href="globals.html#createsymbolobservable" class="tsd-kind-icon">create<wbr>Symbol<wbr>Observable</a>
-					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#defaultlogexpr" class="tsd-kind-icon">default<wbr>Log<wbr>Expr</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#delaytoms" class="tsd-kind-icon">delay<wbr>ToMs</a>
 					</li>
 					<li class=" tsd-kind-function">
@@ -986,13 +1012,16 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#each" class="tsd-kind-icon">each</a>
 					</li>
-					<li class=" tsd-kind-function">
-						<a href="globals.html#error" class="tsd-kind-icon">error</a>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#escalate" class="tsd-kind-icon">escalate</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#evaluateexecutablecontent" class="tsd-kind-icon">evaluate<wbr>Executable<wbr>Content</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#evaluateguard" class="tsd-kind-icon">evaluate<wbr>Guard</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#executablecontent" class="tsd-kind-icon">executable<wbr>Content</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1013,7 +1042,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getallstatenodes" class="tsd-kind-icon">get<wbr>All<wbr>State<wbr>Nodes</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#getattribute" class="tsd-kind-icon">get<wbr>Attribute</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1022,22 +1051,28 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getconfiguration" class="tsd-kind-icon">get<wbr>Configuration</a>
 					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getdevtools" class="tsd-kind-icon">get<wbr>Dev<wbr>Tools</a>
+					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#geteventtype" class="tsd-kind-icon">get<wbr>Event<wbr>Type</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#getstatenodeid" class="tsd-kind-icon">get<wbr>State<wbr>Node<wbr>Id</a>
+					</li>
+					<li class=" tsd-kind-function">
 						<a href="globals.html#gettargets" class="tsd-kind-icon">get<wbr>Targets</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getvalue" class="tsd-kind-icon">get<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#getvaluefromadj" class="tsd-kind-icon">get<wbr>Value<wbr>From<wbr>Adj</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#has" class="tsd-kind-icon">has</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#indexedrecord" class="tsd-kind-icon">indexed<wbr>Record</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1076,7 +1111,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#isstate" class="tsd-kind-icon">is<wbr>State</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#isstateid" class="tsd-kind-icon">is<wbr>State<wbr>Id</a>
 					</li>
 					<li class=" tsd-kind-function">
@@ -1086,9 +1121,18 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 						<a href="globals.html#isstring" class="tsd-kind-icon">is<wbr>String</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#jsonify" class="tsd-kind-icon">jsonify</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#keys" class="tsd-kind-icon">keys</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function">
+						<a href="globals.html#machinetojson" class="tsd-kind-icon">machine<wbr>ToJSON</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#mapaction" class="tsd-kind-icon">map<wbr>Action</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#mapactions" class="tsd-kind-icon">map<wbr>Actions</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1118,6 +1162,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#normalizetarget" class="tsd-kind-icon">normalize<wbr>Target</a>
 					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#parse" class="tsd-kind-icon">parse</a>
+					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#partition" class="tsd-kind-icon">partition</a>
 					</li>
@@ -1130,11 +1177,14 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function">
 						<a href="globals.html#pathstostatevalue" class="tsd-kind-icon">paths<wbr>ToState<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter">
-						<a href="globals.html#pure" class="tsd-kind-icon">pure</a>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#registerservice" class="tsd-kind-icon">register<wbr>Service</a>
 					</li>
 					<li class=" tsd-kind-function">
 						<a href="globals.html#reportunhandledexceptiononinvocation" class="tsd-kind-icon">report<wbr>Unhandled<wbr>Exception<wbr>OnInvocation</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#resolveactions" class="tsd-kind-icon">resolve<wbr>Actions</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#resolvelog" class="tsd-kind-icon">resolve<wbr>Log</a>
@@ -1145,13 +1195,13 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#resolvesend" class="tsd-kind-icon">resolve<wbr>Send</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#resolvespawnoptions" class="tsd-kind-icon">resolve<wbr>Spawn<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#respond" class="tsd-kind-icon">respond</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#scxmltomachine" class="tsd-kind-icon">scxml<wbr>ToMachine</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1169,6 +1219,12 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function">
 						<a href="globals.html#statevaluesequal" class="tsd-kind-icon">state<wbr>Values<wbr>Equal</a>
 					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#stringify" class="tsd-kind-icon">stringify</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#stringifyfunction" class="tsd-kind-icon">stringify<wbr>Function</a>
+					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toactionobject" class="tsd-kind-icon">to<wbr>Action<wbr>Object</a>
 					</li>
@@ -1184,7 +1240,7 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toarraystrict" class="tsd-kind-icon">to<wbr>Array<wbr>Strict</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#toconfig" class="tsd-kind-icon">to<wbr>Config</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
@@ -1223,22 +1279,22 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function">
 						<a href="globals.html#updatehistoryvalue" class="tsd-kind-icon">update<wbr>History<wbr>Value</a>
 					</li>
-					<li class=" tsd-kind-function tsd-has-type-parameter tsd-is-not-exported">
+					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#validatearrayifiedtransitions" class="tsd-kind-icon">validate<wbr>Arrayified<wbr>Transitions</a>
 					</li>
-					<li class=" tsd-kind-function tsd-is-not-exported">
+					<li class=" tsd-kind-function">
 						<a href="globals.html#warn" class="tsd-kind-icon">warn</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal">
 						<a href="globals.html#default_spawn_options" class="tsd-kind-icon">DEFAULT_<wbr>SPAWN_<wbr>OPTIONS</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal">
 						<a href="globals.html#actions" class="tsd-kind-icon">actions</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal">
 						<a href="globals.html#defaultoptions" class="tsd-kind-icon">default<wbr>Options</a>
 					</li>
-					<li class=" tsd-kind-object-literal tsd-is-not-exported">
+					<li class=" tsd-kind-object-literal">
 						<a href="globals.html#defaultsequencepatternoptions" class="tsd-kind-icon">default<wbr>Sequence<wbr>Pattern<wbr>Options</a>
 					</li>
 					<li class=" tsd-kind-object-literal">
@@ -1254,57 +1310,19 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
-				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
-				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
-				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
-				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
-				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
-				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
-				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
-				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
 				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
 				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
 				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
 				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
-				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
 			</ul>
 		</div>
 	</div>

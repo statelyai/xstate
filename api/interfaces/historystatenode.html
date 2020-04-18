@@ -4,7 +4,7 @@
 	<meta charset="utf-8">
 	<meta http-equiv="X-UA-Compatible" content="IE=edge">
 	<title>HistoryStateNode | xstate</title>
-	<meta name="description" content="">
+	<meta name="description" content="Documentation for xstate">
 	<meta name="viewport" content="width=device-width, initial-scale=1">
 	<link rel="stylesheet" href="../assets/css/main.css">
 </head>
@@ -13,7 +13,7 @@
 	<div class="tsd-page-toolbar">
 		<div class="container">
 			<div class="table-wrap">
-				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.js" data-base="..">
+				<div class="table-cell" id="tsd-search" data-index="../assets/js/search.json" data-base="..">
 					<div class="field">
 						<label for="tsd-search-field" class="tsd-widget search no-caption">Search</label>
 						<input id="tsd-search-field" type="text" />
@@ -59,7 +59,7 @@
 					<a href="historystatenode.html">HistoryStateNode</a>
 				</li>
 			</ul>
-			<h1>Interface HistoryStateNode&lt;TContext, TStateSchema, TEvent, TState&gt;</h1>
+			<h1>Interface HistoryStateNode&lt;TContext, TStateSchema, TEvent, TTypestate&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -79,7 +79,7 @@
 						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
 					<li>
-						<h4>TState<span class="tsd-signature-symbol">: </span><a href="typestate.html" class="tsd-signature-type">Typestate</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></h4>
+						<h4>TTypestate<span class="tsd-signature-symbol">: </span><a href="typestate.html" class="tsd-signature-type">Typestate</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></h4>
 					</li>
 				</ul>
 			</section>
@@ -185,7 +185,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#constructor">constructor</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L282">StateNode.ts:282</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L272">StateNode.ts:272</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -210,11 +210,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="__xstatenode" class="tsd-anchor"></a>
 					<h3>__xstatenode</h3>
-					<div class="tsd-signature tsd-kind-icon">__xstatenode<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">true</span><span class="tsd-signature-symbol"> =&nbsp;true</span></div>
+					<div class="tsd-signature tsd-kind-icon">__xstatenode<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">true</span><span class="tsd-signature-symbol"> = true</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#__xstatenode">__xstatenode</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L254">StateNode.ts:254</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L244">StateNode.ts:244</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -225,7 +225,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#activities">activities</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L221">StateNode.ts:221</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L211">StateNode.ts:211</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -241,7 +241,7 @@
 					<div class="tsd-signature tsd-kind-icon">config<span class="tsd-signature-symbol">:</span> <a href="statenodeconfig.html" class="tsd-signature-type">StateNodeConfig</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L288">StateNode.ts:288</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L278">StateNode.ts:278</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -256,7 +256,7 @@
 					<div class="tsd-signature tsd-kind-icon">context<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">Readonly</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L293">StateNode.ts:293</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L283">StateNode.ts:283</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -272,7 +272,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#data">data</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L238">StateNode.ts:238</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L228">StateNode.ts:228</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -288,7 +288,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#delimiter">delimiter</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L242">StateNode.ts:242</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L232">StateNode.ts:232</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -304,7 +304,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#history">history</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L635">types.ts:635</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L658">types.ts:658</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -315,7 +315,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#id">id</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L164">StateNode.ts:164</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L154">StateNode.ts:154</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -327,11 +327,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="initial" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> initial</h3>
-					<div class="tsd-signature tsd-kind-icon">initial<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">keyof TStateSchema[&quot;states&quot;]</span></div>
+					<div class="tsd-signature tsd-kind-icon">initial<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-symbol">keyof </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">"states"</span><span class="tsd-signature-symbol">]</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#initial">initial</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L186">StateNode.ts:186</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L176">StateNode.ts:176</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -347,7 +347,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#invoke">invoke</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L250">StateNode.ts:250</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L240">StateNode.ts:240</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -363,7 +363,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#key">key</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L160">StateNode.ts:160</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L150">StateNode.ts:150</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -379,7 +379,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#machine">machine</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L230">StateNode.ts:230</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L220">StateNode.ts:220</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -391,11 +391,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="meta" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> meta</h3>
-					<div class="tsd-signature tsd-kind-icon">meta<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TStateSchema extends { meta: infer D; } ? D : any</span></div>
+					<div class="tsd-signature tsd-kind-icon">meta<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol"> extends </span><span class="tsd-signature-symbol">{ </span>meta<span class="tsd-signature-symbol">: </span><span class="tsd-signature-symbol">infer </span> D<span class="tsd-signature-symbol"> }</span><span class="tsd-signature-symbol"> ? </span><span class="tsd-signature-type">D</span><span class="tsd-signature-symbol"> : </span><span class="tsd-signature-type">any</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#meta">meta</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L234">StateNode.ts:234</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L224">StateNode.ts:224</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -411,7 +411,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#onentry">onEntry</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L212">StateNode.ts:212</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L202">StateNode.ts:202</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -427,7 +427,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#onexit">onExit</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L216">StateNode.ts:216</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L206">StateNode.ts:206</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -443,18 +443,18 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#options">options</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L252">StateNode.ts:252</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L242">StateNode.ts:242</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="order" class="tsd-anchor"></a>
 					<h3>order</h3>
-					<div class="tsd-signature tsd-kind-icon">order<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> =&nbsp;-1</span></div>
+					<div class="tsd-signature tsd-kind-icon">order<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">number</span><span class="tsd-signature-symbol"> = -1</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#order">order</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L246">StateNode.ts:246</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L236">StateNode.ts:236</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -466,11 +466,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="parallel" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> parallel</h3>
-					<div class="tsd-signature tsd-kind-icon">parallel<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">boolean</span></div>
+					<div class="tsd-signature tsd-kind-icon">parallel<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">false</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">true</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#parallel">parallel</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L192">StateNode.ts:192</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L182">StateNode.ts:182</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -487,7 +487,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#parent">parent</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L226">StateNode.ts:226</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L216">StateNode.ts:216</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -503,7 +503,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#path">path</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L182">StateNode.ts:182</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L172">StateNode.ts:172</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -519,7 +519,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#states">states</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L201">StateNode.ts:201</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L191">StateNode.ts:191</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -535,7 +535,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#strict">strict</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L222">StateNode.ts:222</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L212">StateNode.ts:212</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -546,7 +546,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#target">target</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/types.ts#L636">types.ts:636</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L659">types.ts:659</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -557,7 +557,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L178">StateNode.ts:178</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L168">StateNode.ts:168</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -576,11 +576,11 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-inherited">
 					<a name="version" class="tsd-anchor"></a>
 					<h3><span class="tsd-flag ts-flagOptional">Optional</span> version</h3>
-					<div class="tsd-signature tsd-kind-icon">version<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">string</span></div>
+					<div class="tsd-signature tsd-kind-icon">version<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">string</span></div>
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#version">version</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L168">StateNode.ts:168</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L158">StateNode.ts:158</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -603,7 +603,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#after">after</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L522">StateNode.ts:522</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L510">StateNode.ts:510</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="delayedtransitiondefinition.html" class="tsd-signature-type">DelayedTransitionDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -621,7 +621,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#definition">definition</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L474">StateNode.ts:474</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L464">StateNode.ts:464</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -637,14 +637,14 @@
 					<a name="events" class="tsd-anchor"></a>
 					<h3>events</h3>
 					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> events<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent[&quot;type&quot;]</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> events<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">"type"</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#events">events</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1789">StateNode.ts:1789</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1697">StateNode.ts:1697</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -652,7 +652,7 @@
 									<p>All the event types accepted by this state node and its descendants.</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent[&quot;type&quot;]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">"type"</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -660,14 +660,14 @@
 					<a name="initialstate" class="tsd-anchor"></a>
 					<h3>initial<wbr>State</h3>
 					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> initialState<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> initialState<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#initialstate">initialState</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1572">StateNode.ts:1572</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1493">StateNode.ts:1493</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -676,7 +676,7 @@
 									entering the initial state.</p>
 								</div>
 							</div>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -691,7 +691,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#initialstatenodes">initialStateNodes</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1644">StateNode.ts:1644</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1551">StateNode.ts:1551</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">any</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -709,7 +709,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#on">on</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L505">StateNode.ts:505</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L496">StateNode.ts:496</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -725,14 +725,14 @@
 					<a name="ownevents" class="tsd-anchor"></a>
 					<h3>own<wbr>Events</h3>
 					<ul class="tsd-signatures tsd-kind-get-signature tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> ownEvents<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent[&quot;type&quot;]</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon"><span class="tsd-signature-symbol">get</span> ownEvents<span class="tsd-signature-symbol">(</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">"type"</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#ownevents">ownEvents</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1815">StateNode.ts:1815</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1723">StateNode.ts:1723</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -741,7 +741,7 @@
 								</div>
 								<p>Excludes any inert events.</p>
 							</div>
-							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent[&quot;type&quot;]</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <span class="tsd-signature-type">Array</span><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">[</span><span class="tsd-signature-type">"type"</span><span class="tsd-signature-symbol">]</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -756,7 +756,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#stateids">stateIds</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1777">StateNode.ts:1777</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1685">StateNode.ts:1685</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -779,7 +779,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#transitions">transitions</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L533">StateNode.ts:533</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L521">StateNode.ts:521</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -805,7 +805,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getfromrelativepath">getFromRelativePath</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1670">StateNode.ts:1670</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1577">StateNode.ts:1577</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -830,14 +830,14 @@
 					<a name="getinitialstate" class="tsd-anchor"></a>
 					<h3>get<wbr>Initial<wbr>State</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">get<wbr>Initial<wbr>State<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, context<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">get<wbr>Initial<wbr>State<span class="tsd-signature-symbol">(</span>stateValue<span class="tsd-signature-symbol">: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a>, context<span class="tsd-signature-symbol">?: </span><a href="" class="tsd-signature-type">TContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getinitialstate">getInitialState</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1547">StateNode.ts:1547</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1468">StateNode.ts:1468</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-parameters-title">Parameters</h4>
@@ -846,10 +846,10 @@
 									<h5>stateValue: <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <span class="tsd-signature-type">TContext</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <a href="" class="tsd-signature-type">TContext</a></h5>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -864,7 +864,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getrelativestatenodes">getRelativeStateNodes</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1633">StateNode.ts:1633</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1540">StateNode.ts:1540</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -884,7 +884,7 @@
 									<h5><span class="tsd-flag ts-flagOptional">Optional</span> historyValue: <a href="historyvalue.html" class="tsd-signature-type">HistoryValue</a></h5>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> resolve: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> =&nbsp;true</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> resolve: <span class="tsd-signature-type">boolean</span><span class="tsd-signature-symbol"> = true</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Whether state nodes should resolve to initial child state nodes</p>
 									</div>
@@ -905,7 +905,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getstatenode">getStateNode</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1371">StateNode.ts:1371</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1292">StateNode.ts:1292</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -934,7 +934,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getstatenodebyid">getStateNodeById</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1397">StateNode.ts:1397</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1318">StateNode.ts:1318</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -966,7 +966,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getstatenodebypath">getStateNodeByPath</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1422">StateNode.ts:1422</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1343">StateNode.ts:1343</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -998,7 +998,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#getstatenodes">getStateNodes</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L622">StateNode.ts:622</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L612">StateNode.ts:612</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1030,7 +1030,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#handles">handles</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L665">StateNode.ts:665</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L654">StateNode.ts:654</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1062,7 +1062,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#resolve">resolve</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1454">StateNode.ts:1454</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1375">StateNode.ts:1375</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1094,7 +1094,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#resolvestate">resolveState</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L678">StateNode.ts:678</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L667">StateNode.ts:667</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1127,7 +1127,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#tojson">toJSON</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L498">StateNode.ts:498</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L489">StateNode.ts:489</a></li>
 								</ul>
 							</aside>
 							<h4 class="tsd-returns-title">Returns <a href="statenodedefinition.html" class="tsd-signature-type">StateNodeDefinition</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h4>
@@ -1138,14 +1138,14 @@
 					<a name="transition" class="tsd-anchor"></a>
 					<h3>transition</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">transition<span class="tsd-signature-symbol">(</span>state<span class="tsd-signature-symbol">?: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, event<span class="tsd-signature-symbol">: </span><a href="../globals.html#event" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, context<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">transition<span class="tsd-signature-symbol">(</span>state<span class="tsd-signature-symbol">?: </span><a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, event<span class="tsd-signature-symbol">: </span><a href="../globals.html#event" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> | </span><a href="scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>, context<span class="tsd-signature-symbol">?: </span><a href="" class="tsd-signature-type">TContext</a><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#transition">transition</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L1059">StateNode.ts:1059</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L1021">StateNode.ts:1021</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1156,7 +1156,7 @@
 							<h4 class="tsd-parameters-title">Parameters</h4>
 							<ul class="tsd-parameters">
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> state: <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> =&nbsp;this.initialState</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> state: <a href="../globals.html#statevalue" class="tsd-signature-type">StateValue</a><span class="tsd-signature-symbol"> | </span><a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol"> = this.initialState</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>The current State instance or state value</p>
 									</div>
@@ -1168,13 +1168,13 @@
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <span class="tsd-signature-type">TContext</span></h5>
+									<h5><span class="tsd-flag ts-flagOptional">Optional</span> context: <a href="" class="tsd-signature-type">TContext</a></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>The current context (extended state) of the current state</p>
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TState</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/state.html" class="tsd-signature-type">State</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -1182,14 +1182,14 @@
 					<a name="withconfig" class="tsd-anchor"></a>
 					<h3>with<wbr>Config</h3>
 					<ul class="tsd-signatures tsd-kind-method tsd-parent-kind-interface tsd-is-inherited">
-						<li class="tsd-signature tsd-kind-icon">with<wbr>Config<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="machineoptions.html" class="tsd-signature-type">MachineOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span>, context<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></li>
+						<li class="tsd-signature tsd-kind-icon">with<wbr>Config<span class="tsd-signature-symbol">(</span>options<span class="tsd-signature-symbol">: </span><span class="tsd-signature-type">Partial</span><span class="tsd-signature-symbol">&lt;</span><a href="machineoptions.html" class="tsd-signature-type">MachineOptions</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span><span class="tsd-signature-symbol">&gt;</span>, context<span class="tsd-signature-symbol">?: </span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol">)</span><span class="tsd-signature-symbol">: </span><a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></li>
 					</ul>
 					<ul class="tsd-descriptions">
 						<li class="tsd-description">
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#withconfig">withConfig</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L441">StateNode.ts:441</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L431">StateNode.ts:431</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1206,13 +1206,13 @@
 									</div>
 								</li>
 								<li>
-									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> context: <span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> =&nbsp;this.context</span></h5>
+									<h5><span class="tsd-flag ts-flagDefault value">Default value</span> context: <span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol"> | </span><span class="tsd-signature-type">undefined</span><span class="tsd-signature-symbol"> = this.context</span></h5>
 									<div class="tsd-comment tsd-typography">
 										<p>Custom context (will override predefined context)</p>
 									</div>
 								</li>
 							</ul>
-							<h4 class="tsd-returns-title">Returns <a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></h4>
+							<h4 class="tsd-returns-title">Returns <a href="../classes/statenode.html" class="tsd-signature-type">StateNode</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TStateSchema</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TTypestate</span><span class="tsd-signature-symbol">&gt;</span></h4>
 						</li>
 					</ul>
 				</section>
@@ -1227,7 +1227,7 @@
 							<aside class="tsd-sources">
 								<p>Inherited from <a href="../classes/statenode.html">StateNode</a>.<a href="../classes/statenode.html#withcontext">withContext</a></p>
 								<ul>
-									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/243e28f1/packages/core/src/StateNode.ts#L465">StateNode.ts:465</a></li>
+									<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/StateNode.ts#L455">StateNode.ts:455</a></li>
 								</ul>
 							</aside>
 							<div class="tsd-comment tsd-typography">
@@ -1426,57 +1426,19 @@
 		<h2>Legend</h2>
 		<div class="tsd-legend-group">
 			<ul class="tsd-legend">
-				<li class="tsd-kind-module"><span class="tsd-kind-icon">Module</span></li>
-				<li class="tsd-kind-object-literal"><span class="tsd-kind-icon">Object literal</span></li>
-				<li class="tsd-kind-variable"><span class="tsd-kind-icon">Variable</span></li>
-				<li class="tsd-kind-function"><span class="tsd-kind-icon">Function</span></li>
-				<li class="tsd-kind-function tsd-has-type-parameter"><span class="tsd-kind-icon">Function with type parameter</span></li>
-				<li class="tsd-kind-index-signature"><span class="tsd-kind-icon">Index signature</span></li>
-				<li class="tsd-kind-type-alias"><span class="tsd-kind-icon">Type alias</span></li>
-				<li class="tsd-kind-type-alias tsd-has-type-parameter"><span class="tsd-kind-icon">Type alias with type parameter</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-enum"><span class="tsd-kind-icon">Enumeration</span></li>
-				<li class="tsd-kind-enum-member"><span class="tsd-kind-icon">Enumeration member</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-enum"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-enum"><span class="tsd-kind-icon">Method</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-interface"><span class="tsd-kind-icon">Interface</span></li>
-				<li class="tsd-kind-interface tsd-has-type-parameter"><span class="tsd-kind-icon">Interface with type parameter</span></li>
-				<li class="tsd-kind-constructor tsd-parent-kind-interface"><span class="tsd-kind-icon">Constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-interface"><span class="tsd-kind-icon">Index signature</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-class"><span class="tsd-kind-icon">Class</span></li>
-				<li class="tsd-kind-class tsd-has-type-parameter"><span class="tsd-kind-icon">Class with type parameter</span></li>
 				<li class="tsd-kind-constructor tsd-parent-kind-class"><span class="tsd-kind-icon">Constructor</span></li>
 				<li class="tsd-kind-property tsd-parent-kind-class"><span class="tsd-kind-icon">Property</span></li>
 				<li class="tsd-kind-method tsd-parent-kind-class"><span class="tsd-kind-icon">Method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class"><span class="tsd-kind-icon">Accessor</span></li>
-				<li class="tsd-kind-index-signature tsd-parent-kind-class"><span class="tsd-kind-icon">Index signature</span></li>
 			</ul>
 			<ul class="tsd-legend">
-				<li class="tsd-kind-constructor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited constructor</span></li>
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited property</span></li>
+				<li class="tsd-kind-property tsd-parent-kind-interface"><span class="tsd-kind-icon">Property</span></li>
+				<li class="tsd-kind-method tsd-parent-kind-interface"><span class="tsd-kind-icon">Method</span></li>
+			</ul>
+			<ul class="tsd-legend">
 				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-inherited"><span class="tsd-kind-icon">Inherited accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-protected"><span class="tsd-kind-icon">Protected accessor</span></li>
-			</ul>
-			<ul class="tsd-legend">
-				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private property</span></li>
-				<li class="tsd-kind-method tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private method</span></li>
-				<li class="tsd-kind-accessor tsd-parent-kind-class tsd-is-private"><span class="tsd-kind-icon">Private accessor</span></li>
 			</ul>
 			<ul class="tsd-legend">
 				<li class="tsd-kind-property tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static property</span></li>
-				<li class="tsd-kind-call-signature tsd-parent-kind-class tsd-is-static"><span class="tsd-kind-icon">Static method</span></li>
 			</ul>
 		</div>
 	</div>
