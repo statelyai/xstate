@@ -49,7 +49,7 @@ const toggleMachine = createMachine({
 
 // Machine instance with internal state
 const toggleService = interpret(toggleMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => 'inactive'
 
@@ -82,8 +82,8 @@ const fetchMachine = createMachine({
     loading: {
       invoke: {
         id: 'fetchLuke',
-        src: (context, event) => fetch('https://swapi.co/api/people/1')
-          .then(data => data.json()),
+        src: (context, event) =>
+          fetch('https://swapi.co/api/people/1').then((data) => data.json()),
         onDone: {
           target: 'resolved',
           actions: assign({

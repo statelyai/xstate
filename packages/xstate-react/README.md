@@ -198,10 +198,11 @@ const fetchMachine = Machine({
 const Fetcher = ({ onResolve }) => {
   const [state, send] = useMachine(fetchMachine, {
     actions: {
-      notifySuccess: ctx => onResolve(ctx.data)
+      notifySuccess: (ctx) => onResolve(ctx.data)
     },
     services: {
-      fetchData: (_, e) => fetch(`some/api/${e.query}`).then(res => res.json())
+      fetchData: (_, e) =>
+        fetch(`some/api/${e.query}`).then((res) => res.json())
     }
   });
 
@@ -319,7 +320,7 @@ You can subscribe to that service's state changes with the [`useEffect` hook](ht
 // ...
 
 useEffect(() => {
-  const subscription = service.subscribe(state => {
+  const subscription = service.subscribe((state) => {
     // simple state logging
     console.log(state);
   });
