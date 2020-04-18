@@ -31,11 +31,13 @@ Included in `@xstate/immer`:
 - `assign()` - an Immer action that allows you to immutably assign to machine `context` in a convenient way
 - `createUpdater()` - a useful function that allows you to cohesively define a context update event event creator and assign action, all together. ([See an example](#createupdatereventtype-recipe) below)
 
-1. Install `xstate` and `@xstate/immer`:
+1. Install `immer`, `xstate`, `@xstate/immer`:
 
 ```bash
-npm install xstate @xstate/immer
+npm install immer xstate @xstate/immer
 ```
+
+**Note:** You don't need to `import` anything from `immer`; it is a peer-dependency of `@xstate/immer`, so it must be installed.
 
 2. Import the Immer utilities:
 
