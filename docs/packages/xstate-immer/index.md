@@ -141,7 +141,7 @@ const userMachine = createMachine({
   states: {
     active: {
       on: {
-        CHANGE_COUNTRY: {
+        UPDATE_COUNTRY: {
           actions: assign((context, event) => {
             context.address.country = event.value;
           })
@@ -155,7 +155,7 @@ const { initialState } = userMachine;
 
 const nextState = userMachine.transition(initialState, {
   type: 'UPDATE_COUNTRY',
-  country: 'USA'
+  value: 'USA'
 });
 
 nextState.context.address.country;
