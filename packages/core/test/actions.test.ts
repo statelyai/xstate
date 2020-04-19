@@ -1247,18 +1247,29 @@ describe('choose', () => {
       type: 'parallel',
       states: {
         foo: {
-          entry: choose([
-            {
-              cond: (_, __, { state }) => state.matches('bar'),
-              actions: assign<Ctx>({ answer: 42 })
+          initial: 'waiting',
+          states: {
+            waiting: {
+              on: {
+                GIVE_ANSWER: 'answering'
+              }
+            },
+            answering: {
+              entry: choose([
+                {
+                  cond: (_, __, { state }) => state.matches('bar'),
+                  actions: assign<Ctx>({ answer: 42 })
+                }
+              ])
             }
-          ])
+          }
         },
         bar: {}
       }
     });
 
     const service = interpret(machine).start();
+    service.send('GIVE_ANSWER');
 
     expect(service.state.context).toEqual({ counter: 101, answer: 42 });
   });
