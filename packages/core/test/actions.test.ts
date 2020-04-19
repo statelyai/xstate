@@ -1237,4 +1237,29 @@ describe('choose', () => {
     service.send({ type: 'NEXT', counter: 101 });
     expect(service.state.context).toEqual({ answer: 42 });
   });
+
+  it('should provide stateGuard.state to a condition expression', () => {
+    type Ctx = { counter: number; answer?: number };
+    const machine = createMachine<Ctx>({
+      context: {
+        counter: 101
+      },
+      type: 'parallel',
+      states: {
+        foo: {
+          entry: choose([
+            {
+              cond: (_, __, { state }) => state.matches('bar'),
+              actions: assign<Ctx>({ answer: 42 })
+            }
+          ])
+        },
+        bar: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ counter: 101, answer: 42 });
+  });
 });
