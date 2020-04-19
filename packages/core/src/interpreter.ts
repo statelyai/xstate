@@ -228,7 +228,9 @@ export class Interpreter<
     }
 
     return withServiceScope(this, () => {
-      this._initialState = this.machine.initialState;
+      this._initialState = this.machine.getInitialState(
+        fromService(this, this.id)
+      );
 
       return this._initialState;
     });

@@ -21,8 +21,7 @@ import {
   getAllStateNodes,
   resolveMicroTransition,
   macrostep,
-  toState,
-  getInitialState
+  toState
 } from './stateUtils';
 import {
   getStateNodeById,
@@ -31,6 +30,7 @@ import {
   resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
+import { ActorRef } from './Actor';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';
@@ -206,9 +206,13 @@ export class MachineNode<
    */
   public transition(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    service?: ActorRef<State<TContext, TEvent>, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentState = toState(state, this);
+
+    // attach service to state
+    currentState._origin = service;
 
     return macrostep(currentState, event, this);
   }
@@ -251,7 +255,19 @@ export class MachineNode<
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     this._init();
-    const nextState = getInitialState(this);
+    const nextState = resolveMicroTransition(this, [], undefined, undefined);
+    return macrostep(nextState, null as any, this);
+  }
+
+  public getInitialState(service?: ActorRef<State<TContext, TEvent>, TEvent>) {
+    this._init();
+    const nextState = resolveMicroTransition(
+      this,
+      [],
+      undefined,
+      undefined,
+      service
+    );
     return macrostep(nextState, null as any, this);
   }
 

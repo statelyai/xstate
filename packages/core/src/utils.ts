@@ -16,8 +16,7 @@ import {
   NullEvent,
   SingleOrArray,
   Guard,
-  AssignMeta,
-  Spawner
+  AssignMeta
 } from './types';
 import {
   STATE_DELIMITER,
@@ -295,7 +294,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>,
-  parent?: ActorRef<any, TEvent>
+  service?: ActorRef<any, TEvent>
 ): TContext {
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
@@ -308,7 +307,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
           state,
           action: assignAction,
           _event,
-          parent
+          self: service
         };
 
         let partialUpdate: Partial<TContext> = {};

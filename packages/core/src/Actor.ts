@@ -309,18 +309,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
     })
     .start();
 
-  // TODO: move this to ServiceActorRef
-  if (options && options.sync) {
-    service.subscribe((state) => {
-      parent.send({
-        type: actionTypes.update,
-        state,
-        id: service.id
-      });
-    });
-  }
-
-  return new ServiceActorRef<TContext, TEvent>(service, parent, id);
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id, options);
 }
 
 class ServiceActorRef<TContext, TEvent extends EventObject>
@@ -331,13 +320,22 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
   constructor(
     public ref: Interpreter<TContext, any, TEvent>,
     private parent: ActorRef<any, any>,
-    public id: string
+    public id: string,
+    private options?: any // TODO: fix
   ) {
     this.current = this.ref.current;
   }
   public start() {
     this.subscription = this.ref.subscribe((state) => {
       this.current = state;
+
+      if (this.options && this.options.sync) {
+        this.parent.send({
+          type: actionTypes.update,
+          state,
+          id: this.id
+        });
+      }
     });
   }
   public send(event) {
@@ -350,13 +348,8 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
-  id: string
+  id: string,
+  parent: ActorRef<any, any>
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
-  return new ServiceActorRef<TContext, TEvent>(service, id);
-  // return new ActorRef(
-  //   service.send.bind(service),
-  //   service.subscribe.bind(service),
-  //   service.state,
-  //   service
-  // );
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id);
 }

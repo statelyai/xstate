@@ -699,11 +699,10 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign<SyncMachineContext>({
-              ref: (_, __, { parent }) => {
-                // spawn(syncChildMachine, { sync: true })
-                return fromMachine(syncChildMachine, 'whatever', parent, {
+              ref: (_, __, { self }) => {
+                return fromMachine(syncChildMachine, 'whatever', self, {
                   sync: true
-                });
+                }).start();
               }
             }),
             on: {

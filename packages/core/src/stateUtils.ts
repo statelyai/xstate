@@ -72,7 +72,7 @@ import {
   NULL_EVENT,
   WILDCARD
 } from './constants';
-import { createInvocableActor } from './Actor';
+import { createInvocableActor, ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
@@ -595,16 +595,6 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
   );
 
   return [...mutStatesToEnter];
-}
-export function getInitialState<
-  TContext,
-  TStateSchema,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, TStateSchema, TEvent>
-): State<TContext, TEvent, TStateSchema, TTypestate> {
-  return resolveMicroTransition(machine, [], undefined, undefined);
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
@@ -1315,7 +1305,8 @@ export function microstep<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   machine: MachineNode<TContext, any, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  service?: ActorRef<State<TContext, TEvent>, TEvent>
 ): {
   actions: Array<ActionObject<TContext, TEvent>>;
   configuration: typeof mutConfiguration;
@@ -1373,7 +1364,7 @@ export function microstep<TContext, TEvent extends EventObject>(
     actions: resolvedActions,
     raised,
     context
-  } = resolveActionsAndContext(actions, machine, _event, currentState);
+  } = resolveActionsAndContext(actions, machine, _event, currentState, service);
 
   internalQueue.push(...res.internalQueue);
   internalQueue.push(...raised.map((a) => a._event));
@@ -1436,7 +1427,8 @@ export function resolveMicroTransition<
   machine: MachineNode<TContext, any, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
+  service?: ActorRef<State<TContext, TEvent>, TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
@@ -1461,7 +1453,8 @@ export function resolveMicroTransition<
     currentState,
     new Set(prevConfig),
     machine,
-    _event
+    _event,
+    service
   );
 
   if (currentState && !willTransition) {
@@ -1548,7 +1541,8 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: MachineNode<TContext, any, TEvent, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any, any> | undefined
+  currentState: State<TContext, TEvent, any, any> | undefined,
+  service?: ActorRef<State<TContext, TEvent>, TEvent>
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1641,7 +1635,8 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             context,
             _event,
             [actionObject as AssignAction<TContext, TEvent>],
-            currentState
+            currentState,
+            service
           );
           resActions.push(actionObject);
           break;
