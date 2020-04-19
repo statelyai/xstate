@@ -74,7 +74,9 @@ export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
   // subscribe: Subscribable<TCurrent>['subscribe'];
   current: TCurrent;
   ref: TRef;
+  start: () => void;
   stop: () => void;
+  id: string;
   // subscription?: Unsubscribable;
 }
 
@@ -85,18 +87,24 @@ class ObservableActorRef<TCurrent extends EventObject>
 
   constructor(
     public ref: Subscribable<TCurrent>,
-    parent: ActorRef<any, any>,
-    id: string // TODO: use "system"
-  ) {
-    this.subscription = ref.subscribe(
+    private parent: ActorRef<any, any>,
+    public id: string // TODO: use "system"
+  ) {}
+
+  public start() {
+    this.subscription = this.ref.subscribe(
       (value) => {
-        parent.send(toSCXMLEvent(value, { origin: this }));
+        this.parent.send(toSCXMLEvent(value, { origin: this }));
       },
       (err) => {
-        parent.send(toSCXMLEvent(error(id, err) as any, { origin: this }));
+        this.parent.send(
+          toSCXMLEvent(error(this.id, err) as any, { origin: this })
+        );
       },
       () => {
-        parent.send(toSCXMLEvent(doneInvoke(id) as any, { origin: this }));
+        this.parent.send(
+          toSCXMLEvent(doneInvoke(this.id) as any, { origin: this })
+        );
       }
     );
   }
@@ -124,21 +132,26 @@ class PromiseActorRef<T> implements ActorRef<T | undefined, never, Promise<T>> {
   private canceled = false;
   public current: T | undefined = undefined;
 
-  constructor(public ref: Promise<T>, parent: ActorRef<any, any>, id: string) {
+  constructor(
+    public ref: Promise<T>,
+    private parent: ActorRef<any, any>,
+    public id: string
+  ) {}
+  public start() {
     this.ref.then(
       (response) => {
         if (!this.canceled) {
           this.current = response;
-          parent.send(
-            toSCXMLEvent(doneInvoke(id, response) as any, { origin: this })
+          this.parent.send(
+            toSCXMLEvent(doneInvoke(this.id, response) as any, { origin: this })
           );
         }
       },
       (errorData) => {
         if (!this.canceled) {
-          const errorEvent = error(id, errorData);
+          const errorEvent = error(this.id, errorData);
 
-          parent.send(toSCXMLEvent(errorEvent, { origin: this }));
+          this.parent.send(toSCXMLEvent(errorEvent, { origin: this }));
         }
       }
     );
@@ -171,9 +184,10 @@ class CallbackActorRef<
 
   constructor(
     public ref: InvokeCallback,
-    parent: ActorRef<any, any>,
-    id: string
-  ) {
+    private parent: ActorRef<any, any>,
+    public id: string
+  ) {}
+  public start() {
     const dispose = this.ref(
       (e: TEmitted) => {
         if (this.canceled) {
@@ -181,7 +195,7 @@ class CallbackActorRef<
         }
 
         this.current = e;
-        parent.send(toSCXMLEvent(e, { origin: this }));
+        this.parent.send(toSCXMLEvent(e, { origin: this }));
       },
       (newListener) => {
         this.receivers.add(newListener);
@@ -191,14 +205,14 @@ class CallbackActorRef<
     if (isPromiseLike(dispose)) {
       dispose.then(
         (resolved) => {
-          parent.send(
-            toSCXMLEvent(doneInvoke(id, resolved) as any, { origin: this })
+          this.parent.send(
+            toSCXMLEvent(doneInvoke(this.id, resolved) as any, { origin: this })
           );
           this.canceled = true;
         },
         (errorData) => {
-          const errorEvent = error(id, errorData);
-          parent.send(toSCXMLEvent(errorEvent, { origin: this }));
+          const errorEvent = error(this.id, errorData);
+          this.parent.send(toSCXMLEvent(errorEvent, { origin: this }));
           // TODO: handle error
           this.canceled = true;
         }
@@ -269,10 +283,12 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
   constructor(
     public ref: ActorLike<State<TContext, TEvent>, TEvent> & {
       state: State<TContext, TEvent>;
-    }
+    },
+    public id: string
   ) {
     this.current = this.ref.state;
-
+  }
+  public start() {
     this.subscription = this.ref.subscribe((state) => {
       this.current = state;
     });
@@ -288,9 +304,10 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 export function fromService<TContext, TEvent extends EventObject>(
   service: ActorLike<State<TContext, TEvent>, TEvent> & {
     state: State<TContext, TEvent>;
-  }
+  },
+  id: string
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
-  return new ServiceActorRef<TContext, TEvent>(service);
+  return new ServiceActorRef<TContext, TEvent>(service, id);
   // return new ActorRef(
   //   service.send.bind(service),
   //   service.subscribe.bind(service),

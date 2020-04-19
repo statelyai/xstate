@@ -841,9 +841,8 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator:
-            | ServiceConfig<TContext, TEvent>
-            | undefined = this.machine.options.services
+          const actorCreator: ServiceConfig<TContext, TEvent> | undefined = this
+            .machine.options.services
             ? this.machine.options.services[activity.src]
             : undefined;
 
@@ -854,7 +853,7 @@ export class Interpreter<
               ? activity.autoForward
               : !!activity.forward;
 
-          if (!serviceCreator) {
+          if (!actorCreator) {
             // tslint:disable-next-line:no-console
             if (!IS_PRODUCTION) {
               warn(
@@ -866,12 +865,15 @@ export class Interpreter<
           }
 
           try {
-            const actor = serviceCreator(context, _event.data, {
+            const actor = actorCreator(context, _event.data, {
               parent: this as any,
               id,
               data,
               _event
             });
+
+            // start the actor
+            actor.start();
 
             if (autoForward) {
               this.forwardTo.add(id);
@@ -1134,11 +1136,11 @@ export function spawn<TC, TE extends EventObject>(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor;
+): ActorRef<any, any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor {
+): ActorRef<any, any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, (service) => {
@@ -1152,7 +1154,13 @@ export function spawn(
     }
 
     if (service) {
-      return service.spawn(entity, resolvedOptions.name, resolvedOptions);
+      const spawned = service.spawn(
+        entity,
+        resolvedOptions.name,
+        resolvedOptions
+      );
+      spawned.start();
+      return spawned;
     } else {
       return createNullActor(resolvedOptions.name);
     }
