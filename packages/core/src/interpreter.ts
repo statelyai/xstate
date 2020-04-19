@@ -51,7 +51,8 @@ import {
   fromService,
   fromCallback,
   fromPromise,
-  fromObservable
+  fromObservable,
+  fromMachine
 } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
@@ -977,48 +978,25 @@ export class Interpreter<
   >(
     machine: MachineNode<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
-    const childService = interpret(machine, {
-      ...this.options, // inherit options from this interpreter
-      parent: fromService(this as any), // TODO: fix any
-      id: options.id || machine.id
-    });
-
+  ) {
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
       ...options
     };
+    const actorRef = fromMachine(
+      machine,
+      options.id || machine.id,
+      fromService(this),
+      resolvedOptions
+    );
 
-    if (resolvedOptions.sync) {
-      childService.onTransition((state) => {
-        this.send({
-          type: actionTypes.update,
-          state,
-          id: childService.id
-        } as any);
-      });
-    }
-
-    const actor = childService;
-
-    this.children.set(childService.id, (actor as any) as ActorRef<any, any>); // TODO: fix types
+    this.children.set(actorRef.id, actorRef); // TODO: fix types
 
     if (resolvedOptions.autoForward) {
-      this.forwardTo.add(childService.id);
+      this.forwardTo.add(actorRef.id);
     }
 
-    childService
-      .onDone((doneEvent) => {
-        this.removeChild(childService.id);
-        this.send(
-          toSCXMLEvent(doneEvent as any, {
-            origin: (childService as any) as ActorRef<any, any> // TODO: fix types
-          })
-        );
-      })
-      .start();
-
-    return actor;
+    return actorRef;
   }
   private spawnActor<T extends Actor>(actor: T): T {
     this.children.set(actor.id, actor);

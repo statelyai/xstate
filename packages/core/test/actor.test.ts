@@ -8,9 +8,10 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
+import { Actor, ActorRef, fromMachine } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
+import * as actionTypes from '../src/actionTypes';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -443,7 +444,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: Actor }>({
+    const nullActorMachine = Machine<{ ref?: ActorRef<any, any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -603,17 +604,38 @@ describe('actors', () => {
       }
     });
 
-    it('should sync spawned actor state when { sync: true }', () => {
-      return new Promise((res) => {
-        const service = interpret(parentMachine, {
-          id: 'a-service'
-        }).onTransition((s) => {
-          if (s.context.ref.current.context.value === 42) {
-            res();
+    it('should sync spawned actor state when { sync: true }', (done) => {
+      const machine = Machine<{
+        ref: any;
+        refNoSync: any;
+        refNoSyncDefault: any;
+      }>({
+        id: 'parent',
+        context: {
+          ref: undefined
+        },
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: assign({
+              ref: () => spawn(childMachine, { sync: true })
+            }),
+            on: {
+              [actionTypes.update]: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
-        });
-        service.start();
+        }
       });
+
+      const service = interpret(machine, {
+        id: 'a-service'
+      }).onDone(() => {
+        done();
+      });
+      service.start();
     });
 
     it('should not sync spawned actor state when { sync: false }', () => {
@@ -677,21 +699,26 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign<SyncMachineContext>({
-              ref: () => spawn(syncChildMachine, { sync: true })
-            })
+              ref: (_, __, { parent }) => {
+                // spawn(syncChildMachine, { sync: true })
+                return fromMachine(syncChildMachine, 'whatever', parent, {
+                  sync: true
+                });
+              }
+            }),
+            on: {
+              [actionTypes.update]: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
         }
       });
 
       interpret(syncMachine)
-        .onTransition((state) => {
-          if (
-            state.context.ref &&
-            state.context.ref.current.matches('inactive')
-          ) {
-            expect(state.changed).toBe(true);
-            done();
-          }
+        .onDone(() => {
+          done();
         })
         .start();
     });
@@ -723,26 +750,25 @@ describe('actors', () => {
             same: {
               entry: assign({
                 ref: () => spawn(syncChildMachine, falseSyncOption)
-              })
-            }
+              }),
+              on: {
+                '*': 'failure'
+              }
+            },
+            failure: {}
           }
         });
 
         const service = interpret(syncMachine)
+          .onDone(() => {
+            done();
+          })
           .onTransition((state) => {
-            if (
-              state.context.ref &&
-              state.context.ref.current.matches('inactive')
-            ) {
-              expect(state.changed).toBe(false);
-            }
+            expect(state.matches('failure')).toBeFalsy();
           })
           .start();
 
         setTimeout(() => {
-          expect(service.current.context.ref!.current.matches('inactive')).toBe(
-            true
-          );
           done();
         }, 20);
       });
@@ -780,10 +806,7 @@ describe('actors', () => {
 
         interpret(syncMachine)
           .onTransition((state) => {
-            if (
-              state.context.ref &&
-              state.context.ref.current.matches('inactive')
-            ) {
+            if (state.event.type === actionTypes.update) {
               expect(state.changed).toBe(true);
               done();
             }

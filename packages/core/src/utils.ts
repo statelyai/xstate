@@ -15,7 +15,9 @@ import {
   TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
-  Guard
+  Guard,
+  AssignMeta,
+  Spawner
 } from './types';
 import {
   STATE_DELIMITER,
@@ -25,7 +27,7 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { State, InvokeConfig, ActorCreator } from '.';
-import { Actor } from './Actor';
+import { Actor, ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
@@ -292,7 +294,8 @@ export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
-  state?: State<TContext, TEvent>
+  state?: State<TContext, TEvent>,
+  parent?: ActorRef<any, TEvent>
 ): TContext {
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
@@ -301,10 +304,11 @@ export function updateContext<TContext, TEvent extends EventObject>(
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-        const meta = {
+        const meta: AssignMeta<TContext, TEvent> = {
           state,
           action: assignAction,
-          _event
+          _event,
+          parent
         };
 
         let partialUpdate: Partial<TContext> = {};

@@ -7,12 +7,16 @@ import {
   Subscribable,
   ActorLike,
   SCXML,
-  InvokeCallback
+  InvokeCallback,
+  InterpreterOptions
 } from './types';
 import { State } from './State';
 import { toSCXMLEvent, isPromiseLike } from './utils';
 import { error, doneInvoke } from './actions';
 import { isFunction } from 'util';
+import { MachineNode } from './MachineNode';
+import { Interpreter, interpret } from './interpreter';
+import * as actionTypes from './actionTypes';
 
 export interface Actor<
   TContext = any,
@@ -236,7 +240,11 @@ class CallbackActorRef<
 export function fromCallback<
   TEmitted extends EventObject,
   TEvent extends EventObject
->(fn: InvokeCallback, parent: ActorRef<any, any>, id: string) {
+>(
+  fn: InvokeCallback,
+  parent: ActorRef<any, any>,
+  id: string
+): ActorRef<TEmitted | undefined, SCXML.Event<TEvent>> {
   return new CallbackActorRef<TEmitted, TEvent>(fn, parent, id);
   // const receivers = new Set<(e: TEvent) => void>();
   // const listeners = new Set<(e: TEmitted) => void>();
@@ -275,18 +283,57 @@ export function fromCallback<
   // return actorRef;
 }
 
+export function fromMachine<TContext, TEvent extends EventObject>(
+  machine: MachineNode<TContext, any, TEvent>,
+  id: string,
+  parent: ActorRef<any, any>,
+  options?: InterpreterOptions
+): ActorRef<
+  State<TContext, TEvent>,
+  TEvent,
+  Interpreter<TContext, any, TEvent>
+> {
+  const service = interpret(machine, {
+    ...options,
+    parent
+  });
+
+  // TODO: move this to ServiceActorRef
+  service
+    .onDone((doneEvent) => {
+      parent.send(
+        toSCXMLEvent(doneEvent as any, {
+          origin: (service as any) as ActorRef<any, any> // TODO: fix types
+        })
+      );
+    })
+    .start();
+
+  // TODO: move this to ServiceActorRef
+  if (options && options.sync) {
+    service.subscribe((state) => {
+      parent.send({
+        type: actionTypes.update,
+        state,
+        id: service.id
+      });
+    });
+  }
+
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id);
+}
+
 class ServiceActorRef<TContext, TEvent extends EventObject>
   implements ActorRef<State<TContext, TEvent>, TEvent> {
   public current: State<TContext, TEvent>;
   private subscription?: Unsubscribable;
 
   constructor(
-    public ref: ActorLike<State<TContext, TEvent>, TEvent> & {
-      state: State<TContext, TEvent>;
-    },
+    public ref: Interpreter<TContext, any, TEvent>,
+    private parent: ActorRef<any, any>,
     public id: string
   ) {
-    this.current = this.ref.state;
+    this.current = this.ref.current;
   }
   public start() {
     this.subscription = this.ref.subscribe((state) => {
@@ -302,9 +349,7 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 }
 
 export function fromService<TContext, TEvent extends EventObject>(
-  service: ActorLike<State<TContext, TEvent>, TEvent> & {
-    state: State<TContext, TEvent>;
-  },
+  service: Interpreter<TContext, any, TEvent>,
   id: string
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
   return new ServiceActorRef<TContext, TEvent>(service, id);

@@ -89,79 +89,7 @@ export function spawnPromise<T>(
 
     const actorRef = fromPromise(resolvedPromise, parent, id);
 
-    resolvedPromise.then(
-      (response) => {
-        if (!canceled) {
-          parent.send(
-            toSCXMLEvent(doneInvoke(id, response) as any, { origin: actorRef })
-          );
-        }
-      },
-      (errorData) => {
-        if (!canceled) {
-          const errorEvent = error(id, errorData);
-          try {
-            // Send "error.platform.id" to this (parent).
-            parent.send(toSCXMLEvent(errorEvent as any, { origin: actorRef }));
-          } catch (communicationError) {
-            reportUnhandledExceptionOnInvocation(
-              errorData,
-              communicationError,
-              id
-            );
-            // if (this.devTools) {
-            //   this.devTools.send(errorEvent, this.state);
-            // }
-            // if (this.machine.strict) {
-            //   // it would be better to always stop the state machine if unhandled
-            //   // exception/promise rejection happens but because we don't want to
-            //   // break existing code so enforce it on strict mode only especially so
-            //   // because documentation says that onError is optional
-            //   canceled = true;
-            // }
-          }
-        }
-      }
-    );
-
     return actorRef;
-    // const actor = {
-    //   id,
-    //   send: () => void 0,
-    //   subscribe: (next, handleError, complete) => {
-    //     let unsubscribed = false;
-    //     resolvedPromise.then(
-    //       (response) => {
-    //         if (unsubscribed) {
-    //           return;
-    //         }
-    //         next && next(response);
-    //         if (unsubscribed) {
-    //           return;
-    //         }
-    //         complete && complete();
-    //       },
-    //       (err) => {
-    //         if (unsubscribed) {
-    //           return;
-    //         }
-    //         handleError(err);
-    //       }
-    //     );
-
-    //     return {
-    //       unsubscribe: () => (unsubscribed = true)
-    //     };
-    //   },
-    //   stop: () => {
-    //     canceled = true;
-    //   },
-    //   toJSON() {
-    //     return { id };
-    //   }
-    // };
-
-    // return actor;
   };
 }
 
