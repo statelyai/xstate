@@ -66,36 +66,32 @@ describe('useService', () => {
 });
 
 describe('useMachine', () => {
-  it('should preserve typestate information.', () => {
-    type YesNoContext = { value?: number };
+  type YesNoContext = { value?: number };
 
-    type YesNoEvent = { type: 'YES' };
+  type YesNoEvent = { type: 'YES' };
 
-    type YesNoTypestate =
-      | { value: 'no'; context: { value: undefined } }
-      | { value: 'yes'; context: { value: number } };
+  type YesNoTypestate =
+    | { value: 'no'; context: { value: undefined } }
+    | { value: 'yes'; context: { value: number } };
 
-    const yesNoMachine = createMachine<
-      YesNoContext,
-      YesNoEvent,
-      YesNoTypestate
-    >({
-      context: {
-        value: undefined
-      },
-      initial: 'no',
-      states: {
-        no: {
-          on: {
-            YES: 'yes'
-          }
-        },
-        yes: {
-          type: 'final'
+  const yesNoMachine = createMachine<YesNoContext, YesNoEvent, YesNoTypestate>({
+    context: {
+      value: undefined
+    },
+    initial: 'no',
+    states: {
+      no: {
+        on: {
+          YES: 'yes'
         }
+      },
+      yes: {
+        type: 'final'
       }
-    });
+    }
+  });
 
+  it('should preserve typestate information.', () => {
     const YesNo = () => {
       const [state] = useMachine(yesNoMachine);
 
@@ -110,6 +106,20 @@ describe('useMachine', () => {
       }
 
       return <span>No</span>;
+    };
+
+    render(<YesNo />);
+  });
+
+  it('state should not become never after checking state with matches', () => {
+    const YesNo = () => {
+      const [state] = useMachine<any, any>(yesNoMachine);
+
+      if (state.matches('no')) {
+        return <span>No</span>;
+      }
+
+      return <span>Yes: {state.context.value}</span>;
     };
 
     render(<YesNo />);
