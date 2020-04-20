@@ -20,7 +20,7 @@ A **condition function** (also known as a **guard**) specified on the `.cond` pr
 The `condMeta` object includes the following properties:
 
 - `cond` - the original condition object
-- `state` - the resolved machine state, after transition
+- `state` - the current machine state, before transition
 - `_event` - the SCXML event
 
 **Returns**
@@ -86,7 +86,7 @@ Example of usage with `context`:
 import { interpret } from 'xstate';
 
 const searchService = interpret(searchMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 
 searchService.send({ type: 'SEARCH', query: '' });
@@ -239,14 +239,14 @@ const doorMachine = Machine(
   },
   {
     guards: {
-      isAdmin: context => context.level === 'admin',
-      shouldAlert: context => context.alert === true
+      isAdmin: (context) => context.level === 'admin',
+      shouldAlert: (context) => context.alert === true
     }
   }
 );
 
 const doorService = interpret(doorMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => { closed: 'idle' }
 
