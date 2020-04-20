@@ -211,9 +211,6 @@ export class MachineNode<
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentState = toState(state, this);
 
-    // attach service to state
-    currentState._origin = service;
-
     return macrostep(currentState, event, this);
   }
 

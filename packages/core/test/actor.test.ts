@@ -606,9 +606,7 @@ describe('actors', () => {
 
     it('should sync spawned actor state when { sync: true }', (done) => {
       const machine = Machine<{
-        ref: any;
-        refNoSync: any;
-        refNoSyncDefault: any;
+        ref: ActorRef<any, any>;
       }>({
         id: 'parent',
         context: {
@@ -690,7 +688,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Interpreter<any, any>;
+        ref?: ActorRef<any, any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -700,7 +698,7 @@ describe('actors', () => {
           same: {
             entry: assign<SyncMachineContext>({
               ref: (_, __, { self }) => {
-                return fromMachine(syncChildMachine, 'whatever', self, {
+                return fromMachine(syncChildMachine, self, {
                   sync: true
                 }).start();
               }

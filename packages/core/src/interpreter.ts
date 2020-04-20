@@ -177,7 +177,7 @@ export class Interpreter<
   // Actor Ref
   public parent?: ActorRef<any, any>;
   public id: string;
-  public ref: MachineNode<TContext, any, TEvent>;
+  public ref: ActorRef<State<TContext, TEvent>, TEvent>;
 
   /**
    * The globally unique process ID for this invocation.
@@ -212,7 +212,6 @@ export class Interpreter<
     this.logger = logger;
     this.clock = clock;
     this.parent = parent;
-    this.ref = machine;
 
     this.options = resolvedOptions;
 
@@ -220,7 +219,9 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.sessionId = registry.bookId();
+    this.ref = fromService(this, this.parent);
+
+    this.sessionId = this.ref.id;
   }
   public get initialState(): State<TContext, TEvent> {
     if (this._initialState) {
@@ -228,9 +229,7 @@ export class Interpreter<
     }
 
     return withServiceScope(this, () => {
-      this._initialState = this.machine.getInitialState(
-        fromService(this, this.id)
-      );
+      this._initialState = this.machine.getInitialState(this.ref);
 
       return this._initialState;
     });
@@ -671,7 +670,7 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<TEvent>,
-    to: string | number | Actor
+    to: string | number | ActorRef<any, any>
   ) => {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
@@ -875,26 +874,17 @@ export class Interpreter<
               _event
             });
 
-            // start the actor
-            actor.start();
-
             if (autoForward) {
               this.forwardTo.add(id);
             }
 
             this.children.set(id, actor);
-
             this.current.children[id] = actor;
 
-            this.current.children[id].meta = {
-              ...this.current.children[id].meta,
-              ...activity
-            };
+            actor.start();
           } catch (err) {
             this.send(error(id, err));
           }
-        } else {
-          this.spawnActivity(activity);
         }
 
         break;
@@ -960,7 +950,8 @@ export class Interpreter<
       this.children.set(name, actor);
       return actor;
     } else if (isActor(entity)) {
-      return this.spawnActor(entity);
+      this.children.set(entity.id, entity);
+      return entity;
     } else if (isObservable<TEvent>(entity)) {
       const actor = fromObservable(entity, this, name);
       this.children.set(name, actor);
@@ -979,7 +970,7 @@ export class Interpreter<
     TChildEvent extends EventObject
   >(
     machine: MachineNode<TChildContext, TChildStateSchema, TChildEvent>,
-    options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
+    options: Partial<InterpreterOptions> = {}
   ) {
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
@@ -987,9 +978,8 @@ export class Interpreter<
     };
     const actorRef = fromMachine(
       machine,
-      options.id || machine.id,
-      fromService(this),
-      resolvedOptions
+      this.ref,
+      resolvedOptions as InterpreterOptions
     );
 
     this.children.set(actorRef.id, actorRef); // TODO: fix types
@@ -999,45 +989,6 @@ export class Interpreter<
     }
 
     return actorRef;
-  }
-  private spawnActor<T extends Actor>(actor: T): T {
-    this.children.set(actor.id, actor);
-
-    return actor;
-  }
-  private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
-    const implementation =
-      this.machine.options && this.machine.options.activities
-        ? this.machine.options.activities[activity.type]
-        : undefined;
-
-    if (!implementation) {
-      if (!IS_PRODUCTION) {
-        warn(false, `No implementation found for activity '${activity.type}'`);
-      }
-      // tslint:disable-next-line:no-console
-      return;
-    }
-
-    // Start implementation
-    const dispose = implementation(this.current.context, activity);
-    this.spawnEffect(activity.id, dispose);
-  }
-  private spawnEffect(
-    id: string,
-    dispose?: DisposeActivityFunction | void
-  ): void {
-    this.children.set(id, {
-      id,
-      send: () => void 0,
-      subscribe: () => {
-        return { unsubscribe: () => void 0 };
-      },
-      stop: dispose || undefined,
-      toJSON() {
-        return { id };
-      }
-    });
   }
 
   private attachDev(): void {

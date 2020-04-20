@@ -701,7 +701,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
   to:
     | string
     | number
-    | Actor
+    | ActorRef<any, any>
     | ExprWithMeta<TContext, TEvent, string | number | Actor>
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
@@ -711,7 +711,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
 
 export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
-  to: string | number | Actor | undefined;
+  to: string | number | ActorRef<any, any> | undefined;
   _event: SCXML.Event<TEvent>;
   event: TEvent;
   delay?: number;
@@ -940,7 +940,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, Actor>;
+  children: Record<string, ActorRef<any, any>>;
   done?: boolean;
 }
 
@@ -979,6 +979,12 @@ export interface InterpreterOptions {
    */
   devTools: boolean | object; // TODO: add enhancer options
   [option: string]: any;
+  /**
+   * If `true`, events from the parent will be sent to this interpreter.
+   *
+   * Default: `false`
+   */
+  autoForward?: boolean;
 }
 
 export declare namespace SCXML {

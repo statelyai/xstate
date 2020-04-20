@@ -17,6 +17,7 @@ import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
 import { Interpreter, interpret } from './interpreter';
 import * as actionTypes from './actionTypes';
+import { registry } from './registry';
 
 export interface Actor<
   TContext = any,
@@ -63,7 +64,7 @@ export function createInvocableActor<TContext, TEvent extends EventObject>(
   return tempActor;
 }
 
-export function isActor(item: any): item is Actor {
+export function isActor(item: any): item is ActorRef<any, any> {
   try {
     return typeof item.send === 'function';
   } catch (e) {
@@ -78,7 +79,7 @@ export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
   // subscribe: Subscribable<TCurrent>['subscribe'];
   current: TCurrent;
   ref: TRef;
-  start: () => void;
+  start: () => ActorRef<TCurrent, TEvent, TRef>;
   stop: () => void;
   id: string;
   // subscription?: Unsubscribable;
@@ -111,6 +112,7 @@ class ObservableActorRef<TCurrent extends EventObject>
         );
       }
     );
+    return this;
   }
 
   public send() {
@@ -159,6 +161,7 @@ class PromiseActorRef<T> implements ActorRef<T | undefined, never, Promise<T>> {
         }
       }
     );
+    return this;
   }
   public send() {
     // no-op
@@ -224,6 +227,7 @@ class CallbackActorRef<
     } else {
       this.dispose = dispose;
     }
+    return this;
   }
   public send(event: SCXML.Event<TEvent>) {
     this.receivers.forEach((receiver) => receiver(event.data));
@@ -285,9 +289,8 @@ export function fromCallback<
 
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
-  id: string,
   parent: ActorRef<any, any>,
-  options?: InterpreterOptions
+  options?: Partial<InterpreterOptions>
 ): ActorRef<
   State<TContext, TEvent>,
   TEvent,
@@ -309,7 +312,12 @@ export function fromMachine<TContext, TEvent extends EventObject>(
     })
     .start();
 
-  return new ServiceActorRef<TContext, TEvent>(service, parent, id, options);
+  return new ServiceActorRef<TContext, TEvent>(
+    service,
+    parent,
+    registry.bookId(),
+    options
+  );
 }
 
 class ServiceActorRef<TContext, TEvent extends EventObject>
@@ -337,6 +345,8 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
         });
       }
     });
+
+    return this;
   }
   public send(event) {
     this.ref.send(event);
@@ -348,8 +358,11 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
-  id: string,
   parent: ActorRef<any, any>
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
-  return new ServiceActorRef<TContext, TEvent>(service, parent, id);
+  return new ServiceActorRef<TContext, TEvent>(
+    service,
+    parent,
+    registry.bookId()
+  );
 }

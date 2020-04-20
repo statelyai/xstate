@@ -100,39 +100,6 @@ export function spawnActivity<TC, TE extends EventObject>(
     return activityCreator(ctx, event);
   };
   return spawnCallback<TC, TE>(callbackCreator);
-  //   return (ctx, e, { parent, id }) => {
-  //     let dispose;
-  //     try {
-  //       dispose = activityCreator(ctx, e);
-  //     } catch (err) {
-  //       parent.send(error(id, err) as any);
-  //     }
-
-  //     return new ActorRef(
-  //       () => void 0,
-
-  //       () => {
-  //         return {
-  //           unsubscribe: () => (isFunction(dispose) ? dispose() : undefined)
-  //         };
-  //       },
-  //       undefined,
-  //       undefined
-  //     );
-
-  //     // return {
-  //     //   id,
-  //     //   send: () => void 0,
-  //     //   toJSON: () => ({ id }),
-  //     //   subscribe() {
-  //     //     // do nothing
-  //     //     return {
-  //     //       unsubscribe: () => void 0
-  //     //     };
-  //     //   },
-  //     //   stop: isFunction(dispose) ? () => dispose() : undefined
-  //     // };
-  //   };
 }
 
 export function spawnCallback<TC, TE extends EventObject = AnyEventObject>(
