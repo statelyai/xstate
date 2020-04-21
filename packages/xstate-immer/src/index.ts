@@ -2,13 +2,15 @@ import {
   EventObject,
   ActionObject,
   AssignAction,
-  assign as xstateAssign
+  assign as xstateAssign,
+  AssignMeta
 } from 'xstate';
-import { produce, Draft, produceWithPatches, applyPatches } from 'immer';
+import { produce, Draft } from 'immer';
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
   context: Draft<TContext>,
-  event: TEvent
+  event: TEvent,
+  meta: AssignMeta<TContext, TEvent>
 ) => void;
 
 export interface ImmerAssignAction<TContext, TEvent extends EventObject>
@@ -16,37 +18,46 @@ export interface ImmerAssignAction<TContext, TEvent extends EventObject>
   assignment: ImmerAssigner<TContext, TEvent>;
 }
 
-export function assign<TContext, TEvent extends EventObject = EventObject>(
-  assignment: ImmerAssigner<TContext, TEvent>
+function immerAssign<TContext, TEvent extends EventObject = EventObject>(
+  recipe: ImmerAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> {
-  // @ts-ignore (possibly infinite TS bug)
-  return xstateAssign((context, event) => {
-    return produce(context, (draft) => void assignment(draft, event));
+  return xstateAssign((context, event, meta) => {
+    return produce(context, (draft) => void recipe(draft, event, meta));
   });
 }
 
-interface PatchEventObject extends EventObject {
-  patches: ReturnType<typeof produceWithPatches>;
+export { immerAssign as assign };
+
+export interface ImmerUpdateEvent<
+  TType extends string = string,
+  TInput = unknown
+> {
+  type: TType;
+  input: TInput;
 }
 
-export function patchEvent<TContext>(
-  type: string,
-  context: TContext,
-  recipe: (draftContext: TContext) => void
-): PatchEventObject {
-  return {
-    type,
-    patches: produceWithPatches(context, recipe)
+export interface ImmerUpdater<TContext, TEvent extends ImmerUpdateEvent> {
+  update: (input: TEvent['input']) => TEvent;
+  action: AssignAction<TContext, TEvent>;
+  type: TEvent['type'];
+}
+
+export function createUpdater<TContext, TEvent extends ImmerUpdateEvent>(
+  type: TEvent['type'],
+  recipe: ImmerAssigner<TContext, TEvent>
+): ImmerUpdater<TContext, TEvent> {
+  const update = (input: TEvent['input']): TEvent => {
+    return {
+      type,
+      input
+    } as TEvent;
   };
-}
 
-export function assignPatch<
-  TContext,
-  TEvent extends PatchEventObject
->(): AssignAction<TContext, TEvent> {
-  return xstateAssign((context, event) => {
-    const [, patches] = event.patches;
-
-    return applyPatches(context, patches);
-  });
+  return {
+    update,
+    action: immerAssign<TContext, TEvent>((ctx, event, meta) => {
+      recipe(ctx, event, meta);
+    }),
+    type
+  };
 }

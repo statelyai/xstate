@@ -1,5 +1,15 @@
 # @xstate/fsm
 
+## 1.4.0
+
+### Minor Changes
+
+- [`3d50808`](https://github.com/davidkpiano/xstate/commit/3d50808ac68b1f52de49969e5e83b2c341fda525) [#1082](https://github.com/davidkpiano/xstate/pull/1082) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `.state` property is now exposed on the service returned from `interpret(machine)`, which is a getter that returns the latest state of the machine.
+
+### Patch Changes
+
+- [`dcbd72f`](https://github.com/davidkpiano/xstate/commit/dcbd72ffe1804d6c50b5ebf2d17ec2b74a8c7b58) [#1122](https://github.com/davidkpiano/xstate/pull/1122) Thanks [@chancestrickland](https://github.com/chancestrickland)! - `StateMachine.Config` type accepts now a third type parameter - `TState` - similarly to other existing types. When provided it provides helpful intellisense when defining the state chart transitions.
+
 ## 1.3.0
 
 ### Minor Changes

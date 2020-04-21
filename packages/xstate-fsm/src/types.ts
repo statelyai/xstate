@@ -68,12 +68,16 @@ export namespace StateMachine {
     ) => this is TState extends { value: TSV } ? TState : never;
   }
 
-  export interface Config<TContext extends object, TEvent extends EventObject> {
+  export interface Config<
+    TContext extends object,
+    TEvent extends EventObject,
+    TState extends Typestate<TContext> = any
+  > {
     id?: string;
     initial: string;
     context?: TContext;
     states: {
-      [key: string]: {
+      [key in TState['value']]: {
         on?: {
           [K in TEvent['type']]?: SingleOrArray<
             Transition<TContext, TEvent extends { type: K } ? TEvent : never>
