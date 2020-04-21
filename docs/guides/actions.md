@@ -4,26 +4,6 @@ Actions are fire-and-forget ["side effects"](./effects.md). For a machine to be 
 
 Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
 
-::: danger
-
-All of the action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
-
-```js
-// 🚫 Do not do this!
-entry: () => {
-  // 🚫 This will do nothing; send() is not an imperative function!
-  send('SOME_EVENT');
-};
-
-console.log(send('SOME_EVENT'));
-// => { type: 'xstate.send', event: { ... } }
-
-// ✅ Do this instead
-entry: send('SOME_EVENT');
-```
-
-:::
-
 There are three types of actions:
 
 - `entry` actions are executed upon entering a state
