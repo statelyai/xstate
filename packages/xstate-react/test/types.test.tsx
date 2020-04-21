@@ -66,9 +66,13 @@ describe('useService', () => {
 });
 
 describe('useMachine', () => {
-  type YesNoContext = { value?: number };
+  interface YesNoContext {
+    value?: number;
+  }
 
-  type YesNoEvent = { type: 'YES' };
+  interface YesNoEvent {
+    type: 'YES';
+  }
 
   type YesNoTypestate =
     | { value: 'no'; context: { value: undefined } }
@@ -113,7 +117,7 @@ describe('useMachine', () => {
 
   it('state should not become never after checking state with matches', () => {
     const YesNo = () => {
-      const [state] = useMachine<any, any>(yesNoMachine);
+      const [state] = useMachine(yesNoMachine);
 
       if (state.matches('no')) {
         return <span>No</span>;
