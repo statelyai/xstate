@@ -1,4 +1,4 @@
-import { Machine, sendParent, interpret } from '../src';
+import { Machine, sendParent, interpret, assign } from '../src';
 import { respond, send } from '../src/actions';
 
 describe('SCXML events', () => {
@@ -81,5 +81,73 @@ describe('SCXML events', () => {
       .start();
 
     service.send('AUTH');
+  });
+});
+
+interface SignInContext {
+  email: string;
+  password: string;
+}
+
+type ChangePassword = {
+  type: 'changePassword';
+  password: string;
+};
+
+const authMachine = Machine<SignInContext>(
+  {
+    context: { email: '', password: '' },
+    initial: 'passwordField',
+    states: {
+      passwordField: {
+        initial: 'hidden',
+        states: {
+          hidden: {
+            on: {
+              // We want to assign the new password but remain in the hidden
+              // state
+              changePassword: {
+                actions: 'assignPassword'
+              }
+            }
+          },
+          valid: {},
+          invalid: {}
+        },
+        on: {
+          changePassword: [
+            {
+              cond: (_, event: ChangePassword) => event.password.length >= 10,
+              target: '.invalid',
+              actions: ['assignPassword']
+            },
+            {
+              target: '.valid',
+              actions: ['assignPassword']
+            }
+          ]
+        }
+      }
+    }
+  },
+  {
+    actions: {
+      assignPassword: assign<SignInContext, ChangePassword>({
+        password: (_, event) => event.password
+      })
+    }
+  }
+);
+
+describe('nested transitions', () => {
+  it('only take the transition of the most inner matching event', () => {
+    const password = 'xstate123';
+    const state = authMachine.transition(authMachine.initialState, {
+      type: 'changePassword',
+      password
+    });
+
+    expect(state.value).toEqual({ passwordField: 'hidden' });
+    expect(state.context).toEqual({ password, email: '' });
   });
 });
