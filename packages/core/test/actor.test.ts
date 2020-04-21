@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor, ActorRef, fromMachine } from '../src/Actor';
+import { Actor, ActorRef, fromMachine, fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
@@ -383,6 +383,9 @@ describe('communicating with spawned actors', () => {
 
     const parentMachine = Machine<any>({
       initial: 'pending',
+      context: {
+        existingRef: fromService(existingService, null as any, 'x')
+      },
       states: {
         pending: {
           entry: send('ACTIVATE', { to: existingService.sessionId }),
@@ -698,7 +701,7 @@ describe('actors', () => {
           same: {
             entry: assign<SyncMachineContext>({
               ref: (_, __, { self }) => {
-                return fromMachine(syncChildMachine, self, {
+                return fromMachine(syncChildMachine, self, 'x', {
                   sync: true
                 }).start();
               }

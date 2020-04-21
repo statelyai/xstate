@@ -219,7 +219,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.ref = fromService(this, this.parent);
+    this.ref = fromService(this, this.parent, resolvedId);
 
     this.sessionId = this.ref.id;
   }
@@ -979,6 +979,7 @@ export class Interpreter<
     const actorRef = fromMachine(
       machine,
       this.ref,
+      options.id || machine.id,
       resolvedOptions as InterpreterOptions
     );
 

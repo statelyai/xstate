@@ -174,7 +174,7 @@ class PromiseActorRef<T> implements ActorRef<T | undefined, never, Promise<T>> {
 export function fromPromise<T>(
   promise: PromiseLike<T>,
   parent: ActorRef<any, any>,
-  id: string // TODO: use system
+  id: string
 ): ActorRef<T | undefined, never> {
   return new PromiseActorRef<T>(Promise.resolve(promise), parent, id);
 }
@@ -250,46 +250,12 @@ export function fromCallback<
   id: string
 ): ActorRef<TEmitted | undefined, SCXML.Event<TEvent>> {
   return new CallbackActorRef<TEmitted, TEvent>(fn, parent, id);
-  // const receivers = new Set<(e: TEvent) => void>();
-  // const listeners = new Set<(e: TEmitted) => void>();
-
-  // const listenForEmitted = (emitted: TEmitted) => {
-  //   parent.send(emitted);
-
-  //   listeners.forEach((listener) => listener(emitted));
-  // };
-
-  // const stop = fn(listenForEmitted, (newListener) => {
-  //   receivers.add(newListener);
-  // });
-
-  // const actorRef = new ActorRef<TEmitted | undefined, TEvent>(
-  //   (event: TEvent) => receivers.forEach((receiver) => receiver(event)),
-  //   (next) => {
-  //     if (!next) {
-  //       return;
-  //     }
-
-  //     listeners.add(next);
-
-  //     return {
-  //       unsubscribe: () => {
-  //         console.log('unsubscribing');
-  //         listeners.delete(next);
-  //         stop && stop();
-  //       }
-  //     };
-  //   },
-  //   undefined as TEmitted | undefined,
-  //   fn
-  // );
-
-  // return actorRef;
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
   parent: ActorRef<any, any>,
+  id: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<
   State<TContext, TEvent>,
@@ -312,12 +278,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
     })
     .start();
 
-  return new ServiceActorRef<TContext, TEvent>(
-    service,
-    parent,
-    registry.bookId(),
-    options
-  );
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id, options);
 }
 
 class ServiceActorRef<TContext, TEvent extends EventObject>
@@ -358,11 +319,8 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
-  parent: ActorRef<any, any>
+  parent: ActorRef<any, any>,
+  id: string
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
-  return new ServiceActorRef<TContext, TEvent>(
-    service,
-    parent,
-    registry.bookId()
-  );
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id);
 }
