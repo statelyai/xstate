@@ -1,5 +1,5 @@
-import { Machine, interpret } from '../src';
-import { after, cancel, send, actionTypes } from '../src/actions';
+import { Machine, interpret, createMachine } from '../src';
+import { after, cancel, send, actionTypes, assign } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
 const lightMachine = Machine({
@@ -50,6 +50,57 @@ describe('delayed transitions', () => {
     expect(transitions.map((t) => t.eventType)).toEqual([
       after(1000, greenNode.id)
     ]);
+  });
+
+  it('should keep the data of the original event that triggered a delayed transition', (done) => {
+    type StartEvent = { type: 'START'; operatingSystem: string };
+
+    type Context = { activeOperatingSystem: string | undefined };
+
+    const bootUpMachine = createMachine<Context, StartEvent>({
+      id: 'bootUp',
+      initial: 'inactive',
+      context: {
+        activeOperatingSystem: undefined
+      },
+      states: {
+        inactive: {
+          on: {
+            START: 'booting'
+          }
+        },
+        booting: {
+          after: {
+            50: { target: 'active' }
+          }
+        },
+        active: {
+          entry: assign<Context, StartEvent>({
+            activeOperatingSystem: (_, event) => event.operatingSystem
+          }),
+          type: 'final'
+        }
+      }
+    });
+
+    const operatingSystem = 'Windows';
+
+    const service = interpret(bootUpMachine)
+      .onTransition((state) => {
+        if (state.done) {
+          expect(service.state.value).toBe('active');
+          expect(service.state.context).toEqual({
+            activeOperatingSystem: operatingSystem
+          });
+          done();
+        }
+      })
+      .start();
+
+    service.send({
+      type: 'START',
+      operatingSystem
+    });
   });
 
   it('should be able to transition with delay from nested initial state', (done) => {
