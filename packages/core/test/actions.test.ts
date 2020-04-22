@@ -1292,4 +1292,31 @@ describe('choose', () => {
 
     expect(service.state.context).toEqual({ counter: 101, answer: 42 });
   });
+
+  it('should be able to use actions defined in options', () => {
+    interface Ctx {
+      answer?: number;
+    }
+
+    const machine = createMachine<Ctx>(
+      {
+        context: {},
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: choose([{ cond: () => true, actions: 'revealAnswer' }])
+          }
+        }
+      },
+      {
+        actions: {
+          revealAnswer: assign<Ctx>({ answer: 42 })
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+  });
 });
