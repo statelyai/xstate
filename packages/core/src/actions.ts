@@ -601,7 +601,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             currentState,
             updatedContext,
             _event,
-            toActionObjects(toArray(matchedActions))
+            toActionObjects(toArray(matchedActions), machine.options.actions)
           );
           updatedContext = resolved[1];
           return resolved[0];
@@ -619,7 +619,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             currentState,
             updatedContext,
             _event,
-            toActionObjects(toArray(matchedActions))
+            toActionObjects(toArray(matchedActions), machine.options.actions)
           );
           updatedContext = resolved[1];
           return resolved[0];
