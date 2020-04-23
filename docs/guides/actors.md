@@ -142,7 +142,7 @@ const machine = Machine({
           // Use a target expression to send an event
           // to the actor reference
           actions: send('PING', {
-            to: context => context.someRef
+            to: (context) => context.someRef
           })
         }
       }
@@ -180,8 +180,8 @@ Just like [invoking promises](./communication.md#invoking-promises), promises ca
 
 ```js {11}
 // Returns a promise
-const fetchData = query => {
-  return fetch(`http://example.com?query=${event.query}`).then(data =>
+const fetchData = (query) => {
+  return fetch(`http://example.com?query=${event.query}`).then((data) =>
     data.json()
   );
 };
@@ -240,7 +240,7 @@ const machine = Machine({
   on: {
     'COUNTER.INC': {
       actions: send('INC', {
-        to: context => context.counterRef
+        to: (context) => context.counterRef
       })
     }
   }
@@ -312,7 +312,7 @@ const parentMachine = Machine({
       on: {
         'LOCAL.WAKE': {
           actions: send('WAKE', {
-            to: context => context.localOne
+            to: (context) => context.localOne
           })
         },
         'REMOTE.ONLINE': 'connected'
@@ -323,7 +323,7 @@ const parentMachine = Machine({
 });
 
 const parentService = interpret(parentMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 
 parentService.send('LOCAL.WAKE');
@@ -352,7 +352,7 @@ To do this, set `{ sync: true }` as an option to `spawn(...)`:
 This will automatically subscribe the machine to the spawned child machine's state, which is kept updated in `ref.state`:
 
 ```js
-someService.onTransition(state => {
+someService.onTransition((state) => {
   const { someRef } = state.context;
 
   console.log(someRef.state);
@@ -434,7 +434,7 @@ import { spawn } from 'xstate';
         callback('SOME_EVENT');
 
         // receive from parent
-        receive(event => {
+        receive((event) => {
           // handle event
         });
 
@@ -474,7 +474,7 @@ import { spawn } from 'xstate';
 **Reading synced state** from an actor: <Badge text="4.6.1+"/>
 
 ```js
-service.onTransition(state => {
+service.onTransition((state) => {
   const { someRef } = state.context;
 
   someRef.state;
@@ -488,7 +488,19 @@ service.onTransition(state => {
 // ...
 {
   actions: send('SOME_EVENT', {
-    to: context => context.someRef
+    to: (context) => context.someRef
+  });
+}
+// ...
+```
+
+**Send event with data to actor** using a `send` expression:
+
+```js
+// ...
+{
+  actions: send((context, event) => ({ ...event, type: 'SOME_EVENT' }), {
+    to: (context) => context.someRef
   });
 }
 // ...
@@ -504,10 +516,23 @@ service.onTransition(state => {
 // ...
 ```
 
+**Send event with data from actor** to parent using a `sendParent` expression:
+
+```js
+// ...
+{
+  actions: sendParent((context, event) => ({
+    ...context,
+    type: 'ANOTHER_EVENT'
+  }));
+}
+// ...
+```
+
 **Reference actors** from `context`:
 
 ```js
-someService.onTransition(state => {
+someService.onTransition((state) => {
   const { someRef } = state.context;
 
   console.log(someRef);
