@@ -305,7 +305,7 @@ const gameMachine = Machine(
 );
 
 const gameService = interpret(gameMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 
 // Still in 'playing' state because no conditions of
@@ -368,6 +368,12 @@ const formMachine = Machine({
   }
 });
 ```
+
+::: tip
+
+Note that when defining multiple transitions with the same event name in a hierarchical ancestor-descendant chain, the most inner transition will exclusively be taken. In the example above, this is why the `logTelemetry` action defined in the parent `LOG` event won't execute as soon as the machine reaches the `userInfoPage` state.
+
+:::
 
 ## Multiple Targets
 

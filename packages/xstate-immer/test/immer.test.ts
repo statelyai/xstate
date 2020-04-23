@@ -1,12 +1,12 @@
-import { Machine } from 'xstate';
-import { assign, assignPatch, patchEvent } from '../src';
+import { createMachine, interpret } from 'xstate';
+import { assign, createUpdater, ImmerUpdateEvent } from '../src';
 
 describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {
     const context = {
       count: 0
     };
-    const countMachine = Machine<typeof context>({
+    const countMachine = createMachine<typeof context>({
       id: 'count',
       context,
       initial: 'active',
@@ -34,7 +34,7 @@ describe('@xstate/immer', () => {
     const context = {
       count: 0
     };
-    const countMachine = Machine<typeof context>(
+    const countMachine = createMachine<typeof context>(
       {
         id: 'count',
         context,
@@ -71,7 +71,7 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = Machine<typeof context>(
+    const countMachine = createMachine<typeof context>(
       {
         id: 'count',
         context,
@@ -100,7 +100,7 @@ describe('@xstate/immer', () => {
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 0, 0]);
   });
 
-  it('should patch updates', () => {
+  it('should create updates', () => {
     const context = {
       foo: {
         bar: {
@@ -108,15 +108,23 @@ describe('@xstate/immer', () => {
         }
       }
     };
-    const countMachine = Machine<typeof context>({
+
+    const bazUpdater = createUpdater<
+      typeof context,
+      ImmerUpdateEvent<'UPDATE_BAZ', number>
+    >('UPDATE_BAZ', (ctx, { input }) => {
+      ctx.foo.bar.baz.push(input);
+    });
+
+    const countMachine = createMachine<typeof context>({
       id: 'count',
       context,
       initial: 'active',
       states: {
         active: {
           on: {
-            UPDATE_BAZ: {
-              actions: assignPatch()
+            [bazUpdater.type]: {
+              actions: bazUpdater.action
             }
           }
         }
@@ -124,16 +132,82 @@ describe('@xstate/immer', () => {
     });
 
     const zeroState = countMachine.initialState;
-    const somePatchEvent = patchEvent(
-      'UPDATE_BAZ',
-      countMachine.initialState.context,
-      (ctx) => {
-        ctx.foo.bar.baz.push(4);
-      }
-    );
-    const twoState = countMachine.transition(zeroState, somePatchEvent);
+
+    const twoState = countMachine.transition(zeroState, bazUpdater.update(4));
 
     expect(zeroState.context.foo.bar.baz).toEqual([1, 2, 3]);
     expect(twoState.context.foo.bar.baz).toEqual([1, 2, 3, 4]);
+  });
+
+  it('should create updates (form example)', (done) => {
+    interface FormContext {
+      name: string;
+      age: number | undefined;
+    }
+
+    type NameUpdateEvent = ImmerUpdateEvent<'UPDATE_NAME', string>;
+    type AgeUpdateEvent = ImmerUpdateEvent<'UPDATE_AGE', number>;
+
+    const nameUpdater = createUpdater<FormContext, NameUpdateEvent>(
+      'UPDATE_NAME',
+      (ctx, { input }) => {
+        ctx.name = input;
+      }
+    );
+
+    const ageUpdater = createUpdater<FormContext, AgeUpdateEvent>(
+      'UPDATE_AGE',
+      (ctx, { input }) => {
+        ctx.age = input;
+      }
+    );
+
+    type FormEvent =
+      | NameUpdateEvent
+      | AgeUpdateEvent
+      | {
+          type: 'SUBMIT';
+        };
+
+    const formMachine = createMachine<FormContext, FormEvent>({
+      initial: 'editing',
+      context: {
+        name: '',
+        age: undefined
+      },
+      states: {
+        editing: {
+          on: {
+            [nameUpdater.type]: { actions: nameUpdater.action },
+            [ageUpdater.type]: { actions: ageUpdater.action },
+            SUBMIT: 'submitting'
+          }
+        },
+        submitting: {
+          on: {
+            '': {
+              target: 'success',
+              cond: (ctx) => {
+                return ctx.name === 'David' && ctx.age === 0;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(formMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+
+    service.send(nameUpdater.update('David'));
+    service.send(ageUpdater.update(0));
+
+    service.send('SUBMIT');
   });
 });

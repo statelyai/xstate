@@ -521,7 +521,7 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  conds: ChooseConditon<TContext, TEvent>[]
+  conds: Array<ChooseConditon<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
@@ -534,8 +534,8 @@ export function resolveActions<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: ActionObject<TContext, TEvent>[]
-): [ActionObject<TContext, TEvent>[], TContext] {
+  actions: Array<ActionObject<TContext, TEvent>>
+): [Array<ActionObject<TContext, TEvent>>, TContext] {
   const [assignActions, otherActions] = partition(
     actions,
     (action): action is AssignAction<TContext, TEvent> =>
@@ -601,7 +601,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             currentState,
             updatedContext,
             _event,
-            toActionObjects(toArray(matchedActions))
+            toActionObjects(toArray(matchedActions), machine.options.actions)
           );
           updatedContext = resolved[1];
           return resolved[0];
@@ -619,7 +619,7 @@ export function resolveActions<TContext, TEvent extends EventObject>(
             currentState,
             updatedContext,
             _event,
-            toActionObjects(toArray(matchedActions))
+            toActionObjects(toArray(matchedActions), machine.options.actions)
           );
           updatedContext = resolved[1];
           return resolved[0];

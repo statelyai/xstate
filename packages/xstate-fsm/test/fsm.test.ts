@@ -20,9 +20,17 @@ describe('@xstate/fsm', () => {
     | {
         value: 'yellow';
         context: LightContext & { go: false };
+      }
+    | {
+        value: 'red';
+        context: LightContext & { go: false };
       };
 
-  const lightConfig: StateMachine.Config<LightContext, LightEvent> = {
+  const lightConfig: StateMachine.Config<
+    LightContext,
+    LightEvent,
+    LightState
+  > = {
     id: 'light',
     initial: 'green',
     context: { count: 0, foo: 'bar', go: true },
