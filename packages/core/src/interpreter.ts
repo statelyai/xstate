@@ -184,8 +184,6 @@ export class Interpreter<
    */
   public sessionId: string;
   public children: Map<string | number, ActorRef<any, any>> = new Map();
-  // Maps ActorRef ID to name
-  private idNameMap: Map<string, string> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -530,6 +528,7 @@ export class Interpreter<
 
     return this;
   }
+
   /**
    * Sends an event to the running interpreter to trigger a transition.
    *
@@ -981,11 +980,11 @@ export class Interpreter<
     const actorRef = fromMachine(
       machine,
       this.ref,
+      name,
       resolvedOptions as InterpreterOptions
     );
 
-    this.idNameMap.set(actorRef.id, name);
-    this.children.set(name, actorRef); // TODO: fix types
+    this.children.set(name, actorRef);
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(actorRef.id);

@@ -56,7 +56,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<any, TEvent>;
-  spawn: (actorRef: ActorRef<any, any>, name: string) => ActorRef<any, any>;
+  spawn: (actorRef: ActorRef<any, any>) => ActorRef<any, any>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (

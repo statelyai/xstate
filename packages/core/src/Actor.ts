@@ -255,6 +255,7 @@ export function fromCallback<
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
   parent: ActorRef<any, any>,
+  id: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<
   State<TContext, TEvent>,
@@ -277,18 +278,18 @@ export function fromMachine<TContext, TEvent extends EventObject>(
     })
     .start();
 
-  return new ServiceActorRef<TContext, TEvent>(service, parent, options);
+  return new ServiceActorRef<TContext, TEvent>(service, parent, id, options);
 }
 
 class ServiceActorRef<TContext, TEvent extends EventObject>
   implements ActorRef<State<TContext, TEvent>, TEvent> {
   public current: State<TContext, TEvent>;
   private subscription?: Unsubscribable;
-  public id = registry.bookId();
 
   constructor(
     public ref: Interpreter<TContext, any, TEvent>,
     private parent: ActorRef<any, any>,
+    public id: string,
     private options?: any // TODO: fix
   ) {
     this.current = this.ref.current;

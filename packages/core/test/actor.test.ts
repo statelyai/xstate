@@ -122,7 +122,7 @@ describe('spawning machines', () => {
         entry: [
           assign({
             server: (_, __, { spawn, self }) =>
-              spawn(fromMachine(serverMachine, self), 'x')
+              spawn(fromMachine(serverMachine, self, 'x'))
           }),
           raise('SUCCESS')
         ],
@@ -682,8 +682,7 @@ describe('actors', () => {
             entry: assign<SyncMachineContext>({
               ref: (_, __, { self, spawn }) => {
                 return spawn(
-                  fromMachine(syncChildMachine, self, { sync: true }),
-                  'x'
+                  fromMachine(syncChildMachine, self, 'x', { sync: true })
                 );
               }
             }),
