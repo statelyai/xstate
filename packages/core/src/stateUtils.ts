@@ -13,9 +13,9 @@ import {
   normalizeTarget,
   toStateValue,
   mapContext,
-  updateContext,
   toSCXMLEvent
 } from './utils';
+import { updateContext } from './updateContext';
 import {
   TransitionConfig,
   TransitionDefinition,
@@ -1631,14 +1631,15 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           }
           break;
         case actionTypes.assign:
-          context = updateContext(
+          const [nextContext, nextActions] = updateContext(
             context,
             _event,
             [actionObject as AssignAction<TContext, TEvent>],
             currentState,
             service
           );
-          resActions.push(actionObject);
+          context = nextContext;
+          resActions.push(actionObject, ...nextActions);
           break;
         default:
           resActions.push(
@@ -1659,11 +1660,13 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
 export function macrostep<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent, any, Typestate<TContext>>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
-  machine: MachineNode<TContext, any, TEvent, any>
+  machine: MachineNode<TContext, any, TEvent, any>,
+  service?: ActorRef<State<TContext, TEvent>, TEvent>
 ): State<TContext, TEvent> {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  const nextState = event === null ? state : machine.microstep(state, event);
+  const nextState =
+    event === null ? state : machine.microstep(state, event, service);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1675,7 +1678,8 @@ export function macrostep<TContext, TEvent extends EventObject>(
 
     maybeNextState = machine.microstep(
       maybeNextState,
-      raisedEvent as SCXML.Event<TEvent>
+      raisedEvent as SCXML.Event<TEvent>,
+      service
     );
 
     _internalQueue.push(...maybeNextState._internalQueue);

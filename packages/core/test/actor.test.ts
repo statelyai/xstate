@@ -8,7 +8,13 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor, ActorRef, fromMachine, fromService } from '../src/Actor';
+import {
+  Actor,
+  ActorRef,
+  fromMachine,
+  fromService,
+  fromPromise
+} from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
@@ -61,9 +67,9 @@ describe('spawning machines', () => {
     on: {
       ADD: {
         actions: assign({
-          todoRefs: (ctx, e) => ({
+          todoRefs: (ctx, e, { spawn, self }) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(todoMachine)
+            [e.id]: spawn(fromMachine(todoMachine, self), 'x')
           })
         })
       },
@@ -102,7 +108,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Interpreter<any, any>;
+    server?: ActorRef<any, any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -115,7 +121,8 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: () => spawn(serverMachine)
+            server: (_, __, { spawn, self }) =>
+              spawn(fromMachine(serverMachine, self), 'x')
           }),
           raise('SUCCESS')
         ],
@@ -185,11 +192,15 @@ describe('spawning promises', () => {
     states: {
       idle: {
         entry: assign({
-          promiseRef: () => {
+          promiseRef: (_, __, { spawn, self }) => {
             const ref = spawn(
-              new Promise((res) => {
-                res('response');
-              }),
+              fromPromise(
+                new Promise((res) => {
+                  res('response');
+                }),
+                self,
+                'my-promise'
+              ),
               'my-promise'
             );
 
@@ -253,13 +264,9 @@ describe('spawning callbacks', () => {
       }
     });
 
-    const callbackService = interpret(callbackMachine)
-      .onTransition((state) => {
-        console.log(state.event);
-      })
-      .onDone(() => {
-        done();
-      });
+    const callbackService = interpret(callbackMachine).onDone(() => {
+      done();
+    });
 
     callbackService.start();
     callbackService.send('START_CB');
@@ -538,33 +545,6 @@ describe('actors', () => {
       service.send('PING');
       expect(pongCounter).toEqual(0);
     });
-
-    it('should forward events to a spawned actor when { autoForward: true }', () => {
-      let pongCounter = 0;
-
-      const machine = Machine<any>({
-        id: 'client',
-        context: { counter: 0, serverRef: undefined },
-        initial: 'initial',
-        states: {
-          initial: {
-            entry: assign(() => ({
-              serverRef: spawn(pongActorMachine, { autoForward: true })
-            })),
-            on: {
-              PONG: {
-                actions: () => ++pongCounter
-              }
-            }
-          }
-        }
-      });
-      const service = interpret(machine);
-      service.start();
-      service.send('PING');
-      service.send('PING');
-      expect(pongCounter).toEqual(2);
-    });
   });
 
   describe('sync option', () => {
@@ -700,10 +680,11 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign<SyncMachineContext>({
-              ref: (_, __, { self }) => {
-                return fromMachine(syncChildMachine, self, 'x', {
-                  sync: true
-                }).start();
+              ref: (_, __, { self, spawn }) => {
+                return spawn(
+                  fromMachine(syncChildMachine, self, { sync: true }),
+                  'x'
+                );
               }
             }),
             on: {

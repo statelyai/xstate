@@ -56,6 +56,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<any, TEvent>;
+  spawn: (actorRef: ActorRef<any, any>, name: string) => ActorRef<any, any>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -661,16 +662,12 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface ActivityActionObject<TContext, TEvent extends EventObject>
+export interface InvokeActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  actor: ActivityDefinition<TContext, TEvent>;
-  exec: ActionFunction<TContext, TEvent> | undefined;
-}
-
-export interface InvokeActionObject<TContext, TEvent extends EventObject>
-  extends ActivityActionObject<TContext, TEvent> {
-  actor: InvokeDefinition<TContext, TEvent>;
+  actor: ActorRef<any, any>;
+  name?: string;
+  exec: undefined;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
@@ -743,7 +740,9 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
+  to?:
+    | string
+    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any, any>>;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>

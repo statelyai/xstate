@@ -211,7 +211,7 @@ export class MachineNode<
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentState = toState(state, this);
 
-    return macrostep(currentState, event, this);
+    return macrostep(currentState, event, this, service);
   }
 
   /**
@@ -223,7 +223,8 @@ export class MachineNode<
    */
   public microstep(
     state: StateValue | State<TContext, TEvent> = this.initialState,
-    event: Event<TEvent> | SCXML.Event<TEvent>
+    event: Event<TEvent> | SCXML.Event<TEvent>,
+    service?: ActorRef<State<TContext, TEvent>, TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const resolvedState = toState(state, this);
     const _event = toSCXMLEvent(event);
@@ -243,7 +244,13 @@ export class MachineNode<
     const transitions: Transitions<TContext, TEvent> =
       transitionNode(this, resolvedState.value, resolvedState, _event) || [];
 
-    return resolveMicroTransition(this, transitions, resolvedState, _event);
+    return resolveMicroTransition(
+      this,
+      transitions,
+      resolvedState,
+      _event,
+      service
+    );
   }
 
   /**

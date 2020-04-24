@@ -184,6 +184,8 @@ export class Interpreter<
    */
   public sessionId: string;
   public children: Map<string | number, ActorRef<any, any>> = new Map();
+  // Maps ActorRef ID to name
+  private idNameMap: Map<string, string> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -235,13 +237,6 @@ export class Interpreter<
     });
   }
   public get current(): State<TContext, TEvent, any, TTypestate> {
-    if (!IS_PRODUCTION) {
-      warn(
-        this._status !== InterpreterStatus.NotStarted,
-        `Attempted to read state from uninitialized service '${this.id}'. Make sure the service is started first.`
-      );
-    }
-
     return this._state!;
   }
   public static interpret = interpret;
@@ -641,7 +636,7 @@ export class Interpreter<
         this.forward(_event);
 
         nextState = withServiceScope(this, () => {
-          return this.machine.transition(nextState, _event);
+          return this.machine.transition(nextState, _event, this.ref);
         });
 
         batchedActions.push(
@@ -746,7 +741,7 @@ export class Interpreter<
     }
 
     const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.current, _event);
+      return this.machine.transition(this.current, _event, this.ref);
     });
 
     return nextState;
@@ -829,6 +824,11 @@ export class Interpreter<
       case actionTypes.cancel:
         this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
 
+        break;
+      case 'xstate.spawnStart':
+        this.children.set(action.name, action.actorRef);
+        this.current.children[action.name] = action.actorRef;
+        action.actorRef.start();
         break;
       case actionTypes.start: {
         const activity = (action as ActivityActionObject<TContext, TEvent>)
@@ -976,14 +976,16 @@ export class Interpreter<
       ...DEFAULT_SPAWN_OPTIONS,
       ...options
     };
+    const name = options.id || machine.id;
+
     const actorRef = fromMachine(
       machine,
       this.ref,
-      options.id || machine.id,
       resolvedOptions as InterpreterOptions
     );
 
-    this.children.set(actorRef.id, actorRef); // TODO: fix types
+    this.idNameMap.set(actorRef.id, name);
+    this.children.set(name, actorRef); // TODO: fix types
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(actorRef.id);
