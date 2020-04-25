@@ -1,4 +1,4 @@
-import { interpret, Interpreter, spawn } from '../src/interpreter';
+import { interpret, Interpreter } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
@@ -23,6 +23,7 @@ import {
   spawnPromise,
   spawnActivity
 } from '../src/invoke';
+import { createPromiseBehavior } from '../src/behavior';
 
 const lightMachine = Machine({
   id: 'light',
@@ -90,12 +91,16 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
+              actor: (_, __, { self, spawn }) => {
                 entryCalled++;
                 return spawn(
-                  new Promise(() => {
-                    promiseSpawned++;
-                  })
+                  createPromiseBehavior(
+                    new Promise(() => {
+                      promiseSpawned++;
+                    }),
+                    self
+                  ),
+                  'x'
                 );
               }
             })

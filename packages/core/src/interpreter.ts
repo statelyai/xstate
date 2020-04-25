@@ -5,16 +5,13 @@ import {
   DefaultContext,
   ActionObject,
   StateSchema,
-  ActivityActionObject,
   SpecialTargets,
   ActionTypes,
   InvokeDefinition,
   SendActionObject,
   ServiceConfig,
-  DisposeActivityFunction,
   StateValue,
   InterpreterOptions,
-  ActivityDefinition,
   SingleOrArray,
   DoneEvent,
   Unsubscribable,
@@ -88,31 +85,6 @@ interface SpawnOptions {
   autoForward?: boolean;
   sync?: boolean;
 }
-
-/**
- * Maintains a stack of the current service in scope.
- * This is used to provide the correct service to spawn().
- *
- * @private
- */
-const withServiceScope = (() => {
-  const serviceStack = [] as Array<Interpreter<any, any, any>>;
-
-  return <T, TService extends Interpreter<any, any, any>>(
-    service: TService | undefined,
-    fn: (service: TService) => T
-  ) => {
-    service && serviceStack.push(service);
-
-    const result = fn(
-      service || (serviceStack[serviceStack.length - 1] as TService)
-    );
-
-    service && serviceStack.pop();
-
-    return result;
-  };
-})();
 
 enum InterpreterStatus {
   NotStarted,
@@ -228,11 +200,9 @@ export class Interpreter<
       return this._initialState;
     }
 
-    return withServiceScope(this, () => {
-      this._initialState = this.machine.getInitialState(this.ref);
+    this._initialState = this.machine.getInitialState(this.ref);
 
-      return this._initialState;
-    });
+    return this._initialState;
   }
   public get current(): State<TContext, TEvent, any, TTypestate> {
     return this._state!;
@@ -634,9 +604,7 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = withServiceScope(this, () => {
-          return this.machine.transition(nextState, _event, this.ref);
-        });
+        nextState = this.machine.transition(nextState, _event, this.ref);
 
         batchedActions.push(
           ...(nextState.actions.map((a) =>
@@ -739,9 +707,7 @@ export class Interpreter<
       }
     }
 
-    const nextState = withServiceScope(this, () => {
-      return this.machine.transition(this.current, _event, this.ref);
-    });
+    const nextState = this.machine.transition(this.current, _event, this.ref);
 
     return nextState;
   }
@@ -1061,44 +1027,6 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
     ...nameOrOptions
   };
 };
-
-export function spawn<TC, TE extends EventObject>(
-  entity: MachineNode<TC, any, TE>,
-  nameOrOptions?: string | SpawnOptions
-): Interpreter<TC, any, TE>;
-export function spawn(
-  entity: Spawnable,
-  nameOrOptions?: string | SpawnOptions
-): ActorRef<any, any>;
-export function spawn(
-  entity: Spawnable,
-  nameOrOptions?: string | SpawnOptions
-): ActorRef<any, any> {
-  const resolvedOptions = resolveSpawnOptions(nameOrOptions);
-
-  return withServiceScope(undefined, (service) => {
-    if (!IS_PRODUCTION) {
-      warn(
-        !!service,
-        `Attempted to spawn an Actor (ID: "${
-          isMachineNode(entity) ? entity.id : 'undefined'
-        }") outside of a service. This will have no effect.`
-      );
-    }
-
-    if (service) {
-      const spawned = service.spawn(
-        entity,
-        resolvedOptions.name,
-        resolvedOptions
-      );
-      spawned.start();
-      return spawned;
-    } else {
-      return createNullActor(resolvedOptions.name);
-    }
-  });
-}
 
 /**
  * Creates a new Interpreter instance for the given machine with the provided options, if any.

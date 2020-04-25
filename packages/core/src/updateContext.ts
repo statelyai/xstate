@@ -7,7 +7,7 @@ import {
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
-import { ActorRef } from './Actor';
+import { ActorRef, BehaviorActorRef } from './Actor';
 import { warn, isFunction, keys } from './utils';
 
 export function updateContext<TContext, TEvent extends EventObject>(
@@ -30,7 +30,8 @@ export function updateContext<TContext, TEvent extends EventObject>(
           action: assignAction,
           _event,
           self: service,
-          spawn: (actorRef, name) => {
+          spawn: (behavior, name) => {
+            const actorRef = new BehaviorActorRef(behavior, name);
             capturedActions.push({
               type: 'xstate.spawnStart',
               actorRef,

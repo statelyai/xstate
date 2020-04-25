@@ -3,6 +3,7 @@ import { State } from './State';
 import { Clock } from './interpreter';
 import { Actor, ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
+import { Behavior } from './behavior';
 
 export type EventType = string;
 export type ActionType = string;
@@ -56,7 +57,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<any, TEvent>;
-  spawn: (actorRef: ActorRef<any, any>) => ActorRef<any, any>;
+  spawn: (behavior: Behavior<any>, name: string) => ActorRef<any, any>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (

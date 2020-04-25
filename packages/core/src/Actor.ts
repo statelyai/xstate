@@ -17,7 +17,7 @@ import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
 import { Interpreter, interpret } from './interpreter';
 import * as actionTypes from './actionTypes';
-import { registry } from './registry';
+import { Behavior, startSignal, ActorContext, stopSignal } from './behavior';
 
 export interface Actor<
   TContext = any,
@@ -327,4 +327,28 @@ export function fromService<TContext, TEvent extends EventObject>(
   id: string
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
   return new ServiceActorRef<TContext, TEvent>(service, parent, id);
+}
+
+export class BehaviorActorRef<TEvent extends EventObject>
+  implements ActorRef<any, TEvent, any> {
+  public current = undefined;
+  public ref;
+  private context: ActorContext;
+  constructor(public behavior: Behavior<TEvent>, public id: string) {
+    this.context = {
+      self: this,
+      name: this.id
+    };
+    this.ref = behavior;
+  }
+  public start() {
+    this.behavior = this.behavior.receiveSignal(this.context, startSignal);
+    return this;
+  }
+  public stop() {
+    this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
+  }
+  public send(event) {
+    this.behavior = this.behavior.receive(this.context, event);
+  }
 }

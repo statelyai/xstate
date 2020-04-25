@@ -3,11 +3,12 @@ import {
   createMachine,
   assign,
   forwardTo,
-  interpret,
-  spawn
+  interpret
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
 import { spawnMachine } from '../src/invoke';
+import { ActorRef } from '../src/Actor';
+import { createMachineBehavior } from '../src/behavior';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1068,7 +1069,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine<{ child: any }>({
+    const parent = Machine<{ child: ActorRef<any, any> }>({
       id: 'parent',
       initial: 'first',
       context: {
@@ -1077,7 +1078,8 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: () => spawn(child)
+            child: (_, __, { self, spawn }) =>
+              spawn(createMachineBehavior(child, self), 'x')
           }),
           on: {
             EVENT: {
