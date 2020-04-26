@@ -40,7 +40,9 @@ class LocalDevTools {
 const localDevTools = new LocalDevTools();
 
 // setup local dev tools globally
-(globalThis as any).__xstate__ = localDevTools;
+if (!('__xstate__' in globalThis)) {
+  (globalThis as any).__xstate__ = localDevTools;
+}
 
 export const DevToolViz: React.FC = () => {
   const [services, setServices] = React.useState<Interpreter<any, any, any>[]>(
