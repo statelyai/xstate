@@ -1800,18 +1800,15 @@ class StateNode<
       target,
       source: this,
       internal,
-      eventType: transitionConfig.event
-    };
-
-    Object.defineProperty(transition, 'toJSON', {
-      value: () => ({
+      eventType: transitionConfig.event,
+      toJSON: () => ({
         ...transition,
         target: transition.target
           ? transition.target.map((t) => `#${t.id}`)
           : undefined,
         source: `#{this.id}`
       })
-    });
+    };
 
     return transition;
   }
