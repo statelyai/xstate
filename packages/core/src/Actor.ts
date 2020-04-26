@@ -18,6 +18,7 @@ import { MachineNode } from './MachineNode';
 import { Interpreter, interpret } from './interpreter';
 import * as actionTypes from './actionTypes';
 import { Behavior, startSignal, ActorContext, stopSignal } from './behavior';
+import { registry } from './registry';
 
 export interface Actor<
   TContext = any,
@@ -324,7 +325,7 @@ class ServiceActorRef<TContext, TEvent extends EventObject>
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
   parent: ActorRef<any, any>,
-  id: string
+  id: string = registry.bookId()
 ): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
   return new ServiceActorRef<TContext, TEvent>(service, parent, id);
 }

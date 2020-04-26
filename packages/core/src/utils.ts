@@ -14,7 +14,8 @@ import {
   TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
-  Guard
+  Guard,
+  BehaviorCreator
 } from './types';
 import {
   STATE_DELIMITER,
@@ -24,8 +25,9 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig, ActorCreator } from '.';
-import { Actor } from './Actor';
+import { Actor, BehaviorActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
+import { Behavior } from './behavior';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -485,11 +487,21 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
   invocable:
     | InvokeConfig<TContext, TEvent>
     | string
-    | ActorCreator<TContext, TEvent>,
+    | BehaviorCreator<TContext, TEvent>
+    | Behavior<TEvent>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
-  if (typeof invocable === 'object' && 'src' in invocable) {
-    return invocable;
+  if (typeof invocable === 'object') {
+    if ('src' in invocable) {
+      return invocable;
+    }
+
+    if ('receive' in invocable) {
+      return {
+        id,
+        src: () => new BehaviorActorRef(invocable, id)
+      };
+    }
   }
 
   return {

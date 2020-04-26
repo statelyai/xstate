@@ -69,7 +69,7 @@ describe('spawning machines', () => {
         actions: assign({
           todoRefs: (ctx, e, { self, spawn }) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(createMachineBehavior(todoMachine, self), 'x')
+            [e.id]: spawn(createMachineBehavior(todoMachine, self))
           })
         })
       },
@@ -122,7 +122,7 @@ describe('spawning machines', () => {
         entry: [
           assign({
             server: (_, __, { self, spawn }) =>
-              spawn(createMachineBehavior(serverMachine, self), 'x')
+              spawn(createMachineBehavior(serverMachine, self))
           }),
           raise('SUCCESS')
         ],
@@ -245,8 +245,8 @@ describe('spawning callbacks', () => {
                         }, 10);
                       }
                     });
-                  }, self),
-                  'x' // TODO: make anonymous
+                  }, self)
+                  // TODO: make anonymous
                 )
             }),
             on: {
@@ -298,8 +298,7 @@ describe('spawning observables', () => {
                     }))
                   ),
                   self
-                ),
-                'x'
+                )
               );
 
               return ref;
@@ -396,7 +395,7 @@ describe('communicating with spawned actors', () => {
     const parentMachine = Machine<{ existingRef: ActorRef<any, any> }>({
       initial: 'pending',
       context: {
-        existingRef: fromService(existingService, null as any, 'x').ref
+        existingRef: fromService(existingService, null as any).ref
       },
       states: {
         pending: {
@@ -442,8 +441,7 @@ describe('actors', () => {
               count++;
               const c = ctx.items.map((item) =>
                 spawn(
-                  createPromiseBehavior(new Promise((res) => res(item)), self),
-                  'x'
+                  createPromiseBehavior(new Promise((res) => res(item)), self)
                 )
               );
 
@@ -469,7 +467,7 @@ describe('actors', () => {
         foo: {
           entry: assign({
             ref: (_, __, { self, spawn }) =>
-              spawn(createPromiseBehavior(Promise.resolve(42), self), 'x')
+              spawn(createPromiseBehavior(Promise.resolve(42), self))
           })
         }
       }
@@ -510,10 +508,7 @@ describe('actors', () => {
         states: {
           initial: {
             entry: assign((_, __, { self, spawn }) => ({
-              serverRef: spawn(
-                createMachineBehavior(pongActorMachine, self),
-                'x'
-              )
+              serverRef: spawn(createMachineBehavior(pongActorMachine, self))
             })),
             on: {
               PONG: {
@@ -547,8 +542,7 @@ describe('actors', () => {
               serverRef: spawn(
                 createMachineBehavior(pongActorMachine, self, {
                   autoForward: false
-                }),
-                'x'
+                })
               )
             })),
             on: {
@@ -594,10 +588,7 @@ describe('actors', () => {
           foo: {
             entry: assign({
               ref: (_, __, { self, spawn }) =>
-                spawn(
-                  createMachineBehavior(childMachine, self, { sync: true }),
-                  'x'
-                )
+                spawn(createMachineBehavior(childMachine, self, { sync: true }))
             }),
             on: {
               [actionTypes.update]: 'success'
@@ -631,8 +622,7 @@ describe('actors', () => {
             entry: assign({
               refNoSync: (_, __, { self, spawn }) =>
                 spawn(
-                  createMachineBehavior(childMachine, self, { sync: false }),
-                  'x'
+                  createMachineBehavior(childMachine, self, { sync: false })
                 )
             }),
             on: {
@@ -670,7 +660,7 @@ describe('actors', () => {
           foo: {
             entry: assign({
               refNoSyncDefault: (_, __, { self, spawn }) =>
-                spawn(createMachineBehavior(childMachine, self), 'x')
+                spawn(createMachineBehavior(childMachine, self))
             }),
             on: {
               '*': 'failure'
@@ -717,8 +707,7 @@ describe('actors', () => {
             entry: assign<SyncMachineContext>({
               ref: (_, __, { self, spawn }) => {
                 return spawn(
-                  createMachineBehavior(syncChildMachine, self, { sync: true }),
-                  'x'
+                  createMachineBehavior(syncChildMachine, self, { sync: true })
                 );
               }
             }),
@@ -771,8 +760,7 @@ describe('actors', () => {
                       syncChildMachine,
                       self,
                       falseSyncOption
-                    ),
-                    'x'
+                    )
                   )
               }),
               on: {
@@ -828,8 +816,7 @@ describe('actors', () => {
                       syncChildMachine,
                       self,
                       falseSyncOption
-                    ),
-                    'x'
+                    )
                   )
               })
             }

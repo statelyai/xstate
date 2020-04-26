@@ -71,12 +71,16 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
 }
 
 export function stringify(machine: StateNode): string {
-  return JSON.stringify(machineToJSON(machine), (_, value) => {
-    if (isFunction(value)) {
-      return { $function: value.toString() };
-    }
-    return value;
-  });
+  return JSON.stringify(
+    machineToJSON(machine),
+    (_, value) => {
+      if (isFunction(value)) {
+        return { $function: value.toString() };
+      }
+      return value;
+    },
+    2
+  );
 }
 
 export function parse(machineString: string): StateNodeConfig {

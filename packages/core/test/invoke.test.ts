@@ -5,7 +5,8 @@ import {
   sendParent,
   send,
   EventObject,
-  StateValue
+  StateValue,
+  UpdateObject
 } from '../src';
 import {
   actionTypes,
@@ -22,6 +23,7 @@ import {
 } from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
+import { createMachineBehavior } from '../src/behavior';
 
 const user = { name: 'David' };
 
@@ -499,17 +501,19 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: spawnMachine(
-            Machine({
-              id: 'child',
-              initial: 'sending',
-              states: {
-                sending: {
-                  entry: sendParent({ type: 'SUCCESS', data: 42 })
+          invoke: (_, __, { parent }) =>
+            createMachineBehavior(
+              Machine({
+                id: 'child',
+                initial: 'sending',
+                states: {
+                  sending: {
+                    entry: sendParent({ type: 'SUCCESS', data: 42 })
+                  }
                 }
-              }
-            })
-          ),
+              }),
+              parent
+            ),
           on: {
             SUCCESS: {
               target: 'success',
@@ -542,17 +546,19 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: spawnMachine(
-                Machine({
-                  id: 'child',
-                  initial: 'sending',
-                  states: {
-                    sending: {
-                      entry: sendParent({ type: 'SUCCESS', data: 42 })
+              invoke: (_, __, { parent }) =>
+                createMachineBehavior(
+                  Machine({
+                    id: 'child',
+                    initial: 'sending',
+                    states: {
+                      sending: {
+                        entry: sendParent({ type: 'SUCCESS', data: 42 })
+                      }
                     }
-                  }
-                })
-              )
+                  }),
+                  parent
+                )
             }
           }
         },
@@ -2036,7 +2042,7 @@ describe('invoke', () => {
         }
       });
 
-      const machine = Machine({
+      const machine = Machine<undefined, UpdateObject>({
         initial: 'pending',
         states: {
           pending: {

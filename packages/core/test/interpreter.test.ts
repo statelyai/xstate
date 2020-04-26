@@ -587,11 +587,6 @@ describe('interpreter', () => {
         .start(bState);
 
       setTimeout(() => {
-        expect(
-          Object.values(state.children).find(
-            (child) => child.meta!.src === 'blink'
-          )
-        ).toBeTruthy();
         expect(activityActive).toBeFalsy();
         done();
       }, 10);
@@ -1893,23 +1888,15 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = (data) => {
-        if (data.value === 3) {
-          done();
-        }
-      };
-      let subscription;
-
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          const childActor = state.children['childActor'];
-
-          if (state.matches('active') && childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
+          if (state.matches('active')) {
+            expect(state.children['childActor']).not.toBeUndefined();
           }
         })
         .onDone(() => {
           expect(service.current.children).not.toHaveProperty('childActor');
+          done();
         });
 
       service.start();

@@ -9,7 +9,6 @@ import {
   ActionTypes,
   InvokeDefinition,
   SendActionObject,
-  ServiceConfig,
   StateValue,
   InterpreterOptions,
   SingleOrArray,
@@ -20,7 +19,8 @@ import {
   SCXML,
   Observer,
   Spawnable,
-  Typestate
+  Typestate,
+  BehaviorCreator
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -49,7 +49,8 @@ import {
   fromCallback,
   fromPromise,
   fromObservable,
-  fromMachine
+  fromMachine,
+  BehaviorActorRef
 } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
@@ -808,8 +809,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const actorCreator: ServiceConfig<TContext, TEvent> | undefined = this
-            .machine.options.services
+          const behaviorCreator:
+            | BehaviorCreator<TContext, TEvent>
+            | undefined = this.machine.options.services
             ? this.machine.options.services[activity.src]
             : undefined;
 
@@ -820,8 +822,7 @@ export class Interpreter<
               ? activity.autoForward
               : !!activity.forward;
 
-          if (!actorCreator) {
-            // tslint:disable-next-line:no-console
+          if (!behaviorCreator) {
             if (!IS_PRODUCTION) {
               warn(
                 false,
@@ -832,12 +833,14 @@ export class Interpreter<
           }
 
           try {
-            const actor = actorCreator(context, _event.data, {
+            const behavior = behaviorCreator(context, _event.data, {
               parent: this as any,
               id,
               data,
               _event
             });
+
+            const actor = new BehaviorActorRef(behavior, id);
 
             if (autoForward) {
               this.forwardTo.add(id);

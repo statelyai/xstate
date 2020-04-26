@@ -57,7 +57,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<any, TEvent>;
-  spawn: (behavior: Behavior<any>, name: string) => ActorRef<any, any>;
+  spawn: (behavior: Behavior<any>, name?: string) => ActorRef<any, any>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -219,6 +219,17 @@ export type ActorCreator<TContext, TEvent extends EventObject> = (
   }
 ) => ActorRef<any, any>;
 
+export type BehaviorCreator<TContext, TEvent extends EventObject> = (
+  context: TContext,
+  event: TEvent,
+  meta: {
+    parent: ActorRef<State<TContext, TEvent>, TEvent>;
+    id: string;
+    data?: any;
+    _event: SCXML.Event<TEvent>;
+  }
+) => Behavior<TEvent>;
+
 export interface InvokeDefinition<TContext, TEvent extends EventObject>
   extends ActivityDefinition<TContext, TEvent> {
   /**
@@ -354,7 +365,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | ActorCreator<any, any>;
+  src: string | BehaviorCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -429,7 +440,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | ActorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -563,7 +574,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ActorCreator<TContext, TEvent>>;
+  services: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }

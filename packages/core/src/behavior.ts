@@ -12,6 +12,7 @@ import { doneInvoke, error, actionTypes } from './actions';
 import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
 import { interpret } from './interpreter';
+import { Interpreter } from '.';
 
 export interface ActorContext {
   self: ActorRef<any, any>;
@@ -158,7 +159,7 @@ export function createObservableBehavior<
       if (signal === startSignal) {
         subscription = observable.subscribe(
           (value) => {
-            parent.send(toSCXMLEvent(value, { origin: this }));
+            parent.send(toSCXMLEvent(value, { origin: actorContext.self }));
           },
           (err) => {
             parent.send(
@@ -193,15 +194,17 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
   parent: ActorRef<any, any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent> {
-  const service = interpret(machine, {
-    ...options,
-    parent
-  });
+  let service: Interpreter<TContext, any, TEvent>;
   let subscription: Unsubscribable;
 
   const behavior: Behavior<TEvent> = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
+        service = interpret(machine, {
+          ...options,
+          parent,
+          id: actorContext.name
+        });
         service.onDone((doneEvent) => {
           parent.send(
             toSCXMLEvent(doneEvent, {
