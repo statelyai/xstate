@@ -71,6 +71,17 @@ console.log(state.matches('green'));
 // => false
 ```
 
+::: tip
+If you want to match one of multiple states, you can use [`.some()`](https://developer.mozilla.org/en-US/docs/Web/JavaScript/Reference/Global_Objects/Array/some) on an array of state values to accomplish this:
+
+```js
+const isMatch = [{ customer: 'deposit' }, { customer: 'withdrawal' }].some(
+  state.matches
+);
+```
+
+:::
+
 ### `state.nextEvents`
 
 This specifies the next events that will cause a transition from the current state:
@@ -167,7 +178,7 @@ const machine = Machine({
 });
 
 const service = invoke(machine)
-  .onTransition(state => {
+  .onTransition((state) => {
     state.children.notifier; // service from createNotifier()
     state.children.logger; // service from createLogger()
   })
