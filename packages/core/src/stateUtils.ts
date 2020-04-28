@@ -39,7 +39,6 @@ import {
   PureAction,
   RaiseActionObject,
   SpecialTargets,
-  ActivityActionObject,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
@@ -72,7 +71,7 @@ import {
   NULL_EVENT,
   WILDCARD
 } from './constants';
-import { createInvocableActor, ActorRef } from './Actor';
+import { ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
@@ -1468,10 +1467,7 @@ export function resolveMicroTransition<
   let children = currentState ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
-    if (action.type === actionTypes.start) {
-      const invocableActor = createInvocableActor((action as any).actor);
-      children[invocableActor.id] = invocableActor;
-    } else if (action.type === actionTypes.stop) {
+    if (action.type === actionTypes.stop) {
       delete children[
         (action as ActivityActionObject<TContext, TEvent>).actor.id
       ];

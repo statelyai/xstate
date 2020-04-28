@@ -52,22 +52,6 @@ export function createNullActor<TContext, TEvent extends EventObject>(
   };
 }
 
-/**
- * Creates a null actor that is able to be invoked given the provided
- * invocation information in its `.meta` value.
- *
- * @param invokeDefinition The meta information needed to invoke the actor.
- */
-export function createInvocableActor<TContext, TEvent extends EventObject>(
-  invokeDefinition: InvokeDefinition<TContext, TEvent>
-): Actor<any, TEvent> {
-  const tempActor = createNullActor<TContext, TEvent>(invokeDefinition.id);
-
-  tempActor.meta = invokeDefinition;
-
-  return tempActor;
-}
-
 export function isActor(item: any): item is ActorRef<any, any> {
   try {
     return typeof item.send === 'function';

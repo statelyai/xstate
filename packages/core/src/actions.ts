@@ -14,7 +14,6 @@ import {
   AssignAction,
   ActionFunction,
   ActionFunctionMap,
-  ActivityActionObject,
   ActionTypes,
   ActivityDefinition,
   SpecialTargets,
