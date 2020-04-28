@@ -23,43 +23,6 @@ import {
 } from './behavior';
 import { registry } from './registry';
 
-export interface Actor<
-  TContext = any,
-  TEvent extends EventObject = AnyEventObject
-> extends Subscribable<TContext> {
-  id: string;
-  send: (event: TEvent) => any; // TODO: change to void
-  stop?: () => any | undefined;
-  toJSON: () => {
-    id: string;
-  };
-  meta?: InvokeDefinition<TContext, TEvent>;
-  state?: any;
-}
-
-export function createNullActor<TContext, TEvent extends EventObject>(
-  id: string
-): Actor<TContext, TEvent> {
-  return {
-    id,
-    send: () => void 0,
-    subscribe: () => ({
-      unsubscribe: () => void 0
-    }),
-    toJSON: () => ({
-      id
-    })
-  };
-}
-
-export function isActor(item: any): item is ActorRef<any, any> {
-  try {
-    return typeof item.send === 'function';
-  } catch (e) {
-    return false;
-  }
-}
-
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
@@ -68,6 +31,14 @@ export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
   start: () => ActorRef<TCurrent, TEvent, TRef>;
   stop: () => void;
   id: string;
+}
+
+export function isActorRef(item: any): item is ActorRef<any, any> {
+  try {
+    return typeof item.send === 'function';
+  } catch (e) {
+    return false;
+  }
 }
 
 export function fromObservable<T extends EventObject>(

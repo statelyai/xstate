@@ -24,8 +24,8 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { InvokeConfig, ActorCreator } from '.';
-import { Actor, BehaviorActorRef } from './Actor';
+import { InvokeConfig } from '.';
+import { BehaviorActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -372,10 +372,6 @@ export function isMachineNode(value: any): value is MachineNode<any, any, any> {
   } catch (e) {
     return false;
   }
-}
-
-export function isActor(value: any): value is Actor {
-  return !!value && typeof value.send === 'function';
 }
 
 export const uniqueId = (() => {

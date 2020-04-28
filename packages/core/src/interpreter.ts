@@ -42,8 +42,7 @@ import {
 } from './utils';
 import { Scheduler } from './scheduler';
 import {
-  Actor,
-  isActor,
+  isActorRef,
   ActorRef,
   fromService,
   fromCallback,
@@ -438,7 +437,7 @@ export class Interpreter<
       return this;
     }
 
-    registry.register(this.sessionId, this as Actor);
+    registry.register(this.sessionId, this.ref);
     this.initialized = true;
     this._status = InterpreterStatus.Running;
 
@@ -638,7 +637,7 @@ export class Interpreter<
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
-      : isActor(to)
+      : isActorRef(to)
       ? to
       : this.children.get(to) || registry.get(to as string);
 
@@ -917,7 +916,7 @@ export class Interpreter<
       const actor = fromCallback(entity, this, name);
       this.children.set(name, actor);
       return actor;
-    } else if (isActor(entity)) {
+    } else if (isActorRef(entity)) {
       this.children.set(entity.id, entity);
       return entity;
     } else if (isObservable<TEvent>(entity)) {
@@ -1008,28 +1007,6 @@ export class Interpreter<
     return this;
   }
 }
-
-const createNullActor = (name: string = 'null'): Actor => ({
-  id: name,
-  send: () => void 0,
-  subscribe: () => {
-    // tslint:disable-next-line:no-empty
-    return { unsubscribe: () => {} };
-  },
-  toJSON: () => ({ id: name })
-});
-
-const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
-  if (isString(nameOrOptions)) {
-    return { ...DEFAULT_SPAWN_OPTIONS, name: nameOrOptions };
-  }
-
-  return {
-    ...DEFAULT_SPAWN_OPTIONS,
-    name: uniqueId(),
-    ...nameOrOptions
-  };
-};
 
 /**
  * Creates a new Interpreter instance for the given machine with the provided options, if any.

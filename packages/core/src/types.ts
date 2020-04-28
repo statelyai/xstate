@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
-import { Actor, ActorRef } from './Actor';
+import { ActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -711,7 +711,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
     | string
     | number
     | ActorRef<any, any>
-    | ExprWithMeta<TContext, TEvent, string | number | Actor>
+    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any, any>>
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;

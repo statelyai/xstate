@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor, ActorRef, fromService } from '../src/Actor';
+import { ActorRef, fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
@@ -34,7 +34,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, Actor>
+    todoRefs: {} as Record<string, ActorRef<any, any>>
   };
 
   type TodoEvent =

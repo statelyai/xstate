@@ -1,13 +1,13 @@
-import { Actor } from './Actor';
+import { ActorRef } from './Actor';
 
-const children = new Map<string, Actor>();
+const children = new Map<string, ActorRef<any, any>>();
 
 let sessionIdIndex = 0;
 
 export interface Registry {
   bookId(): string;
-  register(id: string, actor: Actor): string;
-  get(id: string): Actor | undefined;
+  register(id: string, actor: ActorRef<any, any>): string;
+  get(id: string): ActorRef<any, any> | undefined;
   free(id: string): void;
 }
 

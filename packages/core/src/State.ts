@@ -15,7 +15,7 @@ import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
-import { Actor, ActorRef } from './Actor';
+import { ActorRef } from './Actor';
 
 export function isState<TContext, TEvent extends EventObject>(
   state: object | string
