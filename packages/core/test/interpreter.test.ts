@@ -1497,6 +1497,34 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           })
           .start();
       });
+
+      it('execute = false should not be inherited by spawned machines', (done) => {
+        const childMachine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              entry: () => {
+                done();
+              }
+            }
+          }
+        });
+
+        const parentMachine = createMachine({
+          initial: 'started',
+          states: {
+            started: {
+              invoke: childMachine
+            }
+          }
+        });
+
+        const service = interpret(parentMachine, { execute: false }).start();
+
+        service.subscribe((state) => {
+          service.execute(state);
+        });
+      });
     });
 
     describe('id', () => {

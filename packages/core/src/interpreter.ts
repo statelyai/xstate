@@ -83,7 +83,11 @@ interface SpawnOptions {
   sync?: boolean;
 }
 
-const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
+const DEFAULT_SPAWN_OPTIONS = {
+  sync: false,
+  autoForward: false,
+  execute: true
+};
 
 /**
  * Maintains a stack of the current service in scope.
@@ -951,18 +955,24 @@ export class Interpreter<
     TChildEvent extends EventObject
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
-    options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
+    options: {
+      id?: string;
+      autoForward?: boolean;
+      sync?: boolean;
+      execute?: boolean;
+    } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
-    const childService = new Interpreter(machine, {
-      ...this.options, // inherit options from this interpreter
-      parent: this,
-      id: options.id || machine.id
-    });
-
     const resolvedOptions = {
+      ...this.options, // inherit options from this interpreter
       ...DEFAULT_SPAWN_OPTIONS,
       ...options
     };
+
+    const childService = new Interpreter(machine, {
+      ...resolvedOptions,
+      parent: this,
+      id: options.id || machine.id
+    });
 
     if (resolvedOptions.sync) {
       childService.onTransition((state) => {
