@@ -11,8 +11,7 @@ import { toSCXMLEvent, isPromiseLike } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
 import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
-import { interpret } from './interpreter';
-import { Interpreter } from '.';
+import { interpret, Interpreter } from './interpreter';
 
 export interface ActorContext {
   self: ActorRef<any, any>;
@@ -238,8 +237,24 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
         return behavior;
       }
     },
-    receive: (actorContext, event) => {
+    receive: (_, event) => {
       service.send(event);
+      return behavior;
+    }
+  };
+
+  return behavior;
+}
+
+export function createServiceBehavior<TContext, TEvent extends EventObject>(
+  service: Interpreter<TContext, any, TEvent>
+): Behavior<TEvent> {
+  const behavior = {
+    receive: (actorContext, event) => {
+      service.send(toSCXMLEvent(event, { origin: actorContext.self }));
+      return behavior;
+    },
+    receiveSignal: () => {
       return behavior;
     }
   };

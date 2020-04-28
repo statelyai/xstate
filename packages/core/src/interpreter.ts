@@ -192,7 +192,7 @@ export class Interpreter<
       deferEvents: this.options.deferEvents
     });
 
-    this.ref = fromService(this, this.parent, resolvedId);
+    this.ref = fromService(this, resolvedId);
 
     this.sessionId = this.ref.id;
   }

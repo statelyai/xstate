@@ -395,7 +395,7 @@ describe('communicating with spawned actors', () => {
     const parentMachine = Machine<{ existingRef: ActorRef<any, any> }>({
       initial: 'pending',
       context: {
-        existingRef: fromService(existingService, null as any).ref
+        existingRef: fromService(existingService)
       },
       states: {
         pending: {
