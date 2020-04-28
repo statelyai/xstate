@@ -923,6 +923,13 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
+  toJSON: () => {
+    target: string[] | undefined;
+    source: string;
+    actions: Array<ActionObject<TContext, TEvent>>;
+    cond?: Guard<TContext, TEvent>;
+    eventType: TEvent['type'] | NullEvent['type'] | '*';
+  };
 }
 
 export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {
