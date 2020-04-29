@@ -141,7 +141,6 @@ export class Interpreter<
   /**
    * Whether the service is started.
    */
-  public initialized = false;
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor Ref
@@ -436,7 +435,6 @@ export class Interpreter<
     }
 
     registry.register(this.sessionId, this.ref);
-    this.initialized = true;
     this._status = InterpreterStatus.Running;
 
     const resolvedState =
@@ -490,7 +488,6 @@ export class Interpreter<
     }
 
     this.scheduler.clear();
-    this.initialized = false;
     this._status = InterpreterStatus.Stopped;
     registry.free(this.sessionId);
 
@@ -628,10 +625,10 @@ export class Interpreter<
     return this.send.bind(this, event);
   }
 
-  private sendTo = (
+  private sendTo(
     event: SCXML.Event<TEvent>,
     to: string | number | ActorRef<any>
-  ) => {
+  ) {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
       ? this.parent
@@ -661,22 +658,7 @@ export class Interpreter<
       name: event.name === actionTypes.error ? `${error(this.id)}` : event.name,
       origin: this
     });
-
-    // if ('machine' in (target as any)) {
-    //   const scxmlEvent = {
-    //     ...event,
-    //     name:
-    //       event.name === actionTypes.error ? `${error(this.id)}` : event.name,
-    //     origin: this.sessionId
-    //   };
-    //   // Send SCXML events to machines
-    //   target.send(scxmlEvent);
-    // } else {
-    //   console.log('no machine in', target);
-    //   // Send normal events to other targets
-    //   target.send(event.data);
-    // }
-  };
+  }
   /**
    * Returns the next state given the interpreter's current state and the event.
    *
@@ -894,56 +876,29 @@ export class Interpreter<
     options?: SpawnOptions
   ): ActorRef<any> {
     if (isPromiseLike(entity)) {
-      const actor = fromPromise(entity, this, name);
+      const actor = fromPromise(entity, this.ref, name);
       this.children.set(name, actor);
       return actor;
     } else if (isFunction(entity)) {
-      const actor = fromCallback(entity, this, name);
+      const actor = fromCallback(entity, this.ref, name);
       this.children.set(name, actor);
       return actor;
     } else if (isActorRef(entity)) {
       this.children.set(entity.id, entity);
       return entity;
     } else if (isObservable<TEvent>(entity)) {
-      const actor = fromObservable(entity, this, name);
+      const actor = fromObservable(entity, this.ref, name);
       this.children.set(name, actor);
       return actor;
     } else if (isMachineNode(entity)) {
-      return this.spawnMachine(entity, { ...options, id: name });
+      const actor = fromMachine(entity, this.ref, name, options);
+      this.children.set(name, actor);
+      return actor;
     } else {
       throw new Error(
         `Unable to spawn entity "${name}" of type "${typeof entity}".`
       );
     }
-  }
-  public spawnMachine<
-    TChildContext,
-    TChildStateSchema,
-    TChildEvent extends EventObject
-  >(
-    machine: MachineNode<TChildContext, TChildStateSchema, TChildEvent>,
-    options: Partial<InterpreterOptions> = {}
-  ) {
-    const resolvedOptions = {
-      ...DEFAULT_SPAWN_OPTIONS,
-      ...options
-    };
-    const name = options.id || machine.id;
-
-    const actorRef = fromMachine(
-      machine,
-      this.ref,
-      name,
-      resolvedOptions as InterpreterOptions
-    );
-
-    this.children.set(name, actorRef);
-
-    if (resolvedOptions.autoForward) {
-      this.forwardTo.add(actorRef.id);
-    }
-
-    return actorRef;
   }
 
   private attachDev(): void {
@@ -982,6 +937,7 @@ export class Interpreter<
       registerService(this);
     }
   }
+
   public toJSON() {
     return {
       id: this.id
