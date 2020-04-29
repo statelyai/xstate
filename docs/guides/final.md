@@ -67,49 +67,60 @@ In a compound state, reaching a final child state node (with `{ type: 'final' }`
 
 When every child state node in a parallel state node is _done_, the parent parallel state node is also _done_. That is, when every final state node in every child compound node is reached, the `done(...)` event will be raised for the parallel state node.
 
-This is very useful in modeling parallel tasks. For example, suppose `user` and `items` are two parallel tasks:
+This is very useful in modeling parallel tasks. For example, suppose `user` and `items` represent two parallel tasks of the `cart` state:
 
 ```js
 const shoppingMachine = Machine({
   id: 'shopping',
-  type: 'parallel',
   states: {
-    user: {
-      initial: 'pending',
+    cart: {
+      type: 'parallel',
       states: {
-        pending: {
-          entry: 'getUser',
-          on: {
-            RESOLVE_USER: 'success',
-            REJECT_USER: 'failure'
+        user: {
+          initial: 'pending',
+          states: {
+            pending: {
+              entry: 'getUser',
+              on: {
+                RESOLVE_USER: 'success',
+                REJECT_USER: 'failure'
+              }
+            },
+            success: { type: 'final' },
+            failure: {}
           }
         },
-        success: { type: 'final' },
-        failure: {}
-      }
+        items: {
+          initial: 'pending',
+          states: {
+            pending: {
+              entry: 'getItems',
+              on: {
+                RESOLVE_ITEMS: 'success',
+                REJECT_ITEMS: 'failure'
+              }
+            },
+            success: { type: 'final' },
+            failure: {}
+          }
+        }
+      },
+      onDone: 'confirm'
     },
-    items: {
-      initial: 'pending',
-      states: {
-        pending: {
-          entry: 'getItems',
-          on: {
-            RESOLVE_ITEMS: 'success',
-            REJECT_ITEMS: 'failure'
-          }
-        },
-        success: { type: 'final' },
-        failure: {}
-      }
+    confirm: {
+      // ...
     }
-  },
-  onDone: {
-    actions: 'renderScreen'
   }
 });
 ```
 
-Only when all of the child states (e.g., `'user'` and `'items'`) are in their final states will the `onDone` transition take place. In this case, once the `'shopping.user.success'` and `'shopping.items.success'` state nodes are reached, the `'renderScreen'` action will be executed.
+Only when all of the child states of `'cart'` (e.g., `'user'` and `'items'`) are in their final states will the `onDone` transition take place. In this case, once the `'shopping.cart.user.success'` and `'shopping.cart.items.success'` state nodes are reached, the machine will transition from the `'cart'` to the `'confirm'` state.
+
+::: warning
+
+The `onDone` transition cannot be defined on the root node of the machine. This is because `onDone` is a transition on a `'done.state.*'` event, and when a machine reaches its final state, it can no longer accept any event.
+
+:::
 
 ## SCXML
 
