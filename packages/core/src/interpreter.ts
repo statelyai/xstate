@@ -96,7 +96,7 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
-> implements ActorRef<State<TContext, TEvent>, TEvent> {
+> implements ActorRef<TEvent> {
   /**
    * The default interpreter options:
    *
@@ -145,15 +145,15 @@ export class Interpreter<
   private _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor Ref
-  public parent?: ActorRef<any, any>;
+  public parent?: ActorRef<any>;
   public id: string;
-  public ref: ActorRef<State<TContext, TEvent>, TEvent>;
+  public ref: ActorRef<TEvent>;
 
   /**
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, ActorRef<any, any>> = new Map();
+  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -630,7 +630,7 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<TEvent>,
-    to: string | number | ActorRef<any, any>
+    to: string | number | ActorRef<any>
   ) => {
     const isParent = this.parent && to === SpecialTargets.Parent;
     const target = isParent
@@ -798,7 +798,7 @@ export class Interpreter<
         >;
 
         try {
-          let actorRef: ActorRef<any, any>;
+          let actorRef: ActorRef<any>;
 
           if (isActorRef(src)) {
             actorRef = src;
@@ -892,7 +892,7 @@ export class Interpreter<
     entity: Spawnable,
     name: string,
     options?: SpawnOptions
-  ): ActorRef<any, any> {
+  ): ActorRef<any> {
     if (isPromiseLike(entity)) {
       const actor = fromPromise(entity, this, name);
       this.children.set(name, actor);

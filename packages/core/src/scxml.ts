@@ -10,7 +10,7 @@ import {
 import { Machine } from './index';
 import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
-import { spawnMachine } from './invoke';
+import { invokeMachine } from './invoke';
 import { MachineNode } from './MachineNode';
 
 function getAttribute(
@@ -425,7 +425,7 @@ function toConfig(
 
       return {
         ...(element.attributes!.id && { id: element.attributes!.id as string }),
-        src: spawnMachine(scxmlToMachine(content, options)),
+        src: invokeMachine(scxmlToMachine(content, options)),
         autoForward: element.attributes!.autoforward === 'true'
       };
     });

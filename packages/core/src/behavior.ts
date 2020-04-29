@@ -14,7 +14,7 @@ import { MachineNode } from './MachineNode';
 import { interpret, Interpreter } from './interpreter';
 
 export interface ActorContext {
-  self: ActorRef<any, any>;
+  self: ActorRef<any>;
   name: string;
 }
 
@@ -33,7 +33,7 @@ export interface Behavior<TEvent extends EventObject> {
 
 export function createCallbackBehavior<TEvent extends EventObject>(
   callback: InvokeCallback,
-  parent: ActorRef<any, any>
+  parent: ActorRef<any>
 ): Behavior<SCXML.Event<TEvent>> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
@@ -101,7 +101,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   promise: PromiseLike<T>,
-  parent: ActorRef<any, any>
+  parent: ActorRef<any>
 ): Behavior<TEvent> {
   let canceled = false;
 
@@ -150,7 +150,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
->(observable: Subscribable<T>, parent: ActorRef<any, any>): Behavior<TEvent> {
+>(observable: Subscribable<T>, parent: ActorRef<any>): Behavior<TEvent> {
   let subscription: Unsubscribable;
 
   const behavior = {
@@ -190,7 +190,7 @@ export function createObservableBehavior<
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
-  parent: ActorRef<any, any>,
+  parent: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent> {
   let service: Interpreter<TContext, any, TEvent>;

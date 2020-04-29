@@ -1,7 +1,7 @@
 import { Machine, interpret } from '../src/index';
 import { actionTypes, done } from '../src/actions';
 import { createCallbackBehavior } from '../src/behavior';
-import { spawnActivity } from '../src/invoke';
+import { invokeActivity } from '../src/invoke';
 
 const lightMachine = Machine({
   key: 'light',
@@ -57,7 +57,7 @@ describe('activities with guarded transitions', () => {
       },
       {
         services: {
-          B_ACTIVITY: spawnActivity(() => {
+          B_ACTIVITY: invokeActivity(() => {
             done();
           })
         }
@@ -92,7 +92,7 @@ describe('remembering activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          B_ACTIVITY: spawnActivity(() => {
+          B_ACTIVITY: invokeActivity(() => {
             done();
           })
         }
@@ -109,7 +109,7 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.withConfig({
         services: {
-          fadeInGreen: spawnActivity(() => {
+          fadeInGreen: invokeActivity(() => {
             done();
           })
         }
@@ -122,7 +122,7 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.withConfig({
         services: {
-          activateCrosswalkLight: spawnActivity(() => {
+          activateCrosswalkLight: invokeActivity(() => {
             done();
           })
         }
@@ -138,7 +138,7 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.withConfig({
         services: {
-          blinkCrosswalkLight: spawnActivity(() => {
+          blinkCrosswalkLight: invokeActivity(() => {
             done();
           })
         }
@@ -155,7 +155,7 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.withConfig({
         services: {
-          blinkCrosswalkLight: spawnActivity(() => {
+          blinkCrosswalkLight: invokeActivity(() => {
             return () => {
               done();
             };
@@ -177,12 +177,12 @@ describe('activities', () => {
     const service = interpret(
       lightMachine.withConfig({
         services: {
-          fadeInGreen: spawnActivity(() => {
+          fadeInGreen: invokeActivity(() => {
             if (stopActivateCrosswalkLightcalled) {
               done();
             }
           }),
-          activateCrosswalkLight: spawnActivity(() => {
+          activateCrosswalkLight: invokeActivity(() => {
             return () => {
               stopActivateCrosswalkLightcalled = true;
             };
@@ -282,7 +282,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          A: spawnActivity(() => {
+          A: invokeActivity(() => {
             done();
           })
         }
@@ -296,7 +296,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          A1: spawnActivity(() => {
+          A1: invokeActivity(() => {
             done();
           })
         }
@@ -309,7 +309,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          A: spawnActivity(() => {
+          A: invokeActivity(() => {
             done();
           })
         }
@@ -323,7 +323,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          C1: spawnActivity(() => {
+          C1: invokeActivity(() => {
             done();
           })
         }
@@ -337,7 +337,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          C1: spawnActivity(() => {
+          C1: invokeActivity(() => {
             done();
           })
         }
@@ -351,7 +351,7 @@ describe('transient activities', () => {
     const service = interpret(
       machine.withConfig({
         services: {
-          B2: spawnActivity(() => {
+          B2: invokeActivity(() => {
             done();
           })
         }

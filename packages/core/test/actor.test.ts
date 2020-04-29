@@ -34,7 +34,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, ActorRef<any, any>>
+    todoRefs: {} as Record<string, ActorRef<any>>
   };
 
   type TodoEvent =
@@ -108,7 +108,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<any, any>;
+    server?: ActorRef<any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -225,43 +225,41 @@ describe('spawning promises', () => {
 
 describe('spawning callbacks', () => {
   it('should be able to spawn an actor from a callback', (done) => {
-    const callbackMachine = createMachine<{ callbackRef?: ActorRef<any, any> }>(
-      {
-        id: 'callback',
-        initial: 'idle',
-        context: {
-          callbackRef: undefined
-        },
-        states: {
-          idle: {
-            entry: assign({
-              callbackRef: (_, __, { self, spawn }) =>
-                spawn(
-                  createCallbackBehavior((cb, receive) => {
-                    receive((event) => {
-                      if (event.type === 'START') {
-                        setTimeout(() => {
-                          cb('SEND_BACK');
-                        }, 10);
-                      }
-                    });
-                  }, self)
-                  // TODO: make anonymous
-                )
-            }),
-            on: {
-              START_CB: {
-                actions: send('START', { to: (ctx) => ctx.callbackRef })
-              },
-              SEND_BACK: 'success'
-            }
-          },
-          success: {
-            type: 'final'
+    const callbackMachine = createMachine<{ callbackRef?: ActorRef<any> }>({
+      id: 'callback',
+      initial: 'idle',
+      context: {
+        callbackRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            callbackRef: (_, __, { self, spawn }) =>
+              spawn(
+                createCallbackBehavior((cb, receive) => {
+                  receive((event) => {
+                    if (event.type === 'START') {
+                      setTimeout(() => {
+                        cb('SEND_BACK');
+                      }, 10);
+                    }
+                  });
+                }, self)
+                // TODO: make anonymous
+              )
+          }),
+          on: {
+            START_CB: {
+              actions: send('START', { to: (ctx) => ctx.callbackRef })
+            },
+            SEND_BACK: 'success'
           }
+        },
+        success: {
+          type: 'final'
         }
       }
-    );
+    });
 
     const callbackService = interpret(callbackMachine).onDone(() => {
       done();
@@ -342,7 +340,7 @@ describe('communicating with spawned actors', () => {
     const existingService = interpret(existingMachine).start();
 
     const parentMachine = Machine<{
-      existingRef?: ActorRef<any, any>;
+      existingRef?: ActorRef<any>;
     }>({
       initial: 'pending',
       context: {
@@ -392,7 +390,7 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<{ existingRef: ActorRef<any, any> }>({
+    const parentMachine = Machine<{ existingRef: ActorRef<any> }>({
       initial: 'pending',
       context: {
         existingRef: fromService(existingService)
@@ -460,7 +458,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: ActorRef<any, any> }>({
+    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -530,7 +528,7 @@ describe('actors', () => {
 
       const machine = Machine<{
         counter: number;
-        serverRef?: ActorRef<any, any>;
+        serverRef?: ActorRef<any>;
       }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
@@ -577,7 +575,7 @@ describe('actors', () => {
 
     it('should sync spawned actor state when { sync: true }', (done) => {
       const machine = Machine<{
-        ref: ActorRef<any, any>;
+        ref: ActorRef<any>;
       }>({
         id: 'parent',
         context: {
@@ -610,7 +608,7 @@ describe('actors', () => {
 
     it('should not sync spawned actor state when { sync: false }', (done) => {
       const machine = Machine<{
-        refNoSync?: ActorRef<any, any>;
+        refNoSync?: ActorRef<any>;
       }>({
         id: 'parent',
         context: {
@@ -649,7 +647,7 @@ describe('actors', () => {
 
     it('should not sync spawned actor state (default)', (done) => {
       const machine = Machine<{
-        refNoSyncDefault?: ActorRef<any, any>;
+        refNoSyncDefault?: ActorRef<any>;
       }>({
         id: 'parent',
         context: {
@@ -696,7 +694,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: ActorRef<any, any>;
+        ref?: ActorRef<any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -745,7 +743,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<any, any>;
+          ref?: ActorRef<any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -801,7 +799,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<any, any>;
+          ref?: ActorRef<any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({

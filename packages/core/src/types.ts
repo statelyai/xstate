@@ -56,8 +56,8 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
-  self?: ActorRef<any, TEvent>;
-  spawn: (behavior: Behavior<any>, name?: string) => ActorRef<any, any>;
+  self?: ActorRef<TEvent>;
+  spawn: (behavior: Behavior<any>, name?: string) => ActorRef<any>;
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -178,35 +178,11 @@ export type InvokeCallback = (
   onReceive: Receiver<EventObject>
 ) => any;
 
-/**
- * Returns either a Promises or a callback handler (for streams of events) given the
- * machine's current `context` and `event` that invoked the service.
- *
- * For Promises, the only events emitted to the parent will be:
- * - `done.invoke.<id>` with the `data` containing the resolved payload when the promise resolves, or:
- * - `error.platform.<id>` with the `data` containing the caught error, and `src` containing the service `id`.
- *
- * For callback handlers, the `callback` will be provided, which will send events to the parent service.
- *
- * @param context The current machine `context`
- * @param event The event that invoked the service
- */
-export type ActorCreator<TContext, TEvent extends EventObject> = (
-  context: TContext,
-  event: TEvent,
-  meta: {
-    parent: ActorRef<State<TContext, TEvent>, TEvent>;
-    id: string;
-    data?: any;
-    _event: SCXML.Event<TEvent>;
-  }
-) => ActorRef<any, any>;
-
 export type BehaviorCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: {
-    parent: ActorRef<State<TContext, TEvent>, TEvent>;
+    parent: ActorRef<TEvent>;
     id: string;
     data?: any;
     _event: SCXML.Event<TEvent>;
@@ -216,7 +192,7 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
 export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   id: string;
   /**
-   * The source of the machine to be invoked, or the machine itself.
+   * The source of the actor's behavior to be invoked
    */
   src: string;
   /**
@@ -557,10 +533,6 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext, TEvent extends EventObject> =
-  | string
-  | ActorCreator<TContext, TEvent>;
-
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
@@ -670,7 +642,7 @@ export interface NullEvent {
 
 export interface InvokeActionObject<TContext, TEvent extends EventObject> {
   type: ActionTypes.Start;
-  src: string | ActorRef<any, any>;
+  src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;
   data?: any;
@@ -679,7 +651,7 @@ export interface InvokeActionObject<TContext, TEvent extends EventObject> {
 
 export interface StopActionObject<TContext, TEvent extends EventObject> {
   type: ActionTypes.Stop;
-  actor: string | ActorRef<any, any>;
+  actor: string | ActorRef<any>;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
@@ -710,8 +682,8 @@ export interface SendAction<TContext, TEvent extends EventObject>
   to:
     | string
     | number
-    | ActorRef<any, any>
-    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any, any>>
+    | ActorRef<any>
+    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -720,7 +692,7 @@ export interface SendAction<TContext, TEvent extends EventObject>
 
 export interface SendActionObject<TContext, TEvent extends EventObject>
   extends SendAction<TContext, TEvent> {
-  to: string | number | ActorRef<any, any> | undefined;
+  to: string | number | ActorRef<any> | undefined;
   _event: SCXML.Event<TEvent>;
   event: TEvent;
   delay?: number;
@@ -752,9 +724,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?:
-    | string
-    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any, any>>;
+  to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>
@@ -951,7 +921,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, ActorRef<any, any>>;
+  children: Record<string, ActorRef<any>>;
   done?: boolean;
 }
 
@@ -970,7 +940,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: ActorRef<any, any>;
+  parent?: ActorRef<any>;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown
@@ -1031,7 +1001,7 @@ export declare namespace SCXML {
      * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origin?: ActorRef<any, any>;
+    origin?: ActorRef<any>;
     /**
      * This is equivalent to the 'type' field on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,

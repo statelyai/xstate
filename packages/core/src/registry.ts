@@ -1,13 +1,13 @@
 import { ActorRef } from './Actor';
 
-const children = new Map<string, ActorRef<any, any>>();
+const children = new Map<string, ActorRef<any>>();
 
 let sessionIdIndex = 0;
 
 export interface Registry {
   bookId(): string;
-  register(id: string, actor: ActorRef<any, any>): string;
-  get(id: string): ActorRef<any, any> | undefined;
+  register(id: string, actor: ActorRef<any>): string;
+  get(id: string): ActorRef<any> | undefined;
   free(id: string): void;
 }
 

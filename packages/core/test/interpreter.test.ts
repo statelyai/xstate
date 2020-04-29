@@ -18,10 +18,10 @@ import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  spawnObservable,
-  spawnMachine,
-  spawnPromise,
-  spawnActivity
+  invokeObservable,
+  invokeMachine,
+  invokePromise,
+  invokeActivity
 } from '../src/invoke';
 import { createPromiseBehavior } from '../src/behavior';
 
@@ -474,7 +474,7 @@ describe('interpreter', () => {
       },
       {
         services: {
-          myActivity: spawnActivity(() => {
+          myActivity: invokeActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
           })
@@ -521,7 +521,7 @@ describe('interpreter', () => {
         },
         {
           services: {
-            myActivity: spawnActivity(() => {
+            myActivity: invokeActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
             })
@@ -562,7 +562,7 @@ describe('interpreter', () => {
         },
         {
           services: {
-            blink: spawnActivity(() => {
+            blink: invokeActivity(() => {
               activityActive = true;
 
               return () => {
@@ -823,7 +823,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine)
+            src: invokeMachine(childMachine)
           }
         }
       },
@@ -990,7 +990,7 @@ describe('interpreter', () => {
         start: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine),
+            src: invokeMachine(childMachine),
             data: { password: 'foo' }
           },
           on: {
@@ -1747,7 +1747,7 @@ describe('interpreter', () => {
         },
         {
           services: {
-            testService: spawnActivity(() => {
+            testService: invokeActivity(() => {
               // nothing
             })
           }
@@ -1780,7 +1780,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnMachine(childMachine)
+              src: invokeMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1815,7 +1815,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnPromise(
+              src: invokePromise(
                 () =>
                   new Promise((res) => {
                     setTimeout(() => {
@@ -1869,7 +1869,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnObservable(() =>
+              src: invokeObservable(() =>
                 interval$.pipe(map((value) => ({ type: 'FIRED', value })))
               )
             },

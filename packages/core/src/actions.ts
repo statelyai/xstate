@@ -365,7 +365,7 @@ export function invoke<TContext, TEvent extends EventObject>(
  * @param actorRef The `ActorRef` instance or its ID
  */
 export function stop<TContext, TEvent extends EventObject>(
-  actorRef: string | ActorRef<any, any>
+  actorRef: string | ActorRef<any>
 ): StopActionObject<TContext, TEvent> {
   return {
     type: ActionTypes.Stop,

@@ -6,7 +6,7 @@ import {
   interpret
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
-import { spawnMachine } from '../src/invoke';
+import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src/Actor';
 import { createMachineBehavior } from '../src/behavior';
 
@@ -1027,12 +1027,15 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine({
+    const parent = Machine<
+      undefined,
+      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
+    >({
       id: 'parent',
       initial: 'first',
       states: {
         first: {
-          invoke: { src: spawnMachine(child), id: 'myChild' },
+          invoke: { src: invokeMachine(child), id: 'myChild' },
           on: {
             EVENT: {
               actions: forwardTo('myChild')
@@ -1069,7 +1072,7 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine<{ child: ActorRef<any, any> }>({
+    const parent = Machine<{ child: ActorRef<any> }>({
       id: 'parent',
       initial: 'first',
       context: {

@@ -93,7 +93,7 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
-  public children: Record<string, ActorRef<any, any>>;
+  public children: Record<string, ActorRef<any>>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

@@ -19,7 +19,7 @@ import {
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
-export function spawnMachine<
+export function invokeMachine<
   TContext,
   TEvent extends EventObject,
   TMachine extends MachineNode<any, any, any>
@@ -38,7 +38,7 @@ export function spawnMachine<
   };
 }
 
-export function spawnPromise<T>(
+export function invokePromise<T>(
   promise:
     | PromiseLike<T>
     | ((ctx: any, event: AnyEventObject) => PromiseLike<T>)
@@ -49,17 +49,17 @@ export function spawnPromise<T>(
   };
 }
 
-export function spawnActivity<TC, TE extends EventObject>(
+export function invokeActivity<TC, TE extends EventObject>(
   activityCreator: (ctx: TC, event: TE) => any
 ): BehaviorCreator<TC, TE> {
   const callbackCreator = (ctx: TC, event: TE) => () => {
     return activityCreator(ctx, event);
   };
 
-  return spawnCallback<TC, TE>(callbackCreator);
+  return invokeCallback<TC, TE>(callbackCreator);
 }
 
-export function spawnCallback<TC, TE extends EventObject = AnyEventObject>(
+export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
   callbackCreator: (ctx: any, e: any) => InvokeCallback
 ): BehaviorCreator<any, AnyEventObject> {
   return (ctx, event, { parent }): Behavior<SCXML.Event<TE>> => {
@@ -68,7 +68,7 @@ export function spawnCallback<TC, TE extends EventObject = AnyEventObject>(
   };
 }
 
-export function spawnObservable<T extends EventObject = AnyEventObject>(
+export function invokeObservable<T extends EventObject = AnyEventObject>(
   source: Subscribable<T> | ((ctx: any, event: any) => Subscribable<T>)
 ): BehaviorCreator<any, any> {
   return (ctx, e, { parent, id }): Behavior<T> => {

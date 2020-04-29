@@ -5,7 +5,6 @@ import {
   InvokeCallback,
   InterpreterOptions
 } from './types';
-import { State } from './State';
 import { MachineNode } from './MachineNode';
 import { Interpreter } from './interpreter';
 import {
@@ -23,15 +22,15 @@ import { registry } from './registry';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface ActorRef<TCurrent, TEvent extends EventObject, TRef = any> {
+export interface ActorRef<TEvent extends EventObject> {
   send: Sender<TEvent>;
-  ref: TRef;
-  start: () => ActorRef<TCurrent, TEvent, TRef>;
+  ref: any;
+  start: () => ActorRef<TEvent>;
   stop: () => void;
   id: string;
 }
 
-export function isActorRef(item: any): item is ActorRef<any, any> {
+export function isActorRef(item: any): item is ActorRef<any> {
   try {
     return typeof item.send === 'function';
   } catch (e) {
@@ -41,17 +40,17 @@ export function isActorRef(item: any): item is ActorRef<any, any> {
 
 export function fromObservable<T extends EventObject>(
   observable: Subscribable<T>,
-  parent: ActorRef<any, any>,
+  parent: ActorRef<any>,
   id: string
-): ActorRef<T | undefined, never> {
+): ActorRef<never> {
   return new BehaviorActorRef(createObservableBehavior(observable, parent), id);
 }
 
 export function fromPromise<T>(
   promise: PromiseLike<T>,
-  parent: ActorRef<any, any>,
+  parent: ActorRef<any>,
   id: string
-): ActorRef<T | undefined, never> {
+): ActorRef<never> {
   return new BehaviorActorRef(createPromiseBehavior(promise, parent), id);
 }
 
@@ -60,22 +59,18 @@ export function fromCallback<
   TEvent extends EventObject
 >(
   callback: InvokeCallback,
-  parent: ActorRef<any, any>,
+  parent: ActorRef<any>,
   id: string
-): ActorRef<TEmitted | undefined, SCXML.Event<TEvent>> {
+): ActorRef<SCXML.Event<TEvent>> {
   return new BehaviorActorRef(createCallbackBehavior(callback, parent), id);
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
-  parent: ActorRef<any, any>,
+  parent: ActorRef<any>,
   id: string,
   options?: Partial<InterpreterOptions>
-): ActorRef<
-  State<TContext, TEvent>,
-  TEvent,
-  Interpreter<TContext, any, TEvent>
-> {
+): ActorRef<TEvent> {
   return new BehaviorActorRef(
     createMachineBehavior(machine, parent, options),
     id
@@ -85,12 +80,12 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
   id: string = registry.bookId()
-): ActorRef<State<TContext, TEvent>, TEvent, typeof service> {
+): ActorRef<TEvent> {
   return new BehaviorActorRef(createServiceBehavior(service), id);
 }
 
 export class BehaviorActorRef<TEvent extends EventObject>
-  implements ActorRef<any, TEvent, any> {
+  implements ActorRef<TEvent> {
   public ref;
   private context: ActorContext;
   constructor(public behavior: Behavior<TEvent>, public id: string) {
