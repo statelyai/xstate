@@ -1858,6 +1858,13 @@ class StateNode<
       ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
       : [];
 
+    if (!IS_PRODUCTION) {
+      warn(
+        !(this.config.onDone && !this.parent),
+        `Root nodes cannot have an ".onDone" transition. Please check the config of "${this.id}".`
+      );
+    }
+
     const invokeConfig = flatten(
       this.invoke.map((invokeDef) => {
         const settleTransitions: any[] = [];
