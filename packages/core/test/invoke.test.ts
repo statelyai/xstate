@@ -969,8 +969,8 @@ describe('invoke', () => {
           .onError((err) => {
             expect(err.message).toEqual(expect.stringMatching(/test/));
             done();
-          })
-          .start();
+          });
+        service.start();
       });
 
       it.skip(

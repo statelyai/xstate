@@ -1,13 +1,6 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import {
-  Machine,
-  interpret,
-  assign,
-  Interpreter,
-  spawn,
-  createMachine
-} from 'xstate';
+import { Machine, interpret, assign, Interpreter, createMachine } from 'xstate';
 import { useService, useMachine } from '../src';
 
 describe('useService', () => {

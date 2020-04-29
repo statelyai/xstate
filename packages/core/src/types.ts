@@ -640,16 +640,16 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface InvokeActionObject<TContext, TEvent extends EventObject> {
+export interface InvokeActionObject {
   type: ActionTypes.Start;
   src: string | ActorRef<any>;
-  id: string;
+  id?: string;
   autoForward?: boolean;
   data?: any;
   exec?: undefined;
 }
 
-export interface StopActionObject<TContext, TEvent extends EventObject> {
+export interface StopActionObject {
   type: ActionTypes.Stop;
   actor: string | ActorRef<any>;
 }
@@ -683,7 +683,11 @@ export interface SendAction<TContext, TEvent extends EventObject>
     | string
     | number
     | ActorRef<any>
-    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>
+    | ExprWithMeta<
+        TContext,
+        TEvent,
+        string | number | ActorRef<any> | undefined
+      >
     | undefined;
   event: TEvent | SendExpr<TContext, TEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -724,7 +728,14 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
+  to?:
+    | string
+    | ExprWithMeta<
+        TContext,
+        TEvent,
+        string | number | ActorRef<any> | undefined
+      >
+    | undefined;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>

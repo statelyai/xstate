@@ -298,7 +298,7 @@ describe('assign meta', () => {
 
   it('should provide meta._event to assigner', () => {
     interface Ctx {
-      eventLog: Array<{ event: string; origin: ActorRef<any> }>;
+      eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
     }
 
     const assignEventLog = assign<Ctx>((ctx, event, meta) => ({

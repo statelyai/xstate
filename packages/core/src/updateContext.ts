@@ -17,12 +17,12 @@ export function updateContext<TContext, TEvent extends EventObject>(
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>,
-  service?: ActorRef<any, TEvent>
+  service?: ActorRef<TEvent>
 ): [TContext, ActionObject<TContext, TEvent>[]] {
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
   }
-  const capturedActions: InvokeActionObject<TContext, TEvent>[] = [];
+  const capturedActions: InvokeActionObject[] = [];
 
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {

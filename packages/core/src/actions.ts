@@ -348,7 +348,7 @@ export const resolveCancel = <TContext, TEvent extends EventObject>(
 
 export function invoke<TContext, TEvent extends EventObject>(
   invokeDef: InvokeDefinition<TContext, TEvent>
-): InvokeActionObject<TContext, TEvent> {
+): InvokeActionObject {
   return {
     type: ActionTypes.Start,
     src: invokeDef.src,
@@ -364,9 +364,7 @@ export function invoke<TContext, TEvent extends EventObject>(
  *
  * @param actorRef The `ActorRef` instance or its ID
  */
-export function stop<TContext, TEvent extends EventObject>(
-  actorRef: string | ActorRef<any>
-): StopActionObject<TContext, TEvent> {
+export function stop(actorRef: string | ActorRef<any>): StopActionObject {
   return {
     type: ActionTypes.Stop,
     actor: actorRef

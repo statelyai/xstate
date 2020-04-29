@@ -1,6 +1,4 @@
 import { Machine, interpret } from '../src/index';
-import { actionTypes, done } from '../src/actions';
-import { createCallbackBehavior } from '../src/behavior';
 import { invokeActivity } from '../src/invoke';
 
 const lightMachine = Machine({

@@ -33,7 +33,7 @@ export interface Behavior<TEvent extends EventObject> {
 
 export function createCallbackBehavior<TEvent extends EventObject>(
   callback: InvokeCallback,
-  parent: ActorRef<any>
+  parent?: ActorRef<any>
 ): Behavior<SCXML.Event<TEvent>> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
@@ -53,7 +53,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
               return;
             }
 
-            parent.send(toSCXMLEvent(e, { origin: actorContext.self }));
+            parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
           },
           (newListener) => {
             receivers.add(newListener);
@@ -63,7 +63,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
         if (isPromiseLike(dispose)) {
           dispose.then(
             (resolved) => {
-              parent.send(
+              parent?.send(
                 toSCXMLEvent(doneInvoke(actorContext.name, resolved) as any, {
                   origin: actorContext.self
                 })
@@ -72,7 +72,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
             },
             (errorData) => {
               const errorEvent = error(actorContext.name, errorData);
-              parent.send(
+              parent?.send(
                 toSCXMLEvent(errorEvent, { origin: actorContext.self })
               );
               // TODO: handle error
@@ -80,8 +80,6 @@ export function createCallbackBehavior<TEvent extends EventObject>(
             }
           );
         }
-
-        return behavior;
       }
 
       if (signal === stopSignal) {
@@ -90,9 +88,9 @@ export function createCallbackBehavior<TEvent extends EventObject>(
         if (isFunction(dispose)) {
           dispose();
         }
-
-        return behavior;
       }
+
+      return behavior;
     }
   };
 
@@ -101,7 +99,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   promise: PromiseLike<T>,
-  parent: ActorRef<any>
+  parent?: ActorRef<any>
 ): Behavior<TEvent> {
   let canceled = false;
 
@@ -117,7 +115,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
           resolvedPromise.then(
             (response) => {
               if (!canceled) {
-                parent.send(
+                parent?.send(
                   toSCXMLEvent(doneInvoke(actorContext.name, response) as any, {
                     origin: actorContext.self
                   })
@@ -128,7 +126,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
               if (!canceled) {
                 const errorEvent = error(actorContext.name, errorData);
 
-                parent.send(
+                parent?.send(
                   toSCXMLEvent(errorEvent, { origin: actorContext.self })
                 );
               }
@@ -150,37 +148,36 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
->(observable: Subscribable<T>, parent: ActorRef<any>): Behavior<TEvent> {
-  let subscription: Unsubscribable;
+>(observable: Subscribable<T>, parent?: ActorRef<any>): Behavior<TEvent> {
+  let subscription: Unsubscribable | undefined;
 
   const behavior = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
         subscription = observable.subscribe(
           (value) => {
-            parent.send(toSCXMLEvent(value, { origin: actorContext.self }));
+            parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
           },
           (err) => {
-            parent.send(
+            parent?.send(
               toSCXMLEvent(error(actorContext.name, err) as any, {
                 origin: actorContext.self
               })
             );
           },
           () => {
-            parent.send(
+            parent?.send(
               toSCXMLEvent(doneInvoke(actorContext.name) as any, {
                 origin: actorContext.self
               })
             );
           }
         );
-        return behavior;
-      }
-      if (signal === stopSignal) {
+      } else if (signal === stopSignal) {
         subscription && subscription.unsubscribe();
-        return behavior;
       }
+
+      return behavior;
     },
     receive: () => behavior
   };
@@ -190,7 +187,7 @@ export function createObservableBehavior<
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
-  parent: ActorRef<any>,
+  parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent> {
   let service: Interpreter<TContext, any, TEvent>;
@@ -205,7 +202,7 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
           id: actorContext.name
         });
         service.onDone((doneEvent) => {
-          parent.send(
+          parent?.send(
             toSCXMLEvent(doneEvent, {
               origin: actorContext.self
             })
@@ -214,7 +211,7 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
 
         if (options?.sync) {
           subscription = service.subscribe((state) => {
-            parent.send(
+            parent?.send(
               toSCXMLEvent(
                 {
                   type: actionTypes.update,
@@ -226,16 +223,11 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
           });
         }
         service.start();
-
-        return behavior;
-      }
-
-      if (signal === stopSignal) {
+      } else if (signal === stopSignal) {
         service.stop();
         subscription && subscription.unsubscribe(); // TODO: might not be necessary
-
-        return behavior;
       }
+      return behavior;
     },
     receive: (_, event) => {
       service.send(event);

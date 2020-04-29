@@ -52,7 +52,6 @@ import {
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
-import { DEFAULT_SPAWN_OPTIONS } from './invoke';
 import { MachineNode } from './MachineNode';
 
 export type StateListener<
@@ -718,9 +717,7 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action:
-      | InvokeActionObject<TContext, TEvent>
-      | ActionObject<TContext, TEvent>,
+    action: InvokeActionObject | ActionObject<TContext, TEvent>,
     state: State<TContext, TEvent>,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
@@ -774,10 +771,7 @@ export class Interpreter<
         break;
 
       case ActionTypes.Start: {
-        const { id, data, autoForward, src } = action as InvokeActionObject<
-          TContext,
-          TEvent
-        >;
+        const { id, data, autoForward, src } = action as InvokeActionObject;
 
         try {
           let actorRef: ActorRef<any>;

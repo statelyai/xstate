@@ -27,7 +27,7 @@ export function invokeMachine<
   machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
   options: { sync?: boolean } = {}
 ): BehaviorCreator<TContext, TEvent> {
-  return (ctx, event, { parent, id, data, _event }) => {
+  return (ctx, event, { parent, data, _event }) => {
     let resolvedMachine = isFunction(machine) ? machine(ctx, event) : machine;
     if (data) {
       resolvedMachine = resolvedMachine.withContext(
@@ -71,7 +71,7 @@ export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
 export function invokeObservable<T extends EventObject = AnyEventObject>(
   source: Subscribable<T> | ((ctx: any, event: any) => Subscribable<T>)
 ): BehaviorCreator<any, any> {
-  return (ctx, e, { parent, id }): Behavior<T> => {
+  return (ctx, e, { parent }): Behavior<T> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
     return createObservableBehavior(resolvedSource, parent);
   };

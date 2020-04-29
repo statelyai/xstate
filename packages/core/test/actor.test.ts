@@ -245,7 +245,6 @@ describe('spawning callbacks', () => {
                     }
                   });
                 }, self)
-                // TODO: make anonymous
               )
           }),
           on: {
@@ -575,7 +574,7 @@ describe('actors', () => {
 
     it('should sync spawned actor state when { sync: true }', (done) => {
       const machine = Machine<{
-        ref: ActorRef<any>;
+        ref?: ActorRef<any>;
       }>({
         id: 'parent',
         context: {

@@ -1306,7 +1306,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   machine: MachineNode<TContext, any, TEvent>,
   _event: SCXML.Event<TEvent>,
-  service?: ActorRef<State<TContext, TEvent>, TEvent>
+  service?: ActorRef<TEvent>
 ): {
   actions: Array<ActionObject<TContext, TEvent>>;
   configuration: typeof mutConfiguration;
@@ -1428,7 +1428,7 @@ export function resolveMicroTransition<
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
   _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
-  service?: ActorRef<State<TContext, TEvent>, TEvent>
+  service?: ActorRef<TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
@@ -1547,7 +1547,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent, any>,
   _event: SCXML.Event<TEvent>,
   currentState: State<TContext, TEvent, any, any> | undefined,
-  service?: ActorRef<State<TContext, TEvent>, TEvent>
+  service?: ActorRef<TEvent>
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1666,7 +1666,7 @@ export function macrostep<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent, any, Typestate<TContext>>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: MachineNode<TContext, any, TEvent, any>,
-  service?: ActorRef<State<TContext, TEvent>, TEvent>
+  service?: ActorRef<TEvent>
 ): State<TContext, TEvent> {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep

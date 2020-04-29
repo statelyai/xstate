@@ -1072,11 +1072,14 @@ describe('forwardTo()', () => {
       }
     });
 
-    const parent = Machine<{ child: ActorRef<any> }>({
+    const parent = Machine<
+      { child?: ActorRef<any> },
+      { type: 'EVENT'; value: number } | { type: 'SUCCESS' }
+    >({
       id: 'parent',
       initial: 'first',
       context: {
-        child: null
+        child: undefined
       },
       states: {
         first: {

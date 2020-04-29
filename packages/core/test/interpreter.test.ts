@@ -578,13 +578,8 @@ describe('interpreter', () => {
         'TOGGLE'
       );
       const bState = toggleMachine.transition(activeState, 'SWITCH');
-      let state: State<any, any>;
 
-      interpret(toggleMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .start(bState);
+      interpret(toggleMachine).start(bState);
 
       setTimeout(() => {
         expect(activityActive).toBeFalsy();
