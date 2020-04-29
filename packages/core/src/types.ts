@@ -168,8 +168,6 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-export type DisposeActivityFunction = () => void;
-
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void

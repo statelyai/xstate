@@ -360,9 +360,9 @@ export function invoke<TContext, TEvent extends EventObject>(
 }
 
 /**
- * Stops an activity.
+ * Stops an actor.
  *
- * @param activity The activity to stop.
+ * @param actorRef The `ActorRef` instance or its ID
  */
 export function stop<TContext, TEvent extends EventObject>(
   actorRef: string | ActorRef<any, any>

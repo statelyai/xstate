@@ -144,8 +144,10 @@ export class MachineNode<
   /**
    * Clones this state machine with custom options and context.
    *
-   * @param options Options (actions, guards, activities, services) to recursively merge with the existing options.
+   * @param options Options (actions, guards, services, delays) to recursively merge with the existing options.
    * @param context Custom context (will override predefined context)
+   *
+   * @returns A new `MachineNode` instance with the custom options and context
    */
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>

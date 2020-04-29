@@ -177,15 +177,9 @@ export class State<
   }
 
   /**
-   * Creates a new State instance.
-   * @param value The state value
-   * @param context The extended state
-   * @param history The previous state
-   * @param actions An array of action objects to execute as side-effects
-   * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
-   * @param meta
-   * @param events Internal event queue. Should be empty with run-to-completion semantics.
-   * @param configuration
+   * Creates a new `State` instance that represents the current state of a running machine.
+   *
+   * @param config
    */
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;
