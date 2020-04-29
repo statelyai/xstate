@@ -186,12 +186,12 @@ const wordMachine = Machine({
     LEFT_CLICK: '.left',
     RIGHT_CLICK: { target: '.right' }, // same as '.right'
     CENTER_CLICK: { target: '.center', internal: true }, // same as '.center'
-    JUSTIFY_CLICK: { target: 'word.justify', internal: true } // same as '.justify'
+    JUSTIFY_CLICK: { target: 'justify', internal: true } // same as '.justify'
   }
 });
 ```
 
-The above machine will start in the `'left'` state (for reference, the full path and default ID is `'word.left'`), and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `entry`, `exit` or any of the `actions` defined on the parent state node are not executed again.
+The above machine will start in the `'left'` state, and based on what is clicked, will internally transition to its other child states. Also, since the transitions are internal, `entry`, `exit` or any of the `actions` defined on the parent state node are not executed again.
 
 Transitions that have `{ target: undefined }` (or no `target`) are also internal transitions:
 
@@ -219,8 +219,6 @@ const buttonMachine = Machine({
 
 - `EVENT: '.foo'` - internal transition to child
 - `EVENT: { target: '.foo' }` - internal transition to child (starts with `'.'`)
-- `EVENT: { target: 'same.foo', internal: true }` - explicit internal transition to own child node (equivalent to `{ target: '.foo' }`)
-  - This would otherwise be an external transition
 - `EVENT: undefined` - forbidden transition
 - `EVENT: { actions: [ ... ] }` - internal self-transition
 - `EVENT: { actions: [ ... ], internal: true }` - internal self-transition, same as above
