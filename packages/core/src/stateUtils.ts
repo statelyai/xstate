@@ -43,7 +43,8 @@ import {
   InitialTransitionConfig,
   InitialTransitionDefinition,
   Event,
-  ChooseAction
+  ChooseAction,
+  StopActionObject
 } from './types';
 import { State } from './State';
 import {
@@ -54,7 +55,6 @@ import {
   doneInvoke,
   error,
   toActionObjects,
-  start,
   stop,
   initEvent,
   actionTypes,
@@ -62,7 +62,8 @@ import {
   resolveSend,
   resolveLog,
   resolveCancel,
-  toActionObject
+  toActionObject,
+  invoke
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
@@ -71,7 +72,7 @@ import {
   NULL_EVENT,
   WILDCARD
 } from './constants';
-import { ActorRef } from './Actor';
+import { ActorRef, isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
@@ -1023,7 +1024,7 @@ function exitStates<TContext, TEvent extends EventObject>(
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
   statesToExit.forEach((stateNode) => {
-    actions.push(...stateNode.invoke.map((def) => stop(def)));
+    actions.push(...stateNode.invoke.map((def) => stop(def.id)));
   });
 
   statesToExit.sort((a, b) => b.order - a.order);
@@ -1352,7 +1353,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   actions.push(
     ...flatten(
       [...res.statesToInvoke].map((s) =>
-        s.invoke.map((invokeDef) => start(invokeDef))
+        s.invoke.map((invokeDef) => invoke(invokeDef))
       )
     )
   );
@@ -1468,9 +1469,17 @@ export function resolveMicroTransition<
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
-      delete children[
-        (action as ActivityActionObject<TContext, TEvent>).actor.id
-      ];
+      const { actor: ref } = action as StopActionObject<TContext, TEvent>;
+      if (isActorRef(ref)) {
+        ref.stop();
+        delete children[ref.id];
+      } else {
+        const actorRef = children[ref];
+        if (actorRef) {
+          actorRef.stop();
+        }
+        delete children[ref];
+      }
     }
   }
 

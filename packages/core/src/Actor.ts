@@ -1,7 +1,5 @@
 import {
   EventObject,
-  InvokeDefinition,
-  AnyEventObject,
   Subscribable,
   SCXML,
   InvokeCallback,

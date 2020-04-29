@@ -3,7 +3,9 @@ import {
   AssignAction,
   SCXML,
   AssignMeta,
-  ActionObject
+  ActionObject,
+  InvokeActionObject,
+  ActionTypes
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
@@ -20,7 +22,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
   }
-  const capturedActions: ActionObject<TContext, TEvent>[] = [];
+  const capturedActions: InvokeActionObject<TContext, TEvent>[] = [];
 
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
@@ -32,10 +34,11 @@ export function updateContext<TContext, TEvent extends EventObject>(
           self: service,
           spawn: (behavior, name) => {
             const actorRef = new BehaviorActorRef(behavior, name);
+
             capturedActions.push({
-              type: 'xstate.spawnStart',
-              actorRef,
-              name
+              type: ActionTypes.Start,
+              src: actorRef,
+              id: name
             });
 
             return actorRef;

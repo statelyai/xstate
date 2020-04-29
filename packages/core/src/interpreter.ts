@@ -7,7 +7,6 @@ import {
   StateSchema,
   SpecialTargets,
   ActionTypes,
-  InvokeDefinition,
   SendActionObject,
   StateValue,
   InterpreterOptions,
@@ -20,7 +19,8 @@ import {
   Observer,
   Spawnable,
   Typestate,
-  BehaviorCreator
+  BehaviorCreator,
+  InvokeActionObject
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -33,9 +33,7 @@ import {
   keys,
   isArray,
   isFunction,
-  isString,
   isObservable,
-  uniqueId,
   isMachineNode,
   toSCXMLEvent,
   symbolObservable
@@ -738,7 +736,9 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, TEvent>,
+    action:
+      | InvokeActionObject<TContext, TEvent>
+      | ActionObject<TContext, TEvent>,
     state: State<TContext, TEvent>,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
@@ -790,74 +790,59 @@ export class Interpreter<
         this.cancel((action as CancelActionObject<TContext, TEvent>).sendId);
 
         break;
-      case 'xstate.spawnStart':
-        this.children.set(action.name, action.actorRef);
-        this.current.children[action.name] = action.actorRef;
-        action.actorRef.start();
-        break;
-      case actionTypes.start: {
-        const activity = (action as ActivityActionObject<TContext, TEvent>)
-          .actor as InvokeDefinition<TContext, TEvent>;
 
-        // If the activity will be stopped right after it's started
-        // (such as in transient states)
-        // don't bother starting the activity.
-        // if (!this.state.activities[activity.type]) {
-        //   break;
-        // }
+      case ActionTypes.Start: {
+        const { id, data, autoForward, src } = action as InvokeActionObject<
+          TContext,
+          TEvent
+        >;
 
-        // Invoked services
-        if (activity.type === ActionTypes.Invoke) {
-          const behaviorCreator:
-            | BehaviorCreator<TContext, TEvent>
-            | undefined = this.machine.options.services
-            ? this.machine.options.services[activity.src]
-            : undefined;
+        try {
+          let actorRef: ActorRef<any, any>;
 
-          const { id, data } = activity;
+          if (isActorRef(src)) {
+            actorRef = src;
+          } else {
+            const behaviorCreator:
+              | BehaviorCreator<TContext, TEvent>
+              | undefined = this.machine.options.services[src];
 
-          const autoForward =
-            'autoForward' in activity
-              ? activity.autoForward
-              : !!activity.forward;
-
-          if (!behaviorCreator) {
-            if (!IS_PRODUCTION) {
-              warn(
-                false,
-                `No service found for invocation '${activity.src}' in machine '${this.machine.id}'.`
-              );
+            if (!behaviorCreator) {
+              if (!IS_PRODUCTION) {
+                warn(
+                  false,
+                  `No service found for invocation '${src}' in machine '${this.machine.id}'.`
+                );
+              }
+              return;
             }
-            return;
-          }
 
-          try {
             const behavior = behaviorCreator(context, _event.data, {
-              parent: this as any,
+              parent: this.ref,
               id,
               data,
               _event
             });
 
-            const actor = new BehaviorActorRef(behavior, id);
-
-            if (autoForward) {
-              this.forwardTo.add(id);
-            }
-
-            this.children.set(id, actor);
-            this.current.children[id] = actor;
-
-            actor.start();
-          } catch (err) {
-            this.send(error(id, err));
+            actorRef = new BehaviorActorRef(behavior, id);
           }
+
+          if (autoForward) {
+            this.forwardTo.add(id);
+          }
+
+          this.children.set(id, actorRef);
+          this.current.children[id] = actorRef;
+
+          actorRef.start();
+        } catch (err) {
+          this.send(error(id, err));
         }
 
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.actor.id);
+        this.stopChild(action.ref);
         break;
       }
 

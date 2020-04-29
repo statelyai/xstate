@@ -170,21 +170,6 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
 
 export type DisposeActivityFunction = () => void;
 
-export type ActivityConfig<TContext, TEvent extends EventObject> = (
-  ctx: TContext,
-  activity: ActivityDefinition<TContext, TEvent>
-) => DisposeActivityFunction | void;
-
-export type Activity<TContext, TEvent extends EventObject> =
-  | string
-  | ActivityDefinition<TContext, TEvent>;
-
-export interface ActivityDefinition<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  id: string;
-  type: string;
-}
-
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
@@ -230,8 +215,8 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
   }
 ) => Behavior<TEvent>;
 
-export interface InvokeDefinition<TContext, TEvent extends EventObject>
-  extends ActivityDefinition<TContext, TEvent> {
+export interface InvokeDefinition<TContext, TEvent extends EventObject> {
+  id: string;
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -573,7 +558,6 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
   services: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
@@ -674,12 +658,18 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface InvokeActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  type: ActionTypes.Start | ActionTypes.Stop;
-  actor: ActorRef<any, any>;
-  name?: string;
-  exec: undefined;
+export interface InvokeActionObject<TContext, TEvent extends EventObject> {
+  type: ActionTypes.Start;
+  src: string | ActorRef<any, any>;
+  id: string;
+  autoForward?: boolean;
+  data?: any;
+  exec?: undefined;
+}
+
+export interface StopActionObject<TContext, TEvent extends EventObject> {
+  type: ActionTypes.Stop;
+  actor: string | ActorRef<any, any>;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
