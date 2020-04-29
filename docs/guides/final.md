@@ -72,6 +72,7 @@ This is very useful in modeling parallel tasks. For example, suppose `user` and 
 ```js
 const shoppingMachine = Machine({
   id: 'shopping',
+  initial: 'cart',
   states: {
     cart: {
       type: 'parallel',
