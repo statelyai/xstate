@@ -234,6 +234,18 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 }
 
 export interface Delay {
