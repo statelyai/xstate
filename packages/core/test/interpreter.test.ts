@@ -1525,6 +1525,45 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           service.execute(state);
         });
       });
+
+      it('execute option should be configurable for invoked machines', (done) => {
+        const childMachine = createMachine({
+          initial: 'active',
+          states: {
+            active: {
+              entry: () => {
+                throw new Error('action executed on childMachine');
+              }
+            }
+          }
+        });
+
+        const parentMachine = createMachine({
+          initial: 'started',
+          states: {
+            started: {
+              invoke: {
+                src: childMachine,
+                execute: false
+              },
+              on: {
+                EVENT: 'success'
+              }
+            },
+            success: { type: 'final' }
+          }
+        });
+
+        const service = interpret(parentMachine)
+          .onDone(() => {
+            done();
+          })
+          .start();
+
+        setTimeout(() => {
+          service.send('EVENT');
+        }, 20);
+      });
     });
 
     describe('id', () => {

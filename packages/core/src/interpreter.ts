@@ -827,7 +827,7 @@ export class Interpreter<
             ? this.machine.options.services[activity.src]
             : undefined;
 
-          const { id, data } = activity;
+          const { id, data, execute = true } = activity;
 
           if (!IS_PRODUCTION) {
             warn(
@@ -875,7 +875,8 @@ export class Interpreter<
                 : source,
               {
                 id,
-                autoForward
+                autoForward,
+                execute
               }
             );
           } else {

@@ -254,6 +254,10 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  /**
+   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
+   */
+  execute?: boolean;
 }
 
 export interface Delay {
@@ -387,6 +391,12 @@ export type InvokeConfig<TContext, TEvent extends EventObject> =
        *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
        */
       forward?: boolean;
+      /**
+       * If `false`, actions on the invoked machine will not be executed.
+       *
+       * Default: `true`
+       */
+      execute?: boolean;
       /**
        * Data from the parent machine's context to set as the (partial or full) context
        * for the invoked child machine.
