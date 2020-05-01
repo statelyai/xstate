@@ -16,7 +16,7 @@ replace({
 
 ### machine.js
 ```js
-import { Machine } from 'xstate';
+import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Svelte
 export const toggleMachine = Machine({
