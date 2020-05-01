@@ -1,6 +1,6 @@
 # Usage with Svelte
 
-Xstate integrates great with Svelte. (Especially Svelte stores!)
+XState integrates great with Svelte, and especially [Svelte stores!](https://svelte.dev/docs#svelte_store)
 
 The only gotcha is that you'll need this extra package.
 ```js
