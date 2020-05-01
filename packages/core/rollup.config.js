@@ -18,7 +18,12 @@ const createNpmConfig = ({ input, output }) => ({
   input,
   output,
   preserveModules: true,
-  plugins: [createTsPlugin()]
+  plugins: [
+    rollupReplace({
+      'process.env.NODE_ENV': JSON.stringify('production')
+    }),
+    createTsPlugin()
+  ]
 });
 
 const createUmdConfig = ({ input, output, target = undefined }) => ({
