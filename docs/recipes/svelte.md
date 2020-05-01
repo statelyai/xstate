@@ -53,7 +53,7 @@ export const toggleMachine = createMachine({
 ```
 
 ### App.svelte - Store usage
-The toggleService has a .subscribe function that is similar to svelte stores, so it can be used as a readable store!
+The toggleService has a `.subscribe` function that is similar to Svelte stores, so it can be used as a readable store.
 ```html
 <script>
     import {interpret} from 'xstate';
