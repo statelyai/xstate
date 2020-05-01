@@ -19,7 +19,7 @@ replace({
 import { createMachine } from 'xstate';
 
 // This machine is completely decoupled from Svelte
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: 'toggle',
   initial: 'inactive',
   states: {
