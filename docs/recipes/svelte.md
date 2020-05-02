@@ -9,7 +9,7 @@ npm install @rollup/plugin-replace --save-dev
 Then add this to the plugins array in rollup.config.js.
 ```js
 replace({ 
-    'process.browser': true
+    'process.env.NODE_ENV': process.env.NODE_ENV
 })
 ```
 
