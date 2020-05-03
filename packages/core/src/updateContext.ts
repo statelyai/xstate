@@ -5,12 +5,14 @@ import {
   AssignMeta,
   ActionObject,
   InvokeActionObject,
-  ActionTypes
+  ActionTypes,
+  Spawnable
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
 import { ActorRef, BehaviorActorRef } from './Actor';
 import { warn, isFunction, keys } from './utils';
+import { createBehaviorFrom } from './behavior';
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
@@ -27,23 +29,33 @@ export function updateContext<TContext, TEvent extends EventObject>(
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
+
+        const spawner = (behavior, name) => {
+          const actorRef = new BehaviorActorRef(behavior, name);
+
+          capturedActions.push({
+            type: ActionTypes.Start,
+            src: actorRef,
+            id: name
+          });
+
+          return actorRef;
+        };
+
+        spawner.from = (entity: Spawnable, name?: string) => {
+          const behavior = createBehaviorFrom(entity, service);
+
+          return spawner(behavior, name);
+        };
+
         const meta: AssignMeta<TContext, TEvent> = {
           state,
           action: assignAction,
           _event,
           self: service,
-          spawn: (behavior, name) => {
-            const actorRef = new BehaviorActorRef(behavior, name);
-
-            capturedActions.push({
-              type: ActionTypes.Start,
-              src: actorRef,
-              id: name
-            });
-
-            return actorRef;
-          }
+          spawn: spawner
         };
+
         let partialUpdate: Partial<TContext> = {};
         if (isFunction(assignment)) {
           partialUpdate = assignment(acc, _event.data, meta);

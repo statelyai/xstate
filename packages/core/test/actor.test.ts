@@ -67,9 +67,9 @@ describe('spawning machines', () => {
     on: {
       ADD: {
         actions: assign({
-          todoRefs: (ctx, e, { self, spawn }) => ({
+          todoRefs: (ctx, e, { spawn }) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(createMachineBehavior(todoMachine, self))
+            [e.id]: spawn.from(todoMachine)
           })
         })
       },
@@ -121,8 +121,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: (_, __, { self, spawn }) =>
-              spawn(createMachineBehavior(serverMachine, self))
+            server: (_, __, { spawn }) => spawn.from(serverMachine)
           }),
           raise('SUCCESS')
         ],
@@ -188,15 +187,12 @@ describe('spawning promises', () => {
     states: {
       idle: {
         entry: assign({
-          promiseRef: (_, __, { spawn, self }) => {
+          promiseRef: (_, __, { spawn }) => {
             const promise = new Promise((res) => {
               res('response');
             });
 
-            const ref = spawn(
-              createPromiseBehavior(promise, self),
-              'my-promise'
-            );
+            const ref = spawn.from(promise, 'my-promise');
 
             return ref;
           }
@@ -234,18 +230,16 @@ describe('spawning callbacks', () => {
       states: {
         idle: {
           entry: assign({
-            callbackRef: (_, __, { self, spawn }) =>
-              spawn(
-                createCallbackBehavior((cb, receive) => {
-                  receive((event) => {
-                    if (event.type === 'START') {
-                      setTimeout(() => {
-                        cb('SEND_BACK');
-                      }, 10);
-                    }
-                  });
-                }, self)
-              )
+            callbackRef: (_, __, { spawn }) =>
+              spawn.from((cb, receive) => {
+                receive((event) => {
+                  if (event.type === 'START') {
+                    setTimeout(() => {
+                      cb('SEND_BACK');
+                    }, 10);
+                  }
+                });
+              })
           }),
           on: {
             START_CB: {
@@ -285,16 +279,13 @@ describe('spawning observables', () => {
       states: {
         idle: {
           entry: assign({
-            observableRef: (_, __, { self, spawn }) => {
-              const ref = spawn(
-                createObservableBehavior(
-                  interval(10).pipe(
-                    map((n) => ({
-                      type: 'INT',
-                      value: n
-                    }))
-                  ),
-                  self
+            observableRef: (_, __, { spawn }) => {
+              const ref = spawn.from(
+                interval(10).pipe(
+                  map((n) => ({
+                    type: 'INT',
+                    value: n
+                  }))
                 )
               );
 
@@ -434,12 +425,10 @@ describe('actors', () => {
       states: {
         start: {
           entry: assign({
-            refs: (ctx, _, { self, spawn }) => {
+            refs: (ctx, _, { spawn }) => {
               count++;
               const c = ctx.items.map((item) =>
-                spawn(
-                  createPromiseBehavior(new Promise((res) => res(item)), self)
-                )
+                spawn.from(new Promise((res) => res(item)))
               );
 
               return c;
@@ -463,8 +452,7 @@ describe('actors', () => {
       states: {
         foo: {
           entry: assign({
-            ref: (_, __, { self, spawn }) =>
-              spawn(createPromiseBehavior(Promise.resolve(42), self))
+            ref: (_, __, { spawn }) => spawn.from(Promise.resolve(42))
           })
         }
       }
@@ -504,8 +492,8 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign((_, __, { self, spawn }) => ({
-              serverRef: spawn(createMachineBehavior(pongActorMachine, self))
+            entry: assign((_, __, { spawn }) => ({
+              serverRef: spawn.from(pongActorMachine)
             })),
             on: {
               PONG: {

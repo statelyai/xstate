@@ -1,7 +1,8 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { Machine, interpret, assign, Interpreter, createMachine } from 'xstate';
+import { Machine, interpret, assign, createMachine } from 'xstate';
 import { useService, useMachine } from '../src';
+import { ActorRef } from 'xstate/src/Actor';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -9,7 +10,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<Interpreter<TodoCtx>>;
+      todos: Array<ActorRef<any>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -35,9 +36,9 @@ describe('useService', () => {
       states: { working: {} },
       on: {
         CREATE: {
-          actions: assign((ctx) => ({
+          actions: assign((ctx, _, { spawn }) => ({
             ...ctx,
-            todos: ctx.todos.concat(spawn(todoMachine))
+            todos: ctx.todos.concat(spawn.from(todoMachine))
           }))
         }
       }

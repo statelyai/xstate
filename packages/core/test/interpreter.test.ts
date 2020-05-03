@@ -91,16 +91,12 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: (_, __, { self, spawn }) => {
+              actor: (_, __, { spawn }) => {
                 entryCalled++;
-                return spawn(
-                  createPromiseBehavior(
-                    new Promise(() => {
-                      promiseSpawned++;
-                    }),
-                    self
-                  ),
-                  'x'
+                return spawn.from(
+                  new Promise(() => {
+                    promiseSpawned++;
+                  })
                 );
               }
             })

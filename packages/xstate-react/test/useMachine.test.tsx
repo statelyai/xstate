@@ -8,6 +8,7 @@ import {
   State,
   createMachine
 } from 'xstate';
+import { createPromiseBehavior } from 'xstate/behavior';
 import {
   render,
   fireEvent,
@@ -189,7 +190,11 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: () => spawn(new Promise((res) => res(42)), 'my-promise')
+            ref: (_, __, { spawn, self }) =>
+              spawn(
+                createPromiseBehavior(new Promise((res) => res(42)), self),
+                'my-promise'
+              )
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'

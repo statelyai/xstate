@@ -57,7 +57,10 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<TEvent>;
-  spawn: (behavior: Behavior<any>, name?: string) => ActorRef<any>;
+  spawn: {
+    (behavior: Behavior<any>, name?: string): ActorRef<any>;
+    from: (entity: Spawnable, name?: string) => ActorRef<any>;
+  };
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -1051,7 +1054,7 @@ export interface Observer<T> {
 
 export type Spawnable =
   | MachineNode<any, any, any>
-  | Promise<any>
+  | PromiseLike<any>
   | InvokeCallback
   | Subscribable<any>;
 

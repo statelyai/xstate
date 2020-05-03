@@ -1,13 +1,19 @@
 import {
   EventObject,
   InvokeCallback,
-  SCXML,
   Subscribable,
   Unsubscribable,
-  InterpreterOptions
+  InterpreterOptions,
+  Spawnable
 } from './types';
 import { ActorRef } from './Actor';
-import { toSCXMLEvent, isPromiseLike } from './utils';
+import {
+  toSCXMLEvent,
+  isPromiseLike,
+  isObservable,
+  isMachineNode,
+  isSCXMLEvent
+} from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
 import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
@@ -34,14 +40,15 @@ export interface Behavior<TEvent extends EventObject> {
 export function createCallbackBehavior<TEvent extends EventObject>(
   callback: InvokeCallback,
   parent?: ActorRef<any>
-): Behavior<SCXML.Event<TEvent>> {
+): Behavior<TEvent> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
   let dispose;
 
-  const behavior: Behavior<SCXML.Event<TEvent>> = {
+  const behavior: Behavior<TEvent> = {
     receive: (_, event) => {
-      receivers.forEach((receiver) => receiver(event.data));
+      const plainEvent = isSCXMLEvent(event) ? event.data : event;
+      receivers.forEach((receiver) => receiver(plainEvent));
 
       return behavior;
     },
@@ -252,4 +259,27 @@ export function createServiceBehavior<TContext, TEvent extends EventObject>(
   };
 
   return behavior;
+}
+
+export function createBehaviorFrom<TEvent extends EventObject>(
+  entity: Spawnable,
+  parent?: ActorRef<any>
+): Behavior<TEvent> {
+  if (isPromiseLike(entity)) {
+    return createPromiseBehavior(entity, parent);
+  }
+
+  if (isObservable(entity)) {
+    return createObservableBehavior(entity, parent);
+  }
+
+  if (isMachineNode(entity)) {
+    return createMachineBehavior(entity, parent);
+  }
+
+  if (isFunction(entity)) {
+    return createCallbackBehavior(entity as InvokeCallback, parent);
+  }
+
+  throw new Error(`Unable to create behavior from entity`);
 }

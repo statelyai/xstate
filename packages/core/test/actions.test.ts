@@ -1084,8 +1084,7 @@ describe('forwardTo()', () => {
       states: {
         first: {
           entry: assign({
-            child: (_, __, { self, spawn }) =>
-              spawn(createMachineBehavior(child, self), 'x')
+            child: (_, __, { spawn }) => spawn.from(child, 'x')
           }),
           on: {
             EVENT: {
