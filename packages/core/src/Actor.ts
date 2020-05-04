@@ -3,7 +3,8 @@ import {
   Subscribable,
   SCXML,
   InvokeCallback,
-  InterpreterOptions
+  InterpreterOptions,
+  Spawnable
 } from './types';
 import { MachineNode } from './MachineNode';
 import { Interpreter } from './interpreter';
@@ -19,16 +20,30 @@ import {
   createObservableBehavior
 } from './behavior';
 import { registry } from './registry';
+import { State } from './State';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface ActorRef<TEvent extends EventObject> {
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
   ref: any;
   start: () => ActorRef<TEvent>;
   stop: () => void;
+  /**
+   * The initial emitted value.
+   */
+  initial: TEmitted;
   id: string;
 }
+
+export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
+  infer TC,
+  any,
+  infer TE
+>
+  ? ActorRef<TE, State<TC, TE>>
+  : ActorRef<any>;
 
 export function isActorRef(item: any): item is ActorRef<any> {
   try {
@@ -84,16 +99,19 @@ export function fromService<TContext, TEvent extends EventObject>(
   return new BehaviorActorRef(createServiceBehavior(service), id);
 }
 
-export class BehaviorActorRef<TEvent extends EventObject>
-  implements ActorRef<TEvent> {
+export class BehaviorActorRef<TEvent extends EventObject, TEmitted>
+  implements ActorRef<TEvent, TEmitted> {
   public ref;
+  public initial: TEmitted;
   private context: ActorContext;
-  constructor(public behavior: Behavior<TEvent>, public id: string) {
+
+  constructor(public behavior: Behavior<TEvent, TEmitted>, public id: string) {
     this.context = {
       self: this,
       name: this.id
     };
     this.ref = behavior;
+    this.initial = behavior.initial;
   }
   public start() {
     this.behavior = this.behavior.receiveSignal(this.context, startSignal);
@@ -101,6 +119,9 @@ export class BehaviorActorRef<TEvent extends EventObject>
   }
   public stop() {
     this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
+  }
+  public subscribe(observer) {
+    return this.behavior.subscribe?.(observer);
   }
   public send(event) {
     this.behavior = this.behavior.receive(this.context, event);

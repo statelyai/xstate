@@ -95,7 +95,7 @@ export class Interpreter<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = any
-> implements ActorRef<TEvent> {
+> {
   /**
    * The default interpreter options:
    *
@@ -320,8 +320,8 @@ export class Interpreter<
     if (typeof nextListenerOrObserver === 'function') {
       listener = nextListenerOrObserver;
     } else {
-      listener = nextListenerOrObserver.next.bind(nextListenerOrObserver);
-      resolvedCompleteListener = nextListenerOrObserver.complete.bind(
+      listener = nextListenerOrObserver.next!.bind(nextListenerOrObserver);
+      resolvedCompleteListener = nextListenerOrObserver.complete?.bind(
         nextListenerOrObserver
       );
     }

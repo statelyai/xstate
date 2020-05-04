@@ -1,7 +1,7 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { Machine, interpret, assign, createMachine } from 'xstate';
-import { useService, useMachine } from '../src';
+import { Machine, interpret, assign, createMachine, State } from 'xstate';
+import { useService, useMachine, useActor } from '../src';
 import { ActorRef } from 'xstate/src/Actor';
 
 describe('useService', () => {
@@ -10,7 +10,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<ActorRef<any>>;
+      todos: Array<ActorRef<any, State<TodoCtx, any>>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -49,7 +49,7 @@ describe('useService', () => {
     const Todo = ({ index }: { index: number }) => {
       const [current] = useService(service);
       const todoRef = current.context.todos[index];
-      const [todoCurrent] = useService(todoRef);
+      const [todoCurrent] = useActor(todoRef);
       return <>{todoCurrent.context.completed}</>;
     };
 

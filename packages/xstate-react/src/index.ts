@@ -12,6 +12,7 @@ import {
 } from 'xstate';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
+import { ActorRef } from 'xstate/src/Actor';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
@@ -146,4 +147,20 @@ export function useService<
   const state = useSubscription(subscription);
 
   return [state, service.send, service];
+}
+
+export function useActor<TEvent extends EventObject, TEmitted>(
+  actorRef: ActorRef<TEvent, TEmitted>
+): [TEmitted, (event: TEvent) => void] {
+  const [state, setState] = useState(actorRef.initial);
+
+  useEffect(() => {
+    const sub = actorRef.subscribe((nextState) => {
+      setState(nextState);
+    });
+
+    return () => sub?.unsubscribe();
+  }, [actorRef]);
+
+  return [state, actorRef.send];
 }

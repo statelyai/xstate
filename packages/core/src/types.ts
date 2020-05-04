@@ -1,7 +1,7 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
-import { ActorRef } from './Actor';
+import { ActorRef, ActorRefFrom } from './Actor';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -59,7 +59,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   self?: ActorRef<TEvent>;
   spawn: {
     (behavior: Behavior<any>, name?: string): ActorRef<any>;
-    from: (entity: Spawnable, name?: string) => ActorRef<any>;
+    from: <T extends Spawnable>(entity: T, name?: string) => ActorRefFrom<T>;
   };
 }
 
@@ -1046,12 +1046,6 @@ export declare namespace SCXML {
   }
 }
 
-export interface Observer<T> {
-  next: (value: T) => void;
-  error: (err: any) => void;
-  complete: () => void;
-}
-
 export type Spawnable =
   | MachineNode<any, any, any>
   | PromiseLike<any>
@@ -1062,12 +1056,24 @@ export type Spawnable =
 export interface Unsubscribable {
   unsubscribe(): any | void;
 }
+
+export interface Observer<T> {
+  // Sends the next value in the sequence
+  next?: (value: T) => void;
+
+  // Sends the sequence error
+  error?: (errorValue: any) => void;
+
+  // Sends the completion notification
+  complete?: () => void;
+}
+
 export interface Subscribable<T> {
-  subscribe(
-    next?: (value: T) => void,
+  subscribe: (
+    next: ((value: T) => void) | Observer<T>,
     error?: (error: any) => void,
     complete?: () => void
-  ): Unsubscribable | undefined;
+  ) => Unsubscribable | undefined;
 }
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>

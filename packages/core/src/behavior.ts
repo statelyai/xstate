@@ -4,7 +4,8 @@ import {
   Subscribable,
   Unsubscribable,
   InterpreterOptions,
-  Spawnable
+  Spawnable,
+  Observer
 } from './types';
 import { ActorRef } from './Actor';
 import {
@@ -18,9 +19,10 @@ import { doneInvoke, error, actionTypes } from './actions';
 import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
 import { interpret, Interpreter } from './interpreter';
+import { State } from './State';
 
 export interface ActorContext {
-  self: ActorRef<any>;
+  self: ActorRef<any, any>; // TODO: use type params
   name: string;
 }
 
@@ -29,12 +31,20 @@ export const stopSignal = Symbol('xstate.stop');
 
 export type LifecycleSignal = typeof startSignal | typeof stopSignal;
 
-export interface Behavior<TEvent extends EventObject> {
+export interface Behavior<
+  TEvent extends EventObject,
+  TEmitted extends any = never
+> {
   receive: (actorContext: ActorContext, event: TEvent) => Behavior<TEvent>;
   receiveSignal: (
     actorContext: ActorContext,
     signal: LifecycleSignal
   ) => Behavior<TEvent>;
+  /**
+   * The initial emitted value
+   */
+  initial: TEmitted;
+  subscribe?: (observer: Observer<TEmitted>) => Unsubscribable | undefined;
 }
 
 export function createCallbackBehavior<TEvent extends EventObject>(
@@ -107,10 +117,11 @@ export function createCallbackBehavior<TEvent extends EventObject>(
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   promise: PromiseLike<T>,
   parent?: ActorRef<any>
-): Behavior<TEvent> {
+): Behavior<TEvent, T> {
   let canceled = false;
+  const observers: Set<Observer<T>> = new Set();
 
-  const behavior = {
+  const behavior: Behavior<TEvent, T> = {
     receive: () => {
       return behavior;
     },
@@ -127,6 +138,11 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
                     origin: actorContext.self
                   })
                 );
+
+                observers.forEach((observer) => {
+                  observer.next?.(response);
+                  observer.complete?.();
+                });
               }
             },
             (errorData) => {
@@ -136,16 +152,31 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
                 parent?.send(
                   toSCXMLEvent(errorEvent, { origin: actorContext.self })
                 );
+
+                observers.forEach((observer) => {
+                  observer.error?.(errorData);
+                  observer.complete?.();
+                });
               }
             }
           );
           return behavior;
         case stopSignal:
           canceled = true;
+          observers.clear();
           return behavior;
         default:
           return behavior;
       }
+    },
+    subscribe: (observer) => {
+      observers.add(observer);
+
+      return {
+        unsubscribe: () => {
+          observers.delete(observer);
+        }
+      };
     }
   };
 
@@ -155,10 +186,10 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
->(observable: Subscribable<T>, parent?: ActorRef<any>): Behavior<TEvent> {
+>(observable: Subscribable<T>, parent?: ActorRef<any>): Behavior<TEvent, T> {
   let subscription: Unsubscribable | undefined;
 
-  const behavior = {
+  const behavior: Behavior<TEvent, T> = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
         subscription = observable.subscribe(
@@ -186,7 +217,10 @@ export function createObservableBehavior<
 
       return behavior;
     },
-    receive: () => behavior
+    receive: () => behavior,
+    subscribe: (observer) => {
+      return observable.subscribe(observer);
+    }
   };
 
   return behavior;
@@ -196,11 +230,11 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
   parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
-): Behavior<TEvent> {
+): Behavior<TEvent, State<TContext, TEvent>> {
   let service: Interpreter<TContext, any, TEvent>;
   let subscription: Unsubscribable;
 
-  const behavior: Behavior<TEvent> = {
+  const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
         service = interpret(machine, {
@@ -239,7 +273,11 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
     receive: (_, event) => {
       service.send(event);
       return behavior;
-    }
+    },
+    subscribe: (observer) => {
+      return service?.subscribe(observer);
+    },
+    initial: machine.initialState // TODO: this should get from machine.getInitialState(ref)
   };
 
   return behavior;
@@ -247,24 +285,47 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
 
 export function createServiceBehavior<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>
-): Behavior<TEvent> {
-  const behavior = {
+): Behavior<TEvent, State<TContext, TEvent>> {
+  const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receive: (actorContext, event) => {
       service.send(toSCXMLEvent(event, { origin: actorContext.self }));
       return behavior;
     },
     receiveSignal: () => {
       return behavior;
-    }
+    },
+    subscribe: (observer) => {
+      return service.subscribe(observer);
+    },
+    initial: service.current
   };
 
   return behavior;
 }
 
+export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
+  entity: PromiseLike<TEmitted>,
+  parent?: ActorRef<any>
+): Behavior<TEvent, TEmitted>;
+export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
+  entity: Subscribable<TEmitted>,
+  parent?: ActorRef<any>
+): Behavior<TEvent, TEmitted>;
+export function createBehaviorFrom<
+  TEvent extends EventObject,
+  TEmitted extends State<any, any>
+>(
+  entity: MachineNode<TEmitted['context'], any, TEmitted['event']>,
+  parent?: ActorRef<any>
+): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject>(
+  entity: InvokeCallback,
+  parent?: ActorRef<any>
+): Behavior<TEvent, never>;
+export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
   entity: Spawnable,
   parent?: ActorRef<any>
-): Behavior<TEvent> {
+): Behavior<TEvent, TEmitted> {
   if (isPromiseLike(entity)) {
     return createPromiseBehavior(entity, parent);
   }
@@ -274,6 +335,7 @@ export function createBehaviorFrom<TEvent extends EventObject>(
   }
 
   if (isMachineNode(entity)) {
+    // @ts-ignore
     return createMachineBehavior(entity, parent);
   }
 
