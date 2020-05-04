@@ -476,7 +476,9 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : withServiceScope(this, () => {
-            return isState<TContext, TEvent>(initialState)
+            return isState<TContext, TEvent, TStateSchema, TTypestate>(
+              initialState
+            )
               ? this.machine.resolveState(initialState)
               : this.machine.resolveState(
                   State.from(initialState, this.machine.context)
