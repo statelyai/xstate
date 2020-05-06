@@ -43,7 +43,7 @@ export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
   infer TE
 >
   ? ActorRef<TE, State<TC, TE>>
-  : ActorRef<any>;
+  : ActorRef<any, any>; // TODO: expand
 
 export function isActorRef(item: any): item is ActorRef<any> {
   try {
@@ -69,10 +69,7 @@ export function fromPromise<T>(
   return new BehaviorActorRef(createPromiseBehavior(promise, parent), id);
 }
 
-export function fromCallback<
-  TEmitted extends EventObject,
-  TEvent extends EventObject
->(
+export function fromCallback<TEvent extends EventObject>(
   callback: InvokeCallback,
   parent: ActorRef<any>,
   id: string

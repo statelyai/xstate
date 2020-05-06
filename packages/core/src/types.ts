@@ -58,7 +58,7 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<TEvent>;
   spawn: {
-    (behavior: Behavior<any>, name?: string): ActorRef<any>;
+    (behavior: Behavior<any, any>, name?: string): ActorRef<any>;
     from: <T extends Spawnable>(entity: T, name?: string) => ActorRefFrom<T>;
   };
 }
@@ -190,7 +190,7 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
     data?: any;
     _event: SCXML.Event<TEvent>;
   }
-) => Behavior<TEvent>;
+) => Behavior<any, any>;
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   id: string;
@@ -646,7 +646,7 @@ export interface NullEvent {
 export interface InvokeActionObject {
   type: ActionTypes.Start;
   src: string | ActorRef<any>;
-  id?: string;
+  id: string;
   autoForward?: boolean;
   data?: any;
   exec?: undefined;
@@ -1065,15 +1065,16 @@ export interface Observer<T> {
   error?: (errorValue: any) => void;
 
   // Sends the completion notification
-  complete?: () => void;
+  complete: () => void;
 }
 
 export interface Subscribable<T> {
-  subscribe: (
-    next: ((value: T) => void) | Observer<T>,
+  subscribe(observer: Observer<T>): Unsubscribable | undefined;
+  subscribe(
+    next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
-  ) => Unsubscribable | undefined;
+  ): Unsubscribable | undefined;
 }
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>

@@ -12,12 +12,7 @@ import { ActorRef, fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
-import {
-  createPromiseBehavior,
-  createCallbackBehavior,
-  createObservableBehavior,
-  createMachineBehavior
-} from '../src/behavior';
+import { createMachineBehavior } from '../src/behavior';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({

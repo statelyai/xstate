@@ -60,18 +60,18 @@ export function invokeActivity<TC, TE extends EventObject>(
 }
 
 export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
-  callbackCreator: (ctx: any, e: any) => InvokeCallback
-): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, event, { parent }): Behavior<SCXML.Event<TE>> => {
+  callbackCreator: (ctx: TC, e: TE) => InvokeCallback
+): BehaviorCreator<TC, TE> {
+  return (ctx, event, { parent }): Behavior<SCXML.Event<TE>, undefined> => {
     const callback = callbackCreator(ctx, event);
-    return createCallbackBehavior<TE>(callback, parent);
+    return createCallbackBehavior<SCXML.Event<TE>>(callback, parent);
   };
 }
 
 export function invokeObservable<T extends EventObject = AnyEventObject>(
   source: Subscribable<T> | ((ctx: any, event: any) => Subscribable<T>)
 ): BehaviorCreator<any, any> {
-  return (ctx, e, { parent }): Behavior<T> => {
+  return (ctx, e, { parent }): Behavior<never, T | undefined> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
     return createObservableBehavior(resolvedSource, parent);
   };

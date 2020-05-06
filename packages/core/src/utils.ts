@@ -25,7 +25,6 @@ import {
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig } from '.';
-import { BehaviorActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -490,7 +489,7 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
     | InvokeConfig<TContext, TEvent>
     | string
     | BehaviorCreator<TContext, TEvent>
-    | Behavior<TEvent>,
+    | Behavior<any, any>,
   id: string
 ): InvokeConfig<TContext, TEvent> {
   if (typeof invocable === 'object') {
@@ -501,7 +500,7 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
     if ('receive' in invocable) {
       return {
         id,
-        src: () => new BehaviorActorRef(invocable, id)
+        src: () => invocable
       };
     }
   }

@@ -23,7 +23,6 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
-import { createPromiseBehavior } from '../src/behavior';
 
 const lightMachine = Machine({
   id: 'light',

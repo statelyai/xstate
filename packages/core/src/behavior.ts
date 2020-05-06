@@ -31,15 +31,15 @@ export const stopSignal = Symbol('xstate.stop');
 
 export type LifecycleSignal = typeof startSignal | typeof stopSignal;
 
-export interface Behavior<
-  TEvent extends EventObject,
-  TEmitted extends any = never
-> {
-  receive: (actorContext: ActorContext, event: TEvent) => Behavior<TEvent>;
+export interface Behavior<TEvent extends EventObject, TEmitted extends any> {
+  receive: (
+    actorContext: ActorContext,
+    event: TEvent
+  ) => Behavior<TEvent, TEmitted>;
   receiveSignal: (
     actorContext: ActorContext,
     signal: LifecycleSignal
-  ) => Behavior<TEvent>;
+  ) => Behavior<TEvent, TEmitted>;
   /**
    * The initial emitted value
    */
@@ -50,12 +50,12 @@ export interface Behavior<
 export function createCallbackBehavior<TEvent extends EventObject>(
   callback: InvokeCallback,
   parent?: ActorRef<any>
-): Behavior<TEvent> {
+): Behavior<TEvent, undefined> {
   let canceled = false;
   const receivers = new Set<(e: EventObject) => void>();
   let dispose;
 
-  const behavior: Behavior<TEvent> = {
+  const behavior: Behavior<TEvent, undefined> = {
     receive: (_, event) => {
       const plainEvent = isSCXMLEvent(event) ? event.data : event;
       receivers.forEach((receiver) => receiver(plainEvent));
@@ -108,7 +108,8 @@ export function createCallbackBehavior<TEvent extends EventObject>(
       }
 
       return behavior;
-    }
+    },
+    initial: undefined
   };
 
   return behavior;
@@ -117,11 +118,11 @@ export function createCallbackBehavior<TEvent extends EventObject>(
 export function createPromiseBehavior<T, TEvent extends EventObject>(
   promise: PromiseLike<T>,
   parent?: ActorRef<any>
-): Behavior<TEvent, T> {
+): Behavior<TEvent, T | undefined> {
   let canceled = false;
   const observers: Set<Observer<T>> = new Set();
 
-  const behavior: Behavior<TEvent, T> = {
+  const behavior: Behavior<TEvent, T | undefined> = {
     receive: () => {
       return behavior;
     },
@@ -177,7 +178,8 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
           observers.delete(observer);
         }
       };
-    }
+    },
+    initial: undefined
   };
 
   return behavior;
@@ -186,10 +188,13 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
->(observable: Subscribable<T>, parent?: ActorRef<any>): Behavior<TEvent, T> {
+>(
+  observable: Subscribable<T>,
+  parent?: ActorRef<any>
+): Behavior<TEvent, T | undefined> {
   let subscription: Unsubscribable | undefined;
 
-  const behavior: Behavior<TEvent, T> = {
+  const behavior: Behavior<TEvent, T | undefined> = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
         subscription = observable.subscribe(
@@ -220,7 +225,8 @@ export function createObservableBehavior<
     receive: () => behavior,
     subscribe: (observer) => {
       return observable.subscribe(observer);
-    }
+    },
+    initial: undefined
   };
 
   return behavior;
@@ -308,9 +314,9 @@ export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
   parent?: ActorRef<any>
 ): Behavior<TEvent, TEmitted>;
 export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
-  entity: Subscribable<TEmitted>,
+  entity: Subscribable<any>,
   parent?: ActorRef<any>
-): Behavior<TEvent, TEmitted>;
+): Behavior<any, TEmitted>;
 export function createBehaviorFrom<
   TEvent extends EventObject,
   TEmitted extends State<any, any>
@@ -321,11 +327,11 @@ export function createBehaviorFrom<
 export function createBehaviorFrom<TEvent extends EventObject>(
   entity: InvokeCallback,
   parent?: ActorRef<any>
-): Behavior<TEvent, never>;
-export function createBehaviorFrom<TEvent extends EventObject, TEmitted>(
+): Behavior<TEvent, undefined>;
+export function createBehaviorFrom(
   entity: Spawnable,
   parent?: ActorRef<any>
-): Behavior<TEvent, TEmitted> {
+): Behavior<any, any> {
   if (isPromiseLike(entity)) {
     return createPromiseBehavior(entity, parent);
   }

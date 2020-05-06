@@ -1469,7 +1469,7 @@ export function resolveMicroTransition<
 
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
-      const { actor: ref } = action as StopActionObject<TContext, TEvent>;
+      const { actor: ref } = action as StopActionObject;
       if (isActorRef(ref)) {
         ref.stop();
         delete children[ref.id];

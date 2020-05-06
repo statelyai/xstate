@@ -38,7 +38,7 @@ describe('useService', () => {
         CREATE: {
           actions: assign((ctx, _, { spawn }) => ({
             ...ctx,
-            todos: ctx.todos.concat(spawn.from(todoMachine))
+            todos: [...ctx.todos, spawn.from(todoMachine)]
           }))
         }
       }

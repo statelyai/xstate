@@ -8,7 +8,6 @@ import {
 import { pure, sendParent, log, choose } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src/Actor';
-import { createMachineBehavior } from '../src/behavior';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {

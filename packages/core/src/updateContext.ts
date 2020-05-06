@@ -10,9 +10,10 @@ import {
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
-import { ActorRef, BehaviorActorRef } from './Actor';
+import { ActorRef, BehaviorActorRef, ActorRefFrom } from './Actor';
 import { warn, isFunction, keys } from './utils';
-import { createBehaviorFrom } from './behavior';
+import { createBehaviorFrom, Behavior } from './behavior';
+import { registry } from './registry';
 
 export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
@@ -30,7 +31,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-        const spawner = (behavior, name) => {
+        const spawner = (behavior: Behavior<any, any>, name: string) => {
           const actorRef = new BehaviorActorRef(behavior, name);
 
           capturedActions.push({
@@ -42,10 +43,13 @@ export function updateContext<TContext, TEvent extends EventObject>(
           return actorRef;
         };
 
-        spawner.from = (entity: Spawnable, name?: string) => {
-          const behavior = createBehaviorFrom(entity, service);
+        spawner.from = <T extends Spawnable>(
+          entity: T,
+          name: string = registry.bookId() // TODO: use more universal uniqueid
+        ): ActorRefFrom<T> => {
+          const behavior = createBehaviorFrom(entity as any, service); // TODO: fix
 
-          return spawner(behavior, name);
+          return (spawner(behavior, name) as unknown) as ActorRefFrom<T>; // TODO: fix
         };
 
         const meta: AssignMeta<TContext, TEvent> = {
