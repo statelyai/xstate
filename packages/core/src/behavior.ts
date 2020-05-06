@@ -31,15 +31,22 @@ export const stopSignal = Symbol('xstate.stop');
 
 export type LifecycleSignal = typeof startSignal | typeof stopSignal;
 
-export interface Behavior<TEvent extends EventObject, TEmitted extends any> {
+/**
+ * An object that expresses the behavior of an actor in reaction to received events,
+ * as well as an optionally emitted stream of values.
+ *
+ * @template TReceived The received event
+ * @template TEmitted The emitted value
+ */
+export interface Behavior<TReceived extends EventObject, TEmitted> {
   receive: (
     actorContext: ActorContext,
-    event: TEvent
-  ) => Behavior<TEvent, TEmitted>;
+    event: TReceived
+  ) => Behavior<TReceived, TEmitted>;
   receiveSignal: (
     actorContext: ActorContext,
     signal: LifecycleSignal
-  ) => Behavior<TEvent, TEmitted>;
+  ) => Behavior<TReceived, TEmitted>;
   /**
    * The initial emitted value
    */
