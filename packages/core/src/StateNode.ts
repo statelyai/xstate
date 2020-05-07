@@ -1150,7 +1150,7 @@ class StateNode<
         action
       ): action is
         | RaiseActionObject<TEvent>
-        | SendActionObject<TContext, TEvent> =>
+        | SendActionObject<TContext, TEvent, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
           (action as SendActionObject<TContext, TEvent>).to ===

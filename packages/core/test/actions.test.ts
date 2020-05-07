@@ -8,7 +8,7 @@ import {
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
 
-describe('onEntry/onExit actions', () => {
+describe('entry/exit actions', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -1318,5 +1318,28 @@ describe('choose', () => {
     const service = interpret(machine).start();
 
     expect(service.state.context).toEqual({ answer: 42 });
+  });
+});
+
+describe('sendParent', () => {
+  // https://github.com/davidkpiano/xstate/issues/711
+  it('TS: should compile for any event', () => {
+    interface ChildContext {}
+    interface ChildEvent {
+      type: 'CHILD';
+    }
+
+    const child = Machine<ChildContext, any, ChildEvent>({
+      id: 'child',
+      initial: 'start',
+      states: {
+        start: {
+          // This should not be a TypeScript error
+          entry: [sendParent({ type: 'PARENT' })]
+        }
+      }
+    });
+
+    expect(child).toBeTruthy();
   });
 });
