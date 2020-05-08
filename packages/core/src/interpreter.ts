@@ -27,7 +27,8 @@ import {
   EventData,
   Observer,
   Spawnable,
-  Typestate
+  Typestate,
+  AnyEventObject
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -670,7 +671,7 @@ export class Interpreter<
   }
 
   private sendTo = (
-    event: SCXML.Event<TEvent>,
+    event: SCXML.Event<AnyEventObject>,
     to: string | number | Actor
   ) => {
     const isParent =
@@ -700,7 +701,7 @@ export class Interpreter<
 
     if ('machine' in target) {
       // Send SCXML events to machines
-      (target as Interpreter<TContext, TStateSchema, TEvent>).send({
+      (target as Interpreter<any, any, any>).send({
         ...event,
         name:
           event.name === actionTypes.error ? `${error(this.id)}` : event.name,
@@ -756,7 +757,9 @@ export class Interpreter<
       if (sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to);
       } else {
-        this.send(sendAction._event);
+        this.send(
+          (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+        );
       }
     }, sendAction.delay as number);
   }
@@ -808,7 +811,9 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction._event, sendAction.to);
           } else {
-            this.send(sendAction._event);
+            this.send(
+              (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+            );
           }
         }
         break;
