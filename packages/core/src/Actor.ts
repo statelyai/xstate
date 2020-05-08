@@ -58,7 +58,10 @@ export function fromObservable<T extends EventObject>(
   parent: ActorRef<any>,
   id: string
 ): ActorRef<never> {
-  return new BehaviorActorRef(createObservableBehavior(observable, parent), id);
+  return new ObservableActorRef(
+    createObservableBehavior(observable, parent),
+    id
+  );
 }
 
 export function fromPromise<T>(
@@ -66,7 +69,7 @@ export function fromPromise<T>(
   parent: ActorRef<any>,
   id: string
 ): ActorRef<never> {
-  return new BehaviorActorRef(createPromiseBehavior(promise, parent), id);
+  return new ObservableActorRef(createPromiseBehavior(promise, parent), id);
 }
 
 export function fromCallback<TEvent extends EventObject>(
@@ -74,7 +77,7 @@ export function fromCallback<TEvent extends EventObject>(
   parent: ActorRef<any>,
   id: string
 ): ActorRef<SCXML.Event<TEvent>> {
-  return new BehaviorActorRef(createCallbackBehavior(callback, parent), id);
+  return new ObservableActorRef(createCallbackBehavior(callback, parent), id);
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
@@ -83,7 +86,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
   id: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
-  return new BehaviorActorRef(
+  return new ObservableActorRef(
     createMachineBehavior(machine, parent, options),
     id
   );
@@ -93,10 +96,10 @@ export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
   id: string = registry.bookId()
 ): ActorRef<TEvent> {
-  return new BehaviorActorRef(createServiceBehavior(service), id);
+  return new ObservableActorRef(createServiceBehavior(service), id);
 }
 
-export class BehaviorActorRef<TEvent extends EventObject, TEmitted>
+export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
   public ref;
   public initial: TEmitted;

@@ -10,7 +10,7 @@ import {
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
-import { ActorRef, BehaviorActorRef, ActorRefFrom } from './Actor';
+import { ActorRef, ObservableActorRef, ActorRefFrom } from './Actor';
 import { warn, isFunction, keys } from './utils';
 import { createBehaviorFrom, Behavior } from './behavior';
 import { registry } from './registry';
@@ -32,7 +32,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
         const spawner = (behavior: Behavior<any, any>, name: string) => {
-          const actorRef = new BehaviorActorRef(behavior, name);
+          const actorRef = new ObservableActorRef(behavior, name);
 
           capturedActions.push({
             type: ActionTypes.Start,

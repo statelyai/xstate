@@ -47,7 +47,7 @@ import {
   fromPromise,
   fromObservable,
   fromMachine,
-  BehaviorActorRef
+  ObservableActorRef
 } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
@@ -800,7 +800,7 @@ export class Interpreter<
               _event
             });
 
-            actorRef = new BehaviorActorRef(behavior, id);
+            actorRef = new ObservableActorRef(behavior, id);
           }
 
           if (autoForward) {
