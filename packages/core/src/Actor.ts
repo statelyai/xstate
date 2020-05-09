@@ -26,11 +26,7 @@ const nullSubscription = {
 };
 
 export function isActorRef(item: any): item is ActorRef<any> {
-  try {
-    return typeof item.send === 'function';
-  } catch (e) {
-    return false;
-  }
+  return !!item && typeof item === 'object' && typeof item.send === 'function';
 }
 
 export function fromObservable<T extends EventObject>(
