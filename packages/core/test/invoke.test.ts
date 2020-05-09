@@ -940,9 +940,6 @@ describe('invoke', () => {
       });
 
       it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
-        const doneSpy = jest.fn();
-        const stopSpy = jest.fn();
-
         const promiseMachine = Machine({
           id: 'invokePromise',
           initial: 'pending',
@@ -963,13 +960,10 @@ describe('invoke', () => {
           }
         });
 
-        const service = interpret(promiseMachine)
-          .onDone(doneSpy)
-          .onStop(stopSpy)
-          .onError((err) => {
-            expect(err.message).toEqual(expect.stringMatching(/test/));
-            done();
-          });
+        const service = interpret(promiseMachine).onError((err) => {
+          expect(err.message).toEqual(expect.stringMatching(/test/));
+          done();
+        });
         service.start();
       });
 
