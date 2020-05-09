@@ -53,6 +53,9 @@ describe('json', () => {
               target: ['foo', 'bar'],
               cond: (ctx) => !!ctx.string
             }
+          },
+          after: {
+            1000: 'bar'
           }
         },
         foo: {},

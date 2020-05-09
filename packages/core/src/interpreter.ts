@@ -20,7 +20,8 @@ import {
   Spawnable,
   Typestate,
   BehaviorCreator,
-  InvokeActionObject
+  InvokeActionObject,
+  AnyEventObject
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -57,8 +58,12 @@ import { MachineNode } from './MachineNode';
 export type StateListener<
   TContext,
   TEvent extends EventObject,
+  TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = any
-> = (state: State<TContext, TEvent, any, TTypestate>, event: TEvent) => void;
+> = (
+  state: State<TContext, TEvent, TStateSchema, TTypestate>,
+  event: TEvent
+) => void;
 
 export type ContextListener<TContext = DefaultContext> = (
   context: TContext,
@@ -119,8 +124,8 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: State<TContext, TEvent>;
-  private _initialState?: State<TContext, TEvent>;
+  private _state?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  private _initialState?: State<TContext, TEvent, TStateSchema, TTypestate>;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -129,7 +134,9 @@ export class Interpreter<
 
   private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
-  private listeners: Set<StateListener<TContext, TEvent>> = new Set();
+  private listeners: Set<
+    StateListener<TContext, TEvent, TStateSchema, TTypestate>
+  > = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
@@ -191,7 +198,7 @@ export class Interpreter<
 
     this.sessionId = this.ref.id;
   }
-  public get initialState(): State<TContext, TEvent> {
+  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     if (this._initialState) {
       return this._initialState;
     }
@@ -200,7 +207,7 @@ export class Interpreter<
 
     return this._initialState;
   }
-  public get current(): State<TContext, TEvent, any, TTypestate> {
+  public get current(): State<TContext, TEvent, TStateSchema, TTypestate> {
     return this._state!;
   }
   public static interpret = interpret;
@@ -211,7 +218,7 @@ export class Interpreter<
    * @param actionsConfig The action implementations to use
    */
   public execute(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate>,
     actionsConfig?: MachineOptions<TContext, TEvent>['actions']
   ): void {
     for (const action of state.actions) {
@@ -219,7 +226,7 @@ export class Interpreter<
     }
   }
   private update(
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -282,7 +289,7 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onTransition(
-    listener: StateListener<TContext, TEvent, TTypestate>
+    listener: StateListener<TContext, TEvent, TStateSchema, TTypestate>
   ): this {
     this.listeners.add(listener);
 
@@ -426,7 +433,9 @@ export class Interpreter<
    * @param initialState The state to start the statechart from
    */
   public start(
-    initialState?: State<TContext, TEvent> | StateValue
+    initialState?:
+      | State<TContext, TEvent, TStateSchema, TTypestate>
+      | StateValue
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     if (this._status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
@@ -439,7 +448,7 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : isState<TContext, TEvent>(initialState)
+        : isState<TContext, TEvent, TStateSchema, TTypestate>(initialState)
         ? this.machine.resolveState(initialState)
         : this.machine.resolveState(
             State.from(initialState, this.machine.context)
@@ -504,7 +513,7 @@ export class Interpreter<
    */
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent> => {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> => {
     if (isArray(event)) {
       this.batch(event);
       return this.current;
@@ -620,12 +629,14 @@ export class Interpreter<
    *
    * @param event The event to be sent by the sender.
    */
-  public sender(event: Event<TEvent>): () => State<TContext, TEvent> {
+  public sender(
+    event: Event<TEvent>
+  ): () => State<TContext, TEvent, TStateSchema, TTypestate> {
     return this.send.bind(this, event);
   }
 
   private sendTo(
-    event: SCXML.Event<TEvent>,
+    event: SCXML.Event<AnyEventObject>,
     to: string | number | ActorRef<any>
   ) {
     const isParent = this.parent && to === SpecialTargets.Parent;
@@ -667,7 +678,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -708,7 +719,9 @@ export class Interpreter<
       if (sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to);
       } else {
-        this.send(sendAction._event);
+        this.send(
+          (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+        );
       }
     }, sendAction.delay as number);
   }
@@ -718,7 +731,7 @@ export class Interpreter<
   }
   private exec(
     action: InvokeActionObject | ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate>,
     actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
   ): void {
     const { context, _event } = state;
@@ -760,7 +773,9 @@ export class Interpreter<
           if (sendAction.to) {
             this.sendTo(sendAction._event, sendAction.to);
           } else {
-            this.send(sendAction._event);
+            this.send(
+              (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
+            );
           }
         }
         break;

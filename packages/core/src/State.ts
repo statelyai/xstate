@@ -17,16 +17,20 @@ import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
 import { ActorRef } from './Actor';
 
-export function isState<TContext, TEvent extends EventObject>(
+export function isState<
+  TContext,
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema<TContext> = any,
+  TTypestate extends Typestate<TContext> = any
+>(
   state: object | string
-): state is State<TContext, TEvent> {
+): state is State<TContext, TEvent, TStateSchema, TTypestate> {
   if (isString(state)) {
     return false;
   }
 
   return 'value' in state && 'history' in state;
 }
-
 export function bindActionToState<TC, TE extends EventObject>(
   action: ActionObject<TC, TE>,
   state: State<TC, TE>

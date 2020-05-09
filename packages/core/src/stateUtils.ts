@@ -1620,7 +1620,10 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           })?.actions;
 
           if (matchedActions) {
-            toActionObjects(toArray(matchedActions)).forEach(resolveAction);
+            toActionObjects(
+              toArray(matchedActions),
+              machine.options.actions
+            ).forEach(resolveAction);
           }
           break;
         }
@@ -1632,7 +1635,10 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           >).get(context, _event.data);
 
           if (matchedActions) {
-            toActionObjects(toArray(matchedActions)).forEach(resolveAction);
+            toActionObjects(
+              toArray(matchedActions),
+              machine.options.actions
+            ).forEach(resolveAction);
           }
           break;
         case actionTypes.assign:

@@ -4,6 +4,26 @@ Actions are fire-and-forget ["side effects"](./effects.md). For a machine to be 
 
 Actions are _not_ immediately triggered. Instead, [the `State` object](./states.md) returned from `machine.transition(...)` will declaratively provide an array of `.actions` that an interpreter can then execute.
 
+::: danger
+
+All of the action creators documented here return **action objects**; it is a pure function that only returns an action object and does _not_ imperatively send an event. Do not imperatively call action creators; they will do nothing!
+
+```js
+// 🚫 Do not do this!
+entry: () => {
+  // 🚫 This will do nothing; send() is not an imperative function!
+  send('SOME_EVENT');
+};
+
+console.log(send('SOME_EVENT'));
+// => { type: 'xstate.send', event: { ... } }
+
+// ✅ Do this instead
+entry: send('SOME_EVENT');
+```
+
+:::
+
 There are three types of actions:
 
 - `entry` actions are executed upon entering a state
@@ -421,7 +441,7 @@ The `forwardTo()` action creator creates a [`send()` action](#send-action) that 
 import { Machine, forwardTo, interpret } from 'xstate';
 
 function alertService(_, receive) {
-  receive(event => {
+  receive((event) => {
     if (event.type === 'ALERT') {
       alert(event.message);
     }
@@ -534,6 +554,122 @@ endState.actions;
 ```
 
 Without any arguments, `log()` is an action that logs an object with `context` and `event` properties, containing the current context and triggering event, respectively.
+
+## Choose Action
+
+The `choose()` action creator creates an action that specifies which actions should be executed based on some conditions.
+
+| Argument | Type  | Description                                                                                       |
+| -------- | ----- | ------------------------------------------------------------------------------------------------- |
+| `conds`  | array | An array of objects containing the `actions` to execute when the given `cond` is true (see below) |
+
+**Returns:**
+
+A special `"xstate.choose"` action object that is internally evaluated to conditionally determine which action objects should be executed.
+
+Each "conditional actions" object in `cond` has these properties:
+
+- `actions` - the action objects to execute
+- `cond?` - the condition for executing those `actions`
+
+::: warning
+Do not use the `choose()` action creator to execute actions that can otherwise be represented as non-conditional actions executed in certain states/transitions via `entry`, `exit`, or `actions`.
+:::
+
+```js
+import { actions } from 'xstate';
+
+const { choose, log } = actions;
+
+const maybeDoThese = choose([
+  {
+    cond: 'cond1',
+    actions: [
+      // selected when "cond1" is true
+      log('cond1 chosen!')
+    ]
+  },
+  {
+    cond: 'cond2',
+    actions: [
+      // selected when "cond1" is false and "cond2" is true
+      log((context, event) => {
+        /* ... */
+      }),
+      log('another action')
+    ]
+  },
+  {
+    cond: (context, event) => {
+      // some condition
+      return false;
+    },
+    actions: [
+      // selected when "cond1" and "cond2" are false and the inline `cond` is true
+      (context, event) => {
+        // some other action
+      }
+    ]
+  },
+  {
+    actions: [
+      log('fall-through action')
+      // selected when "cond1", "cond2", and "cond3" are false
+    ]
+  }
+]);
+```
+
+This is analogous to the SCXML `<if>`, `<elseif>`, and `<else>` elements: [www.w3.org/TR/scxml/#if](www.w3.org/TR/scxml/#if)
+
+## Pure Action
+
+The `pure()` action creator is a pure function (hence the name) that returns the action object(s) to be executed based on the current state `context` and `event` that triggered the action. This allows you to dynamically define which actions should be executed.
+
+| Argument     | Type     | Description                                                                                                      |
+| ------------ | -------- | ---------------------------------------------------------------------------------------------------------------- |
+| `getActions` | function | A function that returns the action object(s) to be executed based on the given `context` and `event` (see below) |
+
+**Returns:**
+
+A special `"xstate.pure"` action object that will internally evaluate the `get` property to determine the action objects that should be executed.
+
+Arguments for `getActions(context, event)`:
+
+| Argument  | Type         | Description                                 |
+| --------- | ------------ | ------------------------------------------- |
+| `context` | object       | The current state `context`                 |
+| `event`   | event object | The event object that triggered the actions |
+
+**Returns:**
+
+A single action object, an array of action objects, or `undefined` that represents no action objects.
+
+```js
+import { createMachine, actions } from 'xstate';
+
+const { pure } = actions;
+
+// Dynamically send an event to every invoked sample actor
+const sendToAllSampleActors = pure((context, event) => {
+  return context.sampleActors.map((sampleActor) => {
+    return send('SOME_EVENT', { to: sampleActor });
+  });
+});
+// => {
+//   type: ActionTypes.Pure,
+//   get: () => ... // evaluates to array of send() actions
+// }
+
+const machine = createMachine({
+  // ...
+  states: {
+    active: {
+      entry: sendToAllSampleActors
+    }
+  }
+});
+```
 
 ## Actions on self-transitions
 

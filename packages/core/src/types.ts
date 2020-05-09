@@ -80,7 +80,7 @@ type Action<TContext, TEvent extends EventObject> =
   | ActionObject<TContext, TEvent>
   | ActionFunction<TContext, TEvent>
   | AssignAction<Required<TContext>, TEvent>
-  | SendAction<TContext, AnyEventObject>
+  | SendAction<TContext, TEvent, AnyEventObject>
   | RaiseAction<AnyEventObject>
   | ChooseAction<TContext, TEvent>;
 
@@ -680,8 +680,11 @@ export interface LogActionObject<TContext, TEvent extends EventObject>
   value: any;
 }
 
-export interface SendAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+export interface SendAction<
+  TContext,
+  TEvent extends EventObject,
+  TSentEvent extends EventObject
+> extends ActionObject<TContext, TEvent> {
   to:
     | string
     | number
@@ -692,16 +695,19 @@ export interface SendAction<TContext, TEvent extends EventObject>
         string | number | ActorRef<any> | undefined
       >
     | undefined;
-  event: TEvent | SendExpr<TContext, TEvent>;
+  event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
   id: string | number;
 }
 
-export interface SendActionObject<TContext, TEvent extends EventObject>
-  extends SendAction<TContext, TEvent> {
-  to: string | number | ActorRef<any> | undefined;
-  _event: SCXML.Event<TEvent>;
-  event: TEvent;
+export interface SendActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TSentEvent extends EventObject = AnyEventObject
+> extends SendAction<TContext, TEvent, TSentEvent> {
+  to: string | number | ActorRef<TSentEvent> | undefined;
+  _event: SCXML.Event<TSentEvent>;
+  event: TSentEvent;
   delay?: number;
   id: string | number;
 }
@@ -717,11 +723,11 @@ export type ExprWithMeta<TContext, TEvent extends EventObject, T> = (
   meta: SCXMLEventMeta<TEvent>
 ) => T;
 
-export type SendExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
+export type SendExpr<
   TContext,
-  TEvent,
-  TEvent
->;
+  TEvent extends EventObject,
+  TSentEvent extends EventObject = AnyEventObject
+> = ExprWithMeta<TContext, TEvent, TSentEvent>;
 
 export enum SpecialTargets {
   Parent = '#_parent',
@@ -810,7 +816,7 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
-  toJSON?: () => {
+  toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: Array<ActionObject<TContext, TEvent>>;
