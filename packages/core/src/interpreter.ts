@@ -17,7 +17,6 @@ import {
   ActionFunctionMap,
   SCXML,
   Observer,
-  Spawnable,
   Typestate,
   BehaviorCreator,
   InvokeActionObject,
@@ -29,27 +28,16 @@ import * as actionTypes from './actionTypes';
 import { doneInvoke, error, getActionFunction, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
-  isPromiseLike,
   mapContext,
   warn,
   keys,
   isArray,
   isFunction,
-  isObservable,
-  isMachineNode,
   toSCXMLEvent,
   symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
-import {
-  isActorRef,
-  fromService,
-  fromCallback,
-  fromPromise,
-  fromObservable,
-  fromMachine,
-  ObservableActorRef
-} from './Actor';
+import { isActorRef, fromService, ObservableActorRef } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
@@ -80,12 +68,6 @@ export type ErrorListener = (error: Error) => void;
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
   clearTimeout(id: any): void;
-}
-
-interface SpawnOptions {
-  name?: string;
-  autoForward?: boolean;
-  sync?: boolean;
 }
 
 enum InterpreterStatus {
