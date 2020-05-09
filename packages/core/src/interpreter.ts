@@ -879,36 +879,6 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(
-    entity: Spawnable,
-    name: string,
-    options?: SpawnOptions
-  ): ActorRef<any> {
-    if (isPromiseLike(entity)) {
-      const actor = fromPromise(entity, this.ref, name);
-      this.children.set(name, actor);
-      return actor;
-    } else if (isFunction(entity)) {
-      const actor = fromCallback(entity, this.ref, name);
-      this.children.set(name, actor);
-      return actor;
-    } else if (isActorRef(entity)) {
-      this.children.set(entity.name, entity);
-      return entity;
-    } else if (isObservable<TEvent>(entity)) {
-      const actor = fromObservable(entity, this.ref, name);
-      this.children.set(name, actor);
-      return actor;
-    } else if (isMachineNode(entity)) {
-      const actor = fromMachine(entity, this.ref, name, options);
-      this.children.set(name, actor);
-      return actor;
-    } else {
-      throw new Error(
-        `Unable to spawn entity "${name}" of type "${typeof entity}".`
-      );
-    }
-  }
 
   private attachDev(): void {
     if (this.options.devTools && typeof window !== 'undefined') {
