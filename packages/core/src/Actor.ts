@@ -21,6 +21,10 @@ import {
 } from './behavior';
 import { registry } from './registry';
 
+const nullSubscription = {
+  unsubscribe: () => void 0
+};
+
 export function isActorRef(item: any): item is ActorRef<any> {
   try {
     return typeof item.send === 'function';
@@ -97,7 +101,7 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
   }
   public subscribe(observer) {
-    return this.behavior.subscribe?.(observer);
+    return this.behavior.subscribe?.(observer) || nullSubscription;
   }
   public send(event) {
     this.behavior = this.behavior.receive(this.context, event);

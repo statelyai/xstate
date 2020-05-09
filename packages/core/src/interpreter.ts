@@ -12,7 +12,7 @@ import {
   InterpreterOptions,
   SingleOrArray,
   DoneEvent,
-  Unsubscribable,
+  Subscription,
   MachineOptions,
   ActionFunctionMap,
   SCXML,
@@ -302,13 +302,13 @@ export class Interpreter<
   }
   public subscribe(
     observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
@@ -316,7 +316,7 @@ export class Interpreter<
     // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Unsubscribable {
+  ): Subscription {
     if (!nextListenerOrObserver) {
       return { unsubscribe: () => void 0 };
     }

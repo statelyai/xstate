@@ -2,7 +2,7 @@ import {
   EventObject,
   InvokeCallback,
   Subscribable,
-  Unsubscribable,
+  Subscription,
   InterpreterOptions,
   Spawnable,
   Observer,
@@ -51,7 +51,7 @@ export interface Behavior<TReceived extends EventObject, TEmitted> {
    * The initial emitted value
    */
   initial: TEmitted;
-  subscribe?: (observer: Observer<TEmitted>) => Unsubscribable | undefined;
+  subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
 
 export function createCallbackBehavior<TEvent extends EventObject>(
@@ -199,7 +199,7 @@ export function createObservableBehavior<
   observable: Subscribable<T>,
   parent?: ActorRef<any>
 ): Behavior<TEvent, T | undefined> {
-  let subscription: Unsubscribable | undefined;
+  let subscription: Subscription | undefined;
 
   const behavior: Behavior<TEvent, T | undefined> = {
     receiveSignal: (actorContext, signal) => {
@@ -245,7 +245,7 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
   let service: Interpreter<TContext, any, TEvent>;
-  let subscription: Unsubscribable;
+  let subscription: Subscription;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receiveSignal: (actorContext, signal) => {

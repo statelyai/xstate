@@ -1057,7 +1057,7 @@ export type Spawnable =
   | Subscribable<any>;
 
 // Taken from RxJS
-export interface Unsubscribable {
+export interface Subscription {
   unsubscribe(): any | void;
 }
 
@@ -1073,12 +1073,12 @@ export interface Observer<T> {
 }
 
 export interface Subscribable<T> {
-  subscribe(observer: Observer<T>): Unsubscribable | undefined;
+  subscribe(observer: Observer<T>): Subscription;
   subscribe(
     next: (value: T) => void,
     error?: (error: any) => void,
     complete?: () => void
-  ): Unsubscribable | undefined;
+  ): Subscription;
 }
 
 export interface ActorLike<TCurrent, TEvent extends EventObject>
