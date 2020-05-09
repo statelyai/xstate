@@ -4,7 +4,7 @@ import {
   SCXML,
   InvokeCallback,
   InterpreterOptions,
-  Spawnable
+  ActorRef
 } from './types';
 import { MachineNode } from './MachineNode';
 import { Interpreter } from './interpreter';
@@ -20,30 +20,6 @@ import {
   createObservableBehavior
 } from './behavior';
 import { registry } from './registry';
-import { State } from './State';
-
-export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
-
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  ref: any;
-  start: () => ActorRef<TEvent>;
-  stop: () => void;
-  /**
-   * The initial emitted value.
-   */
-  initial: TEmitted;
-  id: string;
-}
-
-export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
-  infer TC,
-  any,
-  infer TE
->
-  ? ActorRef<TE, State<TC, TE>>
-  : ActorRef<any, any>; // TODO: expand
 
 export function isActorRef(item: any): item is ActorRef<any> {
   try {

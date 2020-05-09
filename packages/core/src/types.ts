@@ -1,7 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
-import { ActorRef, ActorRefFrom } from './Actor';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -171,7 +170,6 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
@@ -1087,3 +1085,26 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
   send: Sender<TEvent>;
 }
+
+export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
+
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+  ref: any;
+  start: () => ActorRef<TEvent>;
+  stop: () => void;
+  /**
+   * The initial emitted value.
+   */
+  initial: TEmitted;
+  id: string;
+}
+
+export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
+  infer TC,
+  any,
+  infer TE
+>
+  ? ActorRef<TE, State<TC, TE>>
+  : ActorRef<any, any>; // TODO: expand

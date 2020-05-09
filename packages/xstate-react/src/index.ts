@@ -12,7 +12,7 @@ import {
 } from 'xstate';
 import { useSubscription, Subscription } from 'use-subscription';
 import useConstant from './useConstant';
-import { ActorRef } from 'xstate/src/Actor';
+import { ActorRef } from 'xstate';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
