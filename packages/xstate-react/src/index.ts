@@ -152,7 +152,7 @@ export function useService<
 export function useActor<TEvent extends EventObject, TEmitted>(
   actorRef: ActorRef<TEvent, TEmitted>
 ): [TEmitted, (event: TEvent) => void] {
-  const [state, setState] = useState(actorRef.initial);
+  const [state, setState] = useState(actorRef.current);
 
   useEffect(() => {
     const sub = actorRef.subscribe((nextState) => {

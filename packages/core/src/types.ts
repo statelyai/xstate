@@ -1095,9 +1095,9 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   start: () => ActorRef<TEvent>;
   stop: () => void;
   /**
-   * The initial emitted value.
+   * The most recently emitted value.
    */
-  initial: TEmitted;
+  current: TEmitted;
   name: string;
 }
 

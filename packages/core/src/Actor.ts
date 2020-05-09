@@ -74,15 +74,15 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>,
-  id: string = registry.bookId()
+  name: string = registry.bookId()
 ): ActorRef<TEvent> {
-  return new ObservableActorRef(createServiceBehavior(service), id);
+  return new ObservableActorRef(createServiceBehavior(service), name);
 }
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
   public ref;
-  public initial: TEmitted;
+  public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
   public name: string;
@@ -95,7 +95,7 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
       name: this.name
     };
     this.ref = behavior;
-    this.initial = behavior.initial;
+    this.current = behavior.current;
   }
   public start() {
     this.behavior = this.behavior.receiveSignal(this.context, startSignal);
