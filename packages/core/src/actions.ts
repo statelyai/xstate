@@ -35,7 +35,8 @@ import {
   InvokeDefinition,
   InvokeActionObject,
   StopActionObject,
-  AnyEventObject
+  AnyEventObject,
+  ActorRef
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -46,7 +47,6 @@ import {
   toSCXMLEvent
 } from './utils';
 import { isArray } from './utils';
-import { ActorRef } from './Actor';
 
 export { actionTypes };
 

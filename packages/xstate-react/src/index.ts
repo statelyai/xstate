@@ -159,7 +159,7 @@ export function useActor<TEvent extends EventObject, TEmitted>(
       setState(nextState);
     });
 
-    return () => sub?.unsubscribe();
+    return () => sub.unsubscribe();
   }, [actorRef]);
 
   return [state, actorRef.send];

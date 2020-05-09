@@ -7,7 +7,7 @@ import {
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
-import { ActorRef } from '../src/Actor';
+import { ActorRef } from '../src';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {

@@ -21,7 +21,8 @@ import {
   Typestate,
   BehaviorCreator,
   InvokeActionObject,
-  AnyEventObject
+  AnyEventObject,
+  ActorRef
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -42,7 +43,6 @@ import {
 import { Scheduler } from './scheduler';
 import {
   isActorRef,
-  ActorRef,
   fromService,
   fromCallback,
   fromPromise,

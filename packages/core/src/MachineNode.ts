@@ -8,7 +8,8 @@ import {
   MachineConfig,
   SCXML,
   Typestate,
-  Transitions
+  Transitions,
+  ActorRef
 } from './types';
 import { State } from './State';
 
@@ -30,7 +31,6 @@ import {
   resolveStateValue
 } from './stateUtils';
 import { StateNode } from './StateNode';
-import { ActorRef } from './Actor';
 
 export const NULL_EVENT = '';
 export const STATE_IDENTIFIER = '#';

@@ -1,6 +1,6 @@
 import { Machine, interpret, assign, send, sendParent, State } from '../src';
 import { invokeMachine } from '../src/invoke';
-import { ActorRef } from '../src/Actor';
+import { ActorRef } from '../src/types';
 
 interface CounterContext {
   count: number;

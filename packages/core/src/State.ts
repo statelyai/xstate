@@ -9,13 +9,13 @@ import {
   TransitionDefinition,
   Typestate,
   HistoryValue,
-  NullEvent
+  NullEvent,
+  ActorRef
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
-import { ActorRef } from './Actor';
 
 export function isState<
   TContext,

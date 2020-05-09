@@ -1,4 +1,4 @@
-import { ActorRef } from './Actor';
+import { ActorRef } from './types';
 
 const children = new Map<string, ActorRef<any>>();
 

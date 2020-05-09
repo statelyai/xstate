@@ -1,4 +1,4 @@
-import { Machine, interpret, createMachine } from '../src';
+import { Machine, interpret, createMachine, ActorRef } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,7 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { ActorRef, fromService } from '../src/Actor';
+import { fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';

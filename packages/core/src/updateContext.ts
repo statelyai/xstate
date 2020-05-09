@@ -6,11 +6,13 @@ import {
   ActionObject,
   InvokeActionObject,
   ActionTypes,
-  Spawnable
+  Spawnable,
+  ActorRef,
+  ActorRefFrom
 } from './types';
 import { IS_PRODUCTION } from './environment';
 import { State } from '.';
-import { ActorRef, ObservableActorRef, ActorRefFrom } from './Actor';
+import { ObservableActorRef } from './Actor';
 import { warn, isFunction, keys } from './utils';
 import { createBehaviorFrom, Behavior } from './behavior';
 import { registry } from './registry';

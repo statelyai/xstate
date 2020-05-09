@@ -45,7 +45,8 @@ import {
   Event,
   ChooseAction,
   StopActionObject,
-  AnyEventObject
+  AnyEventObject,
+  ActorRef
 } from './types';
 import { State } from './State';
 import {
@@ -73,7 +74,7 @@ import {
   NULL_EVENT,
   WILDCARD
 } from './constants';
-import { ActorRef, isActorRef } from './Actor';
+import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 type Configuration<TC, TE extends EventObject> = Iterable<

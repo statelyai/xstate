@@ -5,9 +5,9 @@ import {
   Unsubscribable,
   InterpreterOptions,
   Spawnable,
-  Observer
+  Observer,
+  ActorRef
 } from './types';
-import { ActorRef } from './Actor';
 import {
   toSCXMLEvent,
   isPromiseLike,
