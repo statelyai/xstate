@@ -207,7 +207,7 @@ export class Interpreter<
 
     return this._initialState;
   }
-  public get current(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
     return this._state!;
   }
   public static interpret = interpret;
@@ -237,7 +237,7 @@ export class Interpreter<
 
     // Execute actions
     if (this.options.execute) {
-      this.execute(this.current);
+      this.execute(this.state);
     }
 
     // Dev tools
@@ -258,14 +258,14 @@ export class Interpreter<
 
     for (const contextListener of this.contextListeners) {
       contextListener(
-        this.current.context,
-        this.current.history ? this.current.history.context : undefined
+        this.state.context,
+        this.state.history ? this.state.history.context : undefined
       );
     }
 
     const isDone = isInFinalState(state.configuration || [], this.machine);
 
-    if (this.current.configuration && isDone) {
+    if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === this.machine
@@ -295,7 +295,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
-      listener(this.current, this.current.event);
+      listener(this.state, this.state.event);
     }
 
     return this;
@@ -337,7 +337,7 @@ export class Interpreter<
 
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
-      listener(this.current);
+      listener(this.state);
     }
 
     if (resolvedCompleteListener) {
@@ -516,7 +516,7 @@ export class Interpreter<
   ): State<TContext, TEvent, TStateSchema, TTypestate> => {
     if (isArray(event)) {
       this.batch(event);
-      return this.current;
+      return this.state;
     }
 
     const _event = toSCXMLEvent(event);
@@ -533,7 +533,7 @@ export class Interpreter<
           )}`
         );
       }
-      return this.current;
+      return this.state;
     }
 
     if (
@@ -599,7 +599,7 @@ export class Interpreter<
     }
 
     this.scheduler.schedule(() => {
-      let nextState = this.current;
+      let nextState = this.state;
       let batchChanged = false;
       const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
       for (const event of events) {
@@ -683,7 +683,7 @@ export class Interpreter<
 
     if (
       _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.current.nextEvents.some(
+      !this.state.nextEvents.some(
         (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
       )
     ) {
@@ -697,7 +697,7 @@ export class Interpreter<
       }
     }
 
-    const nextState = this.machine.transition(this.current, _event, this.ref);
+    const nextState = this.machine.transition(this.state, _event, this.ref);
 
     return nextState;
   }
@@ -747,7 +747,7 @@ export class Interpreter<
       try {
         return exec(context, _event.data, {
           action,
-          state: this.current,
+          state: this.state,
           _event
         });
       } catch (err) {
@@ -823,7 +823,7 @@ export class Interpreter<
           }
 
           this.children.set(id, actorRef);
-          this.current.children[id] = actorRef;
+          this.state.children[id] = actorRef;
 
           actorRef.start();
         } catch (err) {
@@ -864,7 +864,7 @@ export class Interpreter<
     this.children.delete(childId);
     this.forwardTo.delete(childId);
 
-    delete this.current.children[childId];
+    delete this.state.children[childId];
   }
 
   private stopChild(childId: string): void {
@@ -939,7 +939,7 @@ export class Interpreter<
           },
           this.machine
         );
-        this.devTools.init(this.current);
+        this.devTools.init(this.state);
       }
 
       // add XState-specific dev tooling hook

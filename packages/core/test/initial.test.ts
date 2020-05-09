@@ -73,7 +73,7 @@ describe('Initial states', () => {
       }
     });
     const service = interpret(machine).start();
-    expect(service.current.value).toEqual({ foo: 'deep' });
+    expect(service.state.value).toEqual({ foo: 'deep' });
   });
 
   it.only('should resolve multiple deep initial states', () => {
@@ -106,7 +106,7 @@ describe('Initial states', () => {
       }
     });
     const service = interpret(machine).start();
-    expect(service.current.value).toEqual({
+    expect(service.state.value).toEqual({
       root: {
         foo: 'foo_deep',
         bar: 'bar_deep'

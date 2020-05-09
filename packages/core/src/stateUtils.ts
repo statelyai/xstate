@@ -44,7 +44,8 @@ import {
   InitialTransitionDefinition,
   Event,
   ChooseAction,
-  StopActionObject
+  StopActionObject,
+  AnyEventObject
 } from './types';
 import { State } from './State';
 import {
@@ -581,7 +582,8 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
       target: [stateNode],
       source: stateNode,
       actions: [],
-      eventType: 'init'
+      eventType: 'init',
+      toJSON: null as any // TODO: fix
     }
   ];
   const mutStatesToEnter = new Set<StateNode<TContext, any, TEvent>>();
@@ -1447,7 +1449,8 @@ export function resolveMicroTransition<
             target: [...prevConfig].filter(isAtomicStateNode),
             source: machine,
             actions: [],
-            eventType: null as any
+            eventType: null as any,
+            toJSON: null as any // TODO: fix
           }
         ],
     currentState,
@@ -1574,7 +1577,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         case actionTypes.send:
           const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent>,
+            actionObject as SendAction<TContext, TEvent, AnyEventObject>,
             context,
             _event,
             machine.machine.options.delays
@@ -1589,7 +1592,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             );
           }
           if (sendAction.to === SpecialTargets.Internal) {
-            raisedActions.push(sendAction as RaiseActionObject<TEvent>);
+            raisedActions.push(sendAction as RaiseActionObject<any>);
           } else {
             resActions.push(sendAction);
           }

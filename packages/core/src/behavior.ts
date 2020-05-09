@@ -310,7 +310,7 @@ export function createServiceBehavior<TContext, TEvent extends EventObject>(
     subscribe: (observer) => {
       return service.subscribe(observer);
     },
-    initial: service.current
+    initial: service.state
   };
 
   return behavior;

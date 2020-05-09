@@ -927,7 +927,7 @@ describe('invoke', () => {
       it('should be invoked with a promise factory and resolve through onDone', (done) => {
         const service = interpret(invokePromiseMachine)
           .onDone(() => {
-            expect(service.current._event.origin).toBeDefined();
+            expect(service.state._event.origin).toBeDefined();
             done();
           })
           .start();
@@ -1870,7 +1870,7 @@ describe('invoke', () => {
 
       const service = interpret(obsMachine)
         .onDone(() => {
-          expect(service.current._event.origin).toBeDefined();
+          expect(service.state._event.origin).toBeDefined();
           done();
         })
         .start();

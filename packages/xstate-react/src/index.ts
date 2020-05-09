@@ -82,7 +82,7 @@ export function useMachine<
     );
   });
 
-  const [state, setState] = useState(service.current);
+  const [state, setState] = useState(service.state);
 
   useEffect(() => {
     service.onTransition((currentState) => {
@@ -92,7 +92,7 @@ export function useMachine<
     });
 
     // if service.state has not changed React should just bail out from this update
-    setState(service.current);
+    setState(service.state);
 
     return () => {
       service.stop();
@@ -131,7 +131,7 @@ export function useService<
     TTypestate
   >> = useMemo(
     () => ({
-      getCurrentValue: () => service.current || service.initialState,
+      getCurrentValue: () => service.state || service.initialState,
       subscribe: (callback) => {
         const { unsubscribe } = service.subscribe((currentState) => {
           if (currentState.changed !== false) {

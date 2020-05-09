@@ -404,6 +404,6 @@ describe('guards - other', () => {
     const service = interpret(machine).start();
     service.send('EVENT');
 
-    expect(service.current.value).toBe('c');
+    expect(service.state.value).toBe('c');
   });
 });
