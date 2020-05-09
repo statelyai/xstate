@@ -99,7 +99,6 @@ export function createCallbackBehavior<TEvent extends EventObject>(
               parent?.send(
                 toSCXMLEvent(errorEvent, { origin: actorContext.self })
               );
-              // TODO: handle error
               canceled = true;
             }
           );
