@@ -1476,7 +1476,7 @@ export function resolveMicroTransition<
       const { actor: ref } = action as StopActionObject;
       if (isActorRef(ref)) {
         ref.stop();
-        delete children[ref.id];
+        delete children[ref.name];
       } else {
         const actorRef = children[ref];
         if (actorRef) {

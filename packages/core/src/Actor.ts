@@ -36,39 +36,39 @@ export function isActorRef(item: any): item is ActorRef<any> {
 export function fromObservable<T extends EventObject>(
   observable: Subscribable<T>,
   parent: ActorRef<any>,
-  id: string
+  name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
     createObservableBehavior(observable, parent),
-    id
+    name
   );
 }
 
 export function fromPromise<T>(
   promise: PromiseLike<T>,
   parent: ActorRef<any>,
-  id: string
+  name: string
 ): ActorRef<never> {
-  return new ObservableActorRef(createPromiseBehavior(promise, parent), id);
+  return new ObservableActorRef(createPromiseBehavior(promise, parent), name);
 }
 
 export function fromCallback<TEvent extends EventObject>(
   callback: InvokeCallback,
   parent: ActorRef<any>,
-  id: string
+  name: string
 ): ActorRef<SCXML.Event<TEvent>> {
-  return new ObservableActorRef(createCallbackBehavior(callback, parent), id);
+  return new ObservableActorRef(createCallbackBehavior(callback, parent), name);
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, any, TEvent>,
   parent: ActorRef<any>,
-  id: string,
+  name: string,
   options?: Partial<InterpreterOptions>
 ): ActorRef<TEvent> {
   return new ObservableActorRef(
     createMachineBehavior(machine, parent, options),
-    id
+    name
   );
 }
 
@@ -84,11 +84,15 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   public ref;
   public initial: TEmitted;
   private context: ActorContext;
+  private behavior: Behavior<TEvent, TEmitted>;
+  public name: string;
 
-  constructor(public behavior: Behavior<TEvent, TEmitted>, public id: string) {
+  constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
+    this.behavior = behavior;
+    this.name = name;
     this.context = {
       self: this,
-      name: this.id
+      name: this.name
     };
     this.ref = behavior;
     this.initial = behavior.initial;

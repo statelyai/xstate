@@ -1098,7 +1098,7 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
    * The initial emitted value.
    */
   initial: TEmitted;
-  id: string;
+  name: string;
 }
 
 export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<

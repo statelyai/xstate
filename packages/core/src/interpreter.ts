@@ -196,7 +196,7 @@ export class Interpreter<
 
     this.ref = fromService(this, resolvedId);
 
-    this.sessionId = this.ref.id;
+    this.sessionId = this.ref.name;
   }
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     if (this._initialState) {
@@ -893,7 +893,7 @@ export class Interpreter<
       this.children.set(name, actor);
       return actor;
     } else if (isActorRef(entity)) {
-      this.children.set(entity.id, entity);
+      this.children.set(entity.name, entity);
       return entity;
     } else if (isObservable<TEvent>(entity)) {
       const actor = fromObservable(entity, this.ref, name);
