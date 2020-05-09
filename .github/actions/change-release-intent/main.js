@@ -27,7 +27,8 @@ const publishablePackages = [
   'xstate',
   '@xstate/fsm',
   '@xstate/graph',
-  '@xstate/test'
+  '@xstate/test',
+  '@xstate/immer'
 ];
 
 (async () => {
