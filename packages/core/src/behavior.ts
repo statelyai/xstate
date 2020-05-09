@@ -26,8 +26,8 @@ export interface ActorContext {
   name: string;
 }
 
-export const startSignal = Symbol('xstate.start');
-export const stopSignal = Symbol('xstate.stop');
+export const startSignal = Symbol.for('xstate.start');
+export const stopSignal = Symbol.for('xstate.stop');
 
 export type LifecycleSignal = typeof startSignal | typeof stopSignal;
 
