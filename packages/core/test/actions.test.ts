@@ -1400,7 +1400,7 @@ describe('choose', () => {
     const service = interpret(machine).start();
     service.send('GIVE_ANSWER');
 
-    expect(service.state.context).toEqual({ counter: 101, answer: 42 });
+    expect(service.current.context).toEqual({ counter: 101, answer: 42 });
   });
 
   it('should be able to use actions defined in options', () => {
@@ -1427,7 +1427,7 @@ describe('choose', () => {
 
     const service = interpret(machine).start();
 
-    expect(service.state.context).toEqual({ answer: 42 });
+    expect(service.current.context).toEqual({ answer: 42 });
   });
 });
 
