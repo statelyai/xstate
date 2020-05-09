@@ -1091,7 +1091,6 @@ export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
-  ref: any;
   start: () => ActorRef<TEvent>;
   stop: () => void;
   /**

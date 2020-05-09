@@ -81,7 +81,6 @@ export function fromService<TContext, TEvent extends EventObject>(
 
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
-  public ref;
   public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
@@ -94,7 +93,6 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
       self: this,
       name: this.name
     };
-    this.ref = behavior;
     this.current = behavior.current;
   }
   public start() {
