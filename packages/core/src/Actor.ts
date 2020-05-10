@@ -75,11 +75,18 @@ export function fromService<TContext, TEvent extends EventObject>(
   return new ObservableActorRef(createServiceBehavior(service), name);
 }
 
+enum ProcessingStatus {
+  NotProcessing,
+  Processing
+}
+
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
   public current: TEmitted;
   private context: ActorContext;
   private behavior: Behavior<TEvent, TEmitted>;
+  private mailbox: TEvent[] = [];
+  private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
   public name: string;
 
   constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
@@ -102,6 +109,18 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     return this.behavior.subscribe?.(observer) || nullSubscription;
   }
   public send(event) {
-    this.behavior = this.behavior.receive(this.context, event);
+    this.mailbox.push(event);
+    if (this.processingStatus === ProcessingStatus.NotProcessing) {
+      this.flush();
+    }
+  }
+  private flush() {
+    while (this.mailbox.length) {
+      const event = this.mailbox.shift()!;
+
+      this.processingStatus = ProcessingStatus.Processing;
+      this.behavior = this.behavior.receive(this.context, event);
+      this.processingStatus = ProcessingStatus.NotProcessing;
+    }
   }
 }
