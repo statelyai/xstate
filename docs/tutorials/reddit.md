@@ -468,7 +468,7 @@ const redditMachine = Machine({
     SELECT: {
       target: '.selected',
       actions: assign((context, event) => {
-        // Use the existing subreddit actor if one doesn't exist
+        // Use the existing subreddit actor if one already exists
         let subreddit = context.subreddits[event.name];
 
         if (subreddit) {
