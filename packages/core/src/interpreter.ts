@@ -770,11 +770,12 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext, TEvent>,
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
+      .options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
-      getActionFunction(action.type, actionFunctionMap) || action.exec;
+      action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec

@@ -118,6 +118,56 @@ describe('interpreter', () => {
         done();
       }, 100);
     });
+
+    // https://github.com/davidkpiano/xstate/issues/1174
+    it('executes actions from a restored initial state', (done) => {
+      const lightMachine = Machine(
+        {
+          id: 'light',
+          initial: 'green',
+          states: {
+            green: {
+              on: {
+                TIMER: {
+                  target: 'yellow',
+                  actions: 'report'
+                }
+              }
+            },
+            yellow: {
+              on: {
+                TIMER: {
+                  target: 'red'
+                }
+              }
+            },
+            red: {
+              on: {
+                TIMER: 'green'
+              }
+            }
+          }
+        },
+        {
+          actions: {
+            report: () => {
+              done();
+            }
+          }
+        }
+      );
+
+      const currentState = 'green';
+      const nextState = lightMachine.transition(currentState, 'TIMER');
+
+      // saves state and recreate it
+      const recreated = JSON.parse(JSON.stringify(nextState));
+      const previousState = State.create(recreated);
+      const resolvedState = lightMachine.resolveState(previousState);
+
+      const service = interpret(lightMachine);
+      service.start(resolvedState);
+    });
   });
 
   describe('subscribing', () => {
