@@ -120,7 +120,7 @@ describe('interpreter', () => {
     });
 
     // https://github.com/davidkpiano/xstate/issues/1174
-    it('executes actions from a restored initial state', (done) => {
+    it('executes actions from a restored state', (done) => {
       const lightMachine = Machine(
         {
           id: 'light',
