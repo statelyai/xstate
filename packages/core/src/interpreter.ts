@@ -830,7 +830,7 @@ export class Interpreter<
         // If the activity will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
-        if (!this.state.activities[activity.type]) {
+        if (!this.state.activities[activity.id || activity.type]) {
           break;
         }
 
