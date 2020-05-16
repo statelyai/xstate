@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `behaviors`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -200,7 +200,7 @@ const Fetcher = ({ onResolve }) => {
     actions: {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
-    services: {
+    behaviors: {
       fetchData: (_, e) =>
         fetch(`some/api/${e.query}`).then((res) => res.json())
     }

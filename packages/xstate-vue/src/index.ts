@@ -44,7 +44,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     guards,
     actions,
     activities,
-    services,
+    behaviors,
     delays,
     state: rehydratedState,
     ...interpreterOptions
@@ -55,7 +55,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     guards,
     actions,
     activities,
-    services,
+    behaviors,
     delays
   };
 

@@ -107,7 +107,7 @@ export function useMachine<
   }, [actions]);
 
   useEffect(() => {
-    Object.assign(service.machine.options.services, services);
+    Object.assign(service.machine.options.behaviors, services);
   }, [services]);
 
   return [state, service.send, service];
