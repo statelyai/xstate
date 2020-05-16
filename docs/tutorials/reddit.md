@@ -94,8 +94,8 @@ function invokeFetchSubreddit(context) {
   const { subreddit } = context;
 
   return fetch(`https://www.reddit.com/r/${subreddit}.json`)
-    .then(response => response.json())
-    .then(json => json.data.children.map(child => child.data));
+    .then((response) => response.json())
+    .then((json) => json.data.children.map((child) => child.data));
 }
 
 const redditMachine = Machine({
@@ -207,9 +207,9 @@ import { assert } from 'chai';
 import { redditMachine } from '../path/to/redditMachine';
 
 describe('reddit machine (live)', () => {
-  it('should load posts of a selected subreddit', done => {
+  it('should load posts of a selected subreddit', (done) => {
     const redditService = interpret(redditMachine)
-      .onTransition(state => {
+      .onTransition((state) => {
         // when the state finally reaches 'selected.loaded',
         // the test has succeeded.
 
@@ -249,11 +249,11 @@ const App = () => {
     <main>
       <header>
         <select
-          onChange={e => {
+          onChange={(e) => {
             send('SELECT', { name: e.target.value });
           }}
         >
-          {subreddits.map(subreddit => {
+          {subreddits.map((subreddit) => {
             return <option key={subreddit}>{subreddit}</option>;
           })}
         </select>
@@ -263,7 +263,7 @@ const App = () => {
         {current.matches({ selected: 'loading' }) && <div>Loading...</div>}
         {current.matches({ selected: 'loaded' }) && (
           <ul>
-            {posts.map(post => (
+            {posts.map((post) => (
               <li key={post.title}>{post.title}</li>
             ))}
           </ul>
@@ -284,7 +284,7 @@ Consider two machines:
 - A `subredditMachine`, which is the machine responsible for loading and displaying its specified subreddit
 
 ```js
-const createSubredditMachine = subreddit => {
+const createSubredditMachine = (subreddit) => {
   return Machine({
     id: 'subreddit',
     initial: 'loading',
@@ -362,7 +362,7 @@ const Subreddit = ({ name }) => {
     return (
       <div>
         Failed to load posts.{' '}
-        <button onClick={_ => send('RETRY')}>Retry?</button>
+        <button onClick={(_) => send('RETRY')}>Retry?</button>
       </div>
     );
   }
@@ -381,11 +381,11 @@ const Subreddit = ({ name }) => {
             <h2>{subreddit}</h2>
             <small>
               Last updated: {lastUpdated}{' '}
-              <button onClick={_ => send('REFRESH')}>Refresh</button>
+              <button onClick={(_) => send('REFRESH')}>Refresh</button>
             </small>
           </header>
           <ul>
-            {posts.map(post => {
+            {posts.map((post) => {
               return <li key={post.id}>{post.title}</li>;
             })}
           </ul>
@@ -468,7 +468,7 @@ const redditMachine = Machine({
     SELECT: {
       target: '.selected',
       actions: assign((context, event) => {
-        // Use the existing subreddit actor if one doesn't exist
+        // Use the existing subreddit actor if one already exists
         let subreddit = context.subreddits[event.name];
 
         if (subreddit) {

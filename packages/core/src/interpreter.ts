@@ -714,11 +714,12 @@ export class Interpreter<
   private exec(
     action: InvokeActionObject | ActionObject<TContext, TEvent>,
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
+      .options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
-      getActionFunction(action.type, actionFunctionMap) || action.exec;
+      action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
@@ -769,6 +770,19 @@ export class Interpreter<
 
       case ActionTypes.Start: {
         const { id, data, autoForward, src } = action as InvokeActionObject;
+
+        // If the "activity" will be stopped right after it's started
+        // (such as in transient states)
+        // don't bother starting the activity.
+        if (
+          state.actions.find((otherAction) => {
+            return (
+              otherAction.type === actionTypes.stop && otherAction.actor === id
+            );
+          })
+        ) {
+          return;
+        }
 
         try {
           let actorRef: ActorRef<any>;

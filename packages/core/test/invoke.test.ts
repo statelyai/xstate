@@ -6,13 +6,15 @@ import {
   send,
   EventObject,
   StateValue,
-  UpdateObject
+  UpdateObject,
+  createMachine
 } from '../src';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
-  escalate
+  escalate,
+  raise
 } from '../src/actions';
 import {
   invokeMachine,
@@ -2189,8 +2191,7 @@ describe('invoke', () => {
       service.start();
     });
 
-    // TODO: unskip once onMicrostep behavior is established
-    it.skip('should not invoke a service if transient', (done) => {
+    it('should not invoke a service if it gets stopped immediately by transitioning away in microstep', (done) => {
       // Since an invocation will be canceled when the state machine leaves the
       // invoking state, it does not make sense to start an invocation in a state
       // that will be exited immediately
@@ -2227,6 +2228,65 @@ describe('invoke', () => {
           done();
         })
         .start();
+    });
+
+    it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', (done) => {
+      const machine = createMachine({
+        initial: 'running',
+        states: {
+          running: {
+            type: 'parallel',
+            states: {
+              one: {
+                initial: 'active',
+                on: {
+                  STOP_ONE: '.idle'
+                },
+                states: {
+                  idle: {},
+                  active: {
+                    invoke: {
+                      id: 'active',
+                      src: invokeCallback(() => () => {})
+                    },
+                    on: {
+                      NEXT: {
+                        actions: raise('STOP_ONE')
+                      }
+                    }
+                  }
+                }
+              },
+              two: {
+                initial: 'idle',
+                on: {
+                  NEXT: '.active'
+                },
+                states: {
+                  idle: {},
+                  active: {
+                    invoke: {
+                      id: 'post',
+                      src: invokePromise(() => Promise.resolve(42)),
+                      onDone: '#done'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          done: {
+            id: 'done',
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(machine)
+        .onDone(() => done())
+        .start();
+
+      service.send('NEXT');
     });
   });
 
