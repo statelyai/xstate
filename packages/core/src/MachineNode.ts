@@ -263,6 +263,11 @@ export class MachineNode<
     return macrostep(nextState, null as any, this);
   }
 
+  /**
+   * Returns the initial `State` instance, with reference to `self` as an `ActorRef`.
+   *
+   * @param self The `ActorRef` instance of this machine, if any.
+   */
   public getInitialState(self?: ActorRef<TEvent>) {
     this._init();
     const nextState = resolveMicroTransition(
