@@ -120,13 +120,13 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     return this;
   }
   private flush() {
+    this.processingStatus = ProcessingStatus.Processing;
     while (this.mailbox.length) {
       const event = this.mailbox.shift()!;
 
-      this.processingStatus = ProcessingStatus.Processing;
       this.behavior = this.behavior.receive(this.context, event);
-      this.processingStatus = ProcessingStatus.NotProcessing;
     }
+    this.processingStatus = ProcessingStatus.NotProcessing;
   }
 }
 
