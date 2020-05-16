@@ -763,11 +763,12 @@ export class Interpreter<
   private exec(
     action: ActionObject<TContext, TEvent>,
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionFunctionMap?: ActionFunctionMap<TContext, TEvent>
+    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
+      .options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
-      getActionFunction(action.type, actionFunctionMap) || action.exec;
+      action.exec || getActionFunction(action.type, actionFunctionMap);
     const exec = isFunction(actionOrExec)
       ? actionOrExec
       : actionOrExec
@@ -819,12 +820,9 @@ export class Interpreter<
         const activity = (action as ActivityActionObject<TContext, TEvent>)
           .actor as InvokeDefinition<TContext, TEvent>;
 
-        // If the activity will be stopped right after it's started
+        // TODO: If the "activity" will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
-        // if (!this.state.activities[activity.type]) {
-        //   break;
-        // }
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
