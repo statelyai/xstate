@@ -309,13 +309,15 @@ export class Interpreter<
     if (typeof nextListenerOrObserver === 'function') {
       listener = nextListenerOrObserver;
     } else {
-      listener = nextListenerOrObserver.next!.bind(nextListenerOrObserver);
+      listener = nextListenerOrObserver.next?.bind(nextListenerOrObserver);
       resolvedCompleteListener = nextListenerOrObserver.complete?.bind(
         nextListenerOrObserver
       );
     }
 
-    this.listeners.add(listener);
+    if (listener) {
+      this.listeners.add(listener);
+    }
 
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
