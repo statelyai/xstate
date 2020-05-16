@@ -95,7 +95,7 @@ export class State<
    */
   public transitions: Array<TransitionDefinition<TContext, TEvent>>;
   /**
-   * An object mapping actor IDs to spawned actors/invoked services.
+   * An object mapping actor IDs to spawned actors/invoked behaviors.
    */
   public children: Record<string, ActorRef<any>>;
   /**

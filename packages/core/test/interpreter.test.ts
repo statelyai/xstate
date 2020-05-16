@@ -518,7 +518,7 @@ describe('interpreter', () => {
         }
       },
       {
-        services: {
+        behaviors: {
           myActivity: invokeActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
@@ -565,7 +565,7 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
+          behaviors: {
             myActivity: invokeActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
@@ -606,7 +606,7 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
+          behaviors: {
             blink: invokeActivity(() => {
               activityActive = true;
 
@@ -1786,7 +1786,7 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
+          behaviors: {
             testService: invokeActivity(() => {
               // nothing
             })

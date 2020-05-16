@@ -541,7 +541,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  services: Record<string, BehaviorCreator<TContext, TEvent>>;
+  behaviors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }

@@ -792,13 +792,13 @@ export class Interpreter<
           } else {
             const behaviorCreator:
               | BehaviorCreator<TContext, TEvent>
-              | undefined = this.machine.options.services[src];
+              | undefined = this.machine.options.behaviors[src];
 
             if (!behaviorCreator) {
               if (!IS_PRODUCTION) {
                 warn(
                   false,
-                  `No service found for invocation '${src}' in machine '${this.machine.id}'.`
+                  `No behavior found for invocation '${src}' in machine '${this.machine.id}'.`
                 );
               }
               return;
