@@ -823,6 +823,17 @@ export class Interpreter<
         // TODO: If the "activity" will be stopped right after it's started
         // (such as in transient states)
         // don't bother starting the activity.
+        if (
+          state.actions.find((otherAction) => {
+            return (
+              otherAction.type === actionTypes.stop &&
+              (otherAction as ActivityActionObject<TContext, TEvent>).actor
+                .id === activity.id
+            );
+          })
+        ) {
+          return;
+        }
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
