@@ -1065,6 +1065,16 @@ export interface InterpreterOptions {
    * Whether state actions should be executed immediately upon transition. Defaults to `true`.
    */
   execute: boolean;
+  /**
+   * The default interpreter options for invoked machines.
+   * Overrides the defaults inherited from this parent.
+   */
+  childOptions: {
+    /**
+     * Whether state actions for invoked machines should be executed immediately upon transition.
+     */
+    execute?: boolean;
+  };
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: Interpreter<any, any, any>;

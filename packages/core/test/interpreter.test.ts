@@ -1911,4 +1911,43 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
       service.start();
     });
   });
+
+  it('execute = false should not be inherited by spawned machines', (done) => {
+    let called = false;
+
+    const childMachine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: () => {
+            done();
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine({
+      initial: 'started',
+      states: {
+        started: {
+          entry: () => {
+            called = true;
+          },
+          invoke: childMachine
+        }
+      }
+    });
+
+    const service = interpret(parentMachine, {
+      execute: false,
+      childOptions: {
+        execute: true
+      }
+    }).start();
+
+    service.subscribe((state) => {
+      expect(called).toBeFalsy();
+      service.execute(state);
+    });
+  });
 });

@@ -146,7 +146,8 @@ export class Interpreter<
       }
     },
     logger: global.console.log.bind(console),
-    devTools: false
+    devTools: false,
+    childOptions: {}
   }))(typeof window === 'undefined' ? global : window);
   /**
    * The current state of the interpreted machine.
@@ -971,16 +972,17 @@ export class Interpreter<
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
   ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
-    const childService = new Interpreter(machine, {
-      ...this.options, // inherit options from this interpreter
-      parent: this,
-      id: options.id || machine.id
-    });
-
     const resolvedOptions = {
       ...DEFAULT_SPAWN_OPTIONS,
       ...options
     };
+
+    const childService = new Interpreter(machine, {
+      ...this.options, // inherit options from this interpreter
+      ...this.options.childOptions, // override parent options if specified
+      parent: this,
+      id: options.id || machine.id
+    });
 
     if (resolvedOptions.sync) {
       childService.onTransition((state) => {
