@@ -162,7 +162,6 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
 
                 observers.forEach((observer) => {
                   observer.error?.(errorData);
-                  observer.complete?.();
                 });
               }
             }
