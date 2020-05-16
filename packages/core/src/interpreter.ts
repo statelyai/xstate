@@ -770,7 +770,7 @@ export class Interpreter<
 
         break;
 
-      case ActionTypes.Start: {
+      case ActionTypes.Invoke: {
         const { id, data, autoForward, src } = action as InvokeActionObject;
 
         // If the "activity" will be stopped right after it's started

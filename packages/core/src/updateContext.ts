@@ -37,7 +37,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
           const actorRef = new ObservableActorRef(behavior, name);
 
           capturedActions.push({
-            type: ActionTypes.Start,
+            type: ActionTypes.Invoke,
             src: actorRef,
             id: name
           });

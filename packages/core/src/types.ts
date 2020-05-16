@@ -579,7 +579,6 @@ export type Transitions<TContext, TEvent extends EventObject> = Array<
 >;
 
 export enum ActionTypes {
-  Start = 'xstate.start',
   Stop = 'xstate.stop',
   Raise = 'xstate.raise',
   Send = 'xstate.send',
@@ -642,7 +641,7 @@ export interface NullEvent {
 }
 
 export interface InvokeActionObject {
-  type: ActionTypes.Start;
+  type: ActionTypes.Invoke;
   src: string | ActorRef<any>;
   id: string;
   autoForward?: boolean;

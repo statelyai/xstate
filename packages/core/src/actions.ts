@@ -370,7 +370,7 @@ export function invoke<TContext, TEvent extends EventObject>(
   invokeDef: InvokeDefinition<TContext, TEvent>
 ): InvokeActionObject {
   return {
-    type: ActionTypes.Start,
+    type: ActionTypes.Invoke,
     src: invokeDef.src,
     id: invokeDef.id,
     autoForward: invokeDef.autoForward,
