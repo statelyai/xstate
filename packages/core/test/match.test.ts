@@ -353,8 +353,11 @@ describe('matches() method', () => {
   });
 
   it('should compile with conditional matches even without a specified Typestate', () => {
-    const toggleMachine = createMachine({
+    const toggleMachine = createMachine<{ foo: number }>({
       id: 'toggle',
+      context: {
+        foo: 0
+      },
       initial: 'a',
       states: {
         a: { on: { TOGGLE: 'b' } },
@@ -365,6 +368,9 @@ describe('matches() method', () => {
     const state = toggleMachine.initialState;
 
     if (state.matches('a') || state.matches('b')) {
+      // This should be a `number` type
+      state.context.foo;
+
       // Make sure state isn't "never" - if it is, tests should fail to compile
       expect(state).toBeTruthy();
     }
