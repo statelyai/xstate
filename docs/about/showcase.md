@@ -14,3 +14,4 @@ There are many developers and teams using XState [in the wild](https://github.co
 - "Used XState for the navigation of a keg analytics web-app [BinaryBeer](https://binarybeer.io/)."
 - "Used XState to model data fetching and filtering of a collection of products 👉 [stimm.com](https://stimm.com)"
 - "We're now using xstate to power a couple of the more complicated interactions at my place in our Behavior Insights Engine at [Maritz](https://www.maritz.com/).
+- At [Cypress](https://cypress.io) we chose XState to manage state for our open source [Real World App](https://github.com/cypress-io/cypress-realworld-app). The app is a payment application used to demonstrate real-world usage of Cypress testing methods, patterns, and workflows. [The machines](https://github.com/cypress-io/cypress-realworld-app/tree/develop/src/machines) are used for several different types of scenarios present in modern, responsive web applications.
