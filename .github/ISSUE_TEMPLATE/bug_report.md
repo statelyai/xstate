@@ -2,7 +2,7 @@
 name: Bug report
 about: Report an issue with XState or its packages
 title: ''
-labels: bug
+labels: ''
 assignees: ''
 
 ---
