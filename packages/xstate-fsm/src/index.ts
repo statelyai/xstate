@@ -86,14 +86,15 @@ export function createMachine<
     actions?: StateMachine.ActionMap<TContext, TEvent>;
   } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
-  
-  Object
-    .keys(fsmConfig['states'])
-    .forEach((state) => {
-      if (fsmConfig['states'][state].states) {
-        throw new Error('Finite state nested is not supported in @xstate/fsm');
-      }
-    });
+  if (!IS_PRODUCTION) {
+    Object
+      .keys(fsmConfig['states'])
+      .forEach((state) => {
+        if (fsmConfig['states'][state].states) {
+          throw new Error('Finite state nested is not supported in @xstate/fsm');
+        }
+      });
+  }
   
   const machine = {
     config: fsmConfig,
