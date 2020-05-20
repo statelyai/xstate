@@ -91,7 +91,8 @@ export function createMachine<
       .keys(fsmConfig['states'])
       .forEach((state) => {
         if (fsmConfig['states'][state].states) {
-          throw new Error('Finite state nested is not supported in @xstate/fsm');
+          throw new Error(`Nested finite states not supported. 
+            Please check the configuration for the "${state}" state.`);
         }
       });
   }
