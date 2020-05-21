@@ -148,13 +148,16 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
 };
 ```
 
-## Configuring Machines <Badge text="0.7+"/>
+## Configuring Machines
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
+import { createMachine } from 'xstate';
+import { invokePromise } from 'xstate/invoke';
+
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
@@ -201,8 +204,9 @@ const Fetcher = ({ onResolve }) => {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
     behaviors: {
-      fetchData: (_, e) =>
-        fetch(`some/api/${e.query}`).then((res) => res.json())
+      fetchData: invokePromise((_, event) =>
+        fetch(`some/api/${event.query}`).then((res) => res.json())
+      )
     }
   });
 

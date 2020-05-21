@@ -25,7 +25,6 @@ import {
 } from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
-import { createMachineBehavior } from '../src/behavior';
 
 const user = { name: 'David' };
 
@@ -503,19 +502,17 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: (_, __, { parent }) =>
-            createMachineBehavior(
-              Machine({
-                id: 'child',
-                initial: 'sending',
-                states: {
-                  sending: {
-                    entry: sendParent({ type: 'SUCCESS', data: 42 })
-                  }
+          invoke: invokeMachine(
+            Machine({
+              id: 'child',
+              initial: 'sending',
+              states: {
+                sending: {
+                  entry: sendParent({ type: 'SUCCESS', data: 42 })
                 }
-              }),
-              parent
-            ),
+              }
+            })
+          ),
           on: {
             SUCCESS: {
               target: 'success',
@@ -548,19 +545,17 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: (_, __, { parent }) =>
-                createMachineBehavior(
-                  Machine({
-                    id: 'child',
-                    initial: 'sending',
-                    states: {
-                      sending: {
-                        entry: sendParent({ type: 'SUCCESS', data: 42 })
-                      }
+              invoke: invokeMachine(
+                Machine({
+                  id: 'child',
+                  initial: 'sending',
+                  states: {
+                    sending: {
+                      entry: sendParent({ type: 'SUCCESS', data: 42 })
                     }
-                  }),
-                  parent
-                )
+                  }
+                })
+              )
             }
           }
         },
