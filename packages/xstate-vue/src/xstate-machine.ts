@@ -36,8 +36,8 @@ export default Vue.extend({
     actions() {
       return this.options.actions;
     },
-    services() {
-      return this.options.services;
+    behaviors() {
+      return this.options.behaviors;
     }
   },
   created() {
@@ -46,7 +46,7 @@ export default Vue.extend({
       guards,
       actions,
       activities,
-      services,
+      behaviors,
       delays,
       state: rehydratedState,
       ...interpreterOptions
@@ -57,7 +57,7 @@ export default Vue.extend({
       guards,
       actions,
       activities,
-      services,
+      behaviors,
       delays
     };
 

@@ -1,59 +1,165 @@
 import {
   EventObject,
   Subscribable,
-  InvokeDefinition,
-  AnyEventObject
+  SCXML,
+  InvokeCallback,
+  InterpreterOptions,
+  ActorRef
 } from './types';
+import { MachineNode } from './MachineNode';
+import { Interpreter } from './interpreter';
+import {
+  Behavior,
+  startSignal,
+  ActorContext,
+  stopSignal,
+  createServiceBehavior,
+  createMachineBehavior,
+  createCallbackBehavior,
+  createPromiseBehavior,
+  createObservableBehavior,
+  LifecycleSignal
+} from './behavior';
+import { registry } from './registry';
 
-export interface Actor<
-  TContext = any,
-  TEvent extends EventObject = AnyEventObject
-> extends Subscribable<TContext> {
-  id: string;
-  send: (event: TEvent) => any; // TODO: change to void
-  stop?: () => any | undefined;
-  toJSON: () => {
-    id: string;
-  };
-  meta?: InvokeDefinition<TContext, TEvent>;
-  state?: any;
+const nullSubscription = {
+  unsubscribe: () => void 0
+};
+
+export function isActorRef(item: any): item is ActorRef<any> {
+  return !!item && typeof item === 'object' && typeof item.send === 'function';
 }
 
-export function createNullActor<TContext, TEvent extends EventObject>(
-  id: string
-): Actor<TContext, TEvent> {
-  return {
-    id,
-    send: () => void 0,
-    subscribe: () => ({
-      unsubscribe: () => void 0
-    }),
-    toJSON: () => ({
-      id
-    })
-  };
+export function fromObservable<T extends EventObject>(
+  observable: Subscribable<T>,
+  parent: ActorRef<any>,
+  name: string
+): ActorRef<never> {
+  return new ObservableActorRef(
+    createObservableBehavior(observable, parent),
+    name
+  );
 }
 
-/**
- * Creates a null actor that is able to be invoked given the provided
- * invocation information in its `.meta` value.
- *
- * @param invokeDefinition The meta information needed to invoke the actor.
- */
-export function createInvocableActor<TContext, TEvent extends EventObject>(
-  invokeDefinition: InvokeDefinition<TContext, TEvent>
-): Actor<any, TEvent> {
-  const tempActor = createNullActor<TContext, TEvent>(invokeDefinition.id);
-
-  tempActor.meta = invokeDefinition;
-
-  return tempActor;
+export function fromPromise<T>(
+  promise: PromiseLike<T>,
+  parent: ActorRef<any>,
+  name: string
+): ActorRef<never> {
+  return new ObservableActorRef(createPromiseBehavior(promise, parent), name);
 }
 
-export function isActor(item: any): item is Actor {
-  try {
-    return typeof item.send === 'function';
-  } catch (e) {
-    return false;
+export function fromCallback<TEvent extends EventObject>(
+  callback: InvokeCallback,
+  parent: ActorRef<any>,
+  name: string
+): ActorRef<SCXML.Event<TEvent>> {
+  return new ObservableActorRef(createCallbackBehavior(callback, parent), name);
+}
+
+export function fromMachine<TContext, TEvent extends EventObject>(
+  machine: MachineNode<TContext, any, TEvent>,
+  parent: ActorRef<any>,
+  name: string,
+  options?: Partial<InterpreterOptions>
+): ActorRef<TEvent> {
+  return new ObservableActorRef(
+    createMachineBehavior(machine, parent, options),
+    name
+  );
+}
+
+export function fromService<TContext, TEvent extends EventObject>(
+  service: Interpreter<TContext, any, TEvent>,
+  name: string = registry.bookId()
+): ActorRef<TEvent> {
+  return new ObservableActorRef(createServiceBehavior(service), name);
+}
+
+enum ProcessingStatus {
+  NotProcessing,
+  Processing
+}
+
+export class Actor<TEvent extends EventObject, TEmitted> {
+  public current: TEmitted;
+  private context: ActorContext;
+  private behavior: Behavior<TEvent, TEmitted>;
+  private mailbox: TEvent[] = [];
+  private processingStatus: ProcessingStatus = ProcessingStatus.NotProcessing;
+  public name: string;
+
+  constructor(
+    behavior: Behavior<TEvent, TEmitted>,
+    name: string,
+    actorContext: ActorContext
+  ) {
+    this.behavior = behavior;
+    this.name = name;
+    this.context = actorContext;
+    this.current = behavior.current;
+  }
+  public start() {
+    this.behavior = this.behavior.receiveSignal(this.context, startSignal);
+    return this;
+  }
+  public stop() {
+    this.behavior = this.behavior.receiveSignal(this.context, stopSignal);
+  }
+  public subscribe(observer) {
+    return this.behavior.subscribe?.(observer) || nullSubscription;
+  }
+  public receive(event) {
+    this.mailbox.push(event);
+    if (this.processingStatus === ProcessingStatus.NotProcessing) {
+      this.flush();
+    }
+  }
+  public receiveSignal(signal: LifecycleSignal) {
+    this.behavior = this.behavior.receiveSignal(this.context, signal);
+    return this;
+  }
+  private flush() {
+    this.processingStatus = ProcessingStatus.Processing;
+    while (this.mailbox.length) {
+      const event = this.mailbox.shift()!;
+
+      this.behavior = this.behavior.receive(this.context, event);
+    }
+    this.processingStatus = ProcessingStatus.NotProcessing;
+  }
+}
+
+export class ObservableActorRef<TEvent extends EventObject, TEmitted>
+  implements ActorRef<TEvent, TEmitted> {
+  public current: TEmitted;
+  private context: ActorContext;
+  private actor: Actor<TEvent, TEmitted>;
+  public name: string;
+
+  constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
+    this.name = name;
+    this.context = {
+      self: this,
+      name: this.name
+    };
+    this.actor = new Actor(behavior, name, this.context);
+    this.current = this.actor.current;
+  }
+  public start() {
+    this.actor.receiveSignal(startSignal);
+
+    return this;
+  }
+  public stop() {
+    this.actor.receiveSignal(stopSignal);
+
+    return this;
+  }
+  public subscribe(observer) {
+    return this.actor.subscribe(observer);
+  }
+  public send(event) {
+    this.actor.receive(event);
   }
 }

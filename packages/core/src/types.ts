@@ -1,8 +1,8 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Clock } from './interpreter';
-import { Actor } from './Actor';
 import { MachineNode } from './MachineNode';
+import { Behavior } from './behavior';
 
 export type EventType = string;
 export type ActionType = string;
@@ -55,6 +55,11 @@ export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
+  self?: ActorRef<TEvent>;
+  spawn: {
+    (behavior: Behavior<any, any>, name?: string): ActorRef<any>;
+    from: <T extends Spawnable>(entity: T, name?: string) => ActorRefFrom<T>;
+  };
 }
 
 export type ActionFunction<TContext, TEvent extends EventObject> = (
@@ -165,24 +170,6 @@ export type Transition<TContext, TEvent extends EventObject = EventObject> =
   | TransitionConfig<TContext, TEvent>
   | ConditionalTransitionConfig<TContext, TEvent>;
 
-export type DisposeActivityFunction = () => void;
-
-export type ActivityConfig<TContext, TEvent extends EventObject> = (
-  ctx: TContext,
-  activity: ActivityDefinition<TContext, TEvent>
-) => DisposeActivityFunction | void;
-
-export type Activity<TContext, TEvent extends EventObject> =
-  | string
-  | ActivityDefinition<TContext, TEvent>;
-
-export interface ActivityDefinition<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  id: string;
-  type: string;
-}
-
-export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
@@ -192,29 +179,21 @@ export type InvokeCallback = (
   onReceive: Receiver<EventObject>
 ) => any;
 
-/**
- * Returns either a Promises or a callback handler (for streams of events) given the
- * machine's current `context` and `event` that invoked the service.
- *
- * For Promises, the only events emitted to the parent will be:
- * - `done.invoke.<id>` with the `data` containing the resolved payload when the promise resolves, or:
- * - `error.platform.<id>` with the `data` containing the caught error, and `src` containing the service `id`.
- *
- * For callback handlers, the `callback` will be provided, which will send events to the parent service.
- *
- * @param context The current machine `context`
- * @param event The event that invoked the service
- */
-export type InvokeCreator<TContext, TEvent extends EventObject> = (
+export type BehaviorCreator<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
-  meta: { parent: Actor; id: string; data?: any; _event: SCXML.Event<TEvent> }
-) => Actor;
+  meta: {
+    parent: ActorRef<TEvent>;
+    id: string;
+    data?: any;
+    _event: SCXML.Event<TEvent>;
+  }
+) => Behavior<any, any>;
 
-export interface InvokeDefinition<TContext, TEvent extends EventObject>
-  extends ActivityDefinition<TContext, TEvent> {
+export interface InvokeDefinition<TContext, TEvent extends EventObject> {
+  id: string;
   /**
-   * The source of the machine to be invoked, or the machine itself.
+   * The source of the actor's behavior to be invoked
    */
   src: string;
   /**
@@ -230,6 +209,18 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
 }
 
 export interface Delay {
@@ -346,7 +337,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | InvokeCreator<any, any>;
+  src: string | BehaviorCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -421,7 +412,7 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    string | InvokeCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
+    string | BehaviorCreator<TContext, TEvent> | InvokeConfig<TContext, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -543,10 +534,6 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext, TEvent extends EventObject> =
-  | string
-  | InvokeCreator<TContext, TEvent>;
-
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
   | DelayExpr<TContext, TEvent>;
@@ -554,8 +541,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
 export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, InvokeCreator<TContext, TEvent>>;
+  behaviors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   context: Partial<TContext>;
 }
@@ -593,7 +579,6 @@ export type Transitions<TContext, TEvent extends EventObject> = Array<
 >;
 
 export enum ActionTypes {
-  Start = 'xstate.start',
   Stop = 'xstate.stop',
   Raise = 'xstate.raise',
   Send = 'xstate.send',
@@ -655,16 +640,18 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface ActivityActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  type: ActionTypes.Start | ActionTypes.Stop;
-  actor: ActivityDefinition<TContext, TEvent>;
-  exec: ActionFunction<TContext, TEvent> | undefined;
+export interface InvokeActionObject {
+  type: ActionTypes.Invoke;
+  src: string | ActorRef<any>;
+  id: string;
+  autoForward?: boolean;
+  data?: any;
+  exec?: undefined;
 }
 
-export interface InvokeActionObject<TContext, TEvent extends EventObject>
-  extends ActivityActionObject<TContext, TEvent> {
-  actor: InvokeDefinition<TContext, TEvent>;
+export interface StopActionObject {
+  type: ActionTypes.Stop;
+  actor: string | ActorRef<any>;
 }
 
 export type DelayExpr<TContext, TEvent extends EventObject> = ExprWithMeta<
@@ -698,8 +685,12 @@ export interface SendAction<
   to:
     | string
     | number
-    | Actor
-    | ExprWithMeta<TContext, TEvent, string | number | Actor>
+    | ActorRef<any>
+    | ExprWithMeta<
+        TContext,
+        TEvent,
+        string | number | ActorRef<any> | undefined
+      >
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -711,7 +702,7 @@ export interface SendActionObject<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 > extends SendAction<TContext, TEvent, TSentEvent> {
-  to: string | number | Actor | undefined;
+  to: string | number | ActorRef<TSentEvent> | undefined;
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
   delay?: number;
@@ -743,7 +734,14 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
+  to?:
+    | string
+    | ExprWithMeta<
+        TContext,
+        TEvent,
+        string | number | ActorRef<any> | undefined
+      >
+    | undefined;
 }
 
 export interface CancelAction<TContext, TEvent extends EventObject>
@@ -940,7 +938,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Actor[];
+  children: Record<string, ActorRef<any>>;
   done?: boolean;
 }
 
@@ -959,7 +957,7 @@ export interface InterpreterOptions {
   execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
-  parent?: Actor<any>;
+  parent?: ActorRef<any>;
   /**
    * If `true`, defers processing of sent events until the service
    * is initialized (`.start()`). Otherwise, an error will be thrown
@@ -979,6 +977,12 @@ export interface InterpreterOptions {
    */
   devTools: boolean | object; // TODO: add enhancer options
   [option: string]: any;
+  /**
+   * If `true`, events from the parent will be sent to this interpreter.
+   *
+   * Default: `false`
+   */
+  autoForward?: boolean;
 }
 
 export declare namespace SCXML {
@@ -1014,7 +1018,7 @@ export declare namespace SCXML {
      * a response back to the originating entity via the Event I/O Processor specified in 'origintype'.
      * For internal and platform events, the Processor must leave this field blank.
      */
-    origin?: string;
+    origin?: ActorRef<any>;
     /**
      * This is equivalent to the 'type' field on the <send> element.
      * For external events, the SCXML Processor should set this field to a value which,
@@ -1045,26 +1049,60 @@ export declare namespace SCXML {
   }
 }
 
+export type Spawnable =
+  | MachineNode<any, any, any>
+  | PromiseLike<any>
+  | InvokeCallback
+  | Subscribable<any>;
+
 // Taken from RxJS
-export interface Unsubscribable {
+export interface Subscription {
   unsubscribe(): any | void;
-}
-export interface Subscribable<T> {
-  subscribe(
-    next?: (value: T) => void,
-    error?: (error: any) => void,
-    complete?: () => void
-  ): Unsubscribable;
 }
 
 export interface Observer<T> {
-  next: (value: T) => void;
-  error: (err: any) => void;
+  // Sends the next value in the sequence
+  next?: (value: T) => void;
+
+  // Sends the sequence error
+  error?: (errorValue: any) => void;
+
+  // Sends the completion notification
   complete: () => void;
 }
 
-export type Spawnable =
-  | MachineNode<any, any, any>
-  | Promise<any>
-  | InvokeCallback
-  | Subscribable<any>;
+export interface Subscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+  subscribe(
+    next: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Subscription;
+}
+
+export interface ActorLike<TCurrent, TEvent extends EventObject>
+  extends Subscribable<TCurrent> {
+  send: Sender<TEvent>;
+}
+
+export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
+
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+  start: () => ActorRef<TEvent>;
+  stop: () => void;
+  /**
+   * The most recently emitted value.
+   */
+  current: TEmitted;
+  name: string;
+}
+
+export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
+  infer TC,
+  any,
+  infer TE
+>
+  ? ActorRef<TE, State<TC, TE>>
+  : ActorRef<any, any>; // TODO: expand

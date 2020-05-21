@@ -1,5 +1,6 @@
 import { Machine, interpret, assign, send, sendParent, State } from '../src';
-import { spawnMachine } from '../src/invoke';
+import { invokeMachine } from '../src/invoke';
+import { ActorRef } from '../src/types';
 
 interface CounterContext {
   count: number;
@@ -297,7 +298,7 @@ describe('assign meta', () => {
 
   it('should provide meta._event to assigner', () => {
     interface Ctx {
-      eventLog: Array<{ event: string; origin: string | undefined }>;
+      eventLog: Array<{ event: string; origin?: ActorRef<any> }>;
     }
 
     const assignEventLog = assign<Ctx>((ctx, event, meta) => ({
@@ -328,7 +329,7 @@ describe('assign meta', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine)
+            src: invokeMachine(childMachine)
           }
         }
       },
@@ -356,9 +357,19 @@ describe('assign meta', () => {
     expect(state.context).toEqual({
       eventLog: [
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) },
+        {
+          event: 'PONG',
+          origin: expect.objectContaining({
+            id: expect.stringMatching(/.+/)
+          })
+        },
         { event: 'PING_CHILD', origin: undefined },
-        { event: 'PONG', origin: expect.stringMatching(/.+/) }
+        {
+          event: 'PONG',
+          origin: expect.objectContaining({
+            id: expect.stringMatching(/.+/)
+          })
+        }
       ]
     });
   });

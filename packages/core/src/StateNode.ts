@@ -259,7 +259,7 @@ export class StateNode<
   }
 
   /**
-   * The services invoked by this state node.
+   * The behaviors invoked as actors by this state node.
    */
   public get invoke(): Array<InvokeDefinition<TContext, TEvent>> {
     return (
@@ -275,11 +275,11 @@ export class StateNode<
           : resolvedId;
 
         if (
-          !this.machine.options.services[resolvedSrc] &&
+          !this.machine.options.behaviors[resolvedSrc] &&
           !isString(invokeConfig.src)
         ) {
-          this.machine.options.services = {
-            ...this.machine.options.services,
+          this.machine.options.behaviors = {
+            ...this.machine.options.behaviors,
             [resolvedSrc]: invokeConfig.src as any
           };
         }

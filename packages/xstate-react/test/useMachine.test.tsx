@@ -4,7 +4,6 @@ import {
   Machine,
   assign,
   Interpreter,
-  spawn,
   doneInvoke,
   State,
   createMachine
@@ -16,7 +15,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { spawnPromise } from 'xstate/invoke';
+import { invokePromise } from 'xstate/invoke';
 
 afterEach(cleanup);
 
@@ -64,7 +63,7 @@ describe('useMachine hook', () => {
   }) => {
     const [current, send] = useMachine(fetchMachine, {
       services: {
-        fetchData: spawnPromise(onFetch)
+        fetchData: invokePromise(onFetch)
       },
       state: persistedState
     });
@@ -190,7 +189,8 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: () => spawn(new Promise((res) => res(42)), 'my-promise')
+            ref: (_, __, { spawn }) =>
+              spawn.from(new Promise((res) => res(42)), 'my-promise')
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'

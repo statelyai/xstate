@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, Interpreter } from '../src';
+import { Machine, interpret, createMachine, ActorRef } from '../src';
 import {
   assign,
   send,
@@ -8,9 +8,11 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
+import { fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
+import * as actionTypes from '../src/actionTypes';
+import { createMachineBehavior } from '../src/behavior';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -27,7 +29,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, Actor>
+    todoRefs: {} as Record<string, ActorRef<any>>
   };
 
   type TodoEvent =
@@ -60,9 +62,9 @@ describe('spawning machines', () => {
     on: {
       ADD: {
         actions: assign({
-          todoRefs: (ctx, e) => ({
+          todoRefs: (ctx, e, { spawn }) => ({
             ...ctx.todoRefs,
-            [e.id]: spawn(todoMachine)
+            [e.id]: spawn.from(todoMachine)
           })
         })
       },
@@ -101,7 +103,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Interpreter<any, any>;
+    server?: ActorRef<any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -114,7 +116,7 @@ describe('spawning machines', () => {
       init: {
         entry: [
           assign({
-            server: () => spawn(serverMachine)
+            server: (_, __, { spawn }) => spawn.from(serverMachine)
           }),
           raise('SUCCESS')
         ],
@@ -161,10 +163,6 @@ describe('spawning machines', () => {
     service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 
-  it('should invoke a null actor if spawned outside of a service', () => {
-    expect(spawn(todoMachine)).toBeTruthy();
-  });
-
   it('should allow bidirectional communication between parent/child actors', (done) => {
     interpret(clientMachine)
       .onDone(() => {
@@ -184,13 +182,12 @@ describe('spawning promises', () => {
     states: {
       idle: {
         entry: assign({
-          promiseRef: () => {
-            const ref = spawn(
-              new Promise((res) => {
-                res('response');
-              }),
-              'my-promise'
-            );
+          promiseRef: (_, __, { spawn }) => {
+            const promise = new Promise((res) => {
+              res('response');
+            });
+
+            const ref = spawn.from(promise, 'my-promise');
 
             return ref;
           }
@@ -218,40 +215,40 @@ describe('spawning promises', () => {
 });
 
 describe('spawning callbacks', () => {
-  const callbackMachine = Machine<any>({
-    id: 'callback',
-    initial: 'idle',
-    context: {
-      callbackRef: undefined
-    },
-    states: {
-      idle: {
-        entry: assign({
-          callbackRef: () =>
-            spawn((cb, receive) => {
-              receive((event) => {
-                if (event.type === 'START') {
-                  setTimeout(() => {
-                    cb('SEND_BACK');
-                  }, 10);
-                }
-              });
-            })
-        }),
-        on: {
-          START_CB: {
-            actions: send('START', { to: (ctx) => ctx.callbackRef })
-          },
-          SEND_BACK: 'success'
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    }
-  });
-
   it('should be able to spawn an actor from a callback', (done) => {
+    const callbackMachine = createMachine<{ callbackRef?: ActorRef<any> }>({
+      id: 'callback',
+      initial: 'idle',
+      context: {
+        callbackRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            callbackRef: (_, __, { spawn }) =>
+              spawn.from((cb, receive) => {
+                receive((event) => {
+                  if (event.type === 'START') {
+                    setTimeout(() => {
+                      cb('SEND_BACK');
+                    }, 10);
+                  }
+                });
+              })
+          }),
+          on: {
+            START_CB: {
+              actions: send('START', { to: (ctx) => ctx.callbackRef })
+            },
+            SEND_BACK: 'success'
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
     const callbackService = interpret(callbackMachine).onDone(() => {
       done();
     });
@@ -262,47 +259,47 @@ describe('spawning callbacks', () => {
 });
 
 describe('spawning observables', () => {
-  interface Events {
-    type: 'INT';
-    value: number;
-  }
-
-  const observableMachine = Machine<any, Events>({
-    id: 'observable',
-    initial: 'idle',
-    context: {
-      observableRef: undefined
-    },
-    states: {
-      idle: {
-        entry: assign({
-          observableRef: () => {
-            const ref = spawn(
-              interval(10).pipe(
-                map((n) => ({
-                  type: 'INT',
-                  value: n
-                }))
-              )
-            );
-
-            return ref;
-          }
-        }),
-        on: {
-          INT: {
-            target: 'success',
-            cond: (_, e) => e.value === 5
-          }
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    }
-  });
-
   it('should be able to spawn an observable', (done) => {
+    interface Events {
+      type: 'INT';
+      value: number;
+    }
+
+    const observableMachine = Machine<any, Events>({
+      id: 'observable',
+      initial: 'idle',
+      context: {
+        observableRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            observableRef: (_, __, { spawn }) => {
+              const ref = spawn.from(
+                interval(10).pipe(
+                  map((n) => ({
+                    type: 'INT',
+                    value: n
+                  }))
+                )
+              );
+
+              return ref;
+            }
+          }),
+          on: {
+            INT: {
+              target: 'success',
+              cond: (_, e) => e.value === 5
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
     const observableService = interpret(observableMachine).onDone(() => {
       done();
     });
@@ -327,17 +324,19 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<any>({
+    const parentMachine = Machine<{
+      existingRef?: ActorRef<any>;
+    }>({
       initial: 'pending',
       context: {
-        existingRef: undefined as any
+        existingRef: undefined
       },
       states: {
         pending: {
           entry: assign({
             // No need to spawn an existing service:
             // existingRef: () => spawn(existingService)
-            existingRef: existingService
+            existingRef: existingService.ref
           }),
           on: {
             'EXISTING.DONE': 'success'
@@ -376,8 +375,11 @@ describe('communicating with spawned actors', () => {
 
     const existingService = interpret(existingMachine).start();
 
-    const parentMachine = Machine<any>({
+    const parentMachine = Machine<{ existingRef: ActorRef<any> }>({
       initial: 'pending',
+      context: {
+        existingRef: fromService(existingService)
+      },
       states: {
         pending: {
           entry: send('ACTIVATE', { to: existingService.sessionId }),
@@ -418,10 +420,10 @@ describe('actors', () => {
       states: {
         start: {
           entry: assign({
-            refs: (ctx) => {
+            refs: (ctx, _, { spawn }) => {
               count++;
               const c = ctx.items.map((item) =>
-                spawn(new Promise((res) => res(item)))
+                spawn.from(new Promise((res) => res(item)))
               );
 
               return c;
@@ -439,13 +441,13 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: Actor }>({
+    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
         foo: {
           entry: assign({
-            ref: () => spawn(Promise.resolve(42))
+            ref: (_, __, { spawn }) => spawn.from(Promise.resolve(42))
           })
         }
       }
@@ -485,8 +487,8 @@ describe('actors', () => {
         initial: 'initial',
         states: {
           initial: {
-            entry: assign(() => ({
-              serverRef: spawn(pongActorMachine)
+            entry: assign((_, __, { spawn }) => ({
+              serverRef: spawn.from(pongActorMachine)
             })),
             on: {
               PONG: {
@@ -506,15 +508,22 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<{ counter: number; serverRef?: Actor }>({
+      const machine = Machine<{
+        counter: number;
+        serverRef?: ActorRef<any>;
+      }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
         states: {
           initial: {
-            entry: assign((ctx) => ({
+            entry: assign((ctx, _, { self, spawn }) => ({
               ...ctx,
-              serverRef: spawn(pongActorMachine, { autoForward: false })
+              serverRef: spawn(
+                createMachineBehavior(pongActorMachine, self, {
+                  autoForward: false
+                })
+              )
             })),
             on: {
               PONG: {
@@ -529,33 +538,6 @@ describe('actors', () => {
       service.send('PING');
       service.send('PING');
       expect(pongCounter).toEqual(0);
-    });
-
-    it('should forward events to a spawned actor when { autoForward: true }', () => {
-      let pongCounter = 0;
-
-      const machine = Machine<any>({
-        id: 'client',
-        context: { counter: 0, serverRef: undefined },
-        initial: 'initial',
-        states: {
-          initial: {
-            entry: assign(() => ({
-              serverRef: spawn(pongActorMachine, { autoForward: true })
-            })),
-            on: {
-              PONG: {
-                actions: () => ++pongCounter
-              }
-            }
-          }
-        }
-      });
-      const service = interpret(machine);
-      service.start();
-      service.send('PING');
-      service.send('PING');
-      expect(pongCounter).toEqual(2);
     });
   });
 
@@ -573,81 +555,113 @@ describe('actors', () => {
       }
     });
 
-    const parentMachine = Machine<{
-      ref: any;
-      refNoSync: any;
-      refNoSyncDefault: any;
-    }>({
-      id: 'parent',
-      context: {
-        ref: undefined,
-        refNoSync: undefined,
-        refNoSyncDefault: undefined
-      },
-      initial: 'foo',
-      states: {
-        foo: {
-          entry: assign({
-            ref: () => spawn(childMachine, { sync: true }),
-            refNoSync: () => spawn(childMachine, { sync: false }),
-            refNoSyncDefault: () => spawn(childMachine)
-          })
+    it('should sync spawned actor state when { sync: true }', (done) => {
+      const machine = Machine<{
+        ref?: ActorRef<any>;
+      }>({
+        id: 'parent',
+        context: {
+          ref: undefined
         },
-        success: {
-          type: 'final'
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: assign({
+              ref: (_, __, { self, spawn }) =>
+                spawn(createMachineBehavior(childMachine, self, { sync: true }))
+            }),
+            on: {
+              [actionTypes.update]: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
         }
-      }
+      });
+
+      const service = interpret(machine, {
+        id: 'a-service'
+      }).onDone(() => {
+        done();
+      });
+      service.start();
     });
 
-    it('should sync spawned actor state when { sync: true }', () => {
-      return new Promise((res) => {
-        const service = interpret(parentMachine, {
-          id: 'a-service'
-        }).onTransition((s) => {
-          if (s.context.ref.state.context.value === 42) {
-            res();
+    it('should not sync spawned actor state when { sync: false }', (done) => {
+      const machine = Machine<{
+        refNoSync?: ActorRef<any>;
+      }>({
+        id: 'parent',
+        context: {
+          refNoSync: undefined
+        },
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: assign({
+              refNoSync: (_, __, { self, spawn }) =>
+                spawn(
+                  createMachineBehavior(childMachine, self, { sync: false })
+                )
+            }),
+            on: {
+              '*': 'failure'
+            }
+          },
+          failure: {
+            type: 'final'
           }
-        });
-        service.start();
+        }
       });
+
+      const service = interpret(machine, {
+        id: 'b-service'
+      }).onDone(() => {
+        throw new Error('value change caused transition');
+      });
+      service.start();
+
+      setTimeout(() => {
+        done();
+      }, 30);
     });
 
-    it('should not sync spawned actor state when { sync: false }', () => {
-      return new Promise((res, rej) => {
-        const service = interpret(parentMachine, {
-          id: 'b-service'
-        }).onTransition((s) => {
-          if (s.context.refNoSync.state.context.value === 42) {
-            rej(new Error('value change caused transition'));
+    it('should not sync spawned actor state (default)', (done) => {
+      const machine = Machine<{
+        refNoSyncDefault?: ActorRef<any>;
+      }>({
+        id: 'parent',
+        context: {
+          refNoSyncDefault: undefined
+        },
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: assign({
+              refNoSyncDefault: (_, __, { self, spawn }) =>
+                spawn(createMachineBehavior(childMachine, self))
+            }),
+            on: {
+              '*': 'failure'
+            }
+          },
+          failure: {
+            type: 'final'
           }
-        });
-        service.start();
-
-        setTimeout(() => {
-          expect(service.state.context.refNoSync.state.context.value).toBe(42);
-          res();
-        }, 30);
+        }
       });
-    });
 
-    it('should not sync spawned actor state (default)', () => {
-      return new Promise((res, rej) => {
-        const service = interpret(parentMachine, {
-          id: 'c-service'
-        }).onTransition((s) => {
-          if (s.context.refNoSyncDefault.state.context.value === 42) {
-            rej(new Error('value change caused transition'));
-          }
-        });
-        service.start();
-
-        setTimeout(() => {
-          expect(
-            service.state.context.refNoSyncDefault.state.context.value
-          ).toBe(42);
-          res();
-        }, 30);
+      const service = interpret(machine, {
+        id: 'b-service'
+      }).onDone(() => {
+        throw new Error('value change caused transition');
       });
+      service.start();
+
+      setTimeout(() => {
+        done();
+      }, 30);
     });
 
     it('parent state should be changed if synced child actor update occurs', (done) => {
@@ -662,7 +676,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Interpreter<any, any>;
+        ref?: ActorRef<any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -671,21 +685,25 @@ describe('actors', () => {
         states: {
           same: {
             entry: assign<SyncMachineContext>({
-              ref: () => spawn(syncChildMachine, { sync: true })
-            })
+              ref: (_, __, { self, spawn }) => {
+                return spawn(
+                  createMachineBehavior(syncChildMachine, self, { sync: true })
+                );
+              }
+            }),
+            on: {
+              [actionTypes.update]: 'success'
+            }
+          },
+          success: {
+            type: 'final'
           }
         }
       });
 
       interpret(syncMachine)
-        .onTransition((state) => {
-          if (
-            state.context.ref &&
-            state.context.ref.state.matches('inactive')
-          ) {
-            expect(state.changed).toBe(true);
-            done();
-          }
+        .onDone(() => {
+          done();
         })
         .start();
     });
@@ -707,7 +725,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: ActorRef<any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -716,27 +734,33 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption)
-              })
-            }
+                ref: (_, __, { self, spawn }) =>
+                  spawn(
+                    createMachineBehavior(
+                      syncChildMachine,
+                      self,
+                      falseSyncOption
+                    )
+                  )
+              }),
+              on: {
+                '*': 'failure'
+              }
+            },
+            failure: {}
           }
         });
 
-        const service = interpret(syncMachine)
+        interpret(syncMachine)
+          .onDone(() => {
+            done();
+          })
           .onTransition((state) => {
-            if (
-              state.context.ref &&
-              state.context.ref.state.matches('inactive')
-            ) {
-              expect(state.changed).toBe(false);
-            }
+            expect(state.matches('failure')).toBeFalsy();
           })
           .start();
 
         setTimeout(() => {
-          expect(service.state.context.ref!.state.matches('inactive')).toBe(
-            true
-          );
           done();
         }, 20);
       });
@@ -757,7 +781,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: ActorRef<any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -766,7 +790,14 @@ describe('actors', () => {
           states: {
             same: {
               entry: assign({
-                ref: () => spawn(syncChildMachine, falseSyncOption)
+                ref: (_, __, { self, spawn }) =>
+                  spawn(
+                    createMachineBehavior(
+                      syncChildMachine,
+                      self,
+                      falseSyncOption
+                    )
+                  )
               })
             }
           }
@@ -774,10 +805,7 @@ describe('actors', () => {
 
         interpret(syncMachine)
           .onTransition((state) => {
-            if (
-              state.context.ref &&
-              state.context.ref.state.matches('inactive')
-            ) {
+            if (state.event.type === actionTypes.update) {
               expect(state.changed).toBe(true);
               done();
             }

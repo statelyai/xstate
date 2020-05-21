@@ -12,7 +12,8 @@
   "files": [
     "dist",
     "actions",
-    "invoke"
+    "invoke",
+    "behavior"
   ],
   "keywords": [
     "statechart",
@@ -49,7 +50,8 @@
     "entrypoints": [
       ".",
       "actions",
-      "invoke"
+      "invoke",
+      "behavior"
     ]
   }
 }

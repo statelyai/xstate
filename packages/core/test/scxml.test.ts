@@ -172,7 +172,7 @@ const testGroups = {
     'test200.txml',
     'test201.txml',
     'test205.txml',
-    'test207.txml',
+    // 'test207.txml', // delayexpr
     'test208.txml',
     // 'test210.txml', // sendidexpr not supported yet
     // 'test215.txml', // <invoke typeexpr="...">

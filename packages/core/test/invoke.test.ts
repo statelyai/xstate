@@ -5,20 +5,23 @@ import {
   sendParent,
   send,
   EventObject,
-  StateValue
+  StateValue,
+  UpdateObject,
+  createMachine
 } from '../src';
 import {
   actionTypes,
   done as _done,
   doneInvoke,
-  escalate
+  escalate,
+  raise
 } from '../src/actions';
 import {
-  spawnMachine,
-  spawnCallback,
-  spawnPromise,
-  spawnObservable,
-  spawnActivity
+  invokeMachine,
+  invokeCallback,
+  invokePromise,
+  invokeObservable,
+  invokeActivity
 } from '../src/invoke';
 import { interval } from 'rxjs';
 import { map, take } from 'rxjs/operators';
@@ -67,7 +70,7 @@ const fetcherMachine = Machine({
     },
     waiting: {
       invoke: {
-        src: spawnMachine(fetchMachine),
+        src: invokeMachine(fetchMachine),
         data: {
           userId: (ctx) => ctx.selectedUserId
         },
@@ -82,7 +85,7 @@ const fetcherMachine = Machine({
     },
     waitingInvokeMachine: {
       invoke: {
-        src: spawnMachine(fetchMachine.withContext({ userId: '55' })),
+        src: invokeMachine(fetchMachine.withContext({ userId: '55' })),
         onDone: 'received'
       }
     },
@@ -106,7 +109,7 @@ const intervalMachine = Machine<{
     counting: {
       invoke: {
         id: 'intervalService',
-        src: spawnCallback((ctx) => (cb) => {
+        src: invokeCallback((ctx) => (cb) => {
           const ivl = setInterval(() => {
             cb('INC');
           }, ctx.interval);
@@ -178,8 +181,8 @@ describe('invoke', () => {
         }
       },
       {
-        services: {
-          child: spawnMachine(childMachine)
+        behaviors: {
+          child: invokeMachine(childMachine)
         }
       }
     );
@@ -247,8 +250,8 @@ describe('invoke', () => {
         }
       },
       {
-        services: {
-          child: spawnMachine(childMachine)
+        behaviors: {
+          child: invokeMachine(childMachine)
         }
       }
     );
@@ -324,7 +327,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: spawnMachine(childMachine),
+            src: invokeMachine(childMachine),
             autoForward: true,
             onDone: {
               target: 'done',
@@ -425,7 +428,7 @@ describe('invoke', () => {
         },
         invokeChild: {
           invoke: {
-            src: spawnMachine(childMachine),
+            src: invokeMachine(childMachine),
             autoForward: true,
             onDone: {
               target: 'done',
@@ -499,7 +502,7 @@ describe('invoke', () => {
       initial: 'pending',
       states: {
         pending: {
-          invoke: spawnMachine(
+          invoke: invokeMachine(
             Machine({
               id: 'child',
               initial: 'sending',
@@ -542,7 +545,7 @@ describe('invoke', () => {
           initial: 'b',
           states: {
             b: {
-              invoke: spawnMachine(
+              invoke: invokeMachine(
                 Machine({
                   id: 'child',
                   initial: 'sending',
@@ -607,16 +610,16 @@ describe('invoke', () => {
         }
       },
       {
-        services: {
-          child: spawnMachine(childMachine)
+        behaviors: {
+          child: invokeMachine(childMachine)
         }
       }
     );
 
     interpret(
       someParentMachine.withConfig({
-        services: {
-          child: spawnMachine(
+        behaviors: {
+          child: invokeMachine(
             Machine({
               id: 'child',
               initial: 'init',
@@ -646,7 +649,7 @@ describe('invoke', () => {
       states: {
         active: {
           invoke: {
-            src: spawnActivity(() => {
+            src: invokeActivity(() => {
               startCount++;
             })
           }
@@ -681,7 +684,7 @@ describe('invoke', () => {
         initial: 'one',
         invoke: {
           id: 'foo-child',
-          src: spawnMachine(subMachine)
+          src: invokeMachine(subMachine)
         },
         states: {
           one: {
@@ -714,7 +717,7 @@ describe('invoke', () => {
         },
         invoke: {
           id: 'foo-child',
-          src: spawnMachine((ctx) => ctx.machine)
+          src: invokeMachine((ctx) => ctx.machine)
         },
         states: {
           one: {
@@ -742,7 +745,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: spawnMachine(subMachine)
+              src: invokeMachine(subMachine)
             },
             entry: send('NEXT', { to: 'foo-child' }),
             on: { NEXT: 'two' }
@@ -781,7 +784,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'foo-child',
-              src: spawnMachine(doneSubMachine),
+              src: invokeMachine(doneSubMachine),
               onDone: 'two'
             },
             entry: send('NEXT', { to: 'foo-child' })
@@ -828,7 +831,7 @@ describe('invoke', () => {
               active: {
                 invoke: {
                   id: 'pong',
-                  src: spawnMachine(pongMachine),
+                  src: invokeMachine(pongMachine),
                   onDone: {
                     target: 'success',
                     cond: (_, e) => e.data.secret === 'pingpong'
@@ -891,7 +894,7 @@ describe('invoke', () => {
         states: {
           pending: {
             invoke: {
-              src: spawnPromise((ctx) =>
+              src: invokePromise((ctx) =>
                 createPromise((resolve) => {
                   if (ctx.succeed) {
                     resolve(ctx.id);
@@ -933,17 +936,14 @@ describe('invoke', () => {
           .start();
       });
 
-      it('should be invoked with a promise factory and ignore unhandled onError target', (done) => {
-        const doneSpy = jest.fn();
-        const stopSpy = jest.fn();
-
+      it('should be invoked with a promise factory and surface any unhandled errors', (done) => {
         const promiseMachine = Machine({
           id: 'invokePromise',
           initial: 'pending',
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
+                src: invokePromise(() =>
                   createPromise(() => {
                     throw new Error('test');
                   })
@@ -957,14 +957,11 @@ describe('invoke', () => {
           }
         });
 
-        interpret(promiseMachine).onDone(doneSpy).onStop(stopSpy).start();
-
-        // assumes that error was ignored before the timeout is processed
-        setTimeout(() => {
-          expect(doneSpy).not.toHaveBeenCalled();
-          expect(stopSpy).not.toHaveBeenCalled();
+        const service = interpret(promiseMachine).onError((err) => {
+          expect(err.message).toEqual(expect.stringMatching(/test/));
           done();
-        }, 10);
+        });
+        service.start();
       });
 
       it.skip(
@@ -980,7 +977,7 @@ describe('invoke', () => {
             states: {
               pending: {
                 invoke: {
-                  src: spawnPromise(() =>
+                  src: invokePromise(() =>
                     createPromise(() => {
                       throw new Error('test');
                     })
@@ -1014,7 +1011,7 @@ describe('invoke', () => {
               states: {
                 pending: {
                   invoke: {
-                    src: spawnPromise(() =>
+                    src: invokePromise(() =>
                       createPromise((resolve) => resolve())
                     ),
                     onDone: 'success'
@@ -1064,8 +1061,8 @@ describe('invoke', () => {
             }
           },
           {
-            services: {
-              somePromise: spawnPromise(() =>
+            behaviors: {
+              somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve())
               )
             }
@@ -1085,7 +1082,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
+                src: invokePromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
                 ),
                 onDone: {
@@ -1134,8 +1131,8 @@ describe('invoke', () => {
             }
           },
           {
-            services: {
-              somePromise: spawnPromise(() =>
+            behaviors: {
+              somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
             }
@@ -1164,7 +1161,7 @@ describe('invoke', () => {
           states: {
             pending: {
               invoke: {
-                src: spawnPromise(() =>
+                src: invokePromise(() =>
                   createPromise((resolve) => resolve({ count: 1 }))
                 ),
                 onDone: {
@@ -1214,8 +1211,8 @@ describe('invoke', () => {
             }
           },
           {
-            services: {
-              somePromise: spawnPromise(() =>
+            behaviors: {
+              somePromise: invokePromise(() =>
                 createPromise((resolve) => resolve({ count: 1 }))
               )
             }
@@ -1260,8 +1257,8 @@ describe('invoke', () => {
             }
           },
           {
-            services: {
-              somePromise: spawnPromise((ctx, e: BeginEvent) => {
+            behaviors: {
+              somePromise: invokePromise((ctx, e: BeginEvent) => {
                 return createPromise((resolve, reject) => {
                   ctx.foo && e.payload ? resolve() : reject();
                 });
@@ -1326,8 +1323,8 @@ describe('invoke', () => {
           }
         },
         {
-          services: {
-            someCallback: spawnCallback(
+          behaviors: {
+            someCallback: invokeCallback(
               (ctx, e: BeginEvent) => (cb: (ev: CallbackEvent) => void) => {
                 if (ctx.foo && e.payload) {
                   cb({
@@ -1383,8 +1380,8 @@ describe('invoke', () => {
           }
         },
         {
-          services: {
-            someCallback: spawnCallback(() => (cb) => {
+          behaviors: {
+            someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
           }
@@ -1424,8 +1421,8 @@ describe('invoke', () => {
           }
         },
         {
-          services: {
-            someCallback: spawnCallback(() => (cb) => {
+          behaviors: {
+            someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
           }
@@ -1472,8 +1469,8 @@ describe('invoke', () => {
           }
         },
         {
-          services: {
-            someCallback: spawnCallback(() => (cb) => {
+          behaviors: {
+            someCallback: invokeCallback(() => (cb) => {
               cb('CALLBACK');
             })
           }
@@ -1526,7 +1523,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'child',
-              src: spawnCallback(() => (callback, onReceive) => {
+              src: invokeCallback(() => (callback, onReceive) => {
                 onReceive((e) => {
                   if (e.type === 'PING') {
                     callback('PONG');
@@ -1557,7 +1554,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnActivity(() => {
+              src: invokeActivity(() => {
                 throw new Error('test');
               }),
               onError: {
@@ -1586,7 +1583,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnActivity(() => {
+              src: invokeActivity(() => {
                 throw new Error('test');
               }),
               onError: 'failed'
@@ -1613,7 +1610,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: invokeCallback(() => async () => {
                 await true;
                 throw new Error('test');
               }),
@@ -1646,7 +1643,7 @@ describe('invoke', () => {
         states: {
           fetch: {
             invoke: {
-              src: spawnCallback(() => async () => {
+              src: invokeCallback(() => async () => {
                 await true;
                 return 42;
               }),
@@ -1689,7 +1686,7 @@ describe('invoke', () => {
             states: {
               first: {
                 invoke: {
-                  src: spawnActivity(() => {
+                  src: invokeActivity(() => {
                     throw new Error('test');
                   }),
                   onError: {
@@ -1703,7 +1700,7 @@ describe('invoke', () => {
               },
               second: {
                 invoke: {
-                  src: spawnActivity(() => {
+                  src: invokeActivity(() => {
                     // empty
                   }),
                   onError: {
@@ -1738,7 +1735,7 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].actor!.src).toBe('string');
+      expect(typeof waitingState.actions[0].src).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -1748,7 +1745,7 @@ describe('invoke', () => {
         states: {
           safe: {
             invoke: {
-              src: spawnCallback(() => {
+              src: invokeCallback(() => {
                 throw new Error('test');
               })
             }
@@ -1761,68 +1758,6 @@ describe('invoke', () => {
 
       const service = interpret(errorMachine);
       expect(() => service.start()).toThrow();
-    });
-
-    it.skip('should stop machine if unhandled error and on strict mode (async)', (done) => {
-      const errorMachine = Machine({
-        id: 'asyncError',
-        initial: 'safe',
-        // if not in strict mode we have no way to know if there
-        // was an error with processing rejected promise
-        strict: true,
-        states: {
-          safe: {
-            invoke: {
-              src: spawnCallback(() => async () => {
-                await true;
-                throw new Error('test');
-              })
-            }
-          },
-          failed: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(errorMachine)
-        .onStop(() => done())
-        .start();
-    });
-
-    it('should ignore error if unhandled error and not on strict mode (async)', (done) => {
-      const doneSpy = jest.fn();
-      const stopSpy = jest.fn();
-
-      const errorMachine = Machine({
-        id: 'asyncError',
-        initial: 'safe',
-        // if not in strict mode we have no way to know if there
-        // was an error with processing rejected promise
-        strict: false,
-        states: {
-          safe: {
-            invoke: {
-              src: spawnCallback(() => async () => {
-                await true;
-                throw new Error('test');
-              })
-            }
-          },
-          failed: {
-            type: 'final'
-          }
-        }
-      });
-
-      interpret(errorMachine).onDone(doneSpy).onStop(stopSpy).start();
-
-      // assumes that error was ignored before the timeout is processed
-      setTimeout(() => {
-        expect(doneSpy).not.toHaveBeenCalled();
-        expect(stopSpy).not.toHaveBeenCalled();
-        done();
-      }, 20);
     });
 
     describe('sub invoke race condition', () => {
@@ -1845,7 +1780,7 @@ describe('invoke', () => {
         states: {
           begin: {
             invoke: {
-              src: spawnMachine(anotherChildMachine),
+              src: invokeMachine(anotherChildMachine),
               id: 'invoked.child',
               onDone: 'completed'
             },
@@ -1902,7 +1837,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: invokeObservable(() =>
                 infinite$.pipe(
                   map((value) => {
                     return { type: 'COUNT', value };
@@ -1949,7 +1884,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: invokeObservable(() =>
                 infinite$.pipe(
                   take(5),
                   map((value) => {
@@ -2001,7 +1936,7 @@ describe('invoke', () => {
         states: {
           counting: {
             invoke: {
-              src: spawnObservable(() =>
+              src: invokeObservable(() =>
                 infinite$.pipe(
                   map((value) => {
                     if (value === 5) {
@@ -2065,7 +2000,7 @@ describe('invoke', () => {
             active: {
               invoke: {
                 id: 'pong',
-                src: spawnMachine(pongMachine)
+                src: invokeMachine(pongMachine)
               },
               // Sends 'PING' event to child machine with ID 'pong'
               entry: send('PING', { to: 'pong' }),
@@ -2098,12 +2033,12 @@ describe('invoke', () => {
         }
       });
 
-      const machine = Machine({
+      const machine = Machine<undefined, UpdateObject>({
         initial: 'pending',
         states: {
           pending: {
             invoke: {
-              src: spawnMachine(childMachine, { sync: true })
+              src: invokeMachine(childMachine, { sync: true })
             }
           },
           success: { type: 'final' }
@@ -2152,11 +2087,11 @@ describe('invoke', () => {
               invoke: [
                 {
                   id: 'child',
-                  src: spawnCallback(() => (cb) => cb('ONE'))
+                  src: invokeCallback(() => (cb) => cb('ONE'))
                 },
                 {
                   id: 'child2',
-                  src: spawnCallback(() => (cb) => cb('TWO'))
+                  src: invokeCallback(() => (cb) => cb('TWO'))
                 }
               ]
             }
@@ -2218,13 +2153,13 @@ describe('invoke', () => {
                 a: {
                   invoke: {
                     id: 'child',
-                    src: spawnCallback(() => (cb) => cb('ONE'))
+                    src: invokeCallback(() => (cb) => cb('ONE'))
                   }
                 },
                 b: {
                   invoke: {
                     id: 'child2',
-                    src: spawnCallback(() => (cb) => cb('TWO'))
+                    src: invokeCallback(() => (cb) => cb('TWO'))
                   }
                 }
               }
@@ -2251,8 +2186,7 @@ describe('invoke', () => {
       service.start();
     });
 
-    // TODO: unskip once onMicrostep behavior is established
-    it.skip('should not invoke a service if transient', (done) => {
+    it('should not invoke a service if it gets stopped immediately by transitioning away in microstep', (done) => {
       // Since an invocation will be canceled when the state machine leaves the
       // invoking state, it does not make sense to start an invocation in a state
       // that will be exited immediately
@@ -2264,7 +2198,7 @@ describe('invoke', () => {
           active: {
             invoke: {
               id: 'doNotInvoke',
-              src: spawnCallback(() => async () => {
+              src: invokeCallback(() => async () => {
                 serviceCalled = true;
               })
             },
@@ -2290,6 +2224,65 @@ describe('invoke', () => {
         })
         .start();
     });
+
+    it('should invoke a service if other service gets stopped in subsequent microstep (#1180)', (done) => {
+      const machine = createMachine({
+        initial: 'running',
+        states: {
+          running: {
+            type: 'parallel',
+            states: {
+              one: {
+                initial: 'active',
+                on: {
+                  STOP_ONE: '.idle'
+                },
+                states: {
+                  idle: {},
+                  active: {
+                    invoke: {
+                      id: 'active',
+                      src: invokeCallback(() => () => {})
+                    },
+                    on: {
+                      NEXT: {
+                        actions: raise('STOP_ONE')
+                      }
+                    }
+                  }
+                }
+              },
+              two: {
+                initial: 'idle',
+                on: {
+                  NEXT: '.active'
+                },
+                states: {
+                  idle: {},
+                  active: {
+                    invoke: {
+                      id: 'post',
+                      src: invokePromise(() => Promise.resolve(42)),
+                      onDone: '#done'
+                    }
+                  }
+                }
+              }
+            }
+          },
+          done: {
+            id: 'done',
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(machine)
+        .onDone(() => done())
+        .start();
+
+      service.send('NEXT');
+    });
   });
 
   describe('error handling', () => {
@@ -2311,7 +2304,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: spawnMachine(child),
+              src: invokeMachine(child),
               onError: {
                 target: 'two',
                 cond: (_, event) => event.data === 'oops'
@@ -2353,7 +2346,7 @@ describe('invoke', () => {
           one: {
             invoke: {
               id: 'child',
-              src: spawnMachine(child),
+              src: invokeMachine(child),
               onError: {
                 target: 'two',
                 cond: (_, event) => {

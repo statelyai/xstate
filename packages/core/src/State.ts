@@ -9,13 +9,13 @@ import {
   TransitionDefinition,
   Typestate,
   HistoryValue,
-  NullEvent
+  NullEvent,
+  ActorRef
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
-import { Actor } from './Actor';
 
 export function isState<
   TContext,
@@ -95,9 +95,9 @@ export class State<
    */
   public transitions: Array<TransitionDefinition<TContext, TEvent>>;
   /**
-   * An object mapping actor IDs to spawned actors/invoked services.
+   * An object mapping actor IDs to spawned actors/invoked behaviors.
    */
-  public children: Actor[];
+  public children: Record<string, ActorRef<any>>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue
@@ -119,7 +119,7 @@ export class State<
           meta: {},
           configuration: [], // TODO: fix,
           transitions: [],
-          children: []
+          children: {}
         });
       }
 
@@ -138,7 +138,7 @@ export class State<
       meta: undefined,
       configuration: [],
       transitions: [],
-      children: []
+      children: {}
     });
   }
   /**
@@ -181,15 +181,9 @@ export class State<
   }
 
   /**
-   * Creates a new State instance.
-   * @param value The state value
-   * @param context The extended state
-   * @param history The previous state
-   * @param actions An array of action objects to execute as side-effects
-   * @param activities A mapping of activities and whether they are started (`true`) or stopped (`false`).
-   * @param meta
-   * @param events Internal event queue. Should be empty with run-to-completion semantics.
-   * @param configuration
+   * Creates a new `State` instance that represents the current state of a running machine.
+   *
+   * @param config
    */
   constructor(config: StateConfig<TContext, TEvent>) {
     this.value = config.value;

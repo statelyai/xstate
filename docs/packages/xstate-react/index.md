@@ -49,7 +49,7 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 **Arguments**
 
 - `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
-- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
+- `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `behaviors`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** a tuple of `[state, send, service]`:
 
@@ -148,13 +148,16 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
 };
 ```
 
-## Configuring Machines <Badge text="0.7+"/>
+## Configuring Machines
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
 Example: the `'fetchData'` service and `'notifySuccess'` action are both configurable:
 
 ```js
+import { createMachine } from 'xstate';
+import { invokePromise } from 'xstate/invoke';
+
 const fetchMachine = Machine({
   id: 'fetch',
   initial: 'idle',
@@ -200,9 +203,10 @@ const Fetcher = ({ onResolve }) => {
     actions: {
       notifySuccess: (ctx) => onResolve(ctx.data)
     },
-    services: {
-      fetchData: (_, e) =>
-        fetch(`some/api/${e.query}`).then((res) => res.json())
+    behaviors: {
+      fetchData: invokePromise((_, event) =>
+        fetch(`some/api/${event.query}`).then((res) => res.json())
+      )
     }
   });
 

@@ -12,9 +12,8 @@
 
 <script lang="ts">
 import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
-import { watch } from '@vue/composition-api';
-import { spawnPromise } from 'xstate/invoke';
+import { Machine, assign, State } from 'xstate';
+import { invokePromise } from 'xstate/invoke';
 
 const context = {
   data: undefined
@@ -53,8 +52,8 @@ export default {
       new Promise((res) => setTimeout(() => res('some data'), 50));
 
     const { state, send, service } = useMachine(fetchMachine, {
-      services: {
-        fetchData: spawnPromise(onFetch)
+      behaviors: {
+        fetchData: invokePromise(onFetch)
       },
       state: persistedState
     });

@@ -1,4 +1,4 @@
-import { interpret, Interpreter, spawn } from '../src/interpreter';
+import { interpret, Interpreter } from '../src/interpreter';
 import { SimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
@@ -18,10 +18,10 @@ import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
 import {
-  spawnObservable,
-  spawnMachine,
-  spawnPromise,
-  spawnActivity
+  invokeObservable,
+  invokeMachine,
+  invokePromise,
+  invokeActivity
 } from '../src/invoke';
 
 const lightMachine = Machine({
@@ -90,9 +90,9 @@ describe('interpreter', () => {
         states: {
           idle: {
             entry: assign({
-              actor: () => {
+              actor: (_, __, { spawn }) => {
                 entryCalled++;
-                return spawn(
+                return spawn.from(
                   new Promise(() => {
                     promiseSpawned++;
                   })
@@ -121,6 +121,56 @@ describe('interpreter', () => {
         expect(promiseSpawned).toEqual(1);
         done();
       }, 100);
+    });
+
+    // https://github.com/davidkpiano/xstate/issues/1174
+    it('executes actions from a restored state', (done) => {
+      const lightMachine = Machine(
+        {
+          id: 'light',
+          initial: 'green',
+          states: {
+            green: {
+              on: {
+                TIMER: {
+                  target: 'yellow',
+                  actions: 'report'
+                }
+              }
+            },
+            yellow: {
+              on: {
+                TIMER: {
+                  target: 'red'
+                }
+              }
+            },
+            red: {
+              on: {
+                TIMER: 'green'
+              }
+            }
+          }
+        },
+        {
+          actions: {
+            report: () => {
+              done();
+            }
+          }
+        }
+      );
+
+      const currentState = 'green';
+      const nextState = lightMachine.transition(currentState, 'TIMER');
+
+      // saves state and recreate it
+      const recreated = JSON.parse(JSON.stringify(nextState));
+      const previousState = State.create(recreated);
+      const resolvedState = lightMachine.resolveState(previousState);
+
+      const service = interpret(lightMachine);
+      service.start(resolvedState);
     });
   });
 
@@ -468,8 +518,8 @@ describe('interpreter', () => {
         }
       },
       {
-        services: {
-          myActivity: spawnActivity(() => {
+        behaviors: {
+          myActivity: invokeActivity(() => {
             activityState = 'on';
             return () => (activityState = 'off');
           })
@@ -515,8 +565,8 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
-            myActivity: spawnActivity(() => {
+          behaviors: {
+            myActivity: invokeActivity(() => {
               stopActivityState = 'on';
               return () => (stopActivityState = 'off');
             })
@@ -556,8 +606,8 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
-            blink: spawnActivity(() => {
+          behaviors: {
+            blink: invokeActivity(() => {
               activityActive = true;
 
               return () => {
@@ -573,18 +623,10 @@ describe('interpreter', () => {
         'TOGGLE'
       );
       const bState = toggleMachine.transition(activeState, 'SWITCH');
-      let state: any;
 
-      interpret(toggleMachine)
-        .onTransition((s) => {
-          state = s;
-        })
-        .start(bState);
+      interpret(toggleMachine).start(bState);
 
       setTimeout(() => {
-        expect(
-          state.children.find((child) => child.meta!.src === 'blink')
-        ).toBeTruthy();
         expect(activityActive).toBeFalsy();
         done();
       }, 10);
@@ -821,7 +863,7 @@ describe('interpreter', () => {
         foo: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine)
+            src: invokeMachine(childMachine)
           }
         }
       },
@@ -845,9 +887,15 @@ describe('interpreter', () => {
     expect(logs.length).toBe(4);
     expect(logs).toEqual([
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: expect.stringMatching(/.+/) },
+      {
+        event: 'PONG',
+        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
+      },
       { event: 'PING_CHILD', origin: undefined },
-      { event: 'PONG', origin: expect.stringMatching(/.+/) }
+      {
+        event: 'PONG',
+        origin: expect.objectContaining({ id: expect.stringMatching(/.*/) })
+      }
     ]);
   });
 
@@ -982,7 +1030,7 @@ describe('interpreter', () => {
         start: {
           invoke: {
             id: 'child',
-            src: spawnMachine(childMachine),
+            src: invokeMachine(childMachine),
             data: { password: 'foo' }
           },
           on: {
@@ -1002,9 +1050,7 @@ describe('interpreter', () => {
       interpret(parentMachine)
         .onTransition((state) => {
           if (state.matches('start')) {
-            const childActor = state.children.find(
-              (child) => child.id === 'child'
-            );
+            const childActor = state.children.child;
 
             expect(typeof childActor!.send).toBe('function');
           }
@@ -1740,8 +1786,8 @@ describe('interpreter', () => {
           }
         },
         {
-          services: {
-            testService: spawnActivity(() => {
+          behaviors: {
+            testService: invokeActivity(() => {
               // nothing
             })
           }
@@ -1774,7 +1820,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnMachine(childMachine)
+              src: invokeMachine(childMachine)
             },
             on: {
               FIRED: 'success'
@@ -1788,9 +1834,7 @@ describe('interpreter', () => {
 
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          const childActor = state.children.find(
-            (child) => child.id === 'childActor'
-          );
+          const childActor = state.children.childActor;
 
           if (state.matches('active') && childActor) {
             childActor.send({ type: 'FIRE' });
@@ -1811,7 +1855,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnPromise(
+              src: invokePromise(
                 () =>
                   new Promise((res) => {
                     setTimeout(() => {
@@ -1819,36 +1863,38 @@ describe('interpreter', () => {
                     }, 100);
                   })
               ),
-              onDone: {
-                target: 'success',
-                cond: (_, e) => e.data === 42
-              }
+              onDone: [
+                {
+                  target: 'success',
+                  cond: (_, e) => {
+                    return e.data === 42;
+                  }
+                },
+                { target: 'failure' }
+              ]
             }
           },
           success: {
+            type: 'final'
+          },
+          failure: {
             type: 'final'
           }
         }
       });
 
-      const subscriber = (data) => {
-        expect(data).toEqual(42);
-        done();
-      };
-      let subscription;
-
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          const childActor = state.children.find(
-            (child) => child.id === 'childActor'
-          );
+          if (state.matches('active')) {
+            const childActor = state.children.childActor;
 
-          if (childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
+            expect(childActor).toHaveProperty('send');
           }
         })
         .onDone(() => {
+          expect(service.state.matches('success')).toBeTruthy();
           expect(service.state.children).not.toHaveProperty('childActor');
+          done();
         });
 
       service.start();
@@ -1863,7 +1909,7 @@ describe('interpreter', () => {
           active: {
             invoke: {
               id: 'childActor',
-              src: spawnObservable(() =>
+              src: invokeObservable(() =>
                 interval$.pipe(map((value) => ({ type: 'FIRED', value })))
               )
             },
@@ -1882,25 +1928,15 @@ describe('interpreter', () => {
         }
       });
 
-      const subscriber = (data) => {
-        if (data.value === 3) {
-          done();
-        }
-      };
-      let subscription;
-
       const service = interpret(parentMachine)
         .onTransition((state) => {
-          const childActor = state.children.find(
-            (child) => child.id === 'childActor'
-          );
-
-          if (state.matches('active') && childActor && !subscription) {
-            subscription = childActor.subscribe(subscriber);
+          if (state.matches('active')) {
+            expect(state.children['childActor']).not.toBeUndefined();
           }
         })
         .onDone(() => {
           expect(service.state.children).not.toHaveProperty('childActor');
+          done();
         });
 
       service.start();

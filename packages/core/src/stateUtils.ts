@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue, Actor } from '.';
+import { EventObject, StateNode, StateValue } from '.';
 import {
   keys,
   flatten,
@@ -13,9 +13,9 @@ import {
   normalizeTarget,
   toStateValue,
   mapContext,
-  updateContext,
   toSCXMLEvent
 } from './utils';
+import { updateContext } from './updateContext';
 import {
   TransitionConfig,
   TransitionDefinition,
@@ -39,12 +39,14 @@ import {
   PureAction,
   RaiseActionObject,
   SpecialTargets,
-  ActivityActionObject,
   HistoryValue,
   InitialTransitionConfig,
   InitialTransitionDefinition,
   Event,
-  ChooseAction
+  ChooseAction,
+  StopActionObject,
+  AnyEventObject,
+  ActorRef
 } from './types';
 import { State } from './State';
 import {
@@ -55,7 +57,6 @@ import {
   doneInvoke,
   error,
   toActionObjects,
-  start,
   stop,
   initEvent,
   actionTypes,
@@ -63,7 +64,8 @@ import {
   resolveSend,
   resolveLog,
   resolveCancel,
-  toActionObject
+  toActionObject,
+  invoke
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
@@ -72,7 +74,7 @@ import {
   NULL_EVENT,
   WILDCARD
 } from './constants';
-import { createInvocableActor } from './Actor';
+import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 
 type Configuration<TC, TE extends EventObject> = Iterable<
@@ -581,7 +583,8 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
       target: [stateNode],
       source: stateNode,
       actions: [],
-      eventType: 'init'
+      eventType: 'init',
+      toJSON: null as any // TODO: fix
     }
   ];
   const mutStatesToEnter = new Set<StateNode<TContext, any, TEvent>>();
@@ -595,16 +598,6 @@ export function getInitialStateNodes<TContext, TEvent extends EventObject>(
   );
 
   return [...mutStatesToEnter];
-}
-export function getInitialState<
-  TContext,
-  TStateSchema,
-  TEvent extends EventObject,
-  TTypestate extends Typestate<TContext>
->(
-  machine: MachineNode<TContext, TStateSchema, TEvent>
-): State<TContext, TEvent, TStateSchema, TTypestate> {
-  return resolveMicroTransition(machine, [], undefined, undefined);
 }
 /**
  * Returns the child state node from its relative `stateKey`, or throws.
@@ -1034,7 +1027,7 @@ function exitStates<TContext, TEvent extends EventObject>(
   const actions: Array<ActionObject<TContext, TEvent>> = [];
 
   statesToExit.forEach((stateNode) => {
-    actions.push(...stateNode.invoke.map((def) => stop(def)));
+    actions.push(...stateNode.invoke.map((def) => stop(def.id)));
   });
 
   statesToExit.sort((a, b) => b.order - a.order);
@@ -1315,7 +1308,8 @@ export function microstep<TContext, TEvent extends EventObject>(
   currentState: State<TContext, TEvent> | undefined,
   mutConfiguration: Set<StateNode<TContext, any, TEvent>>,
   machine: MachineNode<TContext, any, TEvent>,
-  _event: SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent>,
+  service?: ActorRef<TEvent>
 ): {
   actions: Array<ActionObject<TContext, TEvent>>;
   configuration: typeof mutConfiguration;
@@ -1362,7 +1356,7 @@ export function microstep<TContext, TEvent extends EventObject>(
   actions.push(
     ...flatten(
       [...res.statesToInvoke].map((s) =>
-        s.invoke.map((invokeDef) => start(invokeDef))
+        s.invoke.map((invokeDef) => invoke(invokeDef))
       )
     )
   );
@@ -1373,7 +1367,7 @@ export function microstep<TContext, TEvent extends EventObject>(
     actions: resolvedActions,
     raised,
     context
-  } = resolveActionsAndContext(actions, machine, _event, currentState);
+  } = resolveActionsAndContext(actions, machine, _event, currentState, service);
 
   internalQueue.push(...res.internalQueue);
   internalQueue.push(...raised.map((a) => a._event));
@@ -1436,7 +1430,8 @@ export function resolveMicroTransition<
   machine: MachineNode<TContext, any, TEvent>,
   transitions: Transitions<TContext, TEvent>,
   currentState?: State<TContext, TEvent>,
-  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>
+  _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
+  service?: ActorRef<TEvent>
 ): State<TContext, TEvent, any, TTypestate> {
   // Transition will "apply" if:
   // - the state node is the initial state (there is no current state)
@@ -1455,13 +1450,15 @@ export function resolveMicroTransition<
             target: [...prevConfig].filter(isAtomicStateNode),
             source: machine,
             actions: [],
-            eventType: null as any
+            eventType: null as any,
+            toJSON: null as any // TODO: fix
           }
         ],
     currentState,
     new Set(prevConfig),
     machine,
-    _event
+    _event,
+    service
   );
 
   if (currentState && !willTransition) {
@@ -1472,18 +1469,21 @@ export function resolveMicroTransition<
     return inertState;
   }
 
-  let children = currentState ? [...currentState.children] : ([] as Actor[]);
+  let children = currentState ? { ...currentState.children } : {};
 
   for (const action of resolved.actions) {
-    if (action.type === actionTypes.start) {
-      children.push(createInvocableActor((action as any).actor));
-    } else if (action.type === actionTypes.stop) {
-      children = children.filter((childActor) => {
-        return (
-          childActor.id !==
-          (action as ActivityActionObject<TContext, TEvent>).actor.id
-        );
-      });
+    if (action.type === actionTypes.stop) {
+      const { actor: ref } = action as StopActionObject;
+      if (isActorRef(ref)) {
+        ref.stop();
+        delete children[ref.name];
+      } else {
+        const actorRef = children[ref];
+        if (actorRef) {
+          actorRef.stop();
+        }
+        delete children[ref];
+      }
     }
   }
 
@@ -1550,7 +1550,8 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   actions: Array<ActionObject<TContext, TEvent>>,
   machine: MachineNode<TContext, any, TEvent, any>,
   _event: SCXML.Event<TEvent>,
-  currentState: State<TContext, TEvent, any, any> | undefined
+  currentState: State<TContext, TEvent, any, any> | undefined,
+  service?: ActorRef<TEvent>
 ): {
   actions: typeof actions;
   raised: Array<RaiseActionObject<TEvent>>;
@@ -1577,7 +1578,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         case actionTypes.send:
           const sendAction = resolveSend(
-            actionObject as SendAction<TContext, TEvent>,
+            actionObject as SendAction<TContext, TEvent, AnyEventObject>,
             context,
             _event,
             machine.machine.options.delays
@@ -1592,7 +1593,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             );
           }
           if (sendAction.to === SpecialTargets.Internal) {
-            raisedActions.push(sendAction as RaiseActionObject<TEvent>);
+            raisedActions.push(sendAction as RaiseActionObject<any>);
           } else {
             resActions.push(sendAction);
           }
@@ -1645,13 +1646,15 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           }
           break;
         case actionTypes.assign:
-          context = updateContext(
+          const [nextContext, nextActions] = updateContext(
             context,
             _event,
             [actionObject as AssignAction<TContext, TEvent>],
-            currentState
+            currentState,
+            service
           );
-          resActions.push(actionObject);
+          context = nextContext;
+          resActions.push(actionObject, ...nextActions);
           break;
         default:
           resActions.push(
@@ -1672,11 +1675,13 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
 export function macrostep<TContext, TEvent extends EventObject>(
   state: State<TContext, TEvent, any, Typestate<TContext>>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
-  machine: MachineNode<TContext, any, TEvent, any>
+  machine: MachineNode<TContext, any, TEvent, any>,
+  service?: ActorRef<TEvent>
 ): State<TContext, TEvent> {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
-  const nextState = event === null ? state : machine.microstep(state, event);
+  const nextState =
+    event === null ? state : machine.microstep(state, event, service);
 
   const { _internalQueue } = nextState;
   let maybeNextState = nextState;
@@ -1688,7 +1693,8 @@ export function macrostep<TContext, TEvent extends EventObject>(
 
     maybeNextState = machine.microstep(
       maybeNextState,
-      raisedEvent as SCXML.Event<TEvent>
+      raisedEvent as SCXML.Event<TEvent>,
+      service
     );
 
     _internalQueue.push(...maybeNextState._internalQueue);

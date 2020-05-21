@@ -1,5 +1,5 @@
-import { Machine } from '../src/index';
-import { actionTypes } from '../src/actions';
+import { Machine, interpret } from '../src/index';
+import { invokeActivity } from '../src/invoke';
 
 const lightMachine = Machine({
   key: 'light',
@@ -35,33 +35,36 @@ const lightMachine = Machine({
 });
 
 describe('activities with guarded transitions', () => {
-  const machine = Machine({
-    initial: 'A',
-    states: {
-      A: {
-        on: {
-          E: 'B'
+  it('should activate even if there are subsequent automatic, but blocked transitions', (done) => {
+    const machine = Machine<undefined, any>(
+      {
+        initial: 'A',
+        states: {
+          A: {
+            on: {
+              E: 'B'
+            }
+          },
+          B: {
+            invoke: ['B_ACTIVITY'],
+            on: {
+              '': [{ cond: () => false, target: 'A' }]
+            }
+          }
         }
       },
-      B: {
-        invoke: ['B_ACTIVITY'],
-        on: {
-          '': [{ cond: () => false, target: 'A' }]
+      {
+        behaviors: {
+          B_ACTIVITY: invokeActivity(() => {
+            done();
+          })
         }
       }
-    }
-  });
-
-  it('should activate even if there are subsequent automatic, but blocked transitions', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'E');
-
-    expect(
-      state.children.find((child) => child.meta!.src === 'B_ACTIVITY')
-    ).toBeTruthy();
-    expect(state.actions).toContainEqual(
-      expect.objectContaining({ type: actionTypes.start })
     );
+
+    const service = interpret(machine).start();
+
+    service.send('E');
   });
 });
 
@@ -83,117 +86,115 @@ describe('remembering activities', () => {
     }
   });
 
-  it('should remember the activities even after an event', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'E');
-    state = machine.transition(state, 'IGNORE');
-    expect(
-      state.children.find((child) => child.meta!.src === 'B_ACTIVITY')
-    ).toBeTruthy();
+  it('should remember the activities even after an event', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          B_ACTIVITY: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    ).start();
+
+    service.send('E');
+    service.send('IGNORE');
   });
 });
 
 describe('activities', () => {
-  it('identifies initial activities', () => {
-    const { initialState } = lightMachine;
-
-    expect(
-      initialState.children.find((child) => child.meta!.src === 'fadeInGreen')
-    ).toBeTruthy();
-  });
-  it('identifies start activities', () => {
-    const nextState = lightMachine.transition('yellow', 'TIMER');
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'activateCrosswalkLight'
-      )
-    ).toBeTruthy();
-    expect(nextState.actions).toContainEqual(
-      expect.objectContaining({
-        actor: expect.objectContaining({ src: 'activateCrosswalkLight' })
+  it('identifies initial activities', (done) => {
+    const service = interpret(
+      lightMachine.withConfig({
+        behaviors: {
+          fadeInGreen: invokeActivity(() => {
+            done();
+          })
+        }
       })
     );
-  });
 
-  it('identifies start activities for child states and active activities', () => {
-    const redWalkState = lightMachine.transition('yellow', 'TIMER');
-    const nextState = lightMachine.transition(redWalkState, 'PED_WAIT');
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'activateCrosswalkLight'
-      )
-    ).toBeTruthy();
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'blinkCrosswalkLight'
-      )
-    ).toBeTruthy();
-    expect(nextState.actions).toContainEqual(
-      expect.objectContaining({
-        type: actionTypes.start,
-        actor: expect.objectContaining({
-          src: 'blinkCrosswalkLight'
-        })
+    service.start();
+  });
+  it('identifies start activities', (done) => {
+    const service = interpret(
+      lightMachine.withConfig({
+        behaviors: {
+          activateCrosswalkLight: invokeActivity(() => {
+            done();
+          })
+        }
       })
     );
+
+    service.start();
+    service.send('TIMER'); // yellow
+    service.send('TIMER'); // red
   });
 
-  it('identifies stop activities for child states', () => {
-    const redWalkState = lightMachine.transition('yellow', 'TIMER');
-    const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
-    const nextState = lightMachine.transition(redWaitState, 'PED_STOP');
-
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'activateCrosswalkLight'
-      )
-    ).toBeTruthy();
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'blinkCrosswalkLight'
-      )
-    ).toBeFalsy();
-    expect(nextState.actions).toContainEqual(
-      expect.objectContaining({
-        type: actionTypes.stop,
-        actor: expect.objectContaining({ src: 'blinkCrosswalkLight' })
+  it('identifies start activities for child states and active activities', (done) => {
+    const service = interpret(
+      lightMachine.withConfig({
+        behaviors: {
+          blinkCrosswalkLight: invokeActivity(() => {
+            done();
+          })
+        }
       })
     );
+
+    service.start();
+    service.send('TIMER'); // yellow
+    service.send('TIMER'); // red.walk
+    service.send('PED_WAIT'); // red.wait
   });
 
-  it('identifies multiple stop activities for child and parent states', () => {
-    const redWalkState = lightMachine.transition('yellow', 'TIMER');
-    const redWaitState = lightMachine.transition(redWalkState, 'PED_WAIT');
-    const redStopState = lightMachine.transition(redWaitState, 'PED_STOP');
-    const nextState = lightMachine.transition(redStopState, 'TIMER');
-
-    expect(
-      nextState.children.find((child) => child.meta!.src === 'fadeInGreen')
-    ).toBeTruthy();
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'activateCrosswalkLight'
-      )
-    ).toBeFalsy();
-    expect(
-      nextState.children.find(
-        (child) => child.meta!.src === 'blinkCrosswalkLight'
-      )
-    ).toBeFalsy();
-
-    expect(nextState.actions).toContainEqual(
-      expect.objectContaining({
-        type: actionTypes.stop,
-        actor: expect.objectContaining({ src: 'activateCrosswalkLight' })
+  it('identifies stop activities for child states', (done) => {
+    const service = interpret(
+      lightMachine.withConfig({
+        behaviors: {
+          blinkCrosswalkLight: invokeActivity(() => {
+            return () => {
+              done();
+            };
+          })
+        }
       })
     );
 
-    expect(nextState.actions).toContainEqual(
-      expect.objectContaining({
-        type: actionTypes.start,
-        actor: expect.objectContaining({ src: 'fadeInGreen' })
+    service.start();
+    service.send('TIMER'); // yellow
+    service.send('TIMER'); // red.walk
+    service.send('PED_WAIT'); // red.wait
+    service.send('PED_STOP');
+  });
+
+  it('identifies multiple stop activities for child and parent states', (done) => {
+    let stopActivateCrosswalkLightcalled = false;
+
+    const service = interpret(
+      lightMachine.withConfig({
+        behaviors: {
+          fadeInGreen: invokeActivity(() => {
+            if (stopActivateCrosswalkLightcalled) {
+              done();
+            }
+          }),
+          activateCrosswalkLight: invokeActivity(() => {
+            return () => {
+              stopActivateCrosswalkLightcalled = true;
+            };
+          })
+        }
       })
     );
+
+    service.start();
+    service.send('TIMER'); // yellow
+    service.send('TIMER'); // red.walk
+    service.send('PED_WAIT'); // red.wait
+    service.send('PED_STOP'); // red.stop
+    service.send('TIMER'); // green
   });
 });
 
@@ -275,50 +276,86 @@ describe('transient activities', () => {
     }
   });
 
-  it('should have started initial activities', () => {
-    const state = machine.initialState;
-    expect(
-      state.children.find((child) => child.meta!.src === 'A')
-    ).toBeTruthy();
+  it('should have started initial activities', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          A: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    );
+
+    service.start();
   });
 
-  it('should have started deep initial activities', () => {
-    const state = machine.initialState;
-    expect(
-      state.children.find((child) => child.meta!.src === 'A1')
-    ).toBeTruthy();
+  it('should have started deep initial activities', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          A1: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    );
+    service.start();
   });
 
-  it('should have kept existing activities', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'A');
-    expect(
-      state.children.find((child) => child.meta!.src === 'A')
-    ).toBeTruthy();
+  it('should have kept existing activities', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          A: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    ).start();
+
+    service.send('A');
   });
 
-  it('should have kept same activities', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'C_SIMILAR');
-    expect(
-      state.children.find((child) => child.meta!.src === 'C1')
-    ).toBeTruthy();
+  it('should have kept same activities', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          C1: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    ).start();
+
+    service.send('C_SIMILAR');
   });
 
-  it('should have kept same activities after self transition', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'C');
-    expect(
-      state.children.find((child) => child.meta!.src === 'C1')
-    ).toBeTruthy();
+  it('should have kept same activities after self transition', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          C1: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    ).start();
+
+    service.send('C');
   });
 
-  it('should have stopped after automatic transitions', () => {
-    let state = machine.initialState;
-    state = machine.transition(state, 'A');
-    expect(state.value).toEqual({ A: 'A2', B: 'B2', C: 'C1' });
-    expect(
-      state.children.find((child) => child.meta!.src === 'B2')
-    ).toBeTruthy();
+  it('should have stopped after automatic transitions', (done) => {
+    const service = interpret(
+      machine.withConfig({
+        behaviors: {
+          B2: invokeActivity(() => {
+            done();
+          })
+        }
+      })
+    ).start();
+
+    service.send('A');
   });
 });
