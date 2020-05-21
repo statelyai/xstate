@@ -102,4 +102,4 @@ const machine = createMachine({
 });
 ```
 
-**Breaking:** The `origin` of an `SCXML.Event` is no longer a string, but an `ActorRef` instance, which can be serialized into a string.
+**Breaking:** The `origin` of an `SCXML.Event` is no longer a string, but an `ActorRef` instance.
