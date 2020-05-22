@@ -257,7 +257,7 @@ export class MachineNode<
    * The initial State instance, which includes all actions to be executed from
    * entering the initial state.
    */
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<TContext, TEvent> {
     this._init();
     const nextState = resolveMicroTransition(this, [], undefined, undefined);
     return macrostep(nextState, null as any, this);
@@ -268,7 +268,7 @@ export class MachineNode<
    *
    * @param self The `ActorRef` instance of this machine, if any.
    */
-  public getInitialState(self?: ActorRef<TEvent>) {
+  public getInitialState(self?: ActorRef<TEvent>): State<TContext, TEvent> {
     this._init();
     const nextState = resolveMicroTransition(
       this,

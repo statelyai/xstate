@@ -53,11 +53,6 @@ export type StateListener<
   event: TEvent
 ) => void;
 
-export type ContextListener<TContext = DefaultContext> = (
-  context: TContext,
-  prevContext: TContext | undefined
-) => void;
-
 export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
 ) => void;
@@ -114,12 +109,9 @@ export class Interpreter<
   private listeners: Set<
     StateListener<TContext, TEvent, TStateSchema, TTypestate>
   > = new Set();
-  private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
   private errorListeners: Set<ErrorListener> = new Set();
   private doneListeners: Set<EventListener> = new Set();
-  private eventListeners: Set<EventListener> = new Set();
-  private sendListeners: Set<EventListener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -222,22 +214,8 @@ export class Interpreter<
       this.devTools.send(_event.data, state);
     }
 
-    // Execute listeners
-    if (state.event) {
-      for (const listener of this.eventListeners) {
-        listener(state.event);
-      }
-    }
-
     for (const listener of this.listeners) {
       listener(state, state.event);
-    }
-
-    for (const contextListener of this.contextListeners) {
-      contextListener(
-        this.state.context,
-        this.state.history ? this.state.history.context : undefined
-      );
     }
 
     const isDone = isInFinalState(state.configuration || [], this.machine);
@@ -333,16 +311,6 @@ export class Interpreter<
   }
 
   /**
-   * Adds a context listener that is notified whenever the state context changes.
-   * @param listener The context listener
-   */
-  public onChange(
-    listener: ContextListener<TContext>
-  ): Interpreter<TContext, TStateSchema, TEvent> {
-    this.contextListeners.add(listener);
-    return this;
-  }
-  /**
    * Adds a listener that is notified when the machine is stopped.
    * @param listener The listener
    */
@@ -376,11 +344,8 @@ export class Interpreter<
     listener: (...args: any[]) => void
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.listeners.delete(listener);
-    this.eventListeners.delete(listener);
-    this.sendListeners.delete(listener);
     this.stopListeners.delete(listener);
     this.doneListeners.delete(listener);
-    this.contextListeners.delete(listener);
     return this;
   }
   /**
@@ -435,9 +400,7 @@ export class Interpreter<
       listener();
       this.stopListeners.delete(listener);
     }
-    for (const listener of this.contextListeners) {
-      this.contextListeners.delete(listener);
-    }
+    this.doneListeners.clear();
     for (const listener of this.doneListeners) {
       this.doneListeners.delete(listener);
     }
@@ -472,10 +435,10 @@ export class Interpreter<
    */
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> => {
+  ): void => {
     if (isArray(event)) {
       this.batch(event);
-      return this.state;
+      return;
     }
 
     const _event = toSCXMLEvent(event);
@@ -492,7 +455,7 @@ export class Interpreter<
           )}`
         );
       }
-      return this.state;
+      return;
     }
 
     if (
@@ -529,9 +492,6 @@ export class Interpreter<
 
       this.update(nextState, _event);
     });
-
-    return this._state!; // TODO: deprecate (should return void)
-    // tslint:disable-next-line:semicolon
   };
 
   private batch(events: Array<TEvent | TEvent['type']>): void {
@@ -581,17 +541,6 @@ export class Interpreter<
       nextState.actions = batchedActions;
       this.update(nextState, toSCXMLEvent(events[events.length - 1]));
     });
-  }
-
-  /**
-   * Returns a send function bound to this interpreter instance.
-   *
-   * @param event The event to be sent by the sender.
-   */
-  public sender(
-    event: Event<TEvent>
-  ): () => State<TContext, TEvent, TStateSchema, TTypestate> {
-    return this.send.bind(this, event);
   }
 
   private sendTo(
