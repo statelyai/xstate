@@ -1942,4 +1942,42 @@ describe('interpreter', () => {
       service.start();
     });
   });
+
+  it('execute = false should not be inherited by spawned machines', (done) => {
+    let called = false;
+
+    const childMachine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: () => {
+            done();
+          }
+        }
+      }
+    });
+
+    const parentMachine = createMachine({
+      initial: 'started',
+      states: {
+        started: {
+          entry: () => {
+            called = true;
+          },
+          invoke: {
+            src: invokeMachine(childMachine)
+          }
+        }
+      }
+    });
+
+    const service = interpret(parentMachine, {
+      execute: false
+    }).start();
+
+    service.subscribe((state) => {
+      expect(called).toBeFalsy();
+      service.execute(state);
+    });
+  });
 });
