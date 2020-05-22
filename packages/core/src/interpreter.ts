@@ -130,9 +130,6 @@ export class Interpreter<
   public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
-  // Dev Tools
-  private devTools?: any;
-
   /**
    * Creates a new Interpreter instance (i.e., service) for the given machine with the provided options, if any.
    *
@@ -207,11 +204,6 @@ export class Interpreter<
     // Execute actions
     if (this.options.execute) {
       this.execute(this.state);
-    }
-
-    // Dev tools
-    if (this.devTools) {
-      this.devTools.send(_event.data, state);
     }
 
     for (const listener of this.listeners) {
@@ -804,38 +796,12 @@ export class Interpreter<
 
   private attachDev(): void {
     if (this.options.devTools && typeof window !== 'undefined') {
-      if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
-        const devToolsOptions =
-          typeof this.options.devTools === 'object'
-            ? this.options.devTools
-            : undefined;
-        this.devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
-          {
-            name: this.id,
-            autoPause: true,
-            stateSanitizer: (state: State<any, any>): object => {
-              return {
-                value: state.value,
-                context: state.context,
-                actions: state.actions
-              };
-            },
-            ...devToolsOptions,
-            features: {
-              jump: false,
-              skip: false,
-              ...(devToolsOptions
-                ? (devToolsOptions as any).features
-                : undefined)
-            }
-          },
-          this.machine
-        );
-        this.devTools.init(this.state);
+      if (typeof this.options.devTools === 'function') {
+        this.options.devTools(this);
+      } else {
+        // add XState-specific dev tooling hook
+        registerService(this);
       }
-
-      // add XState-specific dev tooling hook
-      registerService(this);
     }
   }
 

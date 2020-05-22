@@ -1,6 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
-import { Clock } from './interpreter';
+import { Clock, Interpreter } from './interpreter';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
 
@@ -975,7 +975,7 @@ export interface InterpreterOptions {
    *
    * Default: `false`
    */
-  devTools: boolean | object; // TODO: add enhancer options
+  devTools: boolean | ((service: Interpreter<any, any>) => void); // TODO: add enhancer options
   [option: string]: any;
   /**
    * If `true`, events from the parent will be sent to this interpreter.
