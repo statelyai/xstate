@@ -448,24 +448,38 @@ describe('useMachine hook', () => {
   it('layout effects should happen after normal actions', (done) => {
     const order: string[] = [];
 
-    const machine = createMachine({
-      initial: 'active',
-      states: {
-        active: {
-          entry: [
-            asEffect(() => {
-              order.push('effect');
-            }),
-            () => {
-              order.push('non-effect');
-            },
-            asLayoutEffect(() => {
-              order.push('layout effect');
-            })
-          ]
+    const machine = createMachine(
+      {
+        initial: 'active',
+        states: {
+          active: {
+            entry: [
+              asEffect(() => {
+                order.push('effect');
+              }),
+              () => {
+                order.push('non-effect');
+              },
+              asLayoutEffect(() => {
+                order.push('layout effect');
+              }),
+              'stringEffect',
+              'stringLayoutEffect'
+            ]
+          }
+        }
+      },
+      {
+        actions: {
+          stringEffect: asEffect(() => {
+            order.push('string effect');
+          }),
+          stringLayoutEffect: asLayoutEffect(() => {
+            order.push('string layout effect');
+          })
         }
       }
-    });
+    );
 
     const App = () => {
       useMachine(machine);
@@ -475,7 +489,13 @@ describe('useMachine hook', () => {
 
     render(<App />);
 
-    expect(order).toEqual(['non-effect', 'layout effect', 'effect']);
+    expect(order).toEqual([
+      'non-effect',
+      'layout effect',
+      'string layout effect',
+      'effect',
+      'string effect'
+    ]);
     done();
   });
 });
