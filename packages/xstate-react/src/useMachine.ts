@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect, useRef, useLayoutEffect } from 'react';
 import {
   interpret,
   EventObject,
@@ -14,6 +14,12 @@ import {
   ActionMeta
 } from 'xstate';
 import useConstant from './useConstant';
+import { partition } from 'xstate/lib/utils';
+
+enum ReactEffectType {
+  Effect = 1,
+  LayoutEffect = 2
+}
 
 export interface ReactActionFunction<TContext, TEvent extends EventObject> {
   (
@@ -21,7 +27,7 @@ export interface ReactActionFunction<TContext, TEvent extends EventObject> {
     event: TEvent,
     meta: ActionMeta<TContext, TEvent>
   ): () => void;
-  __effect: boolean;
+  __effect: ReactEffectType;
 }
 
 export interface ReactActionObject<TContext, TEvent extends EventObject>
@@ -41,7 +47,25 @@ export function asEffect<TContext, TEvent extends EventObject>(
 
   Object.defineProperties(effectExec, {
     name: { value: `effect:${exec.name}` },
-    __effect: { value: true }
+    __effect: { value: ReactEffectType.Effect }
+  });
+
+  return effectExec as ReactActionFunction<TContext, TEvent>;
+}
+
+export function asLayoutEffect<TContext, TEvent extends EventObject>(
+  exec: ActionFunction<TContext, TEvent>
+): ReactActionFunction<TContext, TEvent> {
+  const effectExec: unknown = (context, event, meta) => {
+    // don't execute; just return
+    return () => {
+      return exec(context, event, meta);
+    };
+  };
+
+  Object.defineProperties(effectExec, {
+    name: { value: `layoutEffect:${exec.name}` },
+    __effect: { value: ReactEffectType.LayoutEffect }
   });
 
   return effectExec as ReactActionFunction<TContext, TEvent>;
@@ -139,26 +163,42 @@ export function useMachine<
   const effectActionsRef = useRef<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
   >([]);
+  const layoutEffectActionsRef = useRef<
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+  >([]);
 
-  useEffect(() => {
+  useLayoutEffect(() => {
     service.onTransition((currentState) => {
       if (currentState.changed) {
         setState(currentState);
       }
 
       if (currentState.actions.length) {
-        const effectActions = currentState.actions.filter(
+        const reactEffectActions = currentState.actions.filter(
           (action): action is ReactActionObject<TContext, TEvent> => {
             return (
               typeof action.exec === 'function' &&
-              (action as ReactActionObject<TContext, TEvent>).exec.__effect
+              '__effect' in (action as ReactActionObject<TContext, TEvent>).exec
             );
+          }
+        );
+
+        const [effectActions, layoutEffectActions] = partition(
+          reactEffectActions,
+          (action): action is ReactActionObject<TContext, TEvent> => {
+            return action.exec.__effect === ReactEffectType.Effect;
           }
         );
 
         effectActionsRef.current.push(
           ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
             (effectAction) => [effectAction, currentState]
+          )
+        );
+
+        layoutEffectActionsRef.current.push(
+          ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
+            (layoutEffectAction) => [layoutEffectAction, currentState]
           )
         );
       }
@@ -171,6 +211,17 @@ export function useMachine<
       service.stop();
     };
   }, []);
+
+  useLayoutEffect(() => {
+    while (layoutEffectActionsRef.current.length) {
+      const [
+        layoutEffectAction,
+        effectState
+      ] = layoutEffectActionsRef.current.shift()!;
+
+      executeEffect(layoutEffectAction, effectState);
+    }
+  }, [state]);
 
   useEffect(() => {
     while (effectActionsRef.current.length) {

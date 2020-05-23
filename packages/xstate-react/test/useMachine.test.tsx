@@ -16,7 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { asEffect } from '../src/useMachine';
+import { asEffect, asLayoutEffect } from '../src/useMachine';
 
 afterEach(cleanup);
 
@@ -442,6 +442,40 @@ describe('useMachine hook', () => {
     render(<App />);
 
     expect(order).toEqual(['non-effect', 'effect']);
+    done();
+  });
+
+  it('layout effects should happen after normal actions', (done) => {
+    const order: string[] = [];
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: [
+            asEffect(() => {
+              order.push('effect');
+            }),
+            () => {
+              order.push('non-effect');
+            },
+            asLayoutEffect(() => {
+              order.push('layout effect');
+            })
+          ]
+        }
+      }
+    });
+
+    const App = () => {
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(order).toEqual(['non-effect', 'layout effect', 'effect']);
     done();
   });
 });
