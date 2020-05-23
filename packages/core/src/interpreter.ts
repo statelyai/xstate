@@ -393,24 +393,20 @@ export class Interpreter<
     });
     return this;
   }
+
   /**
    * Stops the interpreter and unsubscribe all listeners.
    *
    * This will also notify the `onStop` listeners.
    */
   public stop(): Interpreter<TContext, TStateSchema, TEvent> {
-    for (const listener of this.listeners) {
-      this.listeners.delete(listener);
-    }
+    this.listeners.clear();
     for (const listener of this.stopListeners) {
       // call listener, then remove
       listener();
-      this.stopListeners.delete(listener);
     }
+    this.stopListeners.clear();
     this.doneListeners.clear();
-    for (const listener of this.doneListeners) {
-      this.doneListeners.delete(listener);
-    }
 
     // Stop all children
     this.children.forEach((child) => {
@@ -704,9 +700,8 @@ export class Interpreter<
       case ActionTypes.Invoke: {
         const { id, data, autoForward, src } = action as InvokeActionObject;
 
-        // If the "activity" will be stopped right after it's started
-        // (such as in transient states)
-        // don't bother starting the activity.
+        // If the actor will be stopped right after it's started
+        // (such as in transient states) don't bother starting the actor.
         if (
           state.actions.find((otherAction) => {
             return (
@@ -789,12 +784,6 @@ export class Interpreter<
 
     return undefined;
   }
-  private removeChild(childId: string): void {
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    delete this.state.children[childId];
-  }
 
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
@@ -802,7 +791,9 @@ export class Interpreter<
       return;
     }
 
-    this.removeChild(childId);
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+    delete this.state.children[childId];
 
     if (isFunction(child.stop)) {
       child.stop();
