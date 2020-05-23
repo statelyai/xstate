@@ -87,7 +87,6 @@ const defaultOptions: InterpreterOptions = ((global) => ({
 }))(typeof window === 'undefined' ? global : window);
 
 export class Interpreter<
-  // tslint:disable-next-line:max-classes-per-file
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
@@ -164,19 +163,19 @@ export class Interpreter<
 
     this.sessionId = this.ref.name;
   }
+
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    if (this._initialState) {
-      return this._initialState;
-    }
-
-    this._initialState = this.machine.getInitialState(this.ref);
-
-    return this._initialState;
+    return (
+      this._initialState ||
+      ((this._initialState = this.machine.getInitialState(this.ref)),
+      this._initialState)
+    );
   }
+
   public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
     return this._state!;
   }
-  public static interpret = interpret;
+
   /**
    * Executes the actions of the given state, with that state's `context` and `event`.
    *
@@ -191,6 +190,7 @@ export class Interpreter<
       this.exec(action, state, actionsConfig);
     }
   }
+
   private update(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent>
@@ -215,7 +215,8 @@ export class Interpreter<
     if (this.state.configuration && isDone) {
       // get final child state node
       const finalChildStateNode = state.configuration.find(
-        (sn) => sn.type === 'final' && sn.parent === this.machine
+        (stateNode) =>
+          stateNode.type === 'final' && stateNode.parent === this.machine
       );
 
       const doneData =
@@ -247,6 +248,7 @@ export class Interpreter<
 
     return this;
   }
+
   public subscribe(
     observer: Observer<State<TContext, TEvent, any, TTypestate>>
   ): Subscription;
@@ -261,7 +263,7 @@ export class Interpreter<
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
       | Observer<State<TContext, TEvent, any, TTypestate>>,
     // @ts-ignore
-    errorListener?: (error: any) => void,
+    errorListener?: (error: Error) => void,
     completeListener?: () => void
   ): Subscription {
     if (!nextListenerOrObserver) {
@@ -284,6 +286,10 @@ export class Interpreter<
       this.listeners.add(listener);
     }
 
+    if (errorListener) {
+      this.onError(errorListener);
+    }
+
     // Send current state to listener
     if (this._status === InterpreterStatus.Running) {
       listener(this.state);
@@ -295,15 +301,16 @@ export class Interpreter<
 
     return {
       unsubscribe: () => {
-        listener && this.listeners.delete(listener);
-        resolvedCompleteListener &&
-          this.doneListeners.delete(resolvedCompleteListener);
+        listener && this.off(listener);
+        resolvedCompleteListener && this.off(resolvedCompleteListener);
+        errorListener && this.off(errorListener);
       }
     };
   }
 
   /**
    * Adds a listener that is notified when the machine is stopped.
+   *
    * @param listener The listener
    */
   public onStop(
@@ -312,12 +319,20 @@ export class Interpreter<
     this.stopListeners.add(listener);
     return this;
   }
+
+  /**
+   * Adds an error listener that is notified with an `Error` whenever an
+   * error occurs during execution.
+   *
+   * @param listener The error listener
+   */
   public onError(
     listener: ErrorListener
   ): Interpreter<TContext, TStateSchema, TEvent> {
     this.errorListeners.add(listener);
     return this;
   }
+
   /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
@@ -328,6 +343,7 @@ export class Interpreter<
     this.doneListeners.add(listener);
     return this;
   }
+
   /**
    * Removes a listener.
    * @param listener The listener to remove
@@ -338,12 +354,10 @@ export class Interpreter<
     this.listeners.delete(listener);
     this.stopListeners.delete(listener);
     this.doneListeners.delete(listener);
+    this.errorListeners.delete(listener);
     return this;
   }
-  /**
-   * Alias for Interpreter.prototype.start
-   */
-  public init = this.start;
+
   /**
    * Starts the interpreter from the given state, or the initial state.
    * @param initialState The state to start the statechart from
