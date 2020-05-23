@@ -44,9 +44,14 @@ export function stateValuesEqual(
   );
 }
 
-export function isState<TContext, TEvent extends EventObject>(
+export function isState<
+  TContext,
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema<TContext> = any,
+  TTypestate extends Typestate<TContext> = any
+>(
   state: object | string
-): state is State<TContext, TEvent> {
+): state is State<TContext, TEvent, TStateSchema, TTypestate> {
   if (isString(state)) {
     return false;
   }
@@ -79,7 +84,7 @@ export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
   public value: StateValue;
   public context: TContext;
@@ -285,9 +290,12 @@ export class State<
    */
   public matches<TSV extends TTypestate['value']>(
     parentStateValue: TSV
-  ): this is TTypestate extends { value: TSV }
-    ? State<TTypestate['context'], TEvent, TStateSchema, TTypestate>
-    : never {
+  ): this is State<
+    (TTypestate extends { value: TSV } ? TTypestate : never)['context'],
+    TEvent,
+    TStateSchema,
+    TTypestate
+  > & { value: TSV } {
     return matchesState(parentStateValue as StateValue, this.value);
   }
 }

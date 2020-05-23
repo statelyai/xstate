@@ -8,7 +8,7 @@ import {
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
 
-describe('onEntry/onExit actions', () => {
+describe('entry/exit actions', () => {
   const pedestrianStates = {
     initial: 'walk',
     states: {
@@ -1293,7 +1293,7 @@ describe('choose', () => {
     expect(service.state.context).toEqual({ counter: 101, answer: 42 });
   });
 
-  it('should be able to use actions defined in options', () => {
+  it('should be able to use actions and guards defined in options', () => {
     interface Ctx {
       answer?: number;
     }
@@ -1304,11 +1304,14 @@ describe('choose', () => {
         initial: 'foo',
         states: {
           foo: {
-            entry: choose([{ cond: () => true, actions: 'revealAnswer' }])
+            entry: choose([{ cond: 'worstGuard', actions: 'revealAnswer' }])
           }
         }
       },
       {
+        guards: {
+          worstGuard: () => true
+        },
         actions: {
           revealAnswer: assign<Ctx>({ answer: 42 })
         }
@@ -1318,5 +1321,61 @@ describe('choose', () => {
     const service = interpret(machine).start();
 
     expect(service.state.context).toEqual({ answer: 42 });
+  });
+
+  it('should be able to use choose actions from within options', () => {
+    interface Ctx {
+      answer?: number;
+    }
+
+    const machine = createMachine<Ctx>(
+      {
+        context: {},
+        initial: 'foo',
+        states: {
+          foo: {
+            entry: 'conditionallyRevealAnswer'
+          }
+        }
+      },
+      {
+        guards: {
+          worstGuard: () => true
+        },
+        actions: {
+          revealAnswer: assign<Ctx>({ answer: 42 }),
+          conditionallyRevealAnswer: choose([
+            { cond: 'worstGuard', actions: 'revealAnswer' }
+          ])
+        }
+      }
+    );
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context).toEqual({ answer: 42 });
+  });
+});
+
+describe('sendParent', () => {
+  // https://github.com/davidkpiano/xstate/issues/711
+  it('TS: should compile for any event', () => {
+    interface ChildContext {}
+    interface ChildEvent {
+      type: 'CHILD';
+    }
+
+    const child = Machine<ChildContext, any, ChildEvent>({
+      id: 'child',
+      initial: 'start',
+      states: {
+        start: {
+          // This should not be a TypeScript error
+          entry: [sendParent({ type: 'PARENT' })]
+        }
+      }
+    });
+
+    expect(child).toBeTruthy();
   });
 });

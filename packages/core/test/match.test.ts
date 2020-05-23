@@ -347,8 +347,32 @@ describe('matches() method', () => {
       // never called - it's okay if the name is undefined
       expect(name).toBeTruthy();
     } else if (init.matches('loading')) {
-      // Make sure init isn't "never" - if it is, tests will fail to compile
+      // Make sure init isn't "never" - if it is, tests should fail to compile
       expect(init).toBeTruthy();
+    }
+  });
+
+  it('should compile with conditional matches even without a specified Typestate', () => {
+    const toggleMachine = createMachine<{ foo: number }>({
+      id: 'toggle',
+      context: {
+        foo: 0
+      },
+      initial: 'a',
+      states: {
+        a: { on: { TOGGLE: 'b' } },
+        b: { on: { TOGGLE: 'a' } }
+      }
+    });
+
+    const state = toggleMachine.initialState;
+
+    if (state.matches('a') || state.matches('b')) {
+      // This should be a `number` type
+      state.context.foo;
+
+      // Make sure state isn't "never" - if it is, tests should fail to compile
+      expect(state).toBeTruthy();
     }
   });
 });

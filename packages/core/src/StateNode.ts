@@ -1127,12 +1127,11 @@ class StateNode<
     const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
       if (action.type === actionTypes.start) {
-        activities[action.activity!.type] = action as ActivityDefinition<
-          TContext,
-          TEvent
-        >;
+        activities[
+          action.activity!.id || action.activity!.type
+        ] = action as ActivityDefinition<TContext, TEvent>;
       } else if (action.type === actionTypes.stop) {
-        activities[action.activity!.type] = false;
+        activities[action.activity!.id || action.activity!.type] = false;
       }
     }
 
@@ -1150,7 +1149,7 @@ class StateNode<
         action
       ): action is
         | RaiseActionObject<TEvent>
-        | SendActionObject<TContext, TEvent> =>
+        | SendActionObject<TContext, TEvent, TEvent> =>
         action.type === actionTypes.raise ||
         (action.type === actionTypes.send &&
           (action as SendActionObject<TContext, TEvent>).to ===
@@ -1857,6 +1856,13 @@ class StateNode<
     const doneConfig = this.config.onDone
       ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
       : [];
+
+    if (!IS_PRODUCTION) {
+      warn(
+        !(this.config.onDone && !this.parent),
+        `Root nodes cannot have an ".onDone" transition. Please check the config of "${this.id}".`
+      );
+    }
 
     const invokeConfig = flatten(
       this.invoke.map((invokeDef) => {
