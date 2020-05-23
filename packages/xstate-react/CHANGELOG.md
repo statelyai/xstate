@@ -2,6 +2,40 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-rc]
+
+- You can now schedule actions in `useEffect` or `useLayoutEffect` via:
+
+- `asEffect` - queues the action to be executed in `useEffect`
+- `asLayoutEffect` - queues the action to be executed in `useLayoutEffect`
+
+```jsx
+import { createMachine } from 'xstate';
+import { useMachine, asEffect } from '@xstate/react';
+
+const machine = createMachine({
+  initial: 'focused',
+  states: {
+    focused: {
+      entry: 'focus'
+    }
+  }
+});
+
+const Input = () => {
+  const inputRef = useRef(null);
+  const [state, send] = useMachine(machine, {
+    actions: {
+      focus: asEffect(() => {
+        inputRef.current && inputRef.current.focus();
+      })
+    }
+  });
+
+  return <input ref={inputRef} />;
+};
+```
+
 ## [0.8.1]
 
 - Services are now kept up to date
