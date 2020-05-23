@@ -16,6 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
+import { asEffect } from '../src/useMachine';
 
 afterEach(cleanup);
 
@@ -348,9 +349,9 @@ describe('useMachine hook', () => {
         active: {
           on: {
             EVENT: {
-              actions: () => {
+              actions: asEffect(() => {
                 count++;
-              }
+              })
             }
           }
         }
@@ -394,9 +395,9 @@ describe('useMachine hook', () => {
       initial: 'active',
       states: {
         active: {
-          entry: () => {
+          entry: asEffect(() => {
             count++;
-          }
+          })
         }
       }
     });
@@ -410,6 +411,37 @@ describe('useMachine hook', () => {
     render(<App />);
 
     expect(count).toEqual(1);
+    done();
+  });
+
+  it('effects should happen after normal actions', (done) => {
+    const order: string[] = [];
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: [
+            asEffect(() => {
+              order.push('effect');
+            }),
+            () => {
+              order.push('non-effect');
+            }
+          ]
+        }
+      }
+    });
+
+    const App = () => {
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(order).toEqual(['non-effect', 'effect']);
     done();
   });
 });

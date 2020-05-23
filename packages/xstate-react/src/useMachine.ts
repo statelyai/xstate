@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import {
   interpret,
   EventObject,
@@ -8,9 +8,63 @@ import {
   InterpreterOptions,
   MachineOptions,
   StateConfig,
-  Typestate
+  Typestate,
+  ActionObject,
+  ActionFunction,
+  ActionMeta
 } from 'xstate';
 import useConstant from './useConstant';
+
+export interface ReactActionFunction<TContext, TEvent extends EventObject> {
+  (
+    context: TContext,
+    event: TEvent,
+    meta: ActionMeta<TContext, TEvent>
+  ): () => void;
+  __effect: boolean;
+}
+
+export interface ReactActionObject<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  exec: ReactActionFunction<TContext, TEvent>;
+}
+
+export function asEffect<TContext, TEvent extends EventObject>(
+  exec: ActionFunction<TContext, TEvent>
+): ReactActionFunction<TContext, TEvent> {
+  const effectExec: unknown = (context, event, meta) => {
+    // don't execute; just return
+    return () => {
+      return exec(context, event, meta);
+    };
+  };
+
+  Object.defineProperties(effectExec, {
+    name: { value: `effect:${exec.name}` },
+    __effect: { value: true }
+  });
+
+  return effectExec as ReactActionFunction<TContext, TEvent>;
+}
+
+export type ActionStateTuple<TContext, TEvent extends EventObject> = [
+  ReactActionObject<TContext, TEvent>,
+  State<TContext, TEvent>
+];
+
+function executeEffect<TContext, TEvent extends EventObject>(
+  action: ReactActionObject<TContext, TEvent>,
+  state: State<TContext, TEvent>
+): void {
+  const { exec } = action;
+  const originalExec = exec!(state.context, state._event.data, {
+    action,
+    state: state,
+    _event: state._event
+  });
+
+  originalExec();
+}
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
@@ -82,10 +136,31 @@ export function useMachine<
 
   const [state, setState] = useState(service.state);
 
+  const effectActionsRef = useRef<
+    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+  >([]);
+
   useEffect(() => {
     service.onTransition((currentState) => {
       if (currentState.changed) {
         setState(currentState);
+      }
+
+      if (currentState.actions.length) {
+        const effectActions = currentState.actions.filter(
+          (action): action is ReactActionObject<TContext, TEvent> => {
+            return (
+              typeof action.exec === 'function' &&
+              (action as ReactActionObject<TContext, TEvent>).exec.__effect
+            );
+          }
+        );
+
+        effectActionsRef.current.push(
+          ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
+            (effectAction) => [effectAction, currentState]
+          )
+        );
       }
     });
 
@@ -96,6 +171,14 @@ export function useMachine<
       service.stop();
     };
   }, []);
+
+  useEffect(() => {
+    while (effectActionsRef.current.length) {
+      const [effectAction, effectState] = effectActionsRef.current.shift()!;
+
+      executeEffect(effectAction, effectState);
+    }
+  }, [state]);
 
   // Make sure actions and services are kept updated when they change.
   // This mutation assignment is safe because the service instance is only used
