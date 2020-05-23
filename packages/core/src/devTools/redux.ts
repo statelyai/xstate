@@ -1,12 +1,14 @@
 import { State } from '../State';
-import { Interpreter } from '../interpreter';
+import { DevToolsAdapter } from '../types';
 
 interface ReduxDevToolsOptions {
   [key: string]: any;
 }
 
-export function createAdapter(options: ReduxDevToolsOptions) {
-  return (service: Interpreter<any, any>) => {
+export const createReduxDevTools = (
+  options: ReduxDevToolsOptions
+): DevToolsAdapter => {
+  return (service) => {
     if ((window as any).__REDUX_DEVTOOLS_EXTENSION__) {
       const devTools = (window as any).__REDUX_DEVTOOLS_EXTENSION__.connect(
         {
@@ -34,4 +36,4 @@ export function createAdapter(options: ReduxDevToolsOptions) {
       });
     }
   };
-}
+};

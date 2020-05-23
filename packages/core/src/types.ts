@@ -975,7 +975,7 @@ export interface InterpreterOptions {
    *
    * Default: `false`
    */
-  devTools: boolean | ((service: Interpreter<any, any>) => void); // TODO: add enhancer options
+  devTools: boolean | DevToolsAdapter; // TODO: add enhancer options
   [option: string]: any;
   /**
    * If `true`, events from the parent will be sent to this interpreter.
@@ -984,6 +984,8 @@ export interface InterpreterOptions {
    */
   autoForward?: boolean;
 }
+
+export type AnyInterpreter = Interpreter<any, any, any>;
 
 export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
@@ -1106,3 +1108,5 @@ export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
 >
   ? ActorRef<TE, State<TC, TE>>
   : ActorRef<any, any>; // TODO: expand
+
+export type DevToolsAdapter = (service: AnyInterpreter) => void;

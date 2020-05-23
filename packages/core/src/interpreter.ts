@@ -40,8 +40,8 @@ import { Scheduler } from './scheduler';
 import { isActorRef, fromService, ObservableActorRef } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { registerService } from './devTools';
 import { MachineNode } from './MachineNode';
+import { devToolsAdapter } from './devTools';
 
 export type StateListener<
   TContext,
@@ -370,11 +370,12 @@ export class Interpreter<
             State.from(initialState, this.machine.context)
           );
 
-    if (this.options.devTools) {
-      this.attachDev();
-    }
     this.scheduler.initialize(() => {
       this.update(resolvedState, initEvent as SCXML.Event<TEvent>);
+
+      if (this.options.devTools) {
+        this.attachDevTools();
+      }
     });
     return this;
   }
@@ -794,14 +795,13 @@ export class Interpreter<
     }
   }
 
-  private attachDev(): void {
-    if (this.options.devTools && typeof window !== 'undefined') {
-      if (typeof this.options.devTools === 'function') {
-        this.options.devTools(this);
-      } else {
-        // add XState-specific dev tooling hook
-        registerService(this);
-      }
+  private attachDevTools(): void {
+    const { devTools } = this.options;
+    if (devTools) {
+      const resolvedDevToolsAdapter =
+        typeof devTools === 'function' ? devTools : devToolsAdapter;
+
+      resolvedDevToolsAdapter(this);
     }
   }
 
