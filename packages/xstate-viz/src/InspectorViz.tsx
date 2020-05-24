@@ -1,13 +1,5 @@
 import * as React from 'react';
-import {
-  createMachine,
-  State,
-  Machine,
-  StateMachine,
-  StateNode,
-  EventObject,
-  SCXML
-} from 'xstate';
+import { createMachine, State, StateNode, SCXML } from 'xstate';
 import { useMachine } from '@xstate/react';
 import { MachineViz } from './MachineViz';
 import { assign } from '@xstate/immer';

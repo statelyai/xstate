@@ -35,11 +35,10 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc",
-    "watch": "yarn link:react && concurrently \"tsc -w\" \"node-sass -w ./themes/dark.scss ./themes/dark.css\"",
     "test": "jest",
-    "prepublish": "npm run build && npm run unlink:react && npm run test",
-    "unlink:react": "yarn unlink react && yarn unlink react-dom",
-    "link:react": "yarn link react && yarn link react-dom"
+    "prepublish": "npm run build && npm run test",
+    "storybook": "start-storybook -p 6006",
+    "build-storybook": "build-storybook"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
@@ -55,12 +54,21 @@
     }
   },
   "devDependencies": {
+    "@babel/core": "^7.9.6",
+    "@storybook/addon-actions": "^5.3.18",
+    "@storybook/addon-links": "^5.3.18",
+    "@storybook/addons": "^5.3.18",
+    "@storybook/preset-scss": "^1.0.2",
+    "@storybook/preset-typescript": "^3.0.0",
+    "@storybook/react": "^5.3.18",
     "@testing-library/react": "^8.0.9",
     "@types/jsdom": "^12.2.3",
     "@types/react": "^16.9.11",
     "@types/react-dom": "^16.9.4",
     "@xstate/fsm": "*",
+    "babel-loader": "^8.1.0",
     "concurrently": "^5.1.0",
+    "css-loader": "^3.5.3",
     "jest": "^24.8.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
@@ -68,6 +76,8 @@
     "node-sass": "^4.13.1",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
+    "sass-loader": "^8.0.2",
+    "style-loader": "^1.2.1",
     "ts-jest": "^24.1.9",
     "tsdx": "^0.11.0",
     "tslib": "^1.10.0",

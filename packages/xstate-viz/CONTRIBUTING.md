@@ -4,36 +4,16 @@
 
 To develop and test the `@xstate/viz` components in local projects:
 
-1. In this directory (`/packages/xstate-viz`), run:
+1. Install dependencies:
 
 ```bash
-yarn link
+yarn
 ```
 
-This will link `@xstate/viz` to the local version.
-
-2. In your local project, run:
+2. Run Storybook:
 
 ```bash
-yarn link @xstate/viz
+yarn storybook
 ```
 
-And then link the local project's `react` and `react-dom` modules:
-
-```bash
-yarn link --cwd ./node_modules/react
-yarn link --cwd ./node_modules/react-dom
-```
-
-3. In this directory (`/packages/xstate-viz`), link to your local project's `react` and `react-dom`:
-
-```bash
-yarn link react
-yarn link react-dom
-```
-
-4. Start building incrementally:
-
-```bash
-yarn watch
-```
+Good to go!
