@@ -133,9 +133,8 @@ export function relativePoint(point: Point, parentElement: Element): Point {
 export function serializeTransition(
   transition: TransitionDefinition<any, any>
 ): string {
-  return `event:${transition.source.id}:${transition.eventType}:${
-    transition.cond ? transition.cond.predicate.toString() : ''
-  }`;
+  const condString = transition.cond?.predicate?.toString() || '';
+  return `event:${transition.source.id}:${transition.eventType}:${condString}`;
 }
 
 export function isActive(

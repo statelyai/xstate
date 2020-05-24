@@ -75,7 +75,11 @@
     "xstate": "*"
   },
   "dependencies": {
-    "immer": "^6.0.3",
+    "@reach/tabs": "^0.10.3",
+    "@xstate/immer": "^0.1.0",
+    "@xstate/react": "^0.8.1",
+    "immer": "^6.0.8",
+    "react-router-dom": "^5.2.0",
     "styled-components": "^4.4.1"
   }
 }

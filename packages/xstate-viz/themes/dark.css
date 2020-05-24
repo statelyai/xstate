@@ -263,3 +263,37 @@
 
 [data-xviz='sequence'] td {
   border: 1px solid black; }
+
+[data-xviz='inspector'] > [data-xviz='service'] {
+  display: grid;
+  grid-template-columns: 1fr 20rem;
+  grid-template-rows: 1rem min-content 1fr;
+  grid-template-areas: 'header header' 'machine state' 'machine events'; }
+  [data-xviz='inspector'] > [data-xviz='service'] > [data-xviz='machine'] {
+    grid-area: machine; }
+  [data-xviz='inspector'] > [data-xviz='service'] > [data-xviz='event-records'] {
+    grid-area: events; }
+    [data-xviz='inspector'] > [data-xviz='service'] > [data-xviz='event-records']:before {
+      content: 'Events';
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.5rem; }
+  [data-xviz='inspector'] > [data-xviz='service'] > [data-xviz='state'] {
+    grid-area: state; }
+    [data-xviz='inspector'] > [data-xviz='service'] > [data-xviz='state']:before {
+      content: 'State';
+      font-weight: bold;
+      display: block;
+      margin-bottom: 0.5rem; }
+  @media (max-width: 40em) {
+    [data-xviz='inspector'] > [data-xviz='service'] {
+      grid-template-columns: 1fr 1fr;
+      grid-template-rows: 1rem 1fr 1fr;
+      grid-template-areas: 'header header' 'machine machine' 'state events'; } }
+
+[data-xviz='event-records'] {
+  overflow-y: auto; }
+
+[data-xviz='event-record-name'] {
+  font-family: monospace;
+  font-weight: bold; }
