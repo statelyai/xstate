@@ -7,9 +7,9 @@
 ```js
 import { createMachine } from "@xstate/fsm";
 
-export const toggleMachine = createMachine({
+export const toggleMachine = createMachine<{ toggle: "active" | "inactive" }>({
   id: "toggle",
-  initial: "inactive",
+  initial: "active",
   states: {
     inactive: { on: { toggle: "active" } },
     active: { on: { toggle: "inactive" } }
@@ -18,7 +18,6 @@ export const toggleMachine = createMachine({
 ```
 
 ### `src/components/toggle/toggle.tsx`
-
 
 Add a `state` property to your component, decorated with `@State` so that it triggers a re-render when changed.
 
@@ -37,15 +36,13 @@ import { toggleMachine } from "../helpers/toggle-machine";
   shadow: true
 })
 export class Toggle {
-  @State() state;
+  private _service = interpret(toggleMachine);
 
-  private _service;
+  @State() state = toggleMachine.initialState;
 
   componentWillLoad() {
-    this._service = interpret(toggleMachine);
-
     this._service.subscribe(state => {
-      this.state = { state };
+      this.state = state;
     });
 
     this._service.start();
@@ -56,12 +53,11 @@ export class Toggle {
   }
 
   render() {
-    const { state } = this.state;
     const { send } = this._service;
 
     return (
       <button onClick={() => send("toggle")}>
-        {state.value === "inactive" ? "Off" : "On"}
+        {this.state === "inactive" ? "Off" : "On"}
       </button>
     );
   }
