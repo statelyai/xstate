@@ -14,7 +14,7 @@ import {
   ActionMeta
 } from 'xstate';
 import useConstant from './useConstant';
-import { partition } from 'xstate/lib/utils';
+import { partition } from './utils';
 
 enum ReactEffectType {
   Effect = 1,
@@ -232,7 +232,7 @@ export function useMachine<
 
       executeEffect(layoutEffectAction, effectState);
     }
-  }, [state]);
+  }, [state]); // https://github.com/davidkpiano/xstate/pull/1202#discussion_r429677773
 
   useEffect(() => {
     while (effectActionsRef.current.length) {
