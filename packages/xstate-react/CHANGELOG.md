@@ -2,7 +2,7 @@
 
 All notable changes to this project will be documented in this file.
 
-## [1.0.0-rc]
+## [1.0.0-rc.5]
 
 - You can now schedule actions in `useEffect` or `useLayoutEffect` via:
 

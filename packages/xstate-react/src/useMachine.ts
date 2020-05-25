@@ -212,6 +212,17 @@ export function useMachine<
     };
   }, []);
 
+  // Make sure actions and services are kept updated when they change.
+  // This mutation assignment is safe because the service instance is only used
+  // in one place -- this hook's caller.
+  useEffect(() => {
+    Object.assign(service.machine.options.actions, actions);
+  }, [actions]);
+
+  useEffect(() => {
+    Object.assign(service.machine.options.services, services);
+  }, [services]);
+
   useLayoutEffect(() => {
     while (layoutEffectActionsRef.current.length) {
       const [
@@ -230,17 +241,6 @@ export function useMachine<
       executeEffect(effectAction, effectState);
     }
   }, [state]);
-
-  // Make sure actions and services are kept updated when they change.
-  // This mutation assignment is safe because the service instance is only used
-  // in one place -- this hook's caller.
-  useEffect(() => {
-    Object.assign(service.machine.options.actions, actions);
-  }, [actions]);
-
-  useEffect(() => {
-    Object.assign(service.machine.options.services, services);
-  }, [services]);
 
   return [state, service.send, service];
 }
