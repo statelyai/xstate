@@ -17,7 +17,8 @@ export const toggleMachine = createMachine({
 });
 ```
 
-### components/toggle/toggle.tsx
+### `src/components/toggle/toggle.tsx`
+
 
 Add a `state` property to your component, decorated with `@State` so that it triggers a re-render when changed.
 
