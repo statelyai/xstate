@@ -61,7 +61,7 @@ export class Toggle {
 
     return (
       <button onClick={() => send("toggle")}>
-        {this.state === "inactive" ? "Off" : "On"}
+        {this.state.value === "inactive" ? "Off" : "On"}
       </button>
     );
   }
