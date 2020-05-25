@@ -5,10 +5,10 @@
 ### components/toggle/toggle-machine.ts
 
 ```js
-import { Machine } from "xstate";
+import { createMachine } from "xstate"
 
 // this machine is completely decoupled from stencil
-export const toggleMachine = Machine({
+export const toggleMachine = createMachine({
   id: "toggle",
   initial: "inactive",
   states: {
