@@ -33,7 +33,8 @@ After a transition has occured, the `state` property is set to the machine's new
 ```js
 import { Component, h, State, Prop } from "@stencil/core";
 import { interpret } from "xstate";
-import { toggleMachine } from "./toggle-machine";
+import { toggleMachine } from "../helpers/toggle-machine";
+
 
 @Component({
   tag: "my-toggle",
