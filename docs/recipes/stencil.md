@@ -5,19 +5,14 @@
 ### `src/helpers/toggle-machine.ts`
 
 ```js
-import { createMachine } from "@xstate/fsm"
+import { createMachine } from "@xstate/fsm";
 
-// this machine is completely decoupled from stencil
 export const toggleMachine = createMachine({
   id: "toggle",
   initial: "inactive",
   states: {
-    inactive: {
-      on: { toggle: "active" }
-    },
-    active: {
-      on: { toggle: "inactive" }
-    }
+    inactive: { on: { toggle: "active" } },
+    active: { on: { toggle: "inactive" } }
   }
 });
 ```
@@ -31,10 +26,9 @@ On `componentWillLoad`, interpret the `toggleMachine` and listen for state trans
 After a transition has occured, the `state` property is set to the machine's new state, triggering a re-render.
 
 ```js
-import { Component, h, State, Prop } from "@stencil/core";
-import { interpret } from "xstate";
+import { Component, h, State } from "@stencil/core";
+import { interpret } from "@xstate/fsm";
 import { toggleMachine } from "../helpers/toggle-machine";
-
 
 @Component({
   tag: "my-toggle",
@@ -47,8 +41,10 @@ export class Toggle {
   private _service;
 
   componentWillLoad() {
-    this._service = interpret(toggleMachine).onTransition(current => {
-      this.state = { current };
+    this._service = interpret(toggleMachine);
+
+    this._service.subscribe(state => {
+      this.state = { state };
     });
 
     this._service.start();
@@ -59,12 +55,12 @@ export class Toggle {
   }
 
   render() {
-    const { current } = this.state;
+    const { state } = this.state;
     const { send } = this._service;
 
     return (
       <button onClick={() => send("toggle")}>
-        {current.matches("inactive") ? "Off" : "On"}
+        {state.value === "inactive" ? "Off" : "On"}
       </button>
     );
   }
