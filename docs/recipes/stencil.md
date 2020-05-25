@@ -5,7 +5,7 @@
 ### components/toggle/toggle-machine.ts
 
 ```js
-import { createMachine } from "xstate"
+import { createMachine } from "@xstate/fsm"
 
 // this machine is completely decoupled from stencil
 export const toggleMachine = createMachine({
