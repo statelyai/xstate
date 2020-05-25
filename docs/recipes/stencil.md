@@ -2,7 +2,7 @@
 
 [Stencil](https://stenciljs.com/) web components work very well with XState.
 
-### components/toggle/toggle-machine.ts
+### `src/helpers/toggle-machine.ts`
 
 ```js
 import { createMachine } from "xstate"
