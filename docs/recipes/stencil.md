@@ -7,7 +7,11 @@
 ```js
 import { createMachine } from "@xstate/fsm";
 
-export const toggleMachine = createMachine<{ toggle: "active" | "inactive" }>({
+export const toggleMachine = createMachine<
+  undefined,
+  { type: "toggle" },
+  { value: "active" | "inactive"; context: undefined }
+>({
   id: "toggle",
   initial: "active",
   states: {
