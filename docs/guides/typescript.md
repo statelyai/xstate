@@ -150,7 +150,7 @@ Typestates are a concept that narrow down the shape of the overall state `contex
 
 A `Typestate` is an interface consisting of two properties:
 
-- `value` - the state value of the typestate(compound states should be referenced using object syntax)
+- `value` - the state value of the typestate (compound states should be referenced using object syntax; e.g., `{ idle: 'error' }` instead of `"idle.error"`)
 - `context` - the narrowed context of the typestate when the state matches the given `value`
 
 The typestates of a machine are specified as the 3rd generic type in `createMachine<TContext, TEvent, TState>`.
