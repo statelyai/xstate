@@ -1,6 +1,6 @@
 ---
-name: Bug report
-about: Report an issue with XState or its packages
+name: 🐞 Bug report
+about: Report an issue with XState or any XState-related tooling.
 title: ''
 labels: ''
 assignees: ''
