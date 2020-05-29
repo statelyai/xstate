@@ -4,7 +4,7 @@ import { StateNodeViz } from './StateNodeViz';
 import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
-import { tracker } from './tracker';
+import { Tracker } from './tracker';
 import { State, StateMachine } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
@@ -39,7 +39,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
 
 export function MachineViz({ machine, state }: MachineVizProps) {
   return (
-    <StateContext.Provider value={{ state, tracker }}>
+    <StateContext.Provider value={{ state, tracker: new Tracker() }}>
       <MachineVizContainer machine={machine} state={state} />
     </StateContext.Provider>
   );

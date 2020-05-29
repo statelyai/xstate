@@ -67,21 +67,25 @@ class Rect implements ClientRect {
   }
 }
 
-class Tracker {
+export class Tracker {
   public data: Record<string, TrackerData> = {};
 
   constructor() {
     // listen for resize events
-    if (window !== undefined) {
-      let timeout: number;
-      window.addEventListener('resize', () => {
-        if (timeout) {
-          cancelAnimationFrame(timeout);
-        }
-        timeout = requestAnimationFrame(() => {
-          this.updateAll();
+    try {
+      if (window !== undefined) {
+        let timeout: number;
+        window.addEventListener('resize', () => {
+          if (timeout) {
+            cancelAnimationFrame(timeout);
+          }
+          timeout = requestAnimationFrame(() => {
+            this.updateAll();
+          });
         });
-      });
+      }
+    } catch (e) {
+      // gulp
     }
   }
 
@@ -133,10 +137,6 @@ class Tracker {
   }
 }
 
-const tracker = new Tracker();
-
-(window as any).tracker = tracker;
-
 export function relative(
   childRect: ClientRect,
   parentElement: Element | ClientRect
@@ -155,5 +155,3 @@ export function relative(
     height: childRect.height
   });
 }
-
-export { tracker };
