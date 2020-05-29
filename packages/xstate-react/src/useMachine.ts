@@ -35,40 +35,35 @@ export interface ReactActionObject<TContext, TEvent extends EventObject>
   exec: ReactActionFunction<TContext, TEvent>;
 }
 
-export function asEffect<TContext, TEvent extends EventObject>(
-  exec: ActionFunction<TContext, TEvent>
+function createReactActionFunction<TContext, TEvent extends EventObject>(
+  exec: ActionFunction<TContext, TEvent>,
+  tag: ReactEffectType
 ): ReactActionFunction<TContext, TEvent> {
-  const effectExec: unknown = (context, event, meta) => {
+  const effectExec: unknown = (...args: Parameters<typeof exec>) => {
     // don't execute; just return
     return () => {
-      return exec(context, event, meta);
+      return exec(...args);
     };
   };
 
   Object.defineProperties(effectExec, {
     name: { value: `effect:${exec.name}` },
-    __effect: { value: ReactEffectType.Effect }
+    __effect: { value: tag }
   });
 
   return effectExec as ReactActionFunction<TContext, TEvent>;
 }
 
+export function asEffect<TContext, TEvent extends EventObject>(
+  exec: ActionFunction<TContext, TEvent>
+): ReactActionFunction<TContext, TEvent> {
+  return createReactActionFunction(exec, ReactEffectType.Effect);
+}
+
 export function asLayoutEffect<TContext, TEvent extends EventObject>(
   exec: ActionFunction<TContext, TEvent>
 ): ReactActionFunction<TContext, TEvent> {
-  const effectExec: unknown = (context, event, meta) => {
-    // don't execute; just return
-    return () => {
-      return exec(context, event, meta);
-    };
-  };
-
-  Object.defineProperties(effectExec, {
-    name: { value: `layoutEffect:${exec.name}` },
-    __effect: { value: ReactEffectType.LayoutEffect }
-  });
-
-  return effectExec as ReactActionFunction<TContext, TEvent>;
+  return createReactActionFunction(exec, ReactEffectType.LayoutEffect);
 }
 
 export type ActionStateTuple<TContext, TEvent extends EventObject> = [
