@@ -122,34 +122,35 @@ const myMachineConfig: MachineConfig<TContext, TSchema, TEvent> = {
 The `send` action on the interpreted machine `interpret(stateMachine)` isn't always type safe. To get typechecking for this function signature, use the following pattern:
 
 ```ts
-type UserEvents =   {
-    type: "TEST";
-    value: string;
-}
+type UserEvents = {
+  type: 'TEST';
+  value: string;
+};
 
 const service = interpret(stateMachine);
 
 // This will compile
-service.send({ type: "TEST", value: "testvalue" });
+service.send({ type: 'TEST', value: 'testvalue' });
 
 // This will have a compile error on the `value` type
-service.send({ type: "TEST", value: 1 });
+service.send({ type: 'TEST', value: 1 });
 ```
 
 If you use the following pattern, you'll lose type safety, so both of these will compile:
 
 ```ts
-service.send('TEST', { value: "testvalue" });
+service.send('TEST', { value: 'testvalue' });
 
 service.send('TEST', { value: 1 });
 ```
+
 ## Typestates <Badge text="4.7+" />
 
 Typestates are a concept that narrow down the shape of the overall state `context` based on the state `value`. This can be helpful in preventing impossible states and narrowing down what the `context` should be in a given state, without having to write excessive assertions.
 
 A `Typestate` is an interface consisting of two properties:
 
-- `value` - the state value of the typestate
+- `value` - the state value of the typestate (compound states should be referenced using object syntax; e.g., `{ idle: 'error' }` instead of `"idle.error"`)
 - `context` - the narrowed context of the typestate when the state matches the given `value`
 
 The typestates of a machine are specified as the 3rd generic type in `createMachine<TContext, TEvent, TState>`.
@@ -222,3 +223,34 @@ userService.subscribe(state => {
   }
 });
 ```
+
+::: warning
+Compound states should have all parent state values explicitly modelled to avoid type errors when testing substates.
+
+```typescript
+type State =
+  /* ... */
+  | {
+      value: 'parent';
+      context: Context;
+    }
+  | {
+      value: { parent: 'child' };
+      context: Context;
+    };
+/* ... */
+```
+
+Where two states have identical context types, their declarations can be merged by using a type union for the value.
+
+```typescript
+type State =
+  /* ... */
+  {
+    value: 'parent' | { parent: 'child' };
+    context: Context;
+  };
+/* ... */
+```
+
+:::
