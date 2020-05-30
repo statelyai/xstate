@@ -2,7 +2,7 @@
 
 This is a guide that takes you through all the important parts of `xstate` and statecharts by building a sample app.
 
-Let's say we're developing an app that retrieves Star Wars data from [The Star Wars API](https://swapi.co). To accomplish this, we'll be dealing with asynchronous API requests in the form of promises.
+Let's say we're developing an app that retrieves Star Wars data from [The Star Wars API](https://swapi.dev). To accomplish this, we'll be dealing with asynchronous API requests in the form of promises.
 
 A promise is [just a state machine](https://www.promisejs.org/implementing/) with 3 states:
 - `'pending'` - the Promise has not yet been resolved or rejected
@@ -179,7 +179,7 @@ From here, executing actions (side-effects) in your app is completely up to you.
 const actionMap = {
   alertStartingFirstRequest: () => alert('Starting first request!'),
   alertMayTheForceBeWithYou: () => alert('May the force be with you.'),
-  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.co/api/people/${id}`)
+  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.dev/api/people/${id}`)
     .then(res => res.json())
     .then(res => dispatch({
       type: 'SUCCESS',
@@ -313,7 +313,7 @@ So what does all this look like in code?
 ```js
 // revise the action map
 const actionMap = {
-  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.co/api/people/${id}`)
+  fetchPerson: ({ id }, dispatch) => fetch(`https://swapi.dev/api/people/${id}`)
     .then(res => res.json())
     .then(res => dispatch({
       type: 'SUCCESS_PERSON',
