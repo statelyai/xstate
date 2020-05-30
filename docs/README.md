@@ -83,7 +83,7 @@ const fetchMachine = createMachine({
       invoke: {
         id: 'fetchLuke',
         src: (context, event) =>
-          fetch('https://swapi.co/api/people/1').then((data) => data.json()),
+          fetch('https://swapi.dev/api/people/1').then((data) => data.json()),
         onDone: {
           target: 'resolved',
           actions: assign({
