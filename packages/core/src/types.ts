@@ -951,10 +951,6 @@ export interface StateSchema<TC = any> {
 }
 
 export interface InterpreterOptions {
-  /**
-   * Whether state actions should be executed immediately upon transition. Defaults to `true`.
-   */
-  execute: boolean;
   clock: Clock;
   logger: (...args: any[]) => void;
   parent?: ActorRef<any>;

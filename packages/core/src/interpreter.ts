@@ -72,7 +72,6 @@ enum InterpreterStatus {
 }
 
 const defaultOptions: InterpreterOptions = ((global) => ({
-  execute: true,
   deferEvents: true,
   clock: {
     setTimeout: (fn, ms) => {
@@ -202,9 +201,7 @@ export class Interpreter<
     this._state = state;
 
     // Execute actions
-    if (this.options.execute) {
-      this.execute(this.state);
-    }
+    this.execute(this.state);
 
     for (const listener of this.listeners) {
       listener(state, state.event);

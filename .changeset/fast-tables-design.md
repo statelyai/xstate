@@ -2,7 +2,7 @@
 'xstate': major
 ---
 
-- The `execute` option for an interpreted service is no longer inherited by invoked/spawned services. They default to `execute: true`.
+- The `execute` option for an interpreted service has been removed. If you don't want to execute actions, it's recommended that you don't hardcode implementation details into the base `machine` that will be interpreted, and extend the machine's `options.actions` instead. By default, the interpreter will execute all actions according to SCXML semantics (immediately upon transition).
 
 - Dev tools integration has been simplified, and Redux dev tools support is no longer the default. It can be included from `xstate/devTools/redux`:
 
