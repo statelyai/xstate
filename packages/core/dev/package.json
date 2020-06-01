@@ -2,6 +2,6 @@
   "main": "dist/xstate.cjs.js",
   "module": "dist/xstate.esm.js",
   "preconstruct": {
-    "source": "../src/devTools"
+    "source": "../src/dev"
   }
 }

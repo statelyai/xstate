@@ -41,7 +41,7 @@ import { isActorRef, fromService, ObservableActorRef } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { MachineNode } from './MachineNode';
-import { devToolsAdapter } from './devTools';
+import { devToolsAdapter } from './dev';
 
 export type StateListener<
   TContext,
