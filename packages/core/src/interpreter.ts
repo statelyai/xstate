@@ -58,7 +58,7 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 ) => void;
 
 export type Listener = () => void;
-export type ErrorListener = (error: Error) => void;
+export type ErrorListener = (error: any) => void;
 
 export interface Clock {
   setTimeout(fn: (...args: any[]) => void, timeout: number): any;
