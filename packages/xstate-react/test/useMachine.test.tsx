@@ -16,6 +16,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
+import { asEffect, asLayoutEffect } from '../src/useMachine';
 
 afterEach(cleanup);
 
@@ -337,5 +338,164 @@ describe('useMachine hook', () => {
 
     // Just testing that it compiles
     render(<App />);
+  });
+
+  it('should capture all actions', (done) => {
+    let count = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: {
+            EVENT: {
+              actions: asEffect(() => {
+                count++;
+              })
+            }
+          }
+        }
+      }
+    });
+
+    const App = () => {
+      const [stateCount, setStateCount] = useState(0);
+      const [state, send] = useMachine(machine);
+
+      React.useEffect(() => {
+        send('EVENT');
+        send('EVENT');
+        send('EVENT');
+        send('EVENT');
+      }, []);
+
+      React.useEffect(() => {
+        setStateCount((c) => c + 1);
+      }, [state]);
+
+      return <div data-testid="count">{stateCount}</div>;
+    };
+
+    const { getByTestId } = render(<App />);
+
+    const countEl = getByTestId('count');
+
+    // Component should only rerender twice:
+    // - 1 time for the initial state
+    // - and 1 time for the four (batched) events
+    expect(countEl.textContent).toEqual('2');
+    expect(count).toEqual(4);
+    done();
+  });
+
+  it('should capture initial actions', (done) => {
+    let count = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: asEffect(() => {
+            count++;
+          })
+        }
+      }
+    });
+
+    const App = () => {
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(count).toEqual(1);
+    done();
+  });
+
+  it('effects should happen after normal actions', (done) => {
+    const order: string[] = [];
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: [
+            asEffect(() => {
+              order.push('effect');
+            }),
+            () => {
+              order.push('non-effect');
+            }
+          ]
+        }
+      }
+    });
+
+    const App = () => {
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(order).toEqual(['non-effect', 'effect']);
+    done();
+  });
+
+  it('layout effects should happen after normal actions', (done) => {
+    const order: string[] = [];
+
+    const machine = createMachine(
+      {
+        initial: 'active',
+        states: {
+          active: {
+            entry: [
+              asEffect(() => {
+                order.push('effect');
+              }),
+              () => {
+                order.push('non-effect');
+              },
+              asLayoutEffect(() => {
+                order.push('layout effect');
+              }),
+              'stringEffect',
+              'stringLayoutEffect'
+            ]
+          }
+        }
+      },
+      {
+        actions: {
+          stringEffect: asEffect(() => {
+            order.push('string effect');
+          }),
+          stringLayoutEffect: asLayoutEffect(() => {
+            order.push('string layout effect');
+          })
+        }
+      }
+    );
+
+    const App = () => {
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+
+    expect(order).toEqual([
+      'non-effect',
+      'layout effect',
+      'string layout effect',
+      'effect',
+      'string effect'
+    ]);
+    done();
   });
 });

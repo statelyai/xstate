@@ -1083,14 +1083,17 @@ class StateNode<
   private resolveRaisedTransition(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent> | NullEvent,
+    // @ts-ignore
     originalEvent: SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentActions = state.actions;
 
     state = this.transition(state, _event as SCXML.Event<TEvent>);
     // Save original event to state
+    // TODO: this should be the raised event! Delete in V5 (breaking)
     state._event = originalEvent;
     state.event = originalEvent.data;
+
     state.actions.unshift(...currentActions);
     return state;
   }
