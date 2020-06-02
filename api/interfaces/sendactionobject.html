@@ -59,7 +59,7 @@
 					<a href="sendactionobject.html">SendActionObject</a>
 				</li>
 			</ul>
-			<h1>Interface SendActionObject&lt;TContext, TEvent&gt;</h1>
+			<h1>Interface SendActionObject&lt;TContext, TEvent, TSentEvent&gt;</h1>
 		</div>
 	</div>
 </header>
@@ -75,13 +75,16 @@
 					<li>
 						<h4>TEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
 					</li>
+					<li>
+						<h4>TSentEvent<span class="tsd-signature-symbol">: </span><a href="eventobject.html" class="tsd-signature-type">EventObject</a></h4>
+					</li>
 				</ul>
 			</section>
 			<section class="tsd-panel tsd-hierarchy">
 				<h3>Hierarchy</h3>
 				<ul class="tsd-hierarchy">
 					<li>
-						<a href="sendaction.html" class="tsd-signature-type">SendAction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span>
+						<a href="sendaction.html" class="tsd-signature-type">SendAction</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TContext</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">, </span><span class="tsd-signature-type">TSentEvent</span><span class="tsd-signature-symbol">&gt;</span>
 						<ul class="tsd-hierarchy">
 							<li>
 								<span class="target">SendActionObject</span>
@@ -118,10 +121,10 @@
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface">
 					<a name="_event" class="tsd-anchor"></a>
 					<h3>_event</h3>
-					<div class="tsd-signature tsd-kind-icon">_event<span class="tsd-signature-symbol">:</span> <a href="scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
+					<div class="tsd-signature tsd-kind-icon">_event<span class="tsd-signature-symbol">:</span> <a href="scxml.event.html" class="tsd-signature-type">Event</a><span class="tsd-signature-symbol">&lt;</span><span class="tsd-signature-type">TSentEvent</span><span class="tsd-signature-symbol">&gt;</span></div>
 					<aside class="tsd-sources">
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L829">types.ts:829</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L835">types.ts:835</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -132,18 +135,18 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="sendaction.html">SendAction</a>.<a href="sendaction.html#delay">delay</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L831">types.ts:831</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L837">types.ts:837</a></li>
 						</ul>
 					</aside>
 				</section>
 				<section class="tsd-panel tsd-member tsd-kind-property tsd-parent-kind-interface tsd-is-overwrite">
 					<a name="event" class="tsd-anchor"></a>
 					<h3>event</h3>
-					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TEvent</span></div>
+					<div class="tsd-signature tsd-kind-icon">event<span class="tsd-signature-symbol">:</span> <span class="tsd-signature-type">TSentEvent</span></div>
 					<aside class="tsd-sources">
 						<p>Overrides <a href="sendaction.html">SendAction</a>.<a href="sendaction.html#event">event</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L830">types.ts:830</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L836">types.ts:836</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -154,7 +157,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#exec">exec</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L36">types.ts:36</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L36">types.ts:36</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
@@ -170,7 +173,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="sendaction.html">SendAction</a>.<a href="sendaction.html#id">id</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L832">types.ts:832</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L838">types.ts:838</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -181,7 +184,7 @@
 					<aside class="tsd-sources">
 						<p>Overrides <a href="sendaction.html">SendAction</a>.<a href="sendaction.html#to">to</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L828">types.ts:828</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L834">types.ts:834</a></li>
 						</ul>
 					</aside>
 				</section>
@@ -192,7 +195,7 @@
 					<aside class="tsd-sources">
 						<p>Inherited from <a href="actionobject.html">ActionObject</a>.<a href="actionobject.html#type">type</a></p>
 						<ul>
-							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/760a2bce/packages/core/src/types.ts#L32">types.ts:32</a></li>
+							<li>Defined in <a href="https://github.com/davidkpiano/xstate/blob/89334bc9/packages/core/src/types.ts#L32">types.ts:32</a></li>
 						</ul>
 					</aside>
 					<div class="tsd-comment tsd-typography">
