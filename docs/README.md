@@ -31,6 +31,17 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 - [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
 - [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
 
+## Templates
+
+Get started by forking one of these templates on CodeSandbox:
+
+- [XState Template](https://codesandbox.io/s/xstate-example-template-m4ckv) - no framework
+- [XState + TypeScript Template](https://codesandbox.io/s/xstate-typescript-template-s9kz8) - no framework
+- [XState + React Template](https://codesandbox.io/s/xstate-react-template-3t2tg)
+- [XState + React + TypeScript Template](https://codesandbox.io/s/xstate-react-typescript-template-wjdvn)
+- [XState + Vue Template](https://codesandbox.io/s/xstate-vue-template-composition-api-1n23l)
+- [XState + Svelte Template](https://codesandbox.io/s/xstate-svelte-template-jflv1)
+
 ## Super quick start
 
 ```bash
@@ -87,7 +98,7 @@ const fetchMachine = createMachine({
       invoke: {
         id: 'fetchLuke',
         src: (context, event) =>
-          fetch('https://swapi.co/api/people/1').then((data) => data.json()),
+          fetch('https://swapi.dev/api/people/1').then((res) => res.data),
         onDone: {
           target: 'resolved',
           actions: assign({
@@ -110,6 +121,12 @@ const fetchMachine = createMachine({
     }
   }
 });
+
+const swService = interpret(fetchMachine)
+  .onTransition((state) => console.log(state.value))
+  .start();
+
+swService.send('FETCH');
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
