@@ -1802,9 +1802,7 @@ describe('invoke', () => {
         const service = interpret(anotherParentMachine)
           .onTransition((s) => {
             state = s;
-          })
-          .onEvent((e) => {
-            events.push(e);
+            events.push(s.event);
           })
           .onDone(() => {
             expect(events.map((e) => e.type)).toEqual([

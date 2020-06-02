@@ -1672,12 +1672,16 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
   };
 }
 
-export function macrostep<TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent, any, Typestate<TContext>>,
+export function macrostep<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+>(
+  state: State<TContext, TEvent, any, TTypestate>,
   event: Event<TEvent> | SCXML.Event<TEvent> | null,
   machine: MachineNode<TContext, any, TEvent, any>,
   service?: ActorRef<TEvent>
-): State<TContext, TEvent> {
+): typeof state {
   // Assume the state is at rest (no raised events)
   // Determine the next state based on the next microstep
   const nextState =

@@ -1,7 +1,6 @@
-import { Interpreter } from '.';
-import { IS_PRODUCTION } from './environment';
+import { IS_PRODUCTION } from '../environment';
+import { AnyInterpreter, DevToolsAdapter } from '../types';
 
-type AnyInterpreter = Interpreter<any, any, any>;
 interface DevInterface {
   services: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;
@@ -30,3 +29,15 @@ export function registerService(service: AnyInterpreter) {
     devTools.register(service);
   }
 }
+
+export const devToolsAdapter: DevToolsAdapter = (service) => {
+  if (IS_PRODUCTION || typeof window === 'undefined') {
+    return;
+  }
+
+  const devTools = getDevTools();
+
+  if (devTools) {
+    devTools.register(service);
+  }
+};
