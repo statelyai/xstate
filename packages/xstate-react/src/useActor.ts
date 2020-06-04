@@ -17,9 +17,7 @@ export function useActor<TEvent extends EventObject, TEmitted = any>(
   const [current, setCurrent] = useState(getCurrentValue(actorLike));
 
   useEffect(() => {
-    const subscription = actorLike.subscribe((latest) => {
-      setCurrent(latest);
-    });
+    const subscription = actorLike.subscribe(setCurrent);
 
     return () => {
       subscription.unsubscribe();
