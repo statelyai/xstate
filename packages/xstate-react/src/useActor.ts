@@ -26,5 +26,5 @@ export function useActor<TEvent extends EventObject, TEmitted = any>(
     };
   }, [actorLike]);
 
-  return [current, actorLike.send.bind(actorLike)];
+  return [current, actorLike.send];
 }
