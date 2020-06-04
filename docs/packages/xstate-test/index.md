@@ -3,7 +3,6 @@
 This package contains utilities for facilitating [model-based testing](https://en.wikipedia.org/wiki/Model-based_testing) for any software.
 
 - **Talk**: [Write Fewer Tests! From Automation to Autogeneration](https://slides.com/davidkhourshid/mbt) at React Rally 2019 ([🎥 Video](https://www.youtube.com/watch?v=tpNmPKjPSFQ))
-- [Model-Based Testing in React with State Machines](https://css-tricks.com/model-based-testing-in-react-with-state-machines/)
 
 ## Quick Start
 
@@ -50,7 +49,7 @@ const toggleMachine = Machine({
         /* ... */
       },
       meta: {
-        test: async page => {
+        test: async (page) => {
           await page.waitFor('input:checked');
         }
       }
@@ -60,7 +59,7 @@ const toggleMachine = Machine({
         /* ... */
       },
       meta: {
-        test: async page => {
+        test: async (page) => {
           await page.waitFor('input:not(:checked)');
         }
       }
@@ -79,7 +78,7 @@ const toggleMachine = Machine(/* ... */);
 
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {
-    exec: async page => {
+    exec: async (page) => {
       await page.click('input');
     }
   }
@@ -94,9 +93,9 @@ const toggleModel = createModel(toggleMachine).withEvents({
 describe('toggle', () => {
   const testPlans = toggleModel.getShortestPathPlans();
 
-  testPlans.forEach(plan => {
+  testPlans.forEach((plan) => {
     describe(plan.description, () => {
-      plan.paths.forEach(path => {
+      plan.paths.forEach((path) => {
         it(path.description, async () => {
           // do any setup, then...
 
@@ -143,7 +142,7 @@ Provides testing details for each event. Each key in `eventsMap` is an object wh
 ```js
 const toggleModel = createModel(toggleMachine).withEvents({
   TOGGLE: {
-    exec: async page => {
+    exec: async (page) => {
       await page.click('input');
     }
   }
@@ -168,7 +167,7 @@ const todosModel = createModel(todosMachine).withEvents({
 const plans = todosModel.getShortestPathPlans({
   // Tell the algorithm to limit state/event adjacency map to states
   // that have less than 5 todos
-  filter: state => state.context.todos.length < 5
+  filter: (state) => state.context.todos.length < 5
 });
 ```
 
@@ -196,7 +195,7 @@ Tests that all state nodes were covered (traversed) in the exected tests.
 // Only test coverage for state nodes with a `.meta` property defined:
 
 testModel.testCoverage({
-  filter: stateNode => !!stateNode.meta
+  filter: (stateNode) => !!stateNode.meta
 });
 ```
 
