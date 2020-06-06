@@ -2365,7 +2365,7 @@ describe('invoke', () => {
 });
 
 describe('services option', () => {
-  it('should resolve service from options with string src', (done) => {
+  it('should provide data params to a service creator', (done) => {
     const machine = createMachine(
       {
         initial: 'pending',
