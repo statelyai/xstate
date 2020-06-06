@@ -888,7 +888,7 @@ export class Interpreter<
           } else if (isMachine(source)) {
             // TODO: try/catch here
             this.state.children[id] = this.spawnMachine(
-              data ? source.withContext(resolvedData) : source,
+              resolvedData ? source.withContext(resolvedData) : source,
               {
                 id,
                 autoForward
