@@ -2377,6 +2377,7 @@ describe('services option', () => {
             invoke: {
               src: 'stringService',
               data: {
+                staticVal: 'hello',
                 newCount: (ctx) => ctx.count * 2
               },
               onDone: 'success'
@@ -2392,7 +2393,7 @@ describe('services option', () => {
           stringService: (ctx, _, { data }) => {
             expect(ctx).toEqual({ count: 42 });
 
-            expect(data).toEqual({ newCount: 84 });
+            expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
             return new Promise((res) => {
               res();
