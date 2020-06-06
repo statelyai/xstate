@@ -203,6 +203,10 @@ export type InvokeCallback = (
   onReceive: Receiver<EventObject>
 ) => any;
 
+export interface InvokeMeta {
+  data: any;
+}
+
 /**
  * Returns either a Promises or a callback handler (for streams of events) given the
  * machine's current `context` and `event` that invoked the service.
@@ -222,7 +226,8 @@ export type InvokeCreator<
   TFinalContext = any
 > = (
   context: TContext,
-  event: TEvent
+  event: TEvent,
+  meta: InvokeMeta
 ) =>
   | PromiseLike<TFinalContext>
   | StateMachine<TFinalContext, any, any>
