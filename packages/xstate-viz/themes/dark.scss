@@ -23,7 +23,7 @@
 }
 
 [data-xviz='machine'] {
-  padding: 0 1em;
+  padding: 1em;
   display: grid;
 }
 
@@ -54,15 +54,15 @@
 
   &[data-xviz-type='final'] {
     > [data-xviz='stateNode-state']:before {
-      --offset: 5px;
+      --offset: 2px;
       content: '';
       position: absolute;
       height: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
       width: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
-      top: calc(-1 * var(--offset) - var(--xviz-border-width));
-      left: calc(-1 * var(--offset) - var(--xviz-border-width));
+      top: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
+      left: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
       border: inherit;
-      border-radius: 0.6em;
+      border-radius: calc(var(--xviz-border-radius) + var(--offset));
     }
   }
 
@@ -93,8 +93,9 @@
 }
 
 [data-xviz='stateNode-state'] {
+  --xviz-border-radius: 0.25em;
   border: 2px solid var(--xviz-border-color);
-  border-radius: 0.25em;
+  border-radius: var(--xviz-border-radius);
 }
 
 [data-xviz='stateNode-children'] {
