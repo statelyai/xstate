@@ -70,7 +70,53 @@ A [React hook](https://reactjs.org/hooks) that subscribes to state changes from 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
 
-### `useMachine(machine)` with `@xstate/fsm` <Badge text="1.1+"/>
+### `asEffect(action)`
+
+Ensures that the `action` is executed as an effect in `useEffect`, rather than being immediately executed.
+
+**Arguments**
+
+- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
+
+**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useEffect`.
+
+**Example**
+
+```jsx
+const machine = createMachine({
+  initial: 'focused',
+  states: {
+    focused: {
+      entry: 'focus'
+    }
+  }
+});
+
+const Input = () => {
+  const inputRef = useRef(null);
+  const [state, send] = useMachine(machine, {
+    actions: {
+      focus: asEffect((context, event) => {
+        inputRef.current && inputRef.current.focus();
+      })
+    }
+  });
+
+  return <input ref={inputRef} />;
+};
+```
+
+### `asLayoutEffect(action)`
+
+Ensures that the `action` is executed as an effect in `useLayoutEffect`, rather than being immediately executed.
+
+**Arguments**
+
+- `action` - An action function (e.g., `(context, event) => { alert(context.message) })`)
+
+**Returns** a special action function that wraps the original so that `useMachine` knows to execute it in `useLayoutEffect`.
+
+### `useMachine(machine)` with `@xstate/fsm`
 
 A [React hook](https://reactjs.org/hooks) that interprets the given finite state `machine` from [`@xstate/fsm`] and starts a service that runs for the lifetime of the component.
 

@@ -30,6 +30,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - the invoked observable completes
 - `onError` - (optional) the transition to be taken when the invoked service encounters an execution error.
 - `autoForward` - (optional) `true` if all events sent to this machine should also be sent (or _forwarded_) to the invoked child (`false` by default)
+  - ⚠️ Avoid setting `autoForward` to `true`, as blindly forwarding all events may lead to unexpected behavior and/or infinite loops. Always prefer to explicitly send events, and/or use the `forward(...)` action creator to directly forward an event to an invoked child.
 - `data` - (optional, used only when invoking machines) an object that maps properties of the child machine's [context](./context.md) to a function that returns the corresponding value from the parent machine's `context`.
 
 ::: warning
@@ -71,8 +72,8 @@ If the state where the invoked promise is active is exited before the promise se
 // Function that returns a promise
 // This promise might resolve with, e.g.,
 // { name: 'David', location: 'Florida' }
-const fetchUser = userId =>
-  fetch(`url/to/user/${userId}`).then(response => response.json());
+const fetchUser = (userId) =>
+  fetch(`url/to/user/${userId}`).then((response) => response.json());
 
 const userMachine = Machine({
   id: 'user',
@@ -229,7 +230,7 @@ const pingPongMachine = Machine({
         src: (context, event) => (callback, onReceive) => {
           // Whenever parent sends 'PING',
           // send parent 'PONG' event
-          onReceive(e => {
+          onReceive((e) => {
             if (e.type === 'PING') {
               callback('PONG');
             }
@@ -272,7 +273,7 @@ const intervalMachine = Machine({
       invoke: {
         src: (context, event) =>
           interval(context.myInterval).pipe(
-            map(value => ({ type: 'COUNT', value })),
+            map((value) => ({ type: 'COUNT', value })),
             take(5)
           ),
         onDone: 'finished'
@@ -360,7 +361,7 @@ const parentMachine = Machine({
 });
 
 const service = interpret(parentMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => 'pending'
 // ... after 1 minute
@@ -475,7 +476,7 @@ const parentMachine = Machine({
 });
 
 const service = interpret(parentMachine)
-  .onTransition(state => console.log(state.context))
+  .onTransition((state) => console.log(state.context))
   .start();
 // => { revealedSecret: undefined }
 // ...
@@ -658,7 +659,7 @@ import { interpret } from 'xstate';
 import { assert } from 'chai';
 import { userMachine } from '../path/to/userMachine';
 
-const mockFetchUser = async userId => {
+const mockFetchUser = async (userId) => {
   // Mock however you want, but ensure that the same
   // behavior and response format is used
   return { name: 'Test', location: 'Anywhere' };
@@ -671,9 +672,9 @@ const testUserMachine = userMachine.withConfig({
 });
 
 describe('userMachine', () => {
-  it('should go to the "success" state when a user is found', done => {
+  it('should go to the "success" state when a user is found', (done) => {
     interpret(testUserMachine)
-      .onTransition(state => {
+      .onTransition((state) => {
         if (state.matches('success')) {
           assert.deepEqual(state.context.user, {
             name: 'Test',
@@ -703,7 +704,7 @@ const machine = Machine({
 });
 
 const service = invoke(machine)
-  .onTransition(state => {
+  .onTransition((state) => {
     state.children.notifier; // service from createNotifier()
     state.children.logger; // service from createLogger()
   })
