@@ -72,8 +72,8 @@ If the state where the invoked promise is active is exited before the promise se
 // Function that returns a promise
 // This promise might resolve with, e.g.,
 // { name: 'David', location: 'Florida' }
-const fetchUser = userId =>
-  fetch(`url/to/user/${userId}`).then(response => response.json());
+const fetchUser = (userId) =>
+  fetch(`url/to/user/${userId}`).then((response) => response.json());
 
 const userMachine = Machine({
   id: 'user',
@@ -230,7 +230,7 @@ const pingPongMachine = Machine({
         src: (context, event) => (callback, onReceive) => {
           // Whenever parent sends 'PING',
           // send parent 'PONG' event
-          onReceive(e => {
+          onReceive((e) => {
             if (e.type === 'PING') {
               callback('PONG');
             }
@@ -273,7 +273,7 @@ const intervalMachine = Machine({
       invoke: {
         src: (context, event) =>
           interval(context.myInterval).pipe(
-            map(value => ({ type: 'COUNT', value })),
+            map((value) => ({ type: 'COUNT', value })),
             take(5)
           ),
         onDone: 'finished'
@@ -361,7 +361,7 @@ const parentMachine = Machine({
 });
 
 const service = interpret(parentMachine)
-  .onTransition(state => console.log(state.value))
+  .onTransition((state) => console.log(state.value))
   .start();
 // => 'pending'
 // ... after 1 minute
@@ -476,7 +476,7 @@ const parentMachine = Machine({
 });
 
 const service = interpret(parentMachine)
-  .onTransition(state => console.log(state.context))
+  .onTransition((state) => console.log(state.context))
   .start();
 // => { revealedSecret: undefined }
 // ...
@@ -659,7 +659,7 @@ import { interpret } from 'xstate';
 import { assert } from 'chai';
 import { userMachine } from '../path/to/userMachine';
 
-const mockFetchUser = async userId => {
+const mockFetchUser = async (userId) => {
   // Mock however you want, but ensure that the same
   // behavior and response format is used
   return { name: 'Test', location: 'Anywhere' };
@@ -672,9 +672,9 @@ const testUserMachine = userMachine.withConfig({
 });
 
 describe('userMachine', () => {
-  it('should go to the "success" state when a user is found', done => {
+  it('should go to the "success" state when a user is found', (done) => {
     interpret(testUserMachine)
-      .onTransition(state => {
+      .onTransition((state) => {
         if (state.matches('success')) {
           assert.deepEqual(state.context.user, {
             name: 'Test',
@@ -704,7 +704,7 @@ const machine = Machine({
 });
 
 const service = invoke(machine)
-  .onTransition(state => {
+  .onTransition((state) => {
     state.children.notifier; // service from createNotifier()
     state.children.logger; // service from createLogger()
   })

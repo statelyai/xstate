@@ -2,7 +2,7 @@
 'xstate': minor
 ---
 
-The resolved value of the `invoke.data` property is now available in the "invoke meta" object, which is passed as the 3rd argument to the service creator in `options.services`. This will work for all types of invoked services now, including promises, observables, and callbacks. The behavior of `invoke.data` with invoked machines is unchanged.
+The resolved value of the `invoke.data` property is now available in the "invoke meta" object, which is passed as the 3rd argument to the service creator in `options.services`. This will work for all types of invoked services now, including promises, observables, and callbacks.
 
 ```js
 const machine = createMachine({
