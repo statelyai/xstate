@@ -220,7 +220,7 @@ const yellowState = machine.transition('green', 'TIMER');
 const redState = machine.transition(yellowState, 'TIMER');
 // => { value: 'red', ... }
 
-const greenState = machine.transition(yellowState, { type: 'TIMER' });
+const greenState = machine.transition(redState, { type: 'TIMER' });
 // => { value: 'green', ... }
 ```
 
