@@ -173,8 +173,7 @@ export class MachineNode<
   public withContext(
     context: Partial<TContext>
   ): MachineNode<TContext, TStateSchema, TEvent> {
-    return new MachineNode({
-      ...this.config,
+    return this.withConfig({
       context: resolveContext(this.context, context)
     });
   }

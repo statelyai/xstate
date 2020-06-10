@@ -485,9 +485,7 @@ describe('useMachine hook', () => {
     );
 
     const App = () => {
-      const [state] = useMachine(machine);
-
-      console.log(state.actions);
+      useMachine(machine);
 
       return <div />;
     };
