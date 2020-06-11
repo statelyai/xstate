@@ -29,10 +29,7 @@ const testGroups = {
     'send8b',
     'send9'
   ],
-  assign: [
-    // 'assign_invalid', // TODO: handle error.execution event
-    'assign_obj_literal'
-  ],
+  assign: ['assign_invalid', 'assign_obj_literal'],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
@@ -61,9 +58,7 @@ const testGroups = {
     'history5',
     'history6'
   ],
-  'if-else': [
-    // 'test0', // microstep not implemented correctly
-  ],
+  'if-else': ['test0'],
   in: [
     // 'TestInPredicate', // conversion of In() predicate not implemented yet
   ],
@@ -254,16 +249,16 @@ const testGroups = {
     // 'test354.txml', // conversion of namelist not implemented yet
     'test355.txml',
     'test364.txml',
-    // 'test372.txml', // microstep not implemented correctly
+    // 'test372.txml', // microstep not implemented correctly for final states
     'test375.txml',
     // 'test376.txml', // executable blocks not implemented
     'test377.txml',
     // 'test378.txml', // executable blocks not implemented
     'test387.txml',
-    // 'test388.txml', // computed historyValue not being available immediately after exiting states for the following synchronous enterStates
+    'test388.txml',
     'test396.txml',
     // 'test399.txml', // inexact prefix event matching not implemented
-    // 'test401.txml', // error.execution when evaluating assign
+    // 'test401.txml', // inexact "error" event (should be "error.execution")
     // 'test402.txml', // error.execution when evaluating assign + inexact prefix event matching not implemented
     'test403a.txml',
     'test403b.txml',
@@ -295,7 +290,7 @@ const testGroups = {
     // 'test457.txml', // <foreach> not implemented yet
     // 'test459.txml', // <foreach> not implemented yet
     // 'test460.txml', // <foreach> not implemented yet
-    // 'test487.txml', // error.execution when evaluating assign
+    'test487.txml', // error.execution when evaluating assign
     // 'test488.txml', // error.execution when evaluating param
     'test495.txml',
     // 'test496.txml', // error.communication not implemented yet
@@ -370,7 +365,13 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
         if (nextState.value === 'pass') {
           resolve();
         } else {
-          reject(new Error('Reached "fail" state.'));
+          reject(
+            new Error(
+              `Reached "fail" state with event ${JSON.stringify(
+                nextState.event
+              )}`
+            )
+          );
         }
       })
       .start();
@@ -397,7 +398,9 @@ async function runTestToCompletion(
     })
     .onDone(() => {
       if (nextState.value === 'fail') {
-        throw new Error('Reached "fail" state.');
+        throw new Error(
+          `Reached "fail" state with event ${JSON.stringify(nextState.event)}`
+        );
       }
       done = true;
     })
@@ -426,7 +429,7 @@ describe('scxml', () => {
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test286.txml'];
+    // const testNames = ['test372.txml'];
 
     testNames.forEach((testName) => {
       const scxmlSource =
