@@ -703,7 +703,7 @@ const machine = Machine({
   // ...
 });
 
-const service = invoke(machine)
+const service = interpret(machine)
   .onTransition((state) => {
     state.children.notifier; // service from createNotifier()
     state.children.logger; // service from createLogger()
