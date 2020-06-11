@@ -159,16 +159,16 @@ const testGroups = {
     // 'test179.txml', // conversion of <content> in <sens> not implemented yet
     // 'test183.txml', idlocation not implemented yet
     'test185.txml',
-    // 'test186.txml', // not sure yet why
+    'test186.txml',
     'test187.txml',
     'test189.txml',
-    // 'test190.txml', // _sessionid not yet available for expressions
+    'test190.txml', // note: _sessionid is undefined for expressions
     'test191.txml',
-    // 'test192.txml', // conversion of #_invokeid not implemented yet
+    // 'test192.txml', // done.invoke inexact event descriptor
     'test193.txml',
-    // 'test194.txml', // illegal target for <send> causes the event error.execution to be raised
+    'test194.txml',
     // 'test198.txml', // origintype not implemented yet
-    // 'test199.txml', // invalid send type results in error.execution
+    // 'test199.txml', // send type not checked
     'test200.txml',
     'test201.txml',
     'test205.txml',
@@ -207,7 +207,7 @@ const testGroups = {
     // 'test278.txml', // non-root datamodel with early binding not implemented yet
     // 'test279.txml', // non-root datamodel with early binding not implemented yet
     // 'test280.txml', // non-root datamodel with late binding not implemented yet
-    // 'test286.txml', // error.execution when evaluating assign
+    'test286.txml', // error.execution when evaluating assign
     'test287.txml',
     // 'test294.txml', // conversion of <donedata> not implemented yet
     // 'test298.txml', // error.execution when evaluating donedata
@@ -422,11 +422,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['assign-current-small-step'];
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test2'];
+    // const testNames = ['test286.txml'];
 
     testNames.forEach((testName) => {
       const scxmlSource =

@@ -556,9 +556,13 @@ export class Interpreter<
 
     if (!target) {
       if (!isParent) {
-        throw new Error(
+        const executionError = new Error(
           `Unable to send event to child '${to}' from service '${this.id}'.`
         );
+        this.send({
+          type: actionTypes.errorExecution,
+          error: executionError
+        } as any);
       }
 
       // tslint:disable-next-line:no-console
@@ -602,6 +606,22 @@ export class Interpreter<
         });
       } else {
         throw (_event.data as any).data;
+      }
+    }
+
+    if (
+      _event.name.indexOf(actionTypes.errorExecution) === 0 &&
+      !this.state.nextEvents.some(
+        (nextEvent) => nextEvent.indexOf(actionTypes.errorExecution) === 0
+      )
+    ) {
+      // TODO: refactor into proper error handler
+      if (this.errorListeners.size > 0) {
+        this.errorListeners.forEach((listener) => {
+          listener((_event.data as any).error);
+        });
+      } else {
+        throw (_event.data as any).error;
       }
     }
 

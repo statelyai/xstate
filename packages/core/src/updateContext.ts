@@ -29,6 +29,12 @@ export function updateContext<TContext, TEvent extends EventObject>(
   }
   const capturedActions: InvokeActionObject[] = [];
 
+  if (!context) {
+    throw new Error(
+      'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
+    );
+  }
+
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;

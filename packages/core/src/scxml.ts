@@ -477,15 +477,19 @@ function scxmlToMachine(
     ? dataModelEl
         .elements!.filter((element) => element.name === 'data')
         .reduce((acc, element) => {
-          if (element.attributes!.src) {
+          const { src, expr, id } = element.attributes!;
+          if (src) {
             throw new Error(
               "Conversion of `src` attribute on datamodel's <data> elements is not supported."
             );
           }
-          acc[element.attributes!.id!] = element.attributes!.expr
-            ? // tslint:disable-next-line:no-eval
-              eval(`(${element.attributes!.expr})`)
-            : undefined;
+
+          if (expr === '_sessionid') {
+            acc[id!] = undefined;
+          } else {
+            acc[id!] = eval(`(${expr})`);
+          }
+
           return acc;
         }, {})
     : undefined;
