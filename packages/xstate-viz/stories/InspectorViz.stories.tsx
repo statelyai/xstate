@@ -1,23 +1,26 @@
-import React from 'react';
-import { createMachine } from 'xstate';
+import React, { useEffect } from 'react';
+import { createMachine, assign, interpret } from 'xstate';
 
 import { InspectorViz } from '../src/InspectorViz';
 import '../themes/dark.scss';
-import { interpret } from 'xstate';
 
 export default {
   title: 'InspectorViz',
   component: InspectorViz
 };
 
-const simpleMachine = createMachine({
+const simpleMachine = createMachine<{ count: number }>({
   id: 'simple',
   initial: 'inactive',
+  context: {
+    count: 0
+  },
   states: {
     inactive: {
       on: { TOGGLE: 'active' }
     },
     active: {
+      entry: assign({ count: (ctx) => ctx.count + 1 }),
       on: { TOGGLE: 'inactive' }
     }
   }
@@ -28,8 +31,8 @@ const register = (service) => {
     {
       type: 'service.register',
       machine: JSON.stringify(service.machine),
-      state: JSON.stringify(service.state),
-      id: service.id
+      state: JSON.stringify(service.state || service.initialState),
+      id: service.sessionId
     },
     '*'
   );
@@ -39,19 +42,36 @@ const register = (service) => {
       {
         type: 'service.state',
         state: JSON.stringify(state),
-        id: service.id
+        id: service.sessionId
       },
       '*'
     );
   });
 };
 
-const simpleService = interpret(simpleMachine).start();
-
-setTimeout(() => {
-  register(simpleService);
-}, 1000);
-
 export const SimpleInspector = () => {
+  useEffect(() => {
+    (window as any).__xstate__ = {
+      register: (service) => {
+        register(service);
+      }
+    };
+
+    setTimeout(() => {
+      console.log('registering');
+      const simpleService = interpret(simpleMachine, {
+        devTools: true
+      }).start();
+
+      const anotherService = interpret(simpleMachine, {
+        devTools: true
+      }).start();
+
+      setInterval(() => {
+        simpleService.send('TOGGLE');
+      }, 2000);
+      // register(simpleService);
+    }, 1000);
+  }, []);
   return <InspectorViz />;
 };

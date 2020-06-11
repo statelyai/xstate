@@ -77,7 +77,6 @@ const inspectorMachine = createMachine<
 
 export const InspectorViz: React.FC = () => {
   const [state, send] = useMachine(inspectorMachine);
-  console.log(state);
 
   React.useEffect(() => {
     const handler = (event) => {
@@ -100,7 +99,7 @@ export const InspectorViz: React.FC = () => {
         return (
           <div data-xviz="service" key={key}>
             <MachineViz machine={value.machine} state={value.state} />
-            <EventRecordsViz events={value.events} />
+            {/* <EventRecordsViz events={value.events} /> */}
             <StateViz state={value.state} />
           </div>
         );

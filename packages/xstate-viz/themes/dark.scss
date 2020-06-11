@@ -462,3 +462,30 @@
   font-family: monospace;
   font-weight: bold;
 }
+
+[data-xviz='json-object'] {
+  --placeholder: '{...}';
+}
+
+[data-xviz='json-array'] {
+  --placeholder: '[...]';
+}
+
+[data-xviz='json-object'],
+[data-xviz='json-array'] {
+  &:not([open]) {
+    > [data-xviz='json-key']:after {
+      content: ': ' var(--placeholder);
+    }
+  }
+
+  > [data-xviz='json-value'] {
+    padding-left: 1rem;
+  }
+}
+
+[data-xviz='json-primitive'] {
+  display: grid;
+  grid-template-columns: min-content auto;
+  grid-column-gap: 1rem;
+}

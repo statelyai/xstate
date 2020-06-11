@@ -1,5 +1,6 @@
 import * as React from 'react';
 import { State } from 'xstate';
+import { JSONViz } from './JSONViz';
 
 type JSONValue =
   | string
@@ -17,10 +18,7 @@ export function StateViz({ state }: { state: State<any, any> }) {
   return (
     <div data-xviz="state">
       <div data-xviz="state-value">
-        <JsonViz value={state.value} />
-      </div>
-      <div data-xviz="state-context">
-        <JsonViz value={state.context} />
+        <JSONViz valueKey="root" value={state.toJSON()} />
       </div>
     </div>
   );
