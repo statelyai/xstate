@@ -125,7 +125,7 @@ This special `useMachine` hook is imported from `@xstate/react/lib/fsm`
 **Arguments**
 
 - `machine` - An [XState finite state machine (FSM)](https://xstate.js.org/docs/packages/xstate-fsm/).
-- `options` - An optional `options` object.
+- `options` - (optional) The following [XState finite state machine config](https://xstate.js.org/docs/packages/xstate-fsm/#machine-config) options: `actions`.
 
 **Returns** a tuple of `[state, send, service]`:
 
