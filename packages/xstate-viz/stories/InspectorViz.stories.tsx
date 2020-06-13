@@ -15,6 +15,12 @@ const simpleMachine = createMachine<{ count: number }>({
   context: {
     count: 0
   },
+  invoke: {
+    src: createMachine({
+      initial: 'foo',
+      states: { foo: {} }
+    })
+  },
   states: {
     inactive: {
       on: { TOGGLE: 'active' }

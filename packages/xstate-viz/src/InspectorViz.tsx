@@ -53,6 +53,10 @@ const inspectorMachine = createMachine<
         'service.state': {
           actions: assign((ctx, e) => {
             const serviceObject = ctx.services[e.id];
+            if (!serviceObject) {
+              return;
+            }
+
             serviceObject.state = parseState(e.state);
             serviceObject.events.unshift(serviceObject.state._event);
           })
@@ -80,7 +84,6 @@ export const InspectorViz: React.FC = () => {
 
   React.useEffect(() => {
     const handler = (event) => {
-      console.log(event.data);
       if ('type' in event.data) {
         send(event.data);
       }
@@ -95,12 +98,12 @@ export const InspectorViz: React.FC = () => {
 
   return (
     <div data-xviz="inspector">
-      {Object.entries(state.context.services).map(([key, value]) => {
+      {Object.entries(state.context.services).map(([key, service]) => {
         return (
           <div data-xviz="service" key={key}>
-            <MachineViz machine={value.machine} state={value.state} />
+            <MachineViz machine={service.machine} state={service.state} />
             {/* <EventRecordsViz events={value.events} /> */}
-            <StateViz state={value.state} />
+            <StateViz state={service.state} />
           </div>
         );
       })}

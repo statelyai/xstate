@@ -480,7 +480,7 @@
   }
 
   > [data-xviz='json-value'] {
-    padding-left: 1rem;
+    padding-left: 2ch;
   }
 }
 
@@ -488,4 +488,9 @@
   display: grid;
   grid-template-columns: min-content auto;
   grid-column-gap: 1rem;
+}
+
+[data-xviz='json-key'],
+[data-xviz='json-value'] {
+  line-height: 1.6;
 }
