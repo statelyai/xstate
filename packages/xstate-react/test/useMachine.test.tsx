@@ -499,3 +499,36 @@ describe('useMachine hook', () => {
     done();
   });
 });
+
+describe('useMachine (strict mode)', () => {
+  it('should not invoke initial services more than once', () => {
+    let activatedCount = 0;
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        src: () => {
+          activatedCount++;
+          return () => {};
+        }
+      },
+      states: {
+        active: {}
+      }
+    });
+
+    const Test = () => {
+      useMachine(machine);
+
+      return null;
+    };
+
+    render(
+      <React.StrictMode>
+        {' '}
+        <Test />
+      </React.StrictMode>
+    );
+
+    expect(activatedCount).toEqual(1);
+  });
+});

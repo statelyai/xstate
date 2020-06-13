@@ -133,7 +133,7 @@ export function useMachine<
     ...interpreterOptions
   } = options;
 
-  const service = useConstant(() => {
+  const customMachine = useConstant(() => {
     const machineConfig = {
       context,
       guards,
@@ -142,18 +142,21 @@ export function useMachine<
       services,
       delays
     };
-
-    const createdMachine = machine.withConfig(machineConfig, {
+    return machine.withConfig(machineConfig, {
       ...machine.context,
       ...context
     } as TContext);
-
-    return interpret(createdMachine, interpreterOptions).start(
-      rehydratedState ? State.create(rehydratedState) : undefined
-    );
   });
 
-  const [state, setState] = useState(service.state);
+  const service = useConstant(() => {
+    return interpret(customMachine, interpreterOptions);
+  });
+
+  const [state, setState] = useState(() => {
+    return rehydratedState
+      ? State.create(rehydratedState)
+      : customMachine.initialState;
+  });
 
   const effectActionsRef = useRef<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
@@ -163,44 +166,47 @@ export function useMachine<
   >([]);
 
   useLayoutEffect(() => {
-    service.onTransition((currentState) => {
-      if (currentState.changed) {
-        setState(currentState);
-      }
+    service
+      .onTransition((currentState) => {
+        // Only change the current state if:
+        // - the incoming state is not the initial state (since it's already set)
+        // - AND the incoming state actually changed
+        if (currentState.changed) {
+          setState(currentState);
+        }
 
-      if (currentState.actions.length) {
-        const reactEffectActions = currentState.actions.filter(
-          (action): action is ReactActionObject<TContext, TEvent> => {
-            return (
-              typeof action.exec === 'function' &&
-              '__effect' in (action as ReactActionObject<TContext, TEvent>).exec
-            );
-          }
-        );
+        if (currentState.actions.length) {
+          const reactEffectActions = currentState.actions.filter(
+            (action): action is ReactActionObject<TContext, TEvent> => {
+              return (
+                typeof action.exec === 'function' &&
+                '__effect' in
+                  (action as ReactActionObject<TContext, TEvent>).exec
+              );
+            }
+          );
 
-        const [effectActions, layoutEffectActions] = partition(
-          reactEffectActions,
-          (action): action is ReactActionObject<TContext, TEvent> => {
-            return action.exec.__effect === ReactEffectType.Effect;
-          }
-        );
+          const [effectActions, layoutEffectActions] = partition(
+            reactEffectActions,
+            (action): action is ReactActionObject<TContext, TEvent> => {
+              return action.exec.__effect === ReactEffectType.Effect;
+            }
+          );
 
-        effectActionsRef.current.push(
-          ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
-            (effectAction) => [effectAction, currentState]
-          )
-        );
+          effectActionsRef.current.push(
+            ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
+              (effectAction) => [effectAction, currentState]
+            )
+          );
 
-        layoutEffectActionsRef.current.push(
-          ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
-            (layoutEffectAction) => [layoutEffectAction, currentState]
-          )
-        );
-      }
-    });
-
-    // if service.state has not changed React should just bail out from this update
-    setState(service.state);
+          layoutEffectActionsRef.current.push(
+            ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
+              (layoutEffectAction) => [layoutEffectAction, currentState]
+            )
+          );
+        }
+      })
+      .start(rehydratedState ? State.create(rehydratedState) : undefined);
 
     return () => {
       service.stop();
