@@ -524,7 +524,6 @@ describe('useMachine (strict mode)', () => {
 
     render(
       <React.StrictMode>
-        {' '}
         <Test />
       </React.StrictMode>
     );
