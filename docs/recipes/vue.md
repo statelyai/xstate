@@ -1,6 +1,6 @@
 # Usage with Vue
 
-Vue follows a similar pattern to [React](./react.md):
+Vue 3 follows a similar pattern to [React](./react.md):
 
 - The machine can be defined externally;
 - The service is placed on the `data` object;
