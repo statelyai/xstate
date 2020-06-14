@@ -1,7 +1,7 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
-import { Machine, assign, interpret, Interpreter } from 'xstate';
+import { Machine, assign, interpret, Interpreter, createMachine } from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 
 afterEach(cleanup);
@@ -172,5 +172,48 @@ describe('useService hook', () => {
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
+  });
+
+  it('initial invoked service should be immediately available', (done) => {
+    const childMachine = createMachine({
+      initial: 'active',
+      states: {
+        active: {}
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ service: any }> = ({ service }) => {
+      const [state] = useService(service);
+
+      expect(state.value).toEqual('active');
+
+      done();
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state] = useMachine(machine);
+
+      console.log(state.children.child.meta);
+
+      return <ChildTest service={state.children.child} />;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
   });
 });
