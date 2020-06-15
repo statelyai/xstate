@@ -1657,12 +1657,13 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
             context = nextContext;
             resActions.push(actionObject, ...nextActions);
           } catch (err) {
+            // Raise error.execution events for failed assign actions
             raisedActions.push({
               type: actionTypes.raise,
               _event: toSCXMLEvent({
                 type: actionTypes.errorExecution,
                 error: err
-              } as any)
+              } as any) // TODO: fix
             });
           }
           break;
