@@ -70,7 +70,7 @@ export default {
 
 ### `useMachine(machine, options?)`
 
-A [Vue composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
+A [Vue 3 composition function](https://vue-composition-api-rfc.netlify.com/) that interprets the given `machine` and starts a service that runs for the lifetime of the component.
 
 **Arguments**
 
