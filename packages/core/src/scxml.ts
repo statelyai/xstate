@@ -12,6 +12,7 @@ import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
 import { MachineNode } from './MachineNode';
+import { stateIn, stateNotIn } from './guards';
 
 function getAttribute(
   element: XMLElement,
@@ -393,25 +394,10 @@ function toConfig(
             // console.log(cond);
             if ((cond as string).startsWith('In')) {
               const inMatch = (cond as string).trim().match(/^In\('(.*)'\)/);
-              const notInMatch = (cond as string)
-                .trim()
-                .match(/^!In\('(.*)'\)/);
 
               if (inMatch) {
                 condObject = {
-                  cond: (_, __, { state }) => {
-                    return state.configuration.find(
-                      (sn) => sn.id === inMatch[1]
-                    );
-                  }
-                };
-              } else if (notInMatch) {
-                condObject = {
-                  cond: (_, __, { state }) => {
-                    return state.configuration.every(
-                      (sn) => sn.id !== notInMatch[1]
-                    );
-                  }
+                  cond: stateIn(`#${inMatch[1]}`)
                 };
               }
             } else if ((cond as string).startsWith('!In')) {
@@ -421,11 +407,7 @@ function toConfig(
 
               if (notInMatch) {
                 condObject = {
-                  cond: (_, __, { state }) => {
-                    return state.configuration.every(
-                      (sn) => sn.id !== notInMatch[1]
-                    );
-                  }
+                  cond: stateNotIn(`#${notInMatch[1]}`)
                 };
               }
             } else {
