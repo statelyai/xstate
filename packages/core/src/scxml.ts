@@ -369,31 +369,82 @@ function toConfig(
       initial = stateElements[0].attributes!.id;
     }
 
-    const on = transitionElements.map((value) => {
-      const event = getAttribute(value, 'event') || '';
-
-      if (event === 'done.invoke') {
-        throw new Error(
-          'done.invoke gets often used in SCXML tests as inexact event descriptor.' +
-            " As long as this stay unimplemented or done.invoke doesn't get a specialcased while converting throw when seeing it to avoid tests using this to pass by accident."
+    const on = flatten(
+      transitionElements.map((value) => {
+        const events = ((getAttribute(value, 'event') as string) || '').split(
+          /\s+/
         );
-      }
 
-      const targets = getAttribute(value, 'target');
-      const internal = getAttribute(value, 'type') === 'internal';
+        return events.map((event) => {
+          if (event === 'done.invoke') {
+            throw new Error(
+              'done.invoke gets often used in SCXML tests as inexact event descriptor.' +
+                " As long as this stay unimplemented or done.invoke doesn't get a specialcased while converting throw when seeing it to avoid tests using this to pass by accident."
+            );
+          }
 
-      return {
-        event,
-        target: getTargets(targets),
-        ...(value.elements ? executableContent(value.elements) : undefined),
-        ...(value.attributes && value.attributes.cond
-          ? {
-              cond: createCond(value.attributes!.cond as string)
+          const targets = getAttribute(value, 'target');
+          const internal = getAttribute(value, 'type') === 'internal';
+
+          let condObject = {};
+
+          if (value.attributes?.cond) {
+            const cond = value.attributes!.cond;
+            // console.log(cond);
+            if ((cond as string).startsWith('In')) {
+              const inMatch = (cond as string).trim().match(/^In\('(.*)'\)/);
+              const notInMatch = (cond as string)
+                .trim()
+                .match(/^!In\('(.*)'\)/);
+
+              if (inMatch) {
+                condObject = {
+                  cond: (_, __, { state }) => {
+                    return state.configuration.find(
+                      (sn) => sn.id === inMatch[1]
+                    );
+                  }
+                };
+              } else if (notInMatch) {
+                condObject = {
+                  cond: (_, __, { state }) => {
+                    return state.configuration.every(
+                      (sn) => sn.id !== notInMatch[1]
+                    );
+                  }
+                };
+              }
+            } else if ((cond as string).startsWith('!In')) {
+              const notInMatch = (cond as string)
+                .trim()
+                .match(/^!In\('(.*)'\)/);
+
+              if (notInMatch) {
+                condObject = {
+                  cond: (_, __, { state }) => {
+                    return state.configuration.every(
+                      (sn) => sn.id !== notInMatch[1]
+                    );
+                  }
+                };
+              }
+            } else {
+              condObject = {
+                cond: createCond(value.attributes!.cond as string)
+              };
             }
-          : undefined),
-        internal
-      };
-    });
+          }
+
+          return {
+            event,
+            target: getTargets(targets),
+            ...(value.elements ? executableContent(value.elements) : undefined),
+            ...condObject,
+            internal
+          };
+        });
+      })
+    );
 
     const onEntry = onEntryElements
       ? flatten(

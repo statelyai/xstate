@@ -41,7 +41,7 @@ const testGroups = {
   delayedSend: ['send1', 'send2', 'send3'],
   documentOrder: ['documentOrder0'],
   error: [
-    // 'error', // not implemented
+    // 'error' // not implemented
   ],
   forEach: [
     // 'test1', // not implemented
@@ -59,9 +59,7 @@ const testGroups = {
     'history6'
   ],
   'if-else': ['test0'],
-  in: [
-    // 'TestInPredicate', // conversion of In() predicate not implemented yet
-  ],
+  in: ['TestInPredicate'],
   'internal-transitions': ['test0', 'test1'],
   misc: ['deep-initial'],
   'more-parallel': [
@@ -81,9 +79,7 @@ const testGroups = {
     'test10',
     'test10b'
   ],
-  'multiple-events-per-transition': [
-    // 'test1'
-  ],
+  'multiple-events-per-transition': ['test1'],
   parallel: ['test0', 'test1', 'test2', 'test3'],
   'parallel+interrupt': [
     'test0',
@@ -129,7 +125,7 @@ const testGroups = {
     // 'test0',
     // 'test1'
   ],
-  // 'send-data': ['send1'],
+  // 'send-data': ['send1'], // <content> conversion not implementd
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
@@ -151,7 +147,7 @@ const testGroups = {
     'test174.txml',
     'test175.txml',
     'test176.txml',
-    // 'test179.txml', // conversion of <content> in <sens> not implemented yet
+    // 'test179.txml', // conversion of <content> in <send> not implemented yet
     // 'test183.txml', idlocation not implemented yet
     'test185.txml',
     'test186.txml',
