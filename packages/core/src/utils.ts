@@ -24,9 +24,10 @@ import {
 } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
-import { InvokeConfig } from '.';
+import { InvokeConfig, SCXMLErrorEvent } from '.';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
+import { errorExecution, errorPlatform } from './actionTypes';
 
 export function keys<T extends object>(value: T): Array<keyof T & string> {
   return Object.keys(value) as Array<keyof T & string>;
@@ -396,6 +397,12 @@ export function isSCXMLEvent<TEvent extends EventObject>(
   event: Event<TEvent> | SCXML.Event<TEvent>
 ): event is SCXML.Event<TEvent> {
   return !isString(event) && '$$type' in event && event.$$type === 'scxml';
+}
+
+export function isSCXMLErrorEvent(
+  event: SCXML.Event<any>
+): event is SCXMLErrorEvent {
+  return event.name === errorExecution || event.name.startsWith(errorPlatform);
 }
 
 export function toSCXMLEvent<TEvent extends EventObject>(
