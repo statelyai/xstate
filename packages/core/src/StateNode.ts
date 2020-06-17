@@ -99,10 +99,13 @@ import { Actor, createInvocableActor } from './Actor';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const WILDCARD = '*';
+const SIBLING_STATE_IDENTIFIER = '^';
 
 const EMPTY_OBJECT = {};
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
+const isSiblingStateReference = (str: string) =>
+  str[0] === SIBLING_STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   actions: {},
   guards: {},
@@ -1338,6 +1341,29 @@ class StateNode<
   }
 
   /**
+   * Gives a possibility to jump out from state and set one of the state siblings
+   *
+   * @param statePath The string or string array sibling path to the state node. The prefix "^" is removed.
+   */
+  public getSiblingStateNodeByPath(
+    statePath: string | string[]
+  ): StateNode<TContext, any, TEvent> {
+    let stateNode: StateNode<TContext, any, TEvent> | undefined;
+
+    if (this.parent !== undefined) {
+      stateNode = this.parent.getStateNodeByPath(statePath);
+    }
+
+    if (!stateNode) {
+      throw new Error(
+        `Sibling state node '^${statePath}' does not exist on machine '${this.id}'`
+      );
+    }
+
+    return stateNode;
+  }
+
+  /**
    * Returns the relative state node from the given `statePath`, or throws.
    *
    * @param statePath The string or string array relative path to the state node.
@@ -1345,6 +1371,15 @@ class StateNode<
   public getStateNodeByPath(
     statePath: string | string[]
   ): StateNode<TContext, any, TEvent> {
+    if (typeof statePath === 'string' && isSiblingStateReference(statePath)) {
+      try {
+        return this.getSiblingStateNodeByPath(statePath.slice(1));
+      } catch (e) {
+        // try id or individual paths
+        // throw e;
+      }
+    }
+
     if (typeof statePath === 'string' && isStateId(statePath)) {
       try {
         return this.getStateNodeById(statePath.slice(1));
