@@ -99,13 +99,13 @@ import { Actor, createInvocableActor } from './Actor';
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
 const WILDCARD = '*';
-const SIBLING_STATE_IDENTIFIER = '^';
+const PARENT_SIBLING_STATE_IDENTIFIER = '^';
 
 const EMPTY_OBJECT = {};
 
 const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
-const isSiblingStateReference = (str: string) =>
-  str[0] === SIBLING_STATE_IDENTIFIER;
+const isParentSiblingStateReference = (str: string) =>
+  str[0] === PARENT_SIBLING_STATE_IDENTIFIER;
 const createDefaultOptions = <TContext>(): MachineOptions<TContext, any> => ({
   actions: {},
   guards: {},
@@ -1341,11 +1341,11 @@ class StateNode<
   }
 
   /**
-   * Gives a possibility to jump out from state and set one of the state siblings
+   * Gives a possibility to jump out from state and set one of the parent state siblings
    *
-   * @param statePath The string or string array sibling path to the state node. The prefix "^" is removed.
+   * @param statePath The string or string array parent sibling path to the state node. The prefix "^" is removed.
    */
-  public getSiblingStateNodeByPath(
+  public getParentSiblingStateNodeByPath(
     statePath: string | string[]
   ): StateNode<TContext, any, TEvent> {
     let stateNode: StateNode<TContext, any, TEvent> | undefined;
@@ -1356,7 +1356,7 @@ class StateNode<
 
     if (!stateNode) {
       throw new Error(
-        `Sibling state node '^${statePath}' does not exist on machine '${this.id}'`
+        `Parent sibling state node '^${statePath}' does not exist on machine '${this.id}'`
       );
     }
 
@@ -1371,9 +1371,12 @@ class StateNode<
   public getStateNodeByPath(
     statePath: string | string[]
   ): StateNode<TContext, any, TEvent> {
-    if (typeof statePath === 'string' && isSiblingStateReference(statePath)) {
+    if (
+      typeof statePath === 'string' &&
+      isParentSiblingStateReference(statePath)
+    ) {
       try {
-        return this.getSiblingStateNodeByPath(statePath.slice(1));
+        return this.getParentSiblingStateNodeByPath(statePath.slice(1));
       } catch (e) {
         // try id or individual paths
         // throw e;

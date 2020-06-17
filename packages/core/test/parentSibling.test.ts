@@ -47,7 +47,7 @@ const idMachine = Machine({
   }
 });
 
-describe('State node sibling state selector', () => {
+describe('Parent sibling state selector', () => {
   const expected = {
     A: {
       NEXT: 'A.dot'
