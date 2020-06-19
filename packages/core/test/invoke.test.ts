@@ -109,11 +109,11 @@ const intervalMachine = Machine<{
           return () => clearInterval(ivl);
         }
       },
+      always: {
+        target: 'finished',
+        cond: (ctx) => ctx.count === 3
+      },
       on: {
-        '': {
-          target: 'finished',
-          cond: (ctx) => ctx.count === 3
-        },
         INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
         SKIP: 'wait'
       }
@@ -157,13 +157,13 @@ describe('invoke', () => {
               id: 'someService',
               autoForward: true
             },
+            always: {
+              target: 'stop',
+              cond: (ctx) => ctx.count === 2
+            },
             on: {
               INC: {
                 actions: assign({ count: (ctx) => ctx.count + 1 })
-              },
-              '': {
-                target: 'stop',
-                cond: (ctx) => ctx.count === 2
               }
             }
           },
@@ -225,13 +225,13 @@ describe('invoke', () => {
               id: 'someService',
               autoForward: true
             },
+            always: {
+              target: 'stop',
+              cond: (ctx) => ctx.count === -3
+            },
             on: {
               DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
-              FORWARD_DEC: undefined,
-              '': {
-                target: 'stop',
-                cond: (ctx) => ctx.count === -3
-              }
+              FORWARD_DEC: undefined
             }
           },
           stop: {
@@ -1425,7 +1425,7 @@ describe('invoke', () => {
               on: { BEGIN: 'first' }
             },
             first: {
-              on: { '': 'second' }
+              always: 'second'
             },
             second: {
               invoke: {
@@ -1876,11 +1876,11 @@ describe('invoke', () => {
                   })
                 )
             },
+            always: {
+              target: 'counted',
+              cond: (ctx) => ctx.count === 5
+            },
             on: {
-              '': {
-                target: 'counted',
-                cond: (ctx) => ctx.count === 5
-              },
               COUNT: { actions: assign({ count: (_, e) => e.value }) }
             }
           },
@@ -2195,9 +2195,7 @@ describe('invoke', () => {
                 serviceCalled = true;
               }
             },
-            on: {
-              '': 'inactive'
-            }
+            always: 'inactive'
           },
           inactive: {
             after: { 10: 'complete' }

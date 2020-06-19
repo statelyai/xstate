@@ -76,9 +76,7 @@ describe('StateSchema', () => {
             }
           },
           stop: {
-            on: {
-              '': { target: 'green' }
-            }
+            always: { target: 'green' }
           }
         }
       }

@@ -353,13 +353,15 @@ class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this._transient = !this.config.on
-      ? false
-      : Array.isArray(this.config.on)
-      ? this.config.on.some(({ event }: { event: string }) => {
-          return event === NULL_EVENT;
-        })
-      : NULL_EVENT in this.config.on;
+    this._transient =
+      !!this.config.always ||
+      (!this.config.on
+        ? false
+        : Array.isArray(this.config.on)
+        ? this.config.on.some(({ event }: { event: string }) => {
+            return event === NULL_EVENT;
+          })
+        : NULL_EVENT in this.config.on);
     this.strict = !!this.config.strict;
 
     // TODO: deprecate (entry)
@@ -1247,7 +1249,9 @@ class StateNode<
     if (!isDone) {
       const isTransient =
         this._transient ||
-        configuration.some((stateNode) => stateNode._transient);
+        configuration.some((stateNode) => {
+          return stateNode._transient;
+        });
 
       if (isTransient) {
         maybeNextState = this.resolveRaisedTransition(
@@ -1808,7 +1812,7 @@ class StateNode<
         target: transition.target
           ? transition.target.map((t) => `#${t.id}`)
           : undefined,
-        source: `#{this.id}`
+        source: `#${this.id}`
       })
     };
 
@@ -1856,6 +1860,10 @@ class StateNode<
       );
     }
 
+    const eventlessConfig = this.config.always
+      ? toTransitionConfigArray('', this.config.always)
+      : [];
+
     const doneConfig = this.config.onDone
       ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
       : [];
@@ -1893,7 +1901,7 @@ class StateNode<
     const delayedTransitions = this.after;
 
     const formattedTransitions = flatten(
-      [...doneConfig, ...invokeConfig, ...onConfig].map(
+      [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
         (
           transitionConfig: TransitionConfig<TContext, TEvent> & {
             event: TEvent['type'] | NullEvent['type'] | '*';
