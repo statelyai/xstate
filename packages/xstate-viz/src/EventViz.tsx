@@ -11,6 +11,7 @@ import {
   getPartialStateValue
 } from './utils';
 import { ActionViz } from './ActionViz';
+import { useTracking } from './useTracker';
 
 interface EventVizProps {
   edge: Edge<any, any>;
@@ -49,15 +50,8 @@ function formatEvent(event: string): JSX.Element | string {
 }
 
 export function EventViz({ edge }: EventVizProps) {
-  const { tracker, state } = useContext(StateContext);
-  const ref = useRef<HTMLDivElement>(null);
-
-  useEffect(() => {
-    if (!ref.current) {
-      return;
-    }
-    tracker.update(serializeTransition(edge.transition), ref.current!);
-  }, []);
+  const { state } = useContext(StateContext);
+  const ref = useTracking(serializeTransition(edge.transition));
 
   const { transition } = edge;
 

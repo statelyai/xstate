@@ -1,5 +1,6 @@
 [data-xviz='machine'],
-[data-xviz='service'] {
+[data-xviz='service'],
+[data-xviz='inspector'] {
   --xviz-background-color: #111;
   --xviz-active-color: rgb(19, 129, 201);
   --xviz-active-border-color: var(--xviz-active-color);
@@ -408,7 +409,17 @@
 }
 
 [data-xviz='inspector'] {
+  background: var(--xviz-background-color);
+  display: grid;
+  grid-template-columns: auto 1fr;
+  grid-template-areas: 'services service';
+
+  > [data-xviz='services'] {
+    grid-area: services;
+  }
+
   > [data-xviz='service'] {
+    grid-area: service;
     display: grid;
     grid-template-columns: 1fr 20rem;
     grid-template-rows: 1rem min-content 1fr;
@@ -416,6 +427,10 @@
       'header header'
       'machine state'
       'machine events';
+
+    &[hidden] {
+      display: none;
+    }
 
     > [data-xviz='machine'] {
       grid-area: machine;

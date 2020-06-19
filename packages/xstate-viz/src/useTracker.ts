@@ -1,4 +1,3 @@
-import * as React from 'react';
 import { useContext, useRef, useState, useEffect } from 'react';
 
 import { StateContext } from './StateContext';
@@ -8,12 +7,24 @@ export function useTracking(id: string) {
   const { tracker } = useContext(StateContext);
   const ref = useRef<HTMLDivElement>(null);
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (!ref.current) {
       return;
     }
 
     tracker.update(id, ref.current);
+
+    const resizeObserver = new ResizeObserver(() => {
+      if (ref.current) {
+        tracker.update(id, ref.current);
+      }
+    });
+
+    resizeObserver.observe(ref.current);
+
+    return () => {
+      resizeObserver.unobserve(ref.current!);
+    };
   }, []);
 
   return ref;

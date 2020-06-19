@@ -103,6 +103,8 @@ export class Tracker {
     currentData.listeners.forEach((listener) => {
       listener(currentData);
     });
+
+    console.log(this.data);
   }
 
   public updateAll() {

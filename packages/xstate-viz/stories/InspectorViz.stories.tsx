@@ -38,7 +38,7 @@ const register = (service) => {
       type: 'service.register',
       machine: JSON.stringify(service.machine),
       state: JSON.stringify(service.state || service.initialState),
-      id: service.sessionId
+      id: service.id
     },
     '*'
   );
@@ -48,7 +48,7 @@ const register = (service) => {
       {
         type: 'service.state',
         state: JSON.stringify(state),
-        id: service.sessionId
+        id: service.id
       },
       '*'
     );
@@ -63,7 +63,7 @@ export const SimpleInspector = () => {
       }
     };
 
-    setTimeout(() => {
+    const timeout = setTimeout(() => {
       console.log('registering');
       const simpleService = interpret(simpleMachine, {
         devTools: true
@@ -76,8 +76,11 @@ export const SimpleInspector = () => {
       setInterval(() => {
         simpleService.send('TOGGLE');
       }, 2000);
-      // register(simpleService);
     }, 1000);
+
+    return () => {
+      clearTimeout(timeout);
+    };
   }, []);
   return <InspectorViz />;
 };

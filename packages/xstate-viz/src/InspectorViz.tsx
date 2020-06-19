@@ -25,6 +25,10 @@ type InspectorEvent =
       type: 'service.state';
       state: string;
       id: string;
+    }
+  | {
+      type: 'service.select';
+      id: string;
     };
 
 const inspectorMachine = createMachine<
@@ -38,12 +42,14 @@ const inspectorMachine = createMachine<
         events: SCXML.Event<any>[];
       }
     >;
+    service?: string;
   },
   InspectorEvent
 >({
   id: 'inspector',
   context: {
-    services: {}
+    services: {},
+    service: undefined
   },
   initial: 'pending',
   states: {
@@ -59,6 +65,15 @@ const inspectorMachine = createMachine<
 
             serviceObject.state = parseState(e.state);
             serviceObject.events.unshift(serviceObject.state._event);
+
+            if (!ctx.service) {
+              ctx.service = e.id;
+            }
+          })
+        },
+        'service.select': {
+          actions: assign((ctx, e) => {
+            ctx.service = e.id;
           })
         }
       }
@@ -96,11 +111,35 @@ export const InspectorViz: React.FC = () => {
     };
   }, []);
 
+  console.log(state.context.service);
+
+  const currentService = state.context.service
+    ? state.context.services[state.context.service]
+    : undefined;
+
   return (
     <div data-xviz="inspector">
+      <div data-xviz="services">
+        {Object.keys(state.context.services).map((key) => {
+          return (
+            <div
+              data-xviz="service-link"
+              key={key}
+              onClick={() => send({ type: 'service.select', id: key })}
+            >
+              {key}
+            </div>
+          );
+        })}
+      </div>
+
       {Object.entries(state.context.services).map(([key, service]) => {
         return (
-          <div data-xviz="service" key={key}>
+          <div
+            data-xviz="service"
+            key={key}
+            hidden={currentService !== service || undefined}
+          >
             <MachineViz machine={service.machine} state={service.state} />
             {/* <EventRecordsViz events={value.events} /> */}
             <StateViz state={service.state} />
