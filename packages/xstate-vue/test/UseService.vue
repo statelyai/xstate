@@ -6,22 +6,15 @@
 </template>
 
 <script lang="ts">
-import Vue, { PropType } from 'vue'
+import { PropType } from 'vue';
 import { useService } from '../src';
-import {
-  Machine,
-  assign,
-  Interpreter,
-  spawn,
-  doneInvoke,
-  State,
-} from 'xstate';
-import { watchEffect, ref, Ref } from '@vue/composition-api';
+import { Interpreter } from 'xstate';
+import { watchEffect } from '@vue/composition-api';
 
 export default {
   props: {
     service: {
-      type: Object as PropType<Interpreter<any>>,
+      type: Object as PropType<Interpreter<any>>
     }
   },
   setup(props) {

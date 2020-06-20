@@ -13,7 +13,7 @@
 <script lang="ts">
 import { PropType } from 'vue';
 import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
+import { Machine, assign, State } from 'xstate';
 import { watch } from '@vue/composition-api';
 
 const context = {
