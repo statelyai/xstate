@@ -41,7 +41,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "peerDependencies": {
-    "@vue/composition-api": "^0.3.4",
+    "@vue/composition-api": "^0.6.5",
     "@xstate/fsm": "^1.0.0",
     "vue": "^2.6.10",
     "xstate": "^4.7.8"
@@ -57,7 +57,7 @@
   "devDependencies": {
     "@testing-library/jest-dom": "^4.2.4",
     "@testing-library/vue": "^4.1.0",
-    "@vue/composition-api": "^0.3.4",
+    "@vue/composition-api": "~0.6.5",
     "@vue/test-utils": "^1.0.0-beta.30",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
