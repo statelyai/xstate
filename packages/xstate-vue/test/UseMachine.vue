@@ -11,8 +11,9 @@
 </template>
 
 <script lang="ts">
+import { PropType } from 'vue';
 import { useMachine } from '../src';
-import { Machine, assign, Interpreter, spawn, doneInvoke, State } from 'xstate';
+import { Machine, assign, State } from 'xstate';
 import { watch } from '@vue/composition-api';
 
 const context = {
@@ -45,8 +46,12 @@ const fetchMachine = Machine<typeof context, any>({
 });
 
 export default {
-  props: ['persistedState'],
-  setup({ persistedState }): { persistedState: State<any, any> } {
+  props: {
+    persistedState: {
+      type: Object as PropType<State<any>>
+    }
+  },
+  setup({ persistedState }) {
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
 

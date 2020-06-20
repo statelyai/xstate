@@ -1991,12 +1991,12 @@
     source-map "~0.6.1"
     vue-template-es2015-compiler "^1.9.0"
 
-"@vue/composition-api@^0.3.4":
-  version "0.3.4"
-  resolved "https://registry.yarnpkg.com/@vue/composition-api/-/composition-api-0.3.4.tgz#43d2c3377173cfe1d02e51e3342bcf0fbde9c4b6"
-  integrity sha512-aMbg/pEk0PSQAIFyWWLqbAmaCCTx1kFq+49KZslIBJH9Wqos7eEPLtMv4gGxd/EcciBIgfbtUXaXGg/O3mheRA==
+"@vue/composition-api@~0.6.5":
+  version "0.6.5"
+  resolved "https://registry.yarnpkg.com/@vue/composition-api/-/composition-api-0.6.5.tgz#890b4ab3777ee95c6d633872db2bf53a45446d5b"
+  integrity sha512-IRdtn6/59yPNmvzlu5JTAR3SK0kK5T69wtz8oefSY8FFUPoOe7A2BlcVCypRX7jTmpBADhrHkAiklc8ffmPOuQ==
   dependencies:
-    tslib "^1.9.3"
+    tslib "^2.0.0"
 
 "@vue/test-utils@^1.0.0-beta.29", "@vue/test-utils@^1.0.0-beta.30", "@vue/test-utils@^1.0.0-beta.31":
   version "1.0.0-beta.32"
@@ -13745,6 +13745,11 @@ tslib@^1.10.0, tslib@^1.8.0, tslib@^1.8.1, tslib@^1.9.0, tslib@^1.9.3:
   version "1.11.1"
   resolved "https://registry.yarnpkg.com/tslib/-/tslib-1.11.1.tgz#eb15d128827fbee2841549e171f45ed338ac7e35"
   integrity sha512-aZW88SY8kQbU7gpV19lN24LtXh/yD4ZZg6qieAJDDg+YBsJcSmLGK9QpnUjAKVG/xefmvJGd1WUmfpT/g6AJGA==
+
+tslib@^2.0.0:
+  version "2.0.0"
+  resolved "https://registry.yarnpkg.com/tslib/-/tslib-2.0.0.tgz#18d13fc2dce04051e20f074cc8387fd8089ce4f3"
+  integrity sha512-lTqkx847PI7xEDYJntxZH89L2/aXInsyF2luSafe/+0fHOMjlBNXdH6th7f70qxLDhul7KZK0zC8V5ZIyHl0/g==
 
 tslint@^5.11.0:
   version "5.20.1"
