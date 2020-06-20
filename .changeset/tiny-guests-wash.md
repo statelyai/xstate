@@ -2,9 +2,4 @@
 '@xstate/vue': minor
 ---
 
-chore(dep/vue) bump peerDep of @vue/composition-api to 0.6.x.
-
-- breaking changes in 0.6.x, adapated code. Will make it easier for
-  this library to also be updated to Vue 3.
-- Uses new watcher option since it was changed to be lazy by default
-- now using shallow ref since xstate objects should not be refs deeply.
+Upgraded package for compatibility with the newest `@vue/composition-api@^0.6.0`, which means that a peer dependency requirement has changed to this version, which is a **breaking change**. The only observable behavior change is that exposed refs are now **shallow**.
