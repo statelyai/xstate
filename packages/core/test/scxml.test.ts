@@ -286,7 +286,7 @@ const testGroups = {
     // 'test457.txml', // <foreach> not implemented yet
     // 'test459.txml', // <foreach> not implemented yet
     // 'test460.txml', // <foreach> not implemented yet
-    'test487.txml', // error.execution when evaluating assign
+    'test487.txml',
     // 'test488.txml', // error.execution when evaluating param
     'test495.txml',
     // 'test496.txml', // error.communication not implemented yet
