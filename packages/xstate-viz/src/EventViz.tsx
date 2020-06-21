@@ -2,7 +2,7 @@ import * as React from 'react';
 // import { useContext, useEffect, useRef } from 'react';
 // import { StateContext } from './StateContext';
 import { Edge } from './types';
-import { useEffect, useContext, useRef } from 'react';
+import { useContext } from 'react';
 import { StateContext } from './StateContext';
 import {
   serializeTransition,

@@ -14,6 +14,10 @@ export function useTracking(id: string) {
 
     tracker.update(id, ref.current);
 
+    if (!('ResizeObserver' in globalThis)) {
+      return;
+    }
+
     const resizeObserver = new ResizeObserver(() => {
       if (ref.current) {
         tracker.update(id, ref.current);

@@ -90,7 +90,6 @@
     "@xstate/react": "^0.8.1",
     "immer": "^6.0.8",
     "react-json-tree": "^0.11.2",
-    "react-router-dom": "^5.2.0",
     "styled-components": "^4.4.1"
   }
 }

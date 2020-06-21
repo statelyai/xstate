@@ -1,10 +1,11 @@
 import * as React from 'react';
-import { createMachine, State, StateNode, SCXML } from 'xstate';
+import { createMachine, State, StateNode, SCXML, Interpreter } from 'xstate';
 import { useMachine } from '@xstate/react';
 import { MachineViz } from './MachineViz';
 import { assign } from '@xstate/immer';
-import { EventRecordsViz } from './EventRecordsViz';
+// import { EventRecordsViz } from './EventRecordsViz';
 import { StateViz } from './StateViz';
+import { createContext } from 'react';
 
 const parseState = (stateJSON: string): State<any, any> => {
   const state = State.create(JSON.parse(stateJSON));
@@ -31,21 +32,20 @@ type InspectorEvent =
       id: string;
     };
 
-const inspectorMachine = createMachine<
-  {
-    services: Record<
-      string,
-      {
-        state: State<any, any>;
-        machine: StateNode<any, any>;
-        id: string;
-        events: SCXML.Event<any>[];
-      }
-    >;
-    service?: string;
-  },
-  InspectorEvent
->({
+interface InspectorCtx {
+  services: Record<
+    string,
+    {
+      state: State<any, any>;
+      machine: StateNode<any, any>;
+      id: string;
+      events: SCXML.Event<any>[];
+    }
+  >;
+  service?: string;
+}
+
+const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
   id: 'inspector',
   context: {
     services: {},
@@ -94,8 +94,12 @@ const inspectorMachine = createMachine<
   }
 });
 
+const ServicesContext = createContext<
+  Interpreter<InspectorCtx, any, InspectorEvent>
+>(null as any);
+
 export const InspectorViz: React.FC = () => {
-  const [state, send] = useMachine(inspectorMachine);
+  const [state, send, service] = useMachine(inspectorMachine);
 
   React.useEffect(() => {
     const handler = (event) => {
@@ -111,41 +115,41 @@ export const InspectorViz: React.FC = () => {
     };
   }, []);
 
-  console.log(state.context.service);
-
   const currentService = state.context.service
     ? state.context.services[state.context.service]
     : undefined;
 
   return (
-    <div data-xviz="inspector">
-      <div data-xviz="services">
-        {Object.keys(state.context.services).map((key) => {
+    <ServicesContext.Provider value={service}>
+      <div data-xviz="inspector">
+        <div data-xviz="services">
+          {Object.keys(state.context.services).map((key) => {
+            return (
+              <div
+                data-xviz="service-link"
+                key={key}
+                onClick={() => send({ type: 'service.select', id: key })}
+              >
+                {key}
+              </div>
+            );
+          })}
+        </div>
+
+        {Object.entries(state.context.services).map(([key, service]) => {
           return (
             <div
-              data-xviz="service-link"
+              data-xviz="service"
               key={key}
-              onClick={() => send({ type: 'service.select', id: key })}
+              hidden={currentService !== service || undefined}
             >
-              {key}
+              <MachineViz machine={service.machine} state={service.state} />
+              {/* <EventRecordsViz events={value.events} /> */}
+              <StateViz state={service.state} />
             </div>
           );
         })}
       </div>
-
-      {Object.entries(state.context.services).map(([key, service]) => {
-        return (
-          <div
-            data-xviz="service"
-            key={key}
-            hidden={currentService !== service || undefined}
-          >
-            <MachineViz machine={service.machine} state={service.state} />
-            {/* <EventRecordsViz events={value.events} /> */}
-            <StateViz state={service.state} />
-          </div>
-        );
-      })}
-    </div>
+    </ServicesContext.Provider>
   );
 };

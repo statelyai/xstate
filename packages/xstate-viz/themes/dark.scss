@@ -391,12 +391,6 @@
   }
 }
 
-[data-xviz='json-key'] {
-  &:after {
-    content: ':';
-  }
-}
-
 [data-xviz='action-entries'] {
   display: none;
 }
@@ -416,6 +410,11 @@
 
   > [data-xviz='services'] {
     grid-area: services;
+  }
+
+  [data-xviz='service-link'] {
+    padding: 0.5rem 1rem;
+    border-bottom: 1px solid rgba(white, 0.3);
   }
 
   > [data-xviz='service'] {
@@ -480,17 +479,38 @@
 
 [data-xviz='json-object'] {
   --placeholder: '{...}';
+
+  &[data-xviz-json-empty] {
+    --placeholder: '{}';
+  }
 }
 
 [data-xviz='json-array'] {
   --placeholder: '[...]';
+
+  &[data-xviz-json-empty] {
+    --placeholder: '[]';
+  }
 }
 
 [data-xviz='json-object'],
 [data-xviz='json-array'] {
+  --value-color: #32cdba;
+
   &:not([open]) {
     > [data-xviz='json-key']:after {
-      content: ': ' var(--placeholder);
+      content: var(--placeholder);
+      color: var(--value-color);
+      margin-left: 1ch;
+    }
+  }
+
+  &[data-xviz-json-empty] {
+    opacity: 0.5;
+
+    > [data-xviz='json-value']:before {
+      content: 'No items';
+      font-style: italic;
     }
   }
 
@@ -502,7 +522,38 @@
 [data-xviz='json-primitive'] {
   display: grid;
   grid-template-columns: min-content auto;
-  grid-column-gap: 1rem;
+  grid-column-gap: 1ch;
+
+  [data-xviz='json-value'] {
+    color: var(--value-color);
+  }
+
+  &[data-xviz-json-type='undefined'],
+  &[data-xviz-json-type='function'] {
+    > [data-xviz='json-value'] {
+      font-style: italic;
+      opacity: 0.5;
+    }
+  }
+
+  &[data-xviz-json-type='undefined'] {
+    [data-xviz='json-value']::before {
+      content: 'undefined';
+    }
+  }
+  &[data-xviz-json-type='function'] {
+    [data-xviz='json-value']::before {
+      content: 'function';
+    }
+  }
+}
+
+[data-xviz='json-key'] {
+  &::-webkit-details-marker {
+    width: 1ch;
+    margin-right: 1ch;
+    opacity: 0.5;
+  }
 }
 
 [data-xviz='json-key'],

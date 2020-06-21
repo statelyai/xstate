@@ -8,55 +8,110 @@ type JSONValue =
   | { [property: string]: JSONValue }
   | JSONValue[];
 
-export const JSONViz: React.FC<{ valueKey: string; value: JSONValue }> = ({
-  valueKey,
-  value
-}) => {
+type RenderValueFn = (value: any, path: string[]) => JSX.Element | undefined;
+
+export const JSONViz: React.FC<{
+  valueKey: string;
+  path: string[];
+  value: JSONValue;
+  renderValue?: RenderValueFn;
+}> = ({ valueKey, path, value, renderValue = () => undefined }) => {
+  const maybeRenderedValue = renderValue?.(value, path);
+
+  if (maybeRenderedValue) {
+    return maybeRenderedValue;
+  }
+
   if (Array.isArray(value)) {
-    return <JSONArrayViz valueKey={valueKey} value={value} />;
+    return (
+      <JSONArrayViz
+        valueKey={valueKey}
+        path={path.concat(valueKey)}
+        value={value}
+        renderValue={renderValue}
+      />
+    );
   }
   if (typeof value === 'object' && value !== null) {
     return (
       <JSONObjectViz
         valueKey={valueKey}
+        path={path.concat(valueKey)}
         value={value as Record<string, JSONValue>}
+        renderValue={renderValue}
       />
     );
   }
 
-  return <JSONPrimitiveViz valueKey={valueKey} value={value} />;
+  return (
+    <JSONPrimitiveViz
+      valueKey={valueKey}
+      path={path.concat(valueKey)}
+      value={value}
+      renderValue={renderValue}
+    />
+  );
 };
 
 const JSONObjectViz: React.FC<{
   valueKey: string;
+  path: string[];
   value: Record<string, JSONValue>;
-}> = ({ valueKey, value }) => {
+  renderValue: RenderValueFn;
+}> = ({ valueKey, path, value, renderValue }) => {
+  const isEmpty = Object.keys(value).length === 0 || undefined;
+
   return (
     <details
       open={Object.keys(value).length > 0 || undefined}
       data-xviz="json-object"
+      data-xviz-json-empty={isEmpty}
     >
-      <summary data-xviz="json-key">{valueKey}</summary>
+      <summary data-xviz="json-key">{valueKey}:</summary>
       <div data-xviz="json-value">
-        {Object.entries(value).map(([key, value]) => {
-          return <JSONViz valueKey={key} value={value} />;
-        })}
+        {renderValue(value, path) ||
+          Object.entries(value).map(([key, value]) => {
+            return (
+              <JSONViz
+                valueKey={key}
+                path={path.concat(key)}
+                value={value}
+                renderValue={renderValue}
+              />
+            );
+          })}
       </div>
     </details>
   );
 };
 
-const JSONArrayViz: React.FC<{ valueKey: string; value: JSONValue[] }> = ({
-  valueKey,
-  value
-}) => {
+const JSONArrayViz: React.FC<{
+  valueKey: string;
+  path: string[];
+  value: JSONValue[];
+  renderValue: RenderValueFn;
+}> = ({ valueKey, path, value, renderValue }) => {
+  const isEmpty = value.length === 0 || undefined;
   return (
-    <details open={value.length > 0 || undefined} data-xviz="json-array">
-      <summary data-xviz="json-key">{valueKey}</summary>
+    <details
+      open={value.length > 0 || undefined}
+      data-xviz="json-array"
+      data-xviz-json-empty={isEmpty}
+    >
+      <summary data-xviz="json-key">{valueKey}:</summary>
       <div data-xviz="json-value">
-        {value.map((childValue, i) => {
-          return <JSONViz valueKey={'i'} value={childValue} key={i} />;
-        })}
+        {renderValue(value, path) ||
+          value.map((childValue, i) => {
+            return (
+              <JSONViz
+                valueKey={`${i}`}
+                path={path.concat(`${i}`)}
+                value={childValue}
+                key={i}
+                renderValue={renderValue}
+              />
+            );
+          })}
       </div>
     </details>
   );
@@ -64,14 +119,19 @@ const JSONArrayViz: React.FC<{ valueKey: string; value: JSONValue[] }> = ({
 
 const JSONPrimitiveViz: React.FC<{
   valueKey: string;
+  path: string[];
   value: string | number | boolean | null;
-}> = ({ valueKey, value }) => {
+  renderValue: RenderValueFn;
+}> = ({ valueKey, path, value, renderValue }) => {
   const valueType = typeof value;
 
   return (
     <div data-xviz={`json-primitive`} data-xviz-json-type={valueType}>
-      <strong data-xviz="json-key">{valueKey}</strong>
-      <div data-xviz="json-value">{JSON.stringify(value)}</div>
+      <summary data-xviz="json-key">{valueKey}:</summary>
+
+      {renderValue(value, path) || (
+        <div data-xviz="json-value">{JSON.stringify(value)}</div>
+      )}
     </div>
   );
 };

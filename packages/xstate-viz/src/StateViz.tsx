@@ -18,7 +18,19 @@ export function StateViz({ state }: { state: State<any, any> }) {
   return (
     <div data-xviz="state">
       <div data-xviz="state-value">
-        <JSONViz valueKey="root" value={state.toJSON()} />
+        <JSONViz
+          valueKey="root"
+          path={[]}
+          value={state.toJSON() as any}
+          renderValue={(value, path) => {
+            if (
+              typeof value === 'object' &&
+              path.find((k) => k.includes('simple:'))
+            ) {
+              return <strong>ACTOR</strong>;
+            }
+          }}
+        />
       </div>
     </div>
   );
