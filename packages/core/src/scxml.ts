@@ -391,7 +391,6 @@ function toConfig(
 
           if (value.attributes?.cond) {
             const cond = value.attributes!.cond;
-            // console.log(cond);
             if ((cond as string).startsWith('In')) {
               const inMatch = (cond as string).trim().match(/^In\('(.*)'\)/);
 
