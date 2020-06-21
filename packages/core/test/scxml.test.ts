@@ -198,7 +198,7 @@ const testGroups = {
     // 'test278.txml', // non-root datamodel with early binding not implemented yet
     // 'test279.txml', // non-root datamodel with early binding not implemented yet
     // 'test280.txml', // non-root datamodel with late binding not implemented yet
-    'test286.txml', // error.execution when evaluating assign
+    'test286.txml',
     'test287.txml',
     // 'test294.txml', // conversion of <donedata> not implemented yet
     // 'test298.txml', // error.execution when evaluating donedata
