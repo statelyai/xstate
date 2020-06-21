@@ -1832,20 +1832,27 @@ class StateNode<
     } else {
       const {
         [WILDCARD]: wildcardConfigs = [],
-        ...strictOnConfigs
+        ...strictTransitionConfigs
       } = this.config.on;
 
       onConfig = flatten(
-        keys(strictOnConfigs)
+        keys(strictTransitionConfigs)
           .map((key) => {
-            const arrayified = toTransitionConfigArray<TContext, EventObject>(
-              key,
-              strictOnConfigs![key as string]
-            );
-            if (!IS_PRODUCTION) {
-              validateArrayifiedTransitions(this, key, arrayified);
+            if (!IS_PRODUCTION && key === NULL_EVENT) {
+              warn(
+                false,
+                `Empty string transition configs (e.g., \`{ on: { '': ... }}\`) for transient transitions are deprecated. Specify the transition in the \`{ always: ... }\` property instead. ` +
+                  `Please check the \`on\` configuration for "#${this.id}".`
+              );
             }
-            return arrayified;
+            const transitionConfigArray = toTransitionConfigArray<
+              TContext,
+              EventObject
+            >(key, strictTransitionConfigs[key as string]);
+            if (!IS_PRODUCTION) {
+              validateArrayifiedTransitions(this, key, transitionConfigArray);
+            }
+            return transitionConfigArray;
           })
           .concat(
             toTransitionConfigArray(
