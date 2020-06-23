@@ -2363,3 +2363,50 @@ describe('invoke', () => {
     });
   });
 });
+
+describe('services option', () => {
+  it('should provide data params to a service creator', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'pending',
+        context: {
+          count: 42
+        },
+        states: {
+          pending: {
+            invoke: {
+              src: 'stringService',
+              data: {
+                staticVal: 'hello',
+                newCount: (ctx) => ctx.count * 2
+              },
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          stringService: (ctx, _, { data }) => {
+            expect(ctx).toEqual({ count: 42 });
+
+            expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
+
+            return new Promise((res) => {
+              res();
+            });
+          }
+        }
+      }
+    );
+
+    const service = interpret(machine).onDone(() => {
+      done();
+    });
+
+    service.start();
+  });
+});

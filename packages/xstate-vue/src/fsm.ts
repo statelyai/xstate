@@ -1,5 +1,5 @@
 import {
-  ref,
+  shallowRef,
   isRef,
   watch,
   onMounted,
@@ -50,7 +50,7 @@ export function useMachine<
     )
   ).start();
 
-  const state = ref<StateMachine.State<TContext, TEvent, any>>(
+  const state = shallowRef<StateMachine.State<TContext, TEvent, any>>(
     getServiceValue(service)
   );
 
@@ -80,21 +80,27 @@ export function useService<
     service
   )
     ? service
-    : ref(service);
-  const state = ref<StateMachine.State<TContext, TEvent, TState>>(
+    : shallowRef(service);
+  const state = shallowRef<StateMachine.State<TContext, TEvent, TState>>(
     serviceRef.value.state
   );
 
-  watch(serviceRef, (service, _, onCleanup) => {
-    state.value = getServiceValue(service);
+  watch(
+    serviceRef,
+    (service, _, onCleanup) => {
+      state.value = getServiceValue(service);
 
-    const { unsubscribe } = service.subscribe((currentState) => {
-      if (currentState.changed) {
-        state.value = currentState;
-      }
-    });
-    onCleanup(unsubscribe);
-  });
+      const { unsubscribe } = service.subscribe((currentState) => {
+        if (currentState.changed) {
+          state.value = currentState;
+        }
+      });
+      onCleanup(unsubscribe);
+    },
+    {
+      immediate: true
+    }
+  );
 
   const send = (event: TEvent | TEvent['type']) => serviceRef.value.send(event);
 

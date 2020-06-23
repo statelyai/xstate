@@ -868,8 +868,12 @@ export class Interpreter<
             return;
           }
 
+          const resolvedData = data
+            ? mapContext(data, context, _event)
+            : undefined;
+
           const source = isFunction(serviceCreator)
-            ? serviceCreator(context, _event.data)
+            ? serviceCreator(context, _event.data, { data: resolvedData })
             : serviceCreator;
 
           if (isPromiseLike(source)) {
@@ -884,9 +888,7 @@ export class Interpreter<
           } else if (isMachine(source)) {
             // TODO: try/catch here
             this.state.children[id] = this.spawnMachine(
-              data
-                ? source.withContext(mapContext(data, context, _event))
-                : source,
+              resolvedData ? source.withContext(resolvedData) : source,
               {
                 id,
                 autoForward
