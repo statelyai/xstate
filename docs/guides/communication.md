@@ -370,7 +370,7 @@ const service = interpret(parentMachine)
 
 ### Invoking with Context
 
-Child machines can be invoked with `context` that is derived from the parent machine's `context` with the `data` property. For example, the `parentMachine` below will invoke a new `timerMachine` service with initial context of `{ customDuration: 3000 }`:
+Child machines can be invoked with `context` that is derived from the parent machine's `context` with the `data` property. For example, the `parentMachine` below will invoke a new `timerMachine` service with initial context of `{ duration: 3000 }`:
 
 ```js
 const timerMachine = Machine({
