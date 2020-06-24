@@ -1,8 +1,17 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
-import { Machine, assign, interpret, Interpreter, createMachine } from 'xstate';
+import {
+  Machine,
+  assign,
+  interpret,
+  Interpreter,
+  createMachine,
+  sendParent,
+  Actor
+} from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
+import { useActor } from '../src/useActor';
 
 afterEach(cleanup);
 
@@ -174,11 +183,16 @@ describe('useService hook', () => {
     expect(countEl.textContent).toBe('1');
   });
 
-  it('initial invoked service should be immediately available', (done) => {
+  it('initial invoked actor should be immediately available', (done) => {
     const childMachine = createMachine({
+      id: 'childMachine',
       initial: 'active',
       states: {
-        active: {}
+        active: {
+          on: {
+            FINISH: { actions: sendParent('FINISH') }
+          }
+        }
       }
     });
     const machine = createMachine({
@@ -188,16 +202,21 @@ describe('useService hook', () => {
         src: childMachine
       },
       states: {
-        active: {}
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
       }
     });
 
-    const ChildTest: React.FC<{ service: any }> = ({ service }) => {
-      const [state] = useService(service);
+    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+      const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
 
-      done();
+      React.useEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
 
       return null;
     };
@@ -205,9 +224,11 @@ describe('useService hook', () => {
     const Test = () => {
       const [state] = useMachine(machine);
 
-      console.log(state.children.child.meta);
+      if (state.matches('success')) {
+        done();
+      }
 
-      return <ChildTest service={state.children.child} />;
+      return <ChildTest actor={state.children.child} />;
     };
 
     render(

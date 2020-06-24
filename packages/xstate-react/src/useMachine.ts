@@ -78,7 +78,7 @@ function executeEffect<TContext, TEvent extends EventObject>(
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
     action,
-    state: state,
+    state,
     _event: state._event
   });
 
@@ -169,9 +169,9 @@ export function useMachine<
     service
       .onTransition((currentState) => {
         // Only change the current state if:
-        // - the incoming state is not the initial state (since it's already set)
-        // - AND the incoming state actually changed
-        if (currentState.changed) {
+        // - the incoming state is the initial state (since it might have new actors)
+        // - OR the incoming state actually changed
+        if (currentState.changed || currentState.changed === undefined) {
           setState(currentState);
         }
 

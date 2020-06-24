@@ -1169,7 +1169,10 @@ class StateNode<
 
     const children = invokeActions.reduce(
       (acc, action) => {
-        acc[action.activity.id] = createInvocableActor(action.activity);
+        acc[action.activity.id] = createInvocableActor(
+          action.activity,
+          this.machine
+        );
 
         return acc;
       },

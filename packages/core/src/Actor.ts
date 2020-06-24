@@ -4,6 +4,8 @@ import {
   InvokeDefinition,
   AnyEventObject
 } from './types';
+import { StateMachine } from '.';
+import { isMachine } from './utils';
 
 export interface Actor<
   TContext = any,
@@ -17,6 +19,7 @@ export interface Actor<
   };
   meta?: InvokeDefinition<TContext, TEvent>;
   state?: any;
+  deferred?: boolean;
 }
 
 export function createNullActor(id: string): Actor {
@@ -33,15 +36,22 @@ export function createNullActor(id: string): Actor {
 }
 
 /**
- * Creates a null actor that is able to be invoked given the provided
+ * Creates a deferred actor that is able to be invoked given the provided
  * invocation information in its `.meta` value.
  *
  * @param invokeDefinition The meta information needed to invoke the actor.
  */
 export function createInvocableActor<TC, TE extends EventObject>(
-  invokeDefinition: InvokeDefinition<TC, TE>
+  invokeDefinition: InvokeDefinition<TC, TE>,
+  machine: StateMachine<TC, any, TE>
 ): Actor {
   const tempActor = createNullActor(invokeDefinition.id);
+  const serviceCreator = machine.options.services?.[invokeDefinition.src];
+  tempActor.deferred = true;
+
+  if (isMachine(serviceCreator)) {
+    tempActor.state = serviceCreator.initialState;
+  }
 
   tempActor.meta = invokeDefinition;
 

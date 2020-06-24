@@ -3,14 +3,15 @@ import { EventObject, State, Interpreter, Typestate, Sender } from 'xstate';
 import { useActor } from './useActor';
 import { ActorRef } from './types';
 
-function fromService<TContext, TEvent extends EventObject>(
+export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent, any>
 ): ActorRef<TEvent, State<TContext, TEvent>> {
+  const { machine } = service;
   return {
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
-    stop: service.stop.bind(service),
-    current: service.state,
+    stop: service.stop,
+    current: service.state || machine.initialState,
     name: service.sessionId
   };
 }
