@@ -24,9 +24,6 @@ export function updateContext<TContext, TEvent extends EventObject>(
   state?: State<TContext, TEvent>,
   service?: ActorRef<TEvent>
 ): [TContext, ActionObject<TContext, TEvent>[]] {
-  if (!IS_PRODUCTION) {
-    warn(!!context, 'Attempting to update undefined context');
-  }
   const capturedActions: InvokeActionObject[] = [];
 
   if (!context) {
