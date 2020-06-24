@@ -497,6 +497,12 @@ export interface StateNodeConfig<
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
   after?: DelayedTransitions<TContext, TEvent>;
+
+  /**
+   * An eventless transition that is always taken when this state node is active.
+   * Equivalent to a transition specified as an empty `''`' string in the `on` property.
+   */
+  always?: TransitionConfigOrTarget<TContext, TEvent>;
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.

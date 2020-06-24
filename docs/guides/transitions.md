@@ -256,6 +256,10 @@ Every transition above is external and will have its `exit` and `entry` actions 
 
 ## Transient Transitions
 
+::: warning
+The empty string syntax (`{ on: { '': ... } }`) will be deprecated in version 5. The new `always` syntax in version 4.11+ should be preferred. See below section on [eventless transitions](#eventless-transitions), which are the same as transient transitions.
+:::
+
 A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
 
 ```js {14-17}
@@ -320,6 +324,73 @@ gameService.send('AWARD_POINTS');
 Just like transitions, transient transitions can be specified as a single transition (e.g., `'': 'someTarget'`), or an array of conditional transitions. If no conditional transitions on a transient transition are met, the machine stays in the same state.
 
 Null events are always "sent" for every transition, internal or external.
+
+## Eventless Transitions <Badge text="4.11+" />
+
+An eventless transition is a transition that is **always taken** when the machine is in the state where it is defined, and when its `cond` guard evaluates to `true`. They are always checked when the state is first entered, before handling any other events. Eventless transitions are defined on the `always` property of the state node:
+
+```js {13-16}
+const gameMachine = Machine(
+  {
+    id: 'game',
+    initial: 'playing',
+    context: {
+      points: 0
+    },
+    states: {
+      playing: {
+        // Eventless transition
+        // Will transition to either 'win' or 'lose' immediately upon
+        // (re)entering 'playing' state if the condition is met.
+        always: [
+          { target: 'win', cond: 'didPlayerWin' },
+          { target: 'lose', cond: 'didPlayerLose' }
+        ],
+        on: {
+          // Self-transition
+          AWARD_POINTS: {
+            actions: assign({
+              points: 100
+            })
+          }
+        }
+      },
+      win: { type: 'final' },
+      lose: { type: 'final' }
+    }
+  },
+  {
+    guards: {
+      didPlayerWin: (context, event) => {
+        // check if player won
+        return context.points > 99;
+      },
+      didPlayerLose: (context, event) => {
+        // check if player lost
+        return context.points < 0;
+      }
+    }
+  }
+);
+
+const gameService = interpret(gameMachine)
+  .onTransition((state) => console.log(state.value))
+  .start();
+
+// Still in 'playing' state because no conditions of
+// transient transition were met
+// => 'playing'
+
+// When 'AWARD_POINTS' is sent, a self-transition to 'PLAYING' occurs.
+// The transient transition to 'win' is taken because the 'didPlayerWin'
+// condition is satisfied.
+gameService.send('AWARD_POINTS');
+// => 'win'
+```
+
+::: tip
+Eventless transitions are usually defined with a `cond` guard and/or a `target` that is different than the current state node. If neither the guard nor the target are added, you risk an infinite loop, as the state will keep re-entering itself and executing the same eventless transition!
+:::
 
 ## Forbidden Transitions
 
