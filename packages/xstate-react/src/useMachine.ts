@@ -153,7 +153,10 @@ export function useMachine<
       ...context
     } as TContext);
 
-    return [resolvedMachine, interpret(resolvedMachine, interpreterOptions)];
+    return [
+      resolvedMachine,
+      interpret(resolvedMachine, { deferEvents: true, ...interpreterOptions })
+    ];
   });
 
   const [state, setState] = useState(() => {
