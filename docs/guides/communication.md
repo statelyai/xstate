@@ -191,7 +191,7 @@ Streams of events sent to the parent machine can be modeled via a callback handl
 - `callback` - called with the event to be sent
 - `onReceive` - called with a listener that [listens to events from the parent](#listening-to-parent-events)
 
-The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited.
+The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited. Callbacks **cannot** use `async/await` syntax because it automatically wraps the return value in a `Promise`.
 
 ```js
 // ...
