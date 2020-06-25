@@ -11,7 +11,7 @@ export function fromService<TContext, TEvent extends EventObject>(
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
     stop: service.stop,
-    current: service.state || machine.initialState,
+    current: service.initialized ? service.state : machine.initialState,
     name: service.sessionId
   };
 }
@@ -24,7 +24,6 @@ export function useService<
   service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
   const serviceActor = useMemo(() => fromService(service), [service]);
-  const [state, send] = useActor<TEvent, State<TContext, TEvent>>(serviceActor);
 
-  return [state, send];
+  return useActor<TEvent, State<TContext, TEvent>>(serviceActor);
 }
