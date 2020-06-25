@@ -173,8 +173,10 @@ export function useMachine<
     service
       .onTransition((currentState) => {
         // Only change the current state if:
-        // - the incoming state is the initial state (since it might have new actors)
-        // - OR the incoming state actually changed
+        // - the incoming state is the "live" initial state (since it might have new actors)
+        // - OR the incoming state actually changed.
+        //
+        // The "live" initial state will have .changed === undefined.
         if (currentState.changed || currentState.changed === undefined) {
           setState(currentState);
         }
