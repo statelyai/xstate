@@ -1579,7 +1579,7 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         initial: 'idle',
         states: {
           idle: { on: { START: 'transient' } },
-          transient: { on: { '': 'next' } },
+          transient: { always: 'next' },
           next: { on: { FINISH: 'end' } },
           end: { type: 'final' }
         }
@@ -1606,9 +1606,10 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           states: {
             idle: { on: { START: 'transient' } },
             transient: {
-              on: {
-                '': [{ target: 'end', cond: 'alwaysFalse' }, { target: 'next' }]
-              }
+              always: [
+                { target: 'end', cond: 'alwaysFalse' },
+                { target: 'next' }
+              ]
             },
             next: { on: { FINISH: 'end' } },
             end: { type: 'final' }
@@ -1649,11 +1650,9 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
               actions: assign({ count: (ctx) => ctx.count + 1 })
             }
           },
-          on: {
-            '': {
-              target: 'finished',
-              cond: (ctx) => ctx.count >= 5
-            }
+          always: {
+            target: 'finished',
+            cond: (ctx) => ctx.count >= 5
           }
         },
         finished: {
@@ -1705,13 +1704,13 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         initial: 'active',
         states: {
           active: {
+            always: {
+              target: 'finished',
+              cond: (ctx) => ctx.count >= 5
+            },
             on: {
               INC: {
                 actions: assign({ count: (ctx) => ctx.count + 1 })
-              },
-              '': {
-                target: 'finished',
-                cond: (ctx) => ctx.count >= 5
               }
             }
           },

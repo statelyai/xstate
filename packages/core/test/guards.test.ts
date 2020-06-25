@@ -156,14 +156,10 @@ describe('guard conditions', () => {
             }
           },
           A3: {
-            on: {
-              '': 'A4'
-            }
+            always: 'A4'
           },
           A4: {
-            on: {
-              '': 'A5'
-            }
+            always: 'A5'
           },
           A5: {}
         }
@@ -172,6 +168,12 @@ describe('guard conditions', () => {
         initial: 'B0',
         states: {
           B0: {
+            always: [
+              {
+                target: 'B4',
+                cond: (_state, _event, { state: s }) => s.matches('A.A4')
+              }
+            ],
             on: {
               T1: [
                 {
@@ -189,12 +191,6 @@ describe('guard conditions', () => {
                 {
                   target: 'B3',
                   cond: (_state, _event, { state: s }) => s.matches('A.A3')
-                }
-              ],
-              '': [
-                {
-                  target: 'B4',
-                  cond: (_state, _event, { state: s }) => s.matches('A.A4')
                 }
               ]
             }

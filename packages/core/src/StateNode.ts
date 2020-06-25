@@ -353,13 +353,15 @@ class StateNode<
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
 
-    this._transient = !this.config.on
-      ? false
-      : Array.isArray(this.config.on)
-      ? this.config.on.some(({ event }: { event: string }) => {
-          return event === NULL_EVENT;
-        })
-      : NULL_EVENT in this.config.on;
+    this._transient =
+      !!this.config.always ||
+      (!this.config.on
+        ? false
+        : Array.isArray(this.config.on)
+        ? this.config.on.some(({ event }: { event: string }) => {
+            return event === NULL_EVENT;
+          })
+        : NULL_EVENT in this.config.on);
     this.strict = !!this.config.strict;
 
     // TODO: deprecate (entry)
@@ -1250,7 +1252,9 @@ class StateNode<
     if (!isDone) {
       const isTransient =
         this._transient ||
-        configuration.some((stateNode) => stateNode._transient);
+        configuration.some((stateNode) => {
+          return stateNode._transient;
+        });
 
       if (isTransient) {
         maybeNextState = this.resolveRaisedTransition(
@@ -1811,7 +1815,7 @@ class StateNode<
         target: transition.target
           ? transition.target.map((t) => `#${t.id}`)
           : undefined,
-        source: `#{this.id}`
+        source: `#${this.id}`
       })
     };
 
@@ -1831,20 +1835,27 @@ class StateNode<
     } else {
       const {
         [WILDCARD]: wildcardConfigs = [],
-        ...strictOnConfigs
+        ...strictTransitionConfigs
       } = this.config.on;
 
       onConfig = flatten(
-        keys(strictOnConfigs)
+        keys(strictTransitionConfigs)
           .map((key) => {
-            const arrayified = toTransitionConfigArray<TContext, EventObject>(
-              key,
-              strictOnConfigs![key as string]
-            );
-            if (!IS_PRODUCTION) {
-              validateArrayifiedTransitions(this, key, arrayified);
+            if (!IS_PRODUCTION && key === NULL_EVENT) {
+              warn(
+                false,
+                `Empty string transition configs (e.g., \`{ on: { '': ... }}\`) for transient transitions are deprecated. Specify the transition in the \`{ always: ... }\` property instead. ` +
+                  `Please check the \`on\` configuration for "#${this.id}".`
+              );
             }
-            return arrayified;
+            const transitionConfigArray = toTransitionConfigArray<
+              TContext,
+              EventObject
+            >(key, strictTransitionConfigs[key as string]);
+            if (!IS_PRODUCTION) {
+              validateArrayifiedTransitions(this, key, transitionConfigArray);
+            }
+            return transitionConfigArray;
           })
           .concat(
             toTransitionConfigArray(
@@ -1858,6 +1869,10 @@ class StateNode<
           )
       );
     }
+
+    const eventlessConfig = this.config.always
+      ? toTransitionConfigArray('', this.config.always)
+      : [];
 
     const doneConfig = this.config.onDone
       ? toTransitionConfigArray(String(done(this.id)), this.config.onDone)
@@ -1896,7 +1911,7 @@ class StateNode<
     const delayedTransitions = this.after;
 
     const formattedTransitions = flatten(
-      [...doneConfig, ...invokeConfig, ...onConfig].map(
+      [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
         (
           transitionConfig: TransitionConfig<TContext, TEvent> & {
             event: TEvent['type'] | NullEvent['type'] | '*';

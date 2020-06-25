@@ -94,9 +94,7 @@ describe('delayed transitions', () => {
             },
             three: {
               entry: () => actual.push('entered three'),
-              on: {
-                '': '#end'
-              }
+              always: '#end'
             }
           },
           after: {
