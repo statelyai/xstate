@@ -72,7 +72,7 @@ const toggleMachine = createMachine({
 
 const toggleService = interpret(toggleMachine).start();
 
-toggleService.subscribe(state => {
+toggleService.subscribe((state) => {
   console.log(state.value);
 });
 
@@ -182,7 +182,7 @@ Using the string or object syntax is useful for handling actions in a custom way
 ```js
 const nextState = machine.transition(/* ... */);
 
-nextState.actions.forEach(action => {
+nextState.actions.forEach((action) => {
   if (action.type === 'focus') {
     // do focus
   }
@@ -220,7 +220,7 @@ const yellowState = machine.transition('green', 'TIMER');
 const redState = machine.transition(yellowState, 'TIMER');
 // => { value: 'red', ... }
 
-const greenState = machine.transition(redState, { type: 'TIMER' });
+const greenState = machine.transition(yellowState, { type: 'TIMER' });
 // => { value: 'green', ... }
 ```
 
@@ -255,7 +255,7 @@ const machine = createMachine({
 
 const service = interpret(machine);
 
-const subscription = service.subscribe(state => {
+const subscription = service.subscribe((state) => {
   console.log(state);
 });
 
@@ -364,7 +364,7 @@ const userMachine = createMachine<UserContext, UserEvent, UserState>({
 
 const userService = interpret(userMachine);
 
-userService.subscribe(state => {
+userService.subscribe((state) => {
   if (state.matches('success')) {
     // from UserState, `user` will be defined
     state.context.user.name;
@@ -396,7 +396,7 @@ const lightMachine = createMachine({
       }
     },
     red: {
-      entry: assign({ redLights: ctx => ctx.redLights + 1 }),
+      entry: assign({ redLights: (ctx) => ctx.redLights + 1 }),
       on: {
         TIMER: 'green'
       }
@@ -406,7 +406,7 @@ const lightMachine = createMachine({
 
 const lightService = interpret(lightMachine);
 
-lightService.subscribe(state => {
+lightService.subscribe((state) => {
   console.log(state);
 });
 
