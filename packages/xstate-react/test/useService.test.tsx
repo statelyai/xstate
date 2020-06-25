@@ -188,6 +188,48 @@ describe('useService hook', () => {
       id: 'childMachine',
       initial: 'active',
       states: {
+        active: {}
+      }
+    });
+    const machine = createMachine({
+      initial: 'active',
+      invoke: {
+        id: 'child',
+        src: childMachine
+      },
+      states: {
+        active: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+      const [state] = useActor(actor);
+
+      expect(state.value).toEqual('active');
+
+      done();
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state] = useMachine(machine);
+
+      return <ChildTest actor={state.children.child} />;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+  });
+
+  it('invoked actor should be able to receive (deferred) events that it replays when active', (done) => {
+    const childMachine = createMachine({
+      id: 'childMachine',
+      initial: 'active',
+      states: {
         active: {
           on: {
             FINISH: { actions: sendParent('FINISH') }
