@@ -11,7 +11,8 @@ import {
   Typestate,
   ActionObject,
   ActionFunction,
-  ActionMeta
+  ActionMeta,
+  StateNode
 } from 'xstate';
 import useConstant from './useConstant';
 import { partition } from './utils';
@@ -133,7 +134,12 @@ export function useMachine<
     ...interpreterOptions
   } = options;
 
-  const customMachine = useConstant(() => {
+  const [resolvedMachine, service] = useConstant<
+    [
+      StateNode<TContext, any, TEvent, TTypestate>,
+      Interpreter<TContext, any, TEvent, TTypestate>
+    ]
+  >(() => {
     const machineConfig = {
       context,
       guards,
@@ -142,20 +148,18 @@ export function useMachine<
       services,
       delays
     };
-    return machine.withConfig(machineConfig, {
+    const resolvedMachine = machine.withConfig(machineConfig, {
       ...machine.context,
       ...context
     } as TContext);
-  });
 
-  const service = useConstant(() => {
-    return interpret(customMachine, interpreterOptions);
+    return [resolvedMachine, interpret(resolvedMachine, interpreterOptions)];
   });
 
   const [state, setState] = useState(() => {
     return rehydratedState
       ? State.create(rehydratedState)
-      : customMachine.initialState;
+      : resolvedMachine.initialState;
   });
 
   const effectActionsRef = useRef<
