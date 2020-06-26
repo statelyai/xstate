@@ -531,6 +531,11 @@
   display: grid;
   grid-template-columns: min-content auto;
   grid-column-gap: 1ch;
+  appearance: none;
+
+  &:not(details) {
+    padding-left: 2ch;
+  }
 
   [data-xviz='json-value'] {
     color: var(--value-color);

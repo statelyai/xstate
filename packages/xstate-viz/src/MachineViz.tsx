@@ -10,7 +10,7 @@ import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 
 interface MachineVizProps {
-  state: State<any, any>;
+  state?: State<any, any>;
   machine: StateMachine<any, any, any>;
 }
 
@@ -37,7 +37,10 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
   );
 };
 
-export function MachineViz({ machine, state }: MachineVizProps) {
+export function MachineViz({
+  machine,
+  state = machine.initialState
+}: MachineVizProps) {
   return (
     <StateContext.Provider value={{ state, tracker: new Tracker() }}>
       <MachineVizContainer machine={machine} state={state} />

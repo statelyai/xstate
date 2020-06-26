@@ -1,10 +1,24 @@
 import React from 'react';
 import { linkTo } from '@storybook/addon-links';
 import { Welcome } from '@storybook/react/demo';
-import { createMachine } from 'xstate';
+import { createMachine, actions } from 'xstate';
 
 import { MachineViz } from '../src/MachineViz';
 import '../themes/dark.scss';
+
+const {
+  raise,
+  send,
+  sendParent,
+  log,
+  cancel,
+  assign,
+  respond,
+  forwardTo,
+  escalate,
+  choose,
+  pure
+} = actions;
 
 export default {
   title: 'MachineViz',
@@ -125,6 +139,211 @@ export const ParallelMachine = () => {
       state={parallelMachine.initialState}
     />
   );
+};
+
+const historyMachine = createMachine({
+  initial: 'active',
+  states: {
+    active: {
+      initial: 'first',
+      states: {
+        first: {},
+        second: {
+          initial: 'one',
+          states: {
+            one: {},
+            two: {},
+            three: {}
+          }
+        },
+        history: { type: 'history' },
+        dh: { type: 'history', history: 'deep' }
+      },
+      on: {
+        DEACTIVATE: 'inactive'
+      }
+    },
+    inactive: {
+      on: {
+        ACTIVATE: 'active.history'
+      }
+    }
+  }
+});
+
+export const HistoryMachine = () => {
+  return (
+    <MachineViz machine={historyMachine} state={historyMachine.initialState} />
+  );
+};
+
+const finalMachine = createMachine({
+  id: 'final',
+  initial: 'inactive',
+  states: {
+    inactive: {
+      on: { TOGGLE: 'active' }
+    },
+    active: {
+      type: 'final',
+      entry: 'some action'
+    }
+  }
+});
+
+export const FinalMachine = () => {
+  return <MachineViz machine={finalMachine} />;
+};
+
+const todoMachine = createMachine<{ todos: any[] }>({
+  id: 'todoApp',
+  initial: 'empty',
+  context: {
+    todos: []
+  },
+  states: {
+    empty: {
+      id: 'empty',
+      on: {
+        ADD_TODO: {
+          actions: assign({
+            todos: (_, e) => [{ message: e.message, completed: 'false' }]
+          }),
+          target: 'nonempty'
+        }
+      },
+      initial: 'start',
+      states: {
+        start: {},
+        afterDelete: {}
+      }
+    },
+    nonempty: {
+      on: {
+        DELETE_TODO: {
+          actions: assign({
+            todos: []
+          }),
+          target: 'empty.afterDelete'
+        },
+        TOGGLE_ALL: '.allCompleted',
+        NAV_ALL: '.allActive',
+        NAV_ACTIVE: '.allActive'
+      },
+      initial: 'allActive',
+      states: {
+        allActive: {
+          on: {
+            TOGGLE_ALL: {
+              actions: assign({
+                todos: (ctx) =>
+                  ctx.todos.map((todo) => ({ ...todo, completed: true }))
+              }),
+              target: 'allCompleted'
+            },
+            TOGGLE_TODO: {
+              actions: assign({
+                todos: (ctx) =>
+                  ctx.todos.map((todo) => ({ ...todo, completed: true }))
+              }),
+              target: 'allCompleted'
+            },
+            NAV_COMPLETED: '#empty',
+            NAV_ACTIVE: 'allActive'
+          }
+        },
+        allCompleted: {
+          on: {
+            TOGGLE_ALL: {
+              actions: assign({
+                todos: (ctx) =>
+                  ctx.todos.map((todo) => ({ ...todo, completed: false }))
+              }),
+              target: 'allActive'
+            },
+            TOGGLE_TODO: {
+              actions: assign({
+                todos: (ctx) =>
+                  ctx.todos.map((todo) => ({ ...todo, completed: false }))
+              }),
+              target: 'allActive'
+            },
+            NAV_COMPLETED: 'allCompleted',
+            NAV_ACTIVE: '#empty',
+            NAV_ALL: 'allCompleted'
+          }
+        }
+      }
+    }
+  }
+});
+
+export const TodoMachine = () => {
+  return <MachineViz machine={todoMachine} />;
+};
+
+const actionsMachine = createMachine({
+  id: 'actions',
+  initial: 'raise',
+  context: {},
+  states: {
+    raise: {
+      entry: raise('SOME_EVENT')
+    },
+    send: {
+      entry: [send('SOME_EVENT'), send(() => ({ type: 'SOME_DYNAMIC_EVENT' }))]
+    },
+    sendTo: {
+      entry: send('SOME_EVENT', { to: 'wherever' })
+    },
+    sendParent: {
+      entry: sendParent('SOME_EVENT')
+    },
+    log: {
+      entry: log('hello', 'this is a label'),
+      exit: log(() => 'some expr', 'another label')
+    },
+    cancel: {
+      entry: [cancel('anid')]
+    },
+    assign: {
+      entry: assign({
+        number: 100,
+        string: 'hello',
+        array: ['foo', ['bar', 'baz']]
+      }),
+      exit: assign(() => ({
+        number: 100,
+        string: 'hello',
+        array: ['foo', ['bar', 'baz']]
+      }))
+    },
+    respond: {
+      entry: respond('HELLO')
+    },
+    forwardTo: {
+      entry: forwardTo('someTarget')
+    },
+    escalate: {
+      entry: escalate({ foo: 'bar' })
+    },
+    choose: {
+      entry: choose([
+        { actions: 'dothis', cond: 'iftrue' },
+        { actions: ['ordothis', 'andthis'], cond: 'iflesstrue' },
+        { actions: 'orgiveup' }
+      ])
+    },
+    pure: {
+      entry: pure(() => {
+        return ['someAction', { type: 'anotherAction' }];
+      })
+    }
+  }
+});
+
+export const ActionsMachine = () => {
+  return <MachineViz machine={actionsMachine} />;
 };
 
 const donutMachine = createMachine({

@@ -64,7 +64,6 @@ export const SimpleInspector = () => {
     };
 
     const timeout = setTimeout(() => {
-      console.log('registering');
       const simpleService = interpret(simpleMachine, {
         devTools: true
       }).start();

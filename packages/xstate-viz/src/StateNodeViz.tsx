@@ -18,8 +18,16 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   const ref = useTracking(stateNode.id);
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
-
   const active = isActive(state, stateNode);
+
+  const titleDescriptor =
+    stateNode.type === 'final'
+      ? 'final'
+      : stateNode.type === 'history'
+      ? stateNode.history === 'deep'
+        ? 'deep history'
+        : 'history'
+      : undefined;
 
   return (
     <div
@@ -32,9 +40,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       data-xviz-active={active || undefined}
       data-xviz-level={getLevel(stateNode)}
       title={`#${stateNode.id} ${
-        ['history', 'final'].includes(stateNode.type)
-          ? `(${stateNode.type})`
-          : ''
+        titleDescriptor ? `(${titleDescriptor})` : ''
       }`}
       style={{
         // @ts-ignore
@@ -47,7 +53,13 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           {stateNode.onEntry.length > 0 && (
             <div data-xviz="actions" data-xviz-actions="entry">
               {stateNode.onEntry.map((entryAction, i) => {
-                return <ActionViz action={entryAction} key={i} />;
+                return (
+                  <ActionViz
+                    action={entryAction}
+                    state={active ? state : undefined}
+                    key={i}
+                  />
+                );
               })}
             </div>
           )}
