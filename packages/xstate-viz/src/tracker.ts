@@ -1,3 +1,5 @@
+import { Rect } from './Rect';
+
 export interface TrackerData {
   rect: null | Rect;
   element: null | Element;
@@ -6,71 +8,10 @@ export interface TrackerData {
 
 type TrackerListener = (data: TrackerData) => void;
 
-export interface Point {
-  x: number;
-  y: number;
-}
-
-class Rect implements ClientRect {
-  public top: number;
-  public left: number;
-  public bottom: number;
-  public right: number;
-  public width: number;
-  public height: number;
-  public x: number;
-  public y: number;
-  constructor(rect: ClientRect) {
-    this.top = rect.top;
-    this.left = rect.left;
-    this.bottom = rect.bottom;
-    this.right = rect.right;
-    this.width = rect.width;
-    this.height = rect.height;
-    this.x = rect.left;
-    this.y = rect.top;
-  }
-
-  public point(x: string, y: string): Point {
-    const point: Point = { x: 0, y: 0 };
-
-    switch (x) {
-      case 'left':
-        point.x = this.left;
-        break;
-      case 'right':
-        point.x = this.right;
-        break;
-
-      case 'center':
-        point.x = this.left + this.width / 2;
-        break;
-      default:
-        break;
-    }
-    switch (y) {
-      case 'top':
-        point.y = this.top;
-        break;
-      case 'bottom':
-        point.y = this.bottom;
-        break;
-
-      case 'center':
-        point.y = this.top + this.height / 2;
-        break;
-      default:
-        break;
-    }
-
-    return point;
-  }
-}
-
 export class Tracker {
   public data: Record<string, TrackerData> = {};
 
-  constructor() {
+  constructor(private parentElement: Element = document.body) {
     // listen for resize events
     try {
       if (window !== undefined) {
@@ -90,7 +31,7 @@ export class Tracker {
   }
 
   public update(id: string, el: Element) {
-    const clientRect = el.getBoundingClientRect();
+    const clientRect = relative(el.getBoundingClientRect(), this.parentElement);
 
     if (!this.data[id]) {
       this.register(id);
@@ -103,14 +44,14 @@ export class Tracker {
     currentData.listeners.forEach((listener) => {
       listener(currentData);
     });
-
-    console.log(this.data);
   }
 
   public updateAll() {
     Object.entries(this.data).forEach(([, value]) => {
       if (value.element) {
-        value.rect = new Rect(value.element.getBoundingClientRect());
+        value.rect = new Rect(
+          relative(value.element.getBoundingClientRect(), this.parentElement)
+        ); // todo: RelativeRect ?
         value.listeners.forEach((listener) => listener(value));
       }
     });

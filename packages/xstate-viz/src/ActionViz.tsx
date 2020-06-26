@@ -25,15 +25,24 @@ function formatAction(action: ActionObject<any, any>): JSX.Element | string {
 
     return `cancel ${toDelayString(delay)} delay`;
   }
+
+  if (action.type.startsWith('function () {')) {
+    return <em>anonymous</em>;
+  }
+
   return action.type;
 }
 
 export function ActionViz({ action }: { action: ActionObject<any, any> }) {
+  const resolvedActionType = action.type.startsWith('function () {')
+    ? 'xstate.anonymous'
+    : action.type;
+
   return (
     <div
       data-xviz="action"
       data-xviz-builtin={action.type.startsWith(BUILTIN_PREFIX) || undefined}
-      data-xviz-action-type={action.type}
+      data-xviz-action-type={resolvedActionType}
       data-xviz-raw={JSON.stringify(action)}
     >
       <div data-xviz="action-type">{formatAction(action)}</div>

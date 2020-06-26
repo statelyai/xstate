@@ -1,11 +1,15 @@
-[data-xviz='machine'],
-[data-xviz='service'],
-[data-xviz='inspector'] {
+[data-xviz] {
   --xviz-background-color: #111;
+  --xviz-foreground-color: white;
   --xviz-active-color: rgb(19, 129, 201);
   --xviz-active-border-color: var(--xviz-active-color);
   --xviz-inactive-border-color: #{rgba(white, 0.2)};
   --xviz-border-width: 2px;
+}
+
+[data-xviz='machine'],
+[data-xviz='service'],
+[data-xviz='inspector'] {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   --gap: 0.5em;
   background: var(--xviz-background-color);
@@ -120,7 +124,7 @@
 }
 
 [data-xviz='stateNode-key'] {
-  padding: 0.5em;
+  padding: 0.5em 1em;
   font-weight: bold;
 }
 // [data-xviz='stateNode-key'],
@@ -207,7 +211,7 @@
     display: none;
   }
 
-  padding: 0.5em;
+  padding: 0.5em 1em;
   --content: 'do / ';
 
   &[data-xviz-actions='entry'] {
@@ -468,6 +472,11 @@
   }
 }
 
+[data-xviz='state'] {
+  background: var(--xviz-background-color);
+  color: var(--xviz-foreground-color);
+}
+
 [data-xviz='event-records'] {
   overflow-y: auto;
 }
@@ -506,9 +515,8 @@
   }
 
   &[data-xviz-json-empty] {
-    opacity: 0.5;
-
     > [data-xviz='json-value']:before {
+      opacity: 0.5;
       content: 'No items';
       font-style: italic;
     }
@@ -532,7 +540,6 @@
   &[data-xviz-json-type='function'] {
     > [data-xviz='json-value'] {
       font-style: italic;
-      opacity: 0.5;
     }
   }
 
@@ -549,6 +556,9 @@
 }
 
 [data-xviz='json-key'] {
+  &:focus {
+    outline: none;
+  }
   &::-webkit-details-marker {
     width: 1ch;
     margin-right: 1ch;
