@@ -37,10 +37,7 @@
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "dependencies": {
-    "xstate": "^4.10.0"
-  },
   "devDependencies": {
-    "xstate": "^4.10.0"
+    "xstate": "*"
   }
 }

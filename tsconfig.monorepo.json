@@ -17,6 +17,9 @@
       "path": "./packages/xstate-immer"
     },
     {
+      "path": "./packages/xstate-inspect"
+    },
+    {
       "path": "./packages/xstate-react"
     },
     {
