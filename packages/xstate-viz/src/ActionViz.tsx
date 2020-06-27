@@ -60,7 +60,10 @@ function formatAction(
         </>
       );
     case 'xstate.assign':
-      if (typeof action.assignment === 'object') {
+      if (
+        typeof action.assignment === 'object' &&
+        Object.keys(action.assignment).length > 0
+      ) {
         return (
           <>
             assign to{' '}

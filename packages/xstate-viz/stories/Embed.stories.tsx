@@ -52,7 +52,13 @@ export const SimpleInspector = () => {
     <>
       <Simple />
       <hr></hr>
-      <iframe data-xstate />
+      <iframe
+        data-xstate
+        style={{
+          height: '100vh',
+          width: '100%'
+        }}
+      />
     </>
   );
 };
