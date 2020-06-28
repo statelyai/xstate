@@ -78,7 +78,7 @@ export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = AnyEventObject
 >(
-  node: MachineNode<TContext, any, TEvent> | MachineNode<TContext, any, TEvent>,
+  node: MachineNode<TContext, TEvent> | MachineNode<TContext, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): AdjacencyMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -143,7 +143,7 @@ export function getShortestPaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
@@ -238,7 +238,7 @@ export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
 ): StatePathsMap<TContext, TEvent> {
   const optionsWithDefaults = {
@@ -314,7 +314,7 @@ export function getSimplePathsAsArray<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
 >(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);

@@ -102,14 +102,14 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
-  machine: MachineNode<TContext, any, TEvent, TTypestate>,
+  machine: MachineNode<TContext, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
+  Interpreter<TContext, TEvent, TTypestate>['send'],
+  Interpreter<TContext, TEvent, TTypestate>
 ] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(machine);

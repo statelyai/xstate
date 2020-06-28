@@ -30,14 +30,14 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
 }
 
 export function useMachine<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): {
   state: Ref<State<TContext, TEvent>>;
-  send: Interpreter<TContext, any, TEvent>['send'];
-  service: Interpreter<TContext, any, TEvent>;
+  send: Interpreter<TContext, TEvent>['send'];
+  service: Interpreter<TContext, TEvent>;
 } {
   const {
     context,
@@ -88,17 +88,15 @@ export function useMachine<TContext, TEvent extends EventObject>(
 }
 
 export function useService<TContext, TEvent extends EventObject>(
-  service:
-    | Interpreter<TContext, any, TEvent>
-    | Ref<Interpreter<TContext, any, TEvent>>
+  service: Interpreter<TContext, TEvent> | Ref<Interpreter<TContext, TEvent>>
 ): {
   state: Ref<State<TContext, TEvent>>;
-  send: Interpreter<TContext, any, TEvent>['send'];
-  service: Ref<Interpreter<TContext, any, TEvent>>;
+  send: Interpreter<TContext, TEvent>['send'];
+  service: Ref<Interpreter<TContext, TEvent>>;
 } {
   const serviceRef = isRef(service)
     ? service
-    : ref<Interpreter<TContext, any, TEvent>>(service);
+    : ref<Interpreter<TContext, TEvent>>(service);
   const state = ref<State<TContext, TEvent>>(serviceRef.value.state);
 
   watch(serviceRef, (watchedService, _, onCleanup) => {

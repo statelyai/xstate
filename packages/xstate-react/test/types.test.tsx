@@ -30,7 +30,7 @@ describe('useService', () => {
       }
     });
 
-    const todosMachine = Machine<TodosCtx, any, { type: 'CREATE' }>({
+    const todosMachine = Machine<TodosCtx, { type: 'CREATE' }>({
       context: { todos: [] },
       initial: 'working',
       states: { working: {} },
