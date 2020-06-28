@@ -279,4 +279,36 @@ describe('useService hook', () => {
       </React.StrictMode>
     );
   });
+
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
+      React.useEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state, send] = useMachine(machine);
+
+      if (state.matches('success')) {
+        done();
+      }
+
+      return <ChildTest send={send} />;
+    };
+
+    render(<Test />);
+  });
 });
