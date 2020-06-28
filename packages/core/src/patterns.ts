@@ -34,8 +34,8 @@ const defaultSequencePatternOptions = {
 };
 
 export function sequence<
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 >(
   items: string[],
   options?: Partial<SequencePatternOptions<TEvent>>

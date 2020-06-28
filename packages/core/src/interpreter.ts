@@ -834,8 +834,8 @@ export class Interpreter<
  */
 export function interpret<
   TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
+  TStateSchema extends StateSchema = any,
   TTypestate extends Typestate<TContext> = any
 >(
   machine: MachineNode<TContext, TEvent, TStateSchema, TTypestate>,
