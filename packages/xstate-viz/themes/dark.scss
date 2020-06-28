@@ -94,6 +94,10 @@
   }
   &:not([data-xviz-active]) {
     --xviz-border-color: var(--xviz-inactive-border-color);
+
+    [data-xviz='actions'] {
+      opacity: 0.5;
+    }
   }
 }
 
@@ -124,7 +128,7 @@
 }
 
 [data-xviz='stateNode-key'] {
-  padding: 0.5em 1em;
+  padding: 0.5em;
   font-weight: bold;
 }
 // [data-xviz='stateNode-key'],
@@ -144,7 +148,7 @@
 }
 
 [data-xviz='stateNode-invocations'] {
-  padding: 0.5em 1rem;
+  padding: 0.5em;
 }
 
 [data-xviz='events'] {
@@ -208,11 +212,12 @@
 }
 
 [data-xviz='actions'] {
+  opacity: 1;
   &:empty {
     display: none;
   }
 
-  padding: 0.5em 1em;
+  padding: 0.5em;
   --content: 'do / ';
 
   &[data-xviz-actions='entry'] {
@@ -235,8 +240,6 @@
   padding-bottom: 0.5em;
 
   &[data-xviz-builtin] {
-    opacity: 0.5;
-
     [data-xviz='action-entry'] {
       display: none;
     }
@@ -422,15 +425,15 @@
   }
 
   [data-xviz='service-link'] {
-    padding: 0.5rem 1rem;
+    padding: 0.5em;
     border-bottom: 1px solid rgba(white, 0.3);
   }
 
   > [data-xviz='service'] {
     grid-area: service;
     display: grid;
-    grid-template-columns: 1fr 20rem;
-    grid-template-rows: 1rem min-content 1fr;
+    grid-template-columns: 1fr 20em;
+    grid-template-rows: 1em min-content 1fr;
     grid-template-areas:
       'header header'
       'machine state'

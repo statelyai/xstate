@@ -137,6 +137,14 @@ export function EdgeViz({
 
           const endPoint = minPoint;
 
+          const theta = Math.atan2(
+            endPoint.y - startPoint.y,
+            endPoint.x - startPoint.x
+          );
+
+          const intersectsWithEvent =
+            minLocation === 'left' && theta <= Math.PI / 2;
+
           const endOffset: Point = ({
             top: { x: 0, y: -10 },
             bottom: { x: 0, y: 10 },
@@ -204,7 +212,9 @@ export function EdgeViz({
             `C ${startControl.x} ${startControl.y} ${endControl.x} ${
               endControl.y
             } ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`
-          ].join(' ');
+          ]
+            .filter((x) => !!x)
+            .join(' ');
 
           return (
             <>
