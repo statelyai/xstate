@@ -134,7 +134,7 @@ export type Condition<TContext, TEvent extends EventObject> =
 export type TransitionTarget<
   TContext,
   TEvent extends EventObject
-> = SingleOrArray<string | StateNode<TContext, any, TEvent>>;
+> = SingleOrArray<string | StateNode<TContext, TEvent>>;
 
 export type TransitionTargets<TContext> = Array<
   string | StateNode<TContext, any>
@@ -254,44 +254,44 @@ export type SingleOrArray<T> = T[] | T;
 
 export type StateNodesConfig<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 > = {
   [K in keyof TStateSchema['states']]: StateNode<
     TContext,
-    TStateSchema['states'][K],
-    TEvent
+    TEvent,
+    TStateSchema['states'][K]
   >;
 };
 
 export type StatesConfig<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 > = {
   [K in keyof TStateSchema['states']]: StateNodeConfig<
     TContext,
-    TStateSchema['states'][K],
-    TEvent
+    TEvent,
+    TStateSchema['states'][K]
   >;
 };
 
 export type StatesDefinition<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 > = {
   [K in keyof TStateSchema['states']]: StateNodeDefinition<
     TContext,
-    TStateSchema['states'][K],
-    TEvent
+    TEvent,
+    TStateSchema['states'][K]
   >;
 };
 
 export type TransitionConfigTarget<TContext, TEvent extends EventObject> =
   | string
   | undefined
-  | StateNode<TContext, any, TEvent>;
+  | StateNode<TContext, TEvent>;
 
 export type TransitionConfigOrTarget<
   TContext,
@@ -367,8 +367,8 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
 
 export interface StateNodeConfig<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema = any
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -407,7 +407,7 @@ export interface StateNodeConfig<
   /**
    * The mapping of state node keys to their state node configurations (recursive).
    */
-  states?: StatesConfig<TContext, TStateSchema, TEvent> | undefined;
+  states?: StatesConfig<TContext, TEvent, TStateSchema> | undefined;
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
@@ -440,7 +440,7 @@ export interface StateNodeConfig<
   /**
    * @private
    */
-  parent?: StateNode<TContext, any, TEvent>;
+  parent?: StateNode<TContext, TEvent>;
   strict?: boolean | undefined;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
@@ -470,8 +470,8 @@ export interface StateNodeConfig<
 
 export interface StateNodeDefinition<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 > {
   id: string;
   version?: string | undefined;
@@ -480,7 +480,7 @@ export interface StateNodeDefinition<
   type: 'atomic' | 'compound' | 'parallel' | 'final' | 'history';
   initial: InitialTransitionDefinition<TContext, TEvent> | undefined;
   history: boolean | 'shallow' | 'deep' | undefined;
-  states: StatesDefinition<TContext, TStateSchema, TEvent>;
+  states: StatesDefinition<TContext, TEvent, TStateSchema>;
   on: TransitionDefinitionMap<TContext, TEvent>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   entry: Array<ActionObject<TContext, TEvent>>;
@@ -493,7 +493,7 @@ export interface StateNodeDefinition<
 
 export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 export interface AtomicStateNodeConfig<TContext, TEvent extends EventObject>
-  extends StateNodeConfig<TContext, StateSchema, TEvent> {
+  extends StateNodeConfig<TContext, TEvent> {
   initial?: undefined;
   parallel?: false | undefined;
   states?: undefined;
@@ -518,11 +518,11 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
 
 export type SimpleOrStateNodeConfig<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 > =
   | AtomicStateNodeConfig<TContext, TEvent>
-  | StateNodeConfig<TContext, TStateSchema, TEvent>;
+  | StateNodeConfig<TContext, TEvent, TStateSchema>;
 
 export type ActionFunctionMap<TContext, TEvent extends EventObject> = Record<
   string,
@@ -547,9 +547,9 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
 }
 export interface MachineConfig<
   TContext,
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
-> extends StateNodeConfig<TContext, TStateSchema, TEvent> {
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
+> extends StateNodeConfig<TContext, TEvent, TStateSchema> {
   /**
    * The initial context (extended state)
    */
@@ -567,7 +567,7 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
 
 export type HistoryValue<TContext, TEvent extends EventObject> = Record<
   string,
-  Array<StateNode<TContext, any, TEvent>>
+  Array<StateNode<TContext, TEvent>>
 >;
 
 export type StateFrom<TMachine extends MachineNode<any, any, any>> = ReturnType<
@@ -816,8 +816,8 @@ export interface ChooseAction<TContext, TEvent extends EventObject>
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  target: Array<StateNode<TContext, any, TEvent>> | undefined;
-  source: StateNode<TContext, any, TEvent>;
+  target: Array<StateNode<TContext, TEvent>> | undefined;
+  source: StateNode<TContext, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
@@ -834,7 +834,7 @@ export interface InitialTransitionDefinition<
   TContext,
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
-  target: Array<StateNode<TContext, any, TEvent>>;
+  target: Array<StateNode<TContext, TEvent>>;
   cond?: never;
 }
 
@@ -860,8 +860,8 @@ export interface Edge<
   TEventType extends TEvent['type'] = string
 > {
   event: TEventType;
-  source: StateNode<TContext, any, TEvent>;
-  target: StateNode<TContext, any, TEvent>;
+  source: StateNode<TContext, TEvent>;
+  target: StateNode<TContext, TEvent>;
   cond?: Condition<TContext, TEvent & { type: TEventType }>;
   actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
@@ -944,7 +944,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   historyValue?: HistoryValue<TContext, TEvent>;
   actions?: Array<ActionObject<TContext, TEvent>>;
   meta?: any;
-  configuration: Array<StateNode<TContext, any, TEvent>>;
+  configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
   children: Record<string, ActorRef<any>>;
   done?: boolean;
@@ -1107,7 +1107,6 @@ export interface ActorRef<TEvent extends EventObject, TEmitted = any>
 
 export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
   infer TC,
-  any,
   infer TE
 >
   ? ActorRef<TE, State<TC, TE>>

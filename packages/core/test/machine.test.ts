@@ -26,7 +26,7 @@ interface LightStateSchema {
   };
 }
 
-const lightMachine = Machine<undefined, LightStateSchema>({
+const lightMachine = Machine<undefined, any, LightStateSchema>({
   key: 'light',
   initial: 'green',
   states: {

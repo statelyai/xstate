@@ -58,7 +58,7 @@ export function fromCallback<TEvent extends EventObject>(
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   parent: ActorRef<any>,
   name: string,
   options?: Partial<InterpreterOptions>
@@ -70,7 +70,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 }
 
 export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>,
+  service: Interpreter<TContext, TEvent>,
   name: string = registry.bookId()
 ): ActorRef<TEvent> {
   return new ObservableActorRef(createServiceBehavior(service), name);

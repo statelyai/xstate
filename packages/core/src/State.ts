@@ -84,7 +84,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, any, TEvent>>;
+  public configuration: Array<StateNode<TContext, TEvent>>;
   /**
    * The next events that will cause a transition from the current state.
    */

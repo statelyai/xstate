@@ -62,10 +62,10 @@ function resolveContext<TContext>(
 
 export class MachineNode<
   TContext = any,
-  TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
+  TStateSchema extends StateSchema = any,
   TTypestate extends Typestate<TContext> = any
-> extends StateNode<TContext, TStateSchema, TEvent> {
+> extends StateNode<TContext, TEvent, TStateSchema> {
   public context: TContext;
   /**
    * The machine's own version.
@@ -88,7 +88,7 @@ export class MachineNode<
     /**
      * The raw config used to create the machine.
      */
-    public config: MachineConfig<TContext, TStateSchema, TEvent>,
+    public config: MachineConfig<TContext, TEvent, TStateSchema>,
     options?: Partial<MachineOptions<TContext, TEvent>>
   ) {
     super(config, {
@@ -111,7 +111,7 @@ export class MachineNode<
     // Document order
     let order = 0;
 
-    function dfs(stateNode: StateNode<TContext, any, TEvent>): void {
+    function dfs(stateNode: StateNode<TContext, TEvent>): void {
       stateNode.order = order++;
 
       for (const child of getChildren(stateNode)) {
@@ -151,7 +151,7 @@ export class MachineNode<
    */
   public withConfig(
     options: Partial<MachineOptions<TContext, TEvent>>
-  ): MachineNode<TContext, TStateSchema, TEvent> {
+  ): MachineNode<TContext, TEvent, TStateSchema> {
     const { actions, guards, behaviors, delays } = this.options;
 
     return new MachineNode(this.config, {
@@ -172,7 +172,7 @@ export class MachineNode<
    */
   public withContext(
     context: Partial<TContext>
-  ): MachineNode<TContext, TStateSchema, TEvent> {
+  ): MachineNode<TContext, TEvent, TStateSchema> {
     return this.withConfig({
       context: resolveContext(this.context, context)
     });
@@ -291,7 +291,7 @@ export class MachineNode<
     >;
   }
 
-  public getStateNodeById(id: string): StateNode<TContext, any, TEvent> {
+  public getStateNodeById(id: string): StateNode<TContext, TEvent> {
     return getStateNodeById(this, id);
   }
 }

@@ -51,13 +51,13 @@ const EMPTY_OBJECT = {};
 
 interface StateNodeOptions<TContext, TEvent extends EventObject> {
   _key: string;
-  _parent?: StateNode<TContext, any, TEvent>;
+  _parent?: StateNode<TContext, TEvent>;
 }
 
 export class StateNode<
   TContext = any,
-  TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject = EventObject,
+  TStateSchema extends StateSchema = any
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -84,7 +84,7 @@ export class StateNode<
   /**
    * The child state nodes.
    */
-  public states: StateNodesConfig<TContext, TStateSchema, TEvent>;
+  public states: StateNodesConfig<TContext, TEvent, TStateSchema>;
   /**
    * The type of history on this state node. Can be:
    *
@@ -103,11 +103,11 @@ export class StateNode<
   /**
    * The parent state node.
    */
-  public parent?: StateNode<TContext, any, TEvent>;
+  public parent?: StateNode<TContext, TEvent>;
   /**
    * The root machine node.
    */
-  public machine: MachineNode<TContext, any, TEvent>;
+  public machine: MachineNode<TContext, TEvent>;
   /**
    * The meta data associated with this state node, which will be returned in State instances.
    */
@@ -146,13 +146,13 @@ export class StateNode<
     invoke: undefined as Array<InvokeDefinition<TContext, TEvent>> | undefined
   };
 
-  public idMap: Record<string, StateNode<TContext, any, TEvent>> = {};
+  public idMap: Record<string, StateNode<TContext, TEvent>> = {};
 
   constructor(
     /**
      * The raw config used to create the machine.
      */
-    public config: StateNodeConfig<TContext, TStateSchema, TEvent>,
+    public config: StateNodeConfig<TContext, TEvent, TStateSchema>,
     options: StateNodeOptions<TContext, TEvent>
   ) {
     const isMachine = !this.parent;
@@ -160,7 +160,7 @@ export class StateNode<
     this.key = this.config.key || options._key;
     this.machine = this.parent
       ? this.parent.machine
-      : ((this as unknown) as MachineNode<TContext, TStateSchema, TEvent>);
+      : ((this as unknown) as MachineNode<TContext, TEvent, TStateSchema>);
     this.path = this.parent ? this.parent.path.concat(this.key) : [];
     this.id =
       this.config.id ||
@@ -180,7 +180,7 @@ export class StateNode<
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
-          (stateConfig: StateNodeConfig<TContext, any, TEvent>, key) => {
+          (stateConfig: StateNodeConfig<TContext, TEvent>, key) => {
             const stateNode = new StateNode(stateConfig, {
               _parent: this,
               _key: key
@@ -192,7 +192,7 @@ export class StateNode<
             return stateNode;
           }
         )
-      : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvent>;
+      : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent, TStateSchema>;
 
     // History config
     this.history =
@@ -215,7 +215,7 @@ export class StateNode<
   /**
    * The well-structured state node definition.
    */
-  public get definition(): StateNodeDefinition<TContext, TStateSchema, TEvent> {
+  public get definition(): StateNodeDefinition<TContext, TEvent, TStateSchema> {
     return {
       id: this.id,
       key: this.key,
@@ -237,12 +237,9 @@ export class StateNode<
           }
         : undefined,
       history: this.history,
-      states: mapValues(
-        this.states,
-        (state: StateNode<TContext, any, TEvent>) => {
-          return state.definition;
-        }
-      ) as StatesDefinition<TContext, TStateSchema, TEvent>,
+      states: mapValues(this.states, (state: StateNode<TContext, TEvent>) => {
+        return state.definition;
+      }) as StatesDefinition<TContext, TEvent, TStateSchema>,
       on: this.on,
       transitions: this.transitions,
       entry: this.entry,

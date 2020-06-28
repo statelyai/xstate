@@ -13,26 +13,26 @@ export function Machine<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, any, TEvent>,
+  config: MachineConfig<TContext, TEvent, any>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): MachineNode<TContext, any, TEvent>;
+): MachineNode<TContext, TEvent>;
 export function Machine<
   TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject = AnyEventObject,
+  TStateSchema extends StateSchema = any
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  config: MachineConfig<TContext, TEvent, TStateSchema>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): MachineNode<TContext, TStateSchema, TEvent>;
+): MachineNode<TContext, TEvent, TStateSchema>;
 export function Machine<
   TContext = DefaultContext,
-  TStateSchema extends StateSchema = any,
-  TEvent extends EventObject = AnyEventObject
+  TEvent extends EventObject = AnyEventObject,
+  TStateSchema extends StateSchema = any
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  config: MachineConfig<TContext, TEvent, TStateSchema>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): MachineNode<TContext, TStateSchema, TEvent> {
-  return new MachineNode<TContext, TStateSchema, TEvent, any>(config, options);
+): MachineNode<TContext, TEvent, TStateSchema> {
+  return new MachineNode<TContext, TEvent, TStateSchema, any>(config, options);
 }
 
 export function createMachine<
@@ -40,8 +40,8 @@ export function createMachine<
   TEvent extends EventObject = AnyEventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  config: MachineConfig<TContext, any, TEvent>,
+  config: MachineConfig<TContext, TEvent, any>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): MachineNode<TContext, any, TEvent, TTypestate> {
-  return new MachineNode<TContext, any, TEvent, TTypestate>(config, options);
+): MachineNode<TContext, TEvent, TTypestate> {
+  return new MachineNode<TContext, TEvent, TTypestate>(config, options);
 }

@@ -456,8 +456,8 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
 }
 
 export function normalizeTarget<TContext, TEvent extends EventObject>(
-  target: SingleOrArray<string | StateNode<TContext, any, TEvent>> | undefined
-): Array<string | StateNode<TContext, any, TEvent>> | undefined {
+  target: SingleOrArray<string | StateNode<TContext, TEvent>> | undefined
+): Array<string | StateNode<TContext, TEvent>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
