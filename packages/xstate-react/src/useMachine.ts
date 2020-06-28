@@ -180,7 +180,11 @@ export function useMachine<
         // - OR the incoming state actually changed.
         //
         // The "live" initial state will have .changed === undefined.
-        if (currentState.changed || currentState.changed === undefined) {
+        const initialStateChanged =
+          currentState.changed === undefined &&
+          Object.keys(currentState.children).length;
+
+        if (currentState.changed || initialStateChanged) {
           setState(currentState);
         }
 
