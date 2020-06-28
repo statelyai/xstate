@@ -498,6 +498,38 @@ describe('useMachine hook', () => {
     ]);
     done();
   });
+
+  it('initial effect actions should execute during the very first commit phase', (done) => {
+    let commitPhaseCounter = 0;
+
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          entry: [
+            asLayoutEffect(() => {
+              expect(commitPhaseCounter).toBe(1);
+            }),
+            asEffect(() => {
+              expect(commitPhaseCounter).toBe(1);
+            })
+          ]
+        }
+      }
+    });
+
+    const App = () => {
+      React.useLayoutEffect(() => {
+        commitPhaseCounter++;
+      });
+      useMachine(machine);
+
+      return <div />;
+    };
+
+    render(<App />);
+    done();
+  });
 });
 
 describe('useMachine (strict mode)', () => {
