@@ -624,6 +624,14 @@ export interface ErrorPlatformEvent extends EventObject {
   data: any;
 }
 
+export interface SCXMLErrorEvent extends SCXML.Event<any> {
+  name:
+    | ActionTypes.ErrorExecution
+    | ActionTypes.ErrorPlatform
+    | ActionTypes.ErrorCommunication;
+  data: any;
+}
+
 export interface DoneEventObject extends EventObject {
   data?: any;
   toString(): string;

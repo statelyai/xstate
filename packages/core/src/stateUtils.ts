@@ -1646,15 +1646,26 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           }
           break;
         case actionTypes.assign:
-          const [nextContext, nextActions] = updateContext(
-            context,
-            _event,
-            [actionObject as AssignAction<TContext, TEvent>],
-            currentState,
-            service
-          );
-          context = nextContext;
-          resActions.push(actionObject, ...nextActions);
+          try {
+            const [nextContext, nextActions] = updateContext(
+              context,
+              _event,
+              [actionObject as AssignAction<TContext, TEvent>],
+              currentState,
+              service
+            );
+            context = nextContext;
+            resActions.push(actionObject, ...nextActions);
+          } catch (err) {
+            // Raise error.execution events for failed assign actions
+            raisedActions.push({
+              type: actionTypes.raise,
+              _event: toSCXMLEvent({
+                type: actionTypes.errorExecution,
+                error: err
+              } as any) // TODO: fix
+            });
+          }
           break;
         default:
           resActions.push(

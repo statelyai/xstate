@@ -10,10 +10,9 @@ import {
   ActorRef,
   ActorRefFrom
 } from './types';
-import { IS_PRODUCTION } from './environment';
 import { State } from '.';
 import { ObservableActorRef } from './Actor';
-import { warn, isFunction, keys } from './utils';
+import { isFunction, keys } from './utils';
 import { createBehaviorFrom, Behavior } from './behavior';
 import { registry } from './registry';
 
@@ -24,10 +23,13 @@ export function updateContext<TContext, TEvent extends EventObject>(
   state?: State<TContext, TEvent>,
   service?: ActorRef<TEvent>
 ): [TContext, ActionObject<TContext, TEvent>[]] {
-  if (!IS_PRODUCTION) {
-    warn(!!context, 'Attempting to update undefined context');
-  }
   const capturedActions: InvokeActionObject[] = [];
+
+  if (!context) {
+    throw new Error(
+      'Cannot assign to undefined `context`. Ensure that `context` is defined in the machine config.'
+    );
+  }
 
   const updatedContext = context
     ? assignActions.reduce((acc, assignAction) => {

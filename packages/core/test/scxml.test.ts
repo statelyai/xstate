@@ -29,10 +29,7 @@ const testGroups = {
     'send8b',
     'send9'
   ],
-  assign: [
-    // 'assign_invalid', // TODO: handle error.execution event
-    'assign_obj_literal'
-  ],
+  assign: ['assign_invalid', 'assign_obj_literal'],
   'assign-current-small-step': ['test0', 'test1', 'test2', 'test3', 'test4'],
   basic: ['basic0', 'basic1', 'basic2'],
   'cond-js': ['test0', 'test1', 'test2', 'TestConditionalTransition'],
@@ -44,7 +41,7 @@ const testGroups = {
   delayedSend: ['send1', 'send2', 'send3'],
   documentOrder: ['documentOrder0'],
   error: [
-    // 'error', // not implemented
+    // 'error' // not implemented
   ],
   forEach: [
     // 'test1', // not implemented
@@ -61,12 +58,8 @@ const testGroups = {
     'history5',
     'history6'
   ],
-  'if-else': [
-    // 'test0', // microstep not implemented correctly
-  ],
-  in: [
-    // 'TestInPredicate', // conversion of In() predicate not implemented yet
-  ],
+  'if-else': ['test0'],
+  in: ['TestInPredicate'],
   'internal-transitions': ['test0', 'test1'],
   misc: ['deep-initial'],
   'more-parallel': [
@@ -86,9 +79,7 @@ const testGroups = {
     'test10',
     'test10b'
   ],
-  'multiple-events-per-transition': [
-    // 'test1'
-  ],
+  'multiple-events-per-transition': ['test1'],
   parallel: ['test0', 'test1', 'test2', 'test3'],
   'parallel+interrupt': [
     'test0',
@@ -134,7 +125,7 @@ const testGroups = {
     // 'test0',
     // 'test1'
   ],
-  // 'send-data': ['send1'],
+  // 'send-data': ['send1'], // <content> conversion not implementd
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
@@ -156,19 +147,19 @@ const testGroups = {
     'test174.txml',
     'test175.txml',
     'test176.txml',
-    // 'test179.txml', // conversion of <content> in <sens> not implemented yet
+    // 'test179.txml', // conversion of <content> in <send> not implemented yet
     // 'test183.txml', idlocation not implemented yet
     'test185.txml',
-    // 'test186.txml', // not sure yet why
+    'test186.txml',
     'test187.txml',
     'test189.txml',
-    // 'test190.txml', // _sessionid not yet available for expressions
+    'test190.txml', // note: _sessionid is undefined for expressions
     'test191.txml',
-    // 'test192.txml', // conversion of #_invokeid not implemented yet
+    // 'test192.txml', // done.invoke inexact event descriptor
     'test193.txml',
-    // 'test194.txml', // illegal target for <send> causes the event error.execution to be raised
+    'test194.txml',
     // 'test198.txml', // origintype not implemented yet
-    // 'test199.txml', // invalid send type results in error.execution
+    // 'test199.txml', // send type not checked
     'test200.txml',
     'test201.txml',
     'test205.txml',
@@ -207,7 +198,7 @@ const testGroups = {
     // 'test278.txml', // non-root datamodel with early binding not implemented yet
     // 'test279.txml', // non-root datamodel with early binding not implemented yet
     // 'test280.txml', // non-root datamodel with late binding not implemented yet
-    // 'test286.txml', // error.execution when evaluating assign
+    'test286.txml',
     'test287.txml',
     // 'test294.txml', // conversion of <donedata> not implemented yet
     // 'test298.txml', // error.execution when evaluating donedata
@@ -254,16 +245,16 @@ const testGroups = {
     // 'test354.txml', // conversion of namelist not implemented yet
     'test355.txml',
     'test364.txml',
-    // 'test372.txml', // microstep not implemented correctly
+    // 'test372.txml', // microstep not implemented correctly for final states
     'test375.txml',
     // 'test376.txml', // executable blocks not implemented
     'test377.txml',
     // 'test378.txml', // executable blocks not implemented
     'test387.txml',
-    // 'test388.txml', // computed historyValue not being available immediately after exiting states for the following synchronous enterStates
+    'test388.txml',
     'test396.txml',
     // 'test399.txml', // inexact prefix event matching not implemented
-    // 'test401.txml', // error.execution when evaluating assign
+    // 'test401.txml', // inexact "error" event (should be "error.execution")
     // 'test402.txml', // error.execution when evaluating assign + inexact prefix event matching not implemented
     'test403a.txml',
     'test403b.txml',
@@ -295,7 +286,7 @@ const testGroups = {
     // 'test457.txml', // <foreach> not implemented yet
     // 'test459.txml', // <foreach> not implemented yet
     // 'test460.txml', // <foreach> not implemented yet
-    // 'test487.txml', // error.execution when evaluating assign
+    'test487.txml',
     // 'test488.txml', // error.execution when evaluating param
     'test495.txml',
     // 'test496.txml', // error.communication not implemented yet
@@ -370,7 +361,13 @@ async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
         if (nextState.value === 'pass') {
           resolve();
         } else {
-          reject(new Error('Reached "fail" state.'));
+          reject(
+            new Error(
+              `Reached "fail" state with event ${JSON.stringify(
+                nextState.event
+              )}`
+            )
+          );
         }
       })
       .start();
@@ -397,7 +394,9 @@ async function runTestToCompletion(
     })
     .onDone(() => {
       if (nextState.value === 'fail') {
-        throw new Error('Reached "fail" state.');
+        throw new Error(
+          `Reached "fail" state with event ${JSON.stringify(nextState.event)}`
+        );
       }
       done = true;
     })
@@ -422,11 +421,11 @@ async function runTestToCompletion(
 
 describe('scxml', () => {
   const testGroupKeys = Object.keys(testGroups);
-  // const testGroupKeys = ['assign-current-small-step'];
+  // const testGroupKeys = ['w3c-ecma'];
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
-    // const testNames = ['test2'];
+    // const testNames = ['test372.txml'];
 
     testNames.forEach((testName) => {
       const scxmlSource =

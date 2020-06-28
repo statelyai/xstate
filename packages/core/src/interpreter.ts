@@ -21,7 +21,8 @@ import {
   BehaviorCreator,
   InvokeActionObject,
   AnyEventObject,
-  ActorRef
+  ActorRef,
+  SCXMLErrorEvent
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -34,7 +35,8 @@ import {
   isArray,
   isFunction,
   toSCXMLEvent,
-  symbolObservable
+  symbolObservable,
+  isSCXMLErrorEvent
 } from './utils';
 import { Scheduler } from './scheduler';
 import { isActorRef, fromService, ObservableActorRef } from './Actor';
@@ -330,6 +332,16 @@ export class Interpreter<
     return this;
   }
 
+  private handleErrorEvent(errorEvent: SCXMLErrorEvent): void {
+    if (this.errorListeners.size > 0) {
+      this.errorListeners.forEach((listener) => {
+        listener(errorEvent.data.data);
+      });
+    } else {
+      throw errorEvent.data.data;
+    }
+  }
+
   /**
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
@@ -556,8 +568,13 @@ export class Interpreter<
 
     if (!target) {
       if (!isParent) {
-        throw new Error(
+        const executionError = new Error(
           `Unable to send event to child '${to}' from service '${this.id}'.`
+        );
+        this.send(
+          toSCXMLEvent<TEvent>(actionTypes.errorExecution, {
+            data: executionError as any // TODO: refine
+          })
         );
       }
 
@@ -590,19 +607,10 @@ export class Interpreter<
     const _event = toSCXMLEvent(event);
 
     if (
-      _event.name.indexOf(actionTypes.errorPlatform) === 0 &&
-      !this.state.nextEvents.some(
-        (nextEvent) => nextEvent.indexOf(actionTypes.errorPlatform) === 0
-      )
+      isSCXMLErrorEvent(_event) &&
+      !this.state.nextEvents.some((nextEvent) => nextEvent === _event.name)
     ) {
-      // TODO: refactor into proper error handler
-      if (this.errorListeners.size > 0) {
-        this.errorListeners.forEach((listener) => {
-          listener((_event.data as any).data);
-        });
-      } else {
-        throw (_event.data as any).data;
-      }
+      this.handleErrorEvent(_event);
     }
 
     const nextState = this.machine.transition(this.state, _event, this.ref);

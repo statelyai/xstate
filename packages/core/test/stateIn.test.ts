@@ -1,4 +1,5 @@
 import { Machine } from '../src/index';
+import { stateIn } from '../src/guards';
 
 const machine = Machine({
   type: 'parallel',
@@ -14,11 +15,11 @@ const machine = Machine({
             },
             EVENT2: {
               target: 'a2',
-              in: { b: 'b2' }
+              cond: stateIn({ b: 'b2' })
             },
             EVENT3: {
               target: 'a2',
-              in: '#b_b2'
+              cond: stateIn('#b_b2')
             }
           }
         },
@@ -82,7 +83,7 @@ const lightMachine = Machine({
         TIMER: [
           {
             target: 'green',
-            in: { red: 'stop' }
+            cond: stateIn({ red: 'stop' })
           }
         ]
       }
