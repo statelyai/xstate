@@ -1,5 +1,5 @@
 import React, { useEffect } from 'react';
-import { createMachine, assign, interpret } from 'xstate';
+import { createMachine, assign, interpret, sendParent, send } from 'xstate';
 
 import { InspectorViz } from '../src/InspectorViz';
 import '../themes/dark.scss';
@@ -8,6 +8,45 @@ export default {
   title: 'InspectorViz',
   component: InspectorViz
 };
+
+const pongMachine = createMachine({
+  id: 'pong',
+  initial: 'pending',
+  states: {
+    ponging: {
+      after: {
+        1000: { actions: sendParent('PONG'), target: 'pending' }
+      }
+    },
+    pending: {
+      on: {
+        PING: 'ponging'
+      }
+    }
+  }
+});
+
+const pingMachine = createMachine({
+  id: 'ping',
+  initial: 'pinging',
+  invoke: {
+    src: pongMachine,
+    id: 'pong'
+  },
+  states: {
+    pinging: {
+      after: {
+        1000: {
+          target: 'pending',
+          actions: send('PING', { to: 'pong' })
+        }
+      }
+    },
+    pending: {
+      on: { PONG: 'pinging' }
+    }
+  }
+});
 
 const simpleMachine = createMachine<{ count: number }>({
   id: 'simple',
@@ -38,7 +77,8 @@ const register = (service) => {
       type: 'service.register',
       machine: JSON.stringify(service.machine),
       state: JSON.stringify(service.state || service.initialState),
-      id: service.id
+      id: service.id,
+      parent: service.parent?.id
     },
     '*'
   );
@@ -68,7 +108,7 @@ export const SimpleInspector = () => {
         devTools: true
       }).start();
 
-      const anotherService = interpret(simpleMachine, {
+      const anotherService = interpret(pingMachine, {
         devTools: true
       }).start();
 

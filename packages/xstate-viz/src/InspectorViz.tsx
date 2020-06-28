@@ -21,6 +21,7 @@ type InspectorEvent =
       state: string;
       machine: string;
       id: string;
+      parent?: string;
     }
   | {
       type: 'service.state';
@@ -32,16 +33,15 @@ type InspectorEvent =
       id: string;
     };
 
+interface ServiceDataCtx {
+  state: State<any, any>;
+  machine: StateNode<any, any>;
+  id: string;
+  parent?: string;
+  events: SCXML.Event<any>[];
+}
 interface InspectorCtx {
-  services: Record<
-    string,
-    {
-      state: State<any, any>;
-      machine: StateNode<any, any>;
-      id: string;
-      events: SCXML.Event<any>[];
-    }
-  >;
+  services: Record<string, ServiceDataCtx>;
   service?: string;
 }
 
@@ -60,6 +60,10 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
           actions: assign((ctx, e) => {
             const serviceObject = ctx.services[e.id];
             if (!serviceObject) {
+              return;
+            }
+
+            if (e.state === undefined) {
               return;
             }
 
@@ -84,6 +88,7 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
       actions: assign((ctx, e) => {
         ctx.services[e.id] = {
           id: e.id,
+          parent: e.parent,
           machine: createMachine(JSON.parse(e.machine)),
           state: parseState(e.state),
           events: []
@@ -94,9 +99,11 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
   }
 });
 
-const ServicesContext = createContext<
+export const ServicesContext = createContext<
   Interpreter<InspectorCtx, any, InspectorEvent>
 >(null as any);
+
+export const ServiceDataContext = createContext<ServiceDataCtx>(null as any);
 
 export const InspectorViz: React.FC = () => {
   const [state, send, service] = useMachine(inspectorMachine);
@@ -138,15 +145,16 @@ export const InspectorViz: React.FC = () => {
 
         {Object.entries(state.context.services).map(([key, service]) => {
           return (
-            <div
-              data-xviz="service"
-              key={key}
-              hidden={currentService !== service || undefined}
-            >
-              <MachineViz machine={service.machine} state={service.state} />
-              {/* <EventRecordsViz events={value.events} /> */}
-              <StateViz state={service.state} />
-            </div>
+            <ServiceDataContext.Provider value={service} key={key}>
+              <div
+                data-xviz="service"
+                hidden={currentService !== service || undefined}
+              >
+                <MachineViz machine={service.machine} state={service.state} />
+                {/* <EventRecordsViz events={value.events} /> */}
+                <StateViz state={service.state} />
+              </div>
+            </ServiceDataContext.Provider>
           );
         })}
       </div>

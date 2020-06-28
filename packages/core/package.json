@@ -49,7 +49,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/core#readme",
   "devDependencies": {
     "@babel/cli": "^7.6.0",
-    "@babel/core": "^7.6.0",
+    "@babel/core": "^7.9.6",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
     "jest": "^24.8.0",

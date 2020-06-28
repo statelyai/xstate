@@ -1,9 +1,9 @@
 import * as React from 'react';
 
-export function ArrowMarker() {
+export const ArrowMarker: React.FC<{ id: string }> = ({ id }) => {
   return (
     <marker
-      id="marker"
+      id={id}
       viewBox="0 0 10 10"
       markerWidth="5"
       markerHeight="5"
@@ -15,4 +15,4 @@ export function ArrowMarker() {
       <path d="M0,0 L0,10 L10,5 z" fill="currentColor" />
     </marker>
   );
-}
+};

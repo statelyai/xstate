@@ -8,6 +8,7 @@ import {
 } from 'xstate';
 import { toDelayString } from './utils';
 import { resolveSend, resolveLog } from 'xstate/lib/actions';
+import { ActorRefViz } from './ActorRefViz';
 
 const BUILTIN_PREFIX = 'xstate.';
 
@@ -37,9 +38,9 @@ function formatAction(
 
       const target =
         sendAction.to === SpecialTargets.Parent ? (
-          <em>parent</em>
+          <ActorRefViz.Parent />
         ) : (
-          sendAction.to
+          <ActorRefViz actorRefId={sendAction.to} />
         );
       const eventType = sendAction.event.type;
 

@@ -204,6 +204,7 @@
   font-size: 75%;
   color: #999;
   margin-right: 1ch;
+  white-space: nowrap;
 }
 
 [data-xviz='actions'] {
@@ -227,10 +228,6 @@
   }
 
   &:not[data-xviz-actions] {
-  }
-
-  [data-xviz='action-type']:before {
-    @extend %content-prefix;
   }
 }
 
@@ -272,6 +269,11 @@
 }
 [data-xviz='action-type'] {
   max-width: 15em;
+  font-size: 75%;
+
+  &:before {
+    @extend %content-prefix;
+  }
 }
 
 [data-xviz='event-type'] {
@@ -291,6 +293,10 @@
 
 [data-xviz='action-value'] {
   margin: 0;
+}
+
+[data-xviz='edges'] {
+  pointer-events: none;
 }
 
 [data-xviz='edge'] {
@@ -355,19 +361,18 @@
 }
 
 [data-xviz='invoke'] {
-  &[data-xviz-unnamed] {
-    [data-xviz='invoke-id'] {
-      font-style: italic;
+  // ...
+}
 
-      &:before {
-        font-style: normal;
-      }
-    }
-  }
+[data-xviz='invoke-link'] {
+  color: rgb(92, 148, 252);
+  text-decoration: underline;
+  cursor: pointer;
 }
 
 [data-xviz='invoke-id'] {
   &:before {
+    text-decoration: none;
     @extend %content-prefix;
     content: 'invoke / ';
   }

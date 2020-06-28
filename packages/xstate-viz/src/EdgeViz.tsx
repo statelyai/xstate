@@ -81,7 +81,13 @@ function findMinLocation(
   return [minLocation, minPoint];
 }
 
-export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
+export function EdgeViz({
+  edge,
+  markerId
+}: {
+  edge: Edge<any, any>;
+  markerId: string;
+}) {
   const { state } = useContext(StateContext);
   const isCurrent = isActive(state, edge.source);
   const ref = useRef<SVGGElement>(null);
@@ -206,7 +212,7 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
                 data-xviz="edge-path"
                 d={d}
                 fill="none"
-                markerEnd={`url(#marker)`}
+                markerEnd={`url(#${markerId})`}
                 pathLength={1}
               />
               <path
@@ -233,9 +239,11 @@ export function EdgeViz({ edge }: { edge: Edge<any, any> }) {
 }
 
 export function InitialEdgeViz({
-  stateNode
+  stateNode,
+  markerId
 }: {
   stateNode: StateNode<any, any, any>;
+  markerId: string;
 }) {
   const data = useTracked(stateNode.id);
   const machineData = useTracked(`machine:${stateNode.machine.id}`);
@@ -266,7 +274,7 @@ export function InitialEdgeViz({
         stroke={'currentColor'}
         strokeWidth="2"
         fill="none"
-        markerEnd={`url(#marker)`}
+        markerEnd={`url(#${markerId})`}
       />
     </g>
   );

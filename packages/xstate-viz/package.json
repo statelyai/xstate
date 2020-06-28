@@ -89,7 +89,7 @@
   "dependencies": {
     "@reach/tabs": "^0.10.3",
     "@xstate/immer": "^0.1.0",
-    "@xstate/react": "^0.8.1",
+    "@xstate/react": "^1.0.0-rc.3",
     "immer": "^6.0.8",
     "react-json-tree": "^0.11.2",
     "styled-components": "^4.4.1"

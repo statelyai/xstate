@@ -11,11 +11,27 @@ declare global {
     __xstate__: {
       register: (service: Interpreter<any>) => void;
       onRegister: (listener: ServiceListener) => void;
+      services: Set<Interpreter<any>>;
     };
   }
 }
 
+const services = new Set<Interpreter<any>>();
+const serviceListeners = new Set<ServiceListener>();
+
+window.__xstate__ = {
+  services,
+  register: (service) => {
+    services.add(service);
+  },
+  onRegister: (listener) => {
+    serviceListeners.add(listener);
+    services.forEach((service) => listener(service));
+  }
+};
+
 const defaultInspectorOptions = {
+  // url: 'https://statecharts.io/embed'
   url: 'http://localhost:3001'
 };
 
@@ -35,21 +51,9 @@ export function inspect(
     return;
   }
 
-  const services = new Set<Interpreter<any>>();
-  const serviceListeners = new Set<ServiceListener>();
-
-  window.__xstate__ = {
-    register: (service) => {
-      services.add(service);
-    },
-    onRegister: (listener) => {
-      serviceListeners.add(listener);
-      services.forEach((service) => listener(service));
-    }
-  };
-
   iframe.addEventListener('load', () => {
     window.__xstate__.onRegister((service) => {
+      console.log('registering service');
       iframe.contentWindow?.postMessage(
         {
           type: 'service.register',
