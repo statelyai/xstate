@@ -527,7 +527,11 @@ describe('useMachine hook', () => {
       return <div />;
     };
 
-    render(<App />);
+    render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
     done();
   });
 });
