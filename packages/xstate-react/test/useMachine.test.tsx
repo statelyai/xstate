@@ -566,4 +566,42 @@ describe('useMachine (strict mode)', () => {
 
     expect(activatedCount).toEqual(1);
   });
+
+  it('child component should be able to send an event to a parent immediately in an effect', (done) => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          on: { FINISH: 'success' }
+        },
+        success: {}
+      }
+    });
+
+    const ChildTest: React.FC<{ send: any }> = ({ send }) => {
+      // This will send an event to the parent service
+      // BEFORE the service is ready.
+      React.useLayoutEffect(() => {
+        send({ type: 'FINISH' });
+      }, []);
+
+      return null;
+    };
+
+    const Test = () => {
+      const [state, send] = useMachine(machine);
+
+      if (state.matches('success')) {
+        done();
+      }
+
+      return <ChildTest send={send} />;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+  });
 });
