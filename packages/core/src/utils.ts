@@ -515,9 +515,7 @@ export function toGuard<TContext, TEvent extends EventObject>(
   return condition;
 }
 
-export function isObservable<T>(
-  value: Subscribable<T> | any
-): value is Subscribable<T> {
+export function isObservable<T>(value: any): value is Subscribable<T> {
   try {
     return 'subscribe' in value && isFunction(value.subscribe);
   } catch (e) {

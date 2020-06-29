@@ -62,7 +62,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: ActionMeta<TContext, TEvent>
-) => any | void;
+) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
@@ -585,7 +585,7 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
+  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -903,7 +903,7 @@ export type Mapper<TContext, TEvent extends EventObject> = (
 ) => any;
 
 export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
-  [key: string]: ((context: TContext, event: TEvent) => any) | any;
+  [key: string]: (context: TContext, event: TEvent) => any;
 }>;
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>
@@ -1166,7 +1166,7 @@ export namespace SCXML {
 
 // Taken from RxJS
 export interface Unsubscribable {
-  unsubscribe(): any | void;
+  unsubscribe(): void;
 }
 export interface Subscribable<T> {
   subscribe(

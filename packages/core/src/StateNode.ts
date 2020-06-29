@@ -974,7 +974,7 @@ class StateNode<
               isInFinalState(transition.configuration, parentNode)
             )
           ) {
-            events.push(done(grandparent.id, grandparent.data));
+            events.push(done(grandparent.id));
           }
         }
 
