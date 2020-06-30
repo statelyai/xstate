@@ -305,8 +305,8 @@ export class Interpreter<
       );
 
       const doneData =
-        finalChildStateNode && finalChildStateNode.data
-          ? mapContext(finalChildStateNode.data, state.context, _event)
+        finalChildStateNode && finalChildStateNode.doneData
+          ? mapContext(finalChildStateNode.doneData, state.context, _event)
           : undefined;
 
       for (const listener of this.doneListeners) {

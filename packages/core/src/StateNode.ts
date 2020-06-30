@@ -225,7 +225,9 @@ class StateNode<
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
    */
-  public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  public doneData?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
   /**
    * The string delimiter for serializing the path to a string. The default is "."
    */
@@ -373,7 +375,7 @@ class StateNode<
       this.config.exit || this.config.onExit
     ).map((action) => toActionObject(action));
     this.meta = this.config.meta;
-    this.data =
+    this.doneData =
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
@@ -483,7 +485,7 @@ class StateNode<
       activities: this.activities || [],
       meta: this.meta,
       order: this.order || -1,
-      data: this.data,
+      data: this.doneData,
       invoke: this.invoke
     };
   }
@@ -959,10 +961,12 @@ class StateNode<
         }
 
         events.push(
-          done(sn.id, sn.data), // TODO: deprecate - final states should not emit done events for their own state.
+          done(sn.id, sn.doneData), // TODO: deprecate - final states should not emit done events for their own state.
           done(
             parent.id,
-            sn.data ? mapContext(sn.data, currentContext, _event) : undefined
+            sn.doneData
+              ? mapContext(sn.doneData, currentContext, _event)
+              : undefined
           )
         );
 

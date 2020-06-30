@@ -258,7 +258,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    *
    * Data should be mapped to match the child machine's context shape.
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 }
 
 export interface Delay {
@@ -366,53 +366,51 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export type InvokeConfig<TContext, TEvent extends EventObject> =
-  | {
-      /**
-       * The unique identifier for the invoked machine. If not specified, this
-       * will be the machine's own `id`, or the URL (from `src`).
-       */
-      id?: string;
-      /**
-       * The source of the machine to be invoked, or the machine itself.
-       */
-      src:
-        | string
-        | StateMachine<any, any, any>
-        | InvokeCreator<TContext, TEvent, any>;
-      /**
-       * If `true`, events sent to the parent service will be forwarded to the invoked service.
-       *
-       * Default: `false`
-       */
-      autoForward?: boolean;
-      /**
-       * @deprecated
-       *
-       *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
-       */
-      forward?: boolean;
-      /**
-       * Data from the parent machine's context to set as the (partial or full) context
-       * for the invoked child machine.
-       *
-       * Data should be mapped to match the child machine's context shape.
-       */
-      data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
-      /**
-       * The transition to take upon the invoked child machine reaching its final top-level state.
-       */
-      onDone?:
-        | string
-        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
-      /**
-       * The transition to take upon the invoked child machine sending an error event.
-       */
-      onError?:
-        | string
-        | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
-    }
-  | StateMachine<any, any, any>;
+export type InvokeConfig<TContext, TEvent extends EventObject> = {
+  /**
+   * The unique identifier for the invoked machine. If not specified, this
+   * will be the machine's own `id`, or the URL (from `src`).
+   */
+  id?: string;
+  /**
+   * The source of the machine to be invoked, or the machine itself.
+   */
+  src:
+    | string
+    | StateMachine<any, any, any>
+    | InvokeCreator<TContext, TEvent, any>;
+  /**
+   * If `true`, events sent to the parent service will be forwarded to the invoked service.
+   *
+   * Default: `false`
+   */
+  autoForward?: boolean;
+  /**
+   * @deprecated
+   *
+   *  Use `autoForward` property instead of `forward`. Support for `forward` will get removed in the future.
+   */
+  forward?: boolean;
+  /**
+   * Data from the parent machine's context to set as the (partial or full) context
+   * for the invoked child machine.
+   *
+   * Data should be mapped to match the child machine's context shape.
+   */
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  /**
+   * The transition to take upon the invoked child machine reaching its final top-level state.
+   */
+  onDone?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+  /**
+   * The transition to take upon the invoked child machine sending an error event.
+   */
+  onError?:
+    | string
+    | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+};
 
 export interface StateNodeConfig<
   TContext,
@@ -461,7 +459,9 @@ export interface StateNodeConfig<
   /**
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
-  invoke?: SingleOrArray<InvokeConfig<TContext, TEvent>>;
+  invoke?: SingleOrArray<
+    InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
+  >;
   /**
    * The mapping of event types to their potential transition(s).
    */
@@ -523,7 +523,7 @@ export interface StateNodeConfig<
    * The data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -585,7 +585,7 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -897,14 +897,20 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = {
     | TContext[K];
 };
 
-export type Mapper<TContext, TEvent extends EventObject> = (
+export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
   context: TContext,
   event: TEvent
-) => any;
+) => TParams;
 
-export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
-  [key: string]: (context: TContext, event: TEvent) => any;
-}>;
+export type PropertyMapper<
+  TContext,
+  TEvent extends EventObject,
+  TParams extends {}
+> = {
+  [K in keyof TParams]?:
+    | ((context: TContext, event: TEvent) => TParams[K])
+    | TParams[K];
+};
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {

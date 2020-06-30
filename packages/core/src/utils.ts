@@ -309,17 +309,17 @@ export function toArray<T>(value: T[] | T | undefined): T[] {
 }
 
 export function mapContext<TContext, TEvent extends EventObject>(
-  mapper: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>,
+  mapper: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>,
   context: TContext,
   _event: SCXML.Event<TEvent>
 ): any {
   if (isFunction(mapper)) {
-    return (mapper as Mapper<TContext, TEvent>)(context, _event.data);
+    return mapper(context, _event.data);
   }
 
   const result = {} as any;
 
-  for (const key of keys(mapper)) {
+  for (const key of Object.keys(mapper)) {
     const subMapper = mapper[key];
 
     if (isFunction(subMapper)) {
