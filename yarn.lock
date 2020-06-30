@@ -1991,10 +1991,10 @@
     source-map "~0.6.1"
     vue-template-es2015-compiler "^1.9.0"
 
-"@vue/composition-api@~0.6.5":
-  version "0.6.5"
-  resolved "https://registry.yarnpkg.com/@vue/composition-api/-/composition-api-0.6.5.tgz#890b4ab3777ee95c6d633872db2bf53a45446d5b"
-  integrity sha512-IRdtn6/59yPNmvzlu5JTAR3SK0kK5T69wtz8oefSY8FFUPoOe7A2BlcVCypRX7jTmpBADhrHkAiklc8ffmPOuQ==
+"@vue/composition-api@^0.6.5":
+  version "0.6.7"
+  resolved "https://registry.yarnpkg.com/@vue/composition-api/-/composition-api-0.6.7.tgz#4481b547cea65dc936432f7efcf1a39f9c69420c"
+  integrity sha512-WAWEQK4urEsMNe3OyOp7VnMmegRZT2yRB3fDGLRXPMdfuo4+nM+uMEhUgDiUg9LFSXfLWhjwuFOJ2hnS2X7AUw==
   dependencies:
     tslib "^2.0.0"
 
@@ -14106,6 +14106,11 @@ url@^0.11.0:
   dependencies:
     punycode "1.3.2"
     querystring "0.2.0"
+
+use-isomorphic-layout-effect@^1.0.0:
+  version "1.0.0"
+  resolved "https://registry.yarnpkg.com/use-isomorphic-layout-effect/-/use-isomorphic-layout-effect-1.0.0.tgz#f56b4ed633e1c21cd9fc76fe249002a1c28989fb"
+  integrity sha512-JMwJ7Vd86NwAt1jH7q+OIozZSIxA4ND0fx6AsOe2q1H8ooBUp5aN6DvVCqZiIaYU6JaMRJGyR0FO7EBCIsb/Rg==
 
 use-subscription@^1.3.0:
   version "1.4.1"
