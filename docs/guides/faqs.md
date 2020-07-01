@@ -20,5 +20,5 @@ Feel free to ask questions either on Stack Overflow or in the [GitHub issues](ht
   </ul>
   This has the benefit of preventing [state and transition explosion](https://en.wikipedia.org/wiki/UML_state_machine#UML_extensions_to_the_traditional_FSM_formalism), which is a limitation of traditional finite state machines.
   <br />
-  See [the Wikipedia entry](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart) and David Harel's original paper, [Statecharts: a Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf) for more information.
+  See [the Wikipedia entry](https://en.wikipedia.org/wiki/State_diagram#Harel_statechart) and David Harel's original paper, [Statecharts: a Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf) for more information.
 </details>
