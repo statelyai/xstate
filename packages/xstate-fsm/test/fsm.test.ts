@@ -222,6 +222,49 @@ describe('interpreter', () => {
     actionService.send('TOGGLE');
   });
 
+  it('should start the service with initial state by default', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            NEXT: 'bar'
+          }
+        },
+        bar: {}
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.value).toBe('foo');
+  });
+
+  it('should rehydrate the state if the state if provided to the `start` method', () => {
+    const machine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            NEXT: 'bar'
+          }
+        },
+        bar: {
+          on: {
+            NEXT: 'baz'
+          }
+        },
+        baz: {}
+      }
+    });
+
+    const service = interpret(machine).start('bar');
+    expect(service.state.value).toBe('bar');
+
+    service.send('NEXT');
+    expect(service.state.matches('baz')).toBe(true);
+  });
+
   it('should execute initial entry action', () => {
     let executed = false;
 
@@ -237,7 +280,25 @@ describe('interpreter', () => {
     });
 
     interpret(machine).start();
+    expect(executed).toBe(true);
 
+    executed = false;
+    const rehydratedMachine = createMachine({
+      initial: 'foo',
+      states: {
+        foo: {
+          on: {
+            NEXT: 'bar'
+          }
+        },
+        bar: {
+          entry: () => {
+            executed = true;
+          }
+        }
+      }
+    });
+    interpret(rehydratedMachine).start('bar');
     expect(executed).toBe(true);
   });
 

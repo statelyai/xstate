@@ -95,17 +95,24 @@ export function createMachine<
     });
   }
 
+  const getStateByValue = (
+    state: TState['value']
+  ): StateMachine.State<TContext, TEvent, TState> => {
+    return {
+      value: state,
+      actions: toArray(fsmConfig.states[state].entry).map((action) =>
+        toActionObject(action, options.actions)
+      ),
+      context: fsmConfig.context!,
+      matches: createMatcher(state)
+    };
+  };
+
   const machine = {
     config: fsmConfig,
     _options: options,
-    initialState: {
-      value: fsmConfig.initial,
-      actions: toArray(
-        fsmConfig.states[fsmConfig.initial].entry
-      ).map((action) => toActionObject(action, options.actions)),
-      context: fsmConfig.context!,
-      matches: createMatcher(fsmConfig.initial)
-    },
+    initialState: getStateByValue(fsmConfig.initial),
+    getStateByValue,
     transition: (
       state: string | StateMachine.State<TContext, TEvent, TState>,
       event: string | (Record<string, any> & { type: string })
@@ -229,7 +236,13 @@ export function interpret<
         unsubscribe: () => listeners.delete(listener)
       };
     },
-    start: () => {
+    start: (initialState: TState['value']) => {
+      if (
+        initialState &&
+        Array.from(Object.keys(machine.config.states)).includes(initialState)
+      ) {
+        state = machine.getStateByValue(initialState);
+      }
       status = InterpreterStatus.Running;
       executeStateActions(state, INIT_EVENT);
       return service;

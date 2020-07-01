@@ -96,6 +96,9 @@ export namespace StateMachine {
   > {
     config: StateMachine.Config<TContext, TEvent>;
     initialState: State<TContext, TEvent, TState>;
+    getStateByValue: (
+      state: TState['value']
+    ) => State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
       event: TEvent['type'] | TEvent
@@ -117,7 +120,9 @@ export namespace StateMachine {
     ) => {
       unsubscribe: () => void;
     };
-    start: () => Service<TContext, TEvent, TState>;
+    start: (
+      initialState?: TState['value']
+    ) => Service<TContext, TEvent, TState>;
     stop: () => Service<TContext, TEvent, TState>;
     readonly status: InterpreterStatus;
     readonly state: State<TContext, TEvent, TState>;
