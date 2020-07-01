@@ -273,6 +273,9 @@
 [data-xviz='action-type'] {
   max-width: 15em;
   font-size: 75%;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 
   &:before {
     @extend %content-prefix;
@@ -418,7 +421,14 @@
   background: var(--xviz-background-color);
   display: grid;
   grid-template-columns: auto 1fr;
-  grid-template-areas: 'services service';
+  grid-template-rows: auto 1fr;
+  grid-template-areas:
+    'header header'
+    'services service';
+  overflow: hidden;
+  > [data-xviz='inspector-header'] {
+    grid-area: header;
+  }
 
   > [data-xviz='services'] {
     grid-area: services;
@@ -470,14 +480,56 @@
     }
 
     @media (max-width: 40em) {
-      grid-template-columns: 1fr 1fr;
-      grid-template-rows: 1rem 1fr 1fr;
-      grid-template-areas:
-        'header header'
-        'machine machine'
-        'state events';
+      display: block;
+
+      &[data-xviz-view='graph'] > :not([data-xviz='machine']) {
+        display: none;
+      }
+      &[data-xviz-view='state'] > :not([data-xviz='state']) {
+        display: none;
+      }
     }
   }
+
+  @media (max-width: 40em) {
+    grid-template-areas:
+      'header header'
+      'service service';
+
+    > [data-xviz='services'] {
+      grid-area: service;
+      height: 100%;
+      width: auto;
+      z-index: 1;
+      justify-self: start;
+      background: var(--xviz-background-color);
+      transition: transform 0.3s;
+
+      &[data-xviz-state='closed'] {
+        transform: translateX(-100%);
+      }
+    }
+  }
+}
+
+[data-xviz='inspector-header'] {
+  padding: 1em;
+  display: flex;
+  flex-direction: row;
+
+  > [data-xviz='inspector-action'] {
+    margin-right: 1em;
+  }
+}
+
+[data-xviz='inspector-action'] {
+  appearance: none;
+  border: none;
+  background: rgba(white, 0.2);
+  color: white;
+  font-weight: bold;
+  padding: 0.25em 0.5em;
+  border-radius: 0.25em;
 }
 
 [data-xviz='state'] {
