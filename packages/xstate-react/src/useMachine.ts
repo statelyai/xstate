@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
   EventObject,
@@ -172,7 +173,7 @@ export function useMachine<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
   >([]);
 
-  useLayoutEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     service
       .onTransition((currentState) => {
         // Only change the current state if:
@@ -237,7 +238,10 @@ export function useMachine<
     Object.assign(service.machine.options.services, services);
   }, [services]);
 
-  useLayoutEffect(() => {
+  // this is somewhat weird - this should always be flushed within useLayoutEffect
+  // but we don't want to receive warnings about useLayoutEffect being used on the server
+  // so we have to use `useIsomorphicLayoutEffect` to silence those warnings
+  useIsomorphicLayoutEffect(() => {
     while (layoutEffectActionsRef.current.length) {
       const [
         layoutEffectAction,

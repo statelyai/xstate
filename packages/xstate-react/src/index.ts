@@ -1,2 +1,2 @@
-export { useMachine } from './useMachine';
+export { useMachine, asEffect, asLayoutEffect } from './useMachine';
 export { useService } from './useService';

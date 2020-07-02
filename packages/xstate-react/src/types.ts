@@ -3,7 +3,7 @@ import { EventObject } from 'xstate';
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
 export interface Subscription {
-  unsubscribe(): any | void;
+  unsubscribe(): void;
 }
 
 export interface Observer<T> {

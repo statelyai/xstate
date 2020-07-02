@@ -5,7 +5,7 @@ A **state machine** is a finite set of [states](./statenodes.md) that can transi
 - [Hierarchical](./hierarchical.md) (or nested) states
 - [Orthogonal](./parallel.md) (or parallel) states
 - [History](./history.md) states
-- And more, as described in [Statecharts: a Visual Formalism for Complex Systems](http://www.inf.ed.ac.uk/teaching/courses/seoc/2005_2006/resources/statecharts.pdf).
+- And more, as described in [Statecharts: a Visual Formalism for Complex Systems](https://www.sciencedirect.com/science/article/pii/0167642387900359/pdf).
 
 ## Configuration
 
