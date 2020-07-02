@@ -108,10 +108,6 @@ export const SimpleInspector = () => {
         devTools: true
       }).start();
 
-      const anotherService = interpret(pingMachine, {
-        devTools: true
-      }).start();
-
       setInterval(() => {
         simpleService.send('TOGGLE');
       }, 2000);

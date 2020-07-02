@@ -10,20 +10,64 @@ type JSONValue =
 
 type RenderValueFn = (value: any, path: string[]) => JSX.Element | undefined;
 
+export interface JsonVizOptions {
+  initialOpen: (value: JSONValue, path: string[]) => boolean;
+}
+
+export const defaultJsonVizOptions: JsonVizOptions = {
+  initialOpen: (value, path) => {
+    if (path[path.length - 1].startsWith('_')) {
+      return false;
+    }
+
+    if (Array.isArray(value) && value.length === 0) {
+      return false;
+    }
+
+    if (
+      typeof value === 'object' &&
+      value !== null &&
+      Object.keys(value).length === 0
+    ) {
+      return false;
+    }
+
+    return true;
+  }
+};
+
+const JSONVizContext = React.createContext<
+  { value: JSONValue } & JsonVizOptions
+>(null as any);
+
 export const JSONViz: React.FC<{
   valueKey: string;
   path: string[];
   value: JSONValue;
   renderValue?: RenderValueFn;
-}> = ({ valueKey, path, value, renderValue = () => undefined }) => {
+  options?: Partial<JsonVizOptions>;
+}> = ({
+  valueKey,
+  path,
+  value,
+  renderValue = () => undefined,
+  options = defaultJsonVizOptions
+}) => {
+  const resolvedJsonVizOptions = {
+    ...defaultJsonVizOptions,
+    ...options
+  };
+
   const maybeRenderedValue = renderValue?.(value, path);
 
   if (maybeRenderedValue) {
     return maybeRenderedValue;
   }
 
+  let component: React.ReactNode;
+
   if (Array.isArray(value)) {
-    return (
+    component = (
       <JSONArrayViz
         valueKey={valueKey}
         path={path.concat(valueKey)}
@@ -31,9 +75,8 @@ export const JSONViz: React.FC<{
         renderValue={renderValue}
       />
     );
-  }
-  if (typeof value === 'object' && value !== null) {
-    return (
+  } else if (typeof value === 'object' && value !== null) {
+    component = (
       <JSONObjectViz
         valueKey={valueKey}
         path={path.concat(valueKey)}
@@ -41,29 +84,36 @@ export const JSONViz: React.FC<{
         renderValue={renderValue}
       />
     );
+  } else {
+    component = (
+      <JSONPrimitiveViz
+        valueKey={valueKey}
+        path={path.concat(valueKey)}
+        value={value}
+        renderValue={renderValue}
+      />
+    );
   }
 
   return (
-    <JSONPrimitiveViz
-      valueKey={valueKey}
-      path={path.concat(valueKey)}
-      value={value}
-      renderValue={renderValue}
-    />
+    <JSONVizContext.Provider value={{ value, ...resolvedJsonVizOptions }}>
+      {component}
+    </JSONVizContext.Provider>
   );
 };
 
-const JSONObjectViz: React.FC<{
+export const JSONObjectViz: React.FC<{
   valueKey: string;
   path: string[];
   value: Record<string, JSONValue>;
   renderValue: RenderValueFn;
 }> = ({ valueKey, path, value, renderValue }) => {
+  const options = React.useContext(JSONVizContext);
   const isEmpty = Object.keys(value).length === 0 || undefined;
 
   return (
     <details
-      open={Object.keys(value).length > 0 || undefined}
+      open={options.initialOpen(value, path) || undefined}
       data-xviz="json-object"
       data-xviz-json-empty={isEmpty}
     >
@@ -73,6 +123,7 @@ const JSONObjectViz: React.FC<{
           Object.entries(value).map(([key, value]) => {
             return (
               <JSONViz
+                key={key}
                 valueKey={key}
                 path={path.concat(key)}
                 value={value}
@@ -117,11 +168,11 @@ const JSONArrayViz: React.FC<{
   );
 };
 
-const JSONPrimitiveViz: React.FC<{
+export const JSONPrimitiveViz: React.FC<{
   valueKey: string;
   path: string[];
   value: string | number | boolean | null;
-  renderValue: RenderValueFn;
+  renderValue?: RenderValueFn;
 }> = ({ valueKey, path, value, renderValue }) => {
   const valueType = typeof value;
 
@@ -129,9 +180,23 @@ const JSONPrimitiveViz: React.FC<{
     <div data-xviz={`json-primitive`} data-xviz-json-type={valueType}>
       <summary data-xviz="json-key">{valueKey}:</summary>
 
-      {renderValue(value, path) || (
+      {renderValue?.(value, path) || (
         <div data-xviz="json-value">{JSON.stringify(value)}</div>
       )}
+    </div>
+  );
+};
+
+export const JSONCustomViz: React.FC<{
+  valueKey: string;
+  path: string[];
+  type?: string;
+}> = ({ valueKey, path, children, type = 'custom' }) => {
+  return (
+    <div data-xviz={`json-${type}`} data-xviz-json-type={type}>
+      <summary data-xviz="json-key">{valueKey}:</summary>
+
+      <div data-xviz="json-value">{children}</div>
     </div>
   );
 };

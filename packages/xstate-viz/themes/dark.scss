@@ -548,6 +548,8 @@
 
 [data-xviz='json-object'] {
   --placeholder: '{...}';
+  --start-wrapper: '{';
+  --end-wrapper: '}';
 
   &[data-xviz-json-empty] {
     --placeholder: '{}';
@@ -556,6 +558,8 @@
 
 [data-xviz='json-array'] {
   --placeholder: '[...]';
+  --start-wrapper: '[';
+  --end-wrapper: ']';
 
   &[data-xviz-json-empty] {
     --placeholder: '[]';
@@ -572,6 +576,17 @@
       color: var(--value-color);
       margin-left: 1ch;
     }
+  }
+
+  &[open] {
+    > [data-xviz='json-key']:after {
+      content: var(--start-wrapper);
+      margin-left: 1ch;
+    }
+  }
+
+  > [data-xviz='json-value']:after {
+    content: var(--end-wrapper);
   }
 
   &[data-xviz-json-empty] {
@@ -617,6 +632,14 @@
     [data-xviz='json-value']::before {
       content: 'function';
     }
+  }
+}
+
+[data-xviz='json-custom'] {
+  padding-left: 2ch;
+
+  > [data-xviz='json-value'] {
+    padding-left: 2ch;
   }
 }
 
