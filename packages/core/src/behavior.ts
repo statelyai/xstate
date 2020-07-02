@@ -238,11 +238,11 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, any, TEvent>,
+  machine: MachineNode<TContext, TEvent>,
   parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
-  let service: Interpreter<TContext, any, TEvent>;
+  let service: Interpreter<TContext, TEvent>;
   let subscription: Subscription;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
@@ -295,7 +295,7 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
 }
 
 export function createServiceBehavior<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent>
+  service: Interpreter<TContext, TEvent>
 ): Behavior<TEvent, State<TContext, TEvent>> {
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receive: (actorContext, event) => {

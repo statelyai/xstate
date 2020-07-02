@@ -703,7 +703,7 @@ describe('actions config', () => {
   interface Context {
     count: number;
   }
-  interface State {
+  interface StateSchema {
     states: {
       a: {};
       b: {};
@@ -712,7 +712,7 @@ describe('actions config', () => {
 
   // tslint:disable-next-line:no-empty
   const definedAction = () => {};
-  const simpleMachine = Machine<Context, State, EventType>(
+  const simpleMachine = Machine<Context, EventType, StateSchema>(
     {
       initial: 'a',
       context: {
@@ -770,7 +770,7 @@ describe('actions config', () => {
   });
 
   it('should be able to reference action implementations from action objects', () => {
-    const machine = Machine<Context, State, EventType>(
+    const machine = Machine<Context, EventType, StateSchema>(
       {
         initial: 'a',
         context: {
@@ -1475,7 +1475,7 @@ describe('sendParent', () => {
       type: 'CHILD';
     }
 
-    const child = Machine<ChildContext, any, ChildEvent>({
+    const child = Machine<ChildContext, ChildEvent>({
       id: 'child',
       initial: 'start',
       states: {

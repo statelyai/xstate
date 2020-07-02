@@ -34,7 +34,7 @@ describe('StateSchema', () => {
     elapsed: number;
   }
 
-  const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
+  const lightMachine = Machine<LightContext, LightEvent, LightStateSchema>({
     key: 'light',
     initial: 'green',
     meta: { interval: 1000 },
@@ -118,8 +118,8 @@ describe('Parallel StateSchema', () => {
 
   const parallelMachine = Machine<
     ParallelContext,
-    ParallelStateSchema,
-    ParallelEvent
+    ParallelEvent,
+    ParallelStateSchema
   >({
     type: 'parallel',
     states: {
@@ -166,8 +166,8 @@ describe('Nested parallel stateSchema', () => {
 
   const nestedParallelMachine = Machine<
     ParallelContext,
-    ParallelStateSchema,
-    ParallelEvent
+    ParallelEvent,
+    ParallelStateSchema
   >({
     initial: 'foo',
     states: {
@@ -230,8 +230,8 @@ describe('Raise events', () => {
 
     const raiseGreetingMachine = Machine<
       GreetingContext,
-      GreetingStateSchema,
-      GreetingEvent
+      GreetingEvent,
+      GreetingStateSchema
     >({
       key: 'greeting',
       context: greetingContext,

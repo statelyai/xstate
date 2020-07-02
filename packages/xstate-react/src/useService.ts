@@ -7,11 +7,11 @@ export function useService<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = any
 >(
-  service: Interpreter<TContext, any, TEvent, TTypestate>
+  service: Interpreter<TContext, TEvent, TTypestate>
 ): [
   State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
+  Interpreter<TContext, TEvent, TTypestate>['send'],
+  Interpreter<TContext, TEvent, TTypestate>
 ] {
   const subscription: Subscription<State<
     TContext,

@@ -34,14 +34,14 @@ const defaultSequencePatternOptions = {
 };
 
 export function sequence<
-  TStateSchema extends StateSchema,
-  TEvent extends EventObject
+  TEvent extends EventObject,
+  TStateSchema extends StateSchema
 >(
   items: string[],
   options?: Partial<SequencePatternOptions<TEvent>>
 ): {
   initial: string;
-  states: StatesConfig<any, TStateSchema, TEvent>;
+  states: StatesConfig<any, TEvent, TStateSchema>;
 } {
   const resolvedOptions = { ...defaultSequencePatternOptions, ...options };
   const states = {} as Record<keyof TStateSchema['states'], any>;
@@ -55,7 +55,7 @@ export function sequence<
       : toEventObject(resolvedOptions.prevEvent);
 
   items.forEach((item, i) => {
-    const state: StateNodeConfig<TEvent, TStateSchema, TEvent> = {
+    const state: StateNodeConfig<TEvent, TEvent, TStateSchema> = {
       on: {}
     };
 
@@ -76,6 +76,6 @@ export function sequence<
 
   return {
     initial: items[0] as string,
-    states: states as StatesConfig<any, TStateSchema, TEvent>
+    states: states as StatesConfig<any, TEvent, TStateSchema>
   };
 }
