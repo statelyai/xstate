@@ -281,25 +281,6 @@ describe('interpreter', () => {
 
     interpret(machine).start();
     expect(executed).toBe(true);
-
-    executed = false;
-    const rehydratedMachine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          on: {
-            NEXT: 'bar'
-          }
-        },
-        bar: {
-          entry: () => {
-            executed = true;
-          }
-        }
-      }
-    });
-    interpret(rehydratedMachine).start('bar');
-    expect(executed).toBe(true);
   });
 
   it('should lookup string actions in options', () => {

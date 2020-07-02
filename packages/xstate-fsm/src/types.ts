@@ -96,9 +96,6 @@ export namespace StateMachine {
   > {
     config: StateMachine.Config<TContext, TEvent>;
     initialState: State<TContext, TEvent, TState>;
-    getStateByValue: (
-      state: TState['value']
-    ) => State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
       event: TEvent['type'] | TEvent
