@@ -237,10 +237,7 @@ export function interpret<
       };
     },
     start: (initialState: TState['value']) => {
-      if (
-        initialState &&
-        Array.from(Object.keys(machine.config.states)).includes(initialState)
-      ) {
+      if (initialState && initialState in machine.config.states) {
         state = machine.getStateByValue(initialState);
       }
       status = InterpreterStatus.Running;
