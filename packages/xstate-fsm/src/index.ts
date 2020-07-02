@@ -237,7 +237,16 @@ export function interpret<
       };
     },
     start: (initialState: TState['value']) => {
-      if (initialState && initialState in machine.config.states) {
+      if (!IS_PRODUCTION) {
+        if (initialState && !(initialState in machine.config.states)) {
+          throw new Error(
+            `Cannot start service in state '${initialState}'. The state is not found on machine${
+              machine.config.id ? ` '${machine.config.id}'` : ''
+            }.`
+          );
+        }
+      }
+      if (initialState) {
         state = machine.getStateByValue(initialState);
       }
       status = InterpreterStatus.Running;
