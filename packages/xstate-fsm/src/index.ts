@@ -229,23 +229,34 @@ export function interpret<
         unsubscribe: () => listeners.delete(listener)
       };
     },
-    start: (initialState: TState['value']) => {
-      if (!IS_PRODUCTION) {
-        if (initialState && !(initialState in machine.config.states)) {
-          throw new Error(
-            `Cannot start service in state '${initialState}'. The state is not found on machine${
-              machine.config.id ? ` '${machine.config.id}'` : ''
-            }.`
-          );
-        }
-      }
+    start: (
+      initialState?:
+        | TState['value']
+        | { context: TContext; value: TState['value'] }
+    ) => {
       if (initialState) {
+        const resolved =
+          typeof initialState === 'object'
+            ? initialState
+            : { context: machine.config.context!, value: initialState };
         state = {
-          value: initialState,
+          value: resolved.value,
           actions: [],
-          context: machine.config.context!,
-          matches: createMatcher(initialState)
+          context: resolved.context,
+          matches: createMatcher(resolved.value)
         };
+
+        if (!IS_PRODUCTION) {
+          if (!(state.value in machine.config.states)) {
+            throw new Error(
+              `Cannot start service in state '${
+                state.value
+              }'. The state is not found on machine${
+                machine.config.id ? ` '${machine.config.id}'` : ''
+              }.`
+            );
+          }
+        }
       }
       status = InterpreterStatus.Running;
       executeStateActions(state, INIT_EVENT);
