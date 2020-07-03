@@ -44,9 +44,10 @@ export function invokePromise<T>(
     | PromiseLike<T>
     | ((ctx: any, event: AnyEventObject, meta: InvokeMeta) => PromiseLike<T>)
 ): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, e, { parent, data }) => {
+  return (ctx, e, { parent, data, _event }) => {
+    const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
     const resolvedPromise = isFunction(promise)
-      ? promise(ctx, e, { data })
+      ? promise(ctx, e, { data: resolvedData })
       : promise;
     return createPromiseBehavior(resolvedPromise, parent);
   };

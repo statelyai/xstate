@@ -417,6 +417,9 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
         stateNode.config.onDone
       )
     : [];
+  const eventlessConfig = stateNode.config.always
+    ? toTransitionConfigArray('', stateNode.config.always)
+    : [];
   const invokeConfig = flatten(
     stateNode.invoke.map((invokeDef) => {
       const settleTransitions: any[] = [];
@@ -441,7 +444,7 @@ export function formatTransitions<TContext, TEvent extends EventObject>(
   );
   const delayedTransitions = stateNode.after;
   const formattedTransitions = flatten(
-    [...doneConfig, ...invokeConfig, ...onConfig].map(
+    [...doneConfig, ...invokeConfig, ...onConfig, ...eventlessConfig].map(
       (
         transitionConfig: TransitionConfig<TContext, TEvent> & {
           event: TEvent['type'] | NullEvent['type'] | '*';
@@ -1091,8 +1094,12 @@ export function enterStates<TContext, TEvent extends EventObject>(
         toSCXMLEvent(
           done(
             parent!.id,
-            stateNodeToEnter.data
-              ? mapContext(stateNodeToEnter.data, state.context, state._event)
+            stateNodeToEnter.doneData
+              ? mapContext(
+                  stateNodeToEnter.doneData,
+                  state.context,
+                  state._event
+                )
               : undefined
           )
         )
