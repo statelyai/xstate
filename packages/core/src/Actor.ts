@@ -21,6 +21,7 @@ import {
   LifecycleSignal
 } from './behavior';
 import { registry } from './registry';
+import { ObservableActorRef } from './ObservableActorRef';
 
 const nullSubscription = {
   unsubscribe: () => void 0
@@ -127,39 +128,5 @@ export class Actor<TEvent extends EventObject, TEmitted> {
       this.behavior = this.behavior.receive(this.context, event);
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
-  }
-}
-
-export class ObservableActorRef<TEvent extends EventObject, TEmitted>
-  implements ActorRef<TEvent, TEmitted> {
-  public current: TEmitted;
-  private context: ActorContext;
-  private actor: Actor<TEvent, TEmitted>;
-  public name: string;
-
-  constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
-    this.name = name;
-    this.context = {
-      self: this,
-      name: this.name
-    };
-    this.actor = new Actor(behavior, name, this.context);
-    this.current = this.actor.current;
-  }
-  public start() {
-    this.actor.receiveSignal(startSignal);
-
-    return this;
-  }
-  public stop() {
-    this.actor.receiveSignal(stopSignal);
-
-    return this;
-  }
-  public subscribe(observer) {
-    return this.actor.subscribe(observer);
-  }
-  public send(event) {
-    this.actor.receive(event);
   }
 }
