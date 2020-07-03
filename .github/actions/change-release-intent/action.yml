@@ -1,5 +1,0 @@
-name: Change changeset release intent
-description: Change changeset release intent
-runs:
-  using: 'node12'
-  main: './main.js'

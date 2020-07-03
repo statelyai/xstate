@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef, useLayoutEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
   EventObject,
@@ -11,7 +12,8 @@ import {
   Typestate,
   ActionObject,
   ActionFunction,
-  ActionMeta
+  ActionMeta,
+  StateNode
 } from 'xstate';
 import useConstant from './useConstant';
 import { partition } from './utils';
@@ -78,7 +80,7 @@ function executeEffect<TContext, TEvent extends EventObject>(
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
     action,
-    state: state,
+    state,
     _event: state._event
   });
 
@@ -133,7 +135,12 @@ export function useMachine<
     ...interpreterOptions
   } = options;
 
-  const service = useConstant(() => {
+  const [resolvedMachine, service] = useConstant<
+    [
+      MachineNode<TContext, TEvent>,
+      Interpreter<TContext, TEvent, any, TTypestate>
+    ]
+  >(() => {
     const machineConfig = {
       context,
       guards,
@@ -142,20 +149,22 @@ export function useMachine<
       services,
       delays
     };
-
-    const createdMachine = machine.withConfig(machineConfig).withContext({
+    const resolvedMachine = machine.withConfig(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);
 
-    console.log(machine.options.actions, createdMachine.options.actions);
-
-    return interpret(createdMachine, interpreterOptions).start(
-      rehydratedState ? State.create(rehydratedState) : undefined
-    );
+    return [
+      resolvedMachine,
+      interpret(resolvedMachine, { deferEvents: true, ...interpreterOptions })
+    ];
   });
 
-  const [state, setState] = useState(service.state);
+  const [state, setState] = useState(() => {
+    return rehydratedState
+      ? State.create(rehydratedState)
+      : resolvedMachine.initialState;
+  });
 
   const effectActionsRef = useRef<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
@@ -164,45 +173,54 @@ export function useMachine<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
   >([]);
 
-  useLayoutEffect(() => {
-    service.onTransition((currentState) => {
-      if (currentState.changed) {
-        setState(currentState);
-      }
+  useIsomorphicLayoutEffect(() => {
+    service
+      .onTransition((currentState) => {
+        // Only change the current state if:
+        // - the incoming state is the "live" initial state (since it might have new actors)
+        // - OR the incoming state actually changed.
+        //
+        // The "live" initial state will have .changed === undefined.
+        const initialStateChanged =
+          currentState.changed === undefined &&
+          Object.keys(currentState.children).length;
 
-      if (currentState.actions.length) {
-        const reactEffectActions = currentState.actions.filter(
-          (action): action is ReactActionObject<TContext, TEvent> => {
-            return (
-              typeof action.exec === 'function' &&
-              '__effect' in (action as ReactActionObject<TContext, TEvent>).exec
-            );
-          }
-        );
+        if (currentState.changed || initialStateChanged) {
+          setState(currentState);
+        }
 
-        const [effectActions, layoutEffectActions] = partition(
-          reactEffectActions,
-          (action): action is ReactActionObject<TContext, TEvent> => {
-            return action.exec.__effect === ReactEffectType.Effect;
-          }
-        );
+        if (currentState.actions.length) {
+          const reactEffectActions = currentState.actions.filter(
+            (action): action is ReactActionObject<TContext, TEvent> => {
+              return (
+                typeof action.exec === 'function' &&
+                '__effect' in
+                  (action as ReactActionObject<TContext, TEvent>).exec
+              );
+            }
+          );
 
-        effectActionsRef.current.push(
-          ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
-            (effectAction) => [effectAction, currentState]
-          )
-        );
+          const [effectActions, layoutEffectActions] = partition(
+            reactEffectActions,
+            (action): action is ReactActionObject<TContext, TEvent> => {
+              return action.exec.__effect === ReactEffectType.Effect;
+            }
+          );
 
-        layoutEffectActionsRef.current.push(
-          ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
-            (layoutEffectAction) => [layoutEffectAction, currentState]
-          )
-        );
-      }
-    });
+          effectActionsRef.current.push(
+            ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
+              (effectAction) => [effectAction, currentState]
+            )
+          );
 
-    // if service.state has not changed React should just bail out from this update
-    setState(service.state);
+          layoutEffectActionsRef.current.push(
+            ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
+              (layoutEffectAction) => [layoutEffectAction, currentState]
+            )
+          );
+        }
+      })
+      .start(rehydratedState ? State.create(rehydratedState) : undefined);
 
     return () => {
       service.stop();
@@ -220,7 +238,10 @@ export function useMachine<
     Object.assign(service.machine.options.behaviors, services);
   }, [services]);
 
-  useLayoutEffect(() => {
+  // this is somewhat weird - this should always be flushed within useLayoutEffect
+  // but we don't want to receive warnings about useLayoutEffect being used on the server
+  // so we have to use `useIsomorphicLayoutEffect` to silence those warnings
+  useIsomorphicLayoutEffect(() => {
     while (layoutEffectActionsRef.current.length) {
       const [
         layoutEffectAction,

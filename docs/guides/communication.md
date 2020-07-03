@@ -191,7 +191,7 @@ Streams of events sent to the parent machine can be modeled via a callback handl
 - `callback` - called with the event to be sent
 - `onReceive` - called with a listener that [listens to events from the parent](#listening-to-parent-events)
 
-The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited.
+The (optional) return value should be a function that performs cleanup (i.e., unsubscribing, preventing memory leaks, etc.) on the invoked service when the current state is exited. Callbacks **cannot** use `async/await` syntax because it automatically wraps the return value in a `Promise`.
 
 ```js
 // ...
@@ -370,7 +370,7 @@ const service = interpret(parentMachine)
 
 ### Invoking with Context
 
-Child machines can be invoked with `context` that is derived from the parent machine's `context` with the `data` property. For example, the `parentMachine` below will invoke a new `timerMachine` service with initial context of `{ customDuration: 3000 }`:
+Child machines can be invoked with `context` that is derived from the parent machine's `context` with the `data` property. For example, the `parentMachine` below will invoke a new `timerMachine` service with initial context of `{ duration: 3000 }`:
 
 ```js
 const timerMachine = Machine({
@@ -703,7 +703,7 @@ const machine = Machine({
   // ...
 });
 
-const service = invoke(machine)
+const service = interpret(machine)
   .onTransition((state) => {
     state.children.notifier; // service from createNotifier()
     state.children.logger; // service from createLogger()

@@ -165,6 +165,10 @@ export class Interpreter<
     this.sessionId = this.ref.name;
   }
 
+  public get initialized() {
+    return this._status === InterpreterStatus.Running;
+  }
+
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
     return (
       this._initialState ||
@@ -219,8 +223,8 @@ export class Interpreter<
       );
 
       const doneData =
-        finalChildStateNode && finalChildStateNode.data
-          ? mapContext(finalChildStateNode.data, state.context, _event)
+        finalChildStateNode && finalChildStateNode.doneData
+          ? mapContext(finalChildStateNode.doneData, state.context, _event)
           : undefined;
 
       for (const listener of this.doneListeners) {

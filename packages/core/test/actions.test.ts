@@ -542,9 +542,7 @@ describe('entry/exit actions', () => {
             entry: () => {
               actual.push('entered one');
             },
-            on: {
-              '': 'two'
-            }
+            always: 'two'
           },
           two: {
             exit: () => {

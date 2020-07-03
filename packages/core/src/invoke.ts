@@ -3,7 +3,8 @@ import {
   InvokeCallback,
   Subscribable,
   BehaviorCreator,
-  SCXML
+  SCXML,
+  InvokeMeta
 } from '.';
 
 import { isFunction, mapContext } from './utils';
@@ -41,10 +42,12 @@ export function invokeMachine<
 export function invokePromise<T>(
   promise:
     | PromiseLike<T>
-    | ((ctx: any, event: AnyEventObject) => PromiseLike<T>)
+    | ((ctx: any, event: AnyEventObject, meta: InvokeMeta) => PromiseLike<T>)
 ): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, e, { parent }) => {
-    const resolvedPromise = isFunction(promise) ? promise(ctx, e) : promise;
+  return (ctx, e, { parent, data }) => {
+    const resolvedPromise = isFunction(promise)
+      ? promise(ctx, e, { data })
+      : promise;
     return createPromiseBehavior(resolvedPromise, parent);
   };
 }

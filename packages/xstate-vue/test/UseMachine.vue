@@ -11,6 +11,7 @@
 </template>
 
 <script lang="ts">
+import { PropType } from 'vue';
 import { useMachine } from '../src';
 import { Machine, assign, State } from 'xstate';
 import { invokePromise } from 'xstate/invoke';
@@ -46,8 +47,12 @@ const fetchMachine = Machine<typeof context, any>({
 });
 
 export default {
-  props: ['persistedState'],
-  setup({ persistedState }: { persistedState: State<any, any> }) {
+  props: {
+    persistedState: {
+      type: Object as PropType<State<any>>
+    }
+  },
+  setup({ persistedState }) {
     const onFetch = () =>
       new Promise((res) => setTimeout(() => res('some data'), 50));
 

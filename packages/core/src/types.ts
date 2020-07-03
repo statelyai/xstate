@@ -66,7 +66,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: ActionMeta<TContext, TEvent>
-) => any | void;
+) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
@@ -190,6 +190,10 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
   }
 ) => Behavior<any, any>;
 
+export interface InvokeMeta {
+  data: any;
+}
+
 export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   id: string;
   /**
@@ -208,7 +212,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
    *
    * Data should be mapped to match the child machine's context shape.
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -350,7 +354,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
    *
    * Data should be mapped to match the child machine's context shape.
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The transition to take upon the invoked child machine reaching its final top-level state.
    */
@@ -437,6 +441,12 @@ export interface StateNodeConfig<
    * The delayed transitions are taken after the specified delay in an interpreter.
    */
   after?: DelayedTransitions<TContext, TEvent>;
+
+  /**
+   * An eventless transition that is always taken when this state node is active.
+   * Equivalent to a transition specified as an empty `''`' string in the `on` property.
+   */
+  always?: TransitionConfigOrTarget<TContext, TEvent>;
   /**
    * @private
    */
@@ -452,7 +462,7 @@ export interface StateNodeConfig<
    * The data will be evaluated with the current `context` and placed on the `.data` property
    * of the event.
    */
-  data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
   /**
    * The unique ID of the state node, which can be referenced as a transition target via the
    * `#id` syntax.
@@ -513,7 +523,7 @@ export interface FinalStateNodeConfig<TContext, TEvent extends EventObject>
    * The data to be sent with the "done.state.<id>" event. The data can be
    * static or dynamic (based on assigners).
    */
-  data?: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent> | any;
+  data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
 }
 
 export type SimpleOrStateNodeConfig<
@@ -778,14 +788,20 @@ export type PropertyAssigner<TContext, TEvent extends EventObject> = {
     | TContext[K];
 };
 
-export type Mapper<TContext, TEvent extends EventObject> = (
+export type Mapper<TContext, TEvent extends EventObject, TParams extends {}> = (
   context: TContext,
   event: TEvent
-) => any;
+) => TParams;
 
-export type PropertyMapper<TContext, TEvent extends EventObject> = Partial<{
-  [key: string]: ((context: TContext, event: TEvent) => any) | any;
-}>;
+export type PropertyMapper<
+  TContext,
+  TEvent extends EventObject,
+  TParams extends {}
+> = {
+  [K in keyof TParams]?:
+    | ((context: TContext, event: TEvent) => TParams[K])
+    | TParams[K];
+};
 
 export interface AnyAssignAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
@@ -1063,7 +1079,7 @@ export type Spawnable =
 
 // Taken from RxJS
 export interface Subscription {
-  unsubscribe(): any | void;
+  unsubscribe(): void;
 }
 
 export interface Observer<T> {

@@ -115,7 +115,9 @@ export class StateNode<
   /**
    * The data sent with the "done.state._id_" event if this is a final state node.
    */
-  public data?: Mapper<TContext, TEvent> | PropertyMapper<TContext, TEvent>;
+  public doneData?:
+    | Mapper<TContext, TEvent, any>
+    | PropertyMapper<TContext, TEvent, any>;
   /**
    * The order this state node appears. Corresponds to the implicit SCXML document order.
    */
@@ -206,7 +208,7 @@ export class StateNode<
       toActionObject(action)
     );
     this.meta = this.config.meta;
-    this.data =
+    this.doneData =
       this.type === 'final'
         ? (this.config as FinalStateNodeConfig<TContext, TEvent>).data
         : undefined;
@@ -246,7 +248,7 @@ export class StateNode<
       exit: this.exit,
       meta: this.meta,
       order: this.order || -1,
-      data: this.data,
+      data: this.doneData,
       invoke: this.invoke
     };
   }

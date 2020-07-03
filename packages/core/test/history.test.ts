@@ -302,10 +302,8 @@ describe('transient history', () => {
         on: { EVENT: 'B' }
       },
       B: {
-        on: {
-          // eventless transition
-          '': 'C'
-        }
+        // eventless transition
+        always: 'C'
       },
       C: {}
     }
