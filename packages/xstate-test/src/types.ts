@@ -21,7 +21,7 @@ export interface TestSegmentResult {
     error: null | Error;
   };
 }
-interface TestPath<T> {
+export interface TestPath<T> {
   weight: number;
   segments: Array<TestSegment<T>>;
   description: string;
