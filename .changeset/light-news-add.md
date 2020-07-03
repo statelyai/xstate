@@ -2,4 +2,4 @@
 '@xstate/fsm': minor
 ---
 
-The service can rehydrate the state on start
+You can now rehydrate the state of a service by calling `start` with `initialState` argument.
