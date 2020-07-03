@@ -222,47 +222,76 @@ describe('interpreter', () => {
     actionService.send('TOGGLE');
   });
 
-  it('should start the service with initial state by default', () => {
-    const machine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          on: {
-            NEXT: 'bar'
-          }
-        },
-        bar: {}
-      }
+  describe('`start` method', () => {
+    it('should start the service with initial state by default', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {}
+        }
+      });
+
+      const service = interpret(machine).start();
+
+      expect(service.state.value).toBe('foo');
     });
 
-    const service = interpret(machine).start();
+    it('should rehydrate the state if the state if provided', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {
+            on: {
+              NEXT: 'baz'
+            }
+          },
+          baz: {}
+        }
+      });
 
-    expect(service.state.value).toBe('foo');
-  });
+      const service = interpret(machine).start('bar');
+      expect(service.state.value).toBe('bar');
 
-  it('should rehydrate the state if the state if provided to the `start` method', () => {
-    const machine = createMachine({
-      initial: 'foo',
-      states: {
-        foo: {
-          on: {
-            NEXT: 'bar'
-          }
-        },
-        bar: {
-          on: {
-            NEXT: 'baz'
-          }
-        },
-        baz: {}
-      }
+      service.send('NEXT');
+      expect(service.state.matches('baz')).toBe(true);
     });
 
-    const service = interpret(machine).start('bar');
-    expect(service.state.value).toBe('bar');
+    it('should rehydrate the state and the context if both are provided', () => {
+      const machine = createMachine({
+        initial: 'foo',
+        states: {
+          foo: {
+            on: {
+              NEXT: 'bar'
+            }
+          },
+          bar: {
+            on: {
+              NEXT: 'baz'
+            }
+          },
+          baz: {}
+        }
+      });
 
-    service.send('NEXT');
-    expect(service.state.matches('baz')).toBe(true);
+      const context = { hello: 'world' };
+      const service = interpret(machine).start({ value: 'bar', context });
+      expect(service.state.value).toBe('bar');
+      expect(service.state.context).toBe(context);
+
+      service.send('NEXT');
+      expect(service.state.matches('baz')).toBe(true);
+    });
   });
 
   it('should execute initial entry action', () => {
