@@ -2,4 +2,4 @@
 '@xstate/test': patch
 ---
 
-TestPath interface is now exported
+`TestPath` interface got exported to be publicly available.
