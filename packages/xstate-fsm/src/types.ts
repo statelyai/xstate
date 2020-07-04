@@ -117,7 +117,11 @@ export namespace StateMachine {
     ) => {
       unsubscribe: () => void;
     };
-    start: () => Service<TContext, TEvent, TState>;
+    start: (
+      initialState?:
+        | TState['value']
+        | { context: TContext; value: TState['value'] }
+    ) => Service<TContext, TEvent, TState>;
     stop: () => Service<TContext, TEvent, TState>;
     readonly status: InterpreterStatus;
     readonly state: State<TContext, TEvent, TState>;
