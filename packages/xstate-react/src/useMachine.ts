@@ -12,8 +12,7 @@ import {
   Typestate,
   ActionObject,
   ActionFunction,
-  ActionMeta,
-  StateNode
+  ActionMeta
 } from 'xstate';
 import useConstant from './useConstant';
 import { partition } from './utils';

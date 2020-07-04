@@ -18,7 +18,6 @@ import {
   SCXML,
   Observer,
   Typestate,
-  BehaviorCreator,
   InvokeActionObject,
   AnyEventObject,
   ActorRef,

@@ -1,5 +1,5 @@
 import { useMemo } from 'react';
-import { EventObject, State, Interpreter, Typestate, Sender } from 'xstate';
+import { EventObject, State, Interpreter, Typestate } from 'xstate';
 import { useActor } from './useActor';
 import { ActorRef } from './types';
 

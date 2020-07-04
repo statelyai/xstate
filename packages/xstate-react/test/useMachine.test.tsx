@@ -15,9 +15,8 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { invokePromise } from 'xstate/invoke';
+import { invokePromise, invokeCallback } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { invokeCallback } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 
