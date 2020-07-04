@@ -163,27 +163,11 @@ export const InspectorViz: React.FC<{
     return dispose;
   }, [receiver]);
 
-  // React.useEffect(() => {
-  //   const handler = (event) => {
-  //     if ('type' in event.data) {
-  //       send(event.data);
-  //     }
-  //   };
-
-  //   window.addEventListener('message', handler);
-
-  //   return () => {
-  //     window.removeEventListener('message', handler);
-  //   };
-  // }, []);
-
   const currentService = state.context.service
     ? state.context.services[state.context.service]
     : undefined;
 
   const serviceEntries = Object.entries(state.context.services);
-
-  console.log(serviceEntries);
 
   return (
     <ServicesContext.Provider value={service}>

@@ -77,23 +77,24 @@ export function inspect(options?: Partial<InspectorOptions>) {
     });
   });
 
-  resolvedIframe.addEventListener('load', () => {
-    targetWindow = resolvedIframe.contentWindow!;
-
-    const handler = (event: MessageEvent) => {
-      if (
-        typeof event.data === 'object' &&
-        event.data !== null &&
-        'type' in event.data &&
-        event.data.type === 'xstate.inspecting'
-      ) {
+  window.addEventListener('message', (event) => {
+    if (
+      typeof event.data === 'object' &&
+      event.data !== null &&
+      'type' in event.data &&
+      event.data.type === 'xstate.inspecting'
+    ) {
+      // TODO: use a state machine...
+      setTimeout(() => {
         while (deferredEvents.length > 0) {
           targetWindow!.postMessage(deferredEvents.shift()!, url);
         }
-      }
-    };
+      }, 1000);
+    }
+  });
 
-    window.addEventListener('message', handler);
+  resolvedIframe.addEventListener('load', () => {
+    targetWindow = resolvedIframe.contentWindow!;
   });
 
   resolvedIframe.setAttribute('src', url);
