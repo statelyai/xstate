@@ -1,12 +1,6 @@
 import * as React from 'react';
 import { State } from 'xstate';
-import {
-  JSONViz,
-  defaultJsonVizOptions,
-  JSONObjectViz,
-  JSONPrimitiveViz,
-  JSONCustomViz
-} from './JSONViz';
+import { JSONViz, JSONCustomViz } from './JSONViz';
 import { ActorRefViz } from './ActorRefViz';
 
 type JSONValue =
@@ -62,7 +56,7 @@ export function StateViz({ state }: { state: State<any, any> }) {
     <div data-xviz="state">
       <div data-xviz="state-value">
         <JSONViz
-          valueKey="root"
+          valueKey="state"
           path={[]}
           value={cleanedState as any}
           renderValue={(value, path) => {

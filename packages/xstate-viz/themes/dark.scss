@@ -95,7 +95,8 @@
   &:not([data-xviz-active]) {
     --xviz-border-color: var(--xviz-inactive-border-color);
 
-    [data-xviz='actions'] {
+    [data-xviz='actions'],
+    [data-xviz='stateNode-key'] {
       opacity: 0.5;
     }
   }
@@ -133,9 +134,8 @@
 }
 // [data-xviz='stateNode-key'],
 [data-xviz='event-label'] {
-  border-width: var(--xviz-border-width);
-  border-style: solid;
-  border-color: var(--xviz-border-color);
+  border: none;
+  background-color: var(--xviz-border-color);
   color: var(--xviz-color-foreground);
   border-radius: 1em;
   font-weight: bold;
@@ -183,7 +183,7 @@
   &[data-xviz-transient] {
     [data-xviz='event-type'] {
       &:before {
-        content: 'transient';
+        content: 'always';
         font-style: italic;
       }
     }
@@ -286,10 +286,7 @@
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-}
-
-[data-xviz='event-type'] {
-  padding: 0.25em 0.5em;
+  padding: 0.25em 0.75em;
 }
 
 [data-xviz='event-targets'] {
@@ -306,8 +303,8 @@
 }
 
 [data-xviz='edge'] {
-  &:not([data-xviz-current]) * {
-    opacity: 0.2;
+  &:not([data-xviz-current]) > [data-xviz='edge-path'] {
+    opacity: 0.1;
   }
 
   &[data-xviz-triggered] {
@@ -443,9 +440,8 @@
     grid-area: service;
     display: grid;
     grid-template-columns: 1fr 20em;
-    grid-template-rows: 1em min-content 1fr;
+    grid-template-rows: min-content 1fr;
     grid-template-areas:
-      'header header'
       'machine state'
       'machine events';
 
@@ -592,8 +588,10 @@
   &[data-xviz-json-empty] {
     > [data-xviz='json-value']:before {
       opacity: 0.5;
-      content: 'No items';
+      content: 'Empty';
       font-style: italic;
+      display: block;
+      padding-left: 2ch;
     }
   }
 

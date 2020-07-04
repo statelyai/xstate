@@ -54,7 +54,7 @@ import { Scheduler } from './scheduler';
 import { Actor, isActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
-import { registerService } from './devTools';
+import { registerService, unregisterService } from './devTools';
 
 export type StateListener<
   TContext,
@@ -531,6 +531,10 @@ export class Interpreter<
     this.initialized = false;
     this._status = InterpreterStatus.Stopped;
     registry.free(this.sessionId);
+
+    if (this.options.devTools) {
+      unregisterService(this);
+    }
 
     return this;
   }

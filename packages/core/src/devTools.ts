@@ -2,9 +2,11 @@ import { Interpreter } from '.';
 import { IS_PRODUCTION } from './environment';
 
 type AnyInterpreter = Interpreter<any, any, any>;
+
 interface DevInterface {
   services: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;
+  unregister(service: AnyInterpreter): void;
   onRegister(listener: ServicesListener): void;
 }
 
@@ -29,4 +31,8 @@ export function registerService(service: AnyInterpreter) {
   if (devTools) {
     devTools.register(service);
   }
+}
+
+export function unregisterService(service: AnyInterpreter) {
+  getDevTools()?.unregister(service);
 }

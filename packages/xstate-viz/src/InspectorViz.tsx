@@ -33,6 +33,10 @@ type InspectorEvent =
       parent?: string;
     }
   | {
+      type: 'service.stop';
+      id: string;
+    }
+  | {
       type: 'service.state';
       state: string;
       id: string;
@@ -48,7 +52,7 @@ interface ServiceDataCtx {
   machine: StateNode<any, any>;
   id: string;
   parent?: string;
-  events: SCXML.Event<any>[];
+  events: Array<SCXML.Event<any>>;
 }
 interface InspectorCtx {
   services: Record<string, ServiceDataCtx>;
@@ -108,6 +112,11 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
       }),
       target: '.inspecting'
     },
+    'service.stop': {
+      actions: assign((ctx, e) => {
+        delete ctx.services[e.id];
+      })
+    },
     [viewUpdater.type]: { actions: viewUpdater.action }
   }
 });
@@ -118,22 +127,54 @@ export const ServicesContext = createContext<
 
 export const ServiceDataContext = createContext<ServiceDataCtx>(null as any);
 
-export const InspectorViz: React.FC = () => {
+interface Receiver<T> {
+  send: (event: T) => void;
+  receive: (listener: (e: T) => void) => () => void;
+}
+
+export function createReceiver<T>(): Receiver<T> {
+  const listeners = new Set<(e: T) => void>();
+
+  return {
+    send: (e) => {
+      listeners.forEach((listener) => listener(e));
+    },
+    receive: (listener) => {
+      listeners.add(listener);
+
+      return () => {
+        listeners.delete(listener);
+      };
+    }
+  };
+}
+
+export const InspectorViz: React.FC<{
+  receiver: { receive: (listener: (e: MessageEvent) => void) => void };
+}> = ({ receiver }) => {
   const [state, send, service] = useMachine(inspectorMachine);
 
   React.useEffect(() => {
-    const handler = (event) => {
-      if ('type' in event.data) {
-        send(event.data);
-      }
-    };
+    const dispose = receiver.receive((event) => {
+      send(event.data);
+    });
 
-    window.addEventListener('message', handler);
+    return dispose;
+  }, [receiver]);
 
-    return () => {
-      window.removeEventListener('message', handler);
-    };
-  }, []);
+  // React.useEffect(() => {
+  //   const handler = (event) => {
+  //     if ('type' in event.data) {
+  //       send(event.data);
+  //     }
+  //   };
+
+  //   window.addEventListener('message', handler);
+
+  //   return () => {
+  //     window.removeEventListener('message', handler);
+  //   };
+  // }, []);
 
   const currentService = state.context.service
     ? state.context.services[state.context.service]
@@ -158,19 +199,6 @@ export const InspectorViz: React.FC = () => {
               );
             })}
           </select>
-
-          <button
-            data-xviz="inspector-action"
-            onClick={() => send(viewUpdater.update('graph'))}
-          >
-            Graph
-          </button>
-          <button
-            data-xviz="inspector-action"
-            onClick={() => send(viewUpdater.update('state'))}
-          >
-            State
-          </button>
         </header>
 
         {Object.entries(state.context.services).map(([key, service]) => {

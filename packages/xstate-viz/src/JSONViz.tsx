@@ -194,7 +194,9 @@ export const JSONCustomViz: React.FC<{
 }> = ({ valueKey, path, children, type = 'custom' }) => {
   return (
     <div data-xviz={`json-${type}`} data-xviz-json-type={type}>
-      <summary data-xviz="json-key">{valueKey}:</summary>
+      <summary data-xviz="json-key" title={path.join('.')}>
+        {valueKey}:
+      </summary>
 
       <div data-xviz="json-value">{children}</div>
     </div>

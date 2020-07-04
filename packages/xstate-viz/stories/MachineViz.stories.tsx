@@ -288,7 +288,13 @@ const actionsMachine = createMachine({
   context: {},
   states: {
     raise: {
-      entry: raise('SOME_EVENT')
+      entry: raise('SOME_EVENT'),
+      on: {
+        SOME_EVENT: {
+          target: 'send',
+          actions: 'someAction'
+        }
+      }
     },
     send: {
       entry: [send('SOME_EVENT'), send(() => ({ type: 'SOME_DYNAMIC_EVENT' }))]

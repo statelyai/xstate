@@ -57,7 +57,9 @@ function findMinLocation(
     }
   };
 
-  const targetPointEntries = Object.entries(targetPoints) as [Side, Point][];
+  const targetPointEntries = Object.entries(targetPoints) as Array<
+    [Side, Point]
+  >;
 
   const [minLocation, minPoint] = targetPointEntries.reduce(
     (current, candidate) => {
@@ -137,13 +139,13 @@ export function EdgeViz({
 
           const endPoint = minPoint;
 
-          const theta = Math.atan2(
-            endPoint.y - startPoint.y,
-            endPoint.x - startPoint.x
-          );
+          // const theta = Math.atan2(
+          //   endPoint.y - startPoint.y,
+          //   endPoint.x - startPoint.x
+          // );
 
-          const intersectsWithEvent =
-            minLocation === 'left' && theta <= Math.PI / 2;
+          // const intersectsWithEvent =
+          //   minLocation === 'left' && theta <= Math.PI / 2;
 
           const endOffset: Point = ({
             top: { x: 0, y: -10 },

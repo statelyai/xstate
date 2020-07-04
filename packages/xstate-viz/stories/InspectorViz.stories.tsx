@@ -1,7 +1,7 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useRef } from 'react';
 import { createMachine, assign, interpret, sendParent, send } from 'xstate';
 
-import { InspectorViz } from '../src/InspectorViz';
+import { InspectorViz, createReceiver } from '../src/InspectorViz';
 import '../themes/dark.scss';
 
 export default {
@@ -96,6 +96,8 @@ const register = (service) => {
 };
 
 export const SimpleInspector = () => {
+  const receiver = useRef(createReceiver<MessageEvent<any>>());
+
   useEffect(() => {
     (window as any).__xstate__ = {
       register: (service) => {
@@ -117,5 +119,20 @@ export const SimpleInspector = () => {
       clearTimeout(timeout);
     };
   }, []);
-  return <InspectorViz />;
+
+  useEffect(() => {
+    const handler = (event) => {
+      if ('type' in event.data) {
+        receiver.current.send(event);
+      }
+    };
+
+    window.addEventListener('message', handler);
+
+    return () => {
+      window.removeEventListener('message', handler);
+    };
+  }, []);
+
+  return <InspectorViz receiver={receiver.current} />;
 };
