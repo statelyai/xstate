@@ -5,6 +5,7 @@ import { Actor } from './Actor';
 export class ObservableActorRef<TEvent extends EventObject, TEmitted>
   implements ActorRef<TEvent, TEmitted> {
   public current: TEmitted;
+  public deferred = true;
   private context: ActorContext;
   private actor: Actor<TEvent, TEmitted>;
   public name: string;
@@ -19,6 +20,7 @@ export class ObservableActorRef<TEvent extends EventObject, TEmitted>
     this.current = this.actor.current;
   }
   public start() {
+    this.deferred = false;
     this.actor.receiveSignal(startSignal);
 
     return this;

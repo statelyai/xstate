@@ -22,7 +22,10 @@ export function useService<
   TTypestate extends Typestate<TContext> = any
 >(
   service: Interpreter<TContext, TEvent, any, TTypestate>
-): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
+): [
+  State<TContext, TEvent, any, TTypestate>,
+  (event: TEvent | TEvent['type']) => void
+] {
   const serviceActor = useMemo(() => fromService(service), [service]);
 
   return useActor<TEvent, State<TContext, TEvent>>(serviceActor);

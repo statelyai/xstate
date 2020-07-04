@@ -15,7 +15,7 @@ import {
   stopSignal,
   createServiceBehavior,
   createMachineBehavior,
-  createCallbackBehavior,
+  createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
   LifecycleSignal
@@ -55,7 +55,10 @@ export function fromCallback<TEvent extends EventObject>(
   parent: ActorRef<any>,
   name: string
 ): ActorRef<SCXML.Event<TEvent>> {
-  return new ObservableActorRef(createCallbackBehavior(callback, parent), name);
+  return new ObservableActorRef(
+    createDeferredBehavior(() => callback, parent),
+    name
+  );
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(

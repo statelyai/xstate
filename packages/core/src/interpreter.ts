@@ -39,11 +39,12 @@ import {
   isSCXMLErrorEvent
 } from './utils';
 import { Scheduler } from './scheduler';
-import { isActorRef, fromService, ObservableActorRef } from './Actor';
+import { isActorRef, fromService } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
+import { createInvocation } from './invoke';
 
 export type StateListener<
   TContext,
@@ -707,60 +708,29 @@ export class Interpreter<
         break;
 
       case ActionTypes.Invoke: {
-        const { id, data, autoForward, src } = action as InvokeActionObject;
-
-        // If the actor will be stopped right after it's started
-        // (such as in transient states) don't bother starting the actor.
-        if (
-          state.actions.find((otherAction) => {
-            return (
-              otherAction.type === actionTypes.stop && otherAction.actor === id
-            );
-          })
-        ) {
-          return;
-        }
+        const { id, autoForward } = action as InvokeActionObject;
 
         try {
-          let actorRef: ActorRef<any>;
+          const actorRef = createInvocation(
+            state,
+            action as InvokeActionObject,
+            this.machine,
+            this.ref
+          );
 
-          if (isActorRef(src)) {
-            actorRef = src;
-          } else {
-            const behaviorCreator:
-              | BehaviorCreator<TContext, TEvent>
-              | undefined = this.machine.options.behaviors[src];
-
-            if (!behaviorCreator) {
-              if (!IS_PRODUCTION) {
-                warn(
-                  false,
-                  `No behavior found for invocation '${src}' in machine '${this.machine.id}'.`
-                );
-              }
-              return;
+          if (actorRef) {
+            if (autoForward) {
+              this.forwardTo.add(id);
             }
 
-            const behavior = behaviorCreator(context, _event.data, {
-              parent: this.ref,
-              id,
-              data,
-              _event
-            });
+            this.children.set(id, actorRef);
+            this.state.children[id] = actorRef;
 
-            actorRef = new ObservableActorRef(behavior, id);
+            actorRef.start();
           }
-
-          if (autoForward) {
-            this.forwardTo.add(id);
-          }
-
-          this.children.set(id, actorRef);
-          this.state.children[id] = actorRef;
-
-          actorRef.start();
         } catch (err) {
           this.send(error(id, err));
+          break;
         }
 
         break;

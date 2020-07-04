@@ -6,17 +6,20 @@ import {
   InterpreterOptions,
   Spawnable,
   Observer,
-  ActorRef
+  ActorRef,
+  MaybeLazy,
+  Sender,
+  Receiver
 } from './types';
 import {
   toSCXMLEvent,
   isPromiseLike,
   isObservable,
   isMachineNode,
-  isSCXMLEvent
+  isSCXMLEvent,
+  isFunction
 } from './utils';
 import { doneInvoke, error, actionTypes } from './actions';
-import { isFunction } from 'util';
 import { MachineNode } from './MachineNode';
 import { interpret, Interpreter } from './interpreter';
 import { State } from './State';
@@ -54,8 +57,8 @@ export interface Behavior<TReceived extends EventObject, TEmitted> {
   subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
 
-export function createCallbackBehavior<TEvent extends EventObject>(
-  callback: InvokeCallback,
+export function createDeferredBehavior<TEvent extends EventObject>(
+  lazyEntity: () => InvokeCallback,
   parent?: ActorRef<any>
 ): Behavior<TEvent, undefined> {
   let canceled = false;
@@ -71,18 +74,20 @@ export function createCallbackBehavior<TEvent extends EventObject>(
     },
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
-        dispose = callback(
-          (e) => {
-            if (canceled) {
-              return;
-            }
-
-            parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
-          },
-          (newListener) => {
-            receivers.add(newListener);
+        const sender: Sender<TEvent> = (e) => {
+          if (canceled) {
+            return;
           }
-        );
+
+          parent?.send(toSCXMLEvent(e, { origin: actorContext.self }));
+        };
+
+        const receiver: Receiver<TEvent> = (newListener) => {
+          receivers.add(newListener);
+        };
+
+        const callbackEntity = lazyEntity();
+        dispose = callbackEntity(sender, receiver);
 
         if (isPromiseLike(dispose)) {
           dispose.then(
@@ -122,7 +127,7 @@ export function createCallbackBehavior<TEvent extends EventObject>(
 }
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
-  promise: PromiseLike<T>,
+  promise: MaybeLazy<PromiseLike<T>>,
   parent?: ActorRef<any>
 ): Behavior<TEvent, T | undefined> {
   let canceled = false;
@@ -135,7 +140,9 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
     receiveSignal: (actorContext: ActorContext, signal: LifecycleSignal) => {
       switch (signal) {
         case startSignal:
-          const resolvedPromise = Promise.resolve(promise);
+          const resolvedPromise = Promise.resolve(
+            typeof promise === 'function' ? promise() : promise
+          );
 
           resolvedPromise.then(
             (response) => {
@@ -238,17 +245,20 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
+  machine: MaybeLazy<MachineNode<TContext, TEvent>>,
   parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
-  let service: Interpreter<TContext, TEvent>;
+  let service: Interpreter<TContext, TEvent> | undefined;
   let subscription: Subscription;
+  let resolvedMachine: MachineNode<TContext, TEvent>;
 
   const behavior: Behavior<TEvent, State<TContext, TEvent>> = {
     receiveSignal: (actorContext, signal) => {
+      resolvedMachine = isFunction(machine) ? machine() : machine;
+
       if (signal === startSignal) {
-        service = interpret(machine, {
+        service = interpret(resolvedMachine, {
           ...options,
           parent,
           id: actorContext.name
@@ -276,19 +286,23 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
         }
         service.start();
       } else if (signal === stopSignal) {
-        service.stop();
+        service?.stop();
         subscription && subscription.unsubscribe(); // TODO: might not be necessary
       }
       return behavior;
     },
     receive: (_, event) => {
-      service.send(event);
+      service?.send(event);
       return behavior;
     },
     subscribe: (observer) => {
       return service?.subscribe(observer);
     },
-    current: machine.initialState // TODO: this should get from machine.getInitialState(ref)
+    get current() {
+      resolvedMachine =
+        resolvedMachine || (isFunction(machine) ? machine() : machine);
+      return resolvedMachine.initialState; // TODO: this should get from machine.getInitialState(ref)
+    }
   };
 
   return behavior;
@@ -351,7 +365,7 @@ export function createBehaviorFrom(
   }
 
   if (isFunction(entity)) {
-    return createCallbackBehavior(entity as InvokeCallback, parent);
+    return createDeferredBehavior(() => entity as InvokeCallback, parent);
   }
 
   throw new Error(`Unable to create behavior from entity`);
