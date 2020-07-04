@@ -109,7 +109,6 @@ export const SimpleInspector = () => {
       const simpleService = interpret(simpleMachine, {
         devTools: true
       }).start();
-
       setInterval(() => {
         simpleService.send('TOGGLE');
       }, 2000);
@@ -122,7 +121,11 @@ export const SimpleInspector = () => {
 
   useEffect(() => {
     const handler = (event) => {
-      if ('type' in event.data) {
+      if (
+        typeof event.data === 'object' &&
+        event.data !== null &&
+        'type' in event.data
+      ) {
         receiver.current.send(event);
       }
     };

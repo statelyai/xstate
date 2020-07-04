@@ -6,6 +6,7 @@ import { assign, createUpdater, ImmerUpdateEvent } from '@xstate/immer';
 // import { EventRecordsViz } from './EventRecordsViz';
 import { StateViz } from './StateViz';
 import { createContext } from 'react';
+import { Loader } from './Loader';
 
 const parseState = (stateJSON: string): State<any, any> => {
   const state = State.create(JSON.parse(stateJSON));
@@ -180,42 +181,52 @@ export const InspectorViz: React.FC<{
     ? state.context.services[state.context.service]
     : undefined;
 
+  const serviceEntries = Object.entries(state.context.services);
+
+  console.log(serviceEntries);
+
   return (
     <ServicesContext.Provider value={service}>
       <div data-xviz="inspector" data-xviz-view={state.context.view}>
         <header data-xviz="inspector-header">
-          <select
-            onChange={(e) => {
-              send({ type: 'service.select', id: e.target.value });
-            }}
-            value={state.context.service}
-            data-xviz="inspector-action"
-          >
-            {Object.keys(state.context.services).map((key) => {
-              return (
-                <option data-xviz="service-link" key={key} value={key}>
-                  {key}
-                </option>
-              );
-            })}
-          </select>
+          {serviceEntries.length > 0 && (
+            <select
+              onChange={(e) => {
+                send({ type: 'service.select', id: e.target.value });
+              }}
+              value={state.context.service}
+              data-xviz="inspector-action"
+            >
+              {Object.keys(state.context.services).map((key) => {
+                return (
+                  <option data-xviz="service-link" key={key} value={key}>
+                    {key}
+                  </option>
+                );
+              })}
+            </select>
+          )}
         </header>
 
-        {Object.entries(state.context.services).map(([key, service]) => {
-          return (
-            <ServiceDataContext.Provider value={service} key={key}>
-              <div
-                data-xviz="service"
-                data-xviz-view={state.context.view}
-                hidden={currentService !== service || undefined}
-              >
-                <MachineViz machine={service.machine} state={service.state} />
-                {/* <EventRecordsViz events={value.events} /> */}
-                <StateViz state={service.state} />
-              </div>
-            </ServiceDataContext.Provider>
-          );
-        })}
+        {serviceEntries.length > 0 ? (
+          serviceEntries.map(([key, service]) => {
+            return (
+              <ServiceDataContext.Provider value={service} key={key}>
+                <div
+                  data-xviz="service"
+                  data-xviz-view={state.context.view}
+                  hidden={currentService !== service || undefined}
+                >
+                  <MachineViz machine={service.machine} state={service.state} />
+                  {/* <EventRecordsViz events={value.events} /> */}
+                  <StateViz state={service.state} />
+                </div>
+              </ServiceDataContext.Provider>
+            );
+          })
+        ) : (
+          <Loader>Awaiting connection...</Loader>
+        )}
       </div>
     </ServicesContext.Provider>
   );

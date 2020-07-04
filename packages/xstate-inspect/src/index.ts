@@ -1,9 +1,12 @@
-import { Interpreter } from 'xstate';
+import { Interpreter, AnyEventObject } from 'xstate';
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 
+type MaybeLazy<T> = T | (() => T);
+
 export interface InspectorOptions {
   url: string;
+  iframe: MaybeLazy<HTMLIFrameElement | null>;
 }
 
 declare global {
@@ -30,20 +33,26 @@ window.__xstate__ = {
   }
 };
 
-const defaultInspectorOptions = {
-  // url: 'https://statecharts.io/embed'
-  url: 'http://localhost:3001'
+const defaultInspectorOptions: InspectorOptions = {
+  url: 'https://embed.statecharts.io',
+  iframe: () => document.querySelector('iframe[data-xstate]')
 };
 
-export function inspect(
-  iframe: HTMLIFrameElement | null = document.querySelector(
-    'iframe[data-xstate]'
-  ),
-  options?: Partial<InspectorOptions>
-) {
-  const resolvedOptions = { ...defaultInspectorOptions, ...options };
+export function inspect(options?: Partial<InspectorOptions>) {
+  const { iframe, url } = { ...defaultInspectorOptions, ...options };
+  const resolvedIframe = typeof iframe === 'function' ? iframe() : iframe;
+  const deferredEvents: AnyEventObject[] = [];
+  let targetWindow: Window | undefined;
 
-  if (!iframe) {
+  const postMessage = (event: AnyEventObject) => {
+    if (!targetWindow) {
+      deferredEvents.push(event);
+    } else {
+      targetWindow.postMessage(event, '*');
+    }
+  };
+
+  if (!resolvedIframe) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
@@ -51,31 +60,41 @@ export function inspect(
     return;
   }
 
-  iframe.addEventListener('load', () => {
-    window.__xstate__.onRegister((service) => {
-      console.log('registering service');
-      iframe.contentWindow?.postMessage(
-        {
-          type: 'service.register',
-          machine: JSON.stringify(service.machine),
-          state: JSON.stringify(service.state || service.initialState),
-          id: service.id
-        },
-        '*'
-      );
+  window.__xstate__.onRegister((service) => {
+    postMessage({
+      type: 'service.register',
+      machine: JSON.stringify(service.machine),
+      state: JSON.stringify(service.state || service.initialState),
+      id: service.id
+    });
 
-      service.subscribe((state) => {
-        iframe.contentWindow?.postMessage(
-          {
-            type: 'service.state',
-            state: JSON.stringify(state),
-            id: service.id
-          },
-          '*'
-        );
+    service.subscribe((state) => {
+      postMessage({
+        type: 'service.state',
+        state: JSON.stringify(state),
+        id: service.id
       });
     });
   });
 
-  iframe.setAttribute('src', resolvedOptions.url);
+  resolvedIframe.addEventListener('load', () => {
+    targetWindow = resolvedIframe.contentWindow!;
+
+    const handler = (event: MessageEvent) => {
+      if (
+        typeof event.data === 'object' &&
+        event.data !== null &&
+        'type' in event.data &&
+        event.data.type === 'xstate.inspecting'
+      ) {
+        while (deferredEvents.length > 0) {
+          targetWindow!.postMessage(deferredEvents.shift()!, url);
+        }
+      }
+    };
+
+    window.addEventListener('message', handler);
+  });
+
+  resolvedIframe.setAttribute('src', url);
 }

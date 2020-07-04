@@ -1,5 +1,5 @@
-import React, { useEffect, useRef, useLayoutEffect } from 'react';
-import { createMachine, assign, interpret, Interpreter } from 'xstate';
+import React, { useLayoutEffect } from 'react';
+import { createMachine, assign } from 'xstate';
 import { inspect } from '@xstate/inspect';
 
 import '../themes/dark.scss';
@@ -45,7 +45,9 @@ const Simple = () => {
 
 export const SimpleInspector = () => {
   useLayoutEffect(() => {
-    inspect();
+    inspect({
+      url: 'http://localhost:3000'
+    });
   }, []);
 
   return (
