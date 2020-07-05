@@ -1,6 +1,6 @@
 {
   "name": "@xstate/viz",
-  "version": "0.2.3",
+  "version": "0.2.4",
   "description": "XState visualization tools",
   "keywords": [
     "state",

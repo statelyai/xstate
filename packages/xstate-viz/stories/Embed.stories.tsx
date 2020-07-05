@@ -46,7 +46,7 @@ const Simple = () => {
 export const SimpleInspector = () => {
   useLayoutEffect(() => {
     inspect({
-      url: 'http://localhost:3000'
+      url: 'https://embed.statecharts.io'
     });
   }, []);
 

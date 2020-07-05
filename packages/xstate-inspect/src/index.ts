@@ -26,6 +26,7 @@ window.__xstate__ = {
   services,
   register: (service) => {
     services.add(service);
+    serviceListeners.forEach((listener) => listener(service));
   },
   onRegister: (listener) => {
     serviceListeners.add(listener);
