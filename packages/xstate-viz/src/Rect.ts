@@ -11,7 +11,10 @@ export class Rect implements ClientRect {
   public height: number;
   public x: number;
   public y: number;
-  constructor(rect: ClientRect) {
+  constructor(
+    rect: ClientRect,
+    parentRect: ClientRect = document.body.getBoundingClientRect()
+  ) {
     this.top = rect.top;
     this.left = rect.left;
     this.bottom = rect.bottom;

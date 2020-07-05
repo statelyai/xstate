@@ -30,8 +30,12 @@ export class Tracker {
     }
   }
 
+  private getParent(el: Element) {
+    return el.closest('[data-xviz="machine-container"]') || this.parentElement;
+  }
+
   public update(id: string, el: Element) {
-    const clientRect = relative(el.getBoundingClientRect(), this.parentElement);
+    const clientRect = relative(el.getBoundingClientRect(), this.getParent(el));
 
     if (!this.data[id]) {
       this.register(id);
@@ -50,7 +54,10 @@ export class Tracker {
     Object.entries(this.data).forEach(([, value]) => {
       if (value.element) {
         value.rect = new Rect(
-          relative(value.element.getBoundingClientRect(), this.parentElement)
+          relative(
+            value.element.getBoundingClientRect(),
+            this.getParent(value.element)
+          )
         ); // todo: RelativeRect ?
         value.listeners.forEach((listener) => listener(value));
       }

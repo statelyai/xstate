@@ -2,11 +2,9 @@ import * as React from 'react';
 import { useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
-import { relative } from './tracker';
 import { Point } from './Rect';
 import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
-import { StateNode } from 'xstate';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
@@ -102,24 +100,21 @@ export function EdgeViz({
   const targetRectData = useTracked(edge.target.id);
   const targetRect = targetRectData ? targetRectData.rect : undefined;
 
-  const machineRectData = useTracked(`machine:${edge.target.machine.id}`);
-  const machineRect = machineRectData ? machineRectData.rect : undefined;
-
   const triggered =
     state.event.type === edge.event &&
     state.history?.matches(getPartialStateValue(edge.source));
 
   const path =
-    !sourceRect || !eventRect || !targetRect || !ref.current || !machineRect
+    !sourceRect || !eventRect || !targetRect || !ref.current
       ? null
       : (() => {
           if (edge.source === edge.target) {
             return null;
           }
-          const relativeSourceRect = relative(sourceRect, machineRect);
-          const relativeEventRect = relative(eventRect!, machineRect);
+          const relativeSourceRect = sourceRect;
+          const relativeEventRect = eventRect;
 
-          const relativeTargetRect = relative(targetRect, machineRect);
+          const relativeTargetRect = targetRect;
 
           const startPoint = relativeEventRect.point('right', 'center');
           const [minLocation, minPoint] = findMinLocation(
@@ -243,51 +238,10 @@ export function EdgeViz({
       data-xviz="edge"
       data-xviz-current={isCurrent || undefined}
       data-xviz-triggered={triggered || undefined}
+      data-source={JSON.stringify(sourceRect)}
       ref={ref}
     >
       {path}
-    </g>
-  );
-}
-
-export function InitialEdgeViz({
-  stateNode,
-  markerId
-}: {
-  stateNode: StateNode<any, any, any>;
-  markerId: string;
-}) {
-  const data = useTracked(stateNode.id);
-  const machineData = useTracked(`machine:${stateNode.machine.id}`);
-
-  if (!data) {
-    return null;
-  }
-
-  const { left, top } = relative(data.rect!, machineData!.rect!);
-
-  const endPoint: Point = {
-    x: left - 10,
-    y: top + 10
-  };
-
-  const startPoint: Point = {
-    x: endPoint.x - 5,
-    y: endPoint.y - 10
-  };
-
-  return (
-    <g>
-      <circle r="4" cx={startPoint.x} cy={startPoint.y} fill="currentColor" />
-      <path
-        d={`M ${startPoint.x},${startPoint.y} Q ${startPoint.x},${endPoint.y} ${
-          endPoint.x
-        },${endPoint.y} L ${endPoint.x + 1}, ${endPoint.y}`}
-        stroke={'currentColor'}
-        strokeWidth="2"
-        fill="none"
-        markerEnd={`url(#${markerId})`}
-      />
     </g>
   );
 }

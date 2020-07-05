@@ -6,6 +6,11 @@ interface MachineContext {
   state: State<any, any>;
   // machine: StateMachine<any, any, any>;
   tracker: Tracker;
+  zoom: number;
+  scroll: {
+    x: number;
+    y: number;
+  };
 }
 
 export const StateContext = createContext<MachineContext>(

@@ -7,7 +7,7 @@
   --xviz-border-width: 2px;
 }
 
-[data-xviz='machine'],
+[data-xviz='machine-container'],
 [data-xviz='service'],
 [data-xviz='inspector'] {
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -27,9 +27,20 @@
   font-size: 125%;
 }
 
+[data-xviz='machine-container'] {
+  overflow: hidden;
+}
+
+html,
+body {
+  overscroll-behavior-x: none;
+}
+
 [data-xviz='machine'] {
   padding: 1em;
   display: grid;
+  max-height: 100%;
+  overscroll-behavior-x: none;
 }
 
 [data-xviz='stateNode'] {
@@ -161,17 +172,17 @@
   margin-bottom: 0.5em;
 
   &[data-xviz-triggered] [data-xviz='event-label'] {
-    animation: flash 0.6s ease-out both;
+    // animation: flash 0.6s ease-out both;
 
-    @keyframes flash {
-      from {
-        background-color: var(--xviz-active-color);
-        transform: scale(1.1);
-      }
-      to {
-        background-color: transparent;
-      }
-    }
+    // @keyframes flash {
+    //   from {
+    //     background-color: var(--xviz-active-color);
+    //     transform: scale(1.1);
+    //   }
+    //   to {
+    //     background-color: transparent;
+    //   }
+    // }
   }
 
   &[data-xviz-builtin] {
@@ -309,27 +320,31 @@
 
   &[data-xviz-triggered] {
     [data-xviz='edge-path'][data-xviz-secondary] {
-      stroke: var(--xviz-active-color);
-      opacity: 1;
-      animation: xviz-edge-path-active 0.6s cubic-bezier(0, 1, 1, 1) both;
+      // stroke: var(--xviz-active-color);
+      // opacity: 1;
+      // animation: xviz-edge-path-active 0.6s cubic-bezier(0, 1, 1, 1) both;
 
-      @keyframes xviz-edge-path-active {
-        from {
-          stroke-dashoffset: 0;
-        }
-        to {
-          stroke-dashoffset: -1;
-        }
-      }
+      // @keyframes xviz-edge-path-active {
+      //   from {
+      //     stroke-dashoffset: 0;
+      //   }
+      //   to {
+      //     stroke-dashoffset: -1;
+      //   }
+      // }
     }
   }
 }
 
+[data-xviz='initialEdge-path'],
 [data-xviz='edge-path'] {
-  stroke-width: var(--xviz-stroke-width);
+  stroke-width: calc(var(--xviz-stroke-width) * var(--xviz-zoom, 1));
   stroke: white;
   stroke-dashoffset: 0;
   stroke-dasharray: 1 1;
+}
+
+[data-xviz='initialEdge-circle'] {
 }
 
 [data-xviz='event-cond'] {
@@ -533,6 +548,7 @@
 [data-xviz='state'] {
   background: var(--xviz-background-color);
   color: var(--xviz-foreground-color);
+  padding: 1em;
 }
 
 [data-xviz='event-records'] {

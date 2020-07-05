@@ -1,6 +1,7 @@
 import * as React from 'react';
 import { Edge } from './types';
-import { EdgeViz, InitialEdgeViz } from './EdgeViz';
+import { EdgeViz } from './EdgeViz';
+import { InitialEdgeViz } from './InitialEdgeViz';
 import { ArrowMarker } from './ArrowMarker';
 import { StateMachine } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
@@ -24,7 +25,14 @@ export function EdgesViz({
   return (
     <svg
       data-xviz="edges"
-      style={{ overflow: 'visible', position: 'absolute', top: 0, left: 0 }}
+      style={{
+        overflow: 'visible',
+        position: 'absolute',
+        top: 0,
+        left: 0,
+        height: '100%',
+        width: '100%'
+      }}
     >
       <defs>
         <ArrowMarker id={markerId} />

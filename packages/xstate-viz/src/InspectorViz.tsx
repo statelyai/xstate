@@ -209,7 +209,7 @@ export const InspectorViz: React.FC<{
             );
           })
         ) : (
-          <Loader>Awaiting connection...</Loader>
+          <Loader>Waiting for connection...</Loader>
         )}
       </div>
     </ServicesContext.Provider>

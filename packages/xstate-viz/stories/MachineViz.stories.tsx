@@ -1,10 +1,11 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import { linkTo } from '@storybook/addon-links';
 import { Welcome } from '@storybook/react/demo';
 import { createMachine, actions } from 'xstate';
 
 import { MachineViz } from '../src/MachineViz';
 import '../themes/dark.scss';
+import { useMachine } from '@xstate/react';
 
 const {
   raise,
@@ -421,12 +422,22 @@ const donutMachine = createMachine({
         NEXT: 'serve'
       }
     },
-    serve: {}
+    serve: {
+      on: {
+        ANOTHER_DONUT: 'ingredients'
+      }
+    }
   }
 });
 
 export const DonutMachine = () => {
-  return (
-    <MachineViz machine={donutMachine} state={donutMachine.initialState} />
-  );
+  const [state, send] = useMachine(donutMachine);
+
+  useEffect(() => {
+    setTimeout(() => {
+      send(state.nextEvents[0]);
+    }, 1000);
+  }, [state]);
+
+  return <MachineViz machine={donutMachine} state={state} />;
 };
