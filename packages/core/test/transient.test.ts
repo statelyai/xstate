@@ -629,4 +629,45 @@ describe('transient states (eventless transitions)', () => {
 
     service.send('ADD');
   });
+
+  it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
+    const timerMachine = Machine({
+      initial: 'intitial',
+      states: {
+        intitial: {
+          always: [
+            {
+              target: `finished`,
+              cond: (ctx) => ctx.duration < 1000
+            },
+            {
+              target: `active`
+            }
+          ]
+        },
+        active: {},
+        finished: { type: 'final' }
+      }
+    });
+
+    const machine = Machine({
+      initial: 'active',
+      context: {
+        customDuration: 3000
+      },
+      states: {
+        active: {
+          invoke: {
+            src: timerMachine,
+            data: {
+              duration: (context) => context.customDuration
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+    expect(() => service.start()).not.toThrow();
+  });
 });

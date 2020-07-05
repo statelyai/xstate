@@ -1177,7 +1177,9 @@ class StateNode<
       (acc, action) => {
         acc[action.activity.id] = createInvocableActor(
           action.activity,
-          this.machine
+          this.machine,
+          updatedContext,
+          _event
         );
 
         return acc;
@@ -1446,7 +1448,7 @@ class StateNode<
 
     return toStatePath(stateIdentifier, this.delimiter);
   }
-  private get initialStateValue(): StateValue | undefined {
+  public get initialStateValue(): StateValue | undefined {
     if (this.__cache.initialStateValue) {
       return this.__cache.initialStateValue;
     }
