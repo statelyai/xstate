@@ -713,3 +713,16 @@ body {
     opacity: 1;
   }
 }
+
+[data-xviz='controls'] {
+  position: absolute;
+  bottom: 0;
+  right: 0;
+  padding: 1em;
+
+  > [data-xviz='button'] {
+    appearance: none;
+    background: white;
+    border: none;
+  }
+}
