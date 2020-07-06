@@ -87,16 +87,14 @@ export function createMachine<
   } = {}
 ): StateMachine.Machine<TContext, TEvent, TState> {
   if (!IS_PRODUCTION) {
-    Object
-      .keys(fsmConfig['states'])
-      .forEach((state) => {
-        if (fsmConfig['states'][state].states) {
-          throw new Error(`Nested finite states not supported. 
+    Object.keys(fsmConfig.states).forEach((state) => {
+      if (fsmConfig.states[state].states) {
+        throw new Error(`Nested finite states not supported.
             Please check the configuration for the "${state}" state.`);
-        }
-      });
+      }
+    });
   }
-  
+
   const machine = {
     config: fsmConfig,
     _options: options,
@@ -231,7 +229,35 @@ export function interpret<
         unsubscribe: () => listeners.delete(listener)
       };
     },
-    start: () => {
+    start: (
+      initialState?:
+        | TState['value']
+        | { context: TContext; value: TState['value'] }
+    ) => {
+      if (initialState) {
+        const resolved =
+          typeof initialState === 'object'
+            ? initialState
+            : { context: machine.config.context!, value: initialState };
+        state = {
+          value: resolved.value,
+          actions: [],
+          context: resolved.context,
+          matches: createMatcher(resolved.value)
+        };
+
+        if (!IS_PRODUCTION) {
+          if (!(state.value in machine.config.states)) {
+            throw new Error(
+              `Cannot start service in state '${
+                state.value
+              }'. The state is not found on machine${
+                machine.config.id ? ` '${machine.config.id}'` : ''
+              }.`
+            );
+          }
+        }
+      }
       status = InterpreterStatus.Running;
       executeStateActions(state, INIT_EVENT);
       return service;
