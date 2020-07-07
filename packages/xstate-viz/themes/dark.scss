@@ -718,11 +718,31 @@ body {
   position: absolute;
   bottom: 0;
   right: 0;
-  padding: 1em;
+  border-radius: 0.25em;
+  margin: 1em;
+  overflow: hidden;
 
   > [data-xviz='button'] {
     appearance: none;
     background: white;
     border: none;
+    height: 1.5em;
+    width: 1.5em;
+    opacity: 0.6;
+    font-size: 100%;
+    font-weight: bold;
+    user-select: none;
+
+    + [data-xviz='button'] {
+      border-left: 1px solid #ddd;
+    }
+
+    &:hover {
+      opacity: 1;
+    }
+
+    &:focus {
+      outline: none;
+    }
   }
 }
