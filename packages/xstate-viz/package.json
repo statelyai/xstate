@@ -1,6 +1,6 @@
 {
   "name": "@xstate/viz",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "description": "XState visualization tools",
   "keywords": [
     "state",
@@ -71,7 +71,7 @@
     "babel-loader": "^8.1.0",
     "concurrently": "^5.1.0",
     "css-loader": "^3.5.3",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",

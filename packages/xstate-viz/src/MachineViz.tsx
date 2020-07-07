@@ -5,10 +5,9 @@ import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
 import { Tracker } from './tracker';
-import { State, StateMachine, createMachine } from 'xstate';
+import { State, StateMachine, createMachine, assign } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
-import { assign } from '../../xstate-fsm/lib';
 import { useMachine } from '@xstate/react';
 import { asEffect } from '@xstate/react/lib/useMachine';
 
