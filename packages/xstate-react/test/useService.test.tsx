@@ -1,17 +1,8 @@
 import { useEffect, useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
-import {
-  Machine,
-  assign,
-  interpret,
-  Interpreter,
-  createMachine,
-  sendParent,
-  Actor
-} from 'xstate';
+import { Machine, assign, interpret, Interpreter } from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
-import { useActor } from '../src/useActor';
 
 afterEach(cleanup);
 
