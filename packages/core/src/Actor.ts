@@ -2,9 +2,10 @@ import {
   EventObject,
   Subscribable,
   InvokeDefinition,
-  AnyEventObject
+  AnyEventObject,
+  StateMachine,
+  Spawnable
 } from './types';
-import { StateMachine } from '.';
 import { isMachine } from './utils';
 
 export interface Actor<
@@ -43,17 +44,25 @@ export function createNullActor(id: string): Actor {
  */
 export function createInvocableActor<TC, TE extends EventObject>(
   invokeDefinition: InvokeDefinition<TC, TE>,
-  machine: StateMachine<TC, any, TE>
+  machine?: StateMachine<TC, any, TE>
 ): Actor {
-  const tempActor = createNullActor(invokeDefinition.id);
-  const serviceCreator = machine.options.services?.[invokeDefinition.src];
-  tempActor.deferred = true;
-
-  if (isMachine(serviceCreator)) {
-    tempActor.state = serviceCreator.initialState;
-  }
+  const serviceCreator = machine?.options.services?.[invokeDefinition.src];
+  const tempActor = serviceCreator
+    ? createDeferredActor(serviceCreator as Spawnable, invokeDefinition.id)
+    : createNullActor(invokeDefinition.id);
 
   tempActor.meta = invokeDefinition;
+
+  return tempActor;
+}
+
+export function createDeferredActor(entity: Spawnable, id: string): Actor {
+  const tempActor = createNullActor(id);
+  tempActor.deferred = true;
+
+  if (isMachine(entity)) {
+    tempActor.state = entity.initialState;
+  }
 
   return tempActor;
 }

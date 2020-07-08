@@ -51,7 +51,7 @@ import {
   symbolObservable
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor } from './Actor';
+import { Actor, isActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
@@ -1266,16 +1266,6 @@ export class Interpreter<
   }
 }
 
-const createNullActor = (name: string = 'null'): Actor => ({
-  id: name,
-  send: () => void 0,
-  subscribe: () => {
-    // tslint:disable-next-line:no-empty
-    return { unsubscribe: () => {} };
-  },
-  toJSON: () => ({ id: name })
-});
-
 const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
   if (isString(nameOrOptions)) {
     return { ...DEFAULT_SPAWN_OPTIONS, name: nameOrOptions };
@@ -1311,11 +1301,10 @@ export function spawn(
         }") outside of a service. This will have no effect.`
       );
     }
-
     if (service) {
       return service.spawn(entity, resolvedOptions.name, resolvedOptions);
     } else {
-      return createNullActor(resolvedOptions.name);
+      return createDeferredActor(entity, resolvedOptions.name);
     }
   });
 }
