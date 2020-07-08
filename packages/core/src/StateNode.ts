@@ -1448,7 +1448,7 @@ class StateNode<
 
     return toStatePath(stateIdentifier, this.delimiter);
   }
-  public get initialStateValue(): StateValue | undefined {
+  private get initialStateValue(): StateValue | undefined {
     if (this.__cache.initialStateValue) {
       return this.__cache.initialStateValue;
     }

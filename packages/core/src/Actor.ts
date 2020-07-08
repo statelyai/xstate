@@ -53,12 +53,13 @@ export function createInvocableActor<TC, TE extends EventObject>(
   tempActor.deferred = true;
 
   if (isMachine(serviceCreator)) {
-    tempActor.state = serviceCreator.getInitialState(
-      serviceCreator.initialStateValue!,
-      invokeDefinition.data
-        ? mapContext(invokeDefinition.data, context, _event)
-        : undefined
-    );
+    const resolvedData = invokeDefinition.data
+      ? mapContext(invokeDefinition.data, context, _event)
+      : undefined;
+    tempActor.state = (resolvedData
+      ? serviceCreator.withContext(resolvedData)
+      : serviceCreator
+    ).initialState;
   }
 
   tempActor.meta = invokeDefinition;
