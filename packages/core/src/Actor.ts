@@ -2,10 +2,11 @@ import {
   EventObject,
   Subscribable,
   InvokeDefinition,
-  AnyEventObject
+  AnyEventObject,
+  SCXML
 } from './types';
 import { StateMachine } from '.';
-import { isMachine } from './utils';
+import { isMachine, mapContext } from './utils';
 
 export interface Actor<
   TContext = any,
@@ -43,14 +44,22 @@ export function createNullActor(id: string): Actor {
  */
 export function createInvocableActor<TC, TE extends EventObject>(
   invokeDefinition: InvokeDefinition<TC, TE>,
-  machine: StateMachine<TC, any, TE>
+  machine: StateMachine<TC, any, TE>,
+  context: TC,
+  _event: SCXML.Event<TE>
 ): Actor {
   const tempActor = createNullActor(invokeDefinition.id);
   const serviceCreator = machine.options.services?.[invokeDefinition.src];
   tempActor.deferred = true;
 
   if (isMachine(serviceCreator)) {
-    tempActor.state = serviceCreator.initialState;
+    const resolvedData = invokeDefinition.data
+      ? mapContext(invokeDefinition.data, context, _event)
+      : undefined;
+    tempActor.state = (resolvedData
+      ? serviceCreator.withContext(resolvedData)
+      : serviceCreator
+    ).initialState;
   }
 
   tempActor.meta = invokeDefinition;
