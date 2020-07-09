@@ -1,5 +1,5 @@
 import * as React from 'react';
-import { useMachine, useService } from '../src';
+import { useMachine, useService, useActor } from '../src';
 import {
   Machine,
   assign,
@@ -603,5 +603,48 @@ describe('useMachine (strict mode)', () => {
         <Test />
       </React.StrictMode>
     );
+  });
+
+  it('custom data should be available right away for the invoked actor', (done) => {
+    const childMachine = Machine({
+      initial: 'intitial',
+      context: {
+        value: 100
+      },
+      states: {
+        intitial: {}
+      }
+    });
+
+    const machine = Machine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            id: 'test',
+            src: childMachine,
+            data: {
+              value: () => 42
+            }
+          }
+        }
+      }
+    });
+
+    const Test = () => {
+      const [state] = useMachine(machine);
+      const [childState] = useActor(state.children.test);
+
+      expect(childState.context.value).toBe(42);
+
+      return null;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+    done();
   });
 });

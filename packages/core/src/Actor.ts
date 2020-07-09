@@ -4,9 +4,10 @@ import {
   InvokeDefinition,
   AnyEventObject,
   StateMachine,
-  Spawnable
+  Spawnable,
+  SCXML
 } from './types';
-import { isMachine } from './utils';
+import { isMachine, mapContext } from './utils';
 
 export interface Actor<
   TContext = any,
@@ -44,11 +45,20 @@ export function createNullActor(id: string): Actor {
  */
 export function createInvocableActor<TC, TE extends EventObject>(
   invokeDefinition: InvokeDefinition<TC, TE>,
-  machine?: StateMachine<TC, any, TE>
+  machine: StateMachine<TC, any, TE>,
+  context: TC,
+  _event: SCXML.Event<TE>
 ): Actor {
   const serviceCreator = machine?.options.services?.[invokeDefinition.src];
+  const resolvedData = invokeDefinition.data
+    ? mapContext(invokeDefinition.data, context, _event)
+    : undefined;
   const tempActor = serviceCreator
-    ? createDeferredActor(serviceCreator as Spawnable, invokeDefinition.id)
+    ? createDeferredActor(
+        serviceCreator as Spawnable,
+        invokeDefinition.id,
+        resolvedData
+      )
     : createNullActor(invokeDefinition.id);
 
   tempActor.meta = invokeDefinition;
@@ -56,12 +66,16 @@ export function createInvocableActor<TC, TE extends EventObject>(
   return tempActor;
 }
 
-export function createDeferredActor(entity: Spawnable, id: string): Actor {
+export function createDeferredActor(
+  entity: Spawnable,
+  id: string,
+  data?: any
+): Actor {
   const tempActor = createNullActor(id);
   tempActor.deferred = true;
 
   if (isMachine(entity)) {
-    tempActor.state = entity.initialState;
+    tempActor.state = (data ? entity.withContext(data) : entity).initialState;
   }
 
   return tempActor;

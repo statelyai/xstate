@@ -1177,7 +1177,9 @@ class StateNode<
       (acc, action) => {
         acc[action.activity.id] = createInvocableActor(
           action.activity,
-          this.machine
+          this.machine,
+          updatedContext,
+          _event
         );
 
         return acc;
