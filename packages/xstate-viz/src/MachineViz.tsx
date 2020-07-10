@@ -4,7 +4,7 @@ import { StateNodeViz } from './StateNodeViz';
 import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
-import { Tracker } from './tracker';
+import { Tracker, relative } from './tracker';
 import { State, StateMachine, createMachine, assign } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
@@ -35,16 +35,14 @@ const canvasMachine = createMachine<CanvasCtx>({
                 x: ctx.scroll.x - e.deltaX,
                 y: ctx.scroll.y - e.deltaY
               })
-            }),
-            'track'
+            })
           ]
         },
         zoom: {
           actions: [
             assign({
               zoom: (_, e) => e.value
-            }),
-            'track'
+            })
           ]
         }
       }
@@ -58,20 +56,26 @@ interface MachineVizProps {
 }
 
 const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
-  const { tracker } = React.useContext(StateContext);
-  const [state, send] = useMachine(canvasMachine, {
-    actions: {
-      track: asEffect(() => {
-        const i = requestAnimationFrame(() => tracker.updateAll());
-
-        return () => {
-          cancelAnimationFrame(i);
-        };
-      })
-    }
-  });
+  const [state, send] = useMachine(canvasMachine);
   const { zoom, scroll } = state.context;
   const ref = useTracking(`machine:${machine.id}`);
+  const [rects, setRects] = React.useState<any>([]);
+
+  React.useEffect(() => {
+    if (ref.current) {
+      const newRects = [] as any[];
+      ref.current.querySelectorAll('[data-xviz="stateNode"]').forEach((el) => {
+        const parentSvgEl = el.closest('svg');
+
+        newRects.push({
+          id: (el as HTMLDivElement).dataset.xvizId,
+          rect: relative(el.getBoundingClientRect(), parentSvgEl!)
+        });
+      });
+
+      setRects(newRects);
+    }
+  }, []);
 
   return (
     <div
@@ -84,22 +88,61 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         '--xviz-active-color': 'rgb(19, 129, 201)',
         '--xviz-border-width': '2px',
         '--xviz-stroke-width': 'var(--xviz-border-width)',
-        '--xviz-zoom': zoom
+        // '--xviz-zoom': zoom,
+        '--xviz-zoom': 1,
+        height: '100vh',
+        width: '100vw'
       }}
       onWheel={(e) => {
         send(e);
       }}
     >
-      <div
-        data-xviz="machine"
-        title={`machine: #${machine.id}`}
+      <svg
         style={{
-          transform: `translate(${scroll.x}px, ${scroll.y}px) scale(${zoom})`
+          position: 'absolute',
+          top: 0,
+          left: 0,
+          height: '100%',
+          width: '100%',
+          overflow: 'visible'
         }}
+        // viewBox={'0 0 100 100'}
+        // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
       >
-        <StateNodeViz stateNode={machine} />
-      </div>
-      <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+        {/* {rects.map((item: any) => {
+          return (
+            <rect
+              key={item.id}
+              x={item.rect.left}
+              y={item.rect.top}
+              width={item.rect.width}
+              height={item.rect.height}
+              stroke="red"
+              strokeWidth={2}
+            ></rect>
+          );
+        })} */}
+        <g
+          style={{
+            transform: `translate(${scroll.x}px, ${scroll.y}px) scale(${zoom})`
+          }}
+        >
+          <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+          <foreignObject x={0} y={0} width={1000} height={1000}>
+            <div
+              data-xviz="machine"
+              title={`machine: #${machine.id}`}
+              style={
+                {
+                  // transform: `translate(${scroll.x}px, ${scroll.y}px) scale(${zoom})`
+                }
+              }
+            >
+              <StateNodeViz stateNode={machine} />
+            </div>
+          </foreignObject>
+        </g>
+      </svg>
       <div data-xviz="controls">
         <button
           data-xviz="button"

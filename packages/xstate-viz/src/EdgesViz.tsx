@@ -23,7 +23,7 @@ export function EdgesViz({
   }, []);
 
   return (
-    <svg
+    <g
       data-xviz="edges"
       style={{
         overflow: 'visible',
@@ -45,6 +45,6 @@ export function EdgesViz({
       {edges.map((edge, i) => {
         return <EdgeViz edge={edge} key={i} markerId={markerId} />;
       })}
-    </svg>
+    </g>
   );
 }

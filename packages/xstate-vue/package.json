@@ -61,7 +61,7 @@
     "@vue/test-utils": "^1.0.0-beta.30",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "lerna-alias": "3.0.3-0",
     "rollup": "^1.26.3",
     "rollup-plugin-terser": "^5.1.2",

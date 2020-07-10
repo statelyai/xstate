@@ -50,7 +50,7 @@
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "jest-watch-typeahead": "^0.4.1",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",

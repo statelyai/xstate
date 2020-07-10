@@ -52,7 +52,7 @@
     "@babel/core": "^7.9.6",
     "@scion-scxml/test-framework": "^2.0.15",
     "babel-plugin-annotate-pure-calls": "^0.4.0",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",

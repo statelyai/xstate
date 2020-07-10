@@ -32,6 +32,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   return (
     <div
       data-xviz="stateNode"
+      data-xviz-id={stateNode.id}
       data-xviz-type={stateNode.type}
       data-xviz-parent-type={
         stateNode.parent ? stateNode.parent.type : 'machine'

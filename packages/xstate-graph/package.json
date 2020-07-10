@@ -40,7 +40,7 @@
     "xstate": "^4.9.0"
   },
   "devDependencies": {
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.1.9",
     "typescript": "^3.8.3",

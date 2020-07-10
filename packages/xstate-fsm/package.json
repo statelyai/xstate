@@ -43,7 +43,7 @@
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "devDependencies": {
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "lerna-alias": "3.0.3-0",
     "rollup": "^1.26.3",
     "rollup-plugin-filesize": "^6.2.1",

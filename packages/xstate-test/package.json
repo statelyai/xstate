@@ -48,7 +48,7 @@
   },
   "devDependencies": {
     "@types/jest-environment-puppeteer": "^4.0.0",
-    "jest": "^24.8.0",
+    "jest": "^26.1.0",
     "jest-environment-puppeteer": "^4.3.0",
     "jest-puppeteer": "^4.3.0",
     "lerna-alias": "3.0.3-0",
