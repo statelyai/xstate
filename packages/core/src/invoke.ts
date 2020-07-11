@@ -5,7 +5,8 @@ import {
   BehaviorCreator,
   SCXML,
   InvokeMeta,
-  ActorRef
+  ActorRef,
+  InvokeActionObject
 } from './types';
 import { State } from './State';
 
@@ -19,7 +20,6 @@ import {
   createObservableBehavior,
   createPromiseBehavior
 } from './behavior';
-import { InvokeActionObject } from '../dist/xstate.cjs';
 import { actionTypes } from './actions';
 import { isActorRef } from './Actor';
 import { ObservableActorRef } from './ObservableActorRef';
