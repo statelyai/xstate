@@ -1293,9 +1293,8 @@ export function spawn(
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, (service) => {
-    const isLazyEntity = isMachine(entity) || isFunction(entity);
-
     if (!IS_PRODUCTION) {
+      const isLazyEntity = isMachine(entity) || isFunction(entity);
       warn(
         !!service || isLazyEntity,
         `Attempted to spawn an Actor (ID: "${
