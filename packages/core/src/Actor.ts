@@ -37,7 +37,7 @@ export function fromObservable<T extends EventObject>(
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
-    createObservableBehavior(observable, parent),
+    createObservableBehavior(() => observable, parent),
     name
   );
 }
@@ -47,7 +47,10 @@ export function fromPromise<T>(
   parent: ActorRef<any>,
   name: string
 ): ActorRef<never> {
-  return new ObservableActorRef(createPromiseBehavior(promise, parent), name);
+  return new ObservableActorRef(
+    createPromiseBehavior(() => promise, parent),
+    name
+  );
 }
 
 export function fromCallback<TEvent extends EventObject>(
