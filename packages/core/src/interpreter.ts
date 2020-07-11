@@ -1293,9 +1293,11 @@ export function spawn(
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return withServiceScope(undefined, (service) => {
+    const isLazyEntity = isMachine(entity) || isFunction(entity);
+
     if (!IS_PRODUCTION) {
       warn(
-        !!service,
+        !!service || isLazyEntity,
         `Attempted to spawn an Actor (ID: "${
           isMachine(entity) ? entity.id : 'undefined'
         }") outside of a service. This will have no effect.`

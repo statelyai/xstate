@@ -188,7 +188,7 @@ describe('useMachine hook', () => {
       states: {
         start: {
           entry: assign({
-            ref: () => spawn(new Promise((res) => res(42)), 'my-promise')
+            ref: () => spawn(() => new Promise((res) => res(42)), 'my-promise')
           }),
           on: {
             [doneInvoke('my-promise')]: 'success'
