@@ -101,7 +101,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.behavior = behavior;
     this.name = name;
     this.context = actorContext;
-    this.current = behavior.current;
+    this.current = behavior.initial;
   }
   public start() {
     this.behavior = this.behavior.receiveSignal(this.context, startSignal);

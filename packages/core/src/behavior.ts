@@ -51,9 +51,9 @@ export interface Behavior<TReceived extends EventObject, TEmitted> {
     signal: LifecycleSignal
   ) => Behavior<TReceived, TEmitted>;
   /**
-   * The most recently emitted value
+   * The initial emitted value
    */
-  current: TEmitted;
+  initial: TEmitted;
   subscribe?: (observer: Observer<TEmitted>) => Subscription | undefined;
 }
 
@@ -120,7 +120,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 
       return behavior;
     },
-    current: undefined
+    initial: undefined
   };
 
   return behavior;
@@ -191,7 +191,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
         }
       };
     },
-    current: undefined
+    initial: undefined
   };
 
   return behavior;
@@ -238,7 +238,7 @@ export function createObservableBehavior<
     subscribe: (observer) => {
       return observable.subscribe(observer);
     },
-    current: undefined
+    initial: undefined
   };
 
   return behavior;
@@ -298,7 +298,7 @@ export function createMachineBehavior<TContext, TEvent extends EventObject>(
     subscribe: (observer) => {
       return service?.subscribe(observer);
     },
-    get current() {
+    get initial() {
       resolvedMachine =
         resolvedMachine || (isFunction(machine) ? machine() : machine);
       return resolvedMachine.initialState; // TODO: this should get from machine.getInitialState(ref)
@@ -322,7 +322,7 @@ export function createServiceBehavior<TContext, TEvent extends EventObject>(
     subscribe: (observer) => {
       return service.subscribe(observer);
     },
-    current: service.state
+    initial: service.state
   };
 
   return behavior;
