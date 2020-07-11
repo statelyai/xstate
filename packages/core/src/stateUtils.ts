@@ -76,7 +76,7 @@ import {
 } from './constants';
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
-import { createInvocation } from './invoke';
+import { createActorRefFromInvokeAction } from './invoke';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -1550,7 +1550,7 @@ export function resolveMicroTransition<
 
   nextState.actions.forEach((action) => {
     if (action.type === actionTypes.invoke) {
-      const actorRef = createInvocation(
+      const actorRef = createActorRefFromInvokeAction(
         nextState,
         action as InvokeActionObject,
         machine,

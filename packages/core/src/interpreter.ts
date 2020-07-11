@@ -43,7 +43,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
-import { createInvocation } from './invoke';
+import { createActorRefFromInvokeAction } from './invoke';
 
 export type StateListener<
   TContext,
@@ -710,7 +710,7 @@ export class Interpreter<
         const { id, autoForward } = action as InvokeActionObject;
 
         try {
-          const actorRef = createInvocation(
+          const actorRef = createActorRefFromInvokeAction(
             state,
             action as InvokeActionObject,
             this.machine,

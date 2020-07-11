@@ -95,7 +95,10 @@ export function invokeObservable<T extends EventObject = AnyEventObject>(
   };
 }
 
-export function createInvocation<TContext, TEvent extends EventObject>(
+export function createActorRefFromInvokeAction<
+  TContext,
+  TEvent extends EventObject
+>(
   state: State<TContext, TEvent>,
   invokeAction: InvokeActionObject,
   machine: MachineNode<TContext, TEvent>,
