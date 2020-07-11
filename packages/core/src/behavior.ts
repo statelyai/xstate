@@ -7,7 +7,7 @@ import {
   Spawnable,
   Observer,
   ActorRef,
-  MaybeLazy,
+  Lazy,
   Sender,
   Receiver
 } from './types';
@@ -127,7 +127,7 @@ export function createDeferredBehavior<TEvent extends EventObject>(
 }
 
 export function createPromiseBehavior<T, TEvent extends EventObject>(
-  promise: MaybeLazy<PromiseLike<T>>,
+  lazyPromise: Lazy<PromiseLike<T>>,
   parent?: ActorRef<any>
 ): Behavior<TEvent, T | undefined> {
   let canceled = false;
@@ -140,9 +140,7 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
     receiveSignal: (actorContext: ActorContext, signal: LifecycleSignal) => {
       switch (signal) {
         case startSignal:
-          const resolvedPromise = Promise.resolve(
-            typeof promise === 'function' ? promise() : promise
-          );
+          const resolvedPromise = Promise.resolve(lazyPromise());
 
           resolvedPromise.then(
             (response) => {
@@ -201,14 +199,16 @@ export function createObservableBehavior<
   T extends EventObject,
   TEvent extends EventObject
 >(
-  observable: Subscribable<T>,
+  lazyObservable: Lazy<Subscribable<T>>,
   parent?: ActorRef<any>
 ): Behavior<TEvent, T | undefined> {
   let subscription: Subscription | undefined;
+  let observable: Subscribable<T> | undefined;
 
   const behavior: Behavior<TEvent, T | undefined> = {
     receiveSignal: (actorContext, signal) => {
       if (signal === startSignal) {
+        observable = lazyObservable();
         subscription = observable.subscribe(
           (value) => {
             parent?.send(toSCXMLEvent(value, { origin: actorContext.self }));
@@ -236,7 +236,7 @@ export function createObservableBehavior<
     },
     receive: () => behavior,
     subscribe: (observer) => {
-      return observable.subscribe(observer);
+      return observable?.subscribe(observer);
     },
     initial: undefined
   };
@@ -245,7 +245,7 @@ export function createObservableBehavior<
 }
 
 export function createMachineBehavior<TContext, TEvent extends EventObject>(
-  machine: MaybeLazy<MachineNode<TContext, TEvent>>,
+  machine: MachineNode<TContext, TEvent> | Lazy<MachineNode<TContext, TEvent>>,
   parent?: ActorRef<any>,
   options?: Partial<InterpreterOptions>
 ): Behavior<TEvent, State<TContext, TEvent>> {
@@ -352,11 +352,11 @@ export function createBehaviorFrom(
   parent?: ActorRef<any>
 ): Behavior<any, any> {
   if (isPromiseLike(entity)) {
-    return createPromiseBehavior(entity, parent);
+    return createPromiseBehavior(() => entity, parent);
   }
 
   if (isObservable(entity)) {
-    return createObservableBehavior(entity, parent);
+    return createObservableBehavior(() => entity, parent);
   }
 
   if (isMachineNode(entity)) {

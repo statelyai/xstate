@@ -32,14 +32,18 @@ export function invokeMachine<
   TEvent extends EventObject,
   TMachine extends MachineNode<any, any, any>
 >(
-  machine: TMachine | ((ctx: TContext, event: TEvent) => TMachine),
+  machine:
+    | TMachine
+    | ((ctx: TContext, event: TEvent, meta: InvokeMeta) => TMachine),
   options: { sync?: boolean } = {}
 ): BehaviorCreator<TContext, TEvent> {
   return (ctx, event, { parent, data, _event }) => {
     const resolvedContext = data ? mapContext(data, ctx, _event) : undefined;
     const machineOrDeferredMachine = isFunction(machine)
       ? () => {
-          const resolvedMachine = machine(ctx, event);
+          const resolvedMachine = machine(ctx, event, {
+            data: resolvedContext
+          });
           return resolvedContext
             ? resolvedMachine.withContext(resolvedContext)
             : resolvedMachine;
@@ -53,17 +57,17 @@ export function invokeMachine<
 }
 
 export function invokePromise<T>(
-  promise:
-    | PromiseLike<T>
-    | ((ctx: any, event: AnyEventObject, meta: InvokeMeta) => PromiseLike<T>)
+  getPromise: (
+    ctx: any,
+    event: AnyEventObject,
+    meta: InvokeMeta
+  ) => PromiseLike<T>
 ): BehaviorCreator<any, AnyEventObject> {
   return (ctx, e, { parent, data, _event }) => {
     const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
 
-    const promiseOrDeferredPromise = isFunction(promise)
-      ? () => promise(ctx, e, { data: resolvedData })
-      : promise;
-    return createPromiseBehavior(promiseOrDeferredPromise, parent);
+    const lazyPromise = () => getPromise(ctx, e, { data: resolvedData });
+    return createPromiseBehavior(lazyPromise, parent);
   };
 }
 
@@ -87,11 +91,11 @@ export function invokeCallback<TC, TE extends EventObject = AnyEventObject>(
 }
 
 export function invokeObservable<T extends EventObject = AnyEventObject>(
-  source: Subscribable<T> | ((ctx: any, event: any) => Subscribable<T>)
+  source: (ctx: any, event: any) => Subscribable<T>
 ): BehaviorCreator<any, any> {
   return (ctx, e, { parent }): Behavior<never, T | undefined> => {
     const resolvedSource = isFunction(source) ? source(ctx, e) : source;
-    return createObservableBehavior(resolvedSource, parent);
+    return createObservableBehavior(() => resolvedSource, parent);
   };
 }
 

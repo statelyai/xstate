@@ -1130,4 +1130,4 @@ export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;
 
-export type MaybeLazy<T> = T | (() => T);
+export type Lazy<T> = () => T;
