@@ -6,10 +6,11 @@ import { Point } from './Rect';
 import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
 import { flatten } from 'xstate/lib/utils';
+import { roundOneCorner } from './pathUtils';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
-type PointFn = (p: Point) => Point;
+type PointFn = (p: Point) => Point & { radius?: number };
 
 function clamp(x: number, min: number, max: number): number {
   if (x < min) {
@@ -153,14 +154,6 @@ export function EdgeViz({
 
           const endPoint = minPoint;
 
-          // const theta = Math.atan2(
-          //   endPoint.y - startPoint.y,
-          //   endPoint.x - startPoint.x
-          // );
-
-          // const intersectsWithEvent =
-          //   minLocation === 'left' && theta <= Math.PI / 2;
-
           const endOffset: Point = ({
             top: { x: 0, y: -10 },
             bottom: { x: 0, y: 10 },
@@ -227,7 +220,7 @@ export function EdgeViz({
             y: endPoint.y + endOffset.y
           };
 
-          const bendPoints = flatten(
+          const bendPoints = flatten<PointFn | undefined>(
             [
               xdir === -1
                 ? minLocation === 'top' && ydir === -1
@@ -237,7 +230,8 @@ export function EdgeViz({
                         y: Math.min(
                           endPoint.y + endOffset.y,
                           sourceEventsRect.top
-                        )
+                        ),
+                        radius: 10
                       })
                       // `L ${sourceEventsRect.left} ${sourceEventsRect.top}`
                     ]
@@ -247,14 +241,16 @@ export function EdgeViz({
                         y: Math.max(
                           endPoint.y + endOffset.y,
                           sourceEventsRect.bottom
-                        )
+                        ),
+                        radius: 10
                       }),
                       (p) => ({
                         x: sourceEventsRect.left,
                         y: Math.max(
                           endPoint.y + endOffset.y,
                           sourceEventsRect.bottom
-                        )
+                        ),
+                        radius: 10
                       })
                     ]
                 : minLocation === 'bottom'
@@ -269,11 +265,13 @@ export function EdgeViz({
                 ? [
                     (p) => ({
                       x: targetEventsRect.right,
-                      y: Math.max(endPoint.y, targetEventsRect.bottom)
+                      y: Math.max(endPoint.y, targetEventsRect.bottom),
+                      radius: 10
                     }),
                     (p) => ({
                       x: endPoint.x,
-                      y: Math.max(endPoint.y, targetEventsRect.bottom)
+                      y: Math.max(endPoint.y, targetEventsRect.bottom),
+                      radius: 10
                     })
                   ]
                 : undefined
@@ -283,7 +281,7 @@ export function EdgeViz({
           const d = ([
             () => sourcePoint,
             () => preStartPoint,
-            () => startPoint,
+            () => ({ ...startPoint, radius: 10 }),
             ...bendPoints,
 
             () => ({
@@ -298,9 +296,9 @@ export function EdgeViz({
 
                 return acc.concat(bpfn(prevPoint));
               },
-              [startPoint]
+              [startPoint as Point & { radius?: number }]
             )
-            .map((pt, i) => {
+            .map((pt, i, pts) => {
               return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
             })
             .join(' ');
