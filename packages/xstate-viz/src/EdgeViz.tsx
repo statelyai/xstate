@@ -5,6 +5,7 @@ import { StateContext } from './StateContext';
 import { Point } from './Rect';
 import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
+import { flatten } from 'xstate/lib/utils';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
@@ -83,29 +84,44 @@ function findMinLocation(
 
 export function EdgeViz({
   edge,
-  markerId
+  markerId,
+  index
 }: {
   edge: Edge<any, any>;
   markerId: string;
+  index: number;
 }) {
   const { state } = useContext(StateContext);
   const isCurrent = isActive(state, edge.source);
   const ref = useRef<SVGGElement>(null);
   const sourceRectData = useTracked(edge.source.id);
   const sourceRect = sourceRectData ? sourceRectData.rect : undefined;
+  const sourceEventsRectData = useTracked(edge.source.id + ':events');
+  const sourceEventsRect = sourceEventsRectData
+    ? sourceEventsRectData.rect
+    : undefined;
 
   const eventRectData = useTracked(serializeTransition(edge.transition));
   const eventRect = eventRectData ? eventRectData.rect : undefined;
 
   const targetRectData = useTracked(edge.target.id);
   const targetRect = targetRectData ? targetRectData.rect : undefined;
+  const targetEventsRectData = useTracked(edge.target.id + ':events');
+  const targetEventsRect = targetEventsRectData
+    ? targetEventsRectData.rect
+    : undefined;
 
   const triggered =
     state.event.type === edge.event &&
     state.history?.matches(getPartialStateValue(edge.source));
 
   const path =
-    !sourceRect || !eventRect || !targetRect || !ref.current
+    !sourceRect ||
+    !sourceEventsRect ||
+    !eventRect ||
+    !targetRect ||
+    !targetEventsRect ||
+    !ref.current
       ? null
       : (() => {
           if (edge.source === edge.target) {
@@ -200,18 +216,75 @@ export function EdgeViz({
           };
           const preStartPoint = relativeEventRect.point('left', 'center');
 
+          const xdir = Math.sign(endPoint.x - startPoint.x);
+          const ydir = Math.sign(endPoint.y - startPoint.y);
+
+          const bendPoints = flatten(
+            [
+              xdir === -1
+                ? minLocation === 'top' && ydir === -1
+                  ? [
+                      `L ${startPoint.x + 10} ${startPoint.y}`,
+                      `L ${startPoint.x + 10} ${Math.min(
+                        endPoint.y + endOffset.y,
+                        sourceEventsRect.top
+                      )}`
+                      // `L ${sourceEventsRect.left} ${sourceEventsRect.top}`
+                    ]
+                  : [
+                      `L ${startPoint.x + 10} ${startPoint.y}`,
+                      `L ${startPoint.x + 10} ${Math.max(
+                        endPoint.y + endOffset.y,
+                        sourceEventsRect.bottom + 5 * index
+                      )}`,
+                      `L ${sourceEventsRect.left} ${Math.max(
+                        endPoint.y + endOffset.y,
+                        sourceEventsRect.bottom + 5 * index
+                      )}`
+                    ]
+                : undefined,
+              xdir === -1 &&
+              minLocation === 'bottom' &&
+              targetEventsRect.bottom > endPoint.y
+                ? [
+                    `L ${targetEventsRect.right} ${Math.max(
+                      endPoint.y,
+                      targetEventsRect.bottom + 5 * index
+                    )}`,
+                    `L ${endPoint.x} ${Math.max(
+                      endPoint.y,
+                      targetEventsRect.bottom + 5 * index * ydir
+                    )}`
+                  ]
+                : undefined
+            ].filter((x) => !!x)
+          );
+
           const d = [
             `M ${sourcePoint.x} ${sourcePoint.y}`,
             `L ${preStartPoint.x} ${preStartPoint.y}`,
-
             `M ${startPoint.x} ${startPoint.y}`,
-            // `L ${startPoint.x + 10} ${startPoint.y}`,
-            `C ${startControl.x} ${startControl.y} ${endControl.x} ${
-              endControl.y
-            } ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`
+            ...bendPoints,
+            // `L ${startControl.x} ${startControl.y}`,
+            // `L ${endControl.x} ${endControl.y}`,
+            `L ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`,
+            `L ${endPoint.x} ${endPoint.y}`
           ]
             .filter((x) => !!x)
             .join(' ');
+
+          // const d = [
+          //   `M ${sourcePoint.x} ${sourcePoint.y}`,
+          //   `L ${preStartPoint.x} ${preStartPoint.y}`,
+
+          //   `M ${startPoint.x} ${startPoint.y}`,
+          //   // `L ${startPoint.x + 10} ${startPoint.y}`,
+          //   `C ${startControl.x} ${startControl.y} ${endControl.x} ${
+          //     endControl.y
+          //   } ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`
+          // ]
+          //   .filter((x) => !!x)
+          //   .join(' ');
 
           return (
             <>
@@ -221,6 +294,7 @@ export function EdgeViz({
                 fill="none"
                 markerEnd={`url(#${markerId})`}
                 pathLength={1}
+                strokeLinejoin="round"
               />
               <path
                 data-xviz="edge-path"
@@ -228,6 +302,7 @@ export function EdgeViz({
                 d={d}
                 fill="none"
                 pathLength={1}
+                strokeLinejoin="round"
               />
             </>
           );

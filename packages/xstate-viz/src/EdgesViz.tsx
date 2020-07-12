@@ -43,7 +43,7 @@ export function EdgesViz({
         );
       })}
       {edges.map((edge, i) => {
-        return <EdgeViz edge={edge} key={i} markerId={markerId} />;
+        return <EdgeViz edge={edge} key={i} markerId={markerId} index={i} />;
       })}
     </g>
   );

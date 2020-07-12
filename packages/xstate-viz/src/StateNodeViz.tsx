@@ -16,6 +16,7 @@ interface StateNodeVizProps {
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   const { state } = useContext(StateContext);
   const ref = useTracking(stateNode.id);
+  const eventsRef = useTracking(stateNode.id + ':events');
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
   const active = isActive(state, stateNode);
@@ -93,7 +94,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           </div>
         )}
       </div>
-      <div data-xviz="events">
+      <div data-xviz="events" ref={eventsRef}>
         {edges.map((edge) => {
           return (
             <EventViz edge={edge} key={serializeTransition(edge.transition)} />

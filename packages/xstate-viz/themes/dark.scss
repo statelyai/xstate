@@ -166,6 +166,7 @@ body {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
+  align-self: self-start;
 }
 
 [data-xviz='event'] {
@@ -232,24 +233,25 @@ body {
   --content: 'do / ';
 
   &[data-xviz-actions='entry'] {
-    [data-xviz='action-type']:before {
+    &:before {
       --content: 'entry / ';
     }
   }
 
   &[data-xviz-actions='exit'] {
-    [data-xviz='action-type']:before {
+    &:before {
       --content: 'exit / ';
     }
   }
 
-  &:not[data-xviz-actions] {
+  &:before {
+    @extend %content-prefix;
+    padding-bottom: 0.5em;
   }
 }
 
 [data-xviz='action'] {
-  padding-bottom: 0.5em;
-
+  line-height: 1.5;
   &[data-xviz-builtin] {
     [data-xviz='action-entry'] {
       display: none;
@@ -287,10 +289,6 @@ body {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
-
-  &:before {
-    @extend %content-prefix;
-  }
 }
 
 [data-xviz='event-type'] {
