@@ -8,10 +8,11 @@ import {
   Interpreter,
   createMachine,
   sendParent,
-  Actor
+  ActorRef
 } from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 import { useActor } from '../src/useActor';
+import { invokeMachine } from 'xstate/invoke';
 
 afterEach(cleanup);
 
@@ -195,14 +196,14 @@ describe('useService hook', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: childMachine
+        src: invokeMachine(childMachine)
       },
       states: {
         active: {}
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -241,7 +242,7 @@ describe('useService hook', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: childMachine
+        src: invokeMachine(childMachine)
       },
       states: {
         active: {
@@ -251,7 +252,7 @@ describe('useService hook', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');

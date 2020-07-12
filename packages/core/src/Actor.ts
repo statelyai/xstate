@@ -15,12 +15,13 @@ import {
   stopSignal,
   createServiceBehavior,
   createMachineBehavior,
-  createCallbackBehavior,
+  createDeferredBehavior,
   createPromiseBehavior,
   createObservableBehavior,
   LifecycleSignal
 } from './behavior';
 import { registry } from './registry';
+import { ObservableActorRef } from './ObservableActorRef';
 
 const nullSubscription = {
   unsubscribe: () => void 0
@@ -36,7 +37,7 @@ export function fromObservable<T extends EventObject>(
   name: string
 ): ActorRef<never> {
   return new ObservableActorRef(
-    createObservableBehavior(observable, parent),
+    createObservableBehavior(() => observable, parent),
     name
   );
 }
@@ -46,7 +47,10 @@ export function fromPromise<T>(
   parent: ActorRef<any>,
   name: string
 ): ActorRef<never> {
-  return new ObservableActorRef(createPromiseBehavior(promise, parent), name);
+  return new ObservableActorRef(
+    createPromiseBehavior(() => promise, parent),
+    name
+  );
 }
 
 export function fromCallback<TEvent extends EventObject>(
@@ -54,7 +58,10 @@ export function fromCallback<TEvent extends EventObject>(
   parent: ActorRef<any>,
   name: string
 ): ActorRef<SCXML.Event<TEvent>> {
-  return new ObservableActorRef(createCallbackBehavior(callback, parent), name);
+  return new ObservableActorRef(
+    createDeferredBehavior(() => callback, parent),
+    name
+  );
 }
 
 export function fromMachine<TContext, TEvent extends EventObject>(
@@ -97,7 +104,7 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     this.behavior = behavior;
     this.name = name;
     this.context = actorContext;
-    this.current = behavior.current;
+    this.current = behavior.initial;
   }
   public start() {
     this.behavior = this.behavior.receiveSignal(this.context, startSignal);
@@ -127,39 +134,5 @@ export class Actor<TEvent extends EventObject, TEmitted> {
       this.behavior = this.behavior.receive(this.context, event);
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
-  }
-}
-
-export class ObservableActorRef<TEvent extends EventObject, TEmitted>
-  implements ActorRef<TEvent, TEmitted> {
-  public current: TEmitted;
-  private context: ActorContext;
-  private actor: Actor<TEvent, TEmitted>;
-  public name: string;
-
-  constructor(behavior: Behavior<TEvent, TEmitted>, name: string) {
-    this.name = name;
-    this.context = {
-      self: this,
-      name: this.name
-    };
-    this.actor = new Actor(behavior, name, this.context);
-    this.current = this.actor.current;
-  }
-  public start() {
-    this.actor.receiveSignal(startSignal);
-
-    return this;
-  }
-  public stop() {
-    this.actor.receiveSignal(stopSignal);
-
-    return this;
-  }
-  public subscribe(observer) {
-    return this.actor.subscribe(observer);
-  }
-  public send(event) {
-    this.actor.receive(event);
   }
 }

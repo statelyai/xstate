@@ -1,4 +1,4 @@
-import { EventObject, StateNode, StateValue } from '.';
+import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
 import {
   keys,
   flatten,
@@ -76,6 +76,7 @@ import {
 } from './constants';
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
+import { createActorRefFromInvokeAction } from './invoke';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -1546,6 +1547,21 @@ export function resolveMicroTransition<
   if (history) {
     delete history.history;
   }
+
+  nextState.actions.forEach((action) => {
+    if (action.type === actionTypes.invoke) {
+      const actorRef = createActorRefFromInvokeAction(
+        nextState,
+        action as InvokeActionObject,
+        machine,
+        service
+      );
+
+      if (actorRef) {
+        children[actorRef.name] = actorRef;
+      }
+    }
+  });
 
   return nextState;
 }

@@ -15,7 +15,7 @@ import {
   waitForElement
 } from '@testing-library/react';
 import { useState } from 'react';
-import { invokePromise } from 'xstate/invoke';
+import { invokePromise, invokeCallback } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
 
 afterEach(cleanup);
@@ -545,10 +545,12 @@ describe('useMachine (strict mode)', () => {
     const machine = createMachine({
       initial: 'active',
       invoke: {
-        src: () => {
+        src: invokeCallback(() => {
           activatedCount++;
-          return () => {};
-        }
+          return () => {
+            /* empty */
+          };
+        })
       },
       states: {
         active: {}

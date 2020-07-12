@@ -1,7 +1,28 @@
 import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
 import { ActorRef, Sender, ActorRefLike } from './types';
-import { EventObject, Interpreter, Actor } from 'xstate';
+import {
+  EventObject,
+  Interpreter,
+  AnyEventObject,
+  Subscribable,
+  InvokeDefinition
+} from 'xstate';
 import { fromService } from './useService';
+
+export interface Actor<
+  TContext = any,
+  TEvent extends EventObject = AnyEventObject
+> extends Subscribable<TContext> {
+  id: string;
+  send: (event: TEvent) => any; // TODO: change to void
+  stop?: () => any | undefined;
+  toJSON: () => {
+    id: string;
+  };
+  meta?: InvokeDefinition<TContext, TEvent>;
+  state?: any;
+  deferred?: boolean;
+}
 
 function resolveActor(
   actorLike:

@@ -173,39 +173,39 @@ describe('spawning machines', () => {
 });
 
 describe('spawning promises', () => {
-  const promiseMachine = Machine<any>({
-    id: 'promise',
-    initial: 'idle',
-    context: {
-      promiseRef: undefined
-    },
-    states: {
-      idle: {
-        entry: assign({
-          promiseRef: (_, __, { spawn }) => {
-            const promise = new Promise((res) => {
-              res('response');
-            });
-
-            const ref = spawn.from(promise, 'my-promise');
-
-            return ref;
-          }
-        }),
-        on: {
-          [doneInvoke('my-promise')]: {
-            target: 'success',
-            cond: (_, e) => e.data === 'response'
-          }
-        }
-      },
-      success: {
-        type: 'final'
-      }
-    }
-  });
-
   it('should be able to spawn a promise', (done) => {
+    const promiseMachine = Machine<any>({
+      id: 'promise',
+      initial: 'idle',
+      context: {
+        promiseRef: undefined
+      },
+      states: {
+        idle: {
+          entry: assign({
+            promiseRef: (_, __, { spawn }) => {
+              const promise = new Promise((res) => {
+                res('response');
+              });
+
+              const ref = spawn.from(promise, 'my-promise');
+
+              return ref;
+            }
+          }),
+          on: {
+            [doneInvoke('my-promise')]: {
+              target: 'success',
+              cond: (_, e) => e.data === 'response'
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
     const promiseService = interpret(promiseMachine).onDone(() => {
       done();
     });

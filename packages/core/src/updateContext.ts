@@ -11,7 +11,7 @@ import {
   ActorRefFrom
 } from './types';
 import { State } from '.';
-import { ObservableActorRef } from './Actor';
+import { ObservableActorRef } from './ObservableActorRef';
 import { isFunction, keys } from './utils';
 import { createBehaviorFrom, Behavior } from './behavior';
 import { registry } from './registry';
@@ -22,7 +22,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
   assignActions: Array<AssignAction<TContext, TEvent>>,
   state?: State<TContext, TEvent>,
   service?: ActorRef<TEvent>
-): [TContext, ActionObject<TContext, TEvent>[]] {
+): [TContext, Array<ActionObject<TContext, TEvent>>] {
   const capturedActions: InvokeActionObject[] = [];
 
   if (!context) {

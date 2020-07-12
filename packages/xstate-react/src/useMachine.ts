@@ -12,8 +12,7 @@ import {
   Typestate,
   ActionObject,
   ActionFunction,
-  ActionMeta,
-  StateNode
+  ActionMeta
 } from 'xstate';
 import useConstant from './useConstant';
 import { partition } from './utils';
@@ -149,14 +148,17 @@ export function useMachine<
       services,
       delays
     };
-    const resolvedMachine = machine.withConfig(machineConfig).withContext({
+    const machineWithOptions = machine.withConfig(machineConfig).withContext({
       ...machine.context,
       ...context
     } as TContext);
 
     return [
-      resolvedMachine,
-      interpret(resolvedMachine, { deferEvents: true, ...interpreterOptions })
+      machineWithOptions,
+      interpret(machineWithOptions, {
+        deferEvents: true,
+        ...interpreterOptions
+      })
     ];
   });
 

@@ -1,8 +1,15 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { Machine, interpret, assign, createMachine, State } from 'xstate';
-import { useService, useMachine, useActor } from '../src';
-import { ActorRef } from 'xstate';
+import {
+  Machine,
+  interpret,
+  assign,
+  createMachine,
+  State,
+  ActorRef
+} from 'xstate';
+import { useService, useMachine } from '../src';
+import { useActor } from '../src/useActor';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
