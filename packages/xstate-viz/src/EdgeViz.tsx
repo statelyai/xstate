@@ -9,6 +9,8 @@ import { flatten } from 'xstate/lib/utils';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
+type PointFn = (p: Point) => Point;
+
 function clamp(x: number, min: number, max: number): number {
   if (x < min) {
     return min;
@@ -132,7 +134,8 @@ export function EdgeViz({
 
           const relativeTargetRect = targetRect;
 
-          const startPoint = relativeEventRect.point('right', 'center');
+          let startPoint = relativeEventRect.point('right', 'center');
+          startPoint = { x: startPoint.x + 10, y: startPoint.y };
           const [minLocation, minPoint] = findMinLocation(
             startPoint,
             relativeTargetRect,
@@ -219,58 +222,87 @@ export function EdgeViz({
           const xdir = Math.sign(endPoint.x - startPoint.x);
           const ydir = Math.sign(endPoint.y - startPoint.y);
 
+          const preEndPoint = {
+            x: endPoint.x + endOffset.x,
+            y: endPoint.y + endOffset.y
+          };
+
           const bendPoints = flatten(
             [
               xdir === -1
                 ? minLocation === 'top' && ydir === -1
                   ? [
-                      `L ${startPoint.x + 10} ${startPoint.y}`,
-                      `L ${startPoint.x + 10} ${Math.min(
-                        endPoint.y + endOffset.y,
-                        sourceEventsRect.top
-                      )}`
+                      (p) => ({
+                        x: p.x,
+                        y: Math.min(
+                          endPoint.y + endOffset.y,
+                          sourceEventsRect.top
+                        )
+                      })
                       // `L ${sourceEventsRect.left} ${sourceEventsRect.top}`
                     ]
                   : [
-                      `L ${startPoint.x + 10} ${startPoint.y}`,
-                      `L ${startPoint.x + 10} ${Math.max(
-                        endPoint.y + endOffset.y,
-                        sourceEventsRect.bottom + 5 * index
-                      )}`,
-                      `L ${sourceEventsRect.left} ${Math.max(
-                        endPoint.y + endOffset.y,
-                        sourceEventsRect.bottom + 5 * index
-                      )}`
+                      (p) => ({
+                        x: p.x,
+                        y: Math.max(
+                          endPoint.y + endOffset.y,
+                          sourceEventsRect.bottom
+                        )
+                      }),
+                      (p) => ({
+                        x: sourceEventsRect.left,
+                        y: Math.max(
+                          endPoint.y + endOffset.y,
+                          sourceEventsRect.bottom
+                        )
+                      })
                     ]
+                : minLocation === 'bottom'
+                ? (p) => ({ x: preEndPoint.x, y: p.y })
+                : minLocation === 'left'
+                ? (p) => ({ x: preEndPoint.x, y: p.y })
                 : undefined,
+
               xdir === -1 &&
               minLocation === 'bottom' &&
               targetEventsRect.bottom > endPoint.y
                 ? [
-                    `L ${targetEventsRect.right} ${Math.max(
-                      endPoint.y,
-                      targetEventsRect.bottom + 5 * index
-                    )}`,
-                    `L ${endPoint.x} ${Math.max(
-                      endPoint.y,
-                      targetEventsRect.bottom + 5 * index * ydir
-                    )}`
+                    (p) => ({
+                      x: targetEventsRect.right,
+                      y: Math.max(endPoint.y, targetEventsRect.bottom)
+                    }),
+                    (p) => ({
+                      x: endPoint.x,
+                      y: Math.max(endPoint.y, targetEventsRect.bottom)
+                    })
                   ]
                 : undefined
             ].filter((x) => !!x)
-          );
+          ) as PointFn[];
 
-          const d = [
-            `M ${sourcePoint.x} ${sourcePoint.y}`,
-            `L ${preStartPoint.x} ${preStartPoint.y}`,
-            `M ${startPoint.x} ${startPoint.y}`,
+          const d = ([
+            () => sourcePoint,
+            () => preStartPoint,
+            () => startPoint,
             ...bendPoints,
-            // `L ${startControl.x} ${startControl.y}`,
-            // `L ${endControl.x} ${endControl.y}`,
-            `L ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`,
-            `L ${endPoint.x} ${endPoint.y}`
-          ]
-            .filter((x) => !!x)
+
+            () => ({
+              x: endPoint.x + endOffset.x,
+              y: endPoint.y + endOffset.y
+            }),
+            () => endPoint
+          ].filter((x) => !!x) as PointFn[])
+            .reduce(
+              (acc, bpfn) => {
+                const prevPoint = acc[acc.length - 1];
+
+                return acc.concat(bpfn(prevPoint));
+              },
+              [startPoint]
+            )
+            .map((pt, i) => {
+              return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
+            })
             .join(' ');
 
           // const d = [
