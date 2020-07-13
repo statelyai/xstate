@@ -254,9 +254,9 @@ export function EdgeViz({
                       })
                     ]
                 : minLocation === 'bottom'
-                ? (p) => ({ x: preEndPoint.x, y: p.y })
+                ? (p) => ({ x: preEndPoint.x, y: p.y, radius: 10 })
                 : minLocation === 'left'
-                ? (p) => ({ x: preEndPoint.x, y: p.y })
+                ? (p) => ({ x: preEndPoint.x, y: p.y, radius: 10 })
                 : undefined,
 
               xdir === -1 &&
@@ -286,7 +286,8 @@ export function EdgeViz({
 
             () => ({
               x: endPoint.x + endOffset.x,
-              y: endPoint.y + endOffset.y
+              y: endPoint.y + endOffset.y,
+              radius: 5
             }),
             () => endPoint
           ].filter((x) => !!x) as PointFn[])
@@ -299,6 +300,16 @@ export function EdgeViz({
               [startPoint as Point & { radius?: number }]
             )
             .map((pt, i, pts) => {
+              if (pt.radius) {
+                const { p1, p2, p } = roundOneCorner(
+                  pts[i - 1],
+                  pt,
+                  pts[i + 1],
+                  pt.radius
+                );
+
+                return `C ${p1.x} ${p1.y}, ${p.x} ${p.y}, ${p2.x} ${p2.y}`;
+              }
               return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
             })
             .join(' ');

@@ -16738,6 +16738,13 @@ svg-parser@^2.0.0:
   resolved "https://registry.yarnpkg.com/svg-parser/-/svg-parser-2.0.4.tgz#fdc2e29e13951736140b76cb122c8ee6630eb6b5"
   integrity sha512-e4hG1hRwoOdRb37cIMSgzNsxyzKfayW6VOflrwvR+/bzrkyxY/31WkbgnQpgtrNp1SdpJvpUAGTa/ZoiPNDuRQ==
 
+svg-round-corners@^0.1.0:
+  version "0.1.0"
+  resolved "https://registry.yarnpkg.com/svg-round-corners/-/svg-round-corners-0.1.0.tgz#811d9e4cbd14f9b35218a3f470bb4f838bf5726c"
+  integrity sha512-sVqbzA43vr/YWHjymJ3Skeo9G9qZbPxJf+mqK/C74S3p7E2SmNty/2X+b9XzE3yBqGpW/zPJladdh56C5s+BaA==
+  dependencies:
+    lodash.clonedeep "^4.5.0"
+
 svg-tags@^1.0.0:
   version "1.0.0"
   resolved "https://registry.yarnpkg.com/svg-tags/-/svg-tags-1.0.0.tgz#58f71cee3bd519b59d4b2a843b6c7de64ac04764"

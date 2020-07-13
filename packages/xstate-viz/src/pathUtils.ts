@@ -37,7 +37,7 @@ export const roundOneCorner = (
   p1: Point,
   corner: Point,
   p2: Point,
-  radius: number = 5
+  radius: number = 10
 ): CubicCurve => {
   const corner_to_p1 = lineToVector(corner, p1);
   const corner_to_p2 = lineToVector(corner, p2);
@@ -54,8 +54,8 @@ export const roundOneCorner = (
   };
   const path = {
     p1: curve_p1,
-    p2: corner,
-    p: curve_p2
+    p2: curve_p2,
+    p: corner
   };
 
   return path;
