@@ -51,7 +51,6 @@ body {
   grid-template-rows: 1fr;
   grid-template-areas: 'state' 'events';
   grid-column-gap: var(--gap);
-  max-width: calc(100vw / var(--xviz-level));
 
   &[data-xviz-type='history'] {
     --content: '(history)';
@@ -308,10 +307,14 @@ body {
 }
 
 [data-xviz='edges'] {
-  pointer-events: none;
+  // pointer-events: none;
 }
 
 [data-xviz='edge'] {
+  pointer-events: auto;
+  &:hover path {
+    stroke: yellow;
+  }
   &:not([data-xviz-current]) > [data-xviz='edge-path'] {
     opacity: 0.1;
   }
