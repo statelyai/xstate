@@ -5,7 +5,6 @@ import { StateContext } from './StateContext';
 import { Point } from './Rect';
 import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
-import { flatten } from 'xstate/lib/utils';
 import { roundOneCorner } from './pathUtils';
 import { StateNode } from 'xstate';
 
@@ -88,8 +87,7 @@ function findMinLocation(
 
 export function EdgeViz({
   edge,
-  markerId,
-  index
+  markerId
 }: {
   edge: Edge<any, any>;
   markerId: string;
@@ -239,44 +237,72 @@ export function EdgeViz({
                               x: pt.x,
                               y: Math.min(
                                 sourceRect.top - offset,
-                                preEndPoint.y
+                                Math.max(
+                                  targetEventsRect.bottom + offset,
+                                  preEndPoint.y
+                                )
                               )
                             };
                           });
-                        } else {
-                          bends.push((pt) => {
-                            return [
-                              {
-                                x: pt.x,
-                                y:
-                                  Math.max(
-                                    sourceRect.bottom,
-                                    sourceEventsRect.bottom
-                                  ) + offset
-                              },
-                              {
-                                x: sourceRect.left - offset,
-                                y:
-                                  Math.max(
-                                    sourceRect.bottom,
-                                    sourceEventsRect.bottom
-                                  ) + offset
-                              }
-                            ];
-                          });
-
-                          bends.push((pt) => {
-                            if (targetEventsRect.bottom > preEndPoint.y) {
+                          bends.push((_pt) => {
+                            if (preEndPoint.y < targetEventsRect.bottom) {
                               return [
                                 {
                                   x: targetEventsRect.right + offset,
                                   y: targetEventsRect.bottom + offset
                                 },
                                 {
-                                  x: targetEventsRect.left - offset,
+                                  x: preEndPoint.x,
                                   y: targetEventsRect.bottom + offset
                                 }
                               ];
+                            }
+                          });
+                        } else {
+                          bends.push((pt) => {
+                            const y =
+                              Math.max(
+                                sourceRect.bottom,
+                                sourceEventsRect.bottom,
+                                targetEventsRect.bottom
+                              ) + offset;
+                            return [
+                              {
+                                x: pt.x,
+                                y
+                              },
+                              {
+                                x: sourceRect.x,
+                                y
+                              }
+                            ];
+                          });
+
+                          bends.push((pt) => {
+                            if (targetEventsRect.bottom > preEndPoint.y) {
+                              const y = Math.max(
+                                pt.y,
+                                targetEventsRect.bottom + offset
+                              );
+                              return [
+                                {
+                                  x: targetEventsRect.right + offset,
+                                  y
+                                },
+                                {
+                                  x: preEndPoint.x,
+                                  y
+                                }
+                              ];
+                            } else {
+                              return {
+                                x: preEndPoint.x,
+                                y:
+                                  Math.max(
+                                    sourceRect.bottom,
+                                    sourceEventsRect.bottom
+                                  ) + offset
+                              };
                             }
                           });
                         }
@@ -307,7 +333,29 @@ export function EdgeViz({
                     break;
 
                   case 1:
+                    bends.push((pt) => {
+                      return {
+                        x: preEndPoint.x,
+                        y: pt.y
+                      };
+                    });
                     break;
+                  case 0:
+                    // TODO: if there are any state nodes between
+                    if (preEndPoint.x - sourceEventsRect.right > 100) {
+                      bends.push((pt) => {
+                        return {
+                          x: pt.x,
+                          y: sourceEventsRect.top - offset
+                        };
+                      });
+                      bends.push((pt) => {
+                        return {
+                          x: preEndPoint.x,
+                          y: pt.y
+                        };
+                      });
+                    }
                   default:
                     break;
                 }
@@ -336,6 +384,19 @@ export function EdgeViz({
                   };
                 });
                 break;
+              case 'top':
+                bends.push((pt) => {
+                  return {
+                    x: pt.x,
+                    y: sourceEventsRect.top - offset
+                  };
+                });
+                bends.push((pt) => {
+                  return {
+                    x: preEndPoint.x,
+                    y: pt.y
+                  };
+                });
               default:
                 break;
             }
@@ -347,10 +408,18 @@ export function EdgeViz({
                     bends.push((pt) => ({
                       x: pt.x,
                       y: Math.max(
-                        pt.y + offset * ydir * 2,
-                        sourceRect.bottom + offset
+                        Math.max(sourceEventsRect.bottom, sourceRect.bottom) +
+                          offset,
+                        preEndPoint.y
                       )
                     }));
+
+                    bends.push((pt) => {
+                      return {
+                        x: preEndPoint.x,
+                        y: pt.y
+                      };
+                    });
 
                     break;
                   case 0:
@@ -376,6 +445,12 @@ export function EdgeViz({
                   case 0:
                     break;
                   case 1:
+                    bends.push((pt) => {
+                      return {
+                        x: pt.x,
+                        y: preEndPoint.y
+                      };
+                    });
                     break;
                   default:
                     break;
@@ -385,64 +460,6 @@ export function EdgeViz({
                 break;
             }
           }
-
-          const bendPoints = flatten<PointFn | undefined>(
-            [
-              xdir === -1
-                ? minLocation === 'top' && ydir === -1
-                  ? [
-                      (p) => ({
-                        x: p.x,
-                        y: Math.min(
-                          endPoint.y + endOffset.y,
-                          sourceEventsRect.top
-                        ),
-                        radius: 10
-                      })
-                      // `L ${sourceEventsRect.left} ${sourceEventsRect.top}`
-                    ]
-                  : [
-                      (p) => ({
-                        x: p.x,
-                        y: Math.max(
-                          endPoint.y + endOffset.y,
-                          sourceEventsRect.bottom
-                        ),
-                        radius: 10
-                      }),
-                      (p) => ({
-                        x: sourceEventsRect.left,
-                        y: Math.max(
-                          endPoint.y + endOffset.y,
-                          sourceEventsRect.bottom
-                        ),
-                        radius: 10
-                      })
-                    ]
-                : minLocation === 'bottom'
-                ? (p) => ({ x: preEndPoint.x, y: p.y, radius: 10 })
-                : minLocation === 'left'
-                ? (p) => ({ x: preEndPoint.x, y: p.y, radius: 10 })
-                : undefined,
-
-              xdir === -1 &&
-              minLocation === 'bottom' &&
-              targetEventsRect.bottom > endPoint.y
-                ? [
-                    (p) => ({
-                      x: targetEventsRect.right,
-                      y: Math.max(endPoint.y, targetEventsRect.bottom),
-                      radius: 10
-                    }),
-                    (p) => ({
-                      x: endPoint.x,
-                      y: Math.max(endPoint.y, targetEventsRect.bottom),
-                      radius: 10
-                    })
-                  ]
-                : undefined
-            ].filter((x) => !!x)
-          ) as PointFn[];
 
           const points = ([
             () => sourcePoint,
@@ -462,7 +479,6 @@ export function EdgeViz({
                   return { x: pt.x + xdir * 10, y: pt.y };
               }
             }
-            // () => endPoint
           ].filter((x) => !!x) as PointFn[]).reduce(
             (acc, bpfn) => {
               const prevPoint = acc[acc.length - 1];
@@ -475,21 +491,24 @@ export function EdgeViz({
 
               return acc.concat(nextPoint);
             },
-            [sourcePoint as Point & { radius?: number }]
+            [sourcePoint]
           );
+
+          const circlePoints = [...points];
 
           const d = points
             .map((pt, i, pts) => {
-              // if (pt.radius) {
-              //   const { p1, p2, p } = roundOneCorner(
-              //     pts[i - 1],
-              //     pt,
-              //     pts[i + 1],
-              //     pt.radius
-              //   );
+              if (i >= 2 && i <= pts.length - 2) {
+                const { p1, p2, p } = roundOneCorner(
+                  pts[i - 1],
+                  pt,
+                  pts[i + 1]
+                );
 
-              //   return `C ${p1.x} ${p1.y}, ${p.x} ${p.y}, ${p2.x} ${p2.y}`;
-              // }
+                circlePoints.push(p1, p, p2);
+
+                return `L ${p1.x} ${p1.y} C ${p1.x} ${p1.y}, ${p.x} ${p.y}, ${p2.x} ${p2.y}`;
+              }
               return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
             })
             .join('\n');
@@ -528,9 +547,9 @@ export function EdgeViz({
                 pathLength={1}
                 strokeLinejoin="round"
               />
-              {points.map((pt, i) => {
+              {/* {circlePoints.map((pt, i) => {
                 return <circle r={3} cx={pt.x} cy={pt.y} fill="red" key={i} />;
-              })}
+              })} */}
             </>
           );
         })();

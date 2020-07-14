@@ -95,9 +95,13 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         )}
       </div>
       <div data-xviz="events" ref={eventsRef}>
-        {edges.map((edge) => {
+        {edges.map((edge, i) => {
           return (
-            <EventViz edge={edge} key={serializeTransition(edge.transition)} />
+            <EventViz
+              edge={edge}
+              key={serializeTransition(edge.transition) + i}
+              index={i}
+            />
           );
         })}
       </div>

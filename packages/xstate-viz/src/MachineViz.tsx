@@ -4,12 +4,11 @@ import { StateNodeViz } from './StateNodeViz';
 import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
-import { Tracker, relative } from './tracker';
+import { Tracker } from './tracker';
 import { State, StateMachine, createMachine, assign } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 import { useMachine } from '@xstate/react';
-import { asEffect } from '@xstate/react/lib/useMachine';
 
 interface CanvasCtx {
   zoom: number;
@@ -57,25 +56,8 @@ interface MachineVizProps {
 
 const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
   const [state, send] = useMachine(canvasMachine);
-  const { zoom, scroll } = state.context;
+  const { zoom } = state.context;
   const ref = useTracking(`machine:${machine.id}`);
-  const [rects, setRects] = React.useState<any>([]);
-
-  React.useEffect(() => {
-    if (ref.current) {
-      const newRects = [] as any[];
-      ref.current.querySelectorAll('[data-xviz="stateNode"]').forEach((el) => {
-        const parentSvgEl = el.closest('svg');
-
-        newRects.push({
-          id: (el as HTMLDivElement).dataset.xvizId,
-          rect: relative(el.getBoundingClientRect(), parentSvgEl!)
-        });
-      });
-
-      setRects(newRects);
-    }
-  }, []);
 
   return (
     <div
@@ -94,7 +76,24 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         width: '100vw'
       }}
       onWheel={(e) => {
-        send(e);
+        const groupEl = (e.currentTarget as HTMLDivElement).querySelector(
+          '[data-xviz="machine-group"]'
+        );
+
+        if (groupEl) {
+          if (!(groupEl as any).__xy) {
+            (groupEl as any).__xy = { x: 0, y: 0 };
+          }
+          (groupEl as any).__xy.x -= e.deltaX;
+          (groupEl as any).__xy.y -= e.deltaY;
+
+          const { x, y } = (groupEl as any).__xy;
+
+          groupEl.setAttribute(
+            'style',
+            `transform: translate(${x}px, ${y}px) scale(${zoom})`
+          );
+        }
       }}
     >
       <svg
@@ -122,13 +121,15 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
             ></rect>
           );
         })} */}
-        <g
-          style={{
-            transform: `translate(${scroll.x}px, ${scroll.y}px) scale(${zoom})`
-          }}
-        >
+        <g data-xviz="machine-group">
           <EdgesViz edges={getAllEdges(machine)} machine={machine} />
-          <foreignObject x={0} y={0} width={1000} height={1000}>
+          <foreignObject
+            data-xviz="machine-foreignObject"
+            x={0}
+            y={0}
+            width={1000}
+            height={1000}
+          >
             <div
               data-xviz="machine"
               title={`machine: #${machine.id}`}
@@ -170,16 +171,6 @@ export function MachineViz({
   state = machine.initialState
 }: MachineVizProps) {
   const tracker = React.useMemo(() => new Tracker(), []);
-  // const [zoom, setZoom] = useState(1);
-  // const [scroll, setScroll] = useState({ x: 0, y: 0 });
-
-  // React.useEffect(() => {
-  //   const i = requestAnimationFrame(() => tracker.updateAll());
-
-  //   return () => {
-  //     cancelAnimationFrame(i);
-  //   };
-  // }, [zoom, scroll]);
 
   return (
     <StateContext.Provider value={{ state, tracker }}>

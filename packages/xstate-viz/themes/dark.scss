@@ -3,7 +3,7 @@
   --xviz-foreground-color: white;
   --xviz-active-color: rgb(19, 129, 201);
   --xviz-active-border-color: var(--xviz-active-color);
-  --xviz-inactive-border-color: #{rgba(white, 0.2)};
+  --xviz-inactive-border-color: #{rgba(white, 0.4)};
   --xviz-border-width: 2px;
 }
 
@@ -34,6 +34,10 @@
 html,
 body {
   overscroll-behavior-x: none;
+}
+
+[data-xviz='machine-foreignObject'] {
+  overflow: visible;
 }
 
 [data-xviz='machine'] {
@@ -188,15 +192,6 @@ body {
   &[data-xviz-builtin] {
     [data-xviz='event-type'] {
       font-style: italic;
-    }
-  }
-
-  &[data-xviz-transient] {
-    [data-xviz='event-type'] {
-      &:before {
-        content: 'always';
-        font-style: italic;
-      }
     }
   }
 

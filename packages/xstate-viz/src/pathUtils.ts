@@ -37,20 +37,23 @@ export const roundOneCorner = (
   p1: Point,
   corner: Point,
   p2: Point,
-  radius: number = 10
+  radius: number = 15
 ): CubicCurve => {
   const corner_to_p1 = lineToVector(corner, p1);
   const corner_to_p2 = lineToVector(corner, p2);
+  const p1dist = Math.hypot(corner_to_p1.x, corner_to_p1.y);
+  const p2dist = Math.hypot(corner_to_p2.x, corner_to_p2.y);
+  const resolvedRadius = Math.min(radius, p1dist, p2dist) - 1;
   const corner_to_p1_unit = vectorToUnitVector(corner_to_p1);
   const corner_to_p2_unit = vectorToUnitVector(corner_to_p2);
 
   const curve_p1 = {
-    x: corner.x + corner_to_p1_unit.x * radius,
-    y: corner.y + corner_to_p1_unit.y * radius
+    x: corner.x + corner_to_p1_unit.x * resolvedRadius,
+    y: corner.y + corner_to_p1_unit.y * resolvedRadius
   };
   const curve_p2 = {
-    x: corner.x + corner_to_p2_unit.x * radius,
-    y: corner.y + corner_to_p2_unit.y * radius
+    x: corner.x + corner_to_p2_unit.x * resolvedRadius,
+    y: corner.y + corner_to_p2_unit.y * resolvedRadius
   };
   const path = {
     p1: curve_p1,

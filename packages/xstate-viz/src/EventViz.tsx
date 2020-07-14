@@ -15,6 +15,7 @@ import { useTracking } from './useTracker';
 
 interface EventVizProps {
   edge: Edge<any, any>;
+  index: number;
 }
 
 function getEventMeta(eventType: string): Record<string, any> | undefined {
@@ -35,21 +36,51 @@ function stringify(value: any): string | number {
   return JSON.stringify(value);
 }
 
-function formatEvent(event: string): JSX.Element | string {
+export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
   if (event.startsWith('done.state.')) {
-    return 'onDone';
+    return <>onDone</>;
+  }
+
+  if (event.startsWith('done.invoke.')) {
+    const match = event.match(/^done\.invoke\.(.+)$/);
+    return (
+      <>
+        <em style={{ color: 'green' }}>done:</em> {match ? match[1] : '??'}
+      </>
+    );
+  }
+
+  if (event.startsWith('error.platform.')) {
+    const match = event.match(/^error\.platform\.(.+)$/);
+    return (
+      <>
+        <em style={{ color: 'red' }}>error:</em> {match ? match[1] : '??'}
+      </>
+    );
   }
 
   if (event.startsWith('xstate.after')) {
     const [, delay] = event.match(/^xstate\.after\((.*)\)#.*$/);
 
-    return `after ${toDelayString(delay)}`;
+    return (
+      <>
+        <em>after</em> {toDelayString(delay)}
+      </>
+    );
   }
 
-  return event;
-}
+  if (event === '') {
+    return (
+      <>
+        <em>always</em>
+      </>
+    );
+  }
 
-export function EventViz({ edge }: EventVizProps) {
+  return <>{event}</>;
+};
+
+export function EventViz({ edge, index }: EventVizProps) {
   const { state } = useContext(StateContext);
   const ref = useTracking(serializeTransition(edge.transition));
 
@@ -65,6 +96,7 @@ export function EventViz({ edge }: EventVizProps) {
     <div
       data-xviz="event"
       data-xviz-event={edge.event}
+      data-xviz-index={index}
       data-xviz-builtin={isBuiltinEvent(edge.event) || undefined}
       data-xviz-transient={edge.event === '' || undefined}
       data-xviz-guarded={!!transition.cond || undefined}
@@ -72,7 +104,9 @@ export function EventViz({ edge }: EventVizProps) {
       title={`event: ${edge.event}`}
     >
       <div data-xviz="event-label" ref={ref}>
-        <div data-xviz="event-type">{formatEvent(transition.eventType)}</div>
+        <div data-xviz="event-type">
+          <EventTypeViz event={transition.eventType} />
+        </div>
         {transition.cond && (
           <div data-xviz="event-cond" data-xviz-name={transition.cond.name}>
             <div data-xviz="event-cond-name">{transition.cond.name}</div>

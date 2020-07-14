@@ -123,7 +123,7 @@ const GistViz: React.FC<{ gist: string }> = ({ gist }) => {
 
       const stringified = stringify(someMachine.toJSON());
 
-      setMachine(createMachineFromJSON(parse(stringified)));
+      setMachine(createMachineFromJSON(JSON.parse(stringified)));
     };
 
     fn();
@@ -136,10 +136,39 @@ const GistViz: React.FC<{ gist: string }> = ({ gist }) => {
   );
 };
 
+const gists = [
+  // 'https://gist.github.com/thm-design/d0ca21173047526d7935c253e6bf02ed',
+  // 'https://gist.github.com/knownasilya/80f61974ad2ac0e73ec81862ed9d758f',
+  // 'https://gist.github.com/Elanhant/f6c30b31ff7d3138edeb58470bc778c5',
+  // 'https://gist.github.com/bpedersen/7d1af0ca6733c72269f259d2061a2d9a',
+  // 'https://gist.github.com/monzie9000/db50d7a6ff3dd65205f4eb48089c445c',
+  // 'https://gist.github.com/gkatai/34c84b5df1c0a24634d10f8be59bbae4',
+  // 'https://gist.github.com/bfillmer/aaf56d9a0d1c52a99ae1993f62a08ac3',
+  // 'https://gist.github.com/abejfehr/f630e288703668630abbe38cf7b9e234',
+  // 'https://gist.github.com/JamieMason/3b277df080742d0e93b032feaef1a397',
+  // 'https://gist.github.com/JamieMason/446eb971c2c1dc3b9e55043e72e97f22',
+  // 'https://gist.github.com/hudde91/98d1671db9f5d7fa102a4286da0c8ca2',
+  // 'https://gist.github.com/baeharam/00975792b466a850460daff7b2417ad1',
+  // 'https://gist.github.com/Arif9878/85813599f383cdacba51b49cf0fbe6d1',
+  // 'https://gist.github.com/Arif9878/742bd0f9703d2f0640710e9b765008e8',
+  // 'https://gist.github.com/patwaririshab/11927b08d5f31060b4889a7b74849ea9',
+  // 'https://gist.github.com/arochagabriel/2c71f3f7f89ff6fb1accf938e0fdf3af',
+  // 'https://gist.github.com/patwaririshab/c3722432a31d03748423dd6feacc1af6',
+  // 'https://gist.github.com/Zendor18/dca35e09ea84451c20956d06f7cf4e2d',
+  // 'https://gist.github.com/asmbatha/f9ebd4dcba2f61dcc1bf624c1a60eeab',
+  // 'https://gist.github.com/NikitaIT/8ffba1c0f62ff3eaa4f5650215babfbc',
+  // 'https://gist.github.com/seansu4you87/a8fe3f24271fb2603cfa3db237d951af',
+  // 'https://gist.github.com/vin-e/9d2e59c6d3113929fc50bfb9fe44ef6b',
+  // 'https://gist.github.com/beHitesh/aab686bd755889facf398316ac08f5fb',
+  'https://gist.github.com/wdcryer/917203272be8aeb88316335191f67acf'
+];
+
 export const Gists = () => {
   return (
     <div>
-      <GistViz gist="https://gist.github.com/baeharam/00975792b466a850460daff7b2417ad1" />
+      {gists.map((gist) => {
+        return <GistViz gist={gist} key={gist} />;
+      })}
     </div>
   );
 };
