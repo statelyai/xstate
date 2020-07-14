@@ -107,6 +107,9 @@ body {
     --xviz-border-color: var(--xviz-active-border-color);
   }
   &:not([data-xviz-active]) {
+    * {
+      transition: all 0.3s;
+    }
     --xviz-border-color: var(--xviz-inactive-border-color);
 
     [data-xviz='actions'],
@@ -307,11 +310,14 @@ body {
 
 [data-xviz='edge'] {
   pointer-events: auto;
-  &:hover path {
-    stroke: yellow;
-  }
   &:not([data-xviz-current]) > [data-xviz='edge-path'] {
     opacity: 0.1;
+  }
+
+  &[data-xviz-current] {
+    > [data-xviz='edge-path'] {
+      transition-duration: 0.6s;
+    }
   }
 
   &[data-xviz-triggered] {
@@ -334,6 +340,7 @@ body {
 
 [data-xviz='initialEdge-path'],
 [data-xviz='edge-path'] {
+  transition: stroke 0.3s;
   stroke-width: calc(var(--xviz-stroke-width) * var(--xviz-zoom, 1));
   stroke: white;
   stroke-dashoffset: 0;
