@@ -5,7 +5,14 @@ import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
 import { Tracker } from './tracker';
-import { State, StateMachine, createMachine, assign } from 'xstate';
+import {
+  State,
+  StateMachine,
+  createMachine,
+  assign,
+  StateNode,
+  interpret
+} from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 import { useMachine } from '@xstate/react';
@@ -40,7 +47,7 @@ const canvasMachine = createMachine<CanvasCtx>({
         zoom: {
           actions: [
             assign({
-              zoom: (_, e) => e.value
+              zoom: (ctx, e) => ctx.zoom + e.value
             })
           ]
         }
@@ -54,10 +61,40 @@ interface MachineVizProps {
   machine: StateMachine<any, any, any>;
 }
 
+interface ResultBox<T> {
+  v: T;
+}
+
+export default function useConstant<T>(fn: () => T): T {
+  const ref = React.useRef<ResultBox<T>>();
+
+  if (!ref.current) {
+    ref.current = { v: fn() };
+  }
+
+  return ref.current.v;
+}
+
 const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
-  const [state, send] = useMachine(canvasMachine);
-  const { zoom } = state.context;
+  const service = useConstant(() => interpret(canvasMachine).start());
   const ref = useTracking(`machine:${machine.id}`);
+  const groupRef = React.useRef<SVGGElement | null>(null);
+
+  React.useEffect(() => {
+    service.subscribe(({ context }) => {
+      if (!groupRef.current) return;
+
+      const {
+        scroll: { x, y },
+        zoom
+      } = context;
+
+      groupRef.current.setAttribute(
+        'style',
+        `transform: translate(${x}px, ${y}px) scale(${zoom})`
+      );
+    });
+  }, []);
 
   return (
     <div
@@ -76,24 +113,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         width: '100vw'
       }}
       onWheel={(e) => {
-        const groupEl = (e.currentTarget as HTMLDivElement).querySelector(
-          '[data-xviz="machine-group"]'
-        );
-
-        if (groupEl) {
-          if (!(groupEl as any).__xy) {
-            (groupEl as any).__xy = { x: 0, y: 0 };
-          }
-          (groupEl as any).__xy.x -= e.deltaX;
-          (groupEl as any).__xy.y -= e.deltaY;
-
-          const { x, y } = (groupEl as any).__xy;
-
-          groupEl.setAttribute(
-            'style',
-            `transform: translate(${x}px, ${y}px) scale(${zoom})`
-          );
-        }
+        service.send(e);
       }}
     >
       <svg
@@ -108,21 +128,9 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         // viewBox={'0 0 100 100'}
         // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
       >
-        {/* {rects.map((item: any) => {
-          return (
-            <rect
-              key={item.id}
-              x={item.rect.left}
-              y={item.rect.top}
-              width={item.rect.width}
-              height={item.rect.height}
-              stroke="red"
-              strokeWidth={2}
-            ></rect>
-          );
-        })} */}
-        <g data-xviz="machine-group">
+        <g data-xviz="machine-group" ref={groupRef}>
           <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+
           <foreignObject
             data-xviz="machine-foreignObject"
             x={0}
@@ -130,15 +138,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
             width={1000}
             height={1000}
           >
-            <div
-              data-xviz="machine"
-              title={`machine: #${machine.id}`}
-              style={
-                {
-                  // transform: `translate(${scroll.x}px, ${scroll.y}px) scale(${zoom})`
-                }
-              }
-            >
+            <div data-xviz="machine" title={`machine: #${machine.id}`}>
               <StateNodeViz stateNode={machine} />
             </div>
           </foreignObject>
@@ -148,7 +148,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         <button
           data-xviz="button"
           onClick={() => {
-            send('zoom', { value: zoom - 0.1 });
+            service.send('zoom', { value: -0.1 });
           }}
         >
           -
@@ -156,7 +156,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         <button
           data-xviz="button"
           onClick={() => {
-            send('zoom', { value: zoom + 0.1 });
+            service.send('zoom', { value: 0.1 });
           }}
         >
           +

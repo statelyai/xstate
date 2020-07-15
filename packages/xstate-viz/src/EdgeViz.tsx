@@ -494,11 +494,31 @@ export function EdgeViz({
             [sourcePoint]
           );
 
-          const circlePoints = [...points];
+          // simplify
+          const simplifiedPoints = points.reduce((acc, point, i) => {
+            if (i === 0) {
+              acc.push(point);
+              return acc;
+            }
 
-          const d = points
+            const [p1, p2] = [point, points[i - 1]];
+
+            if (p1.x === p2.x && p1.y === p2.y) {
+              return acc;
+            }
+
+            acc.push(point);
+
+            return acc;
+          }, [] as Point[]);
+
+          const circlePoints = [...simplifiedPoints];
+
+          const roundCorners = true;
+
+          const d = simplifiedPoints
             .map((pt, i, pts) => {
-              if (i >= 2 && i <= pts.length - 2) {
+              if (roundCorners && i >= 2 && i <= pts.length - 2) {
                 const { p1, p2, p } = roundOneCorner(
                   pts[i - 1],
                   pt,
@@ -512,19 +532,6 @@ export function EdgeViz({
               return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
             })
             .join('\n');
-
-          // const d = [
-          //   `M ${sourcePoint.x} ${sourcePoint.y}`,
-          //   `L ${preStartPoint.x} ${preStartPoint.y}`,
-
-          //   `M ${startPoint.x} ${startPoint.y}`,
-          //   // `L ${startPoint.x + 10} ${startPoint.y}`,
-          //   `C ${startControl.x} ${startControl.y} ${endControl.x} ${
-          //     endControl.y
-          //   } ${endPoint.x + endOffset.x} ${endPoint.y + endOffset.y}`
-          // ]
-          //   .filter((x) => !!x)
-          //   .join(' ');
 
           return (
             <>
@@ -559,7 +566,9 @@ export function EdgeViz({
       data-xviz="edge"
       data-xviz-current={isCurrent || undefined}
       data-xviz-triggered={triggered || undefined}
-      data-source={JSON.stringify(sourceRect)}
+      data-source={edge.source.id}
+      data-target={edge.target.id}
+      data-event={edge.event}
       ref={ref}
     >
       {path}

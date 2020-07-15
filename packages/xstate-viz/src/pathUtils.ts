@@ -43,6 +43,13 @@ export const roundOneCorner = (
   const corner_to_p2 = lineToVector(corner, p2);
   const p1dist = Math.hypot(corner_to_p1.x, corner_to_p1.y);
   const p2dist = Math.hypot(corner_to_p2.x, corner_to_p2.y);
+  if (p1dist * p2dist === 0) {
+    return {
+      p1: corner,
+      p2: corner,
+      p: corner
+    };
+  }
   const resolvedRadius = Math.min(radius, p1dist, p2dist) - 1;
   const corner_to_p1_unit = vectorToUnitVector(corner_to_p1);
   const corner_to_p2_unit = vectorToUnitVector(corner_to_p2);

@@ -11,24 +11,7 @@ type TrackerListener = (data: TrackerData) => void;
 export class Tracker {
   public data: Record<string, TrackerData> = {};
 
-  constructor(private parentElement: Element = document.body) {
-    // listen for resize events
-    try {
-      if (window !== undefined) {
-        let timeout: number;
-        window.addEventListener('resize', () => {
-          if (timeout) {
-            cancelAnimationFrame(timeout);
-          }
-          timeout = requestAnimationFrame(() => {
-            this.updateAll();
-          });
-        });
-      }
-    } catch (e) {
-      // gulp
-    }
-  }
+  constructor(private parentElement: Element = document.body) {}
 
   private getParent(el: Element) {
     return el.closest('[data-xviz="machine-container"]') || this.parentElement;

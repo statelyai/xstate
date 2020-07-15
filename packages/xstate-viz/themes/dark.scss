@@ -341,7 +341,7 @@ body {
 [data-xviz='initialEdge-path'],
 [data-xviz='edge-path'] {
   transition: stroke 0.3s;
-  stroke-width: calc(var(--xviz-stroke-width) * var(--xviz-zoom, 1));
+  stroke-width: var(--xviz-stroke-width);
   stroke: white;
   stroke-dashoffset: 0;
   stroke-dasharray: 1 1;
