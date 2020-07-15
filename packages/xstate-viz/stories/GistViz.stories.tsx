@@ -130,7 +130,16 @@ const GistViz: React.FC<{ gist: string }> = ({ gist }) => {
   }, [gist]);
 
   return machine ? (
-    <MachineViz machine={machine} key={gist} />
+    <MachineViz
+      machine={machine}
+      key={gist}
+      onStateNodeTap={(id) => {
+        console.log('tapped', id);
+      }}
+      onEventTap={(e) => {
+        console.log('tapped', e);
+      }}
+    />
   ) : (
     <em>Loading...</em>
   );

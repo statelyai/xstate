@@ -14,7 +14,7 @@ interface StateNodeVizProps {
 }
 
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
-  const { state } = useContext(StateContext);
+  const { state, service } = useContext(StateContext);
   const ref = useTracking(stateNode.id);
   const eventsRef = useTracking(stateNode.id + ':events');
 
@@ -47,6 +47,13 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       style={{
         // @ts-ignore
         '--xviz-level': getLevel(stateNode)
+      }}
+      onClick={(e) => {
+        e.stopPropagation();
+        service.send({
+          type: 'stateNode.tap',
+          stateNodeId: stateNode.id
+        });
       }}
     >
       <div data-xviz="stateNode-state" ref={ref}>

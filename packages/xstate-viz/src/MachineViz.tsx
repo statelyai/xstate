@@ -10,12 +10,17 @@ import {
   StateMachine,
   createMachine,
   assign,
-  StateNode,
-  interpret
+  interpret,
+  StateNode
 } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 import { useMachine } from '@xstate/react';
+import {
+  machineVizMachine,
+  StateNodeTapEvent,
+  EventTapEvent
+} from './machineVizMachine';
 
 interface CanvasCtx {
   zoom: number;
@@ -59,6 +64,12 @@ const canvasMachine = createMachine<CanvasCtx>({
 interface MachineVizProps {
   state?: State<any, any>;
   machine: StateMachine<any, any, any>;
+  onStateNodeTap?: ({ stateNodeId: string }) => void;
+  onEventTap?: (data: {
+    stateNodeId: string;
+    eventType: string;
+    index: number;
+  }) => void;
 }
 
 interface ResultBox<T> {
@@ -82,7 +93,9 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
 
   React.useEffect(() => {
     service.subscribe(({ context }) => {
-      if (!groupRef.current) return;
+      if (!groupRef.current) {
+        return;
+      }
 
       const {
         scroll: { x, y },
@@ -168,12 +181,20 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
 
 export function MachineViz({
   machine,
-  state = machine.initialState
+  state = machine.initialState,
+  onStateNodeTap,
+  onEventTap
 }: MachineVizProps) {
+  const [, , service] = useMachine(machineVizMachine, {
+    actions: {
+      stateNodeTapped: (_, e) => onStateNodeTap?.(e as StateNodeTapEvent),
+      eventTapped: (_, e) => onEventTap?.(e as EventTapEvent)
+    }
+  });
   const tracker = React.useMemo(() => new Tracker(), []);
 
   return (
-    <StateContext.Provider value={{ state, tracker }}>
+    <StateContext.Provider value={{ state, tracker, service }}>
       <MachineVizContainer machine={machine} state={state} />
     </StateContext.Provider>
   );

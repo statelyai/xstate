@@ -81,7 +81,7 @@ export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
 };
 
 export function EventViz({ edge, index }: EventVizProps) {
-  const { state } = useContext(StateContext);
+  const { state, service } = useContext(StateContext);
   const ref = useTracking(serializeTransition(edge.transition));
 
   const { transition } = edge;
@@ -102,6 +102,15 @@ export function EventViz({ edge, index }: EventVizProps) {
       data-xviz-guarded={!!transition.cond || undefined}
       data-xviz-triggered={triggered || undefined}
       title={`event: ${edge.event}`}
+      onClick={(e) => {
+        e.stopPropagation();
+        service.send({
+          type: 'event.tap',
+          eventType: edge.event,
+          index,
+          stateNodeId: edge.source.id
+        });
+      }}
     >
       <div data-xviz="event-label" ref={ref}>
         <div data-xviz="event-type">

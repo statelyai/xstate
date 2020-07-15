@@ -177,6 +177,9 @@ body {
 
 [data-xviz='event'] {
   margin-bottom: 0.5em;
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
 
   &[data-xviz-triggered] [data-xviz='event-label'] {
     // animation: flash 0.6s ease-out both;
