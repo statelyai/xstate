@@ -5,14 +5,7 @@ import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
 import { Tracker } from './tracker';
-import {
-  State,
-  StateMachine,
-  createMachine,
-  assign,
-  interpret,
-  StateNode
-} from 'xstate';
+import { State, StateMachine, createMachine, assign, interpret } from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 import { useMachine } from '@xstate/react';
@@ -70,6 +63,7 @@ interface MachineVizProps {
     eventType: string;
     index: number;
   }) => void;
+  style?: React.CSSProperties;
 }
 
 interface ResultBox<T> {
@@ -86,7 +80,7 @@ export default function useConstant<T>(fn: () => T): T {
   return ref.current.v;
 }
 
-const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
+const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
   const service = useConstant(() => interpret(canvasMachine).start());
   const ref = useTracking(`machine:${machine.id}`);
   const groupRef = React.useRef<SVGGElement | null>(null);
@@ -122,8 +116,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine }) => {
         '--xviz-stroke-width': 'var(--xviz-border-width)',
         // '--xviz-zoom': zoom,
         '--xviz-zoom': 1,
-        height: '100vh',
-        width: '100vw'
+        ...style
       }}
       onWheel={(e) => {
         service.send(e);

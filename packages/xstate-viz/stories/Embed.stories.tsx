@@ -57,7 +57,7 @@ export const SimpleInspector = () => {
       <iframe
         data-xstate
         style={{
-          height: '100vh',
+          height: '50vh',
           width: '100%'
         }}
       />

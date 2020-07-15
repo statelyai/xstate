@@ -29,6 +29,8 @@
 
 [data-xviz='machine-container'] {
   overflow: hidden;
+  height: 100%;
+  width: 100%;
 }
 
 html,
@@ -439,19 +441,15 @@ body {
   background: var(--xviz-background-color);
   height: 100%;
   display: grid;
-  grid-template-columns: auto 1fr;
+  grid-template-columns: 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
-    'header header'
-    'services service';
+    'header'
+    'service';
   overflow: hidden;
 
   > [data-xviz='inspector-header'] {
     grid-area: header;
-  }
-
-  > [data-xviz='services'] {
-    grid-area: services;
   }
 
   [data-xviz='service-link'] {
@@ -463,17 +461,19 @@ body {
     grid-area: service;
     display: grid;
     grid-template-columns: 1fr 20em;
-    grid-template-rows: min-content 1fr;
-    grid-template-areas:
-      'machine state'
-      'machine events';
+    grid-template-rows: 1fr;
+    grid-template-areas: 'x state';
 
     &[hidden] {
       display: none;
     }
 
     > [data-xviz='machine'] {
-      grid-area: machine;
+      position: absolute;
+      height: 100%;
+      width: 100%;
+      top: 0;
+      left: 0;
     }
 
     > [data-xviz='event-records'] {

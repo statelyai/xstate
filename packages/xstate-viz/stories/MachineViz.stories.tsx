@@ -5,6 +5,7 @@ import { createMachine, actions } from 'xstate';
 
 import { MachineViz } from '../src/MachineViz';
 import '../themes/dark.scss';
+import './style.scss';
 import { useMachine } from '@xstate/react';
 
 const {
