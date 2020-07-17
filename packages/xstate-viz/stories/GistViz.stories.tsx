@@ -4,6 +4,7 @@ import { Welcome } from '@storybook/react/demo';
 
 import { MachineViz } from '../src/MachineViz';
 import '../themes/dark.scss';
+import './style.scss';
 import { useMachine } from '@xstate/react';
 
 import {
@@ -69,6 +70,12 @@ function parse(str: string) {
     if (value !== null && typeof value === 'object' && '$$type' in value) {
       switch (value.$$type) {
         case 'function':
+          if (
+            !value.value.startsWith('function') &&
+            !value.value.startsWith('(')
+          ) {
+            return () => {}; // TODO: fix { fn() {... } }
+          }
           const fn = new Function('return ' + value.value);
           return fn();
         default:
@@ -169,15 +176,27 @@ const gists = [
   // 'https://gist.github.com/seansu4you87/a8fe3f24271fb2603cfa3db237d951af',
   // 'https://gist.github.com/vin-e/9d2e59c6d3113929fc50bfb9fe44ef6b',
   // 'https://gist.github.com/beHitesh/aab686bd755889facf398316ac08f5fb',
-  'https://gist.github.com/wdcryer/917203272be8aeb88316335191f67acf'
+  // 'https://gist.github.com/wdcryer/917203272be8aeb88316335191f67acf',
+  // 'https://gist.github.com/muratbeser/ea0a22b2e9782d6c5fca89adbcdfcebc',
+  // 'https://gist.github.com/mnhthng-thms/f416c15f331fab381b21373f74be6537',
+  // 'https://gist.github.com/mattpocock/51750cbf84e82ae7e556bba59c38259e',
+  // 'https://gist.github.com/nicholas-robson/074f1bb4d4df3d6e34eee2ff2a9074fd',
+  // 'https://gist.github.com/acusticdemon/1dcc4f4c1e70f53a193a261c5873e04a',
+  // 'https://gist.github.com/raphaelbadia/62f6604d1666e68272b3e6ccb5bf391a',
+  // 'https://gist.github.com/Addono/2cccde93b8c36974fc5ebe6e4c147595',
+  // 'https://gist.github.com/nyx2014/e3bb3c044598886f8f8fab0ef8082643',
+  // 'https://gist.github.com/baeharam/8e282b20b01907eb00677c27fd9e1164',
+  // 'https://gist.github.com/mnhthng-thms/98adca0067abdc733dbbf14686f5e37a',
+  // 'https://gist.github.com/simontegg/ae79d618288e8fcb3b501cdb4edc4948',
+  'https://gist.github.com/simmo/7a0312c690f898a7023d4712c8ee26ce'
 ];
 
 export const Gists = () => {
   return (
-    <div>
+    <>
       {gists.map((gist) => {
         return <GistViz gist={gist} key={gist} />;
       })}
-    </div>
+    </>
   );
 };

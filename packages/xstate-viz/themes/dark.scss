@@ -1,5 +1,6 @@
 [data-xviz] {
   --xviz-background-color: #111;
+  --xviz-background-transparent-color: #{rgb(#111, 0.8)};
   --xviz-foreground-color: white;
   --xviz-active-color: rgb(19, 129, 201);
   --xviz-active-border-color: var(--xviz-active-color);
@@ -115,6 +116,7 @@ body {
     --xviz-border-color: var(--xviz-inactive-border-color);
 
     [data-xviz='actions'],
+    [data-xviz='stateNode-invocations'],
     [data-xviz='stateNode-key'] {
       opacity: 0.5;
     }
@@ -168,6 +170,12 @@ body {
 
 [data-xviz='stateNode-invocations'] {
   padding: 0.5em;
+
+  &:before {
+    @extend %content-prefix;
+    text-decoration: none;
+    --content: 'invoke / ';
+  }
 }
 
 [data-xviz='events'] {
@@ -343,6 +351,12 @@ body {
   }
 }
 
+[data-xviz='initialEdge'] {
+  &:not([data-xviz-current]) {
+    opacity: 0.1;
+  }
+}
+
 [data-xviz='initialEdge-path'],
 [data-xviz='edge-path'] {
   transition: stroke 0.3s;
@@ -394,14 +408,6 @@ body {
   color: rgb(92, 148, 252);
   text-decoration: underline;
   cursor: pointer;
-}
-
-[data-xviz='invoke-id'] {
-  &:before {
-    text-decoration: none;
-    @extend %content-prefix;
-    content: 'invoke / ';
-  }
 }
 
 [data-xviz='invoke-src'] {
@@ -468,7 +474,7 @@ body {
       display: none;
     }
 
-    > [data-xviz='machine'] {
+    > [data-xviz='machine-container'] {
       position: absolute;
       height: 100%;
       width: 100%;
@@ -489,6 +495,7 @@ body {
 
     > [data-xviz='state'] {
       grid-area: state;
+      background-color: var(--xviz-background-transparent-color);
 
       &:before {
         content: 'State';

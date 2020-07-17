@@ -29,6 +29,10 @@ export function useTracking(id: string) {
     return () => {
       resizeObserver.unobserve(ref.current!);
     };
+
+    return () => {
+      tracker.remove(id);
+    };
   }, []);
 
   return ref;

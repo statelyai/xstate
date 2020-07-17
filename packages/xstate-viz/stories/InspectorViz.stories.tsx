@@ -29,10 +29,20 @@ const pongMachine = createMachine({
 const pingMachine = createMachine({
   id: 'ping',
   initial: 'pinging',
-  invoke: {
-    src: pongMachine,
-    id: 'pong'
-  },
+  invoke: [
+    {
+      src: pongMachine,
+      id: 'pong'
+    },
+    {
+      src: () =>
+        new Promise((res, rej) => {
+          setTimeout(() => {
+            res('hello');
+          }, 1000);
+        })
+    }
+  ],
   states: {
     pinging: {
       after: {
@@ -83,7 +93,7 @@ const register = (service) => {
     '*'
   );
 
-  service.subscribe((state) => {
+  const sub = service.subscribe((state) => {
     window.postMessage(
       {
         type: 'service.state',
@@ -93,28 +103,31 @@ const register = (service) => {
       '*'
     );
   });
+
+  return sub;
 };
 
 export const SimpleInspector = () => {
   const receiver = useRef(createReceiver<MessageEvent<any>>());
+  const regRef = useRef(null);
 
   useEffect(() => {
     (window as any).__xstate__ = {
       register: (service) => {
-        register(service);
+        regRef.current = register(service);
       }
     };
 
+    let simpleService;
+
     const timeout = setTimeout(() => {
-      const simpleService = interpret(simpleMachine, {
+      simpleService = interpret(pingMachine, {
         devTools: true
       }).start();
-      setInterval(() => {
-        simpleService.send('TOGGLE');
-      }, 2000);
     }, 1000);
 
     return () => {
+      simpleService.stop();
       clearTimeout(timeout);
     };
   }, []);

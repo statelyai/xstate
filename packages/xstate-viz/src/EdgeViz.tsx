@@ -22,6 +22,10 @@ function clamp(x: number, min: number, max: number): number {
   return x;
 }
 
+function isInitialState(stateNode: StateNode<any, any>): boolean {
+  return stateNode.parent?.initial === stateNode.key;
+}
+
 function findMinLocation(
   point: Point,
   rect: ClientRect,
@@ -152,7 +156,15 @@ export function EdgeViz({
           );
 
           const endPoint = minPoint;
+
           const offset = 10;
+
+          // if (minLocation === 'left' && isInitialState(edge.target)) {
+          //   endPoint = {
+          //     x: endPoint.x,
+          //     y: endPoint.y + offset
+          //   };
+          // }
 
           const endOffset: Point = ({
             top: { x: 0, y: -20 },
@@ -175,7 +187,7 @@ export function EdgeViz({
             y: endPoint.y + endOffset.y
           };
 
-          let bends: any = [];
+          const bends: any = [];
 
           function isTargetChild(parent: StateNode, child: StateNode): boolean {
             let marker = child.parent;
@@ -215,6 +227,22 @@ export function EdgeViz({
                           };
                         });
                         break;
+                      case 'bottom':
+                        bends.push((pt) => ({
+                          x: pt.x,
+                          y:
+                            Math.max(
+                              sourceEventsRect.bottom,
+                              sourceRect.bottom
+                            ) + offset
+                        }));
+                        bends.push((pt) => {
+                          return {
+                            x: preEndPoint.x,
+                            y: pt.y
+                          };
+                        });
+                        break;
                       default:
                         bends.push((pt) => ({
                           x: pt.x,
@@ -244,11 +272,14 @@ export function EdgeViz({
                               )
                             };
                           });
-                          bends.push((_pt) => {
+                          bends.push((pt) => {
                             if (preEndPoint.y < targetEventsRect.bottom) {
                               return [
                                 {
-                                  x: targetEventsRect.right + offset,
+                                  x: Math.min(
+                                    targetEventsRect.right + offset,
+                                    pt.x
+                                  ),
                                   y: targetEventsRect.bottom + offset
                                 },
                                 {
@@ -476,7 +507,7 @@ export function EdgeViz({
                 case 'left':
                 case 'right':
                 default:
-                  return { x: pt.x + xdir * 10, y: pt.y };
+                  return { x: pt.x + xdir * offset, y: pt.y };
               }
             }
           ].filter((x) => !!x) as PointFn[]).reduce(

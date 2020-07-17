@@ -2,6 +2,9 @@ import * as React from 'react';
 import { Point } from './Rect';
 import { useTracked } from './useTracker';
 import { StateNode } from 'xstate';
+import { isActive } from './utils';
+import { useContext } from 'react';
+import { StateContext } from './StateContext';
 
 export function InitialEdgeViz({
   stateNode,
@@ -10,6 +13,8 @@ export function InitialEdgeViz({
   stateNode: StateNode<any, any, any>;
   markerId: string;
 }) {
+  const { state } = useContext(StateContext);
+  const isCurrent = isActive(state, stateNode);
   const data = useTracked(stateNode.id);
 
   if (!data) {
@@ -29,7 +34,7 @@ export function InitialEdgeViz({
   };
 
   return (
-    <g data-xviz="initialEdge">
+    <g data-xviz="initialEdge" data-xviz-current={isCurrent || undefined}>
       <circle
         data-xviz="initialEdge-circle"
         r="4"

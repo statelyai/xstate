@@ -41,14 +41,14 @@ const canvasMachine = createMachine<CanvasCtx>({
               })
             })
           ]
-        },
-        zoom: {
-          actions: [
-            assign({
-              zoom: (ctx, e) => ctx.zoom + e.value
-            })
-          ]
         }
+        // zoom: {
+        //   actions: [
+        //     assign({
+        //       zoom: (ctx, e) => ctx.zoom + e.value
+        //     })
+        //   ]
+        // }
       }
     }
   }
@@ -150,7 +150,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
           </foreignObject>
         </g>
       </svg>
-      <div data-xviz="controls">
+      {/* <div data-xviz="controls">
         <button
           data-xviz="button"
           onClick={() => {
@@ -167,7 +167,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
         >
           +
         </button>
-      </div>
+      </div> */}
     </div>
   );
 };

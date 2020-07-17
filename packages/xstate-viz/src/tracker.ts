@@ -14,7 +14,7 @@ export class Tracker {
   constructor(private parentElement: Element = document.body) {}
 
   private getParent(el: Element) {
-    return el.closest('[data-xviz="machine-container"]') || this.parentElement;
+    return el.closest('[data-xviz="machine"]') || this.parentElement;
   }
 
   public update(id: string, el: Element) {
@@ -28,6 +28,16 @@ export class Tracker {
 
     currentData.element = el;
     currentData.rect = new Rect(clientRect);
+    currentData.listeners.forEach((listener) => {
+      listener(currentData);
+    });
+  }
+
+  public remove(id: string) {
+    const currentData = this.data[id];
+    currentData.rect = null;
+    currentData.element = null;
+
     currentData.listeners.forEach((listener) => {
       listener(currentData);
     });

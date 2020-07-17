@@ -7,6 +7,10 @@ export const ActorRefViz: React.FC<{ actorRefId: string }> & {
 } = ({ actorRefId, children = actorRefId }) => {
   const service = useContext(ServicesContext);
 
+  if (!service?.state?.context.services[actorRefId]) {
+    return <span>{children}</span>;
+  }
+
   return (
     <a
       data-xviz="invoke-link"

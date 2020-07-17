@@ -46,7 +46,32 @@ const Simple = () => {
 export const SimpleInspector = () => {
   useLayoutEffect(() => {
     inspect({
-      url: 'https://embed.statecharts.io'
+      // url: 'https://embed.statecharts.io'
+      url: 'http://localhost:3001'
+    });
+  }, []);
+
+  return (
+    <>
+      <Simple />
+      <hr></hr>
+      <iframe
+        data-xstate
+        style={{
+          height: '50vh',
+          width: '100%'
+        }}
+      />
+    </>
+  );
+};
+
+export const PopupInspector = () => {
+  useLayoutEffect(() => {
+    inspect({
+      // url: 'https://embed.statecharts.io'
+      url: 'http://localhost:3001',
+      iframe: false
     });
   }, []);
 
