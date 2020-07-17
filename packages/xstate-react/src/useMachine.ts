@@ -102,7 +102,7 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   machine: StateMachine<TContext, any, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &

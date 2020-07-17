@@ -12,7 +12,7 @@ import useConstant from './useConstant';
 const getServiceState = <
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: StateMachine.Service<TContext, TEvent, TState>
 ): StateMachine.State<TContext, TEvent, TState> => {
@@ -28,7 +28,7 @@ const getServiceState = <
 export function useMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   stateMachine: StateMachine.Machine<TContext, TEvent, TState>,
   options?: {
@@ -80,7 +80,7 @@ export function useMachine<
 export function useService<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: StateMachine.Service<TContext, TEvent, TState>
 ): [

@@ -142,7 +142,7 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -614,8 +614,8 @@ class StateNode<
    * @param state The state value or State instance
    */
   public getStateNodes(
-    state: StateValue | State<TContext, TEvent>
-  ): Array<StateNode<TContext, any, TEvent>> {
+    state: StateValue | State<TContext, TEvent, any, TTypestate>
+  ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
     if (!state) {
       return [];
     }
@@ -636,7 +636,8 @@ class StateNode<
     const subStateNodes: Array<StateNode<
       TContext,
       any,
-      TEvent
+      TEvent,
+      TTypestate
     >> = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
 
     return subStateNodes.concat(
@@ -646,7 +647,7 @@ class StateNode<
         );
 
         return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent>>)
+      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
     );
   }
 
@@ -1025,7 +1026,8 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
+    state: StateValue | State<TContext, TEvent, any, TTypestate> = this
+      .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TTypestate> {

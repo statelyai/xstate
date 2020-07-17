@@ -4,7 +4,7 @@ import { useActor } from './useActor';
 import { ActorRef } from './types';
 
 export function fromService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, any, TEvent, any>
+  service: Interpreter<TContext, any, TEvent>
 ): ActorRef<TEvent, State<TContext, TEvent>> {
   const { machine } = service;
   return {
@@ -19,11 +19,13 @@ export function fromService<TContext, TEvent extends EventObject>(
 export function useService<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
 ): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
   const serviceActor = useMemo(() => fromService(service), [service]);
 
-  return useActor<TEvent, State<TContext, TEvent>>(serviceActor);
+  return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
+    serviceActor
+  );
 }
