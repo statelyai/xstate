@@ -3,9 +3,14 @@ import { useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
 import { Point } from './Rect';
-import { serializeTransition, isActive, getPartialStateValue } from './utils';
+import {
+  serializeTransition,
+  isActive,
+  getPartialStateValue,
+  slidingWindow
+} from './utils';
 import { useTracked } from './useTracker';
-import { roundOneCorner } from './pathUtils';
+import { roundOneCorner, simplifyPoints, isBendable } from './pathUtils';
 import { StateNode } from 'xstate';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
@@ -494,16 +499,22 @@ export function EdgeViz({
 
           const points = ([
             () => sourcePoint,
-            () => preStartPoint,
+            (pt) => {
+              if (pt.y === preStartPoint.y) {
+                return preStartPoint;
+              }
+
+              return [{ x: pt.x, y: preStartPoint.y }, preStartPoint];
+            },
             () => startPoint,
             ...bends,
             () => preEndPoint,
             (pt) => {
               switch (minLocation) {
                 case 'bottom':
-                  return { x: pt.x, y: pt.y - 10 };
+                  return { x: pt.x, y: pt.y - offset };
                 case 'top':
-                  return { x: pt.x, y: pt.y + 10 };
+                  return { x: pt.x, y: pt.y + offset };
                 case 'left':
                 case 'right':
                 default:
@@ -526,37 +537,48 @@ export function EdgeViz({
           );
 
           // simplify
-          const simplifiedPoints = points.reduce((acc, point, i) => {
+          const simplifiedPoints = simplifyPoints(points);
+          const pointsWithMid = slidingWindow(simplifiedPoints, 2, (pts, i) => {
+            const [pt1, pt2] = pts;
+
+            if (pt1.x === pt2.x && pt1.y === pt2.y) {
+              return [];
+            }
+
+            const midpt = {
+              x: pt1.x + (pt2.x - pt1.x) / 2,
+              y: pt1.y + (pt2.y - pt1.y) / 2,
+              color: 'green'
+            };
+
             if (i === 0) {
-              acc.push(point);
-              return acc;
+              return [pt1, midpt, pt2];
             }
 
-            const [p1, p2] = [point, points[i - 1]];
+            return [midpt, pt2];
+          });
 
-            if (p1.x === p2.x && p1.y === p2.y) {
-              return acc;
-            }
-
-            acc.push(point);
-
-            return acc;
-          }, [] as Point[]);
-
-          const circlePoints = [...simplifiedPoints];
+          const circlePoints = [...pointsWithMid];
 
           const roundCorners = true;
 
           const d = simplifiedPoints
             .map((pt, i, pts) => {
-              if (roundCorners && i >= 2 && i <= pts.length - 2) {
+              if (
+                roundCorners &&
+                i >= 2 &&
+                i <= pts.length - 2 &&
+                isBendable(pts[i - 1], pt, pts[i + 1])
+              ) {
                 const { p1, p2, p } = roundOneCorner(
                   pts[i - 1],
                   pt,
                   pts[i + 1]
                 );
 
-                circlePoints.push(p1, p, p2);
+                circlePoints.push(
+                  ...[p1, p2].map((p) => ({ ...p, color: 'yellow' }))
+                );
 
                 return `L ${p1.x} ${p1.y} C ${p1.x} ${p1.y}, ${p.x} ${p.y}, ${p2.x} ${p2.y}`;
               }
@@ -586,7 +608,15 @@ export function EdgeViz({
                 strokeLinejoin="round"
               />
               {/* {circlePoints.map((pt, i) => {
-                return <circle r={3} cx={pt.x} cy={pt.y} fill="red" key={i} />;
+                return (
+                  <circle
+                    r={1}
+                    cx={pt.x}
+                    cy={pt.y}
+                    fill={pt.color || 'red'}
+                    key={i}
+                  />
+                );
               })} */}
             </>
           );

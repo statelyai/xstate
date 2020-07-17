@@ -197,3 +197,27 @@ export const getPartialStateValue = (
       : stateNode.key
   );
 };
+
+export function slidingWindow<T, N extends number, U>(
+  items: T[],
+  length: N,
+  fn: (
+    itemsWindow: T[] & { length: N },
+    index: number,
+    allItems: typeof items
+  ) => U[]
+): U[] {
+  const result: U[] = [];
+
+  for (let i = 0; i <= items.length - length; i++) {
+    const itemsWindow = [...items].slice(i, i + length);
+
+    if (itemsWindow.length < length) {
+      continue;
+    }
+
+    result.push(...fn(itemsWindow as T[] & { length: N }, i, items));
+  }
+
+  return result;
+}

@@ -1,4 +1,5 @@
 export interface Point {
+  [key: string]: any;
   x: number;
   y: number;
 }

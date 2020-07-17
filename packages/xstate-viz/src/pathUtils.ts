@@ -70,3 +70,28 @@ export const roundOneCorner = (
 
   return path;
 };
+
+export function simplifyPoints(points: Point[]): Point[] {
+  const pointHashes = new Set<string>();
+
+  const result: Point[] = [];
+
+  points.forEach((point) => {
+    const hash = `${point.x}|${point.y}`;
+
+    if (pointHashes.has(hash)) {
+      return;
+    }
+
+    result.push(point);
+  });
+
+  return result;
+}
+
+export function isBendable(p1: Point, corner: Point, p2: Point): boolean {
+  return !(
+    (p1.x === corner.x && p2.x === corner.x) ||
+    (p1.y === corner.y && p2.y === corner.y)
+  );
+}
