@@ -27,6 +27,7 @@ function clamp(x: number, min: number, max: number): number {
   return x;
 }
 
+// @ts-ignore
 function isInitialState(stateNode: StateNode<any, any>): boolean {
   return stateNode.parent?.initial === stateNode.key;
 }

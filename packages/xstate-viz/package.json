@@ -1,6 +1,6 @@
 {
   "name": "@xstate/viz",
-  "version": "0.3.1",
+  "version": "0.3.3",
   "description": "XState visualization tools",
   "keywords": [
     "state",
@@ -38,7 +38,8 @@
     "build": "tsc",
     "test": "jest",
     "styles": "sass themes:themes",
-    "prepublish": "npm run build && npm run styles && npm run test",
+    "preversion": "npm run clean && npm run build && npm run styles && npm run test",
+    "prepublish": "npm run clean && npm run build && npm run styles && npm run test",
     "storybook": "start-storybook -p 6006",
     "build-storybook": "build-storybook"
   },
