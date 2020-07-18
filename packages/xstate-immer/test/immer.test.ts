@@ -1,5 +1,11 @@
 import { createMachine, interpret } from 'xstate';
-import { assign, createUpdater, ImmerUpdateEvent } from '../src';
+import {
+  assign,
+  createPatch,
+  createUpdater,
+  ImmerUpdateEvent,
+  ImmerPatchEvent
+} from '../src';
 
 describe('@xstate/immer', () => {
   it('should update the context without modifying previous contexts', () => {
@@ -184,12 +190,10 @@ describe('@xstate/immer', () => {
           }
         },
         submitting: {
-          on: {
-            '': {
-              target: 'success',
-              cond: (ctx) => {
-                return ctx.name === 'David' && ctx.age === 0;
-              }
+          always: {
+            target: 'success',
+            cond: (ctx) => {
+              return ctx.name === 'X' && ctx.age === 0;
             }
           }
         },
@@ -205,9 +209,63 @@ describe('@xstate/immer', () => {
       })
       .start();
 
-    service.send(nameUpdater.update('David'));
+    service.send(nameUpdater.update('X'));
     service.send(ageUpdater.update(0));
 
     service.send('SUBMIT');
+  });
+
+  it('should update objects', (done) => {
+    interface SomeContext {
+      user: {
+        name: string;
+        address: string;
+        age: number;
+      };
+      foo: string;
+    }
+
+    const patchUser = createPatch<SomeContext, 'user'>('user');
+
+    const machine = createMachine<SomeContext, ImmerPatchEvent<'user'>>({
+      initial: 'active',
+      context: {
+        user: {
+          name: '',
+          address: '',
+          age: 0
+        },
+        foo: 'bar'
+      },
+      states: {
+        active: {
+          always: {
+            target: 'success',
+            cond: (ctx) => ctx.user.name === 'X' && ctx.user.age === 42
+          },
+          on: {
+            ...patchUser.transition
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.onDone(() => {
+      done();
+    });
+
+    const { context } = machine.initialState;
+
+    service.send(
+      patchUser(context.user, (u) => {
+        u.name = 'X';
+        u.age = 42;
+      })
+    );
   });
 });
