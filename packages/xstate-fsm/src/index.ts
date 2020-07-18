@@ -65,7 +65,7 @@ function toEventObject<TEvent extends EventObject>(
 function createUnchangedState<
   TC extends object,
   TE extends EventObject,
-  TS extends Typestate<TC>
+  TS extends Typestate<TC> = { value: any; context: TC }
 >(value: string, context: TC): StateMachine.State<TC, TE, TS> {
   return {
     value,

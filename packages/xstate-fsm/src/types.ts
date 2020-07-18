@@ -57,7 +57,7 @@ export namespace StateMachine {
   export interface State<
     TContext extends object,
     TEvent extends EventObject,
-    TState extends Typestate<TContext>
+    TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     value: string;
     context: TContext;
@@ -65,7 +65,11 @@ export namespace StateMachine {
     changed?: boolean | undefined;
     matches: <TSV extends TState['value']>(
       value: TSV
-    ) => this is TState extends { value: TSV } ? TState : never;
+    ) => this is State<
+      (TState extends { value: TSV } ? TState : never)['context'],
+      TEvent,
+      TState
+    > & { value: TSV };
   }
 
   export interface Config<
@@ -92,7 +96,7 @@ export namespace StateMachine {
   export interface Machine<
     TContext extends object,
     TEvent extends EventObject,
-    TState extends Typestate<TContext>
+    TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     config: StateMachine.Config<TContext, TEvent, TState>;
     initialState: State<TContext, TEvent, TState>;
