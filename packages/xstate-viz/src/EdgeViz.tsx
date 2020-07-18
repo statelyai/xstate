@@ -179,18 +179,20 @@ export function EdgeViz({
             right: { x: 20, y: 0 }
           } as Record<typeof minLocation, Point>)[minLocation];
 
-          const sourcePoint = {
+          const sourcePoint: Point = {
             x: relativeSourceRect.right,
-            y: Math.min(relativeSourceRect.bottom, startPoint.y)
+            y: Math.min(relativeSourceRect.bottom, startPoint.y),
+            label: 'source'
           };
           const preStartPoint = relativeEventRect.point('left', 'center');
 
           const xdir = Math.sign(endPoint.x - startPoint.x);
           const ydir = Math.sign(endPoint.y - startPoint.y);
 
-          const preEndPoint = {
+          const preEndPoint: Point = {
             x: endPoint.x + endOffset.x,
-            y: endPoint.y + endOffset.y
+            y: endPoint.y + endOffset.y,
+            label: 'pre-end'
           };
 
           const bends: any = [];
@@ -356,6 +358,19 @@ export function EdgeViz({
                         break;
                     }
                     break;
+                  case 0:
+                    bends.push((pt) => {
+                      return {
+                        x: pt.x,
+                        y: sourceRect.top - offset
+                      };
+                    });
+                    bends.push((pt) => {
+                      return {
+                        x: preEndPoint.x,
+                        y: pt.y
+                      };
+                    });
                   default:
                     break;
                 }
@@ -498,7 +513,7 @@ export function EdgeViz({
             }
           }
 
-          const points = ([
+          const points: Point[] = ([
             () => sourcePoint,
             (pt) => {
               if (pt.y === preStartPoint.y) {
@@ -549,7 +564,8 @@ export function EdgeViz({
             const midpt = {
               x: pt1.x + (pt2.x - pt1.x) / 2,
               y: pt1.y + (pt2.y - pt1.y) / 2,
-              color: 'green'
+              color: 'green',
+              label: 'midpoint'
             };
 
             if (i === 0) {
@@ -611,6 +627,7 @@ export function EdgeViz({
               {/* {circlePoints.map((pt, i) => {
                 return (
                   <circle
+                    style={{ opacity: 0.5 }}
                     r={1}
                     cx={pt.x}
                     cy={pt.y}

@@ -442,3 +442,46 @@ export const DonutMachine = () => {
 
   return <MachineViz machine={donutMachine} state={state} />;
 };
+
+const feedbackMachine = createMachine({
+  id: 'feedback',
+  initial: 'question',
+  states: {
+    form: {
+      on: {
+        CLOSE: 'closed',
+        SUBMIT: 'thanks'
+      }
+    },
+    closed: {
+      on: {
+        REOPEN: 'question'
+      }
+    },
+    thanks: {
+      on: {
+        CLOSE: 'closed'
+      }
+    },
+    question: {
+      on: {
+        CLOSE: 'closed',
+        CLICK_BAD: 'form',
+        CLICK_GOOD: 'thanks'
+      }
+    }
+  }
+});
+
+export const FeedbackMachine = () => {
+  const [state, send] = useMachine(feedbackMachine);
+
+  useEffect(() => {
+    setTimeout(() => {
+      console.log('sending', state.nextEvents[0]);
+      send(state.nextEvents[0]);
+    }, 1000);
+  }, [state]);
+
+  return <MachineViz machine={feedbackMachine} state={state} />;
+};

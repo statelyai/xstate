@@ -37,7 +37,7 @@ export const roundOneCorner = (
   p1: Point,
   corner: Point,
   p2: Point,
-  radius: number = 15
+  radius: number = 20
 ): CubicCurve => {
   const corner_to_p1 = lineToVector(corner, p1);
   const corner_to_p2 = lineToVector(corner, p2);
@@ -50,7 +50,7 @@ export const roundOneCorner = (
       p: corner
     };
   }
-  const resolvedRadius = Math.min(radius, p1dist, p2dist) - 1;
+  const resolvedRadius = Math.min(radius, p1dist / 2, p2dist / 2);
   const corner_to_p1_unit = vectorToUnitVector(corner_to_p1);
   const corner_to_p2_unit = vectorToUnitVector(corner_to_p2);
 

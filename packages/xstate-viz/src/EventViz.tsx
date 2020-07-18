@@ -101,7 +101,7 @@ export function EventViz({ edge, index }: EventVizProps) {
       data-xviz-transient={edge.event === '' || undefined}
       data-xviz-guarded={!!transition.cond || undefined}
       data-xviz-triggered={triggered || undefined}
-      title={`event: ${edge.event}`}
+      title={`event: ${edge.event} → #${edge.target.id}`}
       onClick={(e) => {
         e.stopPropagation();
         service.send({
