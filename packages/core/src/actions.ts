@@ -159,7 +159,7 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  */
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent> {
+): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
   }
