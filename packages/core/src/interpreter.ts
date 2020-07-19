@@ -48,7 +48,8 @@ import {
   toEventObject,
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
-  symbolObservable
+  symbolObservable,
+  toInvokeSource
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor, createDeferredActor } from './Actor';
@@ -836,9 +837,10 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
+          const invokeSource = toInvokeSource(activity.src);
           const serviceCreator: ServiceConfig<TContext> | undefined = this
             .machine.options.services
-            ? this.machine.options.services[activity.src]
+            ? this.machine.options.services[invokeSource.type]
             : undefined;
 
           const { id, data } = activity;
@@ -873,7 +875,10 @@ export class Interpreter<
             : undefined;
 
           const source = isFunction(serviceCreator)
-            ? serviceCreator(context, _event.data, { data: resolvedData })
+            ? serviceCreator(context, _event.data, {
+                data: resolvedData,
+                src: invokeSource
+              })
             : serviceCreator;
 
           if (isPromiseLike(source)) {

@@ -62,7 +62,8 @@ import {
   InvokeActionObject,
   Typestate,
   TransitionDefinitionMap,
-  DelayExpr
+  DelayExpr,
+  InvokeSourceDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -391,7 +392,14 @@ class StateNode<
           src: invokeConfig.id,
           id: invokeConfig.id
         };
-      } else if (typeof invokeConfig.src !== 'string') {
+      } else if (isString(invokeConfig.src)) {
+        return {
+          ...invokeConfig,
+          type: actionTypes.invoke,
+          id: invokeConfig.id || (invokeConfig.src as string),
+          src: invokeConfig.src as string
+        };
+      } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
@@ -405,11 +413,13 @@ class StateNode<
           src: invokeSrc
         };
       } else {
+        const invokeSource = invokeConfig.src as InvokeSourceDefinition;
+
         return {
-          ...invokeConfig,
           type: actionTypes.invoke,
-          id: invokeConfig.id || (invokeConfig.src as string),
-          src: invokeConfig.src as string
+          id: invokeSource.type,
+          ...invokeConfig,
+          src: invokeSource
         };
       }
     });
