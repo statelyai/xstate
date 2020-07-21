@@ -1,5 +1,6 @@
 import { Machine, createMachine, interpret, State } from '../src/index';
 import { assign, raise } from '../src/actions';
+import { invokeMachine } from '../src/invoke';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = Machine<typeof greetingContext>({
@@ -637,5 +638,49 @@ describe('transient states (eventless transitions)', () => {
     service.start();
 
     service.send('ADD');
+  });
+
+  it("shouldn't crash when invoking a machine with initial transient transition depending on custom data", () => {
+    const timerMachine = Machine({
+      initial: 'initial',
+      context: {
+        duration: 0
+      },
+      states: {
+        initial: {
+          always: [
+            {
+              target: `finished`,
+              cond: (ctx) => ctx.duration < 1000
+            },
+            {
+              target: `active`
+            }
+          ]
+        },
+        active: {},
+        finished: { type: 'final' }
+      }
+    });
+
+    const machine = Machine({
+      initial: 'active',
+      context: {
+        customDuration: 3000
+      },
+      states: {
+        active: {
+          invoke: {
+            src: invokeMachine(timerMachine),
+            data: {
+              duration: (context) => context.customDuration
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine);
+    expect(() => service.start()).not.toThrow();
   });
 });
