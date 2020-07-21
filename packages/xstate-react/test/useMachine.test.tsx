@@ -17,6 +17,7 @@ import {
 import { useState } from 'react';
 import { invokePromise, invokeCallback } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
+import { invokeMachine } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 
@@ -627,7 +628,7 @@ describe('useMachine (strict mode)', () => {
         active: {
           invoke: {
             id: 'test',
-            src: childMachine,
+            src: invokeMachine(childMachine),
             data: {
               value: () => 42
             }

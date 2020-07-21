@@ -1,8 +1,9 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, Actor, assign, spawn } from 'xstate';
+import { createMachine, sendParent, Actor, assign } from 'xstate';
 import { render, cleanup } from '@testing-library/react';
 import { useActor } from '../src/useActor';
+import { invokeMachine } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 
@@ -19,7 +20,7 @@ describe('useActor', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: childMachine
+        src: invokeMachine(childMachine)
       },
       states: {
         active: {}
@@ -65,7 +66,7 @@ describe('useActor', () => {
       initial: 'active',
       invoke: {
         id: 'child',
-        src: childMachine
+        src: invokeMachine(childMachine)
       },
       states: {
         active: {
@@ -120,7 +121,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: () => spawn(childMachine)
+            actorRef: (_, __, { spawn }) => spawn.from(childMachine)
           })
         }
       }
@@ -169,7 +170,7 @@ describe('useActor', () => {
       states: {
         active: {
           entry: assign({
-            actorRef: () => spawn(childMachine)
+            actorRef: (_, __, { spawn }) => spawn.from(childMachine)
           }),
           on: { FINISH: 'success' }
         },

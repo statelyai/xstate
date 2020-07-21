@@ -20,6 +20,7 @@
     "preinstall": "node ./scripts/ensure-yarn.js",
     "postinstall": "manypkg check && preconstruct dev",
     "build": "preconstruct build",
+    "fix": "manypkg fix",
     "typecheck": "tsc",
     "test": "jest",
     "test:core": "jest packages/core",
