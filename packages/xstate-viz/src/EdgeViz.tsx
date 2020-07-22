@@ -137,8 +137,29 @@ export function EdgeViz({
       ? null
       : (() => {
           if (edge.source === edge.target) {
-            return null;
+            const startPoint = eventRect.point('left', 'center');
+            const isInternal = !!edge.transition.internal;
+
+            const endPoint = {
+              x: sourceRect.right,
+              y: Math.min(startPoint.y, sourceRect.bottom)
+            };
+
+            const d = `M ${startPoint.x} ${startPoint.y} L ${endPoint.x} ${endPoint.y}`;
+
+            return (
+              <path
+                data-xviz="edge-path"
+                data-xviz-secondary
+                d={d}
+                fill="none"
+                pathLength={1}
+                strokeLinejoin="round"
+                markerEnd={`url(#${markerId})`}
+              />
+            );
           }
+
           const relativeSourceRect = sourceRect;
           const relativeEventRect = eventRect;
 
@@ -479,7 +500,14 @@ export function EdgeViz({
                   case -1:
                     bends.push((pt) => ({
                       x: pt.x,
-                      y: Math.max(preEndPoint.y, targetEventsRect.bottom)
+                      y: Math.max(
+                        preEndPoint.y,
+                        targetEventsRect.bottom + offset
+                      )
+                    }));
+                    bends.push((pt) => ({
+                      x: preEndPoint.x,
+                      y: pt.y
                     }));
                     break;
                   default:
@@ -624,7 +652,7 @@ export function EdgeViz({
                 pathLength={1}
                 strokeLinejoin="round"
               />
-              {/* {circlePoints.map((pt, i) => {
+              {circlePoints.map((pt, i) => {
                 return (
                   <circle
                     style={{ opacity: 0.5 }}
@@ -635,7 +663,7 @@ export function EdgeViz({
                     key={i}
                   />
                 );
-              })} */}
+              })}
             </>
           );
         })();

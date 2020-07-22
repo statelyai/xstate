@@ -154,18 +154,18 @@ const GistViz: React.FC<{ gist: string }> = ({ gist }) => {
 
 const gists = [
   // 'https://gist.github.com/thm-design/d0ca21173047526d7935c253e6bf02ed',
-  // 'https://gist.github.com/knownasilya/80f61974ad2ac0e73ec81862ed9d758f',
-  // 'https://gist.github.com/Elanhant/f6c30b31ff7d3138edeb58470bc778c5',
-  // 'https://gist.github.com/bpedersen/7d1af0ca6733c72269f259d2061a2d9a',
-  // 'https://gist.github.com/monzie9000/db50d7a6ff3dd65205f4eb48089c445c',
-  // 'https://gist.github.com/gkatai/34c84b5df1c0a24634d10f8be59bbae4',
-  // 'https://gist.github.com/bfillmer/aaf56d9a0d1c52a99ae1993f62a08ac3',
-  // 'https://gist.github.com/abejfehr/f630e288703668630abbe38cf7b9e234',
-  // 'https://gist.github.com/JamieMason/3b277df080742d0e93b032feaef1a397',
-  // 'https://gist.github.com/JamieMason/446eb971c2c1dc3b9e55043e72e97f22',
-  // 'https://gist.github.com/hudde91/98d1671db9f5d7fa102a4286da0c8ca2',
-  // 'https://gist.github.com/baeharam/00975792b466a850460daff7b2417ad1',
-  // 'https://gist.github.com/Arif9878/85813599f383cdacba51b49cf0fbe6d1',
+  // 'https://gist.github.com/knownasilya/80f61974ad2ac0e73ec81862ed9d758f'
+  // 'https://gist.github.com/Elanhant/f6c30b31ff7d3138edeb58470bc778c5'
+  // 'https://gist.github.com/bpedersen/7d1af0ca6733c72269f259d2061a2d9a'
+  // 'https://gist.github.com/monzie9000/db50d7a6ff3dd65205f4eb48089c445c'
+  // 'https://gist.github.com/gkatai/34c84b5df1c0a24634d10f8be59bbae4'
+  // 'https://gist.github.com/bfillmer/aaf56d9a0d1c52a99ae1993f62a08ac3'
+  // 'https://gist.github.com/abejfehr/f630e288703668630abbe38cf7b9e234'
+  // 'https://gist.github.com/JamieMason/3b277df080742d0e93b032feaef1a397'
+  // 'https://gist.github.com/JamieMason/446eb971c2c1dc3b9e55043e72e97f22'
+  // 'https://gist.github.com/hudde91/98d1671db9f5d7fa102a4286da0c8ca2'
+  // 'https://gist.github.com/baeharam/00975792b466a850460daff7b2417ad1'
+  'https://gist.github.com/Arif9878/85813599f383cdacba51b49cf0fbe6d1'
   // 'https://gist.github.com/Arif9878/742bd0f9703d2f0640710e9b765008e8',
   // 'https://gist.github.com/patwaririshab/11927b08d5f31060b4889a7b74849ea9',
   // 'https://gist.github.com/arochagabriel/2c71f3f7f89ff6fb1accf938e0fdf3af',
@@ -188,7 +188,7 @@ const gists = [
   // 'https://gist.github.com/baeharam/8e282b20b01907eb00677c27fd9e1164',
   // 'https://gist.github.com/mnhthng-thms/98adca0067abdc733dbbf14686f5e37a',
   // 'https://gist.github.com/simontegg/ae79d618288e8fcb3b501cdb4edc4948',
-  'https://gist.github.com/simmo/7a0312c690f898a7023d4712c8ee26ce'
+  // 'https://gist.github.com/simmo/7a0312c690f898a7023d4712c8ee26ce'
 ];
 
 export const Gists = () => {
