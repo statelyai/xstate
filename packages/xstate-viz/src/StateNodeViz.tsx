@@ -46,8 +46,8 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       data-xviz-level={getLevel(stateNode)}
       data-xviz-order={stateNode.order}
       data-xviz-transitions={stateNode.transitions.length}
-      title={`#${stateNode.id} ${
-        titleDescriptor ? `(${titleDescriptor})` : ''
+      title={`#${stateNode.id}${
+        titleDescriptor ? ` (${titleDescriptor})` : ''
       }`}
       style={{
         // @ts-ignore

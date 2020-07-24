@@ -46,8 +46,8 @@ describe('MachineViz', () => {
     const { getByTitle } = render(
       <MachineViz machine={machine} state={machine.initialState} />
     );
-    const activeStateEl = getByTitle(/#simple.active/i);
-    const inactiveStateEl = getByTitle(/#simple.inactive/i);
+    const activeStateEl = getByTitle(/^#simple.active/i);
+    const inactiveStateEl = getByTitle(/^#simple.inactive/i);
 
     expect(activeStateEl).not.toBeNull();
     expect(inactiveStateEl).not.toBeNull();
@@ -57,8 +57,8 @@ describe('MachineViz', () => {
     const { getByTitle } = render(
       <MachineViz machine={machine} state={machine.initialState} />
     );
-    const activeStateEl = getByTitle(/#simple.active/i);
-    const inactiveStateEl = getByTitle(/#simple.inactive/i);
+    const activeStateEl = getByTitle(/^#simple.active/i);
+    const inactiveStateEl = getByTitle(/^#simple.inactive/i);
 
     expect(activeStateEl.matches(`[data-xviz-active]`)).toBeTruthy();
     expect(inactiveStateEl.matches(`[data-xviz-active]`)).toBeFalsy();
@@ -81,8 +81,8 @@ describe('MachineViz', () => {
       );
     };
     const { getByTitle, getByTestId } = render(<App />);
-    const activeStateEl = getByTitle(/#simple.active/i);
-    const inactiveStateEl = getByTitle(/#simple.inactive/i);
+    const activeStateEl = getByTitle(/^#simple.active/i);
+    const inactiveStateEl = getByTitle(/^#simple.inactive/i);
     const buttonEl = getByTestId('button');
 
     expect(activeStateEl.matches(`[data-xviz-active]`)).toBeTruthy();
