@@ -5,7 +5,14 @@ import { StateContext } from './StateContext';
 import { EdgesViz } from './EdgesViz';
 
 import { Tracker } from './tracker';
-import { State, StateMachine, createMachine, assign, interpret } from 'xstate';
+import {
+  State,
+  StateMachine,
+  createMachine,
+  assign,
+  interpret,
+  StateNode
+} from 'xstate';
 import { getAllEdges } from './utils';
 import { useTracking } from './useTracker';
 import { useMachine } from '@xstate/react';
@@ -63,7 +70,10 @@ interface MachineVizProps {
     eventType: string;
     index: number;
   }) => void;
+  onCanvasTap?: () => void;
   style?: React.CSSProperties;
+  mode?: 'read' | 'play';
+  selection?: Array<string | StateNode>;
 }
 
 interface ResultBox<T> {
@@ -80,13 +90,18 @@ export default function useConstant<T>(fn: () => T): T {
   return ref.current.v;
 }
 
-const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
-  const service = useConstant(() => interpret(canvasMachine).start());
+const MachineVizContainer: React.FC<MachineVizProps> = ({
+  style,
+  machine,
+  mode
+}) => {
+  const canvasService = useConstant(() => interpret(canvasMachine).start());
+  const { service } = React.useContext(StateContext);
   const ref = useTracking(`machine:${machine.id}`);
   const groupRef = React.useRef<SVGGElement | null>(null);
 
   React.useEffect(() => {
-    service.subscribe(({ context }) => {
+    canvasService.subscribe(({ context }) => {
       if (!groupRef.current) {
         return;
       }
@@ -106,6 +121,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
   return (
     <div
       data-xviz="machine-container"
+      data-xviz-mode={mode}
       ref={ref}
       style={{
         // @ts-ignore
@@ -119,7 +135,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
         ...style
       }}
       onWheel={(e) => {
-        service.send(e);
+        canvasService.send(e);
       }}
     >
       <svg
@@ -130,6 +146,12 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
           height: '100%',
           width: '100%',
           overflow: 'visible'
+        }}
+        onClick={(e) => {
+          e.stopPropagation();
+          service.send({
+            type: 'canvas.tap'
+          });
         }}
         // viewBox={'0 0 100 100'}
         // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
@@ -174,21 +196,31 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({ machine, style }) => {
 
 export function MachineViz({
   machine,
-  state = machine.initialState,
+  state,
   onStateNodeTap,
-  onEventTap
+  onEventTap,
+  onCanvasTap,
+  selection = [],
+  mode = 'play'
 }: MachineVizProps) {
   const [, , service] = useMachine(machineVizMachine, {
     actions: {
       stateNodeTapped: (_, e) => onStateNodeTap?.(e as StateNodeTapEvent),
-      eventTapped: (_, e) => onEventTap?.(e as EventTapEvent)
+      eventTapped: (_, e) => onEventTap?.(e as EventTapEvent),
+      canvasTapped: (_, e) => onCanvasTap?.()
     }
   });
   const tracker = React.useMemo(() => new Tracker(), []);
 
+  const selectionNodes = selection.map((sn) => {
+    return typeof sn === 'string' ? machine.getStateNodeById(sn) : sn;
+  });
+
   return (
-    <StateContext.Provider value={{ state, tracker, service }}>
-      <MachineVizContainer machine={machine} state={state} />
+    <StateContext.Provider
+      value={{ state, tracker, service, selection: selectionNodes }}
+    >
+      <MachineVizContainer machine={machine} state={state} mode={mode} />
     </StateContext.Provider>
   );
 }

@@ -50,7 +50,7 @@ export const roundOneCorner = (
       p: corner
     };
   }
-  const resolvedRadius = Math.min(radius, p1dist / 2, p2dist / 2);
+  const resolvedRadius = Math.min(radius, p1dist - 0.1, p2dist - 0.1);
   const corner_to_p1_unit = vectorToUnitVector(corner_to_p1);
   const corner_to_p2_unit = vectorToUnitVector(corner_to_p2);
 

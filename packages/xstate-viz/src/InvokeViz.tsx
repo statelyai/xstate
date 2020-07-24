@@ -2,12 +2,12 @@ import * as React from 'react';
 import { InvokeDefinition } from 'xstate';
 import { ActorRefViz } from './ActorRefViz';
 
-function formatInvoke(id: string): string {
-  // if (isUnnamed(id)) {
-  //   const [, index] = id.match(/:invocation\[(\d+)\]$/);
+export function formatInvocationId(id: string): string {
+  if (isUnnamed(id)) {
+    const [, index] = id.match(/:invocation\[(\d+)\]$/);
 
-  //   return `anonymous (${index})`;
-  // }
+    return `anonymous [${index}]`;
+  }
 
   return id;
 }
@@ -25,7 +25,7 @@ export function InvokeViz({ invoke }: { invoke: InvokeDefinition<any, any> }) {
       <div data-xviz="invoke-src">{invoke.src}</div>
       <div data-xviz="invoke-id">
         <ActorRefViz actorRefId={invoke.id}>
-          {formatInvoke(invoke.id)}
+          {formatInvocationId(invoke.id)}
         </ActorRefViz>
       </div>
     </div>

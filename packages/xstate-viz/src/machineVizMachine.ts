@@ -10,7 +10,14 @@ export interface EventTapEvent {
   index: number;
 }
 
-export type MachineVizEvent = StateNodeTapEvent | EventTapEvent;
+export interface CanvasTapEvent {
+  type: 'canvas.tap';
+}
+
+export type MachineVizEvent =
+  | StateNodeTapEvent
+  | EventTapEvent
+  | CanvasTapEvent;
 
 export const machineVizMachine = createMachine<undefined, MachineVizEvent>({
   initial: 'active',
@@ -18,7 +25,8 @@ export const machineVizMachine = createMachine<undefined, MachineVizEvent>({
     active: {
       on: {
         'stateNode.tap': { actions: 'stateNodeTapped' },
-        'event.tap': { actions: 'eventTapped' }
+        'event.tap': { actions: 'eventTapped' },
+        'canvas.tap': { actions: 'canvasTapped' }
       }
     }
   }

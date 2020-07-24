@@ -8,18 +8,20 @@ import { ActionViz } from './ActionViz';
 import { InvokeViz } from './InvokeViz';
 
 import { useTracking } from './useTracker';
+import ReactMarkdown from 'react-markdown';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
 }
 
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
-  const { state, service } = useContext(StateContext);
+  const { state, service, selection } = useContext(StateContext);
   const ref = useTracking(stateNode.id);
   const eventsRef = useTracking(stateNode.id + ':events');
 
   const edges = useMemo(() => getEdges(stateNode), [stateNode]);
-  const active = isActive(state, stateNode);
+  const active = state ? isActive(state, stateNode) : false;
+  const isSelected = selection.includes(stateNode);
 
   const titleDescriptor =
     stateNode.type === 'final'
@@ -40,7 +42,10 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       }
       data-xviz-history={stateNode.history || undefined}
       data-xviz-active={active || undefined}
+      data-xviz-selected={isSelected || undefined}
       data-xviz-level={getLevel(stateNode)}
+      data-xviz-order={stateNode.order}
+      data-xviz-transitions={stateNode.transitions.length}
       title={`#${stateNode.id} ${
         titleDescriptor ? `(${titleDescriptor})` : ''
       }`}
@@ -59,6 +64,11 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       <div data-xviz="stateNode-state" ref={ref}>
         <div data-xviz="stateNode-content">
           <div data-xviz="stateNode-key">{stateNode.key}</div>
+          <div data-xviz="stateNode-description">
+            {stateNode.meta?.description && (
+              <ReactMarkdown source={stateNode.meta.description} />
+            )}
+          </div>
           {stateNode.onEntry.length > 0 && (
             <div data-xviz="actions" data-xviz-actions="entry">
               {stateNode.onEntry.map((entryAction, i) => {

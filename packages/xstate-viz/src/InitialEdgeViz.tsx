@@ -14,7 +14,7 @@ export function InitialEdgeViz({
   markerId: string;
 }) {
   const { state } = useContext(StateContext);
-  const isCurrent = isActive(state, stateNode);
+  const isCurrent = state ? isActive(state, stateNode) : false;
   const data = useTracked(stateNode.id);
 
   if (!data) {
@@ -40,7 +40,6 @@ export function InitialEdgeViz({
         r="4"
         cx={startPoint.x}
         cy={startPoint.y}
-        fill="currentColor"
       />
       <path
         data-xviz="initialEdge-path"

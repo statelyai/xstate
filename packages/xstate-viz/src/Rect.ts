@@ -23,8 +23,8 @@ export class Rect implements ClientRect {
     this.y = rect.top;
   }
 
-  public point(x: string, y: string): Point {
-    const point: Point = { x: 0, y: 0 };
+  public point(x: string, y: string, meta?: Record<string, any>): Point {
+    const point: Point = { x: 0, y: 0, ...meta };
 
     switch (x) {
       case 'left':

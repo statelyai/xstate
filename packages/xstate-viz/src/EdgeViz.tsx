@@ -3,12 +3,7 @@ import { useContext, useRef } from 'react';
 import { Edge } from './types';
 import { StateContext } from './StateContext';
 import { Point } from './Rect';
-import {
-  serializeTransition,
-  isActive,
-  getPartialStateValue,
-  slidingWindow
-} from './utils';
+import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
 import { roundOneCorner, simplifyPoints, isBendable } from './pathUtils';
 import { StateNode } from 'xstate';
@@ -104,7 +99,7 @@ export function EdgeViz({
   index: number;
 }) {
   const { state } = useContext(StateContext);
-  const isCurrent = isActive(state, edge.source);
+  const isCurrent = state ? isActive(state, edge.source) : undefined;
   const ref = useRef<SVGGElement>(null);
   const sourceRectData = useTracked(edge.source.id);
   const sourceRect = sourceRectData ? sourceRectData.rect : undefined;
@@ -124,6 +119,7 @@ export function EdgeViz({
     : undefined;
 
   const triggered =
+    !!state &&
     state.event.type === edge.event &&
     state.history?.matches(getPartialStateValue(edge.source));
 
@@ -136,6 +132,8 @@ export function EdgeViz({
     !ref.current
       ? null
       : (() => {
+          const offset = 10;
+
           if (edge.source === edge.target) {
             const startPoint = eventRect.point('left', 'center');
             const isInternal = !!edge.transition.internal;
@@ -160,18 +158,20 @@ export function EdgeViz({
             );
           }
 
-          const relativeSourceRect = sourceRect;
-          const relativeEventRect = eventRect;
+          let eventPoint = eventRect.point('right', 'center', {
+            command: 'M'
+          });
 
-          const relativeTargetRect = targetRect;
+          const startPoint = {
+            x: sourceEventsRect.right + offset,
+            y: eventPoint.y
+          };
 
-          let startPoint = relativeEventRect.point('right', 'center');
-          startPoint = { x: startPoint.x + 10, y: startPoint.y };
           const [minLocation, minPoint] = findMinLocation(
             startPoint,
-            relativeTargetRect,
+            targetRect,
             {
-              padding: 10,
+              padding: offset,
               filter: ([side]) => {
                 if (side === 'right' && edge.target.transitions.length > 0) {
                   return false;
@@ -184,15 +184,6 @@ export function EdgeViz({
 
           const endPoint = minPoint;
 
-          const offset = 10;
-
-          // if (minLocation === 'left' && isInitialState(edge.target)) {
-          //   endPoint = {
-          //     x: endPoint.x,
-          //     y: endPoint.y + offset
-          //   };
-          // }
-
           const endOffset: Point = ({
             top: { x: 0, y: -20 },
             bottom: { x: 0, y: 20 },
@@ -201,11 +192,11 @@ export function EdgeViz({
           } as Record<typeof minLocation, Point>)[minLocation];
 
           const sourcePoint: Point = {
-            x: relativeSourceRect.right,
-            y: Math.min(relativeSourceRect.bottom, startPoint.y),
+            x: sourceRect.right,
+            y: Math.min(sourceRect.bottom, startPoint.y),
             label: 'source'
           };
-          const preStartPoint = relativeEventRect.point('left', 'center');
+          const preStartPoint = eventRect.point('left', 'center');
 
           const xdir = Math.sign(endPoint.x - startPoint.x);
           const ydir = Math.sign(endPoint.y - startPoint.y);
@@ -262,7 +253,8 @@ export function EdgeViz({
                           y:
                             Math.max(
                               sourceEventsRect.bottom,
-                              sourceRect.bottom
+                              sourceRect.bottom,
+                              preEndPoint.y
                             ) + offset
                         }));
                         bends.push((pt) => {
@@ -550,6 +542,7 @@ export function EdgeViz({
 
               return [{ x: pt.x, y: preStartPoint.y }, preStartPoint];
             },
+            () => eventPoint,
             () => startPoint,
             ...bends,
             () => preEndPoint,
@@ -582,32 +575,73 @@ export function EdgeViz({
 
           // simplify
           const simplifiedPoints = simplifyPoints(points);
-          const pointsWithMid = slidingWindow(simplifiedPoints, 2, (pts, i) => {
-            const [pt1, pt2] = pts;
 
-            if (pt1.x === pt2.x && pt1.y === pt2.y) {
-              return [];
+          const pointsWithMid: Point[] = [];
+
+          simplifiedPoints.forEach((spt, i) => {
+            const [ptA, ptB, ptC] = [
+              simplifiedPoints[i],
+              simplifiedPoints[i + 1],
+              simplifiedPoints[i + 2]
+            ];
+
+            if (!ptC || !ptB) {
+              pointsWithMid.push(ptA);
+              return;
             }
 
+            if (
+              ptA.command === 'M' ||
+              ptB.command === 'M' ||
+              ptC.command === 'M'
+            ) {
+              pointsWithMid.push(ptA);
+              return;
+            }
+
+            // if (
+            //   (ptA.x === ptB.x && ptB.x === ptC.x) ||
+            //   (ptA.y === ptB.y && ptB.y === ptC.y)
+            // ) {
+            //   pointsWithMid.push(ptA);
+            //   return;
+            // }
+
             const midpt = {
-              x: pt1.x + (pt2.x - pt1.x) / 2,
-              y: pt1.y + (pt2.y - pt1.y) / 2,
+              x: ptA.x + (ptB.x - ptA.x) / 2,
+              y: ptA.y + (ptB.y - ptA.y) / 2,
               color: 'green',
               label: 'midpoint'
             };
 
-            if (i === 0) {
-              return [pt1, midpt, pt2];
-            }
-
-            return [midpt, pt2];
+            pointsWithMid.push(ptA, midpt);
           });
+          // const pointsWithMid = slidingWindow(simplifiedPoints, 2, (pts, i) => {
+          //   const [pt1, pt2] = pts;
+
+          //   if (pt1.x === pt2.x && pt1.y === pt2.y) {
+          //     return [];
+          //   }
+
+          //   const midpt = {
+          //     x: pt1.x + (pt2.x - pt1.x) / 2,
+          //     y: pt1.y + (pt2.y - pt1.y) / 2,
+          //     color: 'green',
+          //     label: 'midpoint',
+          //   };
+
+          //   if (i === 0) {
+          //     return [pt1, midpt, pt2];
+          //   }
+
+          //   return [midpt, pt2];
+          // });
 
           const circlePoints = [...pointsWithMid];
 
           const roundCorners = true;
 
-          const d = simplifiedPoints
+          const d = pointsWithMid
             .map((pt, i, pts) => {
               if (
                 roundCorners &&
@@ -627,7 +661,8 @@ export function EdgeViz({
 
                 return `L ${p1.x} ${p1.y} C ${p1.x} ${p1.y}, ${p.x} ${p.y}, ${p2.x} ${p2.y}`;
               }
-              return `${i ? 'L' : 'M'} ${pt.x} ${pt.y}`;
+              const command = pt.command || (i === 0 ? 'M' : 'L');
+              return `${command} ${pt.x} ${pt.y}`;
             })
             .join('\n');
 
@@ -652,7 +687,7 @@ export function EdgeViz({
                 pathLength={1}
                 strokeLinejoin="round"
               />
-              {circlePoints.map((pt, i) => {
+              {/* {circlePoints.map((pt, i) => {
                 return (
                   <circle
                     style={{ opacity: 0.5 }}
@@ -663,7 +698,7 @@ export function EdgeViz({
                     key={i}
                   />
                 );
-              })}
+              })} */}
             </>
           );
         })();

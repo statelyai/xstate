@@ -48,6 +48,10 @@ export const SimpleMachine = () => {
 
 const simpleMachineWithActions = createMachine({
   id: 'with actions',
+  meta: {
+    description:
+      'Demonstrats entry, exit, and do actions on parent and child nodes.'
+  },
   initial: 'inactive',
   entry: [
     'string entry',

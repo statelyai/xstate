@@ -9,14 +9,18 @@ import {
 import { flatten } from 'xstate/lib/utils';
 import { Edge } from './types';
 
-export function getChildren(machine: StateNode): StateNode[] {
-  if (!machine.states) {
+export function getChildren(stateNode: StateNode): StateNode[] {
+  if (!stateNode.states) {
     return [];
   }
 
-  return Object.keys(machine.states).map((key) => {
-    return machine.states[key];
+  const children = Object.keys(stateNode.states).map((key) => {
+    return stateNode.states[key];
   });
+
+  children.sort((a, b) => b.order - a.order);
+
+  return children;
 }
 
 export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {

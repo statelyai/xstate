@@ -12,7 +12,7 @@ export const ArrowMarker: React.FC<{ id: string }> = ({ id }) => {
       markerUnits="strokeWidth"
       orient="auto"
     >
-      <path d="M0,0 L0,10 L10,5 z" fill="currentColor" />
+      <path d="M0,0 L0,10 L10,5 z" data-xviz="edge-arrow" />
     </marker>
   );
 };
