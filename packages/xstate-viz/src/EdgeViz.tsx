@@ -136,7 +136,7 @@ export function EdgeViz({
 
           if (edge.source === edge.target) {
             const startPoint = eventRect.point('left', 'center');
-            const isInternal = !!edge.transition.internal;
+            // const isInternal = !!edge.transition.internal;
 
             const endPoint = {
               x: sourceRect.right,
@@ -580,7 +580,7 @@ export function EdgeViz({
 
           simplifiedPoints.forEach((spt, i) => {
             const [ptA, ptB, ptC] = [
-              simplifiedPoints[i],
+              spt,
               simplifiedPoints[i + 1],
               simplifiedPoints[i + 2]
             ];

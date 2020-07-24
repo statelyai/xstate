@@ -207,7 +207,7 @@ export function MachineViz({
     actions: {
       stateNodeTapped: (_, e) => onStateNodeTap?.(e as StateNodeTapEvent),
       eventTapped: (_, e) => onEventTap?.(e as EventTapEvent),
-      canvasTapped: (_, e) => onCanvasTap?.()
+      canvasTapped: () => onCanvasTap?.()
     }
   });
   const tracker = React.useMemo(() => new Tracker(), []);
