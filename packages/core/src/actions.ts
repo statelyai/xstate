@@ -48,9 +48,9 @@ import {
   warn,
   toGuard,
   evaluateGuard,
-  toArray
+  toArray,
+  isArray
 } from './utils';
-import { isArray } from './utils';
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';

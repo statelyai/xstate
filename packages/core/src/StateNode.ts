@@ -96,6 +96,7 @@ import {
   isLeafNode
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
+import { toInvokeDefinition } from './invokeUtils';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -387,18 +388,17 @@ class StateNode<
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           src: invokeConfig.id,
           id: invokeConfig.id
-        };
+        });
       } else if (isString(invokeConfig.src)) {
-        return {
+        return toInvokeDefinition({
           ...invokeConfig,
-          type: actionTypes.invoke,
+
           id: invokeConfig.id || (invokeConfig.src as string),
           src: invokeConfig.src as string
-        };
+        });
       } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
@@ -406,21 +406,19 @@ class StateNode<
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           id: invokeSrc,
           ...invokeConfig,
           src: invokeSrc
-        };
+        });
       } else {
         const invokeSource = invokeConfig.src as InvokeSourceDefinition;
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           id: invokeSource.type,
           ...invokeConfig,
           src: invokeSource
-        };
+        });
       }
     });
     this.activities = toArray(this.config.activities)
