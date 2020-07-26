@@ -6,13 +6,16 @@ import { ArrowMarker } from './ArrowMarker';
 import { StateMachine } from 'xstate';
 import { getAllStateNodes } from 'xstate/lib/stateUtils';
 import { useMemo } from 'react';
+import { MachineRectMeasurements } from './MachineMeasure';
 
 export function EdgesViz({
   edges,
-  machine
+  machine,
+  measurements
 }: {
   edges: Array<Edge<any, any, any>>;
   machine: StateMachine<any, any, any>;
+  measurements?: MachineRectMeasurements;
 }) {
   const childNodes = getAllStateNodes(machine).filter(
     (sn) => sn.parent && sn.parent.initial === sn.key
@@ -43,7 +46,15 @@ export function EdgesViz({
         );
       })}
       {edges.map((edge, i) => {
-        return <EdgeViz edge={edge} key={i} markerId={markerId} index={i} />;
+        return (
+          <EdgeViz
+            edge={edge}
+            key={i}
+            markerId={markerId}
+            index={i}
+            measurements={measurements}
+          />
+        );
       })}
     </g>
   );

@@ -9,6 +9,7 @@ import { InvokeViz } from './InvokeViz';
 
 import { useTracking } from './useTracker';
 import ReactMarkdown from 'react-markdown';
+import { MachineRectMeasurements } from './MachineMeasure';
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;

@@ -7,6 +7,7 @@ import { serializeTransition, isActive, getPartialStateValue } from './utils';
 import { useTracked } from './useTracker';
 import { roundOneCorner, simplifyPoints, isBendable } from './pathUtils';
 import { StateNode } from 'xstate';
+import { MachineRectMeasurements } from './MachineMeasure';
 
 type Side = 'top' | 'left' | 'bottom' | 'right';
 
@@ -97,6 +98,7 @@ export function EdgeViz({
   edge: Edge<any, any>;
   markerId: string;
   index: number;
+  measurements?: MachineRectMeasurements;
 }) {
   const { state } = useContext(StateContext);
   const isCurrent = state ? isActive(state, edge.source) : undefined;

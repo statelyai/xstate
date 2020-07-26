@@ -21,6 +21,7 @@ import {
   StateNodeTapEvent,
   EventTapEvent
 } from './machineVizMachine';
+import { MachineMeasure, MachineRectMeasurements } from './MachineMeasure';
 
 interface CanvasCtx {
   zoom: number;
@@ -99,6 +100,10 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
   const { service } = React.useContext(StateContext);
   const ref = useTracking(`machine:${machine.id}`);
   const groupRef = React.useRef<SVGGElement | null>(null);
+  const [
+    measurements,
+    setMeasurements
+  ] = React.useState<MachineRectMeasurements | null>(null);
 
   React.useEffect(() => {
     canvasService.subscribe(({ context }) => {
@@ -138,40 +143,55 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
         canvasService.send(e);
       }}
     >
-      <svg
-        style={{
-          position: 'absolute',
-          top: 0,
-          left: 0,
-          height: '100%',
-          width: '100%',
-          overflow: 'visible'
-        }}
-        onClick={(e) => {
-          e.stopPropagation();
-          service.send({
-            type: 'canvas.tap'
-          });
-        }}
-        // viewBox={'0 0 100 100'}
-        // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
-      >
-        <g data-xviz="machine-group" ref={groupRef}>
-          <EdgesViz edges={getAllEdges(machine)} machine={machine} />
+      {!measurements && (
+        <MachineMeasure
+          machine={machine}
+          onMeasure={(m) => {
+            setMeasurements(m);
+            console.log(m);
+          }}
+        />
+      )}
+      {measurements && (
+        <svg
+          style={{
+            position: 'absolute',
+            top: 0,
+            left: 0,
+            height: '100%',
+            width: '100%',
+            overflow: 'visible'
+          }}
+          onClick={(e) => {
+            e.stopPropagation();
+            service.send({
+              type: 'canvas.tap'
+            });
+          }}
+          // viewBox={'0 0 100 100'}
+          // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
+        >
+          <g data-xviz="machine-group" ref={groupRef}>
+            <EdgesViz
+              edges={getAllEdges(machine)}
+              machine={machine}
+              measurements={measurements}
+            />
 
-          <foreignObject
-            data-xviz="machine-foreignObject"
-            x={0}
-            y={0}
-            width={1000}
-            height={1000}
-          >
-            <div data-xviz="machine" title={`machine: #${machine.id}`}>
-              <StateNodeViz stateNode={machine} />
-            </div>
-          </foreignObject>
-        </g>
-      </svg>
+            <foreignObject
+              data-xviz="machine-foreignObject"
+              x={0}
+              y={0}
+              width={1000}
+              height={1000}
+            >
+              <div data-xviz="machine" title={`machine: #${machine.id}`}>
+                <StateNodeViz stateNode={machine} />
+              </div>
+            </foreignObject>
+          </g>
+        </svg>
+      )}
       {/* <div data-xviz="controls">
         <button
           data-xviz="button"
