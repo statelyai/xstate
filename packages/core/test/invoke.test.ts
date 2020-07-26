@@ -2360,6 +2360,41 @@ describe('invoke', () => {
         .start();
     });
   });
+
+  it('invoke `src` should accept invoke source definition', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'searching',
+        states: {
+          searching: {
+            invoke: {
+              src: {
+                type: 'search',
+                endpoint: 'example.com'
+              },
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        services: {
+          search: async (_, __, meta) => {
+            expect(meta.src.endpoint).toEqual('example.com');
+
+            return await 42;
+          }
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => done())
+      .start();
+  });
 });
 
 describe('services option', () => {

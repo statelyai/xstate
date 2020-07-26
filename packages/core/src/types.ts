@@ -205,6 +205,7 @@ export type InvokeCallback = (
 
 export interface InvokeMeta {
   data: any;
+  src: InvokeSourceDefinition;
 }
 
 /**
@@ -239,7 +240,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string;
+  src: string | InvokeSourceDefinition; // TODO: deprecate string (breaking change for V4)
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -366,6 +367,11 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
+export interface InvokeSourceDefinition {
+  [key: string]: any;
+  type: string;
+}
+
 export type InvokeConfig<TContext, TEvent extends EventObject> = {
   /**
    * The unique identifier for the invoked machine. If not specified, this
@@ -377,6 +383,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> = {
    */
   src:
     | string
+    | InvokeSourceDefinition
     | StateMachine<any, any, any>
     | InvokeCreator<TContext, TEvent, any>;
   /**

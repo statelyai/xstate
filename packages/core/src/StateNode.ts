@@ -62,7 +62,8 @@ import {
   InvokeActionObject,
   Typestate,
   TransitionDefinitionMap,
-  DelayExpr
+  DelayExpr,
+  InvokeSourceDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -95,6 +96,7 @@ import {
   isLeafNode
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
+import { toInvokeDefinition } from './invokeUtils';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -386,31 +388,37 @@ class StateNode<
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           src: invokeConfig.id,
           id: invokeConfig.id
-        };
-      } else if (typeof invokeConfig.src !== 'string') {
+        });
+      } else if (isString(invokeConfig.src)) {
+        return toInvokeDefinition({
+          ...invokeConfig,
+
+          id: invokeConfig.id || (invokeConfig.src as string),
+          src: invokeConfig.src as string
+        });
+      } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           id: invokeSrc,
           ...invokeConfig,
           src: invokeSrc
-        };
+        });
       } else {
-        return {
+        const invokeSource = invokeConfig.src as InvokeSourceDefinition;
+
+        return toInvokeDefinition({
+          id: invokeSource.type,
           ...invokeConfig,
-          type: actionTypes.invoke,
-          id: invokeConfig.id || (invokeConfig.src as string),
-          src: invokeConfig.src as string
-        };
+          src: invokeSource
+        });
       }
     });
     this.activities = toArray(this.config.activities)

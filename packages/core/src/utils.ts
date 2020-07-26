@@ -22,7 +22,8 @@ import {
   SingleOrArray,
   Guard,
   GuardPredicate,
-  GuardMeta
+  GuardMeta,
+  InvokeSourceDefinition
 } from './types';
 import {
   STATE_DELIMITER,
@@ -677,4 +678,14 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   }
 
   return condFn(context, _event.data, guardMeta);
+}
+
+export function toInvokeSource(
+  src: string | InvokeSourceDefinition
+): InvokeSourceDefinition {
+  if (typeof src === 'string') {
+    return { type: src };
+  }
+
+  return src;
 }
