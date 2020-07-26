@@ -37,12 +37,13 @@ export function invokeMachine<
     | ((ctx: TContext, event: TEvent, meta: InvokeMeta) => TMachine),
   options: { sync?: boolean } = {}
 ): BehaviorCreator<TContext, TEvent> {
-  return (ctx, event, { parent, data, _event }) => {
+  return (ctx, event, { parent, data, src, _event }) => {
     const resolvedContext = data ? mapContext(data, ctx, _event) : undefined;
     const machineOrDeferredMachine = isFunction(machine)
       ? () => {
           const resolvedMachine = machine(ctx, event, {
-            data: resolvedContext
+            data: resolvedContext,
+            src
           });
           return resolvedContext
             ? resolvedMachine.withContext(resolvedContext)
@@ -63,10 +64,10 @@ export function invokePromise<T>(
     meta: InvokeMeta
   ) => PromiseLike<T>
 ): BehaviorCreator<any, AnyEventObject> {
-  return (ctx, e, { parent, data, _event }) => {
+  return (ctx, e, { parent, data, src, _event }) => {
     const resolvedData = data ? mapContext(data, ctx, _event) : undefined;
 
-    const lazyPromise = () => getPromise(ctx, e, { data: resolvedData });
+    const lazyPromise = () => getPromise(ctx, e, { data: resolvedData, src });
     return createPromiseBehavior(lazyPromise, parent);
   };
 }
@@ -127,7 +128,7 @@ export function createActorRefFromInvokeAction<
     actorRef = src;
   } else {
     const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
-      machine.options.behaviors[src];
+      machine.options.behaviors[src.type];
 
     if (!behaviorCreator) {
       if (!IS_PRODUCTION) {
@@ -143,6 +144,7 @@ export function createActorRefFromInvokeAction<
       parent: parentRef as any, // TODO: fix
       id,
       data,
+      src,
       _event
     });
 

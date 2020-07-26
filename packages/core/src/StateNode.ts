@@ -7,7 +7,9 @@ import {
   toArray,
   keys,
   isString,
-  toInvokeConfig
+  toInvokeConfig,
+  toInvokeSource,
+  isFunction
 } from './utils';
 import {
   Event,
@@ -269,17 +271,21 @@ export class StateNode<
         const invokeConfig = toInvokeConfig(invocable, id);
         const resolvedId = invokeConfig.id || id;
 
-        const resolvedSrc = isString(invokeConfig.src)
-          ? invokeConfig.src
-          : resolvedId;
+        const resolvedSrc = toInvokeSource(
+          isString(invokeConfig.src)
+            ? invokeConfig.src
+            : typeof invokeConfig.src === 'object' && invokeConfig.src !== null
+            ? invokeConfig.src
+            : resolvedId
+        );
 
         if (
-          !this.machine.options.behaviors[resolvedSrc] &&
-          !isString(invokeConfig.src)
+          !this.machine.options.behaviors[resolvedSrc.type] &&
+          isFunction(invokeConfig.src)
         ) {
           this.machine.options.behaviors = {
             ...this.machine.options.behaviors,
-            [resolvedSrc]: invokeConfig.src as any
+            [resolvedSrc.type]: invokeConfig.src
           };
         }
 
@@ -287,8 +293,17 @@ export class StateNode<
           type: actionTypes.invoke,
           ...invokeConfig,
           src: resolvedSrc,
-          id: resolvedId
-        };
+          id: resolvedId,
+          toJSON() {
+            const { onDone, onError, ...invokeDefValues } = invokeConfig;
+            return {
+              ...invokeDefValues,
+              type: actionTypes.invoke,
+              src: resolvedSrc,
+              id: resolvedId
+            };
+          }
+        } as InvokeDefinition<TContext, TEvent>;
       }))
     );
   }

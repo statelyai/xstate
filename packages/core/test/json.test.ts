@@ -112,4 +112,38 @@ describe('json', () => {
     validate(invalidMachineConfig);
     expect(validate.errors).not.toBeNull();
   });
+
+  it('should not double-serialize invoke transitions', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          id: 'active',
+          invoke: {
+            src: 'someSrc',
+            onDone: 'foo',
+            onError: 'bar'
+          },
+          on: {
+            EVENT: 'foo'
+          }
+        },
+        foo: {},
+        bar: {}
+      }
+    });
+
+    const machineJSON = JSON.stringify(machine);
+
+    const machineObject = JSON.parse(machineJSON);
+
+    const revivedMachine = createMachine(machineObject);
+
+    // 1. onDone
+    // 2. onError
+    // 3. EVENT
+    expect(revivedMachine.getStateNodeById('active').transitions.length).toBe(
+      3
+    );
+  });
 });

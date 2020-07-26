@@ -44,9 +44,9 @@ import {
   isFunction,
   isString,
   toEventObject,
-  toSCXMLEvent
+  toSCXMLEvent,
+  isArray
 } from './utils';
-import { isArray } from './utils';
 
 export { actionTypes };
 

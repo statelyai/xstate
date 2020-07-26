@@ -1,9 +1,10 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, Actor, assign } from 'xstate';
+import { createMachine, sendParent, assign } from 'xstate';
 import { render, cleanup } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/src/invoke';
+import { ActorRef } from '../src/types';
 
 afterEach(cleanup);
 
@@ -27,7 +28,7 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -76,7 +77,7 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -127,7 +128,7 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -178,7 +179,7 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');

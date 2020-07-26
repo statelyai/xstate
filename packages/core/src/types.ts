@@ -186,12 +186,14 @@ export type BehaviorCreator<TContext, TEvent extends EventObject> = (
     parent: ActorRef<TEvent>;
     id: string;
     data?: any;
+    src: InvokeSourceDefinition;
     _event: SCXML.Event<TEvent>;
   }
 ) => Behavior<any, any>;
 
 export interface InvokeMeta {
   data: any;
+  src: InvokeSourceDefinition;
 }
 
 export interface InvokeDefinition<TContext, TEvent extends EventObject> {
@@ -199,7 +201,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   /**
    * The source of the actor's behavior to be invoked
    */
-  src: string;
+  src: InvokeSourceDefinition;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -225,6 +227,11 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject> {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
+
+  toJSON: () => Omit<
+    InvokeDefinition<TContext, TEvent>,
+    'onDone' | 'onError' | 'toJSON'
+  >;
 }
 
 export interface Delay {
@@ -332,6 +339,11 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
+export interface InvokeSourceDefinition {
+  [key: string]: any;
+  type: string;
+}
+
 export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The unique identifier for the invoked machine. If not specified, this
@@ -341,7 +353,7 @@ export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string | BehaviorCreator<TContext, TEvent>;
+  src: string | InvokeSourceDefinition | BehaviorCreator<TContext, TEvent>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -660,7 +672,7 @@ export interface NullEvent {
 
 export interface InvokeActionObject {
   type: ActionTypes.Invoke;
-  src: string | ActorRef<any>;
+  src: InvokeSourceDefinition | ActorRef<any>;
   id: string;
   autoForward?: boolean;
   data?: any;

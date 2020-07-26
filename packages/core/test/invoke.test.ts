@@ -1733,7 +1733,7 @@ describe('invoke', () => {
         JSON.stringify(waitingState);
       }).not.toThrow();
 
-      expect(typeof waitingState.actions[0].src).toBe('string');
+      expect(typeof waitingState.actions[0].src.type).toBe('string');
     });
 
     it('should throw error if unhandled (sync)', () => {
@@ -2362,6 +2362,41 @@ describe('invoke', () => {
         })
         .start();
     });
+  });
+
+  it('invoke `src` should accept invoke source definition', (done) => {
+    const machine = createMachine(
+      {
+        initial: 'searching',
+        states: {
+          searching: {
+            invoke: {
+              src: {
+                type: 'search',
+                endpoint: 'example.com'
+              },
+              onDone: 'success'
+            }
+          },
+          success: {
+            type: 'final'
+          }
+        }
+      },
+      {
+        behaviors: {
+          search: invokePromise(async (_, __, meta) => {
+            expect(meta.src.endpoint).toEqual('example.com');
+
+            return await 42;
+          })
+        }
+      }
+    );
+
+    interpret(machine)
+      .onDone(() => done())
+      .start();
   });
 });
 

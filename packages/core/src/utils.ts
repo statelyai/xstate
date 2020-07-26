@@ -15,7 +15,8 @@ import {
   NullEvent,
   SingleOrArray,
   Guard,
-  BehaviorCreator
+  BehaviorCreator,
+  InvokeSourceDefinition
 } from './types';
 import {
   STATE_DELIMITER,
@@ -514,4 +515,14 @@ export function toInvokeConfig<TContext, TEvent extends EventObject>(
     id,
     src: invocable
   };
+}
+
+export function toInvokeSource(
+  src: string | InvokeSourceDefinition
+): InvokeSourceDefinition {
+  if (typeof src === 'string') {
+    return { type: src };
+  }
+
+  return src;
 }

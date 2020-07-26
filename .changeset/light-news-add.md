@@ -11,3 +11,4 @@ interpret(anotherMachine).start({
   value: 'active',
   context: { count: 42 }
 });
+```
