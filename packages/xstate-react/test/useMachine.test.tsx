@@ -647,4 +647,57 @@ describe('useMachine (strict mode)', () => {
     );
     done();
   });
+
+  // https://github.com/davidkpiano/xstate/issues/1334
+  it('should work with a rehydrated state', (done) => {
+    const testMachine = Machine({
+      id: 'app',
+      initial: 'idle',
+      states: {
+        idle: {
+          on: {
+            START: 'doingStuff'
+          }
+        },
+        doingStuff: {
+          id: 'doingStuff',
+          after: {
+            100: 'idle'
+          }
+        }
+      }
+    });
+
+    const persistedState = JSON.stringify(testMachine.initialState);
+
+    let currentState = testMachine.resolveState(
+      State.create(State.create(JSON.parse(persistedState)))
+    );
+
+    const Test = () => {
+      const [state, send] = useMachine(testMachine, {
+        state: State.create(JSON.parse(persistedState))
+      });
+
+      currentState = state;
+
+      React.useEffect(() => {
+        send('START');
+      }, []);
+
+      return null;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+
+    setTimeout(() => {
+      if (currentState.matches('idle')) {
+        done();
+      }
+    }, 110);
+  });
 });

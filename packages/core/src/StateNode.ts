@@ -425,6 +425,12 @@ class StateNode<
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+
+    // TODO: this is the real fix for initialization once
+    // state node getters are deprecated
+    // if (!this.parent) {
+    //   this._init();
+    // }
   }
 
   private _init(): void {
@@ -1514,7 +1520,7 @@ class StateNode<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    this._init();
+    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
     if (!initialStateValue) {
