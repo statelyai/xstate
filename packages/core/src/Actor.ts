@@ -7,7 +7,7 @@ import {
   Spawnable,
   SCXML
 } from './types';
-import { isMachine, mapContext } from './utils';
+import { isMachine, mapContext, toInvokeSource } from './utils';
 
 export interface Actor<
   TContext = any,
@@ -49,7 +49,8 @@ export function createInvocableActor<TC, TE extends EventObject>(
   context: TC,
   _event: SCXML.Event<TE>
 ): Actor {
-  const serviceCreator = machine?.options.services?.[invokeDefinition.src];
+  const invokeSrc = toInvokeSource(invokeDefinition.src);
+  const serviceCreator = machine?.options.services?.[invokeSrc.type];
   const resolvedData = invokeDefinition.data
     ? mapContext(invokeDefinition.data, context, _event)
     : undefined;
