@@ -21,6 +21,9 @@
     },
     {
       "path": "./packages/xstate-scxml"
+    },
+    {
+      "path": "./packages/xstate-flow"
     }
   ]
 }
