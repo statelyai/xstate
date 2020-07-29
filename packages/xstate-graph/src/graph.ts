@@ -13,8 +13,11 @@ import {
   StatePaths,
   AdjacencyMap,
   Segments,
-  ValueAdjMapOptions
+  ValueAdjMapOptions,
+  DirectedGraphEdge,
+  DirectedGraph
 } from './types';
+import { getChildren } from 'xstate/lib/stateUtils';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -318,4 +321,45 @@ export function getSimplePathsAsArray<
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
   return keys(result).map((key) => result[key]);
+}
+
+export function toGraph(stateNode: StateNode): DirectedGraph {
+  const edges: DirectedGraphEdge[] = flatten(
+    stateNode.transitions.map((t, transitionIndex) => {
+      const targets = t.target ? t.target : [stateNode];
+
+      return targets.map((target, targetIndex) => {
+        const edge: DirectedGraphEdge = {
+          id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
+          source: stateNode,
+          target,
+          transition: t,
+          label: {
+            text: t.eventType,
+            toJSON: () => ({ text: t.eventType })
+          },
+          toJSON: () => {
+            const { label } = edge;
+
+            return { source: stateNode.id, target: target.id, label };
+          }
+        };
+
+        return edge;
+      });
+    })
+  );
+
+  const graph = {
+    id: stateNode.id,
+    stateNode,
+    children: getChildren(stateNode).map((sn) => toGraph(sn)),
+    edges,
+    toJSON: () => {
+      const { id, children, edges: graphEdges } = graph;
+      return { id, children, edges: graphEdges };
+    }
+  };
+
+  return graph;
 }

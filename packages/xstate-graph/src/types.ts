@@ -1,7 +1,44 @@
-import { State, EventObject, StateValue } from 'xstate';
+import {
+  State,
+  EventObject,
+  StateValue,
+  StateNode,
+  TransitionDefinition
+} from 'xstate';
 
 export interface TransitionMap {
   state: StateValue | undefined;
+}
+
+export interface DirectedGraphLabel {
+  [key: string]: any;
+  text: string;
+  toJSON: () => {
+    text: string;
+  };
+}
+export interface DirectedGraphEdge {
+  [key: string]: any;
+  id: string;
+  source: StateNode;
+  target: StateNode;
+  label: DirectedGraphLabel;
+  transition: TransitionDefinition<any, any>;
+  toJSON: () => {
+    source: string;
+    target: string;
+    label: ReturnType<DirectedGraphLabel['toJSON']>;
+  };
+}
+
+// Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
+export interface DirectedGraph {
+  [key: string]: any;
+  id: string;
+  stateNode: StateNode;
+  children: DirectedGraph[];
+  edges: DirectedGraphEdge[];
+  toJSON: () => Omit<DirectedGraph, 'stateNode'>;
 }
 
 export interface AdjacencyMap<TContext, TEvent extends EventObject> {
