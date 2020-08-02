@@ -615,7 +615,7 @@ class StateNode<
    */
   public getStateNodes(
     state: StateValue | State<TContext, TEvent, any, TTypestate>
-  ): Array<StateNode<TContext, any, TEvent, TTypestate>> {
+  ): Array<StateNode<TContext, any, TEvent>> {
     if (!state) {
       return [];
     }
@@ -636,8 +636,7 @@ class StateNode<
     const subStateNodes: Array<StateNode<
       TContext,
       any,
-      TEvent,
-      TTypestate
+      TEvent
     >> = subStateKeys.map((subStateKey) => this.getStateNode(subStateKey));
 
     return subStateNodes.concat(
@@ -647,7 +646,7 @@ class StateNode<
         );
 
         return allSubStateNodes.concat(subStateNode);
-      }, [] as Array<StateNode<TContext, any, TEvent, TTypestate>>)
+      }, [] as Array<StateNode<TContext, any, TEvent>>)
     );
   }
 
