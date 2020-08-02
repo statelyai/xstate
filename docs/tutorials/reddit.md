@@ -406,7 +406,7 @@ const App = () => {
   return (
     <main>
       <header>{/* ... */}</header>
-      {subreddit && <Subreddit name={subreddit} key={subreddit.id} />}
+      {subreddit && <Subreddit name={subreddit} key={subreddit} />}
     </main>
   );
 };

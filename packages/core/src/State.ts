@@ -48,7 +48,7 @@ export function isState<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   state: object | string
 ): state is State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -89,7 +89,7 @@ export class State<
   public value: StateValue;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
-  public history?: State<TContext, TEvent, TStateSchema>;
+  public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
