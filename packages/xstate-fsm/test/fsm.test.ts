@@ -67,6 +67,23 @@ describe('@xstate/fsm', () => {
   const lightFSM = createMachine<LightContext, LightEvent, LightState>(
     lightConfig
   );
+  const toggleMachine = createMachine<{ foo: number }>({
+    id: 'toggle',
+    context: {
+      foo: 0
+    },
+    initial: 'a',
+    states: {
+      a: { on: { TOGGLE: 'b' } },
+      b: { on: { TOGGLE: 'a' } }
+    }
+  });
+
+  const state = toggleMachine.initialState;
+
+  if (state.matches('a') || state.matches('b')) {
+  }
+
   it('should return back the config object', () => {
     expect(lightFSM.config).toBe(lightConfig);
   });
