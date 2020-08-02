@@ -649,7 +649,7 @@ describe('useMachine (strict mode)', () => {
   });
 
   // https://github.com/davidkpiano/xstate/issues/1334
-  it('should work with a rehydrated state', (done) => {
+  it('delayed transitions should work when initializing from a rehydrated state', (done) => {
     const testMachine = Machine({
       id: 'app',
       initial: 'idle',
