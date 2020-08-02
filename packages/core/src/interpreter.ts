@@ -61,7 +61,7 @@ export type StateListener<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > = (
   state: State<TContext, TEvent, TStateSchema, TTypestate>,
   event: TEvent
@@ -127,7 +127,7 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > implements Actor<State<TContext, TEvent, TStateSchema, TTypestate>, TEvent> {
   /**
    * The default interpreter options:
@@ -393,7 +393,7 @@ export class Interpreter<
    */
   public onEvent(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.eventListeners.add(listener);
     return this;
   }
@@ -403,7 +403,7 @@ export class Interpreter<
    */
   public onSend(
     listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.sendListeners.add(listener);
     return this;
   }
@@ -413,7 +413,7 @@ export class Interpreter<
    */
   public onChange(
     listener: ContextListener<TContext>
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.contextListeners.add(listener);
     return this;
   }
@@ -423,7 +423,7 @@ export class Interpreter<
    */
   public onStop(
     listener: Listener
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.stopListeners.add(listener);
     return this;
   }
@@ -433,7 +433,7 @@ export class Interpreter<
    */
   public onDone(
     listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.doneListeners.add(listener);
     return this;
   }
@@ -443,7 +443,7 @@ export class Interpreter<
    */
   public off(
     listener: (...args: any[]) => void
-  ): Interpreter<TContext, TStateSchema, TEvent> {
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.listeners.delete(listener);
     this.eventListeners.delete(listener);
     this.sendListeners.delete(listener);
@@ -500,7 +500,7 @@ export class Interpreter<
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext, TStateSchema, TEvent> {
+  public stop(): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -1325,7 +1325,7 @@ export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
   options?: Partial<InterpreterOptions>
