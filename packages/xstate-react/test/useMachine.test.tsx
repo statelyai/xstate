@@ -670,9 +670,7 @@ describe('useMachine (strict mode)', () => {
 
     const persistedState = JSON.stringify(testMachine.initialState);
 
-    let currentState = testMachine.resolveState(
-      State.create(State.create(JSON.parse(persistedState)))
-    );
+    let currentState;
 
     const Test = () => {
       const [state, send] = useMachine(testMachine, {
