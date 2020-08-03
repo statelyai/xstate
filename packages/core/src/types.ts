@@ -222,7 +222,7 @@ export interface InvokeMeta {
  */
 export type InvokeCreator<
   TContext,
-  TEvent = AnyEventObject,
+  TEvent extends EventObject = AnyEventObject,
   TFinalContext = any
 > = (
   context: TContext,
@@ -230,7 +230,7 @@ export type InvokeCreator<
   meta: InvokeMeta
 ) =>
   | PromiseLike<TFinalContext>
-  | StateMachine<TFinalContext, any, any>
+  | StateMachine<TFinalContext, any, TEvent>
   | Subscribable<any>
   | InvokeCallback;
 
@@ -366,7 +366,11 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
-export type InvokeConfig<TContext, TEvent extends EventObject> = {
+export type InvokeConfig<
+  TContext,
+  TStateSchema extends StateSchema,
+  TEvent extends EventObject
+> = {
   /**
    * The unique identifier for the invoked machine. If not specified, this
    * will be the machine's own `id`, or the URL (from `src`).
@@ -377,7 +381,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> = {
    */
   src:
     | string
-    | StateMachine<any, any, any>
+    | StateMachine<TContext, TStateSchema, TEvent>
     | InvokeCreator<TContext, TEvent, any>;
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
@@ -460,7 +464,8 @@ export interface StateNodeConfig<
    * The services to invoke upon entering this state node. These services will be stopped upon exiting this state node.
    */
   invoke?: SingleOrArray<
-    InvokeConfig<TContext, TEvent> | StateMachine<any, any, any>
+    | InvokeConfig<TContext, TStateSchema, TEvent>
+    | StateMachine<TContext, TStateSchema, TEvent>
   >;
   /**
    * The mapping of event types to their potential transition(s).
@@ -606,9 +611,9 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext> =
+export type ServiceConfig<TContext, TEvent extends EventObject> =
   | string
-  | StateMachine<any, any, any>
+  | StateMachine<TContext, any, TEvent>
   | InvokeCreator<TContext>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
@@ -619,7 +624,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ServiceConfig<TContext>>;
+  services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
    * @private
