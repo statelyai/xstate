@@ -4,10 +4,10 @@ import {
   StateMachine,
   State,
   ActionObject,
-  StateValue
-} from 'xstate';
-import { flatten } from 'xstate/lib/utils';
-import { Edge } from './types';
+  StateValue,
+} from "xstate";
+import { flatten } from "xstate/lib/utils";
+import { Edge } from "./types";
 
 export function getChildren(stateNode: StateNode): StateNode[] {
   if (!stateNode.states) {
@@ -30,12 +30,13 @@ export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
     const transitions = stateNode.on[eventType];
 
     transitions.forEach((t) => {
-      (t.target || [stateNode]).forEach((target) => {
+      const targets = t.target && t.target.length > 0 ? t.target : [stateNode];
+      targets.forEach((target) => {
         edges.push({
           event: eventType,
           source: stateNode,
           target,
-          transition: t
+          transition: t,
         });
       });
     });
@@ -49,7 +50,7 @@ export function getAllEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
 
   return flatten([
     ...getEdges(stateNode),
-    ...children.map((child) => getAllEdges(child))
+    ...children.map((child) => getAllEdges(child)),
   ]);
 }
 
@@ -65,7 +66,7 @@ export function getIndexes(machine: StateMachine<any, any, any>): Indexes {
   const indexes: Indexes = {
     sources: {},
     targets: {},
-    transitions: {}
+    transitions: {},
   };
 
   edges.forEach((edge) => {
@@ -97,31 +98,31 @@ export interface Point {
 
 export function pointAt(
   rect: ClientRect,
-  xPos: number | 'center' | 'left' | 'right',
-  yPos: number | 'center' | 'top' | 'bottom'
+  xPos: number | "center" | "left" | "right",
+  yPos: number | "center" | "top" | "bottom"
 ): Point {
   return {
     x:
-      xPos === 'center'
+      xPos === "center"
         ? rect.left + rect.width / 2
-        : typeof xPos === 'string'
+        : typeof xPos === "string"
         ? rect[xPos]
         : rect.left + xPos,
     y:
-      yPos === 'center'
+      yPos === "center"
         ? rect.top + rect.height / 2
-        : typeof yPos === 'string'
+        : typeof yPos === "string"
         ? rect[yPos]
         : yPos < 1 && yPos > 0
         ? rect.top + rect.height / yPos
-        : rect.top + yPos
+        : rect.top + yPos,
   };
 }
 
 export function center(rect: ClientRect): Point {
   return {
     x: rect.left + rect.width / 2,
-    y: rect.top + rect.height / 2
+    y: rect.top + rect.height / 2,
   };
 }
 
@@ -130,15 +131,16 @@ export function relativePoint(point: Point, parentElement: Element): Point {
 
   return {
     x: point.x - parentRect.left,
-    y: point.y - parentRect.top
+    y: point.y - parentRect.top,
   };
 }
 
 export function serializeTransition(
   transition: TransitionDefinition<any, any>
 ): string {
-  const condString = transition.cond?.predicate?.toString() || '';
-  return `event:${transition.source.id}:${transition.eventType}:${condString}`;
+  const index = transition.source.transitions.indexOf(transition);
+  const condString = transition.cond?.predicate?.toString() || "";
+  return `event:${transition.source.id}:${transition.eventType}:${index}`;
 }
 
 export function isActive(
@@ -157,15 +159,15 @@ export function serializeAction(action: ActionObject<any, any>): string {
 
 export function isBuiltinEvent(eventType: string): boolean {
   return (
-    eventType.startsWith('xstate.') ||
-    eventType.startsWith('done.state.') ||
-    eventType.startsWith('error.execution.') ||
-    eventType.startsWith('error.platform.')
+    eventType.startsWith("xstate.") ||
+    eventType.startsWith("done.state.") ||
+    eventType.startsWith("error.execution.") ||
+    eventType.startsWith("error.platform.")
   );
 }
 
 export function toDelayString(delay: string | number): string {
-  if (typeof delay === 'number' || !isNaN(+delay)) {
+  if (typeof delay === "number" || !isNaN(+delay)) {
     return `${delay}ms`;
   }
   return delay;
@@ -196,7 +198,7 @@ export const getPartialStateValue = (
     stateNode.parent,
     prev
       ? {
-          [stateNode.key]: prev
+          [stateNode.key]: prev,
         }
       : stateNode.key
   );

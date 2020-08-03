@@ -1,15 +1,15 @@
-import * as React from 'react';
-import { useContext, useMemo } from 'react';
-import { StateContext } from './StateContext';
-import { StateNode } from 'xstate';
-import { EventViz } from './EventViz';
-import { getEdges, serializeTransition, isActive, getLevel } from './utils';
-import { ActionViz } from './ActionViz';
-import { InvokeViz } from './InvokeViz';
+import * as React from "react";
+import { useContext, useMemo } from "react";
+import { StateContext } from "./StateContext";
+import { StateNode } from "xstate";
+import { EventViz } from "./EventViz";
+import { getEdges, serializeTransition, isActive, getLevel } from "./utils";
+import { ActionViz } from "./ActionViz";
+import { InvokeViz } from "./InvokeViz";
 
-import { useTracking } from './useTracker';
-import ReactMarkdown from 'react-markdown';
-import { MachineRectMeasurements } from './MachineMeasure';
+import { useTracking } from "./useTracker";
+import ReactMarkdown from "react-markdown";
+import { MachineRectMeasurements } from "./MachineMeasure";
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
@@ -18,19 +18,19 @@ interface StateNodeVizProps {
 export function StateNodeViz({ stateNode }: StateNodeVizProps) {
   const { state, service, selection } = useContext(StateContext);
   const ref = useTracking(stateNode.id);
-  const eventsRef = useTracking(stateNode.id + ':events');
+  const eventsRef = useTracking(stateNode.id + ":events");
 
-  const edges = useMemo(() => getEdges(stateNode), [stateNode]);
+  const { transitions } = stateNode;
   const active = state ? isActive(state, stateNode) : false;
   const isSelected = selection.includes(stateNode);
 
   const titleDescriptor =
-    stateNode.type === 'final'
-      ? 'final'
-      : stateNode.type === 'history'
-      ? stateNode.history === 'deep'
-        ? 'deep history'
-        : 'history'
+    stateNode.type === "final"
+      ? "final"
+      : stateNode.type === "history"
+      ? stateNode.history === "deep"
+        ? "deep history"
+        : "history"
       : undefined;
 
   return (
@@ -39,7 +39,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       data-xviz-id={stateNode.id}
       data-xviz-type={stateNode.type}
       data-xviz-parent-type={
-        stateNode.parent ? stateNode.parent.type : 'machine'
+        stateNode.parent ? stateNode.parent.type : "machine"
       }
       data-xviz-history={stateNode.history || undefined}
       data-xviz-active={active || undefined}
@@ -48,17 +48,17 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
       data-xviz-order={stateNode.order}
       data-xviz-transitions={stateNode.transitions.length}
       title={`#${stateNode.id}${
-        titleDescriptor ? ` (${titleDescriptor})` : ''
+        titleDescriptor ? ` (${titleDescriptor})` : ""
       }`}
       style={{
         // @ts-ignore
-        '--xviz-level': getLevel(stateNode)
+        "--xviz-level": getLevel(stateNode),
       }}
       onClick={(e) => {
         e.stopPropagation();
         service.send({
-          type: 'stateNode.tap',
-          stateNodeId: stateNode.id
+          type: "stateNode.tap",
+          stateNodeId: stateNode.id,
         });
       }}
     >
@@ -113,11 +113,11 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
         )}
       </div>
       <div data-xviz="events" ref={eventsRef}>
-        {edges.map((edge, i) => {
+        {transitions.map((transition, i) => {
           return (
             <EventViz
-              edge={edge}
-              key={serializeTransition(edge.transition) + i}
+              transition={transition}
+              key={serializeTransition(transition)}
               index={i}
             />
           );

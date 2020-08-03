@@ -1,6 +1,6 @@
-import * as React from 'react';
-import { StateNode } from 'xstate';
-import { getChildren } from './utils';
+import * as React from "react";
+import { StateNode } from "xstate";
+import { getChildren } from "./utils";
 
 const StateNodeNav: React.FC<{
   stateNode: StateNode;
@@ -14,9 +14,10 @@ const StateNodeNav: React.FC<{
     <details
       data-xviz="stateNodeNav"
       data-xviz-children={childStateNodes.length}
+      open
       style={{
         // @ts-ignore
-        '--xviz-depth': depth
+        "--xviz-depth": depth,
       }}
     >
       <summary

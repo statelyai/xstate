@@ -1,27 +1,27 @@
-import * as React from 'react';
+import * as React from "react";
 
-import { StateNodeViz } from './StateNodeViz';
-import { StateContext } from './StateContext';
-import { EdgesViz } from './EdgesViz';
+import { StateNodeViz } from "./StateNodeViz";
+import { StateContext } from "./StateContext";
+import { EdgesViz } from "./EdgesViz";
 
-import { Tracker } from './tracker';
+import { Tracker } from "./tracker";
 import {
   State,
   StateMachine,
   createMachine,
   assign,
   interpret,
-  StateNode
-} from 'xstate';
-import { getAllEdges } from './utils';
-import { useTracking } from './useTracker';
-import { useMachine } from '@xstate/react';
+  StateNode,
+} from "xstate";
+import { getAllEdges } from "./utils";
+import { useTracking } from "./useTracker";
+import { useMachine } from "@xstate/react";
 import {
   machineVizMachine,
   StateNodeTapEvent,
-  EventTapEvent
-} from './machineVizMachine';
-import { MachineMeasure, MachineRectMeasurements } from './MachineMeasure';
+  EventTapEvent,
+} from "./machineVizMachine";
+import { MachineMeasure, MachineRectMeasurements } from "./MachineMeasure";
 
 interface CanvasCtx {
   zoom: number;
@@ -32,10 +32,10 @@ interface CanvasCtx {
 }
 
 const canvasMachine = createMachine<CanvasCtx>({
-  initial: 'active',
+  initial: "active",
   context: {
     zoom: 1,
-    scroll: { x: 0, y: 0 }
+    scroll: { x: 0, y: 0 },
   },
   states: {
     active: {
@@ -45,11 +45,11 @@ const canvasMachine = createMachine<CanvasCtx>({
             assign({
               scroll: (ctx, e) => ({
                 x: ctx.scroll.x - e.deltaX,
-                y: ctx.scroll.y - e.deltaY
-              })
-            })
-          ]
-        }
+                y: ctx.scroll.y - e.deltaY,
+              }),
+            }),
+          ],
+        },
         // zoom: {
         //   actions: [
         //     assign({
@@ -57,9 +57,9 @@ const canvasMachine = createMachine<CanvasCtx>({
         //     })
         //   ]
         // }
-      }
-    }
-  }
+      },
+    },
+  },
 });
 
 interface MachineVizProps {
@@ -73,7 +73,7 @@ interface MachineVizProps {
   }) => void;
   onCanvasTap?: () => void;
   style?: React.CSSProperties;
-  mode?: 'read' | 'play';
+  mode?: "read" | "play";
   selection?: Array<string | StateNode>;
 }
 
@@ -94,18 +94,18 @@ export default function useConstant<T>(fn: () => T): T {
 const MachineVizContainer: React.FC<MachineVizProps> = ({
   style,
   machine,
-  mode
+  mode,
 }) => {
   const canvasService = useConstant(() => interpret(canvasMachine).start());
-  const { service } = React.useContext(StateContext);
+  const { service, tracker } = React.useContext(StateContext);
   const ref = useTracking(`machine:${machine.id}`);
   const groupRef = React.useRef<SVGGElement | null>(null);
   const [
     measurements,
-    setMeasurements
+    setMeasurements,
   ] = React.useState<MachineRectMeasurements | null>(null);
 
-  React.useEffect(() => {
+  React.useLayoutEffect(() => {
     canvasService.subscribe(({ context }) => {
       if (!groupRef.current) {
         return;
@@ -113,15 +113,19 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
 
       const {
         scroll: { x, y },
-        zoom
+        zoom,
       } = context;
 
       groupRef.current.setAttribute(
-        'style',
-        `transform: translate(${x}px, ${y}px) scale(${zoom})`
+        "style",
+        `transform: translate(${x}px, ${y}px) scale(${zoom * 0.9})`
       );
     });
-  }, []);
+  }, [machine]);
+
+  React.useEffect(() => {
+    tracker.updateAll();
+  }, [machine]);
 
   return (
     <div
@@ -130,14 +134,14 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
       ref={ref}
       style={{
         // @ts-ignore
-        '--xviz-color-foreground': 'white',
-        '--xviz-color-background': 'black',
-        '--xviz-active-color': 'rgb(19, 129, 201)',
-        '--xviz-border-width': '2px',
-        '--xviz-stroke-width': 'var(--xviz-border-width)',
+        "--xviz-color-foreground": "white",
+        "--xviz-color-background": "black",
+        "--xviz-active-color": "rgb(19, 129, 201)",
+        "--xviz-border-width": "2px",
+        "--xviz-stroke-width": "var(--xviz-border-width)",
         // '--xviz-zoom': zoom,
-        '--xviz-zoom': 1,
-        ...style
+        "--xviz-zoom": 1,
+        ...style,
       }}
       onWheel={(e) => {
         canvasService.send(e);
@@ -155,23 +159,27 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
       {measurements && (
         <svg
           style={{
-            position: 'absolute',
+            position: "absolute",
             top: 0,
             left: 0,
-            height: '100%',
-            width: '100%',
-            overflow: 'visible'
+            height: "100%",
+            width: "100%",
+            overflow: "visible",
           }}
           onClick={(e) => {
             e.stopPropagation();
             service.send({
-              type: 'canvas.tap'
+              type: "canvas.tap",
             });
           }}
           // viewBox={'0 0 100 100'}
           // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
         >
-          <g data-xviz="machine-group" ref={groupRef}>
+          <g
+            data-xviz="machine-group"
+            ref={groupRef}
+            style={{ transform: "scale(.9)" }}
+          >
             <EdgesViz
               edges={getAllEdges(machine)}
               machine={machine}
@@ -221,19 +229,19 @@ export function MachineViz({
   onEventTap,
   onCanvasTap,
   selection = [],
-  mode = 'play'
+  mode = "play",
 }: MachineVizProps) {
   const [, , service] = useMachine(machineVizMachine, {
     actions: {
       stateNodeTapped: (_, e) => onStateNodeTap?.(e as StateNodeTapEvent),
       eventTapped: (_, e) => onEventTap?.(e as EventTapEvent),
-      canvasTapped: () => onCanvasTap?.()
-    }
+      canvasTapped: () => onCanvasTap?.(),
+    },
   });
   const tracker = React.useMemo(() => new Tracker(), []);
 
   const selectionNodes = selection.map((sn) => {
-    return typeof sn === 'string' ? machine.getStateNodeById(sn) : sn;
+    return typeof sn === "string" ? machine.getStateNodeById(sn) : sn;
   });
 
   return (

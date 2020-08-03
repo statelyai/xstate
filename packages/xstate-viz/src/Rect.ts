@@ -27,28 +27,28 @@ export class Rect implements ClientRect {
     const point: Point = { x: 0, y: 0, ...meta };
 
     switch (x) {
-      case 'left':
+      case "left":
         point.x = this.left;
         break;
-      case 'right':
+      case "right":
         point.x = this.right;
         break;
 
-      case 'center':
+      case "center":
         point.x = this.left + this.width / 2;
         break;
       default:
         break;
     }
     switch (y) {
-      case 'top':
+      case "top":
         point.y = this.top;
         break;
-      case 'bottom':
+      case "bottom":
         point.y = this.bottom;
         break;
 
-      case 'center':
+      case "center":
         point.y = this.top + this.height / 2;
         break;
       default:
@@ -56,5 +56,22 @@ export class Rect implements ClientRect {
     }
 
     return point;
+  }
+
+  public equals(otherRect: ClientRect): boolean {
+    return ["top", "left", "bottom", "right"].every((prop) => {
+      return otherRect[prop] === this[prop];
+    });
+  }
+
+  public unscale(scaleX: number, scaleY: number = scaleX): Rect {
+    return new Rect({
+      top: this.top / scaleY,
+      left: this.left / scaleX,
+      bottom: this.bottom / scaleY,
+      right: this.right / scaleX,
+      width: this.width / scaleX,
+      height: this.height / scaleY,
+    });
   }
 }

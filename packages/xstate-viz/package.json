@@ -95,5 +95,8 @@
     "react-json-tree": "^0.11.2",
     "react-markdown": "^4.3.1",
     "styled-components": "^4.4.1"
+  },
+  "prettier": {
+    "trailingComma": "es5"
   }
 }

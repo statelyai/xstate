@@ -1,17 +1,17 @@
-import { createMachine } from 'xstate';
+import { createMachine } from "xstate";
 export interface StateNodeTapEvent {
-  type: 'stateNode.tap';
+  type: "stateNode.tap";
   stateNodeId: string;
 }
 export interface EventTapEvent {
-  type: 'event.tap';
+  type: "event.tap";
   stateNodeId: string;
   eventType: string;
   index: number;
 }
 
 export interface CanvasTapEvent {
-  type: 'canvas.tap';
+  type: "canvas.tap";
 }
 
 export type MachineVizEvent =
@@ -20,14 +20,14 @@ export type MachineVizEvent =
   | CanvasTapEvent;
 
 export const machineVizMachine = createMachine<undefined, MachineVizEvent>({
-  initial: 'active',
+  initial: "active",
   states: {
     active: {
       on: {
-        'stateNode.tap': { actions: 'stateNodeTapped' },
-        'event.tap': { actions: 'eventTapped' },
-        'canvas.tap': { actions: 'canvasTapped' }
-      }
-    }
-  }
+        "stateNode.tap": { actions: "stateNodeTapped" },
+        "event.tap": { actions: "eventTapped" },
+        "canvas.tap": { actions: "canvasTapped" },
+      },
+    },
+  },
 });

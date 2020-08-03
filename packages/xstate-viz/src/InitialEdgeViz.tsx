@@ -1,14 +1,14 @@
-import * as React from 'react';
-import { Point } from './Rect';
-import { useTracked } from './useTracker';
-import { StateNode } from 'xstate';
-import { isActive } from './utils';
-import { useContext } from 'react';
-import { StateContext } from './StateContext';
+import * as React from "react";
+import { Point } from "./Rect";
+import { useTracked } from "./useTracker";
+import { StateNode } from "xstate";
+import { isActive } from "./utils";
+import { useContext } from "react";
+import { StateContext } from "./StateContext";
 
 export function InitialEdgeViz({
   stateNode,
-  markerId
+  markerId,
 }: {
   stateNode: StateNode<any, any, any>;
   markerId: string;
@@ -25,12 +25,12 @@ export function InitialEdgeViz({
 
   const endPoint: Point = {
     x: left - 10,
-    y: top + 10
+    y: top + 10,
   };
 
   const startPoint: Point = {
     x: endPoint.x - 5,
-    y: endPoint.y - 10
+    y: endPoint.y - 10,
   };
 
   return (
@@ -46,7 +46,7 @@ export function InitialEdgeViz({
         d={`M ${startPoint.x},${startPoint.y} Q ${startPoint.x},${endPoint.y} ${
           endPoint.x
         },${endPoint.y} L ${endPoint.x + 1}, ${endPoint.y}`}
-        stroke={'currentColor'}
+        stroke={"currentColor"}
         fill="none"
         markerEnd={`url(#${markerId})`}
         pathLength={1}

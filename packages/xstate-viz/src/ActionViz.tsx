@@ -1,29 +1,29 @@
-import * as React from 'react';
+import * as React from "react";
 import {
   ActionObject,
   SpecialTargets,
   State,
   SendAction,
-  LogAction
-} from 'xstate';
-import { toDelayString } from './utils';
-import { resolveSend, resolveLog } from 'xstate/lib/actions';
-import { ActorRefViz } from './ActorRefViz';
+  LogAction,
+} from "xstate";
+import { toDelayString } from "./utils";
+import { resolveSend, resolveLog } from "xstate/lib/actions";
+import { ActorRefViz } from "./ActorRefViz";
 
-const BUILTIN_PREFIX = 'xstate.';
+const BUILTIN_PREFIX = "xstate.";
 
 function formatAction(
   action: ActionObject<any, any>,
   state?: State<any, any>
 ): JSX.Element | string {
   switch (action.type) {
-    case 'xstate.raise':
+    case "xstate.raise":
       return (
         <>
           raise <strong>{action.event}</strong>
         </>
       );
-    case 'xstate.send':
+    case "xstate.send":
       const sendAction = state
         ? resolveSend(
             action as SendAction<any, any, any>,
@@ -32,7 +32,7 @@ function formatAction(
           )
         : action;
 
-      if (sendAction.event?.type?.startsWith('xstate.after')) {
+      if (sendAction.event?.type?.startsWith("xstate.after")) {
         return `send ${toDelayString(action.delay!)} delay`;
       }
 
@@ -46,47 +46,47 @@ function formatAction(
 
       return (
         <>
-          send <strong>{eventType || '??'}</strong> to {target || <em>self</em>}
+          send <strong>{eventType || "??"}</strong> to {target || <em>self</em>}
         </>
       );
-    case 'xstate.log':
+    case "xstate.log":
       const logAction = state
         ? resolveLog(action as LogAction<any, any>, state.context, state._event)
         : action;
 
       return (
         <>
-          log{logAction.label ? ` (${logAction.label})` : ' '}{' '}
-          {logAction.value ? `"${logAction.value}"` : ''}
+          log{logAction.label ? ` (${logAction.label})` : " "}{" "}
+          {logAction.value ? `"${logAction.value}"` : ""}
         </>
       );
-    case 'xstate.assign':
+    case "xstate.assign":
       if (
-        typeof action.assignment === 'object' &&
+        typeof action.assignment === "object" &&
         Object.keys(action.assignment).length > 0
       ) {
         return (
           <>
-            assign to{' '}
+            assign to{" "}
             {Object.keys(action.assignment).map((key, i, keys) => (
-              <>
+              <React.Fragment key={key}>
                 <code>{key}</code>
-                {i === keys.length - 1 ? '' : ', '}
-              </>
+                {i === keys.length - 1 ? "" : ", "}
+              </React.Fragment>
             ))}
           </>
         );
       }
       return <>assign</>;
-    case 'xstate.choose':
+    case "xstate.choose":
       return <>choose</>;
-    case 'xstate.pure':
+    case "xstate.pure":
       return <>pure</>;
     default:
       break;
   }
 
-  if (action.type === 'xstate.cancel') {
+  if (action.type === "xstate.cancel") {
     const matches = action.sendId!.match(/^xstate\.after\((.*)\)#.*$/);
 
     if (!matches) {
@@ -98,7 +98,7 @@ function formatAction(
     return `cancel ${toDelayString(delay)} delay`;
   }
 
-  if (action.type.startsWith('function () {')) {
+  if (action.type.startsWith("function () {")) {
     return <em>anonymous</em>;
   }
 
@@ -109,8 +109,8 @@ export const ActionViz: React.FC<{
   action: ActionObject<any, any>;
   state?: State<any, any>;
 }> = ({ action, state }) => {
-  const resolvedActionType = action.type.startsWith('function () {')
-    ? 'xstate.anonymous'
+  const resolvedActionType = action.type.startsWith("function () {")
+    ? "xstate.anonymous"
     : action.type;
 
   return (
@@ -122,8 +122,8 @@ export const ActionViz: React.FC<{
     >
       <div data-xviz="action-type">{formatAction(action, state)}</div>
       <div data-xviz="action-entries">
-        {Object.keys(action).map((key) => {
-          if (key === 'type') {
+        {Object.keys(action).map((key, i) => {
+          if (key === "type") {
             return null;
           }
           const value = action[key];

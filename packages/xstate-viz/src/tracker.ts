@@ -1,4 +1,4 @@
-import { Rect } from './Rect';
+import { Rect } from "./Rect";
 
 export interface TrackerData {
   rect: null | Rect;
@@ -20,14 +20,20 @@ export class Tracker {
   public update(id: string, el: Element) {
     const clientRect = relative(el.getBoundingClientRect(), this.getParent(el));
 
+    const scale = clientRect.width / (el as HTMLElement).offsetWidth;
+
     if (!this.data[id]) {
       this.register(id);
     }
 
     const currentData = this.data[id];
 
+    if (currentData.rect?.equals(clientRect)) {
+      return;
+    }
+
     currentData.element = el;
-    currentData.rect = new Rect(clientRect);
+    currentData.rect = new Rect(clientRect).unscale(scale);
     currentData.listeners.forEach((listener) => {
       listener(currentData);
     });
@@ -43,16 +49,10 @@ export class Tracker {
     });
   }
 
-  public updateAll() {
-    Object.entries(this.data).forEach(([, value]) => {
+  public updateAll(options?: { scale: number }) {
+    Object.entries(this.data).forEach(([id, value]) => {
       if (value.element) {
-        value.rect = new Rect(
-          relative(
-            value.element.getBoundingClientRect(),
-            this.getParent(value.element)
-          )
-        ); // todo: RelativeRect ?
-        value.listeners.forEach((listener) => listener(value));
+        this.update(id, value.element);
       }
     });
   }
@@ -61,7 +61,7 @@ export class Tracker {
     this.data[id] = {
       rect: null,
       element: null,
-      listeners: new Set()
+      listeners: new Set(),
     };
   }
 
@@ -85,7 +85,7 @@ export function relative(
   parentElement: Element | ClientRect
 ): Rect {
   const parentRect =
-    'getBoundingClientRect' in parentElement
+    "getBoundingClientRect" in parentElement
       ? parentElement.getBoundingClientRect()
       : parentElement;
 
@@ -95,6 +95,6 @@ export function relative(
     bottom: childRect.bottom - parentRect.top,
     left: childRect.left - parentRect.left,
     width: childRect.width,
-    height: childRect.height
+    height: childRect.height,
   });
 }
