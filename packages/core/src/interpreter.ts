@@ -836,8 +836,9 @@ export class Interpreter<
 
         // Invoked services
         if (activity.type === ActionTypes.Invoke) {
-          const serviceCreator: ServiceConfig<TContext> | undefined = this
-            .machine.options.services
+          const serviceCreator:
+            | ServiceConfig<TContext, TEvent>
+            | undefined = this.machine.options.services
             ? this.machine.options.services[activity.src]
             : undefined;
 
