@@ -236,7 +236,7 @@ export class State<
     this._sessionid = config._sessionid;
     this.event = this._event.data;
     this.historyValue = config.historyValue;
-    this.history = config.history;
+    this.history = config.history as this;
     this.actions = config.actions || [];
     this.activities = config.activities || EMPTY_ACTIVITY_MAP;
     this.meta = config.meta || {};

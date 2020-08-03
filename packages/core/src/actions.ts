@@ -106,6 +106,7 @@ export function toActionObject<TContext, TEvent extends EventObject>(
       const { type, ...other } = action;
 
       actionObject = {
+        // @ts-ignore
         type,
         ...exec,
         ...other
