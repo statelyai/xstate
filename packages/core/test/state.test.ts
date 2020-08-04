@@ -142,8 +142,7 @@ describe('State', () => {
 
     it('normal state transitions with unknown event should be unchanged', () => {
       const twoState = machine.transition(machine.initialState, 'TO_TWO');
-      // @ts-ignore
-      const changedState = machine.transition(twoState, 'UNKNOWN_EVENT');
+      const changedState = machine.transition(twoState, 'UNKNOWN_EVENT' as any);
       expect(changedState.changed).toBe(false);
     });
 
