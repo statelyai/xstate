@@ -79,6 +79,7 @@
     "tslint": "^5.11.0",
     "typedoc": "^0.17.4",
     "typescript": "^3.9.7",
+    "vue-jest": "^3.0.6",
     "vuepress": "^1.2.0",
     "vuepress-plugin-export": "^0.2.0",
     "webpack-dev-middleware": "^3.6.0"
