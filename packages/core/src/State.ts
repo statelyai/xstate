@@ -21,7 +21,7 @@ export function isState<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   state: object | string
 ): state is State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -60,7 +60,7 @@ export class State<
 > {
   public value: StateValue;
   public context: TContext;
-  public history?: State<TContext, TEvent, TStateSchema>;
+  public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
   public historyValue: HistoryValue<TContext, TEvent> = {};
   public actions: Array<ActionObject<TContext, TEvent>> = [];
   public meta: any = {};
@@ -191,7 +191,7 @@ export class State<
     this._event = config._event;
     this._sessionid = config._sessionid;
     this.event = this._event.data;
-    this.history = config.history;
+    this.history = config.history as this;
     this.historyValue = config.historyValue || {};
     this.actions = config.actions || [];
     this.meta = config.meta || {};

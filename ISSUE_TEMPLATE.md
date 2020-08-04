@@ -17,6 +17,7 @@ I also strongly encourage you to [create a pull request](https://github.com/davi
 
 **Required!** If you would like to see a feature or enhancement make its way to xstate, please describe:
 
+- Confirm the idea is [not already on our Roadmap](https://github.com/davidkpiano/xstate/discussions/742).
 - What the API would look like
 - If this is a breaking change
 - If this is part of the existing [SCXML specification](https://www.w3.org/TR/scxml/)

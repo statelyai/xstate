@@ -14,7 +14,8 @@ import {
   Interpreter,
   InterpreterOptions,
   MachineOptions,
-  StateConfig
+  StateConfig,
+  Typestate
 } from 'xstate';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
@@ -29,15 +30,19 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 }
 
-export function useMachine<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
+export function useMachine<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  machine: MachineNode<TContext, TEvent, any, TTypestate>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): {
-  state: Ref<State<TContext, TEvent>>;
-  send: Interpreter<TContext, TEvent>['send'];
-  service: Interpreter<TContext, TEvent>;
+  state: Ref<State<TContext, TEvent>, any, TTypestate>;
+  send: Interpreter<TContext, TEvent, any, TTypestate>['send'];
+  service: Interpreter<TContext, TEvent, any, TTypestate>;
 } {
   const {
     context,
@@ -68,7 +73,7 @@ export function useMachine<TContext, TEvent extends EventObject>(
     rehydratedState ? State.create(rehydratedState) : undefined
   );
 
-  const state = shallowRef<State<TContext, TEvent>>(service.state);
+  const state = shallowRef(service.state);
 
   onMounted(() => {
     service.onTransition((currentState) => {
@@ -87,17 +92,25 @@ export function useMachine<TContext, TEvent extends EventObject>(
   return { state, send: service.send, service };
 }
 
-export function useService<TContext, TEvent extends EventObject>(
-  service: Interpreter<TContext, TEvent> | Ref<Interpreter<TContext, TEvent>>
+export function useService<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+>(
+  service:
+    | Interpreter<TContext, TEvent, any, TTypestate>
+    | Ref<Interpreter<TContext, TEvent, any, TTypestate>>
 ): {
-  state: Ref<State<TContext, TEvent>>;
-  send: Interpreter<TContext, TEvent>['send'];
-  service: Ref<Interpreter<TContext, TEvent>>;
+  state: Ref<State<TContext, TEvent, any, TTypestate>>;
+  send: Interpreter<TContext, TEvent, any, TTypestate>['send'];
+  service: Ref<Interpreter<TContext, TEvent, any, TTypestate>>;
 } {
   const serviceRef = isRef(service)
     ? service
-    : shallowRef<Interpreter<TContext, TEvent>>(service);
-  const state = shallowRef<State<TContext, TEvent>>(serviceRef.value.state);
+    : shallowRef<Interpreter<TContext, TEvent, any, TTypestate>>(service);
+  const state = shallowRef<State<TContext, TEvent, any, TTypestate>>(
+    serviceRef.value.state
+  );
 
   watch(
     serviceRef,

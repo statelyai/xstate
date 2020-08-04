@@ -2053,7 +2053,6 @@ describe('invoke', () => {
   });
 
   describe('multiple simultaneous services', () => {
-    // @ts-ignore
     const multiple = Machine<any>({
       id: 'machine',
       initial: 'one',

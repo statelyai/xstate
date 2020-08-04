@@ -1,6 +1,4 @@
 import { Machine } from '../src/index';
-// @ts-ignore
-import { StateValue } from '../src/types';
 
 describe('strict mode', () => {
   const pedestrianStates = {
@@ -61,40 +59,6 @@ describe('strict mode', () => {
         ...pedestrianStates
       }
     }
-  });
-
-  // @ts-ignore
-  const parallelMachine = Machine({
-    type: 'parallel',
-    states: {
-      a: {
-        initial: 'a1',
-        states: {
-          a1: {
-            on: { CHANGE: 'a2' },
-            entry: 'enter_a1',
-            exit: 'exit_a1'
-          },
-          a2: { entry: 'enter_a2', exit: 'exit_a2' }
-        },
-        entry: 'enter_a',
-        exit: 'exit_a'
-      },
-      b: {
-        initial: 'b1',
-        states: {
-          b1: {
-            on: { CHANGE: 'b2' },
-            entry: 'enter_b1',
-            exit: 'exit_b1'
-          },
-          b2: { entry: 'enter_b2', exit: 'exit_b2' }
-        },
-        entry: 'enter_b',
-        exit: 'exit_b'
-      }
-    },
-    strict: true
   });
 
   it('should throw for unacceptable events', () => {

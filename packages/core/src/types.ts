@@ -73,15 +73,10 @@ export interface ChooseConditon<TContext, TEvent extends EventObject> {
   actions: Actions<TContext, TEvent>;
 }
 
-export // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
-type Action<TContext, TEvent extends EventObject> =
+export type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>
-  | AssignAction<Required<TContext>, TEvent>
-  | SendAction<TContext, TEvent, AnyEventObject>
-  | RaiseAction<AnyEventObject>
-  | ChooseAction<TContext, TEvent>;
+  | ActionFunction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>

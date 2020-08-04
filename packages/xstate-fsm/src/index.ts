@@ -79,7 +79,7 @@ function createUnchangedState<
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   fsmConfig: StateMachine.Config<TContext, TEvent, TState>,
   options: {
@@ -194,7 +194,7 @@ export function createMachine<
 const executeStateActions = <
   TContext extends object,
   TEvent extends EventObject = any,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   state: StateMachine.State<TContext, TEvent, TState>,
   event: TEvent | InitEvent
@@ -203,7 +203,7 @@ const executeStateActions = <
 export function interpret<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TState extends Typestate<TContext> = any
+  TState extends Typestate<TContext> = { value: any; context: TContext }
 >(
   machine: StateMachine.Machine<TContext, TEvent, TState>
 ): StateMachine.Service<TContext, TEvent, TState> {

@@ -19,7 +19,7 @@ export function fromService<TContext, TEvent extends EventObject>(
 export function useService<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: Interpreter<TContext, TEvent, any, TTypestate>
 ): [
@@ -28,5 +28,7 @@ export function useService<
 ] {
   const serviceActor = useMemo(() => fromService(service), [service]);
 
-  return useActor<TEvent, State<TContext, TEvent>>(serviceActor);
+  return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
+    serviceActor
+  );
 }

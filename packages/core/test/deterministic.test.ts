@@ -118,10 +118,7 @@ describe('deterministic machine', () => {
     });
 
     it('should throw an error if not given an event', () => {
-      // @ts-ignore
-      expect(() =>
-        (lightMachine.transition as any)('red', undefined)
-      ).toThrow();
+      expect(() => lightMachine.transition('red', undefined as any)).toThrow();
     });
 
     it('should transition to nested states as target', () => {
