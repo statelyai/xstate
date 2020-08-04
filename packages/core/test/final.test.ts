@@ -1,6 +1,5 @@
 import { Machine, interpret, assign, AnyEventObject } from '../src';
 
-// @ts-ignore
 const finalMachine = Machine({
   id: 'final',
   initial: 'green',

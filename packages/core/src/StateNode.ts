@@ -1100,7 +1100,6 @@ class StateNode<
   private resolveRaisedTransition(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent> | NullEvent,
-    // @ts-ignore
     originalEvent: SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentActions = state.actions;
