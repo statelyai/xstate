@@ -12,7 +12,8 @@ import {
   Typestate,
   ActionObject,
   ActionFunction,
-  ActionMeta
+  ActionMeta,
+  InterpreterOf
 } from 'xstate';
 import useConstant from './useConstant';
 import { partition } from './utils';
@@ -109,8 +110,8 @@ export function useMachine<
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, TEvent, TTypestate>['send'],
-  Interpreter<TContext, TEvent, TTypestate>
+  InterpreterOf<typeof machine>['send'],
+  InterpreterOf<typeof machine>
 ] {
   if (process.env.NODE_ENV !== 'production') {
     const [initialMachine] = useState(machine);

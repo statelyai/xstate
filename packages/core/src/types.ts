@@ -1014,6 +1014,20 @@ export interface InterpreterOptions {
 
 export type AnyInterpreter = Interpreter<any, any, any>;
 
+/**
+ * Represents the `Interpreter` type of a given `MachineNode`.
+ *
+ * @typeParam TM - the machine to infer the interpreter's types from
+ */
+export type InterpreterOf<TM extends MachineNode> = TM extends MachineNode<
+  infer TContext,
+  infer TEvent,
+  infer TStateSchema,
+  infer TTypestate
+>
+  ? Interpreter<TContext, TEvent, TStateSchema, TTypestate>
+  : never;
+
 export declare namespace SCXML {
   // tslint:disable-next-line:no-shadowed-variable
   export interface Event<TEvent extends EventObject> {

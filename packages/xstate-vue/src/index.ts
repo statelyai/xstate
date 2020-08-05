@@ -15,7 +15,8 @@ import {
   InterpreterOptions,
   MachineOptions,
   StateConfig,
-  Typestate
+  Typestate,
+  InterpreterOf
 } from 'xstate';
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
@@ -40,9 +41,9 @@ export function useMachine<
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
 ): {
-  state: Ref<State<TContext, TEvent>, any, TTypestate>;
-  send: Interpreter<TContext, TEvent, any, TTypestate>['send'];
-  service: Interpreter<TContext, TEvent, any, TTypestate>;
+  state: Ref<State<TContext, TEvent, any, TTypestate>>;
+  send: InterpreterOf<typeof machine>['send'];
+  service: InterpreterOf<typeof machine>;
 } {
   const {
     context,

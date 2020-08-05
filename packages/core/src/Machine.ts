@@ -42,6 +42,6 @@ export function createMachine<
 >(
   config: MachineConfig<TContext, TEvent, any>,
   options?: Partial<MachineOptions<TContext, TEvent>>
-): MachineNode<TContext, TEvent, TTypestate> {
+): MachineNode<TContext, TEvent, any, TTypestate> {
   return new MachineNode<TContext, TEvent, TTypestate>(config, options);
 }
