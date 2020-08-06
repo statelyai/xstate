@@ -170,24 +170,50 @@ export function EdgeViz({
           let eventPoint: Point;
           let startPoint: Point;
 
-          if (edge.source === edge.target && edge.transition.internal) {
+          if (edge.source === edge.target) {
             const bends: PointFn[] = [];
 
             const startPt = eventRect.point("left", "center");
+            const endPt = {
+              x: targetRect.right - offset,
+              y: targetRect.bottom + offset,
+            };
+            const preEndPt = { x: endPt.x, y: endPt.y + offset };
 
             bends.push(() => {
               return startPt;
             });
 
-            if (startPt.y > targetRect.bottom) {
+            if (startPt.y > preEndPt.y) {
               bends.push((pt) => {
-                return [
-                  { x: targetRect.right - offset, y: pt.y },
-                  {
-                    x: targetRect.right - offset,
-                    y: targetRect.bottom + offset,
-                  },
-                ];
+                return {
+                  x: preEndPt.x,
+                  y: pt.y,
+                };
+              });
+              bends.push(() => preEndPt);
+              bends.push(() => endPt);
+            } else if (startPt.y > targetRect.bottom) {
+              // bends.push(() => {
+              //   return { x: 0, y: 0 };
+              // });
+              bends.push((pt) => {
+                return {
+                  x: pt.x - offset,
+                  y: pt.y,
+                };
+              });
+              bends.push((pt) => {
+                return {
+                  x: pt.x,
+                  y: Math.max(pt.y, preEndPt.y),
+                };
+              });
+              bends.push((pt) => {
+                return preEndPt;
+              });
+              bends.push((pt) => {
+                return endPt;
               });
             } else {
               bends.push((pt) => {
@@ -252,7 +278,7 @@ export function EdgeViz({
               label: "pre-end",
             };
 
-            const bends: PointFn[] = [];
+            const bends: Array<(pt: Point) => Point | Point[]> = [];
 
             const isInner = isTargetChild(edge.source, edge.target);
             const isSibling = edge.source.parent === edge.target.parent;
@@ -325,6 +351,7 @@ export function EdgeViz({
                       switch (minLocation) {
                         case "bottom":
                           if (preEndPoint.y < sourceRect.top) {
+                            // bends.push(() => ({ x: 0, y: 0 }));
                             bends.push((pt) => {
                               return {
                                 x: pt.x,
@@ -338,21 +365,19 @@ export function EdgeViz({
                               };
                             });
                             bends.push((pt) => {
-                              if (preEndPoint.y < targetEventsRect.bottom) {
-                                return [
-                                  {
-                                    x: Math.min(
-                                      targetEventsRect.right + offset,
-                                      pt.x
-                                    ),
-                                    y: targetEventsRect.bottom + offset,
-                                  },
-                                  {
-                                    x: preEndPoint.x,
-                                    y: targetEventsRect.bottom + offset,
-                                  },
-                                ];
-                              }
+                              return [
+                                {
+                                  x: Math.min(
+                                    targetEventsRect.right + offset,
+                                    pt.x
+                                  ),
+                                  y: pt.y,
+                                },
+                                {
+                                  x: preEndPoint.x,
+                                  y: pt.y,
+                                },
+                              ];
                             });
                           } else {
                             bends.push((pt) => {
@@ -404,6 +429,8 @@ export function EdgeViz({
                           }
                           break;
                         case "top":
+                          // bends.push(() => ({ x: 0, y: 0 }));
+
                           bends.push((pt) => {
                             return {
                               x: pt.x,
@@ -450,40 +477,44 @@ export function EdgeViz({
                   }
                   break;
                 case 1:
-                  switch (ydir) {
-                    case -1:
-                      bends.push((pt) => ({
-                        x: preEndPoint.x,
-                        y: pt.y,
-                      }));
-                      break;
-
-                    case 1:
+                  if (Math.abs(startPoint.y - endPoint.y) < 100) {
+                    // TODO: if there are any state nodes between
+                    if (preEndPoint.x - sourceEventsRect.right > 100) {
+                      bends.push((pt) => {
+                        return {
+                          x: pt.x,
+                          y: sourceEventsRect.top - offset,
+                        };
+                      });
                       bends.push((pt) => {
                         return {
                           x: preEndPoint.x,
                           y: pt.y,
                         };
                       });
-                      break;
-                    case 0:
-                      // TODO: if there are any state nodes between
-                      if (preEndPoint.x - sourceEventsRect.right > 100) {
-                        bends.push((pt) => {
-                          return {
-                            x: pt.x,
-                            y: sourceEventsRect.top - offset,
-                          };
-                        });
+                    }
+                  } else {
+                    switch (ydir) {
+                      case -1:
+                        bends.push((pt) => ({
+                          x: preEndPoint.x,
+                          y: pt.y,
+                        }));
+                        break;
+
+                      case 1:
                         bends.push((pt) => {
                           return {
                             x: preEndPoint.x,
                             y: pt.y,
                           };
                         });
-                      }
-                    default:
-                      break;
+                        break;
+                      case 0:
+
+                      default:
+                        break;
+                    }
                   }
                   break;
                 default:

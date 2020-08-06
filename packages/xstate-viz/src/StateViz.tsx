@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { State } from 'xstate';
-import { JSONViz, JSONCustomViz } from './JSONViz';
-import { ActorRefViz } from './ActorRefViz';
+import * as React from "react";
+import { State } from "xstate";
+import { JSONViz, JSONCustomViz } from "./JSONViz";
+import { ActorRefViz } from "./ActorRefViz";
 
 type JSONValue =
   | string
@@ -26,16 +26,16 @@ export function StateViz({ state }: { state: State<any, any> }) {
       actions,
       children,
       meta,
-      changed
+      changed,
     } = state;
 
     const formattedChildren: any = {};
 
     Object.entries(children).forEach(([key, value]) => {
       formattedChildren[key] = {
-        $$type: 'actorRef',
+        $$type: "actorRef",
         id: value.id,
-        meta: value.meta
+        meta: value.meta,
       };
     });
 
@@ -48,7 +48,7 @@ export function StateViz({ state }: { state: State<any, any> }) {
       actions,
       children: formattedChildren,
       meta,
-      changed
+      changed,
     };
   }, [state]);
 
@@ -59,12 +59,31 @@ export function StateViz({ state }: { state: State<any, any> }) {
           valueKey="state"
           path={[]}
           value={cleanedState as any}
+          options={{
+            initialOpen: (value, path) => {
+              if (path.length === 1) {
+                return true;
+              }
+
+              if (path[1] === "context" && path.length === 1) {
+                return true;
+              }
+              if (path[1] === "value") {
+                return true;
+              }
+              if (path[0] === "meta") {
+                return false;
+              }
+
+              return false;
+            },
+          }}
           renderValue={(value, path) => {
             if (
-              typeof value === 'object' &&
+              typeof value === "object" &&
               value !== null &&
-              '$$type' in value &&
-              value.$$type === 'actorRef'
+              "$$type" in value &&
+              value.$$type === "actorRef"
             ) {
               return (
                 <JSONCustomViz valueKey={path[path.length - 1]} path={path}>

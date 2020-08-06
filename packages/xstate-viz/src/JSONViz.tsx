@@ -1,4 +1,4 @@
-import * as React from 'react';
+import * as React from "react";
 
 type JSONValue =
   | string
@@ -16,7 +16,7 @@ export interface JsonVizOptions {
 
 export const defaultJsonVizOptions: JsonVizOptions = {
   initialOpen: (value, path) => {
-    if (path[path.length - 1].startsWith('_')) {
+    if (path[path.length - 1].startsWith("_")) {
       return false;
     }
 
@@ -25,7 +25,7 @@ export const defaultJsonVizOptions: JsonVizOptions = {
     }
 
     if (
-      typeof value === 'object' &&
+      typeof value === "object" &&
       value !== null &&
       Object.keys(value).length === 0
     ) {
@@ -33,7 +33,7 @@ export const defaultJsonVizOptions: JsonVizOptions = {
     }
 
     return true;
-  }
+  },
 };
 
 const JSONVizContext = React.createContext<
@@ -51,11 +51,11 @@ export const JSONViz: React.FC<{
   path,
   value,
   renderValue = () => undefined,
-  options = defaultJsonVizOptions
+  options = defaultJsonVizOptions,
 }) => {
   const resolvedJsonVizOptions = {
     ...defaultJsonVizOptions,
-    ...options
+    ...options,
   };
 
   const maybeRenderedValue = renderValue?.(value, path);
@@ -75,7 +75,7 @@ export const JSONViz: React.FC<{
         renderValue={renderValue}
       />
     );
-  } else if (typeof value === 'object' && value !== null) {
+  } else if (typeof value === "object" && value !== null) {
     component = (
       <JSONObjectViz
         valueKey={valueKey}
@@ -142,10 +142,12 @@ const JSONArrayViz: React.FC<{
   value: JSONValue[];
   renderValue: RenderValueFn;
 }> = ({ valueKey, path, value, renderValue }) => {
+  const options = React.useContext(JSONVizContext);
+
   const isEmpty = value.length === 0 || undefined;
   return (
     <details
-      open={value.length > 0 || undefined}
+      open={undefined}
       data-xviz="json-array"
       data-xviz-json-empty={isEmpty}
     >
@@ -191,10 +193,10 @@ export const JSONCustomViz: React.FC<{
   valueKey: string;
   path: string[];
   type?: string;
-}> = ({ valueKey, path, children, type = 'custom' }) => {
+}> = ({ valueKey, path, children, type = "custom" }) => {
   return (
     <div data-xviz={`json-${type}`} data-xviz-json-type={type}>
-      <summary data-xviz="json-key" title={path.join('.')}>
+      <summary data-xviz="json-key" title={path.join(".")}>
         {valueKey}:
       </summary>
 

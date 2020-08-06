@@ -73,7 +73,7 @@ interface MachineVizProps {
   }) => void;
   onCanvasTap?: () => void;
   style?: React.CSSProperties;
-  mode?: "read" | "play";
+  mode: "read" | "play";
   selection?: Array<string | StateNode>;
 }
 
@@ -94,7 +94,7 @@ export default function useConstant<T>(fn: () => T): T {
 const MachineVizContainer: React.FC<MachineVizProps> = ({
   style,
   machine,
-  mode,
+  mode = "play",
 }) => {
   const canvasService = useConstant(() => interpret(canvasMachine).start());
   const { service, tracker } = React.useContext(StateContext);

@@ -147,10 +147,15 @@ export function isActive(
   state: State<any, any>,
   stateNode: StateNode<any, any>
 ) {
-  const resolvedState = stateNode.machine.resolveState(state);
-  const active = resolvedState.configuration.includes(stateNode);
+  // TODO: remove try/catch
+  try {
+    const resolvedState = stateNode.machine.resolveState(state);
+    const active = resolvedState.configuration.includes(stateNode);
 
-  return active;
+    return active;
+  } catch {
+    return false;
+  }
 }
 
 export function serializeAction(action: ActionObject<any, any>): string {

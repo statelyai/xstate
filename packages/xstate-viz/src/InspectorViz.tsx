@@ -1,12 +1,19 @@
-import * as React from 'react';
-import { createMachine, State, StateNode, SCXML, Interpreter } from 'xstate';
-import { useMachine } from '@xstate/react';
-import { MachineViz } from './MachineViz';
-import { assign, createUpdater, ImmerUpdateEvent } from '@xstate/immer';
+import * as React from "react";
+import {
+  createMachine,
+  State,
+  StateNode,
+  SCXML,
+  Interpreter,
+  EventObject,
+} from "xstate";
+import { useMachine } from "@xstate/react";
+import { MachineViz } from "./MachineViz";
+import { assign, createUpdater, ImmerUpdateEvent } from "@xstate/immer";
 // import { EventRecordsViz } from './EventRecordsViz';
-import { StateViz } from './StateViz';
-import { createContext } from 'react';
-import { Loader } from './Loader';
+import { StateViz } from "./StateViz";
+import { createContext } from "react";
+import { Loader } from "./Loader";
 
 const parseState = (stateJSON: string): State<any, any> => {
   const state = State.create(JSON.parse(stateJSON));
@@ -16,10 +23,10 @@ const parseState = (stateJSON: string): State<any, any> => {
   return state;
 };
 
-type ViewUpdateEvent = ImmerUpdateEvent<'view.update', 'graph' | 'state'>;
+type ViewUpdateEvent = ImmerUpdateEvent<"view.update", "graph" | "state">;
 
 const viewUpdater = createUpdater<InspectorCtx, ViewUpdateEvent>(
-  'view.update',
+  "view.update",
   (ctx, { input }) => {
     ctx.view = input;
   }
@@ -27,23 +34,23 @@ const viewUpdater = createUpdater<InspectorCtx, ViewUpdateEvent>(
 
 type InspectorEvent =
   | {
-      type: 'service.register';
+      type: "service.register";
       state: string;
       machine: string;
       id: string;
       parent?: string;
     }
   | {
-      type: 'service.stop';
+      type: "service.stop";
       id: string;
     }
   | {
-      type: 'service.state';
+      type: "service.state";
       state: string;
       id: string;
     }
   | {
-      type: 'service.select';
+      type: "service.select";
       id: string;
     }
   | ViewUpdateEvent;
@@ -58,22 +65,22 @@ interface ServiceDataCtx {
 interface InspectorCtx {
   services: Record<string, ServiceDataCtx>;
   service?: string;
-  view: 'graph' | 'state';
+  view: "graph" | "state";
 }
 
 const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
-  id: 'inspector',
+  id: "inspector",
   context: {
     services: {},
     service: undefined,
-    view: 'graph'
+    view: "graph",
   },
-  initial: 'pending',
+  initial: "pending",
   states: {
     pending: {},
     inspecting: {
       on: {
-        'service.state': {
+        "service.state": {
           actions: assign((ctx, e) => {
             const serviceObject = ctx.services[e.id];
             if (!serviceObject) {
@@ -90,36 +97,36 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
             if (!ctx.service) {
               ctx.service = e.id;
             }
-          })
+          }),
         },
-        'service.select': {
+        "service.select": {
           actions: assign((ctx, e) => {
             ctx.service = e.id;
-          })
-        }
-      }
-    }
+          }),
+        },
+      },
+    },
   },
   on: {
-    'service.register': {
+    "service.register": {
       actions: assign((ctx, e) => {
         ctx.services[e.id] = {
           id: e.id,
           parent: e.parent,
           machine: createMachine(JSON.parse(e.machine)),
           state: parseState(e.state),
-          events: []
+          events: [],
         };
       }),
-      target: '.inspecting'
+      target: ".inspecting",
     },
-    'service.stop': {
+    "service.stop": {
       actions: assign((ctx, e) => {
         delete ctx.services[e.id];
-      })
+      }),
     },
-    [viewUpdater.type]: { actions: viewUpdater.action }
-  }
+    [viewUpdater.type]: { actions: viewUpdater.action },
+  },
 });
 
 export const ServicesContext = createContext<
@@ -146,13 +153,14 @@ export function createReceiver<T>(): Receiver<T> {
       return () => {
         listeners.delete(listener);
       };
-    }
+    },
   };
 }
 
 export const InspectorViz: React.FC<{
   receiver: { receive: (listener: (e: MessageEvent) => void) => void };
-}> = ({ receiver }) => {
+  onEvent: (event: EventObject) => void;
+}> = ({ receiver, onEvent }) => {
   const [state, send, service] = useMachine(inspectorMachine);
 
   React.useEffect(() => {
@@ -176,7 +184,7 @@ export const InspectorViz: React.FC<{
           {serviceEntries.length > 0 && (
             <select
               onChange={(e) => {
-                send({ type: 'service.select', id: e.target.value });
+                send({ type: "service.select", id: e.target.value });
               }}
               value={state.context.service}
               data-xviz="inspector-action"
@@ -192,22 +200,21 @@ export const InspectorViz: React.FC<{
           )}
         </header>
 
-        {serviceEntries.length > 0 ? (
-          serviceEntries.map(([key, service]) => {
-            return (
-              <ServiceDataContext.Provider value={service} key={key}>
-                <div
-                  data-xviz="service"
-                  data-xviz-view={state.context.view}
-                  hidden={currentService !== service || undefined}
-                >
-                  <MachineViz machine={service.machine} state={service.state} />
-                  {/* <EventRecordsViz events={value.events} /> */}
-                  <StateViz state={service.state} />
-                </div>
-              </ServiceDataContext.Provider>
-            );
-          })
+        {currentService ? (
+          <ServiceDataContext.Provider value={currentService}>
+            <div data-xviz="service" data-xviz-view={state.context.view}>
+              <MachineViz
+                machine={currentService.machine}
+                state={currentService.state}
+                mode="play"
+                onEventTap={(data) => {
+                  onEvent({ type: data.eventType });
+                }}
+              />
+              {/* <EventRecordsViz events={value.events} /> */}
+              <StateViz state={currentService.state} />
+            </div>
+          </ServiceDataContext.Provider>
         ) : (
           <Loader>Waiting for connection...</Loader>
         )}

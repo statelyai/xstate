@@ -1,17 +1,17 @@
-import * as React from 'react';
-import { Edge } from './types';
-import { EdgeViz } from './EdgeViz';
-import { InitialEdgeViz } from './InitialEdgeViz';
-import { ArrowMarker } from './ArrowMarker';
-import { StateMachine } from 'xstate';
-import { getAllStateNodes } from 'xstate/lib/stateUtils';
-import { useMemo } from 'react';
-import { MachineRectMeasurements } from './MachineMeasure';
+import * as React from "react";
+import { Edge } from "./types";
+import { EdgeViz } from "./EdgeViz";
+import { InitialEdgeViz } from "./InitialEdgeViz";
+import { ArrowMarker } from "./ArrowMarker";
+import { StateMachine } from "xstate";
+import { getAllStateNodes } from "xstate/lib/stateUtils";
+import { useMemo } from "react";
+import { MachineRectMeasurements } from "./MachineMeasure";
 
 export function EdgesViz({
   edges,
   machine,
-  measurements
+  measurements,
 }: {
   edges: Array<Edge<any, any, any>>;
   machine: StateMachine<any, any, any>;
@@ -29,12 +29,12 @@ export function EdgesViz({
     <g
       data-xviz="edges"
       style={{
-        overflow: 'visible',
-        position: 'absolute',
+        overflow: "visible",
+        position: "absolute",
         top: 0,
         left: 0,
-        height: '100%',
-        width: '100%'
+        height: "100%",
+        width: "100%",
       }}
     >
       <defs>

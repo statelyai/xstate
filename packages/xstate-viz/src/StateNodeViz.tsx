@@ -67,7 +67,10 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           <div data-xviz="stateNode-key">{stateNode.key}</div>
           <div data-xviz="stateNode-description">
             {stateNode.meta?.description && (
-              <ReactMarkdown source={stateNode.meta.description} />
+              <ReactMarkdown
+                source={stateNode.meta.description}
+                escapeHtml={false}
+              />
             )}
           </div>
           {stateNode.onEntry.length > 0 && (

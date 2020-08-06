@@ -1,7 +1,7 @@
-import { useContext, useRef, useState, useEffect } from 'react';
+import { useContext, useRef, useState, useEffect } from "react";
 
-import { StateContext } from './StateContext';
-import { TrackerData } from './tracker';
+import { StateContext } from "./StateContext";
+import { TrackerData } from "./tracker";
 
 export function useTracking(id: string) {
   const { tracker } = useContext(StateContext);
@@ -14,13 +14,14 @@ export function useTracking(id: string) {
 
     tracker.update(id, ref.current);
 
-    if (!('ResizeObserver' in globalThis)) {
+    if (!("ResizeObserver" in globalThis)) {
       return;
     }
 
     const resizeObserver = new ResizeObserver(() => {
       if (ref.current) {
-        tracker.update(id, ref.current);
+        tracker.updateAll();
+        // tracker.update(id, ref.current);
       }
     });
 
