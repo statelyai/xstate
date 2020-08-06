@@ -339,7 +339,6 @@ export class Interpreter<
   ): Unsubscribable;
   public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
-    // @ts-ignore
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Unsubscribable;
@@ -347,8 +346,7 @@ export class Interpreter<
     nextListenerOrObserver?:
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
       | Observer<State<TContext, TEvent, any, TTypestate>>,
-    // @ts-ignore
-    errorListener?: (error: any) => void,
+    _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Unsubscribable {
     if (!nextListenerOrObserver) {

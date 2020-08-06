@@ -84,7 +84,7 @@
     "ts-jest": "^24.1.9",
     "tsdx": "^0.11.0",
     "tslib": "^1.10.0",
-    "typescript": "^3.8.3",
+    "typescript": "^3.9.7",
     "xstate": "*"
   },
   "dependencies": {

@@ -676,7 +676,9 @@ class StateNode<
    *
    * @param state The state to resolve
    */
-  public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
+  public resolveState(
+    state: State<TContext, TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
@@ -1098,7 +1100,6 @@ class StateNode<
   private resolveRaisedTransition(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent> | NullEvent,
-    // @ts-ignore
     originalEvent: SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentActions = state.actions;

@@ -596,7 +596,6 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
       typeof transitionLike === 'string' ||
       isMachine(transitionLike)
     ) {
-      // @ts-ignore until Type instantiation is excessively deep and possibly infinite bug is fixed
       return { target: transitionLike, event };
     }
 

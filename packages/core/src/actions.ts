@@ -103,12 +103,12 @@ export function toActionObject<TContext, TEvent extends EventObject>(
         exec
       };
     } else if (exec) {
-      const { type, ...other } = action;
+      const actionType = exec.type || action.type;
 
       actionObject = {
-        type,
         ...exec,
-        ...other
+        ...action,
+        type: actionType
       } as ActionObject<TContext, TEvent>;
     } else {
       actionObject = action as ActionObject<TContext, TEvent>;
