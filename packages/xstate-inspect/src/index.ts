@@ -1,4 +1,4 @@
-import { Interpreter, AnyEventObject } from 'xstate';
+import { Interpreter, createMachine, assign, interpret, SCXML } from 'xstate';
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 
@@ -24,13 +24,20 @@ declare global {
 }
 
 const services = new Set<Interpreter<any>>();
+const serviceMap = new Map<string, Interpreter<any>>();
 const serviceListeners = new Set<ServiceListener>();
 
 window.__xstate__ = {
   services,
   register: (service) => {
     services.add(service);
+    serviceMap.set(service.sessionId, service);
     serviceListeners.forEach((listener) => listener(service));
+
+    service.onStop(() => {
+      services.delete(service);
+      serviceMap.delete(service.sessionId);
+    });
   },
   onRegister: (listener) => {
     serviceListeners.add(listener);
@@ -44,6 +51,60 @@ window.__xstate__ = {
   }
 };
 
+// @ts-ignore
+const inspectMachine = createMachine<{
+  client?: any;
+}>({
+  initial: 'pendingConnection',
+  context: {
+    client: undefined
+  },
+  states: {
+    pendingConnection: {},
+    connected: {
+      on: {
+        'service.state': {
+          actions: (ctx, e) => ctx.client!.send(e)
+        },
+        'service.register': {
+          actions: (ctx, e) => ctx.client!.send(e)
+        },
+        'xstate.event': {
+          actions: (_, e) => {
+            const { event } = e;
+            const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
+            const service = serviceMap.get(scxmlEventObject.origin!);
+            service?.send(JSON.parse(event));
+          }
+        },
+        unload: {
+          actions: (ctx) => {
+            ctx.client!.send({ type: 'xstate.disconnect' });
+          }
+        }
+      }
+    }
+  },
+  on: {
+    'xstate.inspecting': {
+      target: '.connected',
+      actions: [
+        assign({ client: (_, e) => e.client }),
+        (ctx) => {
+          window.__xstate__.services.forEach((service) => {
+            ctx.client.send({
+              type: 'service.register',
+              machine: JSON.stringify(service.machine),
+              state: JSON.stringify(service.state || service.initialState),
+              id: service.id
+            });
+          });
+        }
+      ]
+    }
+  }
+});
+
 const defaultInspectorOptions: InspectorOptions = {
   url: 'https://embed.statecharts.io',
   iframe: () => document.querySelector<HTMLIFrameElement>('iframe[data-xstate]')
@@ -52,17 +113,10 @@ const defaultInspectorOptions: InspectorOptions = {
 export function inspect(options?: Partial<InspectorOptions>) {
   const { iframe, url } = { ...defaultInspectorOptions, ...options };
   const resolvedIframe = typeof iframe === 'function' ? iframe() : iframe;
-  const deferredEvents: AnyEventObject[] = [];
-  let targetWindow: Window | null | undefined;
-  let isDeferred = true;
 
-  const postMessage = (event: AnyEventObject) => {
-    if (isDeferred) {
-      deferredEvents.push(event);
-    } else {
-      targetWindow!.postMessage(event, '*');
-    }
-  };
+  let targetWindow: Window | null | undefined;
+
+  const inspectService = interpret(inspectMachine).start();
 
   if (resolvedIframe === null) {
     console.warn(
@@ -72,21 +126,36 @@ export function inspect(options?: Partial<InspectorOptions>) {
     return;
   }
 
+  let client: any;
+
   window.addEventListener('message', (event) => {
+    console.log(event);
     if (
       typeof event.data === 'object' &&
       event.data !== null &&
-      'type' in event.data &&
-      event.data.type === 'xstate.inspecting'
+      'type' in event.data
     ) {
-      isDeferred = false;
-      // TODO: use a state machine...
-      setTimeout(() => {
-        while (deferredEvents.length > 0) {
-          targetWindow!.postMessage(deferredEvents.shift()!, url);
-        }
-      }, 1000);
+      if (resolvedIframe && !targetWindow) {
+        targetWindow = resolvedIframe.contentWindow;
+      }
+
+      if (!client) {
+        client = {
+          send: (e: any) => {
+            targetWindow!.postMessage(e, url);
+          }
+        };
+      }
+
+      inspectService.send({
+        ...event.data,
+        client
+      });
     }
+  });
+
+  window.addEventListener('unload', () => {
+    inspectService.send({ type: 'unload' });
   });
 
   if (resolvedIframe === false) {
@@ -94,7 +163,7 @@ export function inspect(options?: Partial<InspectorOptions>) {
   }
 
   window.__xstate__.onRegister((service) => {
-    postMessage({
+    inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.machine),
       state: JSON.stringify(service.state || service.initialState),
@@ -102,7 +171,7 @@ export function inspect(options?: Partial<InspectorOptions>) {
     });
 
     service.subscribe((state) => {
-      postMessage({
+      inspectService.send({
         type: 'service.state',
         state: JSON.stringify(state),
         id: service.id

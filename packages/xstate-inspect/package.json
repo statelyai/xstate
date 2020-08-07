@@ -32,6 +32,7 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest --passWithNoTests",
     "build": "tsc && tsc --outDir es --module es2015",
+    "watch": "tsc -w --outDir es --module es2015",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
