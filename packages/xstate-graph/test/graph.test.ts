@@ -1,6 +1,6 @@
-import { Machine, StateNode } from 'xstate';
+import { Machine, StateNode, createMachine } from 'xstate';
 import { getStateNodes, getSimplePaths, getShortestPaths } from '../src/index';
-import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
+import { getSimplePathsAsArray, getAdjacencyMap, toGraph } from '../src/graph';
 import { assign } from 'xstate';
 
 describe('@xstate/graph', () => {
@@ -341,6 +341,33 @@ describe('@xstate/graph', () => {
       });
 
       expect(adj).toHaveProperty('"full" | {"count":5}');
+    });
+  });
+
+  describe('toGraph', () => {
+    it('should represent a statechart as a directed graph', () => {
+      const machine = createMachine({
+        id: 'light',
+        initial: 'green',
+        states: {
+          green: { on: { TIMER: 'yellow' } },
+          yellow: { on: { TIMER: 'red' } },
+          red: {
+            initial: 'walk',
+            states: {
+              walk: { on: { COUNTDOWN: 'wait' } },
+              wait: { on: { COUNTDOWN: 'stop' } },
+              stop: { on: { COUNTDOWN: 'finished' } },
+              finished: { type: 'final' }
+            },
+            onDone: 'green'
+          }
+        }
+      });
+
+      const digraph = toGraph(machine);
+
+      expect(digraph).toMatchSnapshot();
     });
   });
 });

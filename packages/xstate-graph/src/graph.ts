@@ -14,8 +14,8 @@ import {
   AdjacencyMap,
   Segments,
   ValueAdjMapOptions,
-  DirectedGraphEdge,
-  DirectedGraph
+  DigraphEdge,
+  DigraphNode
 } from './types';
 import { getChildren } from 'xstate/lib/stateUtils';
 
@@ -323,13 +323,13 @@ export function getSimplePathsAsArray<
   return keys(result).map((key) => result[key]);
 }
 
-export function toGraph(stateNode: StateNode): DirectedGraph {
-  const edges: DirectedGraphEdge[] = flatten(
+export function toGraph(stateNode: StateNode): DigraphNode {
+  const edges: DigraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
 
       return targets.map((target, targetIndex) => {
-        const edge: DirectedGraphEdge = {
+        const edge: DigraphEdge = {
           id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
           source: stateNode,
           target,

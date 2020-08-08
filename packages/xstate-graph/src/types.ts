@@ -10,36 +10,54 @@ export interface TransitionMap {
   state: StateValue | undefined;
 }
 
-export interface DirectedGraphLabel {
-  [key: string]: any;
-  text: string;
-  toJSON: () => {
+export type JSONSerializable<T extends object, U> = T & {
+  toJSON: () => U;
+};
+
+export type DigraphLabel = JSONSerializable<
+  {
+    [key: string]: any;
     text: string;
-  };
-}
-export interface DirectedGraphEdge {
-  [key: string]: any;
-  id: string;
-  source: StateNode;
-  target: StateNode;
-  label: DirectedGraphLabel;
-  transition: TransitionDefinition<any, any>;
-  toJSON: () => {
+  },
+  {
+    text: string;
+  }
+>;
+
+export type DigraphEdge = JSONSerializable<
+  {
+    [key: string]: any;
+    id: string;
+    source: StateNode;
+    target: StateNode;
+    label: DigraphLabel;
+    transition: TransitionDefinition<any, any>;
+  },
+  {
     source: string;
     target: string;
-    label: ReturnType<DirectedGraphLabel['toJSON']>;
-  };
-}
+    label: ReturnType<DigraphLabel['toJSON']>;
+  }
+>;
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
-export interface DirectedGraph {
-  [key: string]: any;
-  id: string;
-  stateNode: StateNode;
-  children: DirectedGraph[];
-  edges: DirectedGraphEdge[];
-  toJSON: () => Omit<DirectedGraph, 'stateNode'>;
-}
+export type DigraphNode = JSONSerializable<
+  {
+    [key: string]: any;
+    id: string;
+    stateNode: StateNode;
+    children: DigraphNode[];
+    /**
+     * The edges representing all transitions from this `stateNode`.
+     */
+    edges: DigraphEdge[];
+  },
+  {
+    [key: string]: any;
+    id: string;
+    children: DigraphNode[];
+  }
+>;
 
 export interface AdjacencyMap<TContext, TEvent extends EventObject> {
   [stateId: string]: Record<
