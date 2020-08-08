@@ -64,9 +64,9 @@ export function updateContext<TContext, TEvent extends EventObject>(
           spawn: spawner
         };
 
-        let partialUpdate: Partial<TContext> = {};
+        const partialUpdate: Partial<TContext> = {};
         if (isFunction(assignment)) {
-          partialUpdate = assignment(acc, _event.data, meta);
+          return assignment(acc, _event.data, meta);
         } else {
           for (const key of keys(assignment)) {
             const propAssignment = assignment[key];

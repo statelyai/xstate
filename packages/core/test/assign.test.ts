@@ -1,6 +1,14 @@
-import { Machine, interpret, assign, send, sendParent, State } from '../src';
+import {
+  createMachine,
+  interpret,
+  assign,
+  send,
+  sendParent,
+  State
+} from '../src';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src/types';
+import { stringify } from 'querystring';
 
 interface CounterContext {
   count: number;
@@ -8,7 +16,7 @@ interface CounterContext {
   maybe?: string;
 }
 
-const counterMachine = Machine<CounterContext>({
+const counterMachine = createMachine<CounterContext>({
   initial: 'counting',
   context: { count: 0, foo: 'bar' },
   states: {
@@ -18,6 +26,7 @@ const counterMachine = Machine<CounterContext>({
           {
             target: 'counting',
             actions: assign((ctx) => ({
+              ...ctx,
               count: ctx.count + 1
             }))
           }
@@ -224,10 +233,28 @@ describe('assign', () => {
       maybe: 'defined'
     });
   });
+
+  it('does a complete context rewrite with a single function assigner', () => {
+    const machine = createMachine<{ foo: string; bar?: string }>({
+      context: {
+        foo: 'one',
+        bar: 'two'
+      },
+      initial: 'active',
+      states: {
+        active: {
+          entry: assign(() => ({ foo: 'changed' }))
+        }
+      }
+    });
+
+    expect(machine.initialState.context.bar).toBeUndefined();
+    expect(machine.initialState.context).toEqual({ foo: 'changed' });
+  });
 });
 
 describe('assign meta', () => {
-  const machine = Machine<{ count: number }>({
+  const machine = createMachine<{ count: number }>({
     id: 'assign',
     initial: 'start',
     context: { count: 0 },
@@ -308,7 +335,7 @@ describe('assign meta', () => {
       })
     }));
 
-    const childMachine = Machine({
+    const childMachine = createMachine({
       initial: 'bar',
       states: {
         bar: {}
@@ -320,7 +347,7 @@ describe('assign meta', () => {
       }
     });
 
-    const parentMachine = Machine<Ctx>({
+    const parentMachine = createMachine<Ctx>({
       initial: 'foo',
       context: {
         eventLog: []

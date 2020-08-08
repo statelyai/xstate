@@ -783,7 +783,7 @@ export type Assigner<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: AssignMeta<TContext, TEvent>
-) => Partial<TContext>;
+) => TContext;
 
 export type PropertyAssigner<TContext, TEvent extends EventObject> = {
   [K in keyof TContext]?:
