@@ -1,11 +1,12 @@
-<script>
+<script lang="ts">
   import { useMachine } from '../src/fsm';
   import { createMachine, assign } from '@xstate/fsm';
 
   const context = {
     data: undefined
   };
-  const fetchMachine = createMachine({
+
+  const fetchMachine = createMachine<typeof context, any>({
     id: 'fetch',
     initial: 'idle',
     context,
@@ -20,7 +21,8 @@
             target: 'success',
             actions: assign({
               data: (_, e) => e.data
-            })
+            }),
+            cond: (_, e) => e.data.length
           }
         }
       },

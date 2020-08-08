@@ -7,30 +7,39 @@ import {
   Typestate
 } from '@xstate/fsm';
 
+interface UseMachineOptions<
+  TContext extends object,
+  TEvent extends EventObject
+> {
+  /**
+   * If provided, will be merged with machine's `actions`.
+   */
+  actions: StateMachine.ActionMap<TContext, TEvent>;
+}
+
 export function useMachine<
   TContext extends object,
-  TEvent extends EventObject = EventObject
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
 >(
-  stateMachine: StateMachine.Machine<TContext, TEvent, Typestate<TContext>>,
-  options?: {
-    actions?: StateMachine.ActionMap<TContext, TEvent>;
-  }
+  machine: StateMachine.Machine<TContext, TEvent, TTypestate>,
+  options: Partial<UseMachineOptions<TContext, TEvent>> = {}
 ) {
-  const machine = createMachine(stateMachine.config, {
+  const resolvedMachine = createMachine(machine.config, {
     actions: {
-      ...(stateMachine as any)._options.actions,
-      ...options?.actions
+      ...(machine as any)._options.actions,
+      ...options.actions
     }
   });
 
-  const service = interpret(machine);
+  const service = interpret(resolvedMachine).start();
 
-  const store = readable(machine.initialState, (set) => {
+  const state = readable(service.state, (set) => {
     service.subscribe((state) => {
-      set(state);
+      if (state.changed) {
+        set(state);
+      }
     });
-
-    service.start();
 
     return () => {
       service.stop();
@@ -38,7 +47,7 @@ export function useMachine<
   });
 
   return {
-    state: store,
+    state,
     send: service.send
   };
 }

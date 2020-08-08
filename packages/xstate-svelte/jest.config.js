@@ -1,9 +1,14 @@
 const { jest: lernaAliases } = require('lerna-alias');
 
 module.exports = {
-  preset: 'ts-jest',
   moduleNameMapper: lernaAliases(),
   transform: {
-    '^.+\\.svelte$': 'svelte-jester'
+    '^.+\\.svelte$': [
+      'svelte-jester',
+      {
+        preprocess: true
+      }
+    ],
+    '^.+\\.ts$': 'ts-jest'
   }
 };

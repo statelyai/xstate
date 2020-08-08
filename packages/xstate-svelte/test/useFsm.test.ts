@@ -1,8 +1,8 @@
 import { render, fireEvent } from '@testing-library/svelte';
 import UseFsm from './UseFsm.svelte';
 
-describe('useFsm', () => {
-  it('should work', async () => {
+describe('useMachine function for fsm', () => {
+  it('should work with a component', async () => {
     const { getByText, getByTestId, findByText } = render(UseFsm);
     const button = getByText('Fetch');
     await fireEvent.click(button);
