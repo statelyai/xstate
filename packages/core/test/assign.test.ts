@@ -8,7 +8,6 @@ import {
 } from '../src';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src/types';
-import { stringify } from 'querystring';
 
 interface CounterContext {
   count: number;
