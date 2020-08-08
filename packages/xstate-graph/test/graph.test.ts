@@ -1,6 +1,11 @@
 import { Machine, StateNode, createMachine } from 'xstate';
-import { getStateNodes, getSimplePaths, getShortestPaths } from '../src/index';
-import { getSimplePathsAsArray, getAdjacencyMap, toGraph } from '../src/graph';
+import {
+  getStateNodes,
+  getSimplePaths,
+  getShortestPaths,
+  toGraph
+} from '../src/index';
+import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
 
 describe('@xstate/graph', () => {
