@@ -103,7 +103,8 @@ module.exports = {
         children: [
           '/examples/counter',
           '/examples/todomvc',
-          '/examples/calculator'
+          '/examples/calculator',
+          '/examples/covid-tracker'
         ]
       }
     ]

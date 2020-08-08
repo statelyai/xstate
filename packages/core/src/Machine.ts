@@ -41,7 +41,7 @@ export function Machine<
       ? (initialContext as () => TContext)()
       : initialContext;
 
-  return new StateNode<TContext, TStateSchema, TEvent, any>(
+  return new StateNode<TContext, TStateSchema, TEvent>(
     config,
     options,
     resolvedInitialContext

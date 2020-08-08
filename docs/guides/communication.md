@@ -23,6 +23,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a "callback handler"
   - a function that returns an observable
   - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
+  - <Badge text="4.12"> an invoke source object, which contains the source string in `{ type: src }`, as well as any other metadata.
 - `id` - the unique identifier for the invoked service
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or
@@ -648,6 +649,36 @@ const userMachine = Machine({
     getUser: (context, event) => fetchUser(context.user.id)
   }
 });
+```
+
+<Badge text="4.12" /> The invoke `src` can also be specified as an object that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
+
+```js
+const machine = createMachine(
+  {
+    initial: 'searching',
+    states: {
+      searching: {
+        invoke: {
+          src: {
+            type: 'search',
+            endpoint: 'example.com'
+          }
+          // ...
+        }
+        // ...
+      }
+    }
+  },
+  {
+    services: {
+      search: (context, event, { src }) => {
+        console.log(src);
+        // => { endpoint: 'example.com' }
+      }
+    }
+  }
+);
 ```
 
 ## Testing

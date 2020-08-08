@@ -107,4 +107,76 @@ describe('json', () => {
     validate(invalidMachineConfig);
     expect(validate.errors).not.toBeNull();
   });
+
+  it('should not double-serialize invoke transitions', () => {
+    const machine = createMachine({
+      initial: 'active',
+      states: {
+        active: {
+          invoke: {
+            src: 'someSrc',
+            onDone: 'foo',
+            onError: 'bar'
+          },
+          on: {
+            EVENT: 'foo'
+          }
+        },
+        foo: {},
+        bar: {}
+      }
+    });
+
+    const machineJSON = JSON.stringify(machine);
+
+    const machineObject = JSON.parse(machineJSON);
+
+    const revivedMachine = createMachine(machineObject);
+
+    expect(revivedMachine.states.active.transitions).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "actions": Array [],
+          "cond": undefined,
+          "event": "done.invoke.someSrc",
+          "eventType": "done.invoke.someSrc",
+          "internal": false,
+          "source": "#(machine).active",
+          "target": Array [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+        Object {
+          "actions": Array [],
+          "cond": undefined,
+          "event": "error.platform.someSrc",
+          "eventType": "error.platform.someSrc",
+          "internal": false,
+          "source": "#(machine).active",
+          "target": Array [
+            "#(machine).bar",
+          ],
+          "toJSON": [Function],
+        },
+        Object {
+          "actions": Array [],
+          "cond": undefined,
+          "event": "EVENT",
+          "eventType": "EVENT",
+          "internal": false,
+          "source": "#(machine).active",
+          "target": Array [
+            "#(machine).foo",
+          ],
+          "toJSON": [Function],
+        },
+      ]
+    `);
+
+    // 1. onDone
+    // 2. onError
+    // 3. EVENT
+    expect(revivedMachine.states.active.transitions.length).toBe(3);
+  });
 });

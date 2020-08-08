@@ -48,9 +48,9 @@ import {
   warn,
   toGuard,
   evaluateGuard,
-  toArray
+  toArray,
+  isArray
 } from './utils';
-import { isArray } from './utils';
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
@@ -103,12 +103,12 @@ export function toActionObject<TContext, TEvent extends EventObject>(
         exec
       };
     } else if (exec) {
-      const { type, ...other } = action;
+      const actionType = exec.type || action.type;
 
       actionObject = {
-        type,
         ...exec,
-        ...other
+        ...action,
+        type: actionType
       } as ActionObject<TContext, TEvent>;
     } else {
       actionObject = action as ActionObject<TContext, TEvent>;
@@ -159,7 +159,7 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
  */
 export function raise<TContext, TEvent extends EventObject>(
   event: Event<TEvent>
-): RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent> {
+): RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent> {
   if (!isString(event)) {
     return send(event, { to: SpecialTargets.Internal });
   }

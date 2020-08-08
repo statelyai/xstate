@@ -41,6 +41,7 @@ describe('StateSchema', () => {
     context: { elapsed: 0 },
     states: {
       green: {
+        id: 'green',
         meta: { name: 'greenLight' },
         on: {
           TIMER: 'yellow',
@@ -76,7 +77,7 @@ describe('StateSchema', () => {
             }
           },
           stop: {
-            always: { target: 'green' }
+            always: { target: '#green' }
           }
         }
       }
@@ -213,12 +214,13 @@ describe('Raise events', () => {
     }
 
     type GreetingEvent =
-      | { type: 'DECIDE' }
+      | { type: 'DECIDE'; aloha?: boolean }
       | { type: 'MORNING' }
       | { type: 'LUNCH_TIME' }
       | { type: 'AFTERNOON' }
       | { type: 'EVENING' }
-      | { type: 'NIGHT' };
+      | { type: 'NIGHT' }
+      | { type: 'ALOHA' };
 
     interface GreetingContext {
       hour: number;
@@ -239,10 +241,22 @@ describe('Raise events', () => {
           on: {
             DECIDE: [
               {
+                actions: raise<GreetingContext, { type: 'ALOHA' }>({
+                  type: 'ALOHA'
+                }),
+                cond: (_ctx, ev) => !!ev.aloha
+              },
+              {
                 actions: raise<GreetingContext, { type: 'MORNING' }>({
                   type: 'MORNING'
                 }),
                 cond: (ctx) => ctx.hour < 12
+              },
+              {
+                actions: raise<GreetingContext, GreetingEvent>({
+                  type: 'AFTERNOON'
+                }),
+                cond: (ctx) => ctx.hour < 18
               },
               {
                 actions: raise({ type: 'EVENING' }),

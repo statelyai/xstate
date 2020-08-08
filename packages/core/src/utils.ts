@@ -22,7 +22,8 @@ import {
   SingleOrArray,
   Guard,
   GuardPredicate,
-  GuardMeta
+  GuardMeta,
+  InvokeSourceDefinition
 } from './types';
 import {
   STATE_DELIMITER,
@@ -595,7 +596,6 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
       typeof transitionLike === 'string' ||
       isMachine(transitionLike)
     ) {
-      // @ts-ignore until Type instantiation is excessively deep and possibly infinite bug is fixed
       return { target: transitionLike, event };
     }
 
@@ -677,4 +677,14 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   }
 
   return condFn(context, _event.data, guardMeta);
+}
+
+export function toInvokeSource(
+  src: string | InvokeSourceDefinition
+): InvokeSourceDefinition {
+  if (typeof src === 'string') {
+    return { type: src };
+  }
+
+  return src;
 }

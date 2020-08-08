@@ -71,7 +71,7 @@ export namespace StateMachine {
   export interface Config<
     TContext extends object,
     TEvent extends EventObject,
-    TState extends Typestate<TContext> = any
+    TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     id?: string;
     initial: string;
@@ -94,7 +94,7 @@ export namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext>
   > {
-    config: StateMachine.Config<TContext, TEvent>;
+    config: StateMachine.Config<TContext, TEvent, TState>;
     initialState: State<TContext, TEvent, TState>;
     transition: (
       state: string | State<TContext, TEvent, TState>,
@@ -109,7 +109,7 @@ export namespace StateMachine {
   export interface Service<
     TContext extends object,
     TEvent extends EventObject,
-    TState extends Typestate<TContext> = any
+    TState extends Typestate<TContext> = { value: any; context: TContext }
   > {
     send: (event: TEvent | TEvent['type']) => void;
     subscribe: (

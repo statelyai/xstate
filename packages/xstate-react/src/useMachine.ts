@@ -102,7 +102,7 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   machine: StateMachine<TContext, any, TEvent, TTypestate>,
   options: Partial<InterpreterOptions> &
@@ -161,9 +161,10 @@ export function useMachine<
   });
 
   const [state, setState] = useState(() => {
-    return rehydratedState
-      ? State.create(rehydratedState)
-      : resolvedMachine.initialState;
+    // Always read the initial state to properly initialize the machine
+    // https://github.com/davidkpiano/xstate/issues/1334
+    const { initialState } = resolvedMachine;
+    return rehydratedState ? State.create(rehydratedState) : initialState;
   });
 
   const effectActionsRef = useRef<

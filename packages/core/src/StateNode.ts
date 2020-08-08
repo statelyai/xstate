@@ -62,7 +62,8 @@ import {
   InvokeActionObject,
   Typestate,
   TransitionDefinitionMap,
-  DelayExpr
+  DelayExpr,
+  InvokeSourceDefinition
 } from './types';
 import { matchesState } from './utils';
 import { State, stateValuesEqual } from './State';
@@ -95,6 +96,7 @@ import {
   isLeafNode
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
+import { toInvokeDefinition } from './invokeUtils';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -142,7 +144,7 @@ class StateNode<
   TContext = any,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.
@@ -386,37 +388,49 @@ class StateNode<
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           src: invokeConfig.id,
           id: invokeConfig.id
-        };
-      } else if (typeof invokeConfig.src !== 'string') {
+        });
+      } else if (isString(invokeConfig.src)) {
+        return toInvokeDefinition({
+          ...invokeConfig,
+
+          id: invokeConfig.id || (invokeConfig.src as string),
+          src: invokeConfig.src as string
+        });
+      } else if (isMachine(invokeConfig.src) || isFunction(invokeConfig.src)) {
         const invokeSrc = `${this.id}:invocation[${i}]`; // TODO: util function
         this.machine.options.services = {
           [invokeSrc]: invokeConfig.src as InvokeCreator<TContext, TEvent>,
           ...this.machine.options.services
         };
 
-        return {
-          type: actionTypes.invoke,
+        return toInvokeDefinition({
           id: invokeSrc,
           ...invokeConfig,
           src: invokeSrc
-        };
+        });
       } else {
-        return {
+        const invokeSource = invokeConfig.src as InvokeSourceDefinition;
+
+        return toInvokeDefinition({
+          id: invokeSource.type,
           ...invokeConfig,
-          type: actionTypes.invoke,
-          id: invokeConfig.id || (invokeConfig.src as string),
-          src: invokeConfig.src as string
-        };
+          src: invokeSource
+        });
       }
     });
     this.activities = toArray(this.config.activities)
       .concat(this.invoke)
       .map((activity) => toActivityDefinition(activity));
     this.transition = this.transition.bind(this);
+
+    // TODO: this is the real fix for initialization once
+    // state node getters are deprecated
+    // if (!this.parent) {
+    //   this._init();
+    // }
   }
 
   private _init(): void {
@@ -614,7 +628,7 @@ class StateNode<
    * @param state The state value or State instance
    */
   public getStateNodes(
-    state: StateValue | State<TContext, TEvent>
+    state: StateValue | State<TContext, TEvent, any, TTypestate>
   ): Array<StateNode<TContext, any, TEvent>> {
     if (!state) {
       return [];
@@ -668,7 +682,9 @@ class StateNode<
    *
    * @param state The state to resolve
    */
-  public resolveState(state: State<TContext, TEvent>): State<TContext, TEvent> {
+  public resolveState(
+    state: State<TContext, TEvent>
+  ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const configuration = Array.from(
       getConfiguration([], this.getStateNodes(state.value))
     );
@@ -1025,7 +1041,8 @@ class StateNode<
    * @param context The current context (extended state) of the current state
    */
   public transition(
-    state: StateValue | State<TContext, TEvent> = this.initialState,
+    state: StateValue | State<TContext, TEvent, any, TTypestate> = this
+      .initialState,
     event: Event<TEvent> | SCXML.Event<TEvent>,
     context?: TContext
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -1089,7 +1106,6 @@ class StateNode<
   private resolveRaisedTransition(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent> | NullEvent,
-    // @ts-ignore
     originalEvent: SCXML.Event<TEvent>
   ): State<TContext, TEvent, TStateSchema, TTypestate> {
     const currentActions = state.actions;
@@ -1506,7 +1522,7 @@ class StateNode<
    * entering the initial state.
    */
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
-    this._init();
+    this._init(); // TODO: this should be in the constructor (see note in constructor)
     const { initialStateValue } = this;
 
     if (!initialStateValue) {

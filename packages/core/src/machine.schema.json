@@ -237,7 +237,10 @@
           "type": "string"
         },
         "src": {
-          "type": "string"
+          "type": "object",
+          "properties": {
+            "type": { "type": "string" }
+          }
         },
         "autoForward": {
           "type": "boolean",

@@ -69,15 +69,10 @@ export interface ChooseConditon<TContext, TEvent extends EventObject> {
   actions: Actions<TContext, TEvent>;
 }
 
-export // export type InternalAction<TContext> = SendAction | AssignAction<TContext>;
-type Action<TContext, TEvent extends EventObject> =
+export type Action<TContext, TEvent extends EventObject> =
   | ActionType
   | ActionObject<TContext, TEvent>
-  | ActionFunction<TContext, TEvent>
-  | AssignAction<Required<TContext>, TEvent>
-  | SendAction<TContext, TEvent, AnyEventObject>
-  | RaiseAction<AnyEventObject>
-  | ChooseAction<TContext, TEvent>;
+  | ActionFunction<TContext, TEvent>;
 
 export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
@@ -205,6 +200,7 @@ export type InvokeCallback = (
 
 export interface InvokeMeta {
   data: any;
+  src: InvokeSourceDefinition;
 }
 
 /**
@@ -239,7 +235,7 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
-  src: string;
+  src: string | InvokeSourceDefinition; // TODO: deprecate string (breaking change for V4)
   /**
    * If `true`, events sent to the parent service will be forwarded to the invoked service.
    *
@@ -366,6 +362,11 @@ export type TransitionsConfig<TContext, TEvent extends EventObject> =
   | TransitionsConfigMap<TContext, TEvent>
   | TransitionsConfigArray<TContext, TEvent>;
 
+export interface InvokeSourceDefinition {
+  [key: string]: any;
+  type: string;
+}
+
 export type InvokeConfig<TContext, TEvent extends EventObject> = {
   /**
    * The unique identifier for the invoked machine. If not specified, this
@@ -377,6 +378,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> = {
    */
   src:
     | string
+    | InvokeSourceDefinition
     | StateMachine<any, any, any>
     | InvokeCreator<TContext, TEvent, any>;
   /**
@@ -674,7 +676,7 @@ export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = any
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
