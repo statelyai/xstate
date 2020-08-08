@@ -13,7 +13,7 @@ interface DevInterface {
 type ServicesListener = (service: Set<AnyInterpreter>) => void;
 
 function getDevTools(): DevInterface | undefined {
-  const w = window as Window & { __xstate__?: DevInterface };
+  const w = globalThis as typeof globalThis & { __xstate__?: DevInterface };
   if (!!w.__xstate__) {
     return w.__xstate__;
   }

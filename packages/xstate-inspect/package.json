@@ -32,13 +32,17 @@
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
     "test": "jest --passWithNoTests",
     "build": "tsc && tsc --outDir es --module es2015",
-    "watch": "tsc -w --outDir es --module es2015",
+    "watch": "tsc -w --module es2015",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "devDependencies": {
+    "@types/ws": "^7.2.6",
     "xstate": "*"
+  },
+  "peerDependencies": {
+    "ws": "^7.3.1"
   }
 }

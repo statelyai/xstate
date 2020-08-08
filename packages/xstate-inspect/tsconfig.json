@@ -3,7 +3,9 @@
   "include": ["src/**/*"],
   "compilerOptions": {
     "outDir": "./lib",
-    "rootDir": "./src"
+    "rootDir": "./src",
+    "target": "es5",
+    "module": "CommonJS"
   },
   "references": [
     {

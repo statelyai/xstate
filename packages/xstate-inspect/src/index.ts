@@ -27,32 +27,33 @@ const services = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();
 const serviceListeners = new Set<ServiceListener>();
 
-window.__xstate__ = {
-  services,
-  register: (service) => {
-    services.add(service);
-    serviceMap.set(service.sessionId, service);
-    serviceListeners.forEach((listener) => listener(service));
+function createDevTools() {
+  window.__xstate__ = {
+    services,
+    register: (service) => {
+      services.add(service);
+      serviceMap.set(service.sessionId, service);
+      serviceListeners.forEach((listener) => listener(service));
 
-    service.onStop(() => {
-      services.delete(service);
-      serviceMap.delete(service.sessionId);
-    });
-  },
-  onRegister: (listener) => {
-    serviceListeners.add(listener);
-    services.forEach((service) => listener(service));
+      service.onStop(() => {
+        services.delete(service);
+        serviceMap.delete(service.sessionId);
+      });
+    },
+    onRegister: (listener) => {
+      serviceListeners.add(listener);
+      services.forEach((service) => listener(service));
 
-    return {
-      unsubscribe: () => {
-        serviceListeners.delete(listener);
-      }
-    };
-  }
-};
+      return {
+        unsubscribe: () => {
+          serviceListeners.delete(listener);
+        }
+      };
+    }
+  };
+}
 
-// @ts-ignore
-const inspectMachine = createMachine<{
+export const inspectMachine = createMachine<{
   client?: any;
 }>({
   initial: 'pendingConnection',
@@ -81,7 +82,8 @@ const inspectMachine = createMachine<{
           actions: (ctx) => {
             ctx.client!.send({ type: 'xstate.disconnect' });
           }
-        }
+        },
+        disconnect: 'pendingConnection'
       }
     }
   },
@@ -91,7 +93,7 @@ const inspectMachine = createMachine<{
       actions: [
         assign({ client: (_, e) => e.client }),
         (ctx) => {
-          window.__xstate__.services.forEach((service) => {
+          globalThis.__xstate__.services.forEach((service) => {
             ctx.client.send({
               type: 'service.register',
               machine: JSON.stringify(service.machine),
@@ -110,7 +112,13 @@ const defaultInspectorOptions: InspectorOptions = {
   iframe: () => document.querySelector<HTMLIFrameElement>('iframe[data-xstate]')
 };
 
-export function inspect(options?: Partial<InspectorOptions>) {
+export function inspect(
+  options?: Partial<InspectorOptions>
+): {
+  disconnect: () => void;
+} {
+  createDevTools();
+
   const { iframe, url } = { ...defaultInspectorOptions, ...options };
   const resolvedIframe = typeof iframe === 'function' ? iframe() : iframe;
 
@@ -123,13 +131,12 @@ export function inspect(options?: Partial<InspectorOptions>) {
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
 
-    return;
+    return { disconnect: () => void 0 };
   }
 
   let client: any;
 
-  window.addEventListener('message', (event) => {
-    console.log(event);
+  const messageHandler = (event) => {
     if (
       typeof event.data === 'object' &&
       event.data !== null &&
@@ -152,7 +159,9 @@ export function inspect(options?: Partial<InspectorOptions>) {
         client
       });
     }
-  });
+  };
+
+  window.addEventListener('message', messageHandler);
 
   window.addEventListener('unload', () => {
     inspectService.send({ type: 'unload' });
@@ -162,7 +171,7 @@ export function inspect(options?: Partial<InspectorOptions>) {
     targetWindow = window.open(url, 'xstateinspector');
   }
 
-  window.__xstate__.onRegister((service) => {
+  globalThis.__xstate__.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.machine),
@@ -186,4 +195,11 @@ export function inspect(options?: Partial<InspectorOptions>) {
 
     resolvedIframe.setAttribute('src', url);
   }
+
+  return {
+    disconnect: () => {
+      inspectService.send('disconnect');
+      window.removeEventListener('message', messageHandler);
+    }
+  };
 }

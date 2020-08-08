@@ -1,4 +1,4 @@
-import React, { useLayoutEffect } from "react";
+import React, { useLayoutEffect, useState } from "react";
 import { createMachine, assign } from "xstate";
 import { inspect } from "@xstate/inspect";
 
@@ -44,16 +44,22 @@ const Simple = () => {
 };
 
 export const SimpleInspector = () => {
+  const [inspecting, setInspecting] = useState(false);
   useLayoutEffect(() => {
-    inspect({
+    const i = inspect({
       // url: 'https://embed.statecharts.io'
       url: "http://localhost:3000/inspect",
     });
+    setInspecting(true);
+
+    return () => {
+      i.disconnect();
+    };
   }, []);
 
   return (
     <>
-      <Simple />
+      {inspecting && <Simple />}
       <hr></hr>
       <iframe
         data-xstate
@@ -67,17 +73,23 @@ export const SimpleInspector = () => {
 };
 
 export const PopupInspector = () => {
+  const [inspecting, setInspecting] = useState(false);
   useLayoutEffect(() => {
-    inspect({
+    const i = inspect({
       // url: 'https://embed.statecharts.io'
       url: "http://localhost:3000/inspect",
       iframe: false,
     });
+    setInspecting(true);
+
+    return () => {
+      i.disconnect();
+    };
   }, []);
 
   return (
     <>
-      <Simple />
+      {inspecting && <Simple />}
       <hr></hr>
       <iframe
         data-xstate
