@@ -1,20 +1,32 @@
+@import "./sequenceDiagram.scss";
+
 [data-xviz] {
   --xviz-background-color: #111;
   --xviz-background-transparent-color: #{rgb(#111, 0.8)};
   --xviz-foreground-color: white;
   --xviz-active-color: rgb(19, 129, 201);
+  --xviz-semiactive-color: rgb(19, 129, 201, 0.75);
   --xviz-active-border-color: var(--xviz-active-color);
   --xviz-inactive-border-color: #{rgba(white, 0.4)};
+  --xviz-color-selected: var(--xviz-active-color);
+  --xviz-bgcolor-selected: rgba(19, 129, 201, 0.5);
   --xviz-border-width: 2px;
+  --xviz-font-size-base: 12px;
+  --xviz-font-size-large: 16px;
+  --xviz-font-size-small: 10px;
+  --xviz-sp: 12px;
+  --xviz-border-radius: calc(var(--xviz-sp) / 4);
+  font-family: "Segoe UI", Tahoma, Geneva, Verdana, sans-serif;
 }
 
-[data-xviz='machine-container'],
-[data-xviz='service'],
-[data-xviz='inspector'] {
-  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  --gap: 0.5rem;
+[data-xviz="machine-container"],
+[data-xviz="service"],
+[data-xviz="inspector"],
+[data-xviz="sequenceDiagram"] {
+  --gap: calc(var(--xviz-sp) * 2);
   background: var(--xviz-background-color);
   color: white;
+  font-size: var(--xviz-font-size-base);
 
   &,
   * {
@@ -23,12 +35,12 @@
   }
 }
 
-[data-xviz='service-id'] {
-  padding: 1rem;
-  font-size: 125%;
+[data-xviz="service-id"] {
+  padding: var(--xviz-sp);
+  font-size: var(--xviz-font-size-large);
 }
 
-[data-xviz='machine-container'] {
+[data-xviz="machine-container"] {
   overflow: hidden;
   height: 100%;
   width: 100%;
@@ -39,204 +51,229 @@ body {
   overscroll-behavior-x: none;
 }
 
-[data-xviz='machine-foreignObject'] {
+[data-xviz="machine-foreignObject"] {
   overflow: visible;
 }
 
-[data-xviz='machine'] {
-  padding: 1rem;
+[data-xviz="machine"] {
+  padding: var(--xviz-sp);
   display: grid;
   max-height: 100%;
   overscroll-behavior-x: none;
 }
 
-[data-xviz='stateNode'] {
+[data-xviz="stateNode"] {
   --child-border-style: solid;
   align-self: self-start;
   display: grid;
   grid-template-columns: auto auto;
   grid-template-rows: 1fr;
-  grid-template-areas: 'state' 'events';
+  grid-template-areas: "state" "events";
   grid-column-gap: var(--gap);
 
-  &[data-xviz-type='history'] {
-    > [data-xviz='stateNode-state'] {
+  &[data-xviz-type="history"] {
+    > [data-xviz="stateNode-state"] {
       border-style: dotted;
     }
 
-    --content: 'H';
-    [data-xviz='stateNode-key'] {
+    --content: "H";
+    [data-xviz="stateNode-key"] {
       &:after {
         content: var(--content);
         margin-left: 1ch;
         background: rgba(white, 0.3);
-        padding: 0.25rem;
-        font-size: 0.6rem;
+        padding: calc(var(--xviz-sp) / 4);
+        font-size: var(--xviz-font-size-small);
         color: #fff;
       }
     }
 
-    &[data-xviz-history='deep'] {
-      --content: 'H*';
+    &[data-xviz-history="deep"] {
+      --content: "H*";
     }
   }
 
-  &[data-xviz-type='final'] {
-    > [data-xviz='stateNode-state']:before {
-      --offset: 2px;
-      content: '';
-      position: absolute;
-      height: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
-      width: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
-      top: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
-      left: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
-      border: inherit;
-      border-radius: calc(var(--xviz-border-radius) + var(--offset));
+  &[data-xviz-type="final"] {
+    > [data-xviz="stateNode-state"] {
+      border-width: 6px;
+
+      &:after {
+        content: "";
+        position: absolute;
+        height: calc(100% + 8px);
+        width: calc(100% + 8px);
+        border: 2px solid black;
+        top: -4px;
+        left: -4px;
+        border-radius: inherit;
+      }
+      // --offset: 2px;
+      // content: '';
+      // position: absolute;
+      // height: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
+      // width: calc(100% + var(--offset) * 2 + var(--xviz-border-width) * 2);
+      // top: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
+      // left: calc(-1 * var(--offset) - var(--xviz-border-width) * 2);
+      // border: inherit;
+      // border-radius: calc(var(--xviz-border-radius) + var(--offset));
     }
   }
 
-  &[data-xviz-parent-type='parallel'] {
+  &[data-xviz-parent-type="parallel"] {
     --child-border-style: dashed;
   }
 
-  &[data-xviz-parent-type='machine'] {
-    > [data-xviz='stateNode-state'] {
-      > [data-xviz='stateNode-content'] > [data-xviz='stateNode-key'] {
-        font-size: 1.5rem;
+  &[data-xviz-parent-type="machine"] {
+    > [data-xviz="stateNode-state"] {
+      > [data-xviz="stateNode-content"] > [data-xviz="stateNode-key"] {
+        font-size: var(--xviz-font-size-large);
       }
     }
   }
 
-  &[data-xviz-type='atomic'],
-  &[data-xviz-type='final'],
-  &[data-xviz-type='history'] {
-    > [data-xviz='stateNode-state'] {
-      background: var(--xviz-background-transparent-color);
+  &[data-xviz-type="atomic"],
+  &[data-xviz-type="final"],
+  &[data-xviz-type="history"] {
+    > [data-xviz="stateNode-state"] {
+      // background: var(--xviz-background-transparent-color);
     }
   }
 
-  > [data-xviz='stateNode-state'] {
+  > [data-xviz="stateNode-state"] {
     grid-area: state;
     align-self: self-start;
     border-style: var(--child-border-style);
   }
 
-  > [data-xviz='stateNode-events'] {
+  > [data-xviz="stateNode-events"] {
     grid-area: events;
   }
 
   + & {
-    margin-top: 1rem;
+    margin-top: var(--xviz-sp);
   }
 
   &[data-xviz-selected] {
-    outline: 2px solid rgb(116, 116, 245);
-    outline-offset: 4px;
+    --xviz-selection-offset: 4px;
+
+    > [data-xviz="stateNode-state"]:before {
+      content: "";
+      outline: 2px solid var(--xviz-color-selected);
+      background: var(--xviz-bgcolor-selected);
+      position: absolute;
+      top: calc(var(--xviz-selection-offset) * -1);
+      left: calc(var(--xviz-selection-offset) * -1);
+      width: calc(var(--xviz-selection-offset) * 2 + 100%);
+      height: calc(var(--xviz-selection-offset) * 2 + 100%);
+    }
   }
 
-  &[data-xviz-transitions='0'] {
+  &[data-xviz-transitions="0"] {
     grid-template-columns: auto;
-    > [data-xviz='stateNode-events'] {
+    > [data-xviz="stateNode-events"] {
       display: none;
     }
   }
 }
 
-[data-xviz='stateNode-state'] {
-  --xviz-border-radius: 0.25rem;
+[data-xviz="stateNode-state"] {
   border: 2px solid var(--xviz-border-color);
   border-radius: var(--xviz-border-radius);
 }
 
-[data-xviz='stateNode-children'] {
+[data-xviz="stateNode-children"] {
   display: flex;
   flex-wrap: wrap;
-  padding: 1rem 0.5rem;
+  padding: var(--xviz-sp) calc(var(--xviz-sp) / 2);
 
-  > [data-xviz='stateNode'] {
-    margin: 2rem;
+  > [data-xviz="stateNode"] {
+    margin: calc(var(--xviz-sp) * 2);
   }
 }
 
-[data-xviz='stateNode-content'] {
+[data-xviz="stateNode-content"] {
   display: grid;
   grid-template-columns: 1fr auto;
   grid-template-rows: auto auto auto auto;
   grid-template-areas:
-    'key key'
-    'description description'
-    'invocations invocations'
-    'entry exit';
+    "key key"
+    "description description"
+    "invocations invocations"
+    "entry exit";
 
-  > [data-xviz='stateNode-key'] {
+  > [data-xviz="stateNode-key"] {
     grid-area: key;
   }
 
-  > [data-xviz='stateNode-description'] {
+  > [data-xviz="stateNode-description"] {
     grid-area: description;
   }
 
-  > [data-xviz='actions'][data-xviz-actions='entry'] {
+  > [data-xviz="actions"][data-xviz-actions="entry"] {
     grid-area: entry;
   }
-  > [data-xviz='actions'][data-xviz-actions='exit'] {
+  > [data-xviz="actions"][data-xviz-actions="exit"] {
     grid-area: exit;
   }
 }
 
-[data-xviz='stateNode-key'] {
-  padding: 0.5rem;
+[data-xviz="stateNode-key"] {
+  padding: calc(var(--xviz-sp) / 2);
   font-weight: bold;
   display: flex;
   align-items: center;
 }
 
-[data-xviz='stateNode-description'] {
-  padding: 0 0.5rem;
+[data-xviz="stateNode-description"] {
+  padding: 0 calc(var(--xviz-sp) / 2);
+  max-width: 15rem;
 
   img {
-    max-width: 100px;
+    max-width: 200px;
   }
 }
 
-[data-xviz='event-label'] {
+[data-xviz="event-label"] {
+  transition: background-color 0.3s ease;
+  cursor: var(--xviz-event-label-cursor, normal);
   border: none;
   background-color: var(--xviz-event-label-bgcolor, var(--xviz-border-color));
   color: var(--xviz-event-label-fgcolor, var(--xviz-color-foreground));
-  border-radius: 1rem;
+  border-radius: var(--xviz-sp);
   font-weight: bold;
   font-size: 75%;
   overflow: hidden;
+  user-select: none;
 
-  &:not(:hover) + [data-xviz='event-targets'] {
+  &:not(:hover) + [data-xviz="event-targets"] {
     opacity: 0.2;
   }
 }
 
-[data-xviz='stateNode-invocations'] {
-  padding: 0.5rem;
+[data-xviz="stateNode-invocations"] {
+  padding: calc(var(--xviz-sp) / 2);
 
   &:before {
     @extend %content-prefix;
     text-decoration: none;
-    --content: 'invoke / ';
+    --content: "invoke / ";
   }
 }
 
-[data-xviz='events'] {
+[data-xviz="events"] {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
   align-self: self-start;
 }
 
-[data-xviz='event'] {
-  margin-bottom: 0.5rem;
+[data-xviz="event"] {
+  margin-bottom: calc(var(--xviz-sp) / 2);
   display: flex;
   flex-direction: column;
   align-items: flex-start;
 
-  &[data-xviz-triggered] [data-xviz='event-label'] {
+  &[data-xviz-triggered] [data-xviz="event-label"] {
     // animation: flash 0.6s ease-out both;
 
     // @keyframes flash {
@@ -251,23 +288,27 @@ body {
   }
 
   &[data-xviz-active] {
-    --xviz-event-label-bgcolor: var(--xviz-active-color);
+    --xviz-event-label-bgcolor: var(--xviz-semiactive-color);
+
+    &:hover {
+      --xviz-event-label-bgcolor: var(--xviz-active-color);
+    }
   }
 
   &[data-xviz-builtin] {
-    [data-xviz='event-type'] {
+    [data-xviz="event-type"] {
       font-style: italic;
     }
   }
 
-  &[data-xviz-guarded] > [data-xviz='event-label'] {
+  &[data-xviz-guarded] > [data-xviz="event-label"] {
     display: flex;
     flex-direction: row;
     align-items: center;
   }
 }
 
-[data-xviz='event-meta'] {
+[data-xviz="event-meta"] {
   display: none;
 }
 
@@ -282,21 +323,21 @@ body {
   white-space: nowrap;
 }
 
-[data-xviz='actions'] {
+[data-xviz="actions"] {
   opacity: 1;
   &:empty {
     display: none;
   }
 
-  padding: 0.5rem;
-  --content: 'do / ';
+  padding: calc(var(--xviz-sp) / 2);
+  --content: "do / ";
 
-  &[data-xviz-actions='entry'] {
-    --content: 'entry / ';
+  &[data-xviz-actions="entry"] {
+    --content: "entry / ";
   }
 
-  &[data-xviz-actions='exit'] {
-    --content: 'exit / ';
+  &[data-xviz-actions="exit"] {
+    --content: "exit / ";
   }
 
   > *:before {
@@ -304,7 +345,7 @@ body {
   }
 }
 
-[data-xviz='action'] {
+[data-xviz="action"] {
   line-height: 1.5;
   white-space: nowrap;
   display: flex;
@@ -312,7 +353,7 @@ body {
   align-items: baseline;
 
   &[data-xviz-builtin] {
-    [data-xviz='action-entry'] {
+    [data-xviz="action-entry"] {
       display: none;
     }
   }
@@ -324,31 +365,31 @@ body {
   }
 }
 
-[data-xviz='action-payload'] {
+[data-xviz="action-payload"] {
   display: grid;
   grid-template-columns: min-content 1fr;
-  grid-column-gap: 1rem;
+  grid-column-gap: var(--xviz-sp);
   grid-auto-rows: auto;
 
-  > [data-xviz='action-property'] {
+  > [data-xviz="action-property"] {
     grid-column: 1 / 2;
   }
 
-  > [data-xviz='action-value'] {
+  > [data-xviz="action-value"] {
     grid-column: 2 / 3;
   }
 }
 
-[data-xviz='action-entry'] {
-  &[data-xviz-entry-type='undefined'] {
+[data-xviz="action-entry"] {
+  &[data-xviz-entry-type="undefined"] {
     display: none;
   }
 }
 
-[data-xviz='action-property'] {
+[data-xviz="action-property"] {
   margin: 0;
 }
-[data-xviz='action-type'] {
+[data-xviz="action-type"] {
   max-width: 15rem;
   font-size: 75%;
   white-space: nowrap;
@@ -356,7 +397,7 @@ body {
   text-overflow: ellipsis;
 }
 
-[data-xviz='event-type'] {
+[data-xviz="event-type"] {
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -365,57 +406,57 @@ body {
   justify-content: flex-start;
   align-items: center;
 
-  &[data-xviz-keyword='done'] {
+  &[data-xviz-keyword="done"] {
     --xviz-keyword-color: rgb(85, 255, 85);
   }
-  &[data-xviz-keyword='error'] {
+  &[data-xviz-keyword="error"] {
     --xviz-keyword-color: rgb(249, 144, 120);
   }
-  &[data-xviz-keyword='after'] {
+  &[data-xviz-keyword="after"] {
     --xviz-keyword-color: rgb(255, 228, 94);
   }
-  &[data-xviz-keyword='always'] {
+  &[data-xviz-keyword="always"] {
     --xviz-keyword-color: var(--xviz-active-color);
   }
 
   &[data-xviz-keyword] {
     &:before {
-      content: '';
-      height: 0.5rem;
-      width: 0.5rem;
-      border-radius: 0.5rem;
+      content: "";
+      height: calc(var(--xviz-sp) / 2);
+      width: calc(var(--xviz-sp) / 2);
+      border-radius: calc(var(--xviz-sp) / 2);
       background-color: var(--xviz-keyword-color);
       display: inline-block;
       border: 1px solid rgba(white, 0.5);
-      margin-right: 0.5rem;
+      margin-right: calc(var(--xviz-sp) / 2);
     }
 
-    [data-xviz='event-type-text'] {
+    [data-xviz="event-type-text"] {
       margin-left: 1ch;
     }
   }
 }
 
-[data-xviz='event-targets'] {
+[data-xviz="event-targets"] {
   position: absolute;
   display: none;
 }
 
-[data-xviz='action-value'] {
+[data-xviz="action-value"] {
   margin: 0;
 }
 
-[data-xviz='edges'] {
+[data-xviz="edges"] {
   // pointer-events: none;
 }
 
-[data-xviz='machine-container'][data-xviz-mode='play'] {
+[data-xviz="machine-container"][data-xviz-mode="play"] {
   --xviz-edge-stroke: rgba(255, 255, 255, 0.9);
 
   --xviz-event-label-bgcolor: rgba(255, 255, 255, 0.4);
   --xviz-event-label-fgcolor: white;
 
-  [data-xviz='stateNode'] {
+  [data-xviz="stateNode"] {
     &[data-xviz-active] {
       --xviz-border-color: var(--xviz-active-border-color);
     }
@@ -425,46 +466,46 @@ body {
       }
       --xviz-border-color: var(--xviz-inactive-border-color);
 
-      [data-xviz='actions'],
-      [data-xviz='stateNode-invocations'],
-      [data-xviz='stateNode-key'] {
+      [data-xviz="actions"],
+      [data-xviz="stateNode-invocations"],
+      [data-xviz="stateNode-key"] {
         opacity: 0.5;
       }
     }
   }
-  [data-xviz='edge'] {
+  [data-xviz="edge"] {
     pointer-events: auto;
 
-    &:not([data-xviz-current]) > [data-xviz='edge-path'] {
+    &:not([data-xviz-current]) > [data-xviz="edge-path"] {
       opacity: 0.1;
     }
   }
 
-  [data-xviz='initialEdge'] {
+  [data-xviz="initialEdge"] {
     &:not([data-xviz-current]) {
       opacity: 0.1;
     }
   }
 }
 
-[data-xviz='machine-container'][data-xviz-mode='read'] {
+[data-xviz="machine-container"][data-xviz-mode="read"] {
   --xviz-edge-stroke: rgba(255, 255, 255, 0.5);
   --xviz-border-color: white;
   --xviz-event-label-bgcolor: rgba(255, 255, 255, 0.25);
   --xviz-event-label-fgcolor: white;
 }
 
-[data-xviz='edge'] {
+[data-xviz="edge"] {
   pointer-events: auto;
 
   &[data-xviz-current] {
-    > [data-xviz='edge-path'] {
+    > [data-xviz="edge-path"] {
       transition-duration: 0.6s;
     }
   }
 
   &[data-xviz-triggered] {
-    [data-xviz='edge-path'][data-xviz-secondary] {
+    [data-xviz="edge-path"][data-xviz-secondary] {
       // stroke: var(--xviz-active-color);
       // opacity: 1;
       // animation: xviz-edge-path-active 0.6s cubic-bezier(0, 1, 1, 1) both;
@@ -481,8 +522,8 @@ body {
   }
 }
 
-[data-xviz='initialEdge-path'],
-[data-xviz='edge-path'] {
+[data-xviz="initialEdge-path"],
+[data-xviz="edge-path"] {
   transition: stroke 0.3s;
   stroke-width: var(--xviz-stroke-width);
   stroke: var(--xviz-edge-stroke);
@@ -490,38 +531,38 @@ body {
   stroke-dasharray: 1 1;
 }
 
-[data-xviz='initialEdge-circle'] {
+[data-xviz="initialEdge-circle"] {
   fill: var(--xviz-edge-stroke);
 }
 
-[data-xviz='edge-arrow'] {
+[data-xviz="edge-arrow"] {
   fill: var(--xviz-edge-stroke);
 }
 
-[data-xviz='event-cond'] {
-  padding: 0.25rem 0.5rem;
+[data-xviz="event-cond"] {
+  padding: 0.25rem calc(var(--xviz-sp) / 2);
 
   &:before,
   &:after {
     display: inline-block;
   }
   &:before {
-    content: '[';
+    content: "[";
   }
   &:after {
-    content: ']';
+    content: "]";
   }
 
-  > [data-xviz='event-cond-name'] {
+  > [data-xviz="event-cond-name"] {
     display: inline-block;
   }
 }
 
-[data-xviz='action-entries'] {
+[data-xviz="action-entries"] {
   display: table;
 }
 
-[data-xviz='action-entry'] {
+[data-xviz="action-entry"] {
   display: table-row;
 
   > * {
@@ -529,30 +570,30 @@ body {
   }
 }
 
-[data-xviz='invoke'] {
+[data-xviz="invoke"] {
   // ...
 }
 
-[data-xviz='invoke-link'] {
+[data-xviz="invoke-link"] {
   color: rgb(92, 148, 252);
   text-decoration: underline;
   cursor: pointer;
 }
 
-[data-xviz='invoke-src'] {
+[data-xviz="invoke-src"] {
   display: none;
 }
 
 // JSON
-[data-xviz^='json'] {
+[data-xviz^="json"] {
   font-family: monospace;
 }
-[data-xviz='json-entry'],
-[data-xviz='json-item'] {
-  padding-left: 1rem;
+[data-xviz="json-entry"],
+[data-xviz="json-item"] {
+  padding-left: var(--xviz-sp);
 
   &[data-xviz-primitive] {
-    > [data-xviz='json-key'] {
+    > [data-xviz="json-key"] {
       margin-right: 1ch;
     }
     > * {
@@ -561,49 +602,50 @@ body {
   }
 }
 
-[data-xviz='action-entries'] {
+[data-xviz="action-entries"] {
   display: none;
 }
 
-[data-xviz='sequence'] {
+[data-xviz="sequence"] {
   td {
     border: 1px solid black;
   }
   // display: grid;
 }
 
-[data-xviz='inspector'] {
+[data-xviz="inspector"] {
   background: var(--xviz-background-color);
   height: 100%;
   display: grid;
   grid-template-columns: 1fr;
   grid-template-rows: auto 1fr;
   grid-template-areas:
-    'header'
-    'service';
+    "header"
+    "service";
   overflow: hidden;
 
-  > [data-xviz='inspector-header'] {
+  > [data-xviz="inspector-header"] {
     grid-area: header;
   }
 
-  [data-xviz='service-link'] {
-    padding: 0.5rem;
+  [data-xviz="service-link"] {
+    padding: calc(var(--xviz-sp) / 2);
     border-bottom: 1px solid rgba(white, 0.3);
   }
 
-  > [data-xviz='service'] {
+  > [data-xviz="service"] {
     grid-area: service;
     display: grid;
     grid-template-columns: 1fr 20rem;
     grid-template-rows: 1fr;
-    grid-template-areas: 'x state';
+    grid-template-areas: "x state";
+    overflow: hidden;
 
     &[hidden] {
       display: none;
     }
 
-    > [data-xviz='machine-container'] {
+    > [data-xviz="machine-container"] {
       position: absolute;
       height: 100%;
       width: 100%;
@@ -611,36 +653,36 @@ body {
       left: 0;
     }
 
-    > [data-xviz='event-records'] {
+    > [data-xviz="event-records"] {
       grid-area: events;
 
       &:before {
-        content: 'Events';
+        content: "Events";
         font-weight: bold;
         display: block;
-        margin-bottom: 0.5rem;
+        margin-bottom: calc(var(--xviz-sp) / 2);
       }
     }
 
-    > [data-xviz='state'] {
+    > [data-xviz="state"] {
       grid-area: state;
-      background-color: var(--xviz-background-transparent-color);
+      overflow-y: auto;
 
       &:before {
-        content: 'State';
+        content: "State";
         font-weight: bold;
         display: block;
-        margin-bottom: 0.5rem;
+        margin-bottom: calc(var(--xviz-sp) / 2);
       }
     }
 
     @media (max-width: 40rem) {
       display: block;
 
-      &[data-xviz-view='graph'] > :not([data-xviz='machine']) {
+      &[data-xviz-view="graph"] > :not([data-xviz="machine"]) {
         display: none;
       }
-      &[data-xviz-view='state'] > :not([data-xviz='state']) {
+      &[data-xviz-view="state"] > :not([data-xviz="state"]) {
         display: none;
       }
     }
@@ -648,10 +690,10 @@ body {
 
   @media (max-width: 40rem) {
     grid-template-areas:
-      'header header'
-      'service service';
+      "header header"
+      "service service";
 
-    > [data-xviz='services'] {
+    > [data-xviz="services"] {
       grid-area: service;
       height: 100%;
       width: auto;
@@ -660,74 +702,74 @@ body {
       background: var(--xviz-background-color);
       transition: transform 0.3s;
 
-      &[data-xviz-state='closed'] {
+      &[data-xviz-state="closed"] {
         transform: translateX(-100%);
       }
     }
   }
 }
 
-[data-xviz='inspector-header'] {
-  padding: 1rem;
+[data-xviz="inspector-header"] {
+  padding: var(--xviz-sp);
   display: flex;
   flex-direction: row;
 
-  > [data-xviz='inspector-action'] {
-    margin-right: 1rem;
+  > [data-xviz="inspector-action"] {
+    margin-right: var(--xviz-sp);
   }
 }
 
-[data-xviz='inspector-action'] {
+[data-xviz="inspector-action"] {
   appearance: none;
   border: none;
   background: rgba(white, 0.2);
   color: white;
   font-weight: bold;
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem calc(var(--xviz-sp) / 2);
   border-radius: 0.25rem;
 }
 
-[data-xviz='state'] {
+[data-xviz="state"] {
   background: var(--xviz-background-color);
   color: var(--xviz-foreground-color);
-  padding: 1rem;
+  padding: var(--xviz-sp);
 }
 
-[data-xviz='event-records'] {
+[data-xviz="event-records"] {
   overflow-y: auto;
 }
 
-[data-xviz='event-record-name'] {
+[data-xviz="event-record-name"] {
   font-family: monospace;
   font-weight: bold;
 }
 
-[data-xviz='json-object'] {
-  --placeholder: '{...}';
-  --start-wrapper: '{';
-  --end-wrapper: '}';
+[data-xviz="json-object"] {
+  --placeholder: "{...}";
+  --start-wrapper: "{";
+  --end-wrapper: "}";
 
   &[data-xviz-json-empty] {
-    --placeholder: '{}';
+    --placeholder: "{}";
   }
 }
 
-[data-xviz='json-array'] {
-  --placeholder: '[...]';
-  --start-wrapper: '[';
-  --end-wrapper: ']';
+[data-xviz="json-array"] {
+  --placeholder: "[...]";
+  --start-wrapper: "[";
+  --end-wrapper: "]";
 
   &[data-xviz-json-empty] {
-    --placeholder: '[]';
+    --placeholder: "[]";
   }
 }
 
-[data-xviz='json-object'],
-[data-xviz='json-array'] {
+[data-xviz="json-object"],
+[data-xviz="json-array"] {
   --value-color: #32cdba;
 
   &:not([open]) {
-    > [data-xviz='json-key']:after {
+    > [data-xviz="json-key"]:after {
       content: var(--placeholder);
       color: var(--value-color);
       margin-left: 1ch;
@@ -735,32 +777,32 @@ body {
   }
 
   &[open] {
-    > [data-xviz='json-key']:after {
+    > [data-xviz="json-key"]:after {
       content: var(--start-wrapper);
       margin-left: 1ch;
     }
   }
 
-  > [data-xviz='json-value']:after {
+  > [data-xviz="json-value"]:after {
     content: var(--end-wrapper);
   }
 
   &[data-xviz-json-empty] {
-    > [data-xviz='json-value']:before {
+    > [data-xviz="json-value"]:before {
       opacity: 0.5;
-      content: 'Empty';
+      content: "Empty";
       font-style: italic;
       display: block;
       padding-left: 2ch;
     }
   }
 
-  > [data-xviz='json-value'] {
+  > [data-xviz="json-value"] {
     padding-left: 2ch;
   }
 }
 
-[data-xviz='json-primitive'] {
+[data-xviz="json-primitive"] {
   display: grid;
   grid-template-columns: min-content auto;
   grid-column-gap: 1ch;
@@ -770,38 +812,38 @@ body {
     padding-left: 2ch;
   }
 
-  [data-xviz='json-value'] {
+  [data-xviz="json-value"] {
     color: var(--value-color);
   }
 
-  &[data-xviz-json-type='undefined'],
-  &[data-xviz-json-type='function'] {
-    > [data-xviz='json-value'] {
+  &[data-xviz-json-type="undefined"],
+  &[data-xviz-json-type="function"] {
+    > [data-xviz="json-value"] {
       font-style: italic;
     }
   }
 
-  &[data-xviz-json-type='undefined'] {
-    [data-xviz='json-value']::before {
-      content: 'undefined';
+  &[data-xviz-json-type="undefined"] {
+    [data-xviz="json-value"]::before {
+      content: "undefined";
     }
   }
-  &[data-xviz-json-type='function'] {
-    [data-xviz='json-value']::before {
-      content: 'function';
+  &[data-xviz-json-type="function"] {
+    [data-xviz="json-value"]::before {
+      content: "function";
     }
   }
 }
 
-[data-xviz='json-custom'] {
+[data-xviz="json-custom"] {
   padding-left: 2ch;
 
-  > [data-xviz='json-value'] {
+  > [data-xviz="json-value"] {
     padding-left: 2ch;
   }
 }
 
-[data-xviz='json-key'] {
+[data-xviz="json-key"] {
   &:focus {
     outline: none;
   }
@@ -812,21 +854,21 @@ body {
   }
 }
 
-[data-xviz='json-key'],
-[data-xviz='json-value'] {
+[data-xviz="json-key"],
+[data-xviz="json-value"] {
   line-height: 1.6;
 }
 
-[data-xviz='loader'] {
+[data-xviz="loader"] {
   display: flex;
   flex-direction: column;
   justify-content: center;
   align-items: center;
-  padding: 1rem;
+  padding: var(--xviz-sp);
 }
 
-[data-xviz='loader'] > [data-xviz='logo'] {
-  margin-bottom: 1rem;
+[data-xviz="loader"] > [data-xviz="logo"] {
+  margin-bottom: var(--xviz-sp);
   animation: pulse 1s ease infinite both;
   height: 5rem;
   width: 5rem;
@@ -837,11 +879,11 @@ body {
   }
 }
 
-[data-xviz='loader-message'] {
+[data-xviz="loader-message"] {
   color: white;
 }
 
-[data-xviz='inspector'] > [data-xviz='loader'] {
+[data-xviz="inspector"] > [data-xviz="loader"] {
   grid-column: 1 / -1;
   grid-row: 2 / -1;
 }
@@ -856,15 +898,15 @@ body {
   }
 }
 
-[data-xviz='controls'] {
+[data-xviz="controls"] {
   position: absolute;
   bottom: 0;
   right: 0;
   border-radius: 0.25rem;
-  margin: 1rem;
+  margin: var(--xviz-sp);
   overflow: hidden;
 
-  > [data-xviz='button'] {
+  > [data-xviz="button"] {
     appearance: none;
     background: white;
     border: none;
@@ -875,7 +917,7 @@ body {
     font-weight: bold;
     user-select: none;
 
-    + [data-xviz='button'] {
+    + [data-xviz="button"] {
       border-left: 1px solid #ddd;
     }
 
@@ -889,18 +931,18 @@ body {
   }
 }
 
-[data-xviz='stateNodeNav'] {
-  &[data-xviz-children='0'] {
-    [data-xviz='stateNodeNav-content']::-webkit-details-marker {
+[data-xviz="stateNodeNav"] {
+  &[data-xviz-children="0"] {
+    [data-xviz="stateNodeNav-content"]::-webkit-details-marker {
       visibility: hidden;
     }
   }
 }
 
-[data-xviz='stateNodeNav-content'] {
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
-  padding-left: calc(1rem * var(--xviz-depth));
+[data-xviz="stateNodeNav-content"] {
+  padding-top: calc(var(--xviz-sp) / 2);
+  padding-bottom: calc(var(--xviz-sp) / 2);
+  padding-left: calc(var(--xviz-sp) * var(--xviz-depth));
   display: flex;
   flex-direction: row;
   align-items: baseline;

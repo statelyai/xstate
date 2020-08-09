@@ -1,7 +1,4 @@
 import * as React from "react";
-// import { useContext, useEffect, useRef } from 'react';
-// import { StateContext } from './StateContext';
-import { Edge } from "./types";
 import { useContext } from "react";
 import { StateContext } from "./StateContext";
 import {

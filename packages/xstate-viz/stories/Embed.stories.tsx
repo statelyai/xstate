@@ -1,5 +1,5 @@
 import React, { useLayoutEffect, useState } from "react";
-import { createMachine, assign } from "xstate";
+import { createMachine, assign, sendParent, send } from "xstate";
 import { inspect } from "@xstate/inspect";
 
 import "../themes/dark.scss";
@@ -9,28 +9,46 @@ export default {
   title: "Inspector Embed",
 };
 
-const simpleMachine = createMachine<{ count: number }>({
-  id: "simple",
-  initial: "inactive",
-  context: {
-    count: 0,
-  },
-  invoke: {
-    src: createMachine({
-      initial: "foo",
-      states: { foo: {} },
-    }),
-  },
-  states: {
-    inactive: {
-      on: { TOGGLE: "active" },
+const simpleMachine = createMachine<{ count: number }>(
+  {
+    id: "simple",
+    initial: "inactive",
+    context: {
+      count: 0,
     },
-    active: {
-      entry: assign({ count: (ctx) => ctx.count + 1 }),
-      on: { TOGGLE: "inactive" },
+    states: {
+      inactive: {
+        invoke: {
+          src: createMachine({
+            initial: "foo",
+            states: {
+              foo: {
+                after: {
+                  TIMEOUT: {
+                    actions: sendParent("TOGGLE"),
+                  },
+                },
+              },
+            },
+          }),
+        },
+        on: { TOGGLE: "active" },
+      },
+      active: {
+        entry: assign({ count: (ctx) => ctx.count + 1 }),
+        on: { TOGGLE: "inactive" },
+        after: {
+          TIMEOUT: { actions: send("TOGGLE") },
+        },
+      },
     },
   },
-});
+  {
+    delays: {
+      TIMEOUT: 5000,
+    },
+  }
+);
 
 const Simple = () => {
   const [state, send] = useMachine(simpleMachine, { devTools: true });
