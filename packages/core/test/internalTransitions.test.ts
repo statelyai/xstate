@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { Machine, interpret, assign } from '../src/index';
 
 const wordMachine = Machine({
   key: 'word',
@@ -139,5 +139,109 @@ describe('internal transitions', () => {
     const hiddenState = topLevelMachine.transition('Hidden', 'PARENT_EVENT');
 
     expect(hiddenState.value).toEqual('Hidden');
+  });
+
+  it('should reenter proper descendants of a source state of an internal transition', () => {
+    const machine = Machine<{
+      sourceStateEntries: number;
+      directDescendantEntries: number;
+      deepDescendantEntries: number;
+    }>({
+      context: {
+        sourceStateEntries: 0,
+        directDescendantEntries: 0,
+        deepDescendantEntries: 0
+      },
+      initial: 'a1',
+      states: {
+        a1: {
+          initial: 'a11',
+          entry: assign({
+            sourceStateEntries: (ctx) => ctx.sourceStateEntries + 1
+          }),
+          states: {
+            a11: {
+              initial: 'a111',
+              entry: assign({
+                directDescendantEntries: (ctx) =>
+                  ctx.directDescendantEntries + 1
+              }),
+              states: {
+                a111: {
+                  entry: assign({
+                    deepDescendantEntries: (ctx) =>
+                      ctx.deepDescendantEntries + 1
+                  })
+                }
+              }
+            }
+          },
+          on: {
+            REENTER: '.a11.a111'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send('REENTER');
+
+    expect(service.state.context).toEqual({
+      sourceStateEntries: 1,
+      directDescendantEntries: 2,
+      deepDescendantEntries: 2
+    });
+  });
+
+  it('should exit proper descendants of a source state of an internal transition', () => {
+    const machine = Machine<{
+      sourceStateExits: number;
+      directDescendantExits: number;
+      deepDescendantExits: number;
+    }>({
+      context: {
+        sourceStateExits: 0,
+        directDescendantExits: 0,
+        deepDescendantExits: 0
+      },
+      initial: 'a1',
+      states: {
+        a1: {
+          initial: 'a11',
+          exit: assign({
+            sourceStateExits: (ctx) => ctx.sourceStateExits + 1
+          }),
+          states: {
+            a11: {
+              initial: 'a111',
+              exit: assign({
+                directDescendantExits: (ctx) => ctx.directDescendantExits + 1
+              }),
+              states: {
+                a111: {
+                  exit: assign({
+                    deepDescendantExits: (ctx) => ctx.deepDescendantExits + 1
+                  })
+                }
+              }
+            }
+          },
+          on: {
+            REENTER: '.a11.a111'
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    service.send('REENTER');
+
+    expect(service.state.context).toEqual({
+      sourceStateExits: 0,
+      directDescendantExits: 1,
+      deepDescendantExits: 1
+    });
   });
 });
