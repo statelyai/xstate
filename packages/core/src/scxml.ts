@@ -147,9 +147,10 @@ function mapAction<
     case 'assign': {
       return actions.assign<TContext, TEvent>((context, e, meta) => {
         const fnBody = `
-            return {'${element.attributes!.location}': ${
-          element.attributes!.expr
-        }};
+            return {
+              ...context,
+              '${element.attributes!.location}': ${element.attributes!.expr}
+            };
           `;
 
         return evaluateExecutableContent(context, e, meta, fnBody);
