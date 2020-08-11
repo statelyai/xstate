@@ -608,10 +608,10 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext> =
+export type ServiceConfig<TContext, TEvent extends EventObject = AnyEventObject> =
   | string
   | StateMachine<any, any, any>
-  | InvokeCreator<TContext>;
+  | InvokeCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -621,7 +621,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ServiceConfig<TContext>>;
+  services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
    * @private
