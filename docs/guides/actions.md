@@ -26,7 +26,7 @@ entry: send('SOME_EVENT');
 
 There are three types of actions:
 
-- `entry` actions are executed upon entering a state
+- `entry` actions are executed upon entering a state from outside
 - `exit` actions are executed upon exiting a state
 - transition actions are executed when a transition is taken.
 
@@ -122,6 +122,8 @@ It depends! They mean different things:
 }
 // ...
 ```
+
+- But also, entry actions are only triggered when being entered from outside. If you are transitioning from a child state to a parent state, the entry action will not be triggered. You will need to use a transition action instead, or transition outside of the parent state and come back in.
 
 </details>
 
