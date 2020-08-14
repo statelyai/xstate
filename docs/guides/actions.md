@@ -125,6 +125,31 @@ It depends! They mean different things:
 
 - But also, entry actions are only triggered when being entered from outside. If you are transitioning from a child state to a parent state, the entry action will not be triggered. You will need to use a transition action instead, or transition outside of the parent state and come back in.
 
+```js
+// ...
+doingComplexThing: {
+    id: "doingComplexThing",
+    entry: "getThingsReady",
+    initial: "subtask1",
+    states: {
+        subtask1: {
+            on: {
+                RETRY: {
+                    target: "#doingComplexThing",
+                    // Won't trigger `getThingsReady`
+                    // So add transition action
+                    actions: "getThingsReady"
+                    // Or transition to a higher state and re-enter `doingComplexThing` from outside
+                }
+            }
+        },
+        // ...
+    }
+}
+// ...
+```
+
+
 </details>
 
 ::: tip
