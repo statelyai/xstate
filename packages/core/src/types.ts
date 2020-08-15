@@ -186,6 +186,9 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   id: string;
   type: string;
+  /**
+   * Whether or not the activity is declared inline
+   */
   isInline: boolean;
 }
 
