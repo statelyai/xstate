@@ -146,6 +146,7 @@ export function toActivityDefinition<TContext, TEvent extends EventObject>(
 
   return {
     id: isString(action) ? action : actionObject.id,
+    isInline: isString(action),
     ...actionObject,
     type: actionObject.type
   };

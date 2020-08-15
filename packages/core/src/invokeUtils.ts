@@ -5,6 +5,7 @@ import {
   InvokeDefinition,
   InvokeSourceDefinition
 } from './types';
+import { isString } from './utils';
 
 export function toInvokeSource(
   src: string | InvokeSourceDefinition
@@ -27,6 +28,7 @@ export function toInvokeDefinition<TContext, TEvent extends EventObject>(
   return {
     type: actionTypes.invoke,
     ...invokeConfig,
+    isInline: isString(invokeConfig),
     toJSON() {
       const { onDone, onError, ...invokeDef } = invokeConfig;
       return {

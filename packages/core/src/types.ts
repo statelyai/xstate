@@ -186,6 +186,7 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   id: string;
   type: string;
+  isInline: boolean;
 }
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
@@ -255,6 +256,10 @@ export interface InvokeDefinition<TContext, TEvent extends EventObject>
    * Data should be mapped to match the child machine's context shape.
    */
   data?: Mapper<TContext, TEvent, any> | PropertyMapper<TContext, TEvent, any>;
+  /**
+   * Whether or not the service is declared inline
+   */
+  isInline: boolean;
 }
 
 export interface Delay {
@@ -608,10 +613,10 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext, TEvent extends EventObject = AnyEventObject> =
-  | string
-  | StateMachine<any, any, any>
-  | InvokeCreator<TContext, TEvent>;
+export type ServiceConfig<
+  TContext,
+  TEvent extends EventObject = AnyEventObject
+> = string | StateMachine<any, any, any> | InvokeCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
