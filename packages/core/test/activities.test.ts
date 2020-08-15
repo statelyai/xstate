@@ -61,7 +61,12 @@ describe('activities with guarded transitions', () => {
     state = machine.transition(state, 'E');
     expect(state.activities.B_ACTIVITY).toBeTruthy();
     expect(state.actions).toEqual([
-      start({ type: 'B_ACTIVITY', id: 'B_ACTIVITY', exec: undefined })
+      start({
+        type: 'B_ACTIVITY',
+        id: 'B_ACTIVITY',
+        exec: undefined,
+        isInline: true
+      })
     ]);
   });
 });

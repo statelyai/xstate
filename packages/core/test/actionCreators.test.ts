@@ -15,7 +15,8 @@ describe('action creators', () => {
           activity: {
             type: 'test',
             exec: undefined,
-            id: 'test'
+            id: 'test',
+            isInline: true
           }
         });
       });
@@ -29,7 +30,8 @@ describe('action creators', () => {
           activity: {
             type: 'test',
             id: undefined,
-            foo: 'bar'
+            foo: 'bar',
+            isInline: false
           }
         });
       });
@@ -48,7 +50,8 @@ describe('action creators', () => {
             type: 'test',
             id: undefined,
             foo: 'bar',
-            src: 'someSrc'
+            src: 'someSrc',
+            isInline: false
           }
         });
       });
