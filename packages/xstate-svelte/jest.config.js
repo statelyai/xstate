@@ -6,7 +6,8 @@ module.exports = {
     '^.+\\.svelte$': [
       'svelte-jester',
       {
-        preprocess: true
+        preprocess: true,
+        rootMode: 'upward'
       }
     ],
     '^.+\\.ts$': 'ts-jest'
