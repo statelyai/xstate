@@ -1,5 +1,11 @@
 # @xstate/vue
 
+## 0.3.0
+
+### Minor Changes
+
+- [`8662e543`](https://github.com/davidkpiano/xstate/commit/8662e543393de7e2f8a6d92ff847043781d10f4d) [#1317](https://github.com/davidkpiano/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - `useMachine` and `useService` cant be now parametrized with a `TTypestate` parameter which makes leveraging typestates possible on their returned values.
+
 ## 0.2.0
 
 ### Minor Changes
