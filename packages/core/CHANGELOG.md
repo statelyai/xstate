@@ -1,5 +1,70 @@
 # xstate
 
+## 4.12.0
+
+### Minor Changes
+
+- [`b72e29dd`](https://github.com/davidkpiano/xstate/commit/b72e29dd728b4c1be4bdeaec93909b4e307db5cf) [#1354](https://github.com/davidkpiano/xstate/pull/1354) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `Action` type was simplified, and as a result, you should see better TypeScript performance.
+
+* [`4dbabfe7`](https://github.com/davidkpiano/xstate/commit/4dbabfe7d5ba154e852b4d460a2434c6fc955726) [#1320](https://github.com/davidkpiano/xstate/pull/1320) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `invoke.src` property now accepts an object that describes the invoke source with its `type` and other related metadata. This can be read from the `services` option in the `meta.src` argument:
+
+  ```js
+  const machine = createMachine(
+    {
+      initial: 'searching',
+      states: {
+        searching: {
+          invoke: {
+            src: {
+              type: 'search',
+              endpoint: 'example.com'
+            }
+            // ...
+          }
+          // ...
+        }
+      }
+    },
+    {
+      services: {
+        search: (context, event, { src }) => {
+          console.log(src);
+          // => { endpoint: 'example.com' }
+        }
+      }
+    }
+  );
+  ```
+
+  Specifying a string for `invoke.src` will continue to work the same; e.g., if `src: 'search'` was specified, this would be the same as `src: { type: 'search' }`.
+
+- [`8662e543`](https://github.com/davidkpiano/xstate/commit/8662e543393de7e2f8a6d92ff847043781d10f4d) [#1317](https://github.com/davidkpiano/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - All `TTypestate` type parameters default to `{ value: any; context: TContext }` now and the parametrized type is passed correctly between various types which results in more accurate types involving typestates.
+
+### Patch Changes
+
+- [`3ab3f25e`](https://github.com/davidkpiano/xstate/commit/3ab3f25ea297e4d770eef512e9583475c943845d) [#1285](https://github.com/davidkpiano/xstate/pull/1285) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with initial state of invoked machines being read without custom data passed to them which could lead to a crash when evaluating transient transitions for the initial state.
+
+* [`a7da1451`](https://github.com/davidkpiano/xstate/commit/a7da14510fd1645ad041836b567771edb5b90827) [#1290](https://github.com/davidkpiano/xstate/pull/1290) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The "Attempted to spawn an Actor [...] outside of a service. This will have no effect." warnings are now silenced for "lazily spawned" actors, which are actors that aren't immediately active until the function that creates them are called:
+
+  ```js
+  // ⚠️ "active" actor - will warn
+  spawn(somePromise);
+
+  // 🕐 "lazy" actor - won't warn
+  spawn(() => somePromise);
+
+  // 🕐 machines are also "lazy" - won't warn
+  spawn(someMachine);
+  ```
+
+  It is recommended that all `spawn(...)`-ed actors are lazy, to avoid accidentally initializing them e.g., when reading `machine.initialState` or calculating otherwise pure transitions. In V5, this will be enforced.
+
+- [`c1f3d260`](https://github.com/davidkpiano/xstate/commit/c1f3d26069ee70343f8045a48411e02a68f98cbd) [#1317](https://github.com/davidkpiano/xstate/pull/1317) Thanks [@Andarist](https://github.com/Andarist)! - Fixed a type returned by a `raise` action - it's now `RaiseAction<TEvent> | SendAction<TContext, AnyEventObject, TEvent>` instead of `RaiseAction<TEvent> | SendAction<TContext, TEvent, TEvent>`. This makes it comaptible in a broader range of scenarios.
+
+* [`8270d5a7`](https://github.com/davidkpiano/xstate/commit/8270d5a76c71add3a5109e069bd85716b230b5d4) [#1372](https://github.com/davidkpiano/xstate/pull/1372) Thanks [@christianchown](https://github.com/christianchown)! - Narrowed the `ServiceConfig` type definition to use a specific event type to prevent compilation errors on strictly-typed `MachineOptions`.
+
+- [`01e3e2dc`](https://github.com/davidkpiano/xstate/commit/01e3e2dcead63dce3eef5ab745395584efbf05fa) [#1320](https://github.com/davidkpiano/xstate/pull/1320) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The JSON definition for `stateNode.invoke` objects will no longer include the `onDone` and `onError` transitions, since those transitions are already merged into the `transitions` array. This solves the issue of reviving a serialized machine from JSON, where before, the `onDone` and `onError` transitions for invocations were wrongly duplicated.
+
 ## 4.11.0
 
 ### Minor Changes
