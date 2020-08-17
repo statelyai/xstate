@@ -1,5 +1,11 @@
 # @xstate/test
 
+## 0.4.1
+
+### Patch Changes
+
+- [`ca8841a5`](https://github.com/davidkpiano/xstate/commit/ca8841a5da6560f2956b0dfa08eb05252ad1eca5) [#1273](https://github.com/davidkpiano/xstate/pull/1273) Thanks [@rpradal](https://github.com/rpradal)! - `TestPath` interface got exported to be publicly available.
+
 ## 0.4.0
 
 ### Minor Changes

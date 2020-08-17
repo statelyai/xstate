@@ -1,5 +1,20 @@
 # @xstate/fsm
 
+## 1.5.0
+
+### Minor Changes
+
+- [`ccefca92`](https://github.com/davidkpiano/xstate/commit/ccefca92a1261cf8d9a1e356557af4c8d5fbaffb) [#1267](https://github.com/davidkpiano/xstate/pull/1267) Thanks [@nlopin](https://github.com/nlopin)! - You can now rehydrate the state of a service by calling `start` with `initialState` argument:
+
+  ```js
+  interpret(someMachine).start('active');
+
+  interpret(anotherMachine).start({
+    value: 'active',
+    context: { count: 42 }
+  });
+  ```
+
 ## 1.4.0
 
 ### Minor Changes
