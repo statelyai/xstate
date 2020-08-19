@@ -2394,6 +2394,74 @@ describe('invoke', () => {
       .onDone(() => done())
       .start();
   });
+
+  it('origin should be present from callback', (done) => {
+    const testMachine = Machine({
+      id: 'test',
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            id: 'callback',
+            src: () => (cb) => {
+              cb('TEST');
+            }
+          },
+          on: {
+            TEST: {
+              target: 'success',
+              cond: (_, __, { _event }) => {
+                expect(_event.origin).toEqual('callback');
+                return true;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(testMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
+
+  it('origin should be present from callback (error)', (done) => {
+    const testMachine = Machine({
+      id: 'test',
+      initial: 'pending',
+      states: {
+        pending: {
+          invoke: {
+            id: 'callback',
+            src: () => () => {
+              throw new Error('test');
+            },
+            onError: {
+              target: 'success',
+              cond: (_, __, { _event }) => {
+                expect(_event.origin).toEqual('callback');
+                return true;
+              }
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    interpret(testMachine)
+      .onDone(() => {
+        done();
+      })
+      .start();
+  });
 });
 
 describe('services option', () => {

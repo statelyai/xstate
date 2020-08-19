@@ -1103,7 +1103,7 @@ export class Interpreter<
       if (canceled) {
         return;
       }
-      this.send(e);
+      this.send(toSCXMLEvent(e, { origin: id }));
     };
 
     let callbackStop;
@@ -1113,7 +1113,7 @@ export class Interpreter<
         receivers.add(newListener);
       });
     } catch (err) {
-      this.send(error(id, err) as any);
+      this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
     }
 
     if (isPromiseLike(callbackStop)) {
