@@ -1,6 +1,12 @@
 // @ts-nocheck
 import * as WebSocket from 'ws';
-import { createMachine, interpret, Interpreter } from 'xstate';
+import {
+  createMachine,
+  interpret,
+  Interpreter,
+  send,
+  sendParent
+} from 'xstate';
 
 import { inspectMachine } from './';
 
@@ -87,6 +93,16 @@ inspectServer();
 
 const machine = createMachine({
   initial: 'inactive',
+  invoke: {
+    id: 'ponger',
+    src: () => (cb, receive) => {
+      receive((event) => {
+        if (event.type === 'PING') {
+          cb('PONG');
+        }
+      });
+    }
+  },
   states: {
     inactive: {
       after: {
@@ -94,8 +110,9 @@ const machine = createMachine({
       }
     },
     active: {
-      after: {
-        1000: 'inactive'
+      entry: send('PING', { to: 'ponger', delay: 1000 }),
+      on: {
+        PONG: 'inactive'
       }
     }
   }
@@ -103,4 +120,6 @@ const machine = createMachine({
 
 globalThis.window = globalThis;
 
-interpret(machine, { devTools: true }).start();
+interpret(machine, { devTools: true })
+  .onTransition((s) => console.log(s.value, s._event))
+  .start();
