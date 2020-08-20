@@ -7,6 +7,7 @@ import {
   send,
   sendParent
 } from 'xstate';
+import { toSCXMLEvent } from 'xstate/lib/utils';
 
 import { inspectMachine } from './';
 
@@ -98,7 +99,15 @@ const machine = createMachine({
     src: () => (cb, receive) => {
       receive((event) => {
         if (event.type === 'PING') {
-          cb('PONG');
+          cb(
+            toSCXMLEvent(
+              {
+                type: 'PONG',
+                arr: [1, 2, 3]
+              },
+              { origin: 'ponger' }
+            )
+          );
         }
       });
     }
