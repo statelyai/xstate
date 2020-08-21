@@ -1309,7 +1309,7 @@ export function spawn(
     if (service) {
       return service.spawn(entity, resolvedOptions.name, resolvedOptions);
     } else {
-      return createDeferredActor(entity, resolvedOptions.name);
+      return createDeferredActor(false, entity, resolvedOptions.name);
     }
   });
 }

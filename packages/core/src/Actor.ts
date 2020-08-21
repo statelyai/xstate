@@ -44,6 +44,7 @@ export function createNullActor(id: string): Actor {
  * @param invokeDefinition The meta information needed to invoke the actor.
  */
 export function createInvocableActor<TC, TE extends EventObject>(
+  isInitial: Boolean,
   invokeDefinition: InvokeDefinition<TC, TE>,
   machine: StateMachine<TC, any, TE>,
   context: TC,
@@ -56,6 +57,7 @@ export function createInvocableActor<TC, TE extends EventObject>(
     : undefined;
   const tempActor = serviceCreator
     ? createDeferredActor(
+        isInitial,
         serviceCreator as Spawnable,
         invokeDefinition.id,
         resolvedData
@@ -68,6 +70,7 @@ export function createInvocableActor<TC, TE extends EventObject>(
 }
 
 export function createDeferredActor(
+  isInitial: Boolean,
   entity: Spawnable,
   id: string,
   data?: any
@@ -75,7 +78,7 @@ export function createDeferredActor(
   const tempActor = createNullActor(id);
   tempActor.deferred = true;
 
-  if (isMachine(entity)) {
+  if (!isInitial && isMachine(entity)) {
     tempActor.state = (data ? entity.withContext(data) : entity).initialState;
   }
 

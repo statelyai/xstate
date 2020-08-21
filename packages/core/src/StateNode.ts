@@ -1100,7 +1100,7 @@ class StateNode<
 
     stateTransition.configuration = [...resolvedConfig];
 
-    return this.resolveTransition(stateTransition, currentState, _event);
+    return this.resolveTransition(false, stateTransition, currentState, _event);
   }
 
   private resolveRaisedTransition(
@@ -1121,6 +1121,7 @@ class StateNode<
   }
 
   private resolveTransition(
+    isInitial: Boolean,
     stateTransition: StateTransition<TContext, TEvent>,
     currentState?: State<TContext, TEvent>,
     _event: SCXML.Event<TEvent> = initEvent as SCXML.Event<TEvent>,
@@ -1192,6 +1193,7 @@ class StateNode<
     const children = invokeActions.reduce(
       (acc, action) => {
         acc[action.activity.id] = createInvocableActor(
+          isInitial,
           action.activity,
           this.machine,
           updatedContext,
@@ -1503,6 +1505,7 @@ class StateNode<
     const configuration = this.getStateNodes(stateValue);
 
     return this.resolveTransition(
+      true,
       {
         configuration,
         entrySet: configuration,
