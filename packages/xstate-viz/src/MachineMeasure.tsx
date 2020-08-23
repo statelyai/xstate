@@ -1,7 +1,7 @@
-import * as React from 'react';
-import { StateMachine } from 'xstate';
-import { Rect } from './Rect';
-import { StateNodeViz } from './StateNodeViz';
+import * as React from "react";
+import { StateMachine } from "xstate";
+import { Rect } from "./Rect";
+import { StateNodeViz } from "./StateNodeViz";
 
 export type MachineRectMeasurements = Record<
   string,
@@ -43,7 +43,7 @@ export const MachineMeasure: React.FC<{
           stateNodeEl
             .querySelector('[data-xviz="events"]')!
             .getBoundingClientRect()
-        )
+        ),
       };
 
       (sn as any).viz = mapping[id];
