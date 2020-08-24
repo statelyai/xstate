@@ -92,16 +92,25 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
+type KeysWithStates<
+  TStates extends Record<string, StateSchema> | undefined
+> = TStates extends object
+  ? {
+      [K in keyof TStates]-?: TStates[K] extends { states: object } ? K : never;
+    }[keyof TStates]
+  : never;
+
 export type ExtractStateValue<
-  TS extends StateSchema<any>,
-  TSS = TS['states']
-> = TSS extends undefined
-  ? never
-  : {
-      [K in keyof TSS]?:
-        | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
-        | ExtractStateValue<TSS[K]>;
-    };
+  TSchema extends Required<Pick<StateSchema<any>, 'states'>>
+> =
+  | keyof TSchema['states']
+  | (KeysWithStates<TSchema['states']> extends never
+      ? never
+      : {
+          [K in KeysWithStates<TSchema['states']>]?: ExtractStateValue<
+            TSchema['states'][K]
+          >;
+        });
 
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
