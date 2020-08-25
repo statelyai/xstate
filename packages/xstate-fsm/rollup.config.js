@@ -37,13 +37,19 @@ export default [
         file: 'dist/xstate.fsm.compat.js',
         format: 'umd',
         name: 'XStateFSM'
-      },
+      }
+    ],
+    tsconfig: 'tsconfig.compat.json'
+  }),
+  createConfig({
+    input: 'src/index.ts',
+    output: [
       {
         dir: 'es',
         format: 'esm',
         name: 'XStateFSM'
       }
     ],
-    tsconfig: 'tsconfig.compat.json'
+    tsconfig: 'tsconfig.json'
   })
 ];
