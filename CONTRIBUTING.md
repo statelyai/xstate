@@ -11,7 +11,7 @@ Thank you for your interest in contributing to XState! This project is made poss
 
 Pull requests are encouraged. If you want to add a feature or fix a bug:
 
-1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository] the [repository](https://github.com/davidkpiano/xstate)
+1. [Fork](https://docs.github.com/en/github/getting-started-with-github/fork-a-repo) and [clone](https://docs.github.com/en/github/creating-cloning-and-archiving-repositories/cloning-a-repository) the [repository](https://github.com/davidkpiano/xstate)
 2. [Create a separate branch](https://docs.github.com/en/desktop/contributing-and-collaborating-using-github-desktop/managing-branches) for your changes
 3. Make your changes, and ensure that it is formatted by [Prettier](https://prettier.io) and type-checks without errors in [TypeScript](https://www.typescriptlang.org/)
 4. Write tests that validate your change and/or fix.
