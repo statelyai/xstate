@@ -124,13 +124,7 @@ export class Interpreter<
     },
     logger: global.console.log.bind(console),
     devTools: false
-  }))(
-    typeof window !== 'undefined'
-      ? window
-      : typeof self !== 'undefined'
-      ? self
-      : global
-  );
+  }))(typeof self !== 'undefined' ? self : global);
   /**
    * The current state of the interpreted machine.
    */
