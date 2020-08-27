@@ -23,11 +23,12 @@ declare global {
   }
 }
 
-const services = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();
-const serviceListeners = new Set<ServiceListener>();
 
-function createDevTools() {
+export function createDevTools() {
+  const services = new Set<Interpreter<any>>();
+  const serviceListeners = new Set<ServiceListener>();
+
   window.__xstate__ = {
     services,
     register: (service) => {
