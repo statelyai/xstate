@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 1.5.1
+
+### Patch Changes
+
+- [`0f07c84d`](https://github.com/davidkpiano/xstate/commit/0f07c84daba6ca4913f5311b4e99b67cf489baba) [#1388](https://github.com/davidkpiano/xstate/pull/1388) Thanks [@hudecsamuel](https://github.com/hudecsamuel)! - `State['value']` is now correctly typed to `TState['value']`. It's important in situations when typestates are used as it now correctly is limited to values of those typestates and not widened to just `string`.
+
 ## 1.5.0
 
 ### Minor Changes
