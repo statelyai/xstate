@@ -1,5 +1,57 @@
 # xstate
 
+## 4.13.0
+
+### Minor Changes
+
+- [`f51614df`](https://github.com/davidkpiano/xstate/commit/f51614dff760cfe4511c0bc7cca3d022157c104c) [#1409](https://github.com/davidkpiano/xstate/pull/1409) Thanks [@jirutka](https://github.com/jirutka)! - Fix type `ExtractStateValue` so that it generates a type actually describing a `State.value`
+
+### Patch Changes
+
+- [`b1684ead`](https://github.com/davidkpiano/xstate/commit/b1684eadb1f859db5c733b8d403afc825c294948) [#1402](https://github.com/davidkpiano/xstate/pull/1402) Thanks [@Andarist](https://github.com/Andarist)! - Improved TypeScript type-checking performance a little bit by using distributive conditional type within `TransitionsConfigArray` declarations instead of a mapped type. Kudos to [@amcasey](https://github.com/amcasey), some discussion around this can be found [here](https://github.com/microsoft/TypeScript/issues/39826#issuecomment-675790689)
+
+* [`ad3026d4`](https://github.com/davidkpiano/xstate/commit/ad3026d4309e9a1c719e09fd8c15cdfefce22055) [#1407](https://github.com/davidkpiano/xstate/pull/1407) Thanks [@tomenden](https://github.com/tomenden)! - Fixed an issue with not being able to run XState in Web Workers due to assuming that `window` or `global` object is available in the executing environment, but none of those are actually available in the Web Workers context.
+
+- [`4e949ec8`](https://github.com/davidkpiano/xstate/commit/4e949ec856349062352562c825beb0654e528f81) [#1401](https://github.com/davidkpiano/xstate/pull/1401) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with spawned actors being spawned multiple times when they got spawned in an initial state of a child machine that is invoked in the initial state of a parent machine.
+
+  <details>
+  <summary>
+  Illustrating example for curious readers.
+  </summary>
+
+  ```js
+  const child = createMachine({
+    initial: 'bar',
+    context: {},
+    states: {
+      bar: {
+        entry: assign({
+          promise: () => {
+            return spawn(() => Promise.resolve('answer'));
+          }
+        })
+      }
+    }
+  });
+
+  const parent = createMachine({
+    initial: 'foo',
+    states: {
+      foo: {
+        invoke: {
+          src: child,
+          onDone: 'end'
+        }
+      },
+      end: { type: 'final' }
+    }
+  });
+
+  interpret(parent).start();
+  ```
+
+  </details>
+
 ## 4.12.0
 
 ### Minor Changes
