@@ -784,6 +784,42 @@ describe('actors', () => {
           })
           .start();
       });
+
+      it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', () => {
+        let spawnCounter = 0;
+
+        const child = Machine({
+          initial: 'bar',
+          context: {},
+          states: {
+            bar: {
+              entry: assign({
+                promise: () => {
+                  return spawn(() => {
+                    spawnCounter++;
+                    return Promise.resolve('answer');
+                  });
+                }
+              })
+            }
+          }
+        });
+
+        const parent = Machine({
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                src: child,
+                onDone: 'end'
+              }
+            },
+            end: { type: 'final' }
+          }
+        });
+        interpret(parent).start();
+        expect(spawnCounter).toBe(1);
+      });
     });
   });
 });

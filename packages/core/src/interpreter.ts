@@ -56,6 +56,7 @@ import { Actor, isActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService, unregisterService } from './devTools';
+import * as serviceScope from './serviceScope';
 
 export type StateListener<
   TContext,
@@ -91,31 +92,6 @@ interface SpawnOptions {
 
 const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
 
-/**
- * Maintains a stack of the current service in scope.
- * This is used to provide the correct service to spawn().
- *
- * @private
- */
-const withServiceScope = (() => {
-  const serviceStack = [] as Array<Interpreter<any, any, any>>;
-
-  return <T, TService extends Interpreter<any, any, any>>(
-    service: TService | undefined,
-    fn: (service: TService) => T
-  ) => {
-    service && serviceStack.push(service);
-
-    const result = fn(
-      service || (serviceStack[serviceStack.length - 1] as TService)
-    );
-
-    service && serviceStack.pop();
-
-    return result;
-  };
-})();
-
 enum InterpreterStatus {
   NotStarted,
   Running,
@@ -148,7 +124,7 @@ export class Interpreter<
     },
     logger: global.console.log.bind(console),
     devTools: false
-  }))(typeof window === 'undefined' ? global : window);
+  }))(typeof self !== 'undefined' ? self : global);
   /**
    * The current state of the interpreted machine.
    */
@@ -228,9 +204,8 @@ export class Interpreter<
       return this._initialState;
     }
 
-    return withServiceScope(this, () => {
+    return serviceScope.provide(this, () => {
       this._initialState = this.machine.initialState;
-
       return this._initialState;
     });
   }
@@ -475,7 +450,7 @@ export class Interpreter<
     const resolvedState =
       initialState === undefined
         ? this.initialState
-        : withServiceScope(this, () => {
+        : serviceScope.provide(this, () => {
             return isState<TContext, TEvent, TStateSchema, TTypestate>(
               initialState
             )
@@ -643,7 +618,7 @@ export class Interpreter<
 
         this.forward(_event);
 
-        nextState = withServiceScope(this, () => {
+        nextState = serviceScope.provide(this, () => {
           return this.machine.transition(nextState, _event);
         });
 
@@ -736,7 +711,7 @@ export class Interpreter<
       throw (_event.data as any).data;
     }
 
-    const nextState = withServiceScope(this, () => {
+    const nextState = serviceScope.provide(this, () => {
       return this.machine.transition(this.state, _event);
     });
 
@@ -1300,7 +1275,7 @@ export function spawn(
 ): Actor {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
-  return withServiceScope(undefined, (service) => {
+  return serviceScope.consume((service) => {
     if (!IS_PRODUCTION) {
       const isLazyEntity = isMachine(entity) || isFunction(entity);
       warn(
