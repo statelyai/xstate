@@ -71,6 +71,9 @@ export const inspectMachine = createMachine<{
         'service.register': {
           actions: (ctx, e) => ctx.client!.send(e)
         },
+        'service.stop': {
+          actions: (ctx, e) => ctx.client!.send(e)
+        },
         'xstate.event': {
           actions: (_, e) => {
             const { event } = e;
@@ -184,6 +187,13 @@ export function inspect(
       inspectService.send({
         type: 'service.state',
         state: JSON.stringify(state),
+        id: service.id
+      });
+    });
+
+    service.onStop(() => {
+      inspectService.send({
+        type: 'service.stop',
         id: service.id
       });
     });
