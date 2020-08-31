@@ -1,0 +1,19 @@
+[data-xviz='eventPanel'] {
+  display: grid;
+  grid-template-rows: 1fr auto;
+  overflow: hidden;
+  height: 100%;
+}
+
+[data-xviz='eventCreator'] {
+  [data-xviz='editor'] {
+    &,
+    .CodeMirror {
+      height: 200px;
+    }
+  }
+}
+
+[data-xviz='eventLogs'] {
+  overflow-y: auto;
+}

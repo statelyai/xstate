@@ -133,20 +133,20 @@ export function EdgeViz({
   const isCurrent = state ? isActive(state, edge.source) : undefined;
   const ref = useRef<SVGGElement>(null);
   const sourceRectData = useTracked(edge.source.id);
-  const sourceRect = sourceRectData ? sourceRectData.rect : undefined;
+  const sourceRect = sourceRectData ? sourceRectData.rect.unscaled : undefined;
   const sourceEventsRectData = useTracked(edge.source.id + ":events");
   const sourceEventsRect = sourceEventsRectData
-    ? sourceEventsRectData.rect
+    ? sourceEventsRectData.rect.unscaled
     : undefined;
 
   const eventRectData = useTracked(serializeTransition(edge.transition));
-  const eventRect = eventRectData ? eventRectData.rect : undefined;
+  const eventRect = eventRectData ? eventRectData.rect.unscaled : undefined;
 
   const targetRectData = useTracked(edge.target.id);
-  const targetRect = targetRectData ? targetRectData.rect : undefined;
+  const targetRect = targetRectData ? targetRectData.rect.unscaled : undefined;
   const targetEventsRectData = useTracked(edge.target.id + ":events");
   const targetEventsRect = targetEventsRectData
-    ? targetEventsRectData.rect
+    ? targetEventsRectData.rect.unscaled
     : undefined;
 
   const triggered =
@@ -500,6 +500,7 @@ export function EdgeViz({
                           x: preEndPoint.x,
                           y: pt.y,
                         }));
+
                         break;
 
                       case 1:
@@ -507,6 +508,12 @@ export function EdgeViz({
                           return {
                             x: preEndPoint.x,
                             y: pt.y,
+                          };
+                        });
+                        bends.push(() => {
+                          return {
+                            x: 0,
+                            y: 0,
                           };
                         });
                         break;
@@ -724,7 +731,7 @@ export function EdgeViz({
                 pathLength={1}
                 strokeLinejoin="round"
               />
-              {circlePoints.map((pt, i) => {
+              {/* {circlePoints.map((pt, i) => {
                 return (
                   <circle
                     data-label={pt.label}
@@ -732,11 +739,11 @@ export function EdgeViz({
                     r={1}
                     cx={pt.x}
                     cy={pt.y}
-                    fill={pt.color || "red"}
+                    fill={pt.color || 'red'}
                     key={i}
                   />
                 );
-              })}
+              })} */}
             </>
           );
         })();

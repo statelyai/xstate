@@ -24,7 +24,7 @@ const simpleMachine = createMachine<{ count: number }>(
             states: {
               foo: {
                 after: {
-                  TIMEOUT: {
+                  5000: {
                     actions: sendParent("TOGGLE"),
                   },
                 },
@@ -37,9 +37,9 @@ const simpleMachine = createMachine<{ count: number }>(
       active: {
         entry: assign({ count: (ctx) => ctx.count + 1 }),
         on: { TOGGLE: "inactive" },
-        after: {
-          TIMEOUT: { actions: send("TOGGLE") },
-        },
+        // after: {
+        //   TIMEOUT: { actions: send("TOGGLE") },
+        // },
       },
     },
   },

@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.0.6",
+  "version": "0.0.10",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -33,16 +33,19 @@
     "test": "jest --passWithNoTests",
     "build": "tsc && tsc --outDir es --module es2015",
     "watch": "tsc -w --module es2015",
-    "prepublish": "npm run build && npm run test"
+    "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
   "devDependencies": {
     "@types/ws": "^7.2.6",
-    "xstate": "*"
+    "ws": "^7.3.1",
+    "xstate": "*",
+    "typescript": "^4.0.2"
   },
   "peerDependencies": {
     "ws": "^7.3.1"
-  }
+  },
+  "dependencies": {}
 }

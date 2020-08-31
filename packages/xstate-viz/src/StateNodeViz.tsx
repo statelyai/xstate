@@ -10,6 +10,8 @@ import { InvokeViz } from "./InvokeViz";
 import { useTracking } from "./useTracker";
 import ReactMarkdown from "react-markdown";
 import { MachineRectMeasurements } from "./MachineMeasure";
+import { ActorRefViz, SessionIdViz } from "./ActorRefViz";
+import { StateNodeKeyViz } from "./StateNodeKeyViz";
 
 interface StateNodeVizProps {
   stateNode: StateNode<any, any, any>;
@@ -64,7 +66,8 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
     >
       <div data-xviz="stateNode-state" ref={ref}>
         <div data-xviz="stateNode-content">
-          <div data-xviz="stateNode-key">{stateNode.key}</div>
+          <StateNodeKeyViz stateNode={stateNode} />
+
           <div data-xviz="stateNode-description">
             {stateNode.meta?.description && (
               <ReactMarkdown
@@ -115,7 +118,7 @@ export function StateNodeViz({ stateNode }: StateNodeVizProps) {
           </div>
         )}
       </div>
-      <div data-xviz="events" ref={eventsRef}>
+      <div data-xviz="stateNode-events" ref={eventsRef}>
         {transitions.map((transition, i) => {
           return (
             <EventViz

@@ -1,4 +1,12 @@
-import { Interpreter, createMachine, assign, interpret, SCXML } from 'xstate';
+import {
+  Interpreter,
+  createMachine,
+  assign,
+  interpret,
+  SCXML,
+  EventObject
+} from 'xstate';
+import { toSCXMLEvent, toEventObject } from 'xstate/lib/utils';
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 
@@ -13,6 +21,7 @@ declare global {
   interface Window {
     __xstate__: {
       register: (service: Interpreter<any>) => void;
+      unregister: (service: Interpreter<any>) => void;
       onRegister: (
         listener: ServiceListener
       ) => {
@@ -41,6 +50,10 @@ export function createDevTools() {
         serviceMap.delete(service.sessionId);
       });
     },
+    unregister: (service) => {
+      services.delete(service);
+      serviceMap.delete(service.sessionId);
+    },
     onRegister: (listener) => {
       serviceListeners.add(listener);
       services.forEach((service) => listener(service));
@@ -66,6 +79,9 @@ export const inspectMachine = createMachine<{
     connected: {
       on: {
         'service.state': {
+          actions: (ctx, e) => ctx.client!.send(e)
+        },
+        'service.event': {
           actions: (ctx, e) => ctx.client!.send(e)
         },
         'service.register': {
@@ -102,7 +118,7 @@ export const inspectMachine = createMachine<{
               type: 'service.register',
               machine: JSON.stringify(service.machine),
               state: JSON.stringify(service.state || service.initialState),
-              id: service.id
+              sessionId: service.sessionId
             });
           });
         }
@@ -180,21 +196,46 @@ export function inspect(
       type: 'service.register',
       machine: JSON.stringify(service.machine),
       state: JSON.stringify(service.state || service.initialState),
-      id: service.id
+      sessionId: service.sessionId,
+      id: service.id,
+      parent: service.parent?.sessionId
     });
+
+    inspectService.send({
+      type: 'service.event',
+      event: JSON.stringify((service.state || service.initialState)._event),
+      sessionId: service.sessionId
+    });
+
+    // monkey-patch service.send so that we know when an event was sent
+    // to a service *before* it is processed, since other events might occur
+    // while the sent one is being processed, which throws the order off
+    const originalSend = service.send.bind(service);
+
+    service.send = function inspectSend(event) {
+      inspectService.send({
+        type: 'service.event',
+        event: JSON.stringify(
+          toSCXMLEvent(toEventObject(event as EventObject))
+        ),
+        sessionId: service.sessionId
+      });
+
+      return originalSend(event);
+    };
 
     service.subscribe((state) => {
       inspectService.send({
         type: 'service.state',
         state: JSON.stringify(state),
-        id: service.id
+        sessionId: service.sessionId
       });
     });
 
     service.onStop(() => {
       inspectService.send({
         type: 'service.stop',
-        id: service.id
+        sessionId: service.sessionId
       });
     });
   });

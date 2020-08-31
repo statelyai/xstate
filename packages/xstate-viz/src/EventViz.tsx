@@ -1,4 +1,7 @@
 import * as React from "react";
+// import { useContext, useEffect, useRef } from 'react';
+// import { StateContext } from './StateContext';
+import { Edge } from "./types";
 import { useContext } from "react";
 import { StateContext } from "./StateContext";
 import {
@@ -36,11 +39,13 @@ function stringify(value: any): string | number {
   return JSON.stringify(value);
 }
 
-export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
+export const EventTypeViz: React.FC<{ eventType: string }> = ({
+  eventType: event,
+}) => {
   if (event.startsWith("done.state.")) {
     return (
-      <div data-xviz="event-type" data-xviz-keyword="done">
-        <em data-xviz="event-type-keyword">onDone</em>
+      <div data-xviz="eventType" data-xviz-keyword="done">
+        <em data-xviz="eventType-keyword">onDone</em>
       </div>
     );
   }
@@ -48,9 +53,9 @@ export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
   if (event.startsWith("done.invoke.")) {
     const match = event.match(/^done\.invoke\.(.+)$/);
     return (
-      <div data-xviz="event-type" data-xviz-keyword="done">
-        <em data-xviz="event-type-keyword">done:</em>{" "}
-        <div data-xviz="event-type-text">
+      <div data-xviz="eventType" data-xviz-keyword="done">
+        <em data-xviz="eventType-keyword">done:</em>{" "}
+        <div data-xviz="eventType-text">
           {match ? formatInvocationId(match[1]) : "??"}
         </div>
       </div>
@@ -60,9 +65,9 @@ export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
   if (event.startsWith("error.platform.")) {
     const match = event.match(/^error\.platform\.(.+)$/);
     return (
-      <div data-xviz="event-type" data-xviz-keyword="error">
-        <em data-xviz="event-type-keyword">error:</em>{" "}
-        <div data-xviz="event-type-text">{match ? match[1] : "??"}</div>
+      <div data-xviz="eventType" data-xviz-keyword="error">
+        <em data-xviz="eventType-keyword">error:</em>{" "}
+        <div data-xviz="eventType-text">{match ? match[1] : "??"}</div>
       </div>
     );
   }
@@ -71,31 +76,31 @@ export const EventTypeViz: React.FC<{ event: string }> = ({ event }) => {
     const [, delay] = event.match(/^xstate\.after\((.*)\)#.*$/);
 
     return (
-      <div data-xviz="event-type" data-xviz-keyword="after">
-        <em data-xviz="event-type-keyword">after</em>{" "}
-        <div data-xviz="event-type-text">{toDelayString(delay)}</div>
+      <div data-xviz="eventType" data-xviz-keyword="after">
+        <em data-xviz="eventType-keyword">after</em>{" "}
+        <div data-xviz="eventType-text">{toDelayString(delay)}</div>
       </div>
     );
   }
 
   if (event === "") {
     return (
-      <div data-xviz="event-type" data-xviz-keyword="always">
-        <em data-xviz="event-type-keyword">always</em>
+      <div data-xviz="eventType" data-xviz-keyword="always">
+        <em data-xviz="eventType-keyword">always</em>
       </div>
     );
   }
 
   return (
-    <div data-xviz="event-type">
-      <div data-xviz="event-type-text">{event}</div>
+    <div data-xviz="eventType">
+      <div data-xviz="eventType-text">{event}</div>
     </div>
   );
 };
 
 export function EventViz({ transition, index }: EventVizProps) {
   const { state, service } = useContext(StateContext);
-  const ref = useTracking(serializeTransition(transition, index));
+  const ref = useTracking(serializeTransition(transition));
 
   const meta = getEventMeta(transition.eventType);
 
@@ -129,11 +134,12 @@ export function EventViz({ transition, index }: EventVizProps) {
           eventType: transition.eventType,
           index,
           stateNodeId: transition.source.id,
+          trackingId: serializeTransition(transition),
         });
       }}
     >
       <div data-xviz="event-label" ref={ref}>
-        <EventTypeViz event={transition.eventType} />
+        <EventTypeViz eventType={transition.eventType} />
 
         {transition.cond && (
           <div data-xviz="event-cond" data-xviz-name={transition.cond.name}>

@@ -23,6 +23,12 @@ export function getChildren(stateNode: StateNode): StateNode[] {
   return children;
 }
 
+export function getAllChildren(stateNode: StateNode): StateNode[] {
+  const children = getChildren(stateNode);
+
+  return flatten([...children, ...children.map(getAllChildren)]);
+}
+
 export function getEdges(stateNode: StateNode): Array<Edge<any, any, any>> {
   const edges: Array<Edge<any, any, any>> = [];
 
@@ -139,7 +145,6 @@ export function serializeTransition(
   transition: TransitionDefinition<any, any>
 ): string {
   const index = transition.source.transitions.indexOf(transition);
-  const condString = transition.cond?.predicate?.toString() || "";
   return `event:${transition.source.id}:${transition.eventType}:${index}`;
 }
 
@@ -209,26 +214,14 @@ export const getPartialStateValue = (
   );
 };
 
-export function slidingWindow<T, N extends number, U>(
-  items: T[],
-  length: N,
-  fn: (
-    itemsWindow: T[] & { length: N },
-    index: number,
-    allItems: typeof items
-  ) => U[]
-): U[] {
-  const result: U[] = [];
+export function getAllGuards(stateNode: StateNode<any, any, any>): string[] {
+  const allNodes = [stateNode, ...getAllChildren(stateNode)];
+  const allTransitions = flatten(
+    allNodes.map((stateNode) => stateNode.transitions)
+  );
+  const allGuards = new Set<string>(
+    allTransitions.map((t) => t.cond?.name).filter((name) => !!name)
+  );
 
-  for (let i = 0; i <= items.length - length; i++) {
-    const itemsWindow = [...items].slice(i, i + length);
-
-    if (itemsWindow.length < length) {
-      continue;
-    }
-
-    result.push(...fn(itemsWindow as T[] & { length: N }, i, items));
-  }
-
-  return result;
+  return Array.from(allGuards);
 }

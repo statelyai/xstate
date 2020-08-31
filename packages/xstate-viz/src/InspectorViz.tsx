@@ -1,4 +1,4 @@
-import * as React from "react";
+import React, { useEffect, useState } from "react";
 import {
   createMachine,
   State,
@@ -16,6 +16,12 @@ import { createContext } from "react";
 import { Loader } from "./Loader";
 import { flatten, toSCXMLEvent } from "xstate/lib/utils";
 import { enableMapSet } from "immer";
+import { SCXMLSequenceEvent, SequenceDiagramViz } from "./SequenceViz";
+import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@reach/tabs";
+import { EventPanelViz } from "./EventPanelViz";
+import { EventTapEvent } from "./machineVizMachine";
+import { Resizable } from "./Resizable";
+
 enableMapSet();
 
 const parseState = (stateJSON: string): State<any, any> => {
@@ -41,20 +47,23 @@ export type InspectorEvent =
       state: string;
       machine: string;
       id: string;
+      sessionId: string;
       parent?: string;
+      source?: string;
     }
   | {
       type: "service.stop";
-      id: string;
+      sessionId: string;
     }
   | {
       type: "service.state";
       state: string;
-      id: string;
+      sessionId: string;
     }
+  | { type: "service.event"; event: string; sessionId: string }
   | {
       type: "service.select";
-      id: string;
+      sessionId: string;
     }
   | ViewUpdateEvent;
 
@@ -62,22 +71,17 @@ interface ServiceDataCtx {
   state: State<any, any>;
   machine: StateNode<any, any>;
   id: string;
+  sessionId: string;
   parent?: string;
+  source?: string;
   events: Array<SCXML.Event<any>>;
+  status: "running" | "stopped";
 }
 interface InspectorCtx {
   services: Record<string, ServiceDataCtx>;
   service?: string;
-  eventsMap: Map<
-    string,
-    Array<
-      SCXML.Event<EventObject> & {
-        timestamp: number;
-        origin: string;
-        destination: string;
-      }
-    >
-  >;
+  events: Array<SCXMLSequenceEvent>;
+  eventsMap: Map<string, Array<SCXMLSequenceEvent>>;
   view: "graph" | "state";
 }
 
@@ -86,6 +90,7 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
   context: {
     services: {},
     service: undefined,
+    events: [],
     eventsMap: new Map(),
     view: "graph",
   },
@@ -96,7 +101,7 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
       on: {
         "service.state": {
           actions: assign((ctx, e) => {
-            const serviceObject = ctx.services[e.id];
+            const serviceObject = ctx.services[e.sessionId];
             if (!serviceObject) {
               return;
             }
@@ -108,33 +113,78 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
             serviceObject.state = parseState(e.state);
             serviceObject.events.unshift(serviceObject.state._event);
 
-            const destination = serviceObject.state._sessionid!;
-            const origin = serviceObject.state._event.origin || destination;
+            const dest = serviceObject.state._sessionid;
+            const origin = serviceObject.state._event.origin || dest;
 
             if (!ctx.eventsMap.get(origin)) {
               ctx.eventsMap.set(origin, []);
             }
-            if (!ctx.eventsMap.get(destination)) {
-              ctx.eventsMap.set(destination, []);
+            if (!ctx.eventsMap.get(dest)) {
+              ctx.eventsMap.set(dest, []);
             }
 
-            const events = ctx.eventsMap.get(origin)!;
+            const originEvents = ctx.eventsMap.get(origin)!;
 
-            events.push({
+            const event = {
               ...serviceObject.state._event,
               timestamp: Date.now(),
               origin,
-              destination,
-            });
+              dest,
+            };
+
+            originEvents.push(event);
+            // ctx.events.push(event);
 
             if (!ctx.service) {
-              ctx.service = e.id;
+              ctx.service = e.sessionId;
+            }
+          }),
+        },
+        "service.event": {
+          actions: assign((ctx, e) => {
+            const serviceObject = ctx.services[e.sessionId];
+            if (!serviceObject) {
+              return;
+            }
+
+            const eventObject = JSON.parse(e.event) as SCXML.Event<any>;
+
+            serviceObject.events.unshift(eventObject);
+
+            const dest = serviceObject.sessionId;
+            const origin =
+              eventObject.name === "xstate.init"
+                ? serviceObject.parent || dest
+                : eventObject.origin || dest;
+
+            if (!ctx.eventsMap.get(origin)) {
+              ctx.eventsMap.set(origin, []);
+            }
+            if (!ctx.eventsMap.get(dest)) {
+              ctx.eventsMap.set(dest, []);
+            }
+
+            const originEvents = ctx.eventsMap.get(origin)!;
+
+            const event = {
+              ...eventObject,
+              timestamp: Date.now(),
+              origin,
+              dest,
+            };
+
+            originEvents.push(event);
+            ctx.events.push(event);
+
+            if (!ctx.service) {
+              ctx.service = e.sessionId;
             }
           }),
         },
         "service.select": {
           actions: assign((ctx, e) => {
-            ctx.service = e.id;
+            console.log(e);
+            ctx.service = e.sessionId;
           }),
         },
       },
@@ -143,23 +193,33 @@ const inspectorMachine = createMachine<InspectorCtx, InspectorEvent>({
   on: {
     "service.register": {
       actions: assign((ctx, e) => {
-        ctx.services[e.id] = {
+        ctx.services[e.sessionId] = {
           id: e.id,
+          sessionId: e.sessionId,
           parent: e.parent,
           machine: createMachine(JSON.parse(e.machine)),
           state: parseState(e.state),
+          source: e.source,
           events: [],
+          status: "running",
         };
 
         if (!ctx.service) {
-          ctx.service = e.id;
+          ctx.service = e.sessionId;
         }
       }),
       target: ".inspecting",
     },
     "service.stop": {
       actions: assign((ctx, e) => {
-        delete ctx.services[e.id];
+        const serviceData = ctx.services[e.sessionId];
+        if (!serviceData) {
+          console.warn(
+            `Service with session ID ${e.sessionId} doesn't exist; cannot be stopped.`
+          );
+        } else {
+          serviceData.status = "stopped";
+        }
       }),
     },
     [viewUpdater.type]: { actions: viewUpdater.action },
@@ -194,21 +254,49 @@ export function createReceiver<T>(): Receiver<T> {
   };
 }
 
+const InspectorHeaderViz: React.FC<{
+  services: Record<string, ServiceDataCtx>;
+  service: string;
+  onSelectService: (service: string) => void;
+}> = ({ services, service, onSelectService }) => {
+  const serviceEntries = Object.entries(services);
+
+  return (
+    <header data-xviz="inspector-header">
+      <img src="/xstate.svg" data-xviz="logo" />
+      {serviceEntries.length > 0 && (
+        <select
+          onChange={(e) => {
+            onSelectService(e.target.value);
+          }}
+          value={service}
+          data-xviz="inspector-action"
+        >
+          {Object.keys(services).map((key) => {
+            return (
+              <option data-xviz="service-link" key={key} value={key}>
+                {key}
+              </option>
+            );
+          })}
+        </select>
+      )}
+    </header>
+  );
+};
+
 export const InspectorViz: React.FC<{
   receiver: { receive: (listener: (e: InspectorEvent) => void) => void };
   onEvent: (event: {
     event: SCXML.Event<EventObject>;
     service: string;
   }) => void;
-}> = ({ receiver, onEvent }) => {
-  const [state, send, service] = useMachine(inspectorMachine);
+  panels?: Record<string, JSX.Element>;
+}> = ({ receiver, onEvent, panels }) => {
+  const [state, send, inspectorService] = useMachine(inspectorMachine);
 
-  React.useEffect(() => {
+  useEffect(() => {
     const dispose = receiver.receive((event) => {
-      console.log("received", event);
-      if (event.state) {
-        const state = JSON.parse(event.state);
-      }
       send(event);
     });
 
@@ -219,42 +307,23 @@ export const InspectorViz: React.FC<{
     ? state.context.services[state.context.service]
     : undefined;
 
-  const serviceEntries = Object.entries(state.context.services);
-
   // for displaying events
-  const sortedEvents = flatten(
-    Array.from(state.context.eventsMap.entries()).map(([dest, events]) => {
-      return events;
-    })
-  ).sort((a, b) => a.timestamp - b.timestamp);
+  const sortedEvents = state.context.events;
 
-  const destinations = Array.from(state.context.eventsMap.keys());
-
-  console.log(sortedEvents, destinations);
+  const resolvedState = currentService?.machine.resolveState(
+    currentService.state
+  );
 
   return (
-    <ServicesContext.Provider value={service}>
+    <ServicesContext.Provider value={inspectorService}>
       <div data-xviz="inspector" data-xviz-view={state.context.view}>
-        <header data-xviz="inspector-header">
-          {serviceEntries.length > 0 && (
-            <select
-              onChange={(e) => {
-                send({ type: "service.select", id: e.target.value });
-              }}
-              value={state.context.service}
-              data-xviz="inspector-action"
-            >
-              {Object.keys(state.context.services).map((key) => {
-                return (
-                  <option data-xviz="service-link" key={key} value={key}>
-                    {key}
-                  </option>
-                );
-              })}
-            </select>
-          )}
-        </header>
-
+        <InspectorHeaderViz
+          services={state.context.services}
+          service={state.context.service}
+          onSelectService={(service) => {
+            send({ type: "service.select", sessionId: service });
+          }}
+        />
         {currentService ? (
           <ServiceDataContext.Provider value={currentService}>
             <div data-xviz="service" data-xviz-view={state.context.view}>
@@ -262,109 +331,55 @@ export const InspectorViz: React.FC<{
                 machine={currentService.machine}
                 state={currentService.state}
                 mode="play"
-                onEventTap={(data) => {
+                onEventTap={(eventTapEvent) => {
                   onEvent({
                     event: toSCXMLEvent(
-                      { type: data.eventType },
-                      { origin: currentService.state._sessionid! }
+                      { type: eventTapEvent.eventType },
+                      {
+                        origin: currentService.state._sessionid,
+                      }
                     ),
                     service: currentService.id,
                   });
                 }}
               />
-              {/* <EventRecordsViz events={value.events} /> */}
-              <div
-                style={{
-                  background: "white",
-                  color: "black",
-                  display: "grid",
-                  gridTemplateColumns: `repeat(${destinations.length}, auto)`,
-                  gridAutoRows: "min-content",
-                }}
-              >
-                {destinations.map((d) => {
-                  return <div key={d}>{d}</div>;
-                })}
-                {sortedEvents.map((event, i) => {
-                  const originIndex = destinations.indexOf(event.origin);
-                  const destinationIndex = destinations.indexOf(
-                    event.destination
-                  );
+              <SequenceDiagramViz events={sortedEvents} />
 
-                  const min = Math.min(originIndex, destinationIndex);
-                  const max = Math.max(originIndex, destinationIndex);
-
-                  const dir = Math.sign(destinationIndex - originIndex);
-
-                  return (
-                    <div
-                      key={i}
-                      style={{
-                        gridColumnStart: min + 1,
-                        gridColumnEnd: max + 1,
-                        gridRow: i + 1,
-                        outline: "1px solid blue",
-                      }}
-                      data-xviz-dir={
-                        dir === 1 ? "r" : dir === -1 ? "l" : "self"
-                      }
-                    >
-                      <div>{event.name}</div>
-                      <svg
-                        width="100%"
-                        height="14"
-                        preserveAspectRatio="xMaxYMid slice"
-                        viewBox="0 0 1400 14"
-                      >
-                        {dir === 1 ? (
-                          <polygon points="1400,7 1385,1 1390,6 0,6 0,8 1390,8 1385,13 1400,7"></polygon>
-                        ) : dir === -1 ? (
-                          <svg
-                            width="100%"
-                            height="14"
-                            preserveAspectRatio="xMinYMid slice"
-                            viewBox="0 0 1400 14"
-                          >
-                            <polygon points="0,7 15,1 10,6 1400,6 1400,8 10,8 15,13 0,7"></polygon>
-                          </svg>
-                        ) : null}
-                      </svg>
-                    </div>
-                  );
-                })}
-              </div>
-              {/* <table style={{ background: 'white', color: 'black' }}>
-                <thead>
-                  <tr>
-                    {destinations.map((destination) => {
-                      return (
-                        <th key={destination} style={{ textAlign: 'left' }}>
-                          {destination}
-                        </th>
-                      );
-                    })}
-                  </tr>
-                </thead>
-                <tbody>
-                  {sortedEvents.map((event, i) => {
-                    const originIndex = destinations.indexOf(event.origin);
-                    const destinationIndex = destinations.indexOf(
-                      event.destination
-                    );
-
-                    const min = Math.min(originIndex, destinationIndex);
-                    const max = Math.max(originIndex, destinationIndex);
-
-                    return (
-                      <tr key={i}>
-                        {min > 0 && <td colSpan={min}></td>}
-                        <td>{event.name}</td>
-                      </tr>
-                    );
-                  })}
-                </tbody>
-              </table> */}
-              <StateViz state={currentService.state} />
+              <Resizable data-xviz="service-sidebar">
+                <Tabs defaultIndex={0}>
+                  <TabList>
+                    <Tab>State</Tab>
+                    <Tab>Events</Tab>
+                    {panels &&
+                      Object.keys(panels).map((key) => {
+                        return <Tab key={key}>{key}</Tab>;
+                      })}
+                  </TabList>
+                  <TabPanels>
+                    <TabPanel>
+                      <StateViz state={currentService.state} />
+                    </TabPanel>
+                    <TabPanel>
+                      <EventPanelViz
+                        events={sortedEvents}
+                        state={resolvedState}
+                        onEvent={(eventObject) => {
+                          onEvent({
+                            event: toSCXMLEvent(eventObject, {
+                              origin: currentService.state._sessionid,
+                            }),
+                            service: currentService.id,
+                          });
+                        }}
+                      />
+                    </TabPanel>
+                    {panels &&
+                      Object.values(panels).map((panel, i) => {
+                        return <TabPanel key={i}>{panel}</TabPanel>;
+                      })}
+                  </TabPanels>
+                </Tabs>
+              </Resizable>
             </div>
           </ServiceDataContext.Provider>
         ) : (

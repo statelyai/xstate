@@ -1,0 +1,34 @@
+[data-xviz] {
+  --xviz-background-color: #111;
+  --xviz-background-transparent-color: #{rgb(#111, 0.8)};
+  --xviz-foreground-color: white;
+  --xviz-active-color: rgb(19, 129, 201);
+  --xviz-semiactive-color: rgb(19, 129, 201, 0.75);
+  --xviz-active-border-color: var(--xviz-active-color);
+  --xviz-inactive-border-color: #{rgba(white, 0.4)};
+  --xviz-color-selected: var(--xviz-active-color);
+  --xviz-bgcolor-selected: rgba(19, 129, 201, 0.5);
+  --xviz-border-width: 2px;
+  --xviz-font-size-base: 12px;
+  --xviz-font-size-large: 16px;
+  --xviz-font-size-small: 10px;
+  --xviz-sp: 12px;
+  --xviz-border-radius: calc(var(--xviz-sp) / 4);
+}
+
+[data-xviz='machine-container'],
+[data-xviz='service'],
+[data-xviz='inspector'],
+[data-xviz='sequenceDiagram'] {
+  --gap: calc(var(--xviz-sp) * 2);
+  background: var(--xviz-background-color);
+  color: white;
+  font-size: var(--xviz-font-size-base);
+  font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+
+  &,
+  * {
+    box-sizing: border-box;
+    position: relative;
+  }
+}

@@ -1,0 +1,82 @@
+[data-xviz='eventLogs'] {
+  padding: 0.5rem;
+
+  th {
+    text-align: left;
+  }
+}
+
+[data-xviz='eventLog'] {
+  font-family: inherit;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  grid-template-rows: auto auto auto;
+  grid-template-areas:
+    'name timestamp'
+    'trace trace'
+    'data data';
+  border-bottom: 1px solid rgba(white, 0.2);
+
+  > [data-xviz='eventLog-name'] {
+    grid-area: name;
+    font-weight: bold;
+  }
+
+  > [data-xviz='eventLog-timestamp'] {
+    grid-area: timestamp;
+  }
+
+  > [data-xviz='eventLog-data'] {
+    grid-area: data;
+  }
+}
+
+[data-xviz='eventLog-summary'] {
+  display: grid;
+  grid-template-columns: 1rem 1fr auto;
+  grid-template-rows: auto auto;
+  grid-template-areas:
+    'caret name timestamp'
+    'caret trace trace';
+  grid-row-gap: 0.5rem;
+  padding: 1rem;
+
+  > [data-xviz='eventLog-name'] {
+    grid-area: name;
+  }
+
+  > [data-xviz='eventLog-timestamp'] {
+    grid-area: timestamp;
+  }
+
+  > [data-xviz='eventLog-trace'] {
+    grid-area: trace;
+  }
+
+  &::-webkit-details-marker {
+    grid-area: caret;
+    align-self: center;
+  }
+
+  &:focus {
+    outline: none;
+  }
+}
+
+[data-xviz='eventLog-data'] {
+  padding: 0 1rem 1rem;
+}
+
+[data-xviz='eventLog-trace'] {
+  &[data-xviz-self] {
+    > [data-xviz='actorRef']:nth-child(2) {
+      display: none;
+    }
+  }
+  &:not([data-xviz-self]) {
+    > [data-xviz='actorRef']:first-child:after {
+      content: '→';
+      margin: 0 1ch;
+    }
+  }
+}

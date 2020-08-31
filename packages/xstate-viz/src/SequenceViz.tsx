@@ -1,118 +1,123 @@
-// @ts-nocheck
-import * as React from 'react';
-import { useReducer, useCallback } from 'react';
-import { Interpreter, Actor, createMachine, assign, SCXML } from 'xstate';
-import { MachineViz } from './MachineViz';
+import * as React from "react";
+import { AnyEventObject, SCXML } from "xstate";
+import { TimestampViz } from "./TimestampViz";
+import { ActorRefViz, SessionIdViz } from "./ActorRefViz";
+import { EventTypeViz } from "./EventViz";
+import { JSONViz } from "./JSONViz";
+import { Popover } from "./Popover";
 
-function getChildActors(service: Interpreter<any, any>): Actor<any, any>[] {
-  const actors: Actor<any, any>[] = [];
-
-  service.children.forEach((child) => {
-    actors.push(child, ...getChildActors(child as Interpreter<any, any>));
-  });
-
-  return actors;
+export interface SCXMLSequenceEvent extends SCXML.Event<AnyEventObject> {
+  dest: string;
+  origin: string;
+  timestamp: number;
 }
 
-const eventsMachine = createMachine<any>({
-  id: 'events',
-  initial: 'active',
-  context: {
-    events: []
-  },
-  states: {
-    active: {
-      on: {
-        EMITTED: {
-          actions: assign({
-            events: (_, e) => e.event
-          })
-        }
-      }
-    }
-  }
-});
+function getParticipants(events: SCXMLSequenceEvent[]): string[] {
+  const services = new Set<string>();
 
-interface SequenceState {
-  events: Array<SCXML.Event<any>>;
-  actorIds: Set<string>;
-}
-
-type SequenceEvent =
-  | {
-      type: 'EMITTED';
-      event: SCXML.Event<any>;
-    }
-  | {
-      type: 'CLEAR';
-    };
-
-const eventsReducer = (state: SequenceState, event: SequenceEvent) => {
-  if (event.type === 'EMITTED') {
-    state.actorIds.add(event.event.origin || '--');
-    return {
-      ...state,
-      events: [...state.events, event.event]
-    };
-  }
-
-  if (event.type === 'CLEAR') {
-    return {
-      ...state,
-      events: []
-    };
-  }
-
-  return state;
-};
-
-export function SequenceViz({ service }: { service: Interpreter<any, any> }) {
-  const [state, dispatch] = useReducer(eventsReducer, {
-    events: [],
-    actorIds: new Set([service.id])
+  events.forEach((event) => {
+    services.add(event.origin);
+    services.add(event.dest);
   });
 
-  React.useEffect(() => {
-    const sub = service.subscribe((state) => {
-      dispatch({ type: 'EMITTED', event: state._event });
-    });
-    return sub.unsubscribe;
-  }, [service]);
+  return Array.from(services);
+}
 
-  const activeActorIds = Array.from(service.children.values()).map(
-    (x) => x.sessionId
-  );
-
-  const actorIds = Array.from(state.actorIds);
+export const SequenceDiagramViz: React.FC<{
+  events: SCXMLSequenceEvent[];
+}> = ({ events }) => {
+  const participants = getParticipants(events);
 
   return (
-    <table data-xviz="sequence">
-      <thead>
-        <tr>
-          {Array.from(actorIds).map((actorId) => {
-            return <th key={actorId}>{actorId}</th>;
-          })}
-        </tr>
-      </thead>
-      <tbody>
-        {state.events.map((event, i) => {
-          const startIndex = 0;
-          const endIndex = actorIds.findIndex(
-            (actorId) => actorId === event.origin
-          );
-          return (
-            <tr>
-              <td></td>
-              <td colSpan={endIndex - startIndex}>
-                {event.name} ({event.origin})
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-      {/* {state.events.map((event, i) => {
-        return <div key={i}>{JSON.stringify(event)}</div>;
-      })} */}
-    </table>
+    <div
+      data-xviz="sequenceDiagram"
+      style={{
+        // @ts-ignore
+        "--xviz-participants": participants.length,
+        "--xviz-events": events.length,
+      }}
+    >
+      {participants.map((participantId, i) => {
+        return (
+          <React.Fragment key={participantId}>
+            <div
+              data-xviz="sequenceDiagram-participant"
+              style={{
+                // @ts-ignore
+                "--xviz-participant": i,
+              }}
+            >
+              <div data-xviz="sequenceDiagram-participant-id">
+                <SessionIdViz sessionId={participantId} />
+              </div>
+            </div>
+            <div
+              data-xviz="sequenceDiagram-lifeline"
+              style={{
+                // @ts-ignore
+                "--xviz-participant": i,
+              }}
+            ></div>
+          </React.Fragment>
+        );
+      })}
+      {events.map((event, i) => {
+        const originIndex = participants.indexOf(event.origin);
+        const destinationIndex = participants.indexOf(event.dest);
+
+        const dir = Math.sign(destinationIndex - originIndex);
+
+        return (
+          <>
+            <div
+              data-xviz="sequenceDiagram-eventLog"
+              style={{
+                gridRow: i + 1 + 1,
+              }}
+            >
+              {/* <JSONViz value={event.data} valueKey="event" /> */}
+            </div>
+            <div
+              data-xviz="sequenceDiagram-event"
+              key={i}
+              style={{
+                // @ts-ignore
+                "--xviz-origin": originIndex,
+                "--xviz-dest": destinationIndex,
+                gridRow: i + 1 + 1,
+              }}
+              data-xviz-dir={dir}
+              data-xviz-event={event.name}
+            >
+              <div
+                data-xviz="eventObject"
+                data-xviz-origin={event.origin}
+                data-xviz-dest={event.dest}
+              >
+                <div data-xviz="eventObject-name">
+                  <EventTypeViz eventType={event.name} />
+                </div>
+              </div>
+              <svg
+                data-xviz="sequenceDiagram-event-arrow"
+                data-xviz-dir={dir}
+                width="100%"
+                height=".5rem"
+                viewBox="0 0 10 10"
+                preserveAspectRatio={
+                  dir === 1 ? "xMaxYMid meet" : "xMinYMid meet"
+                }
+              >
+                {dir === 1 ? (
+                  <polygon points="0,0 10,5 0,10 0,0" fill="#fff"></polygon>
+                ) : dir === -1 ? (
+                  <polygon points="10,0 0,5 10,10 10,0" fill="#fff"></polygon>
+                ) : null}
+              </svg>
+            </div>
+          </>
+        );
+      })}
+    </div>
   );
-}
+};

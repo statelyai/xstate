@@ -41,7 +41,7 @@ export const MachineMeasure: React.FC<{
         ),
         events: new Rect(
           stateNodeEl
-            .querySelector('[data-xviz="events"]')!
+            .querySelector('[data-xviz="stateNode-events"]')!
             .getBoundingClientRect()
         ),
       };

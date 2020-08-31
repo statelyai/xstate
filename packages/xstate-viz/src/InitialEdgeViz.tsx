@@ -17,11 +17,11 @@ export function InitialEdgeViz({
   const isCurrent = state ? isActive(state, stateNode) : false;
   const data = useTracked(stateNode.id);
 
-  if (!data) {
+  if (!data || !data.rect) {
     return null;
   }
 
-  const { left, top } = data.rect!;
+  const { left, top } = data.rect;
 
   const endPoint: Point = {
     x: left - 10,

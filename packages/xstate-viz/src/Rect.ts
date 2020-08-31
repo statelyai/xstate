@@ -12,7 +12,7 @@ export class Rect implements ClientRect {
   public height: number;
   public x: number;
   public y: number;
-  constructor(rect: ClientRect) {
+  constructor(rect: ClientRect, public scale: number = 1) {
     this.top = rect.top;
     this.left = rect.left;
     this.bottom = rect.bottom;
@@ -62,6 +62,10 @@ export class Rect implements ClientRect {
     return ["top", "left", "bottom", "right"].every((prop) => {
       return otherRect[prop] === this[prop];
     });
+  }
+
+  public get unscaled(): Rect {
+    return this.unscale(this.scale);
   }
 
   public unscale(scaleX: number, scaleY: number = scaleX): Rect {

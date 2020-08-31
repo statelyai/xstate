@@ -2,11 +2,18 @@ import { Rect } from "./Rect";
 
 export interface TrackerData {
   rect: null | Rect;
+  absolute: null | Rect;
   element: null | Element;
   listeners: Set<TrackerListener>;
 }
 
 type TrackerListener = (data: TrackerData) => void;
+
+function isHidden(el: HTMLElement) {
+  const result =
+    !el.offsetWidth && !el.offsetHeight && !el.getClientRects().length;
+  return result;
+}
 
 export class Tracker {
   public data: Record<string, TrackerData> = {};
@@ -18,22 +25,29 @@ export class Tracker {
   }
 
   public update(id: string, el: Element) {
-    const clientRect = relative(el.getBoundingClientRect(), this.getParent(el));
-
-    const scale = clientRect.width / (el as HTMLElement).offsetWidth;
-
     if (!this.data[id]) {
       this.register(id);
     }
 
     const currentData = this.data[id];
+    currentData.element = el;
 
-    if (currentData.rect?.equals(clientRect)) {
-      return;
+    if (isHidden(el as HTMLElement)) {
+      currentData.rect = null;
+    } else {
+      const absoluteRect = el.getBoundingClientRect();
+      const clientRect = relative(absoluteRect, this.getParent(el));
+
+      const scale = clientRect.width / (el as HTMLElement).offsetWidth;
+
+      if (currentData.rect?.equals(clientRect)) {
+        return;
+      }
+
+      currentData.rect = new Rect(clientRect, scale);
+      currentData.absolute = new Rect(absoluteRect);
     }
 
-    currentData.element = el;
-    currentData.rect = new Rect(clientRect).unscale(scale);
     currentData.listeners.forEach((listener) => {
       listener(currentData);
     });
@@ -60,6 +74,7 @@ export class Tracker {
   public register(id: string) {
     this.data[id] = {
       rect: null,
+      absolute: null,
       element: null,
       listeners: new Set(),
     };

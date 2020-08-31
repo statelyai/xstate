@@ -57,7 +57,7 @@
     }
   },
   "devDependencies": {
-    "@babel/core": "^7.9.6",
+    "@babel/core": "^7.10.5",
     "@storybook/addon-actions": "^5.3.18",
     "@storybook/addon-links": "^5.3.18",
     "@storybook/addons": "^5.3.18",
@@ -84,14 +84,16 @@
     "ts-jest": "^24.1.9",
     "tsdx": "^0.11.0",
     "tslib": "^1.10.0",
-    "typescript": "^3.9.7",
+    "typescript": "^4.0.2",
     "xstate": "*"
   },
   "dependencies": {
     "@reach/tabs": "^0.10.3",
     "@xstate/immer": "^0.1.0",
     "@xstate/react": "^1.0.0-rc.3",
+    "codemirror": "^5.57.0",
     "immer": "^6.0.8",
+    "react-codemirror2": "^7.2.1",
     "react-json-tree": "^0.11.2",
     "react-markdown": "^4.3.1",
     "styled-components": "^4.4.1"

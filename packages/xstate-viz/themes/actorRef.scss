@@ -1,0 +1,27 @@
+[data-xviz='actorRef'] {
+  white-space: nowrap;
+
+  &[data-xviz-link] {
+    color: rgb(92, 148, 252);
+    text-decoration: underline;
+    cursor: pointer;
+  }
+
+  &[data-xviz-status='stopped'] {
+    text-decoration: line-through;
+    opacity: 0.5;
+  }
+}
+
+[data-xviz='actorRef-name'] {
+  font-weight: bold;
+}
+
+[data-xviz='actorRef-id'] {
+  &:before {
+    content: '(';
+  }
+  &:after {
+    content: ')';
+  }
+}

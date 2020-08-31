@@ -3,17 +3,7 @@ import { State } from "xstate";
 import { JSONViz, JSONCustomViz } from "./JSONViz";
 import { ActorRefViz } from "./ActorRefViz";
 
-type JSONValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [property: string]: JSONValue }
-  | JSONValue[];
-
-export function JsonViz({ value }: { value: JSONValue }) {
-  return <pre data-xviz="json">{JSON.stringify(value, null, 2)}</pre>;
-}
+type JSONValue = string | number | boolean | null | object | JSONValue[];
 
 export function StateViz({ state }: { state: State<any, any> }) {
   const cleanedState = React.useMemo(() => {
@@ -57,7 +47,6 @@ export function StateViz({ state }: { state: State<any, any> }) {
       <div data-xviz="state-value">
         <JSONViz
           valueKey="state"
-          path={[]}
           value={cleanedState as any}
           options={{
             initialOpen: (value, path) => {

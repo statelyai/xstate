@@ -1,52 +1,91 @@
-[data-xviz="sequenceDiagram"] {
+[data-xviz='sequenceDiagram'] {
   display: grid;
   grid-template-columns: calc(var(--xviz-participants) * 2);
+  grid-auto-rows: min-content;
+  grid-auto-columns: min-content;
   padding: 1rem;
-  grid-row-gap: 1rem;
+
   overflow: auto;
   height: 100%;
-
-  svg {
-    display: none;
-  }
 }
 
-[data-xviz="sequenceDiagram-participant"] {
+[data-xviz='sequenceDiagram-participant'] {
   grid-row: 1 / 2;
   grid-column-start: calc(2 * var(--xviz-participant) + 2);
   grid-column-end: calc(2 * var(--xviz-participant) + 3);
   position: sticky;
   top: 1px;
+  display: flex;
+  flex-direction: row;
+  justify-content: flex-end;
+  z-index: 1;
+  margin: 0 0.5rem;
 
-  > [data-xviz="sequenceDiagram-participant-id"] {
+  > [data-xviz='sequenceDiagram-participant-id'] {
     padding: 0.5rem;
     border-radius: var(--xviz-border-radius);
     text-align: center;
     border: 2px solid white;
-    transform: translateX(-50%);
+    transform: translateX(50%);
   }
 }
 
-[data-xviz="sequenceDiagram-event"] {
-  grid-column-start: calc(2 * var(--xviz-origin) + 2);
-  grid-column-end: calc(2 * var(--xviz-dest) + 2);
-
-  border-bottom: 2px solid white;
+[data-xviz='sequenceDiagram-eventLog'] {
+  align-self: center;
+  max-width: 10rem;
+  overflow: hidden;
 }
 
-[data-xviz="eventObject"] {
+[data-xviz='sequenceDiagram-event'] {
+  grid-column-start: calc(2 * var(--xviz-origin) + 3);
+  grid-column-end: calc(2 * var(--xviz-dest) + 3);
+  display: flex;
+  margin-top: 0.5rem;
+  animation: fadeIn 0.15s both;
+
+  &:not([data-xviz-dir='0']) {
+    justify-content: center;
+    border-bottom: 2px solid white;
+    &[data-xviz-event='xstate.init'] {
+      border-bottom-style: dashed;
+    }
+  }
+}
+
+[data-xviz='sequenceDiagram-event-arrow'] {
+  position: absolute;
+  transform: translateY(calc(50% + var(--xviz-border-width) / 2));
+  bottom: 0;
+
+  &[data-xviz-dir='-1'] {
+    left: 0;
+  }
+  &[data-xviz-dir='1'] {
+    bottom: 0;
+    right: 0;
+  }
+}
+
+[data-xviz='eventObject'] {
   padding: 0.5rem;
+  display: flex;
+  flex-direction: row;
+  position: sticky;
+  left: 1px;
 }
 
-[data-xviz="eventObject-name"] {
+[data-xviz='eventObject-name'] {
   font-weight: bold;
-  text-align: center;
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  justify-content: flex-start;
 }
 
-[data-xviz="sequenceDiagram-lifeline"] {
+[data-xviz='sequenceDiagram-lifeline'] {
   grid-row: 2 / calc(var(--xviz-events) + 2);
-  grid-column: calc(2 * var(--xviz-participant) + 2) /
-    calc(2 * var(--xviz-participant) + 2);
+  grid-column: calc(2 * var(--xviz-participant) + 3) /
+    calc(2 * var(--xviz-participant) + 3);
   border: 1px dashed #fff;
   width: 0;
   opacity: 0.5;

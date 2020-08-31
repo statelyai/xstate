@@ -1,0 +1,20 @@
+[data-xviz='popover'] {
+  position: absolute;
+  left: calc(var(--xviz-tracked-left) * 1px);
+  top: calc(var(--xviz-tracked-top) * 1px);
+  transform: translateY(-100%);
+  color: black;
+  background: white;
+  border-radius: var(--xviz-border-radius);
+}
+
+[data-xviz='popover-content'] {
+  padding: 0.5rem;
+  border-radius: var(--xviz-border-radius);
+}
+
+[data-xviz='popover-actions'] {
+  display: flex;
+  flex-direction: row;
+  padding: 0.5rem;
+}

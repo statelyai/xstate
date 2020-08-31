@@ -1,0 +1,127 @@
+[data-xviz='json-object'] {
+  --placeholder: '{...}';
+  --start-wrapper: '{';
+  --end-wrapper: '}';
+
+  &[data-xviz-json-empty] {
+    --placeholder: '{}';
+  }
+}
+
+[data-xviz='json-array'] {
+  --placeholder: '[...]';
+  --start-wrapper: '[';
+  --end-wrapper: ']';
+
+  &[data-xviz-json-empty] {
+    --placeholder: '[]';
+  }
+}
+
+[data-xviz='json-placeholder'] {
+  color: var(--value-color);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  margin-left: 1ch;
+}
+
+[data-xviz='json-object'],
+[data-xviz='json-array'] {
+  --value-color: #32cdba;
+
+  &[open] {
+    > [data-xviz='json-key'] {
+      > [data-xviz='json-placeholder'] {
+        display: none;
+      }
+      &:after {
+        content: var(--start-wrapper);
+        margin-left: 1ch;
+      }
+    }
+  }
+
+  > [data-xviz='json-value']:after {
+    content: var(--end-wrapper);
+  }
+
+  &[data-xviz-json-empty] {
+    > [data-xviz='json-value']:before {
+      opacity: 0.5;
+      content: 'Empty';
+      font-style: italic;
+      display: block;
+      padding-left: 2ch;
+    }
+  }
+
+  > [data-xviz='json-value'] {
+    padding-left: 2ch;
+  }
+}
+
+[data-xviz='json-primitive'] {
+  display: grid;
+  grid-template-columns: min-content auto;
+  grid-column-gap: 1ch;
+  appearance: none;
+
+  &:not(details) {
+    padding-left: 2ch;
+  }
+
+  [data-xviz='json-value'] {
+    color: var(--value-color);
+  }
+
+  &[data-xviz-json-type='undefined'],
+  &[data-xviz-json-type='function'] {
+    > [data-xviz='json-value'] {
+      font-style: italic;
+    }
+  }
+
+  &[data-xviz-json-type='undefined'],
+  &[data-xviz-json-type='null'] {
+    > [data-xviz='json-value'] {
+      opacity: 0.5;
+    }
+  }
+
+  &[data-xviz-json-type='undefined'] {
+    [data-xviz='json-value']::before {
+      content: 'undefined';
+    }
+  }
+  &[data-xviz-json-type='function'] {
+    [data-xviz='json-value']::before {
+      content: 'function';
+    }
+  }
+}
+
+[data-xviz='json-custom'] {
+  padding-left: 2ch;
+
+  > [data-xviz='json-value'] {
+    padding-left: 2ch;
+  }
+}
+
+[data-xviz='json-key'] {
+  white-space: nowrap;
+  &:focus {
+    outline: none;
+  }
+  &::-webkit-details-marker {
+    width: 1ch;
+    margin-right: 1ch;
+    opacity: 0.5;
+  }
+}
+
+[data-xviz='json-key'],
+[data-xviz='json-value'] {
+  line-height: 1.6;
+}

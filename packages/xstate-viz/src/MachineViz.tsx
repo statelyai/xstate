@@ -12,16 +12,22 @@ import {
   assign,
   interpret,
   StateNode,
+  EventObject,
 } from "xstate";
 import { getAllEdges } from "./utils";
-import { useTracking } from "./useTracker";
-import { useMachine } from "@xstate/react";
+import { useTracked, useTracking } from "./useTracker";
+import { useMachine, useService } from "@xstate/react";
 import {
   machineVizMachine,
   StateNodeTapEvent,
   EventTapEvent,
+  EventCommitEvent,
 } from "./machineVizMachine";
 import { MachineMeasure, MachineRectMeasurements } from "./MachineMeasure";
+import { Popover } from "./Popover";
+import { ResultBox } from "./types";
+import Editor from "./Editor";
+import { useState } from "react";
 
 interface CanvasCtx {
   zoom: number;
@@ -66,22 +72,14 @@ interface MachineVizProps {
   state?: State<any, any>;
   machine: StateMachine<any, any, any>;
   onStateNodeTap?: ({ stateNodeId: string }) => void;
-  onEventTap?: (data: {
-    stateNodeId: string;
-    eventType: string;
-    index: number;
-  }) => void;
+  onEventTap?: (data: EventTapEvent) => void;
   onCanvasTap?: () => void;
   style?: React.CSSProperties;
   mode: "read" | "play";
   selection?: Array<string | StateNode>;
 }
 
-interface ResultBox<T> {
-  v: T;
-}
-
-export default function useConstant<T>(fn: () => T): T {
+export function useConstant<T>(fn: () => T): T {
   const ref = React.useRef<ResultBox<T>>();
 
   if (!ref.current) {
@@ -90,6 +88,29 @@ export default function useConstant<T>(fn: () => T): T {
 
   return ref.current.v;
 }
+
+const EventPopover: React.FC<{
+  data: EventTapEvent;
+  onSubmit: (data: EventObject) => void;
+  onClickAddData: () => void;
+}> = ({ data, onClickAddData, children }) => {
+  const [rawData, setRawData] = useState("{}");
+  return (
+    <Popover
+      trackingId={data.trackingId}
+      actions={
+        <>
+          <button>Send</button>
+          <button>Add Data</button>
+        </>
+      }
+    >
+      <div>
+        Event: <strong>{data.eventType}</strong>
+      </div>
+    </Popover>
+  );
+};
 
 const MachineVizContainer: React.FC<MachineVizProps> = ({
   style,
@@ -104,6 +125,8 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
     measurements,
     setMeasurements,
   ] = React.useState<MachineRectMeasurements | null>(null);
+  const [machineVizState, send] = useService(service);
+  const popoverData = machineVizState.context.popover;
 
   React.useLayoutEffect(() => {
     canvasService.subscribe(({ context }) => {
@@ -118,7 +141,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
 
       groupRef.current.setAttribute(
         "style",
-        `transform: translate(${x}px, ${y}px) scale(${zoom * 0.9})`
+        `transform: translate(${x}px, ${y}px) scale(${zoom})`
       );
     });
   }, [machine]);
@@ -152,7 +175,6 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
           machine={machine}
           onMeasure={(m) => {
             setMeasurements(m);
-            console.log(m);
           }}
         />
       )}
@@ -168,6 +190,8 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
           }}
           onClick={(e) => {
             e.stopPropagation();
+            e.persist();
+
             service.send({
               type: "canvas.tap",
             });
@@ -175,11 +199,7 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
           // viewBox={'0 0 100 100'}
           // viewBox={`0 0 ${100 / zoom} ${100 / zoom}`}
         >
-          <g
-            data-xviz="machine-group"
-            ref={groupRef}
-            style={{ transform: "scale(.9)" }}
-          >
+          <g data-xviz="machine-group" ref={groupRef}>
             <EdgesViz
               edges={getAllEdges(machine)}
               machine={machine}
@@ -195,6 +215,20 @@ const MachineVizContainer: React.FC<MachineVizProps> = ({
             >
               <div data-xviz="machine" title={`machine: #${machine.id}`}>
                 <StateNodeViz stateNode={machine} />
+              </div>
+              <div data-xviz="popovers">
+                {popoverData && (
+                  <EventPopover
+                    data={popoverData}
+                    onSubmit={(eventData) => {
+                      send({
+                        ...machineVizState.context.popover!,
+                        type: "event.commit",
+                        data: eventData,
+                      });
+                    }}
+                  ></EventPopover>
+                )}
               </div>
             </foreignObject>
           </g>

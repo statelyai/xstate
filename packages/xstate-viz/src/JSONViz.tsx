@@ -1,12 +1,6 @@
 import * as React from "react";
 
-type JSONValue =
-  | string
-  | number
-  | boolean
-  | null
-  | { [property: string]: JSONValue }
-  | JSONValue[];
+type JSONValue = string | number | boolean | null | object | JSONValue[];
 
 type RenderValueFn = (value: any, path: string[]) => JSX.Element | undefined;
 
@@ -42,13 +36,13 @@ const JSONVizContext = React.createContext<
 
 export const JSONViz: React.FC<{
   valueKey: string;
-  path: string[];
+  path?: string[];
   value: JSONValue;
   renderValue?: RenderValueFn;
   options?: Partial<JsonVizOptions>;
 }> = ({
   valueKey,
-  path,
+  path = [],
   value,
   renderValue = () => undefined,
   options = defaultJsonVizOptions,
@@ -117,7 +111,10 @@ export const JSONObjectViz: React.FC<{
       data-xviz="json-object"
       data-xviz-json-empty={isEmpty}
     >
-      <summary data-xviz="json-key">{valueKey}:</summary>
+      <summary data-xviz="json-key">
+        <span>{valueKey}:</span>
+        <span data-xviz="json-placeholder">{JSON.stringify(value)}</span>
+      </summary>
       <div data-xviz="json-value">
         {renderValue(value, path) ||
           Object.entries(value).map(([key, value]) => {
@@ -151,7 +148,10 @@ const JSONArrayViz: React.FC<{
       data-xviz="json-array"
       data-xviz-json-empty={isEmpty}
     >
-      <summary data-xviz="json-key">{valueKey}:</summary>
+      <summary data-xviz="json-key">
+        <span>{valueKey}:</span>
+        <span data-xviz="json-placeholder">{JSON.stringify(value)}</span>
+      </summary>
       <div data-xviz="json-value">
         {renderValue(value, path) ||
           value.map((childValue, i) => {
