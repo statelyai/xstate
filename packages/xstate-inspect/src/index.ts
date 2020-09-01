@@ -128,7 +128,7 @@ export const inspectMachine = createMachine<{
 });
 
 const defaultInspectorOptions: InspectorOptions = {
-  url: 'https://embed.statecharts.io',
+  url: 'https://statecharts.io/inspect',
   iframe: () => document.querySelector<HTMLIFrameElement>('iframe[data-xstate]')
 };
 
