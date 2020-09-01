@@ -14,8 +14,7 @@ const stepMachine = Machine({
       on: { NEXT: 'three', PREV: 'one' }
     },
     three: {
-      type: 'final',
-      on: { PREV: 'two' }
+      type: 'final'
     }
   }
 });
