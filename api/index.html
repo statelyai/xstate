@@ -109,7 +109,7 @@
 
 <span class="hljs-comment">// Machine instance with internal state</span>
 <span class="hljs-keyword">const</span> toggleService = interpret(toggleMachine)
-  .onTransition(<span class="hljs-function"><span class="hljs-params">state</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(state.value))
+  .onTransition(<span class="hljs-function">(<span class="hljs-params">state</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(state.value))
   .start();
 <span class="hljs-comment">// =&gt; 'inactive'</span>
 
@@ -787,6 +787,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
 						<a href="globals.html#invokecreator" class="tsd-kind-icon">Invoke<wbr>Creator</a>
 					</li>
+					<li class=" tsd-kind-type-alias tsd-has-type-parameter">
+						<a href="globals.html#keyswithstates" class="tsd-kind-icon">Keys<wbr>With<wbr>States</a>
+					</li>
 					<li class=" tsd-kind-type-alias">
 						<a href="globals.html#listener" class="tsd-kind-icon">Listener</a>
 					</li>
@@ -959,6 +962,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 						<a href="globals.html#send" class="tsd-kind-icon">send</a>
 					</li>
 					<li class=" tsd-kind-variable">
+						<a href="globals.html#servicestack" class="tsd-kind-icon">service<wbr>Stack</a>
+					</li>
+					<li class=" tsd-kind-variable">
 						<a href="globals.html#sessionidindex" class="tsd-kind-icon">session<wbr>IdIndex</a>
 					</li>
 					<li class=" tsd-kind-variable tsd-has-type-parameter">
@@ -987,6 +993,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-function">
 						<a href="globals.html#cancel" class="tsd-kind-icon">cancel</a>
+					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#consume" class="tsd-kind-icon">consume</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#createcond" class="tsd-kind-icon">create<wbr>Cond</a>
@@ -1186,6 +1195,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					<li class=" tsd-kind-function">
 						<a href="globals.html#pathstostatevalue" class="tsd-kind-icon">paths<wbr>ToState<wbr>Value</a>
 					</li>
+					<li class=" tsd-kind-function tsd-has-type-parameter">
+						<a href="globals.html#provide" class="tsd-kind-icon">provide</a>
+					</li>
 					<li class=" tsd-kind-function">
 						<a href="globals.html#registerservice" class="tsd-kind-icon">register<wbr>Service</a>
 					</li>
@@ -1284,6 +1296,9 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toggle" class="tsd-kind-icon">toggle</a>
+					</li>
+					<li class=" tsd-kind-function">
+						<a href="globals.html#unregisterservice" class="tsd-kind-icon">unregister<wbr>Service</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#updatecontext" class="tsd-kind-icon">update<wbr>Context</a>
