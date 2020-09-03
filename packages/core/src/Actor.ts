@@ -8,6 +8,7 @@ import {
   SCXML
 } from './types';
 import { isMachine, mapContext, toInvokeSource } from './utils';
+import * as serviceScope from './serviceScope';
 
 export interface Actor<
   TContext = any,
@@ -76,7 +77,11 @@ export function createDeferredActor(
   tempActor.deferred = true;
 
   if (isMachine(entity)) {
-    tempActor.state = (data ? entity.withContext(data) : entity).initialState;
+    // "mute" the existing service scope so potential spawned actors within the `.initialState` stay deferred here
+    tempActor.state = serviceScope.provide(
+      undefined,
+      () => (data ? entity.withContext(data) : entity).initialState
+    );
   }
 
   return tempActor;
