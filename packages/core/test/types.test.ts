@@ -41,6 +41,7 @@ describe('StateSchema', () => {
     context: { elapsed: 0 },
     states: {
       green: {
+        id: 'green',
         meta: { name: 'greenLight' },
         on: {
           TIMER: 'yellow',
@@ -76,7 +77,7 @@ describe('StateSchema', () => {
             }
           },
           stop: {
-            always: { target: 'green' }
+            always: { target: '#green' }
           }
         }
       }

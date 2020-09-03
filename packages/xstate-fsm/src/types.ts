@@ -59,7 +59,7 @@ export declare namespace StateMachine {
     TEvent extends EventObject,
     TState extends Typestate<TContext>
   > {
-    value: string;
+    value: TState['value'];
     context: TContext;
     actions: Array<ActionObject<TContext, TEvent>>;
     changed?: boolean | undefined;

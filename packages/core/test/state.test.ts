@@ -314,6 +314,20 @@ describe('State', () => {
         two: { deep: 'foo' }
       });
     });
+
+    it('should preserve state.nextEvents using machine.resolveState', () => {
+      const { initialState } = machine;
+      const { nextEvents } = initialState;
+      const jsonInitialState = JSON.parse(JSON.stringify(initialState));
+
+      const stateFromConfig = State.create(jsonInitialState) as StateFrom<
+        typeof machine
+      >;
+
+      expect(machine.resolveState(stateFromConfig).nextEvents.sort()).toEqual(
+        nextEvents.sort()
+      );
+    });
   });
 
   describe('State.inert()', () => {

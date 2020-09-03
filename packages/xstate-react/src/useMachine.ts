@@ -164,9 +164,10 @@ export function useMachine<
   });
 
   const [state, setState] = useState(() => {
-    return rehydratedState
-      ? State.create(rehydratedState)
-      : resolvedMachine.initialState;
+    // Always read the initial state to properly initialize the machine
+    // https://github.com/davidkpiano/xstate/issues/1334
+    const { initialState } = resolvedMachine;
+    return rehydratedState ? State.create(rehydratedState) : initialState;
   });
 
   const effectActionsRef = useRef<

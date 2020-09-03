@@ -96,6 +96,26 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
+type KeysWithStates<
+  TStates extends Record<string, StateSchema> | undefined
+> = TStates extends object
+  ? {
+      [K in keyof TStates]-?: TStates[K] extends { states: object } ? K : never;
+    }[keyof TStates]
+  : never;
+
+export type ExtractStateValue<
+  TSchema extends Required<Pick<StateSchema<any>, 'states'>>
+> =
+  | keyof TSchema['states']
+  | (KeysWithStates<TSchema['states']> extends never
+      ? never
+      : {
+          [K in KeysWithStates<TSchema['states']>]?: ExtractStateValue<
+            TSchema['states'][K]
+          >;
+        });
+
 export type ConditionPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
@@ -318,14 +338,10 @@ type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
-  | {
-      [K in TEvent['type']]: TransitionConfig<
-        TContext,
-        TEvent extends { type: K } ? TEvent : never
-      > & {
-        event: K;
-      };
-    }[TEvent['type']]
+  // distribute the union
+  | (TEvent extends EventObject
+      ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
+      : never)
   | (TransitionConfig<TContext, TEvent> & { event: '' })
   | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;

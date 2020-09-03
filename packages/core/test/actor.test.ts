@@ -6,13 +6,15 @@ import {
   raise,
   doneInvoke,
   sendUpdate,
-  respond
+  respond,
+  done
 } from '../src/actions';
 import { fromService } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 import * as actionTypes from '../src/actionTypes';
 import { createMachineBehavior } from '../src/behavior';
+import { invokeMachine } from '../src/invoke';
 
 describe('spawning machines', () => {
   const todoMachine = Machine({
@@ -227,6 +229,7 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: (_, __, { spawn }) =>
               spawn.from((cb, receive) => {
+                console.log('hey there');
                 receive((event) => {
                   if (event.type === 'START') {
                     setTimeout(() => {
@@ -807,6 +810,47 @@ describe('actors', () => {
           .onTransition((state) => {
             if (state.event.type === actionTypes.update) {
               expect(state.changed).toBe(true);
+              done();
+            }
+          })
+          .start();
+      });
+
+      it('should only spawn an actor in an initial state of a child that gets invoked in the initial state of a parent when the parent gets started', (done) => {
+        let spawnCounter = 0;
+
+        const child = Machine({
+          initial: 'bar',
+          context: {},
+          states: {
+            bar: {
+              entry: assign({
+                promise: (_, __, { spawn }) => {
+                  return spawn.from(() => {
+                    spawnCounter++;
+                    return Promise.resolve('answer');
+                  });
+                }
+              })
+            }
+          }
+        });
+
+        const parent = Machine({
+          initial: 'foo',
+          states: {
+            foo: {
+              invoke: {
+                src: invokeMachine(child),
+                onDone: 'end'
+              }
+            },
+            end: { type: 'final' }
+          }
+        });
+        interpret(parent)
+          .onTransition(() => {
+            if (spawnCounter === 1) {
               done();
             }
           })
