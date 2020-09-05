@@ -8,7 +8,12 @@ describe('createModel', () => {
       value: string;
     };
 
-    const userModel = createModel({
+    interface UserContext {
+      name: string;
+      age: number;
+    }
+
+    const userModel = createModel<UserContext, UserEvent>({
       name: 'David',
       age: 30
     }).withUpdaters({
