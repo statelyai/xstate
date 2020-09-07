@@ -109,7 +109,7 @@
 
 <span class="hljs-comment">// Machine instance with internal state</span>
 <span class="hljs-keyword">const</span> toggleService = interpret(toggleMachine)
-  .onTransition(<span class="hljs-function">(<span class="hljs-params">state</span>) =&gt;</span> <span class="hljs-built_in">console</span>.log(state.value))
+  .onTransition(<span class="hljs-function"><span class="hljs-params">state</span> =&gt;</span> <span class="hljs-built_in">console</span>.log(state.value))
   .start();
 <span class="hljs-comment">// =&gt; 'inactive'</span>
 
@@ -1296,9 +1296,6 @@ lightMachine.transition({ <span class="hljs-attr">red</span>: <span class="hljs-
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#toggle" class="tsd-kind-icon">toggle</a>
-					</li>
-					<li class=" tsd-kind-function">
-						<a href="globals.html#unregisterservice" class="tsd-kind-icon">unregister<wbr>Service</a>
 					</li>
 					<li class=" tsd-kind-function tsd-has-type-parameter">
 						<a href="globals.html#updatecontext" class="tsd-kind-icon">update<wbr>Context</a>
