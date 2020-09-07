@@ -1,5 +1,7 @@
 # Tutorials
 
+🆕 Please see [Resources](./resources.md) for an up-to-date listing of various XState resources collected around the web!
+
 ## Articles
 
 - [XState - a TypeScript state machine with a lot of features](http://realfiction.net/2019/01/30/xstate-a-typescript-state-machine-with-a-lot-of-features) by Frank Quednau
