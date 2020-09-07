@@ -24,6 +24,12 @@ function formatAction(
         </>
       );
     case "xstate.send":
+      // TODO: deal with send actions with dynamic expressions.
+      // This is a workaround:
+      if (!action.event) {
+        return <>send dynamic event</>;
+      }
+
       const sendAction = state
         ? resolveSend(
             action as SendAction<any, any, any>,
@@ -33,7 +39,7 @@ function formatAction(
         : action;
 
       if (sendAction.event?.type?.startsWith("xstate.after")) {
-        return `send ${toDelayString(action.delay!)} delay`;
+        return <>send {toDelayString(action.delay!)} delay</>;
       }
 
       const target =

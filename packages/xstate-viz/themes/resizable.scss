@@ -1,0 +1,5 @@
+[data-xviz-resizable] {
+  &[data-xviz-mode='resizing'] * {
+    user-select: none;
+  }
+}

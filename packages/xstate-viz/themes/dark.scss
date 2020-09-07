@@ -7,6 +7,8 @@
 @import './timestamp.scss';
 @import './eventLogs.scss';
 @import './eventPanel.scss';
+@import './button.scss';
+@import './resizable.scss';
 
 [data-xviz='service-id'] {
   padding: var(--xviz-sp);
@@ -609,10 +611,10 @@ body {
     grid-area: service;
     display: grid;
     grid-template-columns: 1fr auto;
-    grid-template-rows: 1fr 1fr;
+    grid-template-rows: 1fr 2rem;
     grid-template-areas:
       'content sidebar'
-      'bottom-content sidebar';
+      'footer footer';
     overflow: hidden;
 
     &[hidden] {
@@ -628,13 +630,13 @@ body {
       // left: 0;
     }
 
-    > [data-xviz='sequenceDiagram'] {
-      grid-area: bottom-content;
-    }
-
     > [data-xviz='service-sidebar'] {
       grid-area: sidebar;
       overflow-y: auto;
+    }
+
+    > [data-xviz='service-footer'] {
+      grid-area: footer;
     }
 
     @media (max-width: 40rem) {
@@ -671,12 +673,15 @@ body {
 }
 
 [data-xviz='service-sidebar'] {
+  border-left: 1px solid rgba(white, 0.2);
   > [data-reach-tabs] {
     height: 100%;
     display: grid;
     grid-template-rows: 2rem 1fr;
 
     > [data-reach-tab-list] {
+      display: flex;
+      flex-wrap: nowrap;
     }
 
     [data-reach-tab-panels] {
@@ -700,6 +705,12 @@ body {
       background: none;
       border: none;
       font-weight: bold;
+      border-radius: var(--xviz-border-radius);
+      transition: background 0.3s;
+
+      &:hover {
+        background: rgba(white, 0.25);
+      }
 
       &[aria-selected='true'] {
         background: white;
@@ -720,23 +731,9 @@ body {
   display: flex;
   flex-direction: row;
 
-  > [data-xviz='inspector-action'] {
-    margin-right: var(--xviz-sp);
-  }
-
   > [data-xviz='logo'] {
     height: 2rem;
   }
-}
-
-[data-xviz='inspector-action'] {
-  appearance: none;
-  border: none;
-  background: rgba(white, 0.2);
-  color: white;
-  font-weight: bold;
-  padding: 0.25rem calc(var(--xviz-sp) / 2);
-  border-radius: 0.25rem;
 }
 
 [data-xviz='state'] {
@@ -859,4 +856,15 @@ body {
     grid-area: editor;
     overflow-y: scroll;
   }
+}
+
+[data-xviz='sessionSelect'] {
+  margin-bottom: 1rem;
+}
+
+[data-xviz='placeholder'] {
+  font-style: italic;
+  padding: 1rem;
+  display: block;
+  text-align: center;
 }

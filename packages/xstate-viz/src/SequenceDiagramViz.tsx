@@ -1,7 +1,12 @@
 import * as React from "react";
-import { EventObject, SCXML } from "xstate";
+import { AnyEventObject, SCXML } from "xstate";
+import { TimestampViz } from "./TimestampViz";
+import { ActorRefViz, SessionIdViz } from "./ActorRefViz";
+import { EventTypeViz } from "./EventViz";
+import { JSONViz } from "./JSONViz";
+import { Popover } from "./Popover";
 
-export interface SCXMLSequenceEvent extends SCXML.Event<EventObject> {
+export interface SCXMLSequenceEvent extends SCXML.Event<AnyEventObject> {
   dest: string;
   origin: string;
   timestamp: number;
@@ -23,6 +28,10 @@ export const SequenceDiagramViz: React.FC<{
 }> = ({ events }) => {
   const participants = getParticipants(events);
 
+  if (!events.length) {
+    return <div data-xviz="placeholder">No events yet.</div>;
+  }
+
   return (
     <div
       data-xviz="sequenceDiagram"
@@ -30,14 +39,11 @@ export const SequenceDiagramViz: React.FC<{
         // @ts-ignore
         "--xviz-participants": participants.length,
         "--xviz-events": events.length,
-        display: "grid",
-        // gridTemplateColumns: `repeat(${participants.length}, min-content)`,
-        gridAutoRows: "min-content",
       }}
     >
-      {participants.map((d, i) => {
+      {participants.map((participantId, i) => {
         return (
-          <React.Fragment key={d}>
+          <React.Fragment key={participantId}>
             <div
               data-xviz="sequenceDiagram-participant"
               style={{
@@ -45,7 +51,9 @@ export const SequenceDiagramViz: React.FC<{
                 "--xviz-participant": i,
               }}
             >
-              <div data-xviz="sequenceDiagram-participant-id">{d}</div>
+              <div data-xviz="sequenceDiagram-participant-id">
+                <SessionIdViz sessionId={participantId} />
+              </div>
             </div>
             <div
               data-xviz="sequenceDiagram-lifeline"
@@ -61,54 +69,57 @@ export const SequenceDiagramViz: React.FC<{
         const originIndex = participants.indexOf(event.origin);
         const destinationIndex = participants.indexOf(event.dest);
 
-        const min = Math.min(originIndex, destinationIndex);
-        const max = Math.max(originIndex, destinationIndex);
-
         const dir = Math.sign(destinationIndex - originIndex);
 
         return (
-          <div
-            data-xviz="sequenceDiagram-event"
-            key={i}
-            style={{
-              // @ts-ignore
-              "--xviz-origin": originIndex,
-              "--xviz-dest": destinationIndex,
-              // gridColumnStart: min + 1,
-              // gridColumnEnd: max + 1,
-              gridRow: i + 1 + 1,
-            }}
-            data-xviz-dir={dir === 1 ? "right" : dir === -1 ? "left" : "self"}
-          >
-            <div data-xviz="eventObject">
-              <div data-xviz="eventObject-name">{event.name}</div>
+          <React.Fragment key={i}>
+            <div
+              data-xviz="sequenceDiagram-eventLog"
+              style={{
+                gridRow: i + 1 + 1,
+              }}
+            >
+              {/* <JSONViz value={event.data} valueKey="event" /> */}
             </div>
-            {dir === 1 ? (
-              <svg
-                width="100%"
-                height="14"
-                preserveAspectRatio="xMaxYMid slice"
-                viewBox="0 0 1400 14"
+            <div
+              data-xviz="sequenceDiagram-event"
+              key={i}
+              style={{
+                // @ts-ignore
+                "--xviz-origin": originIndex,
+                "--xviz-dest": destinationIndex,
+                gridRow: i + 1 + 1,
+              }}
+              data-xviz-dir={dir}
+              data-xviz-event={event.name}
+            >
+              <div
+                data-xviz="eventObject"
+                data-xviz-origin={event.origin}
+                data-xviz-dest={event.dest}
               >
-                <polygon
-                  points="1400,7 1385,1 1390,6 0,6 0,8 1390,8 1385,13 1400,7"
-                  fill="#fff"
-                ></polygon>
-              </svg>
-            ) : dir === -1 ? (
+                <div data-xviz="eventObject-name">
+                  <EventTypeViz eventType={event.name} />
+                </div>
+              </div>
               <svg
+                data-xviz="sequenceDiagram-event-arrow"
+                data-xviz-dir={dir}
                 width="100%"
-                height="14"
-                preserveAspectRatio="xMinYMid slice"
-                viewBox="0 0 1400 14"
+                height=".5rem"
+                viewBox="0 0 10 10"
+                preserveAspectRatio={
+                  dir === 1 ? "xMaxYMid meet" : "xMinYMid meet"
+                }
               >
-                <polygon
-                  points="0,7 15,1 10,6 1400,6 1400,8 10,8 15,13 0,7"
-                  fill="#fff"
-                ></polygon>
+                {dir === 1 ? (
+                  <polygon points="0,0 10,5 0,10 0,0" fill="#fff"></polygon>
+                ) : dir === -1 ? (
+                  <polygon points="10,0 0,5 10,10 10,0" fill="#fff"></polygon>
+                ) : null}
               </svg>
-            ) : null}
-          </div>
+            </div>
+          </React.Fragment>
         );
       })}
     </div>

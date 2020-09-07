@@ -110,7 +110,14 @@
 }
 
 [data-xviz='json-key'] {
+  display: grid;
+  grid-template-columns: min-content min-content 1fr;
   white-space: nowrap;
+
+  > * {
+    align-self: baseline;
+  }
+
   &:focus {
     outline: none;
   }
@@ -118,6 +125,7 @@
     width: 1ch;
     margin-right: 1ch;
     opacity: 0.5;
+    align-self: center;
   }
 }
 

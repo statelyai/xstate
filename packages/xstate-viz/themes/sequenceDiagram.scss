@@ -20,14 +20,14 @@
   justify-content: flex-end;
   z-index: 1;
   margin: 0 0.5rem;
-
-  > [data-xviz='sequenceDiagram-participant-id'] {
-    padding: 0.5rem;
-    border-radius: var(--xviz-border-radius);
-    text-align: center;
-    border: 2px solid white;
-    transform: translateX(50%);
-  }
+}
+[data-xviz='sequenceDiagram-participant-id'] {
+  padding: 0.5rem;
+  border-radius: var(--xviz-border-radius);
+  text-align: center;
+  border: 2px solid white;
+  background-color: rgba(black, 0.75);
+  transform: translateX(50%);
 }
 
 [data-xviz='sequenceDiagram-eventLog'] {

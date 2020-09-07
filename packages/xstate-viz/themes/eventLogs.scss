@@ -1,33 +1,63 @@
 [data-xviz='eventLogs'] {
-  padding: 0.5rem;
+  padding: 0 0.5rem;
+  overflow-y: auto;
+}
+
+table[data-xviz='eventLogs-table'] {
+  border-collapse: collapse;
+  width: 100%;
 
   th {
     text-align: left;
+    position: sticky;
+    top: 1px;
+    background: black;
+    z-index: 1;
+    padding: 0.5rem 1rem;
+
+    &:first-child {
+      width: 100%;
+    }
   }
 }
 
-[data-xviz='eventLog'] {
+tr[data-xviz='eventLog'] {
   font-family: inherit;
-  display: grid;
-  grid-template-columns: 1fr auto;
-  grid-template-rows: auto auto auto;
-  grid-template-areas:
-    'name timestamp'
-    'trace trace'
-    'data data';
-  border-bottom: 1px solid rgba(white, 0.2);
 
-  > [data-xviz='eventLog-name'] {
-    grid-area: name;
+  > td {
+    border-bottom: 1px solid rgba(white, 0.2);
+  }
+}
+
+[data-xviz='eventLog-data'] {
+  summary[data-xviz='eventLog-data-summary'] {
+    padding: 0.5rem 0;
     font-weight: bold;
-  }
+    &:focus {
+      outline: none;
+    }
+    &:after {
+      content: '{⋯}';
+      // border: 2px solid rgba(white, 0.4);
+      opacity: 0.5;
+      border-radius: var(--xviz-border-radius);
+      margin-left: 1ch;
+      padding: 0 0.5ch;
+      transition: opacity 0.3s;
+    }
+    &:hover:after {
+      opacity: 1;
+    }
 
-  > [data-xviz='eventLog-timestamp'] {
-    grid-area: timestamp;
+    &::-webkit-details-marker {
+      display: none;
+    }
   }
+}
 
-  > [data-xviz='eventLog-data'] {
-    grid-area: data;
+details[data-xviz='eventLog-data-details'] {
+  &[open] > summary:after {
+    display: none;
   }
 }
 
@@ -40,6 +70,10 @@
     'caret trace trace';
   grid-row-gap: 0.5rem;
   padding: 1rem;
+
+  &:focus {
+    outline: none;
+  }
 
   > [data-xviz='eventLog-name'] {
     grid-area: name;
@@ -61,10 +95,6 @@
   &:focus {
     outline: none;
   }
-}
-
-[data-xviz='eventLog-data'] {
-  padding: 0 1rem 1rem;
 }
 
 [data-xviz='eventLog-trace'] {

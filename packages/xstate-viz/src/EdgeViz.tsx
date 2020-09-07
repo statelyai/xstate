@@ -133,20 +133,20 @@ export function EdgeViz({
   const isCurrent = state ? isActive(state, edge.source) : undefined;
   const ref = useRef<SVGGElement>(null);
   const sourceRectData = useTracked(edge.source.id);
-  const sourceRect = sourceRectData ? sourceRectData.rect.unscaled : undefined;
+  const sourceRect = sourceRectData ? sourceRectData.rect?.unscaled : undefined;
   const sourceEventsRectData = useTracked(edge.source.id + ":events");
   const sourceEventsRect = sourceEventsRectData
-    ? sourceEventsRectData.rect.unscaled
+    ? sourceEventsRectData.rect?.unscaled
     : undefined;
 
   const eventRectData = useTracked(serializeTransition(edge.transition));
-  const eventRect = eventRectData ? eventRectData.rect.unscaled : undefined;
+  const eventRect = eventRectData ? eventRectData.rect?.unscaled : undefined;
 
   const targetRectData = useTracked(edge.target.id);
-  const targetRect = targetRectData ? targetRectData.rect.unscaled : undefined;
+  const targetRect = targetRectData ? targetRectData.rect?.unscaled : undefined;
   const targetEventsRectData = useTracked(edge.target.id + ":events");
   const targetEventsRect = targetEventsRectData
-    ? targetEventsRectData.rect.unscaled
+    ? targetEventsRectData.rect?.unscaled
     : undefined;
 
   const triggered =
@@ -477,22 +477,24 @@ export function EdgeViz({
                   }
                   break;
                 case 1:
-                  if (Math.abs(startPoint.y - endPoint.y) < 100) {
+                  if (
+                    Math.abs(startPoint.y - endPoint.y) < 100 &&
+                    preEndPoint.x - sourceEventsRect.right > 100
+                  ) {
                     // TODO: if there are any state nodes between
-                    if (preEndPoint.x - sourceEventsRect.right > 100) {
-                      bends.push((pt) => {
-                        return {
-                          x: pt.x,
-                          y: sourceEventsRect.top - offset,
-                        };
-                      });
-                      bends.push((pt) => {
-                        return {
-                          x: preEndPoint.x,
-                          y: pt.y,
-                        };
-                      });
-                    }
+
+                    bends.push((pt) => {
+                      return {
+                        x: pt.x,
+                        y: sourceEventsRect.top - offset,
+                      };
+                    });
+                    bends.push((pt) => {
+                      return {
+                        x: preEndPoint.x,
+                        y: pt.y,
+                      };
+                    });
                   } else {
                     switch (ydir) {
                       case -1:
@@ -508,12 +510,6 @@ export function EdgeViz({
                           return {
                             x: preEndPoint.x,
                             y: pt.y,
-                          };
-                        });
-                        bends.push(() => {
-                          return {
-                            x: 0,
-                            y: 0,
                           };
                         });
                         break;

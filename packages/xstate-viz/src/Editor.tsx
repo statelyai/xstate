@@ -1,4 +1,4 @@
-import { UnControlled, Controlled } from "react-codemirror2";
+import { UnControlled, Controlled as CodeMirror } from "react-codemirror2";
 
 // import 'codemirror/mode/json/json';
 import { useState, useEffect } from "react";
@@ -17,7 +17,7 @@ const Editor: React.FC<{
     onChange?.(value);
   }, []);
 
-  const CodeMirror = controlled ? Controlled : UnControlled;
+  // const CodeMirror = controlled ? Controlled : UnControlled;
 
   return (
     <div data-xviz="editor">

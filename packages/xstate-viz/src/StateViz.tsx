@@ -2,10 +2,49 @@ import * as React from "react";
 import { State } from "xstate";
 import { JSONViz, JSONCustomViz } from "./JSONViz";
 import { ActorRefViz } from "./ActorRefViz";
+import { ServicesContext } from "./InspectorViz";
 
-type JSONValue = string | number | boolean | null | object | JSONValue[];
+const SessionSelectViz: React.FC<{
+  service?: string;
+  onSelectSession: (sessionId: string) => void;
+}> = ({ service, onSelectSession }) => {
+  const servicesService = React.useContext(ServicesContext);
 
-export function StateViz({ state }: { state: State<any, any> }) {
+  if (!servicesService) return null;
+
+  const serviceEntries = Object.values(servicesService.state!.context.services);
+
+  return (
+    <select
+      onChange={(e) => {
+        onSelectSession(e.target.value);
+      }}
+      value={servicesService.state!.context.service}
+      data-xviz="sessionSelect"
+      title="Select a session"
+    >
+      {serviceEntries.map((serviceData) => {
+        return (
+          <option
+            data-xviz="service-link"
+            key={serviceData.sessionId}
+            value={serviceData.sessionId}
+          >
+            {serviceData.id || serviceData.machine.id} ({serviceData.sessionId})
+          </option>
+        );
+      })}
+    </select>
+  );
+};
+
+export function StateViz({
+  state,
+  onSelectSession,
+}: {
+  state: State<any, any>;
+  onSelectSession?: (sessionId: string) => void;
+}) {
   const cleanedState = React.useMemo(() => {
     const {
       value,
@@ -44,6 +83,13 @@ export function StateViz({ state }: { state: State<any, any> }) {
 
   return (
     <div data-xviz="state">
+      {onSelectSession && (
+        <SessionSelectViz
+          onSelectSession={(s) => {
+            onSelectSession(s);
+          }}
+        />
+      )}
       <div data-xviz="state-value">
         <JSONViz
           valueKey="state"

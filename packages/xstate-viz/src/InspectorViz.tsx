@@ -16,11 +16,12 @@ import { createContext } from "react";
 import { Loader } from "./Loader";
 import { flatten, toSCXMLEvent } from "xstate/lib/utils";
 import { enableMapSet } from "immer";
-import { SCXMLSequenceEvent, SequenceDiagramViz } from "./SequenceViz";
+import { SCXMLSequenceEvent, SequenceDiagramViz } from "./SequenceDiagramViz";
 import { Tab, TabList, TabPanel, TabPanels, Tabs } from "@reach/tabs";
 import { EventPanelViz } from "./EventPanelViz";
 import { EventTapEvent } from "./machineVizMachine";
 import { Resizable } from "./Resizable";
+import { InspectorHeaderViz } from "./InspectorHeaderViz";
 
 enableMapSet();
 
@@ -67,7 +68,7 @@ export type InspectorEvent =
     }
   | ViewUpdateEvent;
 
-interface ServiceDataCtx {
+export interface ServiceDataCtx {
   state: State<any, any>;
   machine: StateNode<any, any>;
   id: string;
@@ -254,37 +255,6 @@ export function createReceiver<T>(): Receiver<T> {
   };
 }
 
-const InspectorHeaderViz: React.FC<{
-  services: Record<string, ServiceDataCtx>;
-  service: string;
-  onSelectService: (service: string) => void;
-}> = ({ services, service, onSelectService }) => {
-  const serviceEntries = Object.entries(services);
-
-  return (
-    <header data-xviz="inspector-header">
-      <img src="/xstate.svg" data-xviz="logo" />
-      {serviceEntries.length > 0 && (
-        <select
-          onChange={(e) => {
-            onSelectService(e.target.value);
-          }}
-          value={service}
-          data-xviz="inspector-action"
-        >
-          {Object.keys(services).map((key) => {
-            return (
-              <option data-xviz="service-link" key={key} value={key}>
-                {key}
-              </option>
-            );
-          })}
-        </select>
-      )}
-    </header>
-  );
-};
-
 export const InspectorViz: React.FC<{
   receiver: { receive: (listener: (e: InspectorEvent) => void) => void };
   onEvent: (event: {
@@ -317,13 +287,7 @@ export const InspectorViz: React.FC<{
   return (
     <ServicesContext.Provider value={inspectorService}>
       <div data-xviz="inspector" data-xviz-view={state.context.view}>
-        <InspectorHeaderViz
-          services={state.context.services}
-          service={state.context.service}
-          onSelectService={(service) => {
-            send({ type: "service.select", sessionId: service });
-          }}
-        />
+        <InspectorHeaderViz />
         {currentService ? (
           <ServiceDataContext.Provider value={currentService}>
             <div data-xviz="service" data-xviz-view={state.context.view}>
@@ -343,13 +307,13 @@ export const InspectorViz: React.FC<{
                   });
                 }}
               />
-              <SequenceDiagramViz events={sortedEvents} />
 
               <Resizable data-xviz="service-sidebar">
                 <Tabs defaultIndex={0}>
                   <TabList>
                     <Tab>State</Tab>
                     <Tab>Events</Tab>
+                    <Tab>Sequence</Tab>
                     {panels &&
                       Object.keys(panels).map((key) => {
                         return <Tab key={key}>{key}</Tab>;
@@ -357,7 +321,12 @@ export const InspectorViz: React.FC<{
                   </TabList>
                   <TabPanels>
                     <TabPanel>
-                      <StateViz state={currentService.state} />
+                      <StateViz
+                        state={currentService.state}
+                        onSelectSession={(sessionId) => {
+                          send({ type: "service.select", sessionId });
+                        }}
+                      />
                     </TabPanel>
                     <TabPanel>
                       <EventPanelViz
@@ -372,6 +341,9 @@ export const InspectorViz: React.FC<{
                           });
                         }}
                       />
+                    </TabPanel>
+                    <TabPanel>
+                      <SequenceDiagramViz events={sortedEvents} />
                     </TabPanel>
                     {panels &&
                       Object.values(panels).map((panel, i) => {

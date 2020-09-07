@@ -1,9 +1,9 @@
 [data-xviz] {
-  --xviz-background-color: #111;
+  --xviz-background-color: #0b0b0b;
   --xviz-background-transparent-color: #{rgb(#111, 0.8)};
   --xviz-foreground-color: white;
-  --xviz-active-color: rgb(19, 129, 201);
-  --xviz-semiactive-color: rgb(19, 129, 201, 0.75);
+  --xviz-active-color: #398ef1;
+  --xviz-semiactive-color: #{rgba(#398ef1, 0.75)};
   --xviz-active-border-color: var(--xviz-active-color);
   --xviz-inactive-border-color: #{rgba(white, 0.4)};
   --xviz-color-selected: var(--xviz-active-color);

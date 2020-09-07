@@ -2,7 +2,7 @@
   white-space: nowrap;
 
   &[data-xviz-link] {
-    color: rgb(92, 148, 252);
+    color: var(--xviz-active-color);
     text-decoration: underline;
     cursor: pointer;
   }

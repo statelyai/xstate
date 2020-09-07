@@ -5,37 +5,42 @@ import { TimestampViz } from "./TimestampViz";
 import { SessionIdViz } from "./ActorRefViz";
 import { EventTypeViz } from "./EventViz";
 import { JSONViz } from "./JSONViz";
-import { SCXMLSequenceEvent } from "./SequenceViz";
+import { SCXMLSequenceEvent } from "./SequenceDiagramViz";
 
 export const EventLogsViz: React.FC<{ events: SCXMLSequenceEvent[] }> = ({
   events,
 }) => {
   return (
-    <table data-xviz="eventLogs">
-      <thead>
-        <tr>
-          <th>Data</th>
-          <th>Time</th>
-        </tr>
-      </thead>
-      <tbody>
-        {events.map((event, i) => {
-          return (
-            <tr key={i}>
-              <td>
-                <details>
-                  <summary>{event.name}</summary>
-                  <JSONViz value={event.data} valueKey="event" />
-                </details>
-              </td>
-              <td>
-                <TimestampViz time={event.timestamp}></TimestampViz>
-              </td>
-            </tr>
-          );
-        })}
-      </tbody>
-    </table>
+    <div data-xviz="eventLogs">
+      <table data-xviz="eventLogs-table">
+        <thead>
+          <tr>
+            <th>Data</th>
+            <th>Time</th>
+          </tr>
+        </thead>
+        <tbody>
+          {events.map((event, i) => {
+            return (
+              <tr key={i} data-xviz="eventLog">
+                <td data-xviz="eventLog-data">
+                  <details data-xviz="eventLog-data-details">
+                    <summary data-xviz="eventLog-data-summary">
+                      {event.name}
+                    </summary>
+                    <JSONViz value={event.data} valueKey="event" />
+                  </details>
+                </td>
+                <td>
+                  <TimestampViz time={event.timestamp}></TimestampViz>
+                </td>
+              </tr>
+            );
+          })}
+        </tbody>
+      </table>
+      {!events.length && <div data-xviz="placeholder">No events yet.</div>}
+    </div>
   );
 };
 
@@ -91,6 +96,7 @@ const EventCreator: React.FC<{
         controlled={true}
       />
       <button
+        data-xviz="button"
         onClick={() => {
           onEvent(JSON.parse(code));
         }}

@@ -6,7 +6,19 @@
 }
 
 [data-xviz='eventCreator'] {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  grid-template-rows: 1fr;
+  grid-template-areas:
+    'events send'
+    'editor editor';
+  padding: 0.5rem;
+  grid-column-gap: 0.5rem;
+  grid-row-gap: 0.5rem;
+
   [data-xviz='editor'] {
+    grid-area: editor;
+
     &,
     .CodeMirror {
       height: 200px;

@@ -64,6 +64,7 @@ export const Resizable: React.FC<{}> = ({ children, ...attrs }) => {
   return (
     <div
       data-xviz-resizable
+      data-xviz-mode={state.toStrings().join(" ")}
       {...attrs}
       style={{
         // @ts-ignore
