@@ -124,3 +124,4 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Refactoring with XState - Part 1](https://www.youtube.com/watch?v=hZ1vaMJnKx0) by [VigsCodes](https://www.youtube.com/channel/UCAFlrYILud3-3MCs8nsDiAA)
 - [State machines in Production](https://moduscreate.com/blog/state-machines-in-production/) by [Ivan Kovic](https://twitter.com/kobeljic)
 - [When your brain is breaking, try XState](https://swizec.com/blog/when-your-brain-is-breaking-try-xstate) by [@swizec](https://swizec.com)
+- [GitHub - Cypress Real-World App](https://github.com/cypress-io/cypress-realworld-app)
