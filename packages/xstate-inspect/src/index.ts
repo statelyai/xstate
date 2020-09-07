@@ -4,7 +4,8 @@ import {
   assign,
   interpret,
   SCXML,
-  EventObject
+  EventObject,
+  EventData
 } from 'xstate';
 import { toSCXMLEvent, toEventObject } from 'xstate/lib/utils';
 
@@ -212,16 +213,19 @@ export function inspect(
     // while the sent one is being processed, which throws the order off
     const originalSend = service.send.bind(service);
 
-    service.send = function inspectSend(event) {
+    service.send = function inspectSend(
+      event: EventObject,
+      payload?: EventData
+    ) {
       inspectService.send({
         type: 'service.event',
         event: JSON.stringify(
-          toSCXMLEvent(toEventObject(event as EventObject))
+          toSCXMLEvent(toEventObject(event as EventObject, payload))
         ),
         sessionId: service.sessionId
       });
 
-      return originalSend(event);
+      return originalSend(event, payload);
     };
 
     service.subscribe((state) => {
