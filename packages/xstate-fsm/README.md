@@ -351,11 +351,17 @@ type UserState =
     }
   | {
       value: 'success';
-      context: UserContext & { user: User; error: undefined };
+      context: UserContext & {
+        user: User;
+        error: undefined
+      };
     }
   | {
       value: 'failure';
-      context: UserContext & { user: undefined; error: string };
+      context: UserContext & {
+        user: undefined;
+        error: string
+      };
     };
 
 const userMachine = createMachine<UserContext, UserEvent, UserState>({
