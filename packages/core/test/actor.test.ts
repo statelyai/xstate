@@ -6,8 +6,7 @@ import {
   raise,
   doneInvoke,
   sendUpdate,
-  respond,
-  done
+  respond
 } from '../src/actions';
 import { fromService } from '../src/Actor';
 import { interval } from 'rxjs';

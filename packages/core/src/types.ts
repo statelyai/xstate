@@ -158,7 +158,6 @@ export type TransitionTargets<TContext> = Array<
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
   cond?: Condition<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
-  in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
   meta?: Record<string, any>;
