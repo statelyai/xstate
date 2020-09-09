@@ -4,7 +4,7 @@ import {
   getShortestPaths,
   serializeEvent,
   serializeState,
-  toGraph
+  toDirectedGraph
 } from './graph';
 
 export {
@@ -13,7 +13,7 @@ export {
   getShortestPaths,
   serializeEvent,
   serializeState,
-  toGraph
+  toDirectedGraph
 };
 
 export * from './types';

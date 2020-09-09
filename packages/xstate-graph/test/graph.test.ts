@@ -3,7 +3,7 @@ import {
   getStateNodes,
   getSimplePaths,
   getShortestPaths,
-  toGraph
+  toDirectedGraph
 } from '../src/index';
 import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 import { assign } from 'xstate';
@@ -349,7 +349,7 @@ describe('@xstate/graph', () => {
     });
   });
 
-  describe('toGraph', () => {
+  describe('toDirectedGraph', () => {
     it('should represent a statechart as a directed graph', () => {
       const machine = createMachine({
         id: 'light',
@@ -370,7 +370,7 @@ describe('@xstate/graph', () => {
         }
       });
 
-      const digraph = toGraph(machine);
+      const digraph = toDirectedGraph(machine);
 
       expect(digraph).toMatchSnapshot();
     });

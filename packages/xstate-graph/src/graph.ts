@@ -323,7 +323,7 @@ export function getSimplePathsAsArray<
   return keys(result).map((key) => result[key]);
 }
 
-export function toGraph(stateNode: StateNode): DigraphNode {
+export function toDirectedGraph(stateNode: StateNode): DigraphNode {
   const edges: DigraphEdge[] = flatten(
     stateNode.transitions.map((t, transitionIndex) => {
       const targets = t.target ? t.target : [stateNode];
@@ -353,7 +353,7 @@ export function toGraph(stateNode: StateNode): DigraphNode {
   const graph = {
     id: stateNode.id,
     stateNode,
-    children: getChildren(stateNode).map((sn) => toGraph(sn)),
+    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn)),
     edges,
     toJSON: () => {
       const { id, children, edges: graphEdges } = graph;
