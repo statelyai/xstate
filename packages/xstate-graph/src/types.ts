@@ -24,7 +24,7 @@ export type DigraphLabel = JSONSerializable<
   }
 >;
 
-export type DigraphEdge = JSONSerializable<
+export type DirectedGraphEdge = JSONSerializable<
   {
     [key: string]: any;
     id: string;
@@ -41,21 +41,21 @@ export type DigraphEdge = JSONSerializable<
 >;
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
-export type DigraphNode = JSONSerializable<
+export type DirectedGraphNode = JSONSerializable<
   {
     [key: string]: any;
     id: string;
     stateNode: StateNode;
-    children: DigraphNode[];
+    children: DirectedGraphNode[];
     /**
      * The edges representing all transitions from this `stateNode`.
      */
-    edges: DigraphEdge[];
+    edges: DirectedGraphEdge[];
   },
   {
     [key: string]: any;
     id: string;
-    children: DigraphNode[];
+    children: DirectedGraphNode[];
   }
 >;
 
