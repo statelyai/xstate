@@ -92,16 +92,25 @@ export interface StateValueMap {
  */
 export type StateValue = string | StateValueMap;
 
+type KeysWithStates<
+  TStates extends Record<string, StateSchema> | undefined
+> = TStates extends object
+  ? {
+      [K in keyof TStates]-?: TStates[K] extends { states: object } ? K : never;
+    }[keyof TStates]
+  : never;
+
 export type ExtractStateValue<
-  TS extends StateSchema<any>,
-  TSS = TS['states']
-> = TSS extends undefined
-  ? never
-  : {
-      [K in keyof TSS]?:
-        | (TSS[K] extends { states: any } ? keyof TSS[K]['states'] : never)
-        | ExtractStateValue<TSS[K]>;
-    };
+  TSchema extends Required<Pick<StateSchema<any>, 'states'>>
+> =
+  | keyof TSchema['states']
+  | (KeysWithStates<TSchema['states']> extends never
+      ? never
+      : {
+          [K in KeysWithStates<TSchema['states']>]?: ExtractStateValue<
+            TSchema['states'][K]
+          >;
+        });
 
 export interface HistoryValue {
   states: Record<string, HistoryValue | undefined>;
@@ -346,14 +355,10 @@ type TransitionsConfigMap<TContext, TEvent extends EventObject> = {
 };
 
 type TransitionsConfigArray<TContext, TEvent extends EventObject> = Array<
-  | {
-      [K in TEvent['type']]: TransitionConfig<
-        TContext,
-        TEvent extends { type: K } ? TEvent : never
-      > & {
-        event: K;
-      };
-    }[TEvent['type']]
+  // distribute the union
+  | (TEvent extends EventObject
+      ? TransitionConfig<TContext, TEvent> & { event: TEvent['type'] }
+      : never)
   | (TransitionConfig<TContext, TEvent> & { event: '' })
   | (TransitionConfig<TContext, TEvent> & { event: '*' })
 >;
@@ -608,10 +613,10 @@ export type DelayFunctionMap<TContext, TEvent extends EventObject> = Record<
   DelayConfig<TContext, TEvent>
 >;
 
-export type ServiceConfig<TContext> =
-  | string
-  | StateMachine<any, any, any>
-  | InvokeCreator<TContext>;
+export type ServiceConfig<
+  TContext,
+  TEvent extends EventObject = AnyEventObject
+> = string | StateMachine<any, any, any> | InvokeCreator<TContext, TEvent>;
 
 export type DelayConfig<TContext, TEvent extends EventObject> =
   | number
@@ -621,7 +626,7 @@ export interface MachineOptions<TContext, TEvent extends EventObject> {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   activities: Record<string, ActivityConfig<TContext, TEvent>>;
-  services: Record<string, ServiceConfig<TContext>>;
+  services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
    * @private
