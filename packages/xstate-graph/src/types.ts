@@ -14,9 +14,8 @@ export type JSONSerializable<T extends object, U> = T & {
   toJSON: () => U;
 };
 
-export type DigraphLabel = JSONSerializable<
+export type DirectedGraphLabel = JSONSerializable<
   {
-    [key: string]: any;
     text: string;
   },
   {
@@ -26,24 +25,22 @@ export type DigraphLabel = JSONSerializable<
 
 export type DirectedGraphEdge = JSONSerializable<
   {
-    [key: string]: any;
     id: string;
     source: StateNode;
     target: StateNode;
-    label: DigraphLabel;
+    label: DirectedGraphLabel;
     transition: TransitionDefinition<any, any>;
   },
   {
     source: string;
     target: string;
-    label: ReturnType<DigraphLabel['toJSON']>;
+    label: ReturnType<DirectedGraphLabel['toJSON']>;
   }
 >;
 
 // Based on https://www.eclipse.org/elk/documentation/tooldevelopers/graphdatastructure/jsonformat.html
 export type DirectedGraphNode = JSONSerializable<
   {
-    [key: string]: any;
     id: string;
     stateNode: StateNode;
     children: DirectedGraphNode[];
@@ -53,7 +50,6 @@ export type DirectedGraphNode = JSONSerializable<
     edges: DirectedGraphEdge[];
   },
   {
-    [key: string]: any;
     id: string;
     children: DirectedGraphNode[];
   }
