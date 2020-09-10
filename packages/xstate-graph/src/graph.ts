@@ -17,7 +17,6 @@ import {
   DirectedGraphEdge,
   DirectedGraphNode
 } from './types';
-import { getChildren } from 'xstate/lib/stateUtils';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -48,6 +47,18 @@ export function getStateNodes(
   }, []);
 
   return nodes;
+}
+
+export function getChildren(stateNode: StateNode): StateNode[] {
+  if (!stateNode.states) {
+    return [];
+  }
+
+  const children = Object.keys(stateNode.states).map((key) => {
+    return stateNode.states[key];
+  });
+
+  return children;
 }
 
 export function serializeState<TContext>(state: State<TContext, any>): string {

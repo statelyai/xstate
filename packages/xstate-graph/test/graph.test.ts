@@ -258,11 +258,11 @@ describe('@xstate/graph', () => {
         },
         states: {
           start: {
+            always: {
+              target: 'finish',
+              cond: (ctx) => ctx.count === 3
+            },
             on: {
-              '': {
-                target: 'finish',
-                cond: (ctx) => ctx.count === 3
-              },
               INC: {
                 actions: assign({
                   count: (ctx) => ctx.count + 1
@@ -310,11 +310,11 @@ describe('@xstate/graph', () => {
         },
         states: {
           empty: {
+            always: {
+              target: 'full',
+              cond: (ctx) => ctx.count === 5
+            },
             on: {
-              '': {
-                target: 'full',
-                cond: (ctx) => ctx.count === 5
-              },
               INC: {
                 actions: assign({
                   count: (ctx, e) => ctx.count + e.value
