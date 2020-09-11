@@ -1,4 +1,6 @@
-import { Machine, interpret, State } from '../src';
+import { GuardPredicate } from '../src/types';
+import { Machine, interpret, State, createMachine } from '../src';
+import { DEFAULT_GUARD_TYPE } from '../src/constants';
 
 describe('guard conditions', () => {
   interface LightMachineCtx {
@@ -401,5 +403,54 @@ describe('guards - other', () => {
     service.send('EVENT');
 
     expect(service.state.value).toBe('c');
+  });
+});
+
+describe('guards with child guards', () => {
+  it('guards can contain child guards', () => {
+    const machine = createMachine(
+      {
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              EVENT: {
+                target: 'b',
+                cond: {
+                  type: DEFAULT_GUARD_TYPE,
+                  name: 'any',
+                  children: [
+                    {
+                      type: DEFAULT_GUARD_TYPE,
+                      name: 'defaultGuard',
+                      predicate: () => true
+                    },
+                    { type: 'customGuard' }
+                  ],
+                  predicate: (_, __, { cond }) => {
+                    expect(cond.children).toHaveLength(2);
+                    expect(
+                      cond.children.find(
+                        (guard) => guard.type === 'customGuard'
+                      )?.predicate
+                    ).toBeInstanceOf(Function);
+                    return true;
+                  }
+                } as GuardPredicate<any, any>
+              }
+            }
+          },
+          b: {}
+        }
+      },
+      {
+        guards: {
+          customGuard: () => true
+        }
+      }
+    );
+
+    const nextState = machine.transition(undefined, 'EVENT');
+    expect(nextState.matches('b')).toBeTruthy();
   });
 });

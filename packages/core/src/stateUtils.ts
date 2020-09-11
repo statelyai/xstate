@@ -349,7 +349,9 @@ export function formatTransition<TContext, TEvent extends EventObject>(
   const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
-    cond: toGuard(transitionConfig.cond, guards),
+    cond: transitionConfig.cond
+      ? toGuard(transitionConfig.cond, guards)
+      : undefined,
     target,
     source: stateNode,
     internal,
@@ -1628,9 +1630,10 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           );
           break;
         case actionTypes.choose: {
-          const ChooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = ChooseAction.conds.find((condition) => {
-            const guard = toGuard(condition.cond, machine.options.guards);
+          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+          const matchedActions = chooseAction.conds.find((condition) => {
+            const guard =
+              condition.cond && toGuard(condition.cond, machine.options.guards);
             return (
               !guard ||
               evaluateGuard(

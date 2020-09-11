@@ -328,13 +328,9 @@ export function isString(value: any): value is string {
 }
 
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>,
+  condition: Condition<TContext, TEvent>,
   guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
-): Guard<TContext, TEvent> | undefined {
-  if (!condition) {
-    return undefined;
-  }
-
+): Guard<TContext, TEvent> {
   if (isString(condition)) {
     return {
       type: DEFAULT_GUARD_TYPE,
@@ -351,7 +347,19 @@ export function toGuard<TContext, TEvent extends EventObject>(
     };
   }
 
-  return condition;
+  if (condition.type === DEFAULT_GUARD_TYPE && condition.children?.length) {
+    return {
+      ...condition,
+      children: condition.children.map((child) => toGuard(child, guardMap))
+    };
+  }
+
+  return guardMap && guardMap[condition.type]
+    ? {
+        ...condition,
+        predicate: guardMap[condition.type]
+      }
+    : condition;
 }
 
 export function isObservable<T>(value: any): value is Subscribable<T> {

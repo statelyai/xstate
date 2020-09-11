@@ -127,14 +127,19 @@ export type DefaultGuardType = 'xstate.guard';
 export interface GuardPredicate<TContext, TEvent extends EventObject> {
   type: DefaultGuardType;
   name: string | undefined;
+  /**
+   * Nested guards
+   */
+  children?: Array<Guard<TContext, TEvent>>;
   predicate: ConditionPredicate<TContext, TEvent>;
 }
 
 export type Guard<TContext, TEvent extends EventObject> =
   | GuardPredicate<TContext, TEvent>
-  | (Record<string, any> & {
+  | {
       type: string;
-    });
+      [key: string]: any;
+    };
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
