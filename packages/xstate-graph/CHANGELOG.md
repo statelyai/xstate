@@ -1,5 +1,34 @@
 # @xstate/graph
 
+## 1.2.0
+
+### Minor Changes
+
+- [`142f54e1`](https://github.com/davidkpiano/xstate/commit/142f54e1238919a53c73a40723c415b0044774bb) [#1366](https://github.com/davidkpiano/xstate/pull/1366) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `toDirectedGraph(...)` function was added, which converts a `machine` into an object that can be used in many different graph-based and visualization tools:
+
+  ```js
+  import { toDirectedGraph } from '@xstate/graph';
+
+  const machine = createMachine({/* ... */});
+
+  const digraph = toDirectedGraph(machine);
+
+  // returns an object with this structure:
+  {
+    id: '...',
+    stateNode: /* StateNode */,
+    children: [
+      { id: '...', children: [/* ... */], edges: [/* ... */] },
+      { id: '...', /* ... */ },
+      // ...
+    ],
+    edges: [
+      { source: /* ... */, target: /* ... */, transition: /* ... */ }
+      // ...
+    ]
+  }
+  ```
+
 ## 1.1.0
 
 ### Minor Changes
