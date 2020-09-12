@@ -12,7 +12,7 @@ import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
 import { MachineNode } from './MachineNode';
-import { stateIn, stateNotIn } from './guards';
+import { not, stateIn } from './guards';
 
 function getAttribute(
   element: XMLElement,
@@ -406,7 +406,7 @@ function toConfig(
 
               if (notInMatch) {
                 condObject = {
-                  cond: stateNotIn(`#${notInMatch[1]}`)
+                  cond: not(stateIn(`#${notInMatch[1]}`))
                 };
               }
             } else {

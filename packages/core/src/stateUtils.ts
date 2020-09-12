@@ -1,4 +1,11 @@
-import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
+import {
+  EventObject,
+  StateNode,
+  StateValue,
+  InvokeActionObject,
+  GuardDefinition,
+  BooleanGuardDefinition
+} from '.';
 import {
   keys,
   flatten,
@@ -46,7 +53,8 @@ import {
   ChooseAction,
   StopActionObject,
   AnyEventObject,
-  ActorRef
+  ActorRef,
+  ConditionPredicate
 } from './types';
 import { State } from './State';
 import {
@@ -77,6 +85,7 @@ import {
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
+import { toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -734,26 +743,57 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     cond: guard,
+    guard: toGuardDefinition(guard),
     _event
   };
 
-  if (guard.type === DEFAULT_GUARD_TYPE) {
-    return (guard as GuardPredicate<TContext, TEvent>).predicate(
-      context,
-      _event.data,
-      guardMeta
-    );
-  }
+  // if (guard.type === DEFAULT_GUARD_TYPE) {
+  //   return (guard as GuardPredicate<TContext, TEvent>).predicate(
+  //     context,
+  //     _event.data,
+  //     guardMeta
+  //   );
+  // }
 
-  const condFn = guards[guard.type];
+  const defaultPredicate: ConditionPredicate<TContext, TEvent> = (
+    ctx,
+    e,
+    meta
+  ): boolean => {
+    const cond = meta.cond;
 
-  if (!condFn) {
+    if ('op' in cond) {
+      switch ((cond as BooleanGuardDefinition<TContext, TEvent>).op) {
+        case 'and':
+          return !!cond.children?.every((child) => {
+            return evaluateGuard(machine, child, context, _event, state);
+          });
+        case 'not':
+          const childGuard = cond.children![0]!;
+
+          return !evaluateGuard(machine, childGuard, context, _event, state);
+        case 'or':
+          return !!cond.children?.some((child) => {
+            return evaluateGuard(machine, child, context, _event, state);
+          });
+        default:
+          return false;
+      }
+    } else {
+      return cond.predicate?.(context, _event.data, guardMeta);
+    }
+  };
+
+  const predicate =
+    guard.type === DEFAULT_GUARD_TYPE ? defaultPredicate : guards[guard.type];
+
+  if (!predicate) {
     throw new Error(
       `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
     );
   }
 
-  return condFn(context, _event.data, guardMeta);
+  return predicate(context, _event.data, guardMeta);
 }
 
 export function transitionLeafNode<TContext, TEvent extends EventObject>(

@@ -144,12 +144,36 @@ export type Guard<TContext, TEvent extends EventObject> =
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
   cond: Guard<TContext, TEvent>;
+  guard: GuardDefinition<TContext, TEvent>;
 }
 
 export type Condition<TContext, TEvent extends EventObject> =
   | string
   | ConditionPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
+
+export interface GuardDefinition<TContext, TEvent extends EventObject> {
+  type: string;
+  children?: Array<GuardDefinition<TContext, TEvent>>;
+  predicate?: ConditionPredicate<TContext, TEvent>;
+  params: {
+    // TODO: guardobject
+    type: string;
+    [key: string]: any;
+  };
+}
+
+export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
+  type: DefaultGuardType;
+  op: 'and' | 'or' | 'not';
+  children: Array<Guard<TContext, TEvent>>;
+}
+
+export interface BooleanGuardDefinition<TContext, TEvent extends EventObject>
+  extends GuardDefinition<TContext, TEvent> {
+  type: DefaultGuardType;
+  op: 'and' | 'or' | 'not';
+}
 
 export type TransitionTarget<
   TContext,

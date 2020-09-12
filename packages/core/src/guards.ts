@@ -3,7 +3,9 @@ import {
   StateValue,
   GuardPredicate,
   Condition,
-  Guard
+  BooleanGuardObject,
+  Guard,
+  GuardDefinition
 } from './types';
 import { isStateId } from './stateUtils';
 import { isString, toGuard } from './utils';
@@ -25,34 +27,41 @@ export function stateIn<TContext, TEvent extends EventObject>(
   };
 }
 
-export function stateNotIn<TContext, TEvent extends EventObject>(
-  stateValue: StateValue
-): GuardPredicate<TContext, TEvent> {
+export function not<TContext, TEvent extends EventObject>(
+  condition: Condition<TContext, TEvent>
+): BooleanGuardObject<TContext, TEvent> {
   return {
     type: DEFAULT_GUARD_TYPE,
-    name: '!In',
-    predicate: (_, __, { state }) => {
-      if (isString(stateValue) && isStateId(stateValue)) {
-        return state.configuration.every((sn) => sn.id !== stateValue.slice(1));
-      }
-
-      return !state.matches(stateValue);
-    }
+    op: 'not',
+    children: [toGuard(condition)]
   };
 }
 
 export function and<TContext, TEvent extends EventObject>(
   ...conditions: Array<Condition<TContext, TEvent>>
-): GuardPredicate<TContext, TEvent> {
+): BooleanGuardObject<TContext, TEvent> {
   return {
     type: DEFAULT_GUARD_TYPE,
-    name: 'And',
-    children: conditions.map((guard) => toGuard(guard)),
-    predicate: (context, event, { cond }) => {
-      return cond.children.every((guard: Guard<TContext, TEvent>) =>
-        // TODO: should parent or child guard be passed as 3rd arg?
-        guard.predicate(context, event, guard)
-      );
-    }
+    op: 'and',
+    children: conditions.map((guard) => toGuard(guard))
+  };
+}
+
+export function or<TContext, TEvent extends EventObject>(
+  ...conditions: Array<Condition<TContext, TEvent>>
+): BooleanGuardObject<TContext, TEvent> {
+  return {
+    type: DEFAULT_GUARD_TYPE,
+    op: 'or',
+    children: conditions.map((guard) => toGuard(guard))
+  };
+}
+
+export function toGuardDefinition<TC, TE extends EventObject>(
+  guard: Guard<TC, TE>
+): GuardDefinition<TC, TE> {
+  return {
+    type: guard.type,
+    params: guard
   };
 }

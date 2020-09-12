@@ -333,8 +333,7 @@ export function toGuard<TContext, TEvent extends EventObject>(
 ): Guard<TContext, TEvent> {
   if (isString(condition)) {
     return {
-      type: DEFAULT_GUARD_TYPE,
-      name: condition,
+      type: condition,
       predicate: guardMap ? guardMap[condition] : undefined
     };
   }
