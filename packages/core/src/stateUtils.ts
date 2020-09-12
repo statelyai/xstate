@@ -756,24 +756,26 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   // }
 
   const defaultPredicate: ConditionPredicate<TContext, TEvent> = (
-    ctx,
-    e,
+    _,
+    __,
     meta
   ): boolean => {
     const cond = meta.cond;
 
     if ('op' in cond) {
-      switch ((cond as BooleanGuardDefinition<TContext, TEvent>).op) {
+      const { children, op } = cond as BooleanGuardDefinition<TContext, TEvent>;
+
+      switch (op) {
         case 'and':
-          return !!cond.children?.every((child) => {
+          return !!children?.every((child) => {
             return evaluateGuard(machine, child, context, _event, state);
           });
         case 'not':
-          const childGuard = cond.children![0]!;
+          const childGuard = children![0]!;
 
           return !evaluateGuard(machine, childGuard, context, _event, state);
         case 'or':
-          return !!cond.children?.some((child) => {
+          return !!children?.some((child) => {
             return evaluateGuard(machine, child, context, _event, state);
           });
         default:
