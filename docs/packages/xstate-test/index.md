@@ -155,7 +155,9 @@ Returns an array of testing plans based on the shortest paths from the test mode
 
 **Options**
 
-- `filter` (function): A function that takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop.
+| Argument | Type     | Description                                                                                                    |
+| -------- | -------- | -------------------------------------------------------------------------------------------------------------- |
+| `filter` | function | Takes in the `state` and returns `true` if the state should be traversed, or `false` if traversal should stop. |
 
 This is useful for preventing infinite traversals and stack overflow errors:
 

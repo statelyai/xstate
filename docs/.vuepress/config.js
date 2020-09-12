@@ -29,6 +29,7 @@ module.exports = {
           '/about/concepts',
           '/about/goals',
           '/about/showcase',
+          '/about/resources',
           '/about/tutorials'
         ]
       },
