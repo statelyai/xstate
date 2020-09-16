@@ -46,7 +46,7 @@ import { use } from 'ember-usable';
 import toggleMachine from './path/to/toggleMachine';
 
 export default class ToggleComponent extends Component {
-  @use this.statechart = useMachine(toggleMachine);
+  @use statechart = useMachine(toggleMachine);
 
   @matchesState('active')
   isActive;
