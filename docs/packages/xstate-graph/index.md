@@ -288,6 +288,39 @@ console.log(simplePaths);
 // };
 ```
 
+### `toDirectedGraph(machine)`
+
+Converts a `machine` to a directed graph structure.
+
+| Argument  | Type                                           | Description                                          |
+| --------- | ---------------------------------------------- | ---------------------------------------------------- |
+| `machine` | XState Machine created by `createMachine(...)` | The machine to convert to a directed graph structure |
+
+**Example**
+
+```js
+import { toDirectedGraph } from '@xstate/graph';
+
+const machine = createMachine({/* ... */});
+
+const digraph = toDirectedGraph(machine);
+
+// returns an object with this structure:
+{
+  id: '...',
+  stateNode: /* StateNode */,
+  children: [
+    { id: '...', children: [/* ... */], edges: [/* ... */] },
+    { id: '...', /* ... */ },
+    // ...
+  ],
+  edges: [
+    { source: /* ... */, target: /* ... */, transition: /* ... */ }
+    // ...
+  ]
+}
+```
+
 ## Options
 
 Options can be passed into `getShortestPaths` or `getSimplePaths` to customize how the graph represented by the machine should be traversed:
@@ -317,9 +350,12 @@ const counterMachine = Machine({
 
 const shortestPaths = getShortestPaths(counterMachine, {
   events: {
-    INC: [{ type: 'INC', value: 1 }, { type: 'INC', value: 2 }]
+    INC: [
+      { type: 'INC', value: 1 },
+      { type: 'INC', value: 2 }
+    ]
   },
-  filter: state => state.context.count <= 5
+  filter: (state) => state.context.count <= 5
 });
 
 console.log(shortestPaths);

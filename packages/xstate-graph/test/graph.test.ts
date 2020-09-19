@@ -1,5 +1,10 @@
-import { Machine, StateNode, assign } from 'xstate';
-import { getStateNodes, getSimplePaths, getShortestPaths } from '../src/index';
+import { Machine, StateNode, createMachine, assign } from 'xstate';
+import {
+  getStateNodes,
+  getSimplePaths,
+  getShortestPaths,
+  toDirectedGraph
+} from '../src/index';
 import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
 
 describe('@xstate/graph', () => {
@@ -255,11 +260,11 @@ describe('@xstate/graph', () => {
         },
         states: {
           start: {
+            always: {
+              target: 'finish',
+              cond: (ctx) => ctx.count === 3
+            },
             on: {
-              '': {
-                target: 'finish',
-                cond: (ctx) => ctx.count === 3
-              },
               INC: {
                 actions: assign({
                   count: (ctx) => ctx.count + 1
@@ -307,11 +312,11 @@ describe('@xstate/graph', () => {
         },
         states: {
           empty: {
+            always: {
+              target: 'full',
+              cond: (ctx) => ctx.count === 5
+            },
             on: {
-              '': {
-                target: 'full',
-                cond: (ctx) => ctx.count === 5
-              },
               INC: {
                 actions: assign({
                   count: (ctx, e) => ctx.count + e.value
@@ -343,6 +348,33 @@ describe('@xstate/graph', () => {
       });
 
       expect(adj).toHaveProperty('"full" | {"count":5}');
+    });
+  });
+
+  describe('toDirectedGraph', () => {
+    it('should represent a statechart as a directed graph', () => {
+      const machine = createMachine({
+        id: 'light',
+        initial: 'green',
+        states: {
+          green: { on: { TIMER: 'yellow' } },
+          yellow: { on: { TIMER: 'red' } },
+          red: {
+            initial: 'walk',
+            states: {
+              walk: { on: { COUNTDOWN: 'wait' } },
+              wait: { on: { COUNTDOWN: 'stop' } },
+              stop: { on: { COUNTDOWN: 'finished' } },
+              finished: { type: 'final' }
+            },
+            onDone: 'green'
+          }
+        }
+      });
+
+      const digraph = toDirectedGraph(machine);
+
+      expect(digraph).toMatchSnapshot();
     });
   });
 });

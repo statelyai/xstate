@@ -291,13 +291,9 @@ Sends an `event` to the interpreted machine. The event can be a string (e.g., `"
 | -------- | ----------------------------------- | ------------------------------------------------ |
 | `event`  | `string` or `{ type: string, ... }` | The event to be sent to the interpreted machine. |
 
-### `service.start(initialState?)`
+### `service.start()`
 
 Starts the interpreted machine.
-
-| Argument       | Type                                           | Description                                                                                         |
-| -------------- | ---------------------------------------------- | --------------------------------------------------------------------------------------------------- |
-| `initialState` | `string` or `{value: string, context: object}` | Optional. The state the interpreted machine will start. If not provided, starts with initial state. |
 
 Events sent to the interpreted machine will not trigger any transitions until the service is started. All listeners (via `service.subscribe(listener)`) will receive the `machine.initialState`.
 
