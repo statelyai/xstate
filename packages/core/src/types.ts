@@ -152,15 +152,20 @@ export type Condition<TContext, TEvent extends EventObject> =
   | ConditionPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
 
+export interface AnyGuardObject {
+  type: string;
+  [key: string]: any;
+}
+
+export type GuardObject<TContext, TEvent extends EventObject> =
+  | AnyGuardObject
+  | BooleanGuardObject<TContext, TEvent>;
+
 export interface GuardDefinition<TContext, TEvent extends EventObject> {
   type: string;
   children?: Array<GuardDefinition<TContext, TEvent>>;
   predicate?: ConditionPredicate<TContext, TEvent>;
-  params: {
-    // TODO: guardobject
-    type: string;
-    [key: string]: any;
-  };
+  params: AnyGuardObject;
 }
 
 export interface BooleanGuardObject<TContext, TEvent extends EventObject> {

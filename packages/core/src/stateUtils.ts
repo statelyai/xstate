@@ -3,7 +3,6 @@ import {
   StateNode,
   StateValue,
   InvokeActionObject,
-  GuardDefinition,
   BooleanGuardDefinition
 } from '.';
 import {
@@ -34,7 +33,6 @@ import {
   Guard,
   SCXML,
   GuardMeta,
-  GuardPredicate,
   Transitions,
   ActionObject,
   StateValueMap,
