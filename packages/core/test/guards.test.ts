@@ -27,16 +27,16 @@ describe('guard conditions', () => {
             TIMER: [
               {
                 target: 'green',
-                cond: ({ elapsed }) => elapsed < 100
+                guard: ({ elapsed }) => elapsed < 100
               },
               {
                 target: 'yellow',
-                cond: ({ elapsed }) => elapsed >= 100 && elapsed < 200
+                guard: ({ elapsed }) => elapsed >= 100 && elapsed < 200
               }
             ],
             EMERGENCY: {
               target: 'red',
-              cond: (_, event) => !!event.isEmergency
+              guard: (_, event) => !!event.isEmergency
             }
           }
         },
@@ -44,11 +44,11 @@ describe('guard conditions', () => {
           on: {
             TIMER: {
               target: 'red',
-              cond: 'minTimeElapsed'
+              guard: 'minTimeElapsed'
             },
             TIMER_COND_OBJ: {
               target: 'red',
-              cond: {
+              guard: {
                 type: 'minTimeElapsed'
               }
             }
@@ -58,7 +58,7 @@ describe('guard conditions', () => {
           on: {
             BAD_COND: {
               target: 'red',
-              cond: 'doesNotExist'
+              guard: 'doesNotExist'
             }
           }
         }
@@ -193,26 +193,26 @@ describe('guard conditions', () => {
             always: [
               {
                 target: 'B4',
-                cond: (_state, _event, { state: s }) => s.matches('A.A4')
+                guard: (_state, _event, { state: s }) => s.matches('A.A4')
               }
             ],
             on: {
               T1: [
                 {
                   target: 'B1',
-                  cond: (_state, _event, { state: s }) => s.matches('A.A1')
+                  guard: (_state, _event, { state: s }) => s.matches('A.A1')
                 }
               ],
               T2: [
                 {
                   target: 'B2',
-                  cond: (_state, _event, { state: s }) => s.matches('A.A2')
+                  guard: (_state, _event, { state: s }) => s.matches('A.A2')
                 }
               ],
               T3: [
                 {
                   target: 'B3',
-                  cond: (_state, _event, { state: s }) => s.matches('A.A3')
+                  guard: (_state, _event, { state: s }) => s.matches('A.A3')
                 }
               ]
             }
@@ -268,7 +268,7 @@ describe('custom guards', () => {
           on: {
             EVENT: {
               target: 'active',
-              cond: {
+              guard: {
                 type: 'custom',
                 prop: 'count',
                 op: 'greaterThan',
@@ -321,14 +321,14 @@ describe('referencing guards', () => {
         active: {
           on: {
             EVENT: [
-              { cond: 'string' },
+              { guard: 'string' },
               {
-                cond: function guardFn() {
+                guard: function guardFn() {
                   return true;
                 }
               },
               {
-                cond: {
+                guard: {
                   type: 'object',
                   foo: 'bar'
                 }
@@ -349,18 +349,18 @@ describe('referencing guards', () => {
   const [stringGuard, functionGuard, objectGuard] = def.states.active.on.EVENT;
 
   it('guard predicates should be able to be referenced from a string', () => {
-    expect(stringGuard.cond!.predicate).toBeDefined();
-    expect(stringGuard.cond!.type).toEqual('string');
+    expect(stringGuard.guard!.predicate).toBeDefined();
+    expect(stringGuard.guard!.type).toEqual('string');
   });
 
   it('guard predicates should be able to be referenced from a function', () => {
-    expect(functionGuard.cond!.predicate).toBeDefined();
-    expect(functionGuard.cond!.name).toEqual('guardFn');
+    expect(functionGuard.guard!.predicate).toBeDefined();
+    expect(functionGuard.guard!.name).toEqual('guardFn');
   });
 
   it('guard predicates should be able to be referenced from an object', () => {
-    expect(objectGuard.cond).toBeDefined();
-    expect(objectGuard.cond).toEqual({
+    expect(objectGuard.guard).toBeDefined();
+    expect(objectGuard.guard).toEqual({
       type: 'object',
       foo: 'bar'
     });
@@ -373,7 +373,7 @@ describe('referencing guards', () => {
       states: {
         active: {
           on: {
-            EVENT: { target: 'inactive', cond: 'missing-predicate' }
+            EVENT: { target: 'inactive', guard: 'missing-predicate' }
           }
         },
         inactive: {}
@@ -393,7 +393,7 @@ describe('guards - other', () => {
       states: {
         a: {
           on: {
-            EVENT: [{ target: 'b', cond: () => false }, 'c']
+            EVENT: [{ target: 'b', guard: () => false }, 'c']
           }
         },
         b: {},
@@ -418,7 +418,7 @@ describe('guards with child guards', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: {
+                guard: {
                   type: DEFAULT_GUARD_TYPE,
                   name: 'any',
                   children: [
@@ -466,7 +466,7 @@ describe('not() guard', () => {
           on: {
             EVENT: {
               target: 'b',
-              cond: not(() => false)
+              guard: not(() => false)
             }
           }
         },
@@ -488,7 +488,7 @@ describe('not() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: not('falsy')
+                guard: not('falsy')
               }
             }
           },
@@ -516,7 +516,7 @@ describe('not() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: not({ type: 'greaterThan10', value: 5 })
+                guard: not({ type: 'greaterThan10', value: 5 })
               }
             }
           },
@@ -546,7 +546,7 @@ describe('not() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: not(and(not('truthy'), 'truthy'))
+                guard: not(and(not('truthy'), 'truthy'))
               }
             }
           },
@@ -576,7 +576,7 @@ describe('and() guard', () => {
           on: {
             EVENT: {
               target: 'b',
-              cond: and(
+              guard: and(
                 () => true,
                 () => 1 + 1 === 2
               )
@@ -601,7 +601,7 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: and('truthy')
+                guard: and('truthy')
               }
             }
           },
@@ -629,7 +629,7 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: and(
+                guard: and(
                   { type: 'greaterThan10', value: 11 },
                   { type: 'greaterThan10', value: 50 }
                 )
@@ -662,7 +662,11 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: and(() => true, not('falsy'), and(not('falsy'), 'truthy'))
+                guard: and(
+                  () => true,
+                  not('falsy'),
+                  and(not('falsy'), 'truthy')
+                )
               }
             }
           },
@@ -692,7 +696,7 @@ describe('or() guard', () => {
           on: {
             EVENT: {
               target: 'b',
-              cond: or(
+              guard: or(
                 () => false,
                 () => 1 + 1 === 2
               )
@@ -717,7 +721,7 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: or('falsy', 'truthy')
+                guard: or('falsy', 'truthy')
               }
             }
           },
@@ -746,7 +750,7 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: or(
+                guard: or(
                   { type: 'greaterThan10', value: 4 },
                   { type: 'greaterThan10', value: 50 }
                 )
@@ -780,7 +784,7 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                cond: or(
+                guard: or(
                   () => false,
                   not('truthy'),
                   and(not('falsy'), 'truthy')

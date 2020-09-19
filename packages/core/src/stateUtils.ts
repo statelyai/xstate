@@ -356,8 +356,8 @@ export function formatTransition<TContext, TEvent extends EventObject>(
   const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
-    cond: transitionConfig.cond
-      ? toGuard(transitionConfig.cond, guards)
+    guard: transitionConfig.guard
+      ? toGuard(transitionConfig.guard, guards)
       : undefined,
     target,
     source: stateNode,
@@ -1446,10 +1446,10 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
       for (const t of s.transitions) {
         if (
           t.eventType === NULL_EVENT &&
-          (t.cond === undefined ||
+          (t.guard === undefined ||
             evaluateGuard<TContext, TEvent>(
               machine,
-              t.cond,
+              t.guard,
               state.context,
               toSCXMLEvent(NULL_EVENT as Event<TEvent>),
               state

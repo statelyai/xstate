@@ -951,7 +951,7 @@ describe('interpreter', () => {
           on: {
             NEXT: {
               target: 'finish',
-              cond: (_, e) => e.password === 'foo'
+              guard: (_, e) => e.password === 'foo'
             }
           }
         },
@@ -1036,7 +1036,7 @@ describe('interpreter', () => {
           on: {
             NEXT: {
               target: 'finish',
-              cond: (_, e) => e.password === 'foo'
+              guard: (_, e) => e.password === 'foo'
             }
           }
         },
@@ -1218,7 +1218,7 @@ describe('interpreter', () => {
           on: {
             EVENT: {
               target: 'active',
-              cond: (_, e: any) => e.id === 42 // TODO: fix unknown event type
+              guard: (_, e: any) => e.id === 42 // TODO: fix unknown event type
             },
             ACTIVATE: 'active'
           }
@@ -1495,7 +1495,7 @@ describe('interpreter', () => {
             idle: { on: { START: 'transient' } },
             transient: {
               always: [
-                { target: 'end', cond: 'alwaysFalse' },
+                { target: 'end', guard: 'alwaysFalse' },
                 { target: 'next' }
               ]
             },
@@ -1540,7 +1540,7 @@ describe('interpreter', () => {
           },
           always: {
             target: 'finished',
-            cond: (ctx) => ctx.count >= 5
+            guard: (ctx) => ctx.count >= 5
           }
         },
         finished: {
@@ -1594,7 +1594,7 @@ describe('interpreter', () => {
           active: {
             always: {
               target: 'finished',
-              cond: (ctx) => ctx.count >= 5
+              guard: (ctx) => ctx.count >= 5
             },
             on: {
               INC: {
@@ -1723,7 +1723,7 @@ describe('interpreter', () => {
               onDone: [
                 {
                   target: 'success',
-                  cond: (_, e) => {
+                  guard: (_, e) => {
                     return e.data === 42;
                   }
                 },
@@ -1773,7 +1773,7 @@ describe('interpreter', () => {
             on: {
               FIRED: {
                 target: 'success',
-                cond: (_, e: AnyEventObject) => {
+                guard: (_, e: AnyEventObject) => {
                   return e.value === 3;
                 }
               }

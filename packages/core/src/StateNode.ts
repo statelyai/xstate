@@ -373,7 +373,7 @@ export class StateNode<
       (this.__cache.candidates[eventName] = getCandidates(this, eventName));
 
     for (const candidate of candidates) {
-      const { cond, in: stateIn } = candidate;
+      const { guard, in: stateIn } = candidate;
       const resolvedContext = state.context;
 
       const isInState = stateIn
@@ -396,12 +396,12 @@ export class StateNode<
 
       try {
         guardPassed =
-          !cond ||
-          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
+          !guard ||
+          evaluateGuard(this.machine, guard, resolvedContext, _event, state);
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${
-            cond!.name || cond!.type
+            guard!.name || guard!.type
           }' in transition for event '${eventName}' in state node '${
             this.id
           }':\n${err.message}`

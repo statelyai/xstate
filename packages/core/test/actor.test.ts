@@ -197,7 +197,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              cond: (_, e) => e.data === 'response'
+              guard: (_, e) => e.data === 'response'
             }
           }
         },
@@ -292,7 +292,7 @@ describe('spawning observables', () => {
           on: {
             INT: {
               target: 'success',
-              cond: (_, e) => e.value === 5
+              guard: (_, e) => e.value === 5
             }
           }
         },

@@ -21,7 +21,7 @@ export default Machine<any>({
         '': [
           {
             target: 'b',
-            cond: (ctx) => {
+            guard: (ctx) => {
               return ctx.i < 10;
             },
             actions: [
@@ -33,7 +33,7 @@ export default Machine<any>({
           },
           {
             target: '#c',
-            cond: (ctx) => ctx.i === 10
+            guard: (ctx) => ctx.i === 10
           }
         ]
       }

@@ -48,7 +48,7 @@ describe('activities with guarded transitions', () => {
           B: {
             invoke: ['B_ACTIVITY'],
             on: {
-              '': [{ cond: () => false, target: 'A' }]
+              '': [{ guard: () => false, target: 'A' }]
             }
           }
         }

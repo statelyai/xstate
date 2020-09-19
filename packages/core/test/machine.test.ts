@@ -66,7 +66,7 @@ const configMachine = Machine(
         on: {
           EVENT: {
             target: 'bar',
-            cond: 'someCondition'
+            guard: 'someCondition'
           }
         }
       },

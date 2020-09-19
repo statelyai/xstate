@@ -230,7 +230,7 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
 
       let current: ChooseConditon<TContext, TEvent> = {
         cond: createCond(element.attributes!.cond as string),
@@ -387,7 +387,7 @@ function toConfig(
           const targets = getAttribute(value, 'target');
           const internal = getAttribute(value, 'type') === 'internal';
 
-          let condObject = {};
+          let guardObject = {};
 
           if (value.attributes?.cond) {
             const cond = value.attributes!.cond;
@@ -395,8 +395,8 @@ function toConfig(
               const inMatch = (cond as string).trim().match(/^In\('(.*)'\)/);
 
               if (inMatch) {
-                condObject = {
-                  cond: stateIn(`#${inMatch[1]}`)
+                guardObject = {
+                  guard: stateIn(`#${inMatch[1]}`)
                 };
               }
             } else if ((cond as string).startsWith('!In')) {
@@ -405,13 +405,13 @@ function toConfig(
                 .match(/^!In\('(.*)'\)/);
 
               if (notInMatch) {
-                condObject = {
-                  cond: not(stateIn(`#${notInMatch[1]}`))
+                guardObject = {
+                  guard: not(stateIn(`#${notInMatch[1]}`))
                 };
               }
             } else {
-              condObject = {
-                cond: createCond(value.attributes!.cond as string)
+              guardObject = {
+                guard: createCond(value.attributes!.cond as string)
               };
             }
           }
@@ -420,7 +420,7 @@ function toConfig(
             event,
             target: getTargets(targets),
             ...(value.elements ? executableContent(value.elements) : undefined),
-            ...condObject,
+            ...guardObject,
             internal
           };
         });

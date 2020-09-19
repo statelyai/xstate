@@ -12,7 +12,7 @@ export default Machine<any>({
       on: {
         t: {
           target: 'b',
-          cond: (ctx) => {
+          guard: (ctx) => {
             return ctx.x === 99;
           },
           actions: assign({
@@ -32,7 +32,7 @@ export default Machine<any>({
         '': [
           {
             target: 'c',
-            cond: (ctx) => ctx.x === 200
+            guard: (ctx) => ctx.x === 200
           },
           { target: 'f' }
         ]

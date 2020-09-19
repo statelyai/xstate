@@ -20,7 +20,7 @@ interface TransitionConfig {
   target: string[];
   source: string;
   actions: Array<ActionObject<any, any>>;
-  cond: Guard<any, any> | undefined;
+  guard: Guard<any, any> | undefined;
   eventType: string;
 }
 
@@ -54,7 +54,7 @@ export function machineToJSON(stateNode: StateNode): StateNodeConfig {
           target: t.target ? t.target.map(getStateNodeId) : [],
           source: getStateNodeId(t.source),
           actions: t.actions,
-          cond: t.cond,
+          guard: t.guard,
           eventType: t.eventType
         };
       });

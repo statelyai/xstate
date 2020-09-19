@@ -15,11 +15,11 @@ const machine = Machine({
             },
             EVENT2: {
               target: 'a2',
-              cond: stateIn({ b: 'b2' })
+              guard: stateIn({ b: 'b2' })
             },
             EVENT3: {
               target: 'a2',
-              cond: stateIn('#b_b2')
+              guard: stateIn('#b_b2')
             }
           }
         },
@@ -83,7 +83,7 @@ const lightMachine = Machine({
         TIMER: [
           {
             target: 'green',
-            cond: stateIn({ red: 'stop' })
+            guard: stateIn({ red: 'stop' })
           }
         ]
       }

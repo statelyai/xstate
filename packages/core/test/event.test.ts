@@ -24,7 +24,7 @@ describe('SCXML events', () => {
           on: {
             EVENT: {
               target: 'success',
-              cond: (_, __, { _event }) => {
+              guard: (_, __, { _event }) => {
                 return !!_event.origin;
               }
             }
@@ -118,7 +118,7 @@ const authMachine = Machine<SignInContext>(
         on: {
           changePassword: [
             {
-              cond: (_, event: ChangePassword) => event.password.length >= 10,
+              guard: (_, event: ChangePassword) => event.password.length >= 10,
               target: '.invalid',
               actions: ['assignPassword']
             },

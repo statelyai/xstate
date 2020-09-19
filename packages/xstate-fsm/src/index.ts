@@ -114,7 +114,7 @@ export function createMachine<
         typeof state === 'string'
           ? { value: state, context: fsmConfig.context! }
           : state;
-      const eventObject = toEventObject(event);
+      const eventObject = toEventObject(event) as TEvent;
       const stateConfig = fsmConfig.states[value];
 
       if (!IS_PRODUCTION) {
@@ -135,14 +135,18 @@ export function createMachine<
             return createUnchangedState(value, context);
           }
 
-          const { target = value, actions = [], cond = () => true } =
+          const {
+            target = value,
+            actions = [],
+            guard = () => true
+          }: StateMachine.TransitionObject<TContext, TEvent> =
             typeof transition === 'string'
               ? { target: transition }
               : transition;
 
           let nextContext = context;
 
-          if (cond(context, eventObject)) {
+          if (guard(context, eventObject)) {
             const nextStateConfig = fsmConfig.states[target];
             let assigned = false;
             const allActions = ([] as any[])

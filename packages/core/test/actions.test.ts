@@ -1017,7 +1017,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent('SUCCESS'),
-              cond: (_, e) => e.value === 42
+              guard: (_, e) => e.value === 42
             }
           }
         }
@@ -1062,7 +1062,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent('SUCCESS'),
-              cond: (_, e) => e.value === 42
+              guard: (_, e) => e.value === 42
             }
           }
         }

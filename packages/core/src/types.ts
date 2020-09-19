@@ -187,7 +187,7 @@ export type TransitionTargets<TContext> = Array<
 >;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
+  guard?: Condition<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
   in?: StateValue;
   internal?: boolean;
@@ -207,7 +207,7 @@ export type ConditionalTransitionConfig<
 
 export interface InitialTransitionConfig<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  cond?: never;
+  guard?: never;
   target: TransitionTarget<TContext, TEvent>;
 }
 
@@ -889,7 +889,7 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
-  cond?: Guard<TContext, TEvent>;
+  guard?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
@@ -905,7 +905,7 @@ export interface InitialTransitionDefinition<
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
   target: Array<StateNode<TContext, TEvent>>;
-  cond?: never;
+  guard?: never;
 }
 
 export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {

@@ -11,8 +11,8 @@ const greetingMachine = Machine<typeof greetingContext>({
     pending: {
       on: {
         '': [
-          { target: 'morning', cond: (ctx) => ctx.hour < 12 },
-          { target: 'afternoon', cond: (ctx) => ctx.hour < 18 },
+          { target: 'morning', guard: (ctx) => ctx.hour < 12 },
+          { target: 'afternoon', guard: (ctx) => ctx.hour < 18 },
           { target: 'evening' }
         ]
       }
@@ -38,9 +38,9 @@ describe('transient states (eventless transitions)', () => {
         on: {
           // eventless transition
           '': [
-            { target: 'D', cond: ({ data }) => !data }, // no data returned
-            { target: 'B', cond: ({ status }) => status === 'Y' },
-            { target: 'C', cond: ({ status }) => status === 'X' },
+            { target: 'D', guard: ({ data }) => !data }, // no data returned
+            { target: 'B', guard: ({ status }) => status === 'Y' },
+            { target: 'C', guard: ({ status }) => status === 'X' },
             { target: 'F' } // default, or just the string 'F'
           ]
         }
@@ -332,7 +332,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'B2',
-                  cond: (_xs, _e, { state: s }) => s.matches('A.A2')
+                  guard: (_xs, _e, { state: s }) => s.matches('A.A2')
                 }
               }
             },
@@ -382,7 +382,7 @@ describe('transient states (eventless transitions)', () => {
             B1: {
               always: {
                 target: 'B2',
-                cond: (_xs, _e, { state: s }) => s.matches('A.A2')
+                guard: (_xs, _e, { state: s }) => s.matches('A.A2')
               }
             },
             B2: {}
@@ -586,7 +586,7 @@ describe('transient states (eventless transitions)', () => {
         '': [
           {
             target: '.success',
-            cond: (ctx) => {
+            guard: (ctx) => {
               return ctx.count > 0;
             }
           }
@@ -624,7 +624,7 @@ describe('transient states (eventless transitions)', () => {
       always: [
         {
           target: '.success',
-          cond: (ctx) => {
+          guard: (ctx) => {
             return ctx.count > 0;
           }
         }
@@ -651,7 +651,7 @@ describe('transient states (eventless transitions)', () => {
           always: [
             {
               target: `finished`,
-              cond: (ctx) => ctx.duration < 1000
+              guard: (ctx) => ctx.duration < 1000
             },
             {
               target: `active`
