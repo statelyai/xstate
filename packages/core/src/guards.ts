@@ -1,7 +1,7 @@
 import {
   EventObject,
   StateValue,
-  GuardPredicate,
+  DefaultGuardObject,
   Condition,
   BooleanGuardObject,
   Guard,
@@ -13,7 +13,7 @@ import { DEFAULT_GUARD_TYPE } from './constants';
 
 export function stateIn<TContext, TEvent extends EventObject>(
   stateValue: StateValue
-): GuardPredicate<TContext, TEvent> {
+): DefaultGuardObject<TContext, TEvent> {
   return {
     type: DEFAULT_GUARD_TYPE,
     name: 'In',

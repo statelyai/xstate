@@ -1,4 +1,4 @@
-import { GuardPredicate } from '../src/types';
+import { DefaultGuardObject } from '../src/types';
 import { Machine, interpret, State, createMachine } from '../src';
 import { DEFAULT_GUARD_TYPE } from '../src/constants';
 import { and, not, or } from '../src/guards';
@@ -438,7 +438,7 @@ describe('guards with child guards', () => {
                     ).toBeInstanceOf(Function);
                     return true;
                   }
-                } as GuardPredicate<any, any>
+                } as DefaultGuardObject<any, any>
               }
             }
           },
