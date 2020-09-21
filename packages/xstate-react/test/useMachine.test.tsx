@@ -698,4 +698,23 @@ describe('useMachine (strict mode)', () => {
       }
     }, 110);
   });
+
+  it('should accept a lazily created machine', () => {
+    const App = () => {
+      const [state] = useMachine(() =>
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {}
+          }
+        })
+      );
+
+      expect(state.matches('idle')).toBeTruthy();
+
+      return null;
+    };
+
+    render(<App />);
+  });
 });
