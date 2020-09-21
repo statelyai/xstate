@@ -42,6 +42,6 @@
     "jest": "^24.8.0",
     "lerna-alias": "3.0.3-0",
     "ts-jest": "^24.1.9",
-    "typescript": "^3.9.7"
+    "typescript": "^4.0.3"
   }
 }

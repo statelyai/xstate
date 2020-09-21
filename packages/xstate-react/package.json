@@ -69,7 +69,7 @@
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
     "ts-jest": "^24.1.9",
-    "typescript": "^3.9.7",
+    "typescript": "^4.0.3",
     "xstate": "*"
   }
 }
