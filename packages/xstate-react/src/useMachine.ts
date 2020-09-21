@@ -118,7 +118,7 @@ export function useMachine<
     return typeof getMachine === 'function' ? getMachine() : getMachine;
   }, []);
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (process.env.NODE_ENV !== 'production' && typeof getMachine !== 'function') {
     const [initialMachine] = useState(machine);
 
     if (machine !== initialMachine) {
