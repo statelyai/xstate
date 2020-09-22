@@ -679,18 +679,20 @@ describe('useMachine (strict mode)', () => {
 
       currentState = state;
 
-      React.useEffect(() => {
-        send('START');
-      }, []);
-
-      return null;
+      return (
+        <button onClick={() => send('START')} data-testid="button"></button>
+      );
     };
 
-    render(
+    const { getByTestId } = render(
       <React.StrictMode>
         <Test />
       </React.StrictMode>
     );
+
+    const button = getByTestId('button');
+
+    fireEvent.click(button);
 
     setTimeout(() => {
       if (currentState.matches('idle')) {
