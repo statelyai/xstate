@@ -13,6 +13,7 @@ module.exports = {
       `${path.sep}packages${path.sep}xstate-dev${path.sep}`
     )
   ],
+  projects: ['<rootDir>/packages/!(xstate-dev|xstate-inspect)'],
   watchPlugins: [
     'jest-watch-typeahead/filename',
     'jest-watch-typeahead/testname'
