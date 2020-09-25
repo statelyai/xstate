@@ -158,15 +158,15 @@ The typestates of a machine are specified as the 3rd generic type in `createMach
 **Example:**
 
 ```ts
-import { createMachine, interpret } from 'xstate';
+import {
+  CombineTypestates,
+  TypestateContext,
+  createMachine,
+  interpret
+} from 'xstate';
 
 interface User {
   name: string;
-}
-
-interface UserContext {
-  user?: User;
-  error?: string;
 }
 
 type UserEvent =
@@ -174,26 +174,14 @@ type UserEvent =
   | { type: 'RESOLVE'; user: User }
   | { type: 'REJECT'; error: string };
 
-type UserState =
-  | {
-      value: 'idle';
-      context: UserContext & {
-        user: undefined;
-        error: undefined;
-      };
-    }
-  | {
-      value: 'loading';
-      context: UserContext;
-    }
-  | {
-      value: 'success';
-      context: UserContext & { user: User; error: undefined };
-    }
-  | {
-      value: 'failure';
-      context: UserContext & { user: undefined; error: string };
-    };
+type UserState = CombineTypestates<
+  | { value: 'idle'; context: {} }
+  | { value: 'loading'; context: { user?: User; error?: string } }
+  | { value: 'success'; context: { user: User } }
+  | { value: 'failure'; context: { error: string } }
+>;
+
+type UserContext = TypestateContext<UserState>;
 
 const userMachine = createMachine<UserContext, UserEvent, UserState>({
   id: 'user',
@@ -216,7 +204,7 @@ const userMachine = createMachine<UserContext, UserEvent, UserState>({
 
 const userService = interpret(userMachine);
 
-userService.subscribe(state => {
+userService.subscribe((state) => {
   if (state.matches('success')) {
     // from the UserState typestate, `user` will be defined
     state.context.user.name;
