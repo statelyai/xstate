@@ -544,22 +544,12 @@ export class Interpreter<
     }
 
     if (
-      this._status === InterpreterStatus.NotStarted &&
-      this.options.deferEvents
+      !IS_PRODUCTION &&
+      this._status !== InterpreterStatus.Running &&
+      !this.options.deferEvents
     ) {
-      // tslint:disable-next-line:no-console
-      if (!IS_PRODUCTION) {
-        warn(
-          false,
-          `Event "${_event.name}" was sent to uninitialized service "${
-            this.machine.id
-          }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-            _event.data
-          )}`
-        );
-      }
-    } else if (this._status !== InterpreterStatus.Running) {
-      throw new Error(
+      warn(
+        false,
         `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
           // tslint:disable-next-line:max-line-length
