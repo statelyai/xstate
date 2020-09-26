@@ -544,12 +544,10 @@ export class Interpreter<
     }
 
     if (
-      !IS_PRODUCTION &&
       this._status !== InterpreterStatus.Running &&
       !this.options.deferEvents
     ) {
-      warn(
-        false,
+      throw new Error(
         `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
           // tslint:disable-next-line:max-line-length
