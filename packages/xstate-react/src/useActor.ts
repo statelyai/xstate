@@ -26,6 +26,7 @@ export function useActor<TEvent extends EventObject, TEmitted = any>(
   );
 
   useEffect(() => {
+    setCurrent(getSnapshot(actorRef));
     const subscription = actorRef.subscribe(setCurrent);
 
     // Dequeue deferred events from the previous deferred actorRef

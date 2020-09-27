@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef, useMemo } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
@@ -114,11 +114,14 @@ export function useMachine<
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
   Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  const machine = useMemo(() => {
+  const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
-  }, []);
+  });
 
-  if (process.env.NODE_ENV !== 'production') {
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    typeof getMachine !== 'function'
+  ) {
     const [initialMachine] = useState(machine);
 
     if (machine !== initialMachine) {

@@ -42,6 +42,7 @@ export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
   stop?: () => void;
+  [key: string]: any;
 }
 
 export type MaybeLazy<T> = T | (() => T);
