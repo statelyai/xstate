@@ -583,7 +583,6 @@ describe('useMachine (strict mode)', () => {
       // This will send an event to the parent service
       // BEFORE the service is ready.
       React.useLayoutEffect(() => {
-        debugger;
         send({ type: 'FINISH' });
       }, []);
 
