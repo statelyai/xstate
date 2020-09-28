@@ -12,7 +12,7 @@ All notable changes to this project will be documented in this file.
   // ...
   ```
 
-  This has the benefit of avoiding unnecessary machine initializations whenever the component rerenders, without having to use `useMemo(...)`.
+  This has the benefit of avoiding unnecessary machine initializations whenever the component rerenders.
 
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
