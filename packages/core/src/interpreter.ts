@@ -98,6 +98,8 @@ enum InterpreterStatus {
   Stopped
 }
 
+export type ErrorListener = (error: any) => void;
+
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -146,6 +148,7 @@ export class Interpreter<
   private doneListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
+  private errorListeners: Set<ErrorListener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -408,6 +411,18 @@ export class Interpreter<
     listener: EventListener<DoneEvent>
   ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
     this.doneListeners.add(listener);
+    return this;
+  }
+  /**
+   * Adds an error listener that is notified with an `Error` whenever an
+   * error occurs during execution.
+   *
+   * @param listener The error listener
+   */
+  public onError(
+    listener: ErrorListener
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+    this.errorListeners.add(listener);
     return this;
   }
   /**
