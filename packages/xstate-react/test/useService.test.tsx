@@ -131,4 +131,23 @@ describe('useService hook', () => {
     fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
   });
+
+  it('should throw if provided an actor instead of a service', (done) => {
+    const Test = () => {
+      expect(() => {
+        useService({
+          send: () => {
+            /* ... */
+          }
+        } as any);
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead."`
+      );
+      done();
+
+      return null;
+    };
+
+    render(<Test />);
+  });
 });
