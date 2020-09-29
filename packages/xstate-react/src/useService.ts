@@ -26,6 +26,7 @@ export function useService<
   const serviceActor = useMemo(() => fromService(service), [service]);
 
   return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
-    serviceActor
+    serviceActor,
+    (actor) => (actor as typeof serviceActor).current
   );
 }
