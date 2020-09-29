@@ -1,5 +1,13 @@
 # Changelog
 
+## 1.0.0
+
+### Patch Changes
+
+- [`c0bd0407`](https://github.com/davidkpiano/xstate/commit/c0bd040767dcac20ed690e49a8725b4f1011dd5d) [#1493](https://github.com/davidkpiano/xstate/pull/1493) Thanks [@davidkpiano](https://github.com/davidkpiano)! - There will now be a descriptive error when trying to use an actor-like object in the `useService()` hook, where `useActor()` should be preferred:
+
+  > Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.
+
 All notable changes to this project will be documented in this file.
 
 ## [1.0.0-rc.7]
@@ -17,7 +25,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, (actor) => actor.current);
+  const [state, send] = useActor(someActor, actor => actor.current);
   ```
 
 ## [1.0.0-rc.6]
