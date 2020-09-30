@@ -2,4 +2,4 @@
 'xstate': patch
 ---
 
-Changed `_status` property on the `Interpreter` to be a public one.
+Added `status` property on the `Interpreter` - this can be used to differentiate not started, running and stopped interpreters.
