@@ -439,7 +439,7 @@ useEffect(() => {
 
   ```diff
   -import { useService } from '@xstate/react';
-  +import { useService } from '@xstate/react';
+  +import { useActor } from '@xstate/react';
 
   -const [state, send] = useService(someActor);
   +const [state, send] = useActor(someActor);
