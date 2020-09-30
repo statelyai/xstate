@@ -151,7 +151,7 @@ export class Interpreter<
    * Whether the service is started.
    */
   public initialized = false;
-  private _status: InterpreterStatus = InterpreterStatus.NotStarted;
+  public _status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor
   public parent?: Interpreter<any>;

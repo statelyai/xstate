@@ -17,7 +17,7 @@ export function fromService<TContext, TEvent extends EventObject>(
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
     stop: service.stop!,
-    current: service.initialized ? service.state : machine.initialState,
+    current: service._status !== 0 ? service.state : machine.initialState,
     name: service.sessionId
   };
 }
