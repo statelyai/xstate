@@ -17,7 +17,11 @@ export function fromService<TContext, TEvent extends EventObject>(
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
     stop: service.stop!,
-    current: service.status !== 0 ? service.state : machine.initialState,
+    // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
+    current:
+      ('status' in service ? service.status : (service as any)._status) !== 0
+        ? service.state
+        : machine.initialState,
     name: service.sessionId
   };
 }
