@@ -92,7 +92,7 @@ interface SpawnOptions {
 
 const DEFAULT_SPAWN_OPTIONS = { sync: false, autoForward: false };
 
-enum InterpreterStatus {
+export enum InterpreterStatus {
   NotStarted,
   Running,
   Stopped
