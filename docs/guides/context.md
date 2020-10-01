@@ -37,12 +37,12 @@ const glassMachine = Machine(
         }
       },
       filling: {
-        on: {
-          // Transient transition
-          '': {
+        // Transient transition
+        always: {
             target: 'full',
             cond: 'glassIsFull'
-          },
+        }
+        on: {
           FILL: {
             target: 'filling',
             actions: 'addWater'
