@@ -6,11 +6,17 @@ import { ActorRef } from './types';
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>
 ): ActorRef<TEvent, State<TContext, TEvent>> {
-  const { machine } = service;
+  if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
+    throw new Error(
+      `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
+    );
+  }
+
+  const { machine } = service as Interpreter<TContext, any, TEvent>;
   return {
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
-    stop: service.stop,
+    stop: service.stop!,
     current: service.initialized ? service.state : machine.initialState,
     name: service.sessionId
   };
