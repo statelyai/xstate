@@ -207,8 +207,8 @@ const counterMachine = Machine({
         INC_TWICE: {
           actions: [
             context => console.log(`Before: ${context.count}`),
-            assign({ count: (context) => context.count + 1 }), // count === 1
-            assign({ count: (context) => context.count + 1 }), // count === 2
+            assign({ count: context => context.count + 1 }), // count === 1
+            assign({ count: context => context.count + 1 }), // count === 2
             context => console.log(`After: ${context.count}`)
           ]
         }
