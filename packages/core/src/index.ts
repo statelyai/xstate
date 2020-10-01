@@ -23,7 +23,12 @@ import {
   choose,
   pure
 } from './actions';
-import { interpret, Interpreter, spawn } from './interpreter';
+import {
+  interpret,
+  Interpreter,
+  spawn,
+  InterpreterStatus
+} from './interpreter';
 import { matchState } from './match';
 
 const actions = {
@@ -60,6 +65,7 @@ export {
   forwardTo,
   interpret,
   Interpreter,
+  InterpreterStatus,
   matchState,
   spawn,
   doneInvoke,
