@@ -50,7 +50,7 @@ function getUserFriends(context) {
 
   return Promise.all(
     friends.map(friendId =>
-      fetch(`/api/users/${context.userId}/`).then(response => response.json())
+      fetch(`/api/users/${friendId}/`).then(response => response.json())
     )
   );
 }
