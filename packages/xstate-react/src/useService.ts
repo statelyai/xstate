@@ -12,7 +12,7 @@ export function fromService<TContext, TEvent extends EventObject>(
     );
   }
 
-  const { machine } = service as Interpreter<TContext, any, TEvent>;
+  const { machine } = service as Interpreter<TContext, TEvent>;
   return {
     send: service.send.bind(service),
     subscribe: service.subscribe.bind(service),
