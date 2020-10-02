@@ -724,4 +724,52 @@ describe('useMachine (strict mode)', () => {
 
     render(<App />);
   });
+
+  it('options.filter should filter states to prevent rerenders', () => {
+    let actionExecuted = false;
+    let rerenders = 0;
+
+    const App = () => {
+      const [, send] = useMachine(
+        () =>
+          createMachine({
+            initial: 'idle',
+            states: {
+              idle: {
+                on: {
+                  EXEC: {
+                    actions: () => {
+                      actionExecuted = true;
+                    }
+                  }
+                }
+              }
+            }
+          }),
+        {
+          filter: (state, prevState) =>
+            state.value !== prevState.value ||
+            state.context !== prevState.context
+        }
+      );
+
+      rerenders++;
+
+      return <button data-testid="button" onClick={() => send('EXEC')} />;
+    };
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <App />
+      </React.StrictMode>
+    );
+
+    const button = getByTestId('button');
+
+    const currentRerenders = rerenders;
+
+    fireEvent.click(button);
+
+    expect(actionExecuted).toBeTruthy();
+    expect(rerenders).toEqual(currentRerenders);
+  });
 });

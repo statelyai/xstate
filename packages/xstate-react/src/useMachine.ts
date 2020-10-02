@@ -90,7 +90,7 @@ function executeEffect<TContext, TEvent extends EventObject>(
 
 interface UseMachineOptions<TContext, TEvent extends EventObject> {
   /**
-   * If provided, will be merged with machine's `context`.
+   * If provided, will be _merged_ with machine's `context`.
    */
   context?: Partial<TContext>;
   /**
@@ -98,6 +98,11 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
    * start at this state instead of its `initialState`.
    */
   state?: StateConfig<TContext, TEvent>;
+
+  filter?: (
+    state: State<TContext, TEvent>,
+    prevState: State<TContext, TEvent>
+  ) => boolean;
 }
 
 export function useMachine<
@@ -140,6 +145,7 @@ export function useMachine<
     services,
     delays,
     state: rehydratedState,
+    filter,
     ...interpreterOptions
   } = options;
 
@@ -194,7 +200,11 @@ export function useMachine<
           currentState.changed === undefined &&
           Object.keys(currentState.children).length;
 
-        if (currentState.changed || initialStateChanged) {
+        if (
+          (currentState.changed || initialStateChanged) &&
+          // Only change the state if it is not filtered out
+          (!filter || filter?.(currentState, state))
+        ) {
           setState(currentState);
         }
 
