@@ -165,9 +165,7 @@ describe('useService hook', () => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
-
       done();
-
       return null;
     };
 
@@ -175,6 +173,29 @@ describe('useService hook', () => {
       const [state] = useMachine(machine);
 
       return <ChildTest actor={state.children.child} />;
+    };
+
+    render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+  });
+
+  it('should throw if provided an actor instead of a service', (done) => {
+    const Test = () => {
+      expect(() => {
+        useService({
+          send: () => {
+            /* ... */
+          }
+        } as any);
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead."`
+      );
+      done();
+
+      return null;
     };
 
     render(
@@ -237,5 +258,37 @@ describe('useService hook', () => {
         <Test />
       </React.StrictMode>
     );
+    render(<Test />);
+  });
+
+  it('should render the final state', () => {
+    const service = interpret(
+      Machine({
+        initial: 'first',
+        states: {
+          first: {
+            on: {
+              NEXT: {
+                target: 'last'
+              }
+            }
+          },
+          last: {
+            type: 'final'
+          }
+        }
+      })
+    ).start();
+
+    service.send({ type: 'NEXT' });
+
+    const Test = () => {
+      const [state] = useService(service);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('last');
   });
 });
