@@ -8,7 +8,7 @@ import {
 import { MaybeLazy } from './types';
 import { useMachine, UseMachineOptions } from './useMachine';
 
-export function useMachineSelect<
+export function useMachineSelector<
   T,
   TContext,
   TEvent extends EventObject,
