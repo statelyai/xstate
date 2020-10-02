@@ -2,12 +2,31 @@
 
 All notable changes to this project will be documented in this file.
 
+## [1.0.0-rc.7]
+
+- The `machine` passed into `useMachine(machine)` can now be passed in lazily:
+
+  ```js
+  const [state, send] = useMachine(() => createMachine(/* ... */));
+
+  // ...
+  ```
+
+  This has the benefit of avoiding unnecessary machine initializations whenever the component rerenders.
+
+- The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
+
+  ```js
+  const [state, send] = useActor(someActor, (actor) => actor.current);
+  ```
+
+## [1.0.0-rc.6]
+
 ## [1.0.0-rc.5]
 
 - You can now schedule actions in `useEffect` or `useLayoutEffect` via:
-
-- `asEffect` - queues the action to be executed in `useEffect`
-- `asLayoutEffect` - queues the action to be executed in `useLayoutEffect`
+  - `asEffect` - queues the action to be executed in `useEffect`
+  - `asLayoutEffect` - queues the action to be executed in `useLayoutEffect`
 
 ```jsx
 import { createMachine } from 'xstate';
