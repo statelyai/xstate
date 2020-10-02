@@ -88,7 +88,11 @@ function executeEffect<TContext, TEvent extends EventObject>(
   originalExec();
 }
 
-interface UseMachineOptions<TContext, TEvent extends EventObject> {
+export type UseMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TTypestate extends Typestate<TContext>
+> = {
   /**
    * If provided, will be _merged_ with machine's `context`.
    */
@@ -100,10 +104,11 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
   state?: StateConfig<TContext, TEvent>;
 
   filter?: (
-    state: State<TContext, TEvent>,
-    prevState: State<TContext, TEvent>
+    state: State<TContext, TEvent, any, TTypestate>,
+    prevState: State<TContext, TEvent, any, TTypestate>
   ) => boolean;
-}
+} & InterpreterOptions &
+  MachineOptions<TContext, TEvent>;
 
 export function useMachine<
   TContext,
@@ -111,9 +116,7 @@ export function useMachine<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
-  options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+  options: Partial<UseMachineOptions<TContext, TEvent, TTypestate>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
@@ -203,7 +206,7 @@ export function useMachine<
         if (
           (currentState.changed || initialStateChanged) &&
           // Only change the state if it is not filtered out
-          (!filter || filter?.(currentState, state))
+          (!filter || filter?.(currentState, currentState.history!))
         ) {
           setState(currentState);
         }
