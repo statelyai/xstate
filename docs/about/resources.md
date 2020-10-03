@@ -130,3 +130,4 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [My First Machine, Getting Started with XState and Angular](https://calebukle.com/blog/my-first-machine-getting-started-with-xstate-and-angular) by [Caleb Ukle](https://calebukle.com)
 - [▶️ Reducing state complexity with XState](https://www.youtube.com/watch?v=CpxL-4oIZPw) by [Kishore](www.github.com/pkishoez)
 - [Finite State Machines in React JS using XState JS](https://dev.to/soorajsnblaze333/finite-state-machines-in-react-js-using-xstate-36ho) by [Sooraj](https://dev.to/soorajsnblaze333)
+- [▶️ Managing UI Complexity with Statecharts (playlist)](https://www.youtube.com/playlist?list=PLsVj0cy-DbErFraf3KeAUbzVl-OKyBZ0-)
