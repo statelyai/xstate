@@ -1,5 +1,26 @@
 # @xstate/react
 
+<!-- START doctoc generated TOC please keep comment here to allow auto update -->
+<!-- DON'T EDIT THIS SECTION, INSTEAD RE-RUN doctoc TO UPDATE -->
+
+- [Quick Start](#quick-start)
+- [Examples](#examples)
+- [API](#api)
+  - [`useMachine(machine, options?)`](#usemachinemachine-options)
+  - [`useService(service)`](#useserviceservice)
+  - [`useActor(actor, getSnapshot)`](#useactoractor-getsnapshot)
+  - [`asEffect(action)`](#aseffectaction)
+  - [`asLayoutEffect(action)`](#aslayouteffectaction)
+  - [`useMachine(machine)` with `@xstate/fsm`](#usemachinemachine-with-xstatefsm)
+- [Configuring Machines](#configuring-machines)
+- [Matching States](#matching-states)
+- [Persisted and Rehydrated State](#persisted-and-rehydrated-state)
+- [Services](#services)
+- [Migration from 0.x](#migration-from-0x)
+- [Resources](#resources)
+
+<!-- END doctoc generated TOC please keep comment here to allow auto update -->
+
 ## Quick Start
 
 1. Install `xstate` and `@xstate/react`:
@@ -40,6 +61,10 @@ export const Toggler = () => {
 };
 ```
 
+## Examples
+
+- [XState + React TodoMVC (CodeSandbox)](https://codesandbox.io/s/xstate-todomvc-33wr94qv1)
+
 ## API
 
 ### `useMachine(machine, options?)`
@@ -48,7 +73,20 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 **Arguments**
 
-- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html).
+- `machine` - An [XState machine](https://xstate.js.org/docs/guides/machines.html) or a function that lazily returns a machine:
+
+  ```js
+  // existing machine
+  const [state, send] = useMachine(machine);
+
+  // lazily-created machine
+  const [state, send] = useMachine(() =>
+    createMachine({
+      /* ... */
+    })
+  );
+  ```
+
 - `options` (optional) - [Interpreter options](https://xstate.js.org/docs/guides/interpretation.html#options) OR one of the following Machine Config options: `guards`, `actions`, `activities`, `services`, `delays`, `immediate`, `context`, or `state`.
 
 **Returns** a tuple of `[state, send, service]`:
@@ -59,16 +97,36 @@ A [React hook](https://reactjs.org/hooks) that interprets the given `machine` an
 
 ### `useService(service)`
 
-A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](TODO).
+A [React hook](https://reactjs.org/hooks) that subscribes to state changes from an existing [service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Arguments**
 
-- `service` - An [XState service](https://xstate.js.org/docs/guides/communication.html).
+- `service` - An [XState service](https://xstate.js.org/docs/guides/interpretation.html).
 
 **Returns** a tuple of `[state, send]`:
 
 - `state` - Represents the current state of the service as an XState `State` object.
 - `send` - A function that sends events to the running service.
+
+### `useActor(actor, getSnapshot)`
+
+A [React hook](https://reactjs.org/hooks) that subscribes to emitted changes from an existing [actor](https://xstate.js.org/docs/guides/actors.html).
+
+**Arguments**
+
+- `actor` - an actor-like object that contains `.send(...)` and `.subscribe(...)` methods.
+- `getSnapshot` - a function that should return the latest emitted value from the `actor`.
+  - Defaults to attempting to get the `actor.state`, or returning `undefined` if that does not exist.
+
+```js
+const [state, send] = useActor(someSpawnedActor);
+
+// with custom actors
+const [state, send] = useActor(customActor, (actor) => {
+  // implementation-specific pseudocode example:
+  return actor.getLastEmittedValue();
+});
+```
 
 ### `asEffect(action)`
 
@@ -194,7 +252,7 @@ const Fetcher = ({ onFetch = () => new Promise(res => res('some data')) }) => {
 };
 ```
 
-## Configuring Machines <Badge text="0.7+"/>
+## Configuring Machines
 
 Existing machines can be configured by passing the machine options as the 2nd argument of `useMachine(machine, options)`.
 
@@ -338,7 +396,7 @@ You can persist and rehydrate state with `useMachine(...)` via `options.state`:
 // ...
 
 // Get the persisted state config object from somewhere, e.g. localStorage
-const persistedState = JSON.parse(localStorage.getItem('some-persisted-state-key'));
+const persistedState = JSON.parse(localStorage.getItem('some-persisted-state-key')) || someMachine.initialState;
 
 const App = () => {
   const [state, send] = useMachine(someMachine, {
@@ -374,6 +432,18 @@ useEffect(() => {
   return subscription.unsubscribe;
 }, [service]); // note: service should never change
 ```
+
+## Migration from 0.x
+
+- For spawned actors created using `invoke` or `spawn(...)`, use the `useActor()` hook instead of `useService()`:
+
+  ```diff
+  -import { useService } from '@xstate/react';
+  +import { useActor } from '@xstate/react';
+
+  -const [state, send] = useService(someActor);
+  +const [state, send] = useActor(someActor);
+  ```
 
 ## Resources
 

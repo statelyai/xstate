@@ -67,7 +67,7 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-enum InterpreterStatus {
+export enum InterpreterStatus {
   NotStarted,
   Running,
   Stopped
@@ -116,7 +116,7 @@ export class Interpreter<
   /**
    * Whether the service is started.
    */
-  private _status: InterpreterStatus = InterpreterStatus.NotStarted;
+  public status: InterpreterStatus = InterpreterStatus.NotStarted;
 
   // Actor Ref
   public parent?: ActorRef<any>;
@@ -166,7 +166,7 @@ export class Interpreter<
   }
 
   public get initialized() {
-    return this._status === InterpreterStatus.Running;
+    return this.status === InterpreterStatus.Running;
   }
 
   public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
@@ -245,7 +245,7 @@ export class Interpreter<
     this.listeners.add(listener);
 
     // Send current state to listener
-    if (this._status === InterpreterStatus.Running) {
+    if (this.status === InterpreterStatus.Running) {
       listener(this.state, this.state.event);
     }
 
@@ -292,7 +292,7 @@ export class Interpreter<
     }
 
     // Send current state to listener
-    if (this._status === InterpreterStatus.Running) {
+    if (this.status === InterpreterStatus.Running) {
       listener(this.state);
     }
 
@@ -378,13 +378,13 @@ export class Interpreter<
       | State<TContext, TEvent, TStateSchema, TTypestate>
       | StateValue
   ): Interpreter<TContext, TEvent, TStateSchema, TTypestate> {
-    if (this._status === InterpreterStatus.Running) {
+    if (this.status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
     }
 
     registry.register(this.sessionId, this.ref);
-    this._status = InterpreterStatus.Running;
+    this.status = InterpreterStatus.Running;
 
     const resolvedState =
       initialState === undefined
@@ -432,7 +432,7 @@ export class Interpreter<
     }
 
     this.scheduler.clear();
-    this._status = InterpreterStatus.Stopped;
+    this.status = InterpreterStatus.Stopped;
     registry.free(this.sessionId);
 
     return this;
@@ -457,7 +457,7 @@ export class Interpreter<
 
     const _event = toSCXMLEvent(event);
 
-    if (this._status === InterpreterStatus.Stopped) {
+    if (this.status === InterpreterStatus.Stopped) {
       // do nothing
       if (!IS_PRODUCTION) {
         warn(
@@ -473,21 +473,9 @@ export class Interpreter<
     }
 
     if (
-      this._status === InterpreterStatus.NotStarted &&
-      this.options.deferEvents
+      this.status !== InterpreterStatus.Running &&
+      !this.options.deferEvents
     ) {
-      // tslint:disable-next-line:no-console
-      if (!IS_PRODUCTION) {
-        warn(
-          false,
-          `Event "${_event.name}" was sent to uninitialized service "${
-            this.machine.id
-          }" and is deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-            _event.data
-          )}`
-        );
-      }
-    } else if (this._status !== InterpreterStatus.Running) {
       throw new Error(
         `Event "${_event.name}" was sent to uninitialized service "${
           this.machine.id
@@ -510,7 +498,7 @@ export class Interpreter<
 
   private batch(events: Array<TEvent | TEvent['type']>): void {
     if (
-      this._status === InterpreterStatus.NotStarted &&
+      this.status === InterpreterStatus.NotStarted &&
       this.options.deferEvents
     ) {
       // tslint:disable-next-line:no-console
@@ -524,7 +512,7 @@ export class Interpreter<
           )}`
         );
       }
-    } else if (this._status !== InterpreterStatus.Running) {
+    } else if (this.status !== InterpreterStatus.Running) {
       throw new Error(
         // tslint:disable-next-line:max-line-length
         `${events.length} event(s) were sent to uninitialized service "${this.machine.id}". Make sure .start() is called for this service, or set { deferEvents: true } in the service options.`
