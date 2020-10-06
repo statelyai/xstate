@@ -1695,6 +1695,81 @@ describe('invoke', () => {
       expect(errorHandlersCalled).toEqual(1);
     });
 
+    it('should call onError due to a rejected promise', (done) => {
+      const child = Machine({
+        initial: 'a',
+        states: {
+          a: {
+            invoke: {
+              id: 'promise',
+              src: () => Promise.reject(new Error('NUH UH')),
+              onError: {
+                target: 'b',
+                cond: (_, event) => {
+                  return event.data.message === 'NUH UH';
+                }
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(child)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
+    it('should call onError due to an escalated error from a child machine', (done) => {
+      const child = Machine({
+        initial: 'a',
+
+        states: {
+          a: {
+            invoke: {
+              id: 'promise',
+              src: () => Promise.reject(new Error('NUH UH')),
+              onError: {
+                actions: escalate('OH NO')
+              }
+            }
+          }
+        }
+      });
+
+      const parent = Machine({
+        initial: 'a',
+
+        states: {
+          a: {
+            invoke: {
+              id: 'child',
+              src: child,
+              onError: {
+                target: 'b',
+                cond: (_, e) => {
+                  return e.data === 'OH NO';
+                }
+              }
+            }
+          },
+          b: {
+            type: 'final'
+          }
+        }
+      });
+
+      interpret(parent)
+        .onDone(() => {
+          done();
+        })
+        .start();
+    });
+
     it('should be able to be stringified', () => {
       const waitingState = fetcherMachine.transition(
         fetcherMachine.initialState,
