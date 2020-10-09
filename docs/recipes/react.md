@@ -5,16 +5,27 @@ The most straightforward way of using XState with React is through local compone
 ```js
 import { Machine } from 'xstate';
 
+// State
+export const toggleState = {
+  ACTIVE: 'active',
+  INACTIVE: 'inactive',
+}
+
+// Transitions
+export const toggleTransitions = {
+  TOGGLE: 'TOGGLE',
+}
+
 // This machine is completely decoupled from React
 export const toggleMachine = Machine({
   id: 'toggle',
-  initial: 'inactive',
+  initial: toggleState.INACTIVE,
   states: {
     inactive: {
-      on: { TOGGLE: 'active' }
+      on: { [toggleTransitions.TOGGLE]: toggleState.ACTIVE }
     },
     active: {
-      on: { TOGGLE: 'inactive' }
+      on: { [toggleTransitions.TOGGLE]: toggleState.INACTIVE }
     }
   }
 });
@@ -25,16 +36,16 @@ export const toggleMachine = Machine({
 Using [React hooks](https://reactjs.org/hooks) makes it easier to use state machines with function components. You can either use the official [`@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) package, a community solution like [`use-machine` by Carlos Galarza](https://github.com/carloslfu/use-machine/), or implement your own hook to interpret and use XState machines:
 
 ```js
-// import { useMachine } from '../path/to/useMachine';
 import { useMachine } from '@xstate/react';
-import { toggleMachine } from '../path/to/toggleMachine';
+import { toggleMachine, toggleState, toggleTransitions } from '../path/to/toggleMachine';
 
 function Toggle() {
   const [current, send] = useMachine(toggleMachine);
+  const isActive = current.matches(toggleState.active);
 
   return (
-    <button onClick={() => send('TOGGLE')}>
-      {current.matches('inactive') ? 'Off' : 'On'}
+    <button onClick={() => send(toggleTransitions.TOGGLE)}>
+      {isActive ? 'On' : 'Off'}
     </button>
   );
 }
