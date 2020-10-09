@@ -18,12 +18,16 @@ export function toInvokeSource(
   return src;
 }
 
-export function toInvokeDefinition<TContext, TEvent extends EventObject>(
-  invokeConfig: InvokeConfig<TContext, TEvent> & {
+export function toInvokeDefinition<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  invokeConfig: InvokeConfig<TContext, TEvent, TAction> & {
     src: string | InvokeSourceDefinition;
     id: string;
   }
-): InvokeDefinition<TContext, TEvent> {
+): InvokeDefinition<TContext, TEvent, TAction> {
   return {
     type: actionTypes.invoke,
     ...invokeConfig,

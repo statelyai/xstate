@@ -10,7 +10,8 @@ import {
   SCXML,
   StateSchema,
   TransitionDefinition,
-  Typestate
+  Typestate,
+  ActionFunction
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -48,10 +49,14 @@ export function isState<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string }
 >(
   state: object | string
-): state is State<TContext, TEvent, TStateSchema, TTypestate> {
+): state is State<TContext, TEvent, TStateSchema, TTypestate, TAction> {
   if (isString(state)) {
     return false;
   }
@@ -59,23 +64,30 @@ export function isState<
   return 'value' in state && 'history' in state;
 }
 
-export function bindActionToState<TC, TE extends EventObject>(
-  action: ActionObject<TC, TE>,
-  state: State<TC, TE>
-): ActionObject<TC, TE> {
-  const { exec } = action;
-  const boundAction: ActionObject<TC, TE> = {
+export function bindActionToState<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+>(
+  action: ActionObject<TC, TE, TA>,
+  state: State<TC, TE, any, any, TA>
+): ActionObject<TC, TE, TA> {
+  const boundAction = {
     ...action,
     exec:
-      exec !== undefined
-        ? () =>
-            exec(state.context, state.event as TE, {
+      'exec' in action
+        ? () => {
+            const refinedAction = action as {
+              exec: ActionFunction<TC, TE, TA>;
+            };
+            return refinedAction.exec(state.context, state.event as TE, {
               action,
               state,
               _event: state._event
-            })
+            });
+          }
         : undefined
-  };
+  } as any;
 
   return boundAction;
 }
@@ -84,13 +96,17 @@ export class State<
   TContext,
   TEvent extends EventObject = EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string }
 > {
   public value: StateValue;
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
-  public history?: State<TContext, TEvent, TStateSchema, TTypestate>;
-  public actions: Array<ActionObject<TContext, TEvent>> = [];
+  public history?: State<TContext, TEvent, TStateSchema, TTypestate, TAction>;
+  public actions: Array<ActionObject<TContext, TEvent, TAction>> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];
@@ -113,7 +129,7 @@ export class State<
   /**
    * The enabled state nodes representative of the state value.
    */
-  public configuration: Array<StateNode<TContext, any, TEvent>>;
+  public configuration: Array<StateNode<TContext, any, TEvent, any, TAction>>;
   /**
    * The next events that will cause a transition from the current state.
    */
@@ -122,7 +138,7 @@ export class State<
   /**
    * The transition definitions that resulted in this state.
    */
-  public transitions: Array<TransitionDefinition<TContext, TEvent>>;
+  public transitions: Array<TransitionDefinition<TContext, TEvent, TAction>>;
   /**
    * An object mapping actor IDs to spawned actors/invoked services.
    */
@@ -132,13 +148,17 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static from<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+  public static from<
+    TC,
+    TE extends EventObject = EventObject,
+    TA extends { type: string } = { type: string }
+  >(
+    stateValue: State<TC, TE, any, any, TA> | StateValue,
     context?: TC | undefined
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any, TA> {
     if (stateValue instanceof State) {
       if (stateValue.context !== context) {
-        return new State<TC, TE>({
+        return new State<TC, TE, any, any, TA>({
           value: stateValue.value,
           context: context as TC,
           _event: stateValue._event,
@@ -160,7 +180,7 @@ export class State<
 
     const _event = initEvent as SCXML.Event<TE>;
 
-    return new State<TC, TE>({
+    return new State<TC, TE, any, any, TA>({
       value: stateValue,
       context: context as TC,
       _event,
@@ -180,9 +200,11 @@ export class State<
    * Creates a new State instance for the given `config`.
    * @param config The state config
    */
-  public static create<TC, TE extends EventObject = EventObject>(
-    config: StateConfig<TC, TE>
-  ): State<TC, TE> {
+  public static create<
+    TC,
+    TE extends EventObject = EventObject,
+    TA extends { type: string } = { type: string }
+  >(config: StateConfig<TC, TE, TA>): State<TC, TE, any, any, TA> {
     return new State(config);
   }
   /**
@@ -190,17 +212,21 @@ export class State<
    * @param stateValue
    * @param context
    */
-  public static inert<TC, TE extends EventObject = EventObject>(
-    stateValue: State<TC, TE> | StateValue,
+  public static inert<
+    TC,
+    TE extends EventObject = EventObject,
+    TA extends { type: string } = { type: string }
+  >(
+    stateValue: State<TC, TE, any, any, TA> | StateValue,
     context: TC
-  ): State<TC, TE> {
+  ): State<TC, TE, any, any, TA> {
     if (stateValue instanceof State) {
       if (!stateValue.actions.length) {
-        return stateValue as State<TC, TE>;
+        return stateValue as State<TC, TE, any, any, TA>;
       }
       const _event = initEvent as SCXML.Event<TE>;
 
-      return new State<TC, TE>({
+      return new State<TC, TE, any, any, TA>({
         value: stateValue.value,
         context,
         _event,
@@ -214,7 +240,7 @@ export class State<
       });
     }
 
-    return State.from<TC, TE>(stateValue, context);
+    return State.from<TC, TE, TA>(stateValue, context);
   }
 
   /**
@@ -229,7 +255,7 @@ export class State<
    * @param events Internal event queue. Should be empty with run-to-completion semantics.
    * @param configuration
    */
-  constructor(config: StateConfig<TContext, TEvent>) {
+  constructor(config: StateConfig<TContext, TEvent, TAction>) {
     this.value = config.value;
     this.context = config.context;
     this._event = config._event;

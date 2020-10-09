@@ -15,7 +15,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, { type: string }>>,
   initialContext?: TContext
 ): StateMachine<TContext, any, TEvent>;
 export function Machine<
@@ -24,7 +24,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, { type: string }>>,
   initialContext?: TContext
 ): StateMachine<TContext, TStateSchema, TEvent>;
 export function Machine<
@@ -33,7 +33,7 @@ export function Machine<
   TEvent extends EventObject = AnyEventObject
 >(
   config: MachineConfig<TContext, TStateSchema, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>,
+  options?: Partial<MachineOptions<TContext, TEvent, { type: string }>>,
   initialContext: TContext | (() => TContext) | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
   const resolvedInitialContext =
@@ -51,19 +51,23 @@ export function Machine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string }
 >(
-  config: MachineConfig<TContext, any, TEvent>,
-  options?: Partial<MachineOptions<TContext, TEvent>>
-): StateMachine<TContext, any, TEvent, TTypestate> {
+  config: MachineConfig<TContext, any, TEvent, TAction>,
+  options?: Partial<MachineOptions<TContext, TEvent, TAction>>
+): StateMachine<TContext, any, TEvent, TTypestate, TAction> {
   const resolvedInitialContext =
     typeof config.context === 'function'
       ? (config.context as () => TContext)()
       : config.context;
 
-  return new StateNode<TContext, any, TEvent, TTypestate>(
+  return new StateNode<TContext, any, TEvent, TTypestate, TAction>(
     config,
     options,
     resolvedInitialContext
-  ) as StateMachine<TContext, any, TEvent, TTypestate>;
+  ) as StateMachine<TContext, any, TEvent, TTypestate, TAction>;
 }

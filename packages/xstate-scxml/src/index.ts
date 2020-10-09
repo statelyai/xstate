@@ -23,7 +23,7 @@ export function functionToExpr(fn: Function): string {
   return fn.toString();
 }
 
-function actionToSCXML(action: ActionObject<any, any>): XMLElement {
+function actionToSCXML(action: ActionObject<any, any, any>): XMLElement {
   const { type, ...attributes } = action;
 
   const actionTypeMap: Record<ActionType, string> = {
@@ -53,7 +53,7 @@ function actionToSCXML(action: ActionObject<any, any>): XMLElement {
 }
 
 export function transitionToSCXML(
-  transition: TransitionDefinition<any, any>
+  transition: TransitionDefinition<any, any, any>
 ): XMLElement {
   // console.log(transition.cond!.predicate);
 
@@ -94,7 +94,7 @@ function doneDataToSCXML(data: any): XMLElement {
 
 function actionsToSCXML(
   name: 'onentry' | 'onexit',
-  actions: Array<ActionObject<any, any>>
+  actions: Array<ActionObject<any, any, any>>
 ): XMLElement {
   return {
     type: 'element',

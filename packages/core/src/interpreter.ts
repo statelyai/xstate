@@ -21,18 +21,17 @@ import {
   Subscribable,
   DoneEvent,
   Unsubscribable,
-  MachineOptions,
-  ActionFunctionMap,
   SCXML,
   EventData,
   Observer,
   Spawnable,
   Typestate,
-  AnyEventObject
+  AnyEventObject,
+  ActionFunction
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
-import { doneInvoke, error, getActionFunction, initEvent } from './actions';
+import { doneInvoke, error, initEvent } from './actions';
 import { IS_PRODUCTION } from './environment';
 import {
   isPromiseLike,
@@ -57,14 +56,16 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import * as serviceScope from './serviceScope';
+import { LogActionObject } from '.';
 
 export type StateListener<
   TContext,
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TAction extends { type: string } = { type: string }
 > = (
-  state: State<TContext, TEvent, TStateSchema, TTypestate>,
+  state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
   event: TEvent
 ) => void;
 
@@ -103,8 +104,14 @@ export class Interpreter<
   TContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
-> implements Actor<State<TContext, TEvent, TStateSchema, TTypestate>, TEvent> {
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string }
+>
+  implements
+    Actor<State<TContext, TEvent, TStateSchema, TTypestate, TAction>, TEvent> {
   /**
    * The default interpreter options:
    *
@@ -128,8 +135,14 @@ export class Interpreter<
   /**
    * The current state of the interpreted machine.
    */
-  private _state?: State<TContext, TEvent, TStateSchema, TTypestate>;
-  private _initialState?: State<TContext, TEvent, TStateSchema, TTypestate>;
+  private _state?: State<TContext, TEvent, TStateSchema, TTypestate, TAction>;
+  private _initialState?: State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TAction
+  >;
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
@@ -139,7 +152,7 @@ export class Interpreter<
   private scheduler: Scheduler = new Scheduler();
   private delayedEventsMap: Record<string, number> = {};
   private listeners: Set<
-    StateListener<TContext, TEvent, TStateSchema, TTypestate>
+    StateListener<TContext, TEvent, TStateSchema, TTypestate, TAction>
   > = new Set();
   private contextListeners: Set<ContextListener<TContext>> = new Set();
   private stopListeners: Set<Listener> = new Set();
@@ -174,7 +187,13 @@ export class Interpreter<
    * @param options Interpreter options
    */
   constructor(
-    public machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+    public machine: StateMachine<
+      TContext,
+      TStateSchema,
+      TEvent,
+      TTypestate,
+      TAction
+    >,
     options: Partial<InterpreterOptions> = Interpreter.defaultOptions
   ) {
     const resolvedOptions: InterpreterOptions = {
@@ -199,7 +218,13 @@ export class Interpreter<
 
     this.sessionId = registry.bookId();
   }
-  public get initialState(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get initialState(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TAction
+  > {
     if (this._initialState) {
       return this._initialState;
     }
@@ -209,7 +234,13 @@ export class Interpreter<
       return this._initialState;
     });
   }
-  public get state(): State<TContext, TEvent, TStateSchema, TTypestate> {
+  public get state(): State<
+    TContext,
+    TEvent,
+    TStateSchema,
+    TTypestate,
+    TAction
+  > {
     if (!IS_PRODUCTION) {
       warn(
         this._status !== InterpreterStatus.NotStarted,
@@ -227,15 +258,14 @@ export class Interpreter<
    * @param actionsConfig The action implementations to use
    */
   public execute(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionsConfig?: MachineOptions<TContext, TEvent>['actions']
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>
   ): void {
     for (const action of state.actions) {
-      this.exec(action, state, actionsConfig);
+      this.exec(action, state);
     }
   }
   private update(
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
     _event: SCXML.Event<TEvent>
   ): void {
     // Attach session ID to state
@@ -298,7 +328,7 @@ export class Interpreter<
    * @param listener The state listener
    */
   public onTransition(
-    listener: StateListener<TContext, TEvent, TStateSchema, TTypestate>
+    listener: StateListener<TContext, TEvent, TStateSchema, TTypestate, TAction>
   ): this {
     this.listeners.add(listener);
 
@@ -310,17 +340,19 @@ export class Interpreter<
     return this;
   }
   public subscribe(
-    observer: Observer<State<TContext, TEvent, any, TTypestate>>
+    observer: Observer<State<TContext, TEvent, any, TTypestate, TAction>>
   ): Unsubscribable;
   public subscribe(
-    nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
+    nextListener?: (
+      state: State<TContext, TEvent, any, TTypestate, TAction>
+    ) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
   ): Unsubscribable;
   public subscribe(
     nextListenerOrObserver?:
-      | ((state: State<TContext, TEvent, any, TTypestate>) => void)
-      | Observer<State<TContext, TEvent, any, TTypestate>>,
+      | ((state: State<TContext, TEvent, any, TTypestate, TAction>) => void)
+      | Observer<State<TContext, TEvent, any, TTypestate, TAction>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
   ): Unsubscribable {
@@ -328,7 +360,9 @@ export class Interpreter<
       return { unsubscribe: () => void 0 };
     }
 
-    let listener: (state: State<TContext, TEvent, any, TTypestate>) => void;
+    let listener: (
+      state: State<TContext, TEvent, any, TTypestate, TAction>
+    ) => void;
     let resolvedCompleteListener = completeListener;
 
     if (typeof nextListenerOrObserver === 'function') {
@@ -364,9 +398,7 @@ export class Interpreter<
    * Adds an event listener that is notified whenever an event is sent to the running interpreter.
    * @param listener The event listener
    */
-  public onEvent(
-    listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public onEvent(listener: EventListener): this {
     this.eventListeners.add(listener);
     return this;
   }
@@ -374,9 +406,7 @@ export class Interpreter<
    * Adds an event listener that is notified whenever a `send` event occurs.
    * @param listener The event listener
    */
-  public onSend(
-    listener: EventListener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public onSend(listener: EventListener): this {
     this.sendListeners.add(listener);
     return this;
   }
@@ -384,9 +414,7 @@ export class Interpreter<
    * Adds a context listener that is notified whenever the state context changes.
    * @param listener The context listener
    */
-  public onChange(
-    listener: ContextListener<TContext>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public onChange(listener: ContextListener<TContext>): this {
     this.contextListeners.add(listener);
     return this;
   }
@@ -394,9 +422,7 @@ export class Interpreter<
    * Adds a listener that is notified when the machine is stopped.
    * @param listener The listener
    */
-  public onStop(
-    listener: Listener
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public onStop(listener: Listener): this {
     this.stopListeners.add(listener);
     return this;
   }
@@ -404,9 +430,7 @@ export class Interpreter<
    * Adds a state listener that is notified when the statechart has reached its final state.
    * @param listener The state listener
    */
-  public onDone(
-    listener: EventListener<DoneEvent>
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public onDone(listener: EventListener<DoneEvent>): this {
     this.doneListeners.add(listener);
     return this;
   }
@@ -414,9 +438,7 @@ export class Interpreter<
    * Removes a listener.
    * @param listener The listener to remove
    */
-  public off(
-    listener: (...args: any[]) => void
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public off(listener: (...args: any[]) => void): this {
     this.listeners.delete(listener);
     this.eventListeners.delete(listener);
     this.sendListeners.delete(listener);
@@ -435,9 +457,9 @@ export class Interpreter<
    */
   public start(
     initialState?:
-      | State<TContext, TEvent, TStateSchema, TTypestate>
+      | State<TContext, TEvent, TStateSchema, TTypestate, TAction>
       | StateValue
-  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  ): this {
     if (this._status === InterpreterStatus.Running) {
       // Do not restart the service if it is already started
       return this;
@@ -451,7 +473,7 @@ export class Interpreter<
       initialState === undefined
         ? this.initialState
         : serviceScope.provide(this, () => {
-            return isState<TContext, TEvent, TStateSchema, TTypestate>(
+            return isState<TContext, TEvent, TStateSchema, TTypestate, TAction>(
               initialState
             )
               ? this.machine.resolveState(initialState)
@@ -473,7 +495,7 @@ export class Interpreter<
    *
    * This will also notify the `onStop` listeners.
    */
-  public stop(): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+  public stop(): this {
     for (const listener of this.listeners) {
       this.listeners.delete(listener);
     }
@@ -520,7 +542,7 @@ export class Interpreter<
   public send = (
     event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>,
     payload?: EventData
-  ): State<TContext, TEvent, TStateSchema, TTypestate> => {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TAction> => {
     if (isArray(event)) {
       this.batch(event);
       return this.state;
@@ -596,7 +618,7 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
-      const batchedActions: Array<ActionObject<TContext, TEvent>> = [];
+      const batchedActions: Array<ActionObject<TContext, TEvent, TAction>> = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -609,7 +631,7 @@ export class Interpreter<
         batchedActions.push(
           ...(nextState.actions.map((a) =>
             bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent>>)
+          ) as Array<ActionObject<TContext, TEvent, TAction>>)
         );
 
         batchChanged = batchChanged || !!nextState.changed;
@@ -683,7 +705,7 @@ export class Interpreter<
    */
   public nextState(
     event: Event<TEvent> | SCXML.Event<TEvent>
-  ): State<TContext, TEvent, TStateSchema, TTypestate> {
+  ): State<TContext, TEvent, TStateSchema, TTypestate, TAction> {
     const _event = toSCXMLEvent(event);
 
     if (
@@ -730,24 +752,18 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, TEvent>,
-    state: State<TContext, TEvent, TStateSchema, TTypestate>,
-    actionFunctionMap: ActionFunctionMap<TContext, TEvent> = this.machine
-      .options.actions
+    action: ActionObject<TContext, TEvent, TAction>,
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>
   ): void {
     const { context, _event } = state;
-    const actionOrExec =
-      action.exec || getActionFunction(action.type, actionFunctionMap);
-    const exec = isFunction(actionOrExec)
-      ? actionOrExec
-      : actionOrExec
-      ? actionOrExec.exec
-      : action.exec;
 
-    if (exec) {
+    if ('exec' in action) {
+      const refinedAction = action as {
+        exec: ActionFunction<TContext, TEvent, any>;
+      };
       try {
-        return exec(context, _event.data, {
-          action,
+        return refinedAction.exec(context, _event.data, {
+          action: refinedAction,
           state: this.state,
           _event
         });
@@ -786,8 +802,10 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
-        const activity = (action as ActivityActionObject<TContext, TEvent>)
-          .activity as InvokeDefinition<TContext, TEvent>;
+        const activity = ((action as any) as ActivityActionObject<
+          TContext,
+          TEvent
+        >).activity as InvokeDefinition<TContext, TEvent, TAction>;
 
         // If the activity will be stopped right after it's started
         // (such as in transient states)
@@ -871,12 +889,15 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.activity.id);
+        this.stopChild(
+          ((action as any) as ActivityActionObject<TContext, TEvent>).activity
+            .id
+        );
         break;
       }
 
       case actionTypes.log:
-        const { label, value } = action;
+        const { label, value } = action as LogActionObject<TContext, TEvent>;
 
         if (label) {
           this.logger(label, value);
@@ -1287,16 +1308,18 @@ export function interpret<
   TContext = DefaultContext,
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TAction extends { type: string } = { type: string }
 >(
-  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate>,
+  machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate, TAction>,
   options?: Partial<InterpreterOptions>
 ) {
   const interpreter = new Interpreter<
     TContext,
     TStateSchema,
     TEvent,
-    TTypestate
+    TTypestate,
+    TAction
   >(machine, options);
 
   return interpreter;

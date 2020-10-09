@@ -1,26 +1,32 @@
 import { EventObject, StateNode, StateValue } from '.';
 import { keys, flatten } from './utils';
 
-type Configuration<TC, TE extends EventObject> = Iterable<
-  StateNode<TC, any, TE>
+type Configuration<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+> = Iterable<StateNode<TC, any, TE, any, TA>>;
+
+type AdjList<TC, TE extends EventObject, TA extends { type: string }> = Map<
+  StateNode<TC, any, TE, any, TA>,
+  Array<StateNode<TC, any, TE, any, TA>>
 >;
 
-type AdjList<TC, TE extends EventObject> = Map<
-  StateNode<TC, any, TE>,
-  Array<StateNode<TC, any, TE>>
->;
-
-export const isLeafNode = (stateNode: StateNode<any, any, any>) =>
+export const isLeafNode = (stateNode: StateNode<any, any, any, any, any>) =>
   stateNode.type === 'atomic' || stateNode.type === 'final';
 
-export function getChildren<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, any, TE>
-): Array<StateNode<TC, any, TE>> {
+export function getChildren<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+>(
+  stateNode: StateNode<TC, any, TE, any, TA>
+): Array<StateNode<TC, any, TE, any, TA>> {
   return keys(stateNode.states).map((key) => stateNode.states[key]);
 }
 
 export function getAllStateNodes<TC, TE extends EventObject>(
-  stateNode: StateNode<TC, any, TE>
+  stateNode: StateNode<TC, any, TE, any, any>
 ): Array<StateNode<TC, any, TE>> {
   const stateNodes = [stateNode];
 
@@ -33,10 +39,14 @@ export function getAllStateNodes<TC, TE extends EventObject>(
   );
 }
 
-export function getConfiguration<TC, TE extends EventObject>(
-  prevStateNodes: Iterable<StateNode<TC, any, TE>>,
-  stateNodes: Iterable<StateNode<TC, any, TE>>
-): Iterable<StateNode<TC, any, TE>> {
+export function getConfiguration<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+>(
+  prevStateNodes: Iterable<StateNode<TC, any, TE, any, TA>>,
+  stateNodes: Iterable<StateNode<TC, any, TE, any, TA>>
+): Iterable<StateNode<TC, any, TE, any, TA>> {
   const prevConfiguration = new Set(prevStateNodes);
   const prevAdjList = getAdjList(prevConfiguration);
 
@@ -97,9 +107,13 @@ export function getConfiguration<TC, TE extends EventObject>(
   return configuration;
 }
 
-function getValueFromAdj<TC, TE extends EventObject>(
-  baseNode: StateNode<TC, any, TE>,
-  adjList: AdjList<TC, TE>
+function getValueFromAdj<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+>(
+  baseNode: StateNode<TC, any, TE, any, TA>,
+  adjList: AdjList<TC, TE, TA>
 ): StateValue {
   const childStateNodes = adjList.get(baseNode);
 
@@ -126,10 +140,12 @@ function getValueFromAdj<TC, TE extends EventObject>(
   return stateValue;
 }
 
-export function getAdjList<TC, TE extends EventObject>(
-  configuration: Configuration<TC, TE>
-): AdjList<TC, TE> {
-  const adjList: AdjList<TC, TE> = new Map();
+export function getAdjList<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string }
+>(configuration: Configuration<TC, TE, TA>): AdjList<TC, TE, TA> {
+  const adjList: AdjList<TC, TE, TA> = new Map();
 
   for (const s of configuration) {
     if (!adjList.has(s)) {
@@ -149,8 +165,8 @@ export function getAdjList<TC, TE extends EventObject>(
 }
 
 export function getValue<TC, TE extends EventObject>(
-  rootNode: StateNode<TC, any, TE>,
-  configuration: Configuration<TC, TE>
+  rootNode: StateNode<TC, any, TE, any, any>,
+  configuration: Configuration<TC, TE, any>
 ): StateValue {
   const config = getConfiguration([rootNode], configuration);
 
@@ -169,15 +185,17 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
   return false; // TODO: fix
 }
 
-export function nextEvents<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, any, TE>>
-): Array<TE['type']> {
+export function nextEvents<
+  TC,
+  TE extends EventObject,
+  TA extends { type: string } = { type: string }
+>(configuration: Array<StateNode<TC, any, TE, any, TA>>): Array<TE['type']> {
   return flatten([...new Set(configuration.map((sn) => sn.ownEvents))]);
 }
 
 export function isInFinalState<TC, TE extends EventObject>(
-  configuration: Array<StateNode<TC, any, TE>>,
-  stateNode: StateNode<TC, any, TE>
+  configuration: Array<StateNode<TC, any, TE, any, any>>,
+  stateNode: StateNode<TC, any, TE, any, any>
 ): boolean {
   if (stateNode.type === 'compound') {
     return getChildren(stateNode).some(

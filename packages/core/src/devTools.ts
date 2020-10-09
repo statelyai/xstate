@@ -1,7 +1,7 @@
 import { Interpreter } from '.';
 import { IS_PRODUCTION } from './environment';
 
-type AnyInterpreter = Interpreter<any, any, any>;
+type AnyInterpreter = Interpreter<any, any, any, any, any>;
 interface DevInterface {
   services: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;

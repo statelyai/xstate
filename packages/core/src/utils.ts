@@ -1,8 +1,6 @@
 import {
   Event,
   StateValue,
-  ActionType,
-  Action,
   EventObject,
   PropertyMapper,
   Mapper,
@@ -79,19 +77,6 @@ export function getEventType<TEvent extends EventObject = EventObject>(
   } catch (e) {
     throw new Error(
       'Events must be strings or objects with a string event.type property.'
-    );
-  }
-}
-export function getActionType(action: Action<any, any>): ActionType {
-  try {
-    return isString(action) || typeof action === 'number'
-      ? `${action}`
-      : isFunction(action)
-      ? action.name
-      : action.type;
-  } catch (e) {
-    throw new Error(
-      'Actions must be strings or objects with a string action.type property.'
     );
   }
 }
@@ -406,7 +391,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
   context: TContext,
   _event: SCXML.Event<TEvent>,
   assignActions: Array<AssignAction<TContext, TEvent>>,
-  state?: State<TContext, TEvent>
+  state?: State<TContext, TEvent, any, any, any>
 ): TContext {
   if (!IS_PRODUCTION) {
     warn(!!context, 'Attempting to update undefined context');
@@ -582,11 +567,11 @@ export function toSCXMLEvent<TEvent extends EventObject>(
 export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   event: TEvent['type'] | NullEvent['type'] | '*',
   configLike: SingleOrArray<
-    | TransitionConfig<TContext, TEvent>
+    | TransitionConfig<TContext, TEvent, any>
     | TransitionConfigTarget<TContext, TEvent>
   >
 ): Array<
-  TransitionConfig<TContext, TEvent> & {
+  TransitionConfig<TContext, TEvent, any> & {
     event: TEvent['type'] | NullEvent['type'] | '*';
   }
 > {
@@ -601,7 +586,7 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
 
     return { ...transitionLike, event };
   }) as Array<
-    TransitionConfig<TContext, TEvent> & {
+    TransitionConfig<TContext, TEvent, any> & {
       event: TEvent['type'] | NullEvent['type'] | '*';
     } // TODO: fix 'as' (remove)
   >;
@@ -609,9 +594,15 @@ export function toTransitionConfigArray<TContext, TEvent extends EventObject>(
   return transitions;
 }
 
-export function normalizeTarget<TContext, TEvent extends EventObject>(
-  target: SingleOrArray<string | StateNode<TContext, any, TEvent>> | undefined
-): Array<string | StateNode<TContext, any, TEvent>> | undefined {
+export function normalizeTarget<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  target:
+    | SingleOrArray<string | StateNode<TContext, any, TEvent, any, TAction>>
+    | undefined
+): Array<string | StateNode<TContext, any, TEvent, any, TAction>> | undefined {
   if (target === undefined || target === TARGETLESS_KEY) {
     return undefined;
   }
@@ -646,11 +637,11 @@ export function reportUnhandledExceptionOnInvocation(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: StateNode<TContext, any, TEvent>,
+  machine: StateNode<TContext, any, TEvent, any, any>,
   guard: Guard<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
+  state: State<TContext, TEvent, any, any, any>
 ): boolean {
   const { guards } = machine.options;
   const guardMeta: GuardMeta<TContext, TEvent> = {

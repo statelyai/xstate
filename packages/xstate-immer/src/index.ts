@@ -14,7 +14,7 @@ export type ImmerAssigner<TContext, TEvent extends EventObject> = (
 ) => void;
 
 export interface ImmerAssignAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
+  extends ActionObject<TContext, TEvent, any> {
   assignment: ImmerAssigner<TContext, TEvent>;
 }
 

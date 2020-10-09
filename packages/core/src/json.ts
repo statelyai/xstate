@@ -19,7 +19,7 @@ function getStateNodeId(stateNode: StateNode): string {
 interface TransitionConfig {
   target: string[];
   source: string;
-  actions: Array<ActionObject<any, any>>;
+  actions: Array<ActionObject<any, any, any>>;
   cond: Guard<any, any> | undefined;
   eventType: string;
 }
@@ -29,12 +29,12 @@ interface StateNodeConfig {
   id: string;
   key: string;
   initial?: string;
-  entry: Array<ActionObject<any, any>>;
-  exit: Array<ActionObject<any, any>>;
+  entry: Array<ActionObject<any, any, any>>;
+  exit: Array<ActionObject<any, any, any>>;
   on: {
     [key: string]: TransitionConfig[];
   };
-  invoke: Array<InvokeDefinition<any, any>>;
+  invoke: Array<InvokeDefinition<any, any, any>>;
   states: Record<string, StateNodeConfig>;
 }
 

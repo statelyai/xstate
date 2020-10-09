@@ -133,8 +133,9 @@ function createCond<
 
 function mapAction<
   TContext extends object,
-  TEvent extends EventObject = EventObject
->(element: XMLElement): ActionObject<TContext, TEvent> {
+  TEvent extends EventObject = EventObject,
+  TAction extends { type: string } = { type: string }
+>(element: XMLElement): ActionObject<TContext, TEvent, TAction> {
   switch (element.name) {
     case 'raise': {
       return actions.raise<TContext, TEvent>(
@@ -215,9 +216,9 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: ChooseConditon<TContext, TEvent, TAction>[] = [];
 
-      let current: ChooseConditon<TContext, TEvent> = {
+      let current: ChooseConditon<TContext, TEvent, TAction> = {
         cond: createCond(element.attributes!.cond as string),
         actions: []
       };
@@ -240,13 +241,15 @@ function mapAction<
             current = { actions: [] };
             break;
           default:
-            (current.actions as any[]).push(mapAction<TContext, TEvent>(el));
+            (current.actions as any[]).push(
+              mapAction<TContext, TEvent, TAction>(el)
+            );
             break;
         }
       }
 
       conds.push(current);
-      return actions.choose(conds);
+      return actions.choose(conds as any);
     }
     default:
       throw new Error(
@@ -257,9 +260,10 @@ function mapAction<
 
 function mapActions<
   TContext extends object,
-  TEvent extends EventObject = EventObject
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent>> {
-  const mapped: Array<ActionObject<TContext, TEvent>> = [];
+  TEvent extends EventObject = EventObject,
+  TAction extends { type: string } = { type: string }
+>(elements: XMLElement[]): Array<ActionObject<TContext, TEvent, TAction>> {
+  const mapped: Array<ActionObject<TContext, TEvent, TAction>> = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

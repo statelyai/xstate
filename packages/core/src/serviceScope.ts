@@ -7,7 +7,10 @@ import { Interpreter } from './interpreter';
 
 const serviceStack = [] as Array<Interpreter<any, any, any> | undefined>;
 
-export const provide = <T, TService extends Interpreter<any, any, any>>(
+export const provide = <
+  T,
+  TService extends Interpreter<any, any, any, any, any>
+>(
   service: TService | undefined,
   fn: (service: TService | undefined) => T
 ) => {
@@ -17,6 +20,9 @@ export const provide = <T, TService extends Interpreter<any, any, any>>(
   return result;
 };
 
-export const consume = <T, TService extends Interpreter<any, any, any>>(
+export const consume = <
+  T,
+  TService extends Interpreter<any, any, any, any, any>
+>(
   fn: (service: TService) => T
 ) => fn(serviceStack[serviceStack.length - 1] as TService);

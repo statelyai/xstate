@@ -10,7 +10,6 @@ import {
   MachineOptions,
   StateConfig,
   Typestate,
-  ActionObject,
   ActionFunction,
   ActionMeta,
   StateNode
@@ -24,24 +23,36 @@ enum ReactEffectType {
   LayoutEffect = 2
 }
 
-export interface ReactActionFunction<TContext, TEvent extends EventObject> {
+export interface ReactActionFunction<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+> {
   (
     context: TContext,
     event: TEvent,
-    meta: ActionMeta<TContext, TEvent>
+    meta: ActionMeta<TContext, TEvent, TAction>
   ): () => void;
   __effect: ReactEffectType;
 }
 
-export interface ReactActionObject<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  exec: ReactActionFunction<TContext, TEvent>;
+export interface ReactActionObject<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+> {
+  type: string;
+  exec: ReactActionFunction<TContext, TEvent, TAction>;
 }
 
-function createReactActionFunction<TContext, TEvent extends EventObject>(
-  exec: ActionFunction<TContext, TEvent>,
+function createReactActionFunction<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  exec: ActionFunction<TContext, TEvent, TAction>,
   tag: ReactEffectType
-): ReactActionFunction<TContext, TEvent> {
+): ReactActionFunction<TContext, TEvent, TAction> {
   const effectExec: unknown = (...args: Parameters<typeof exec>) => {
     // don't execute; just return
     return () => {
@@ -54,33 +65,49 @@ function createReactActionFunction<TContext, TEvent extends EventObject>(
     __effect: { value: tag }
   });
 
-  return effectExec as ReactActionFunction<TContext, TEvent>;
+  return effectExec as ReactActionFunction<TContext, TEvent, TAction>;
 }
 
-export function asEffect<TContext, TEvent extends EventObject>(
-  exec: ActionFunction<TContext, TEvent>
-): ReactActionFunction<TContext, TEvent> {
+export function asEffect<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  exec: ActionFunction<TContext, TEvent, TAction>
+): ReactActionFunction<TContext, TEvent, TAction> {
   return createReactActionFunction(exec, ReactEffectType.Effect);
 }
 
-export function asLayoutEffect<TContext, TEvent extends EventObject>(
-  exec: ActionFunction<TContext, TEvent>
-): ReactActionFunction<TContext, TEvent> {
+export function asLayoutEffect<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  exec: ActionFunction<TContext, TEvent, TAction>
+): ReactActionFunction<TContext, TEvent, TAction> {
   return createReactActionFunction(exec, ReactEffectType.LayoutEffect);
 }
 
-export type ActionStateTuple<TContext, TEvent extends EventObject> = [
-  ReactActionObject<TContext, TEvent>,
-  State<TContext, TEvent>
+export type ActionStateTuple<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+> = [
+  ReactActionObject<TContext, TEvent, TAction>,
+  State<TContext, TEvent, any, any, TAction>
 ];
 
-function executeEffect<TContext, TEvent extends EventObject>(
-  action: ReactActionObject<TContext, TEvent>,
+function executeEffect<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+>(
+  action: ReactActionObject<TContext, TEvent, TAction>,
   state: State<TContext, TEvent>
 ): void {
   const { exec } = action;
   const originalExec = exec!(state.context, state._event.data, {
-    action,
+    action: action as any,
     state,
     _event: state._event
   });
@@ -88,7 +115,11 @@ function executeEffect<TContext, TEvent extends EventObject>(
   originalExec();
 }
 
-interface UseMachineOptions<TContext, TEvent extends EventObject> {
+interface UseMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+> {
   /**
    * If provided, will be merged with machine's `context`.
    */
@@ -97,22 +128,28 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
    * The state to rehydrate the machine to. The machine will
    * start at this state instead of its `initialState`.
    */
-  state?: StateConfig<TContext, TEvent>;
+  state?: StateConfig<TContext, TEvent, TAction>;
 }
 
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string }
 >(
-  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
+  getMachine: MaybeLazy<
+    StateMachine<TContext, any, TEvent, TTypestate, TAction>
+  >,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<UseMachineOptions<TContext, TEvent, TAction>> &
+    Partial<MachineOptions<TContext, TEvent, TAction>> = {}
 ): [
   State<TContext, TEvent, any, TTypestate>,
-  Interpreter<TContext, any, TEvent, TTypestate>['send'],
-  Interpreter<TContext, any, TEvent, TTypestate>
+  Interpreter<TContext, any, TEvent, TTypestate, TAction>['send'],
+  Interpreter<TContext, any, TEvent, TTypestate, TAction>
 ] {
   const machine = useConstant(() => {
     return typeof getMachine === 'function' ? getMachine() : getMachine;
@@ -145,8 +182,8 @@ export function useMachine<
 
   const [resolvedMachine, service] = useConstant<
     [
-      StateNode<TContext, any, TEvent, TTypestate>,
-      Interpreter<TContext, any, TEvent, TTypestate>
+      StateNode<TContext, any, TEvent, TTypestate, TAction>,
+      Interpreter<TContext, any, TEvent, TTypestate, TAction>
     ]
   >(() => {
     const machineConfig = {
@@ -164,7 +201,10 @@ export function useMachine<
 
     return [
       resolvedMachine,
-      interpret(resolvedMachine, { deferEvents: true, ...interpreterOptions })
+      interpret(resolvedMachine, {
+        deferEvents: true,
+        ...interpreterOptions
+      })
     ];
   });
 
@@ -176,10 +216,14 @@ export function useMachine<
   });
 
   const effectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+    Array<
+      [ReactActionObject<TContext, TEvent, TAction>, State<TContext, TEvent>]
+    >
   >([]);
   const layoutEffectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+    Array<
+      [ReactActionObject<TContext, TEvent, TAction>, State<TContext, TEvent>]
+    >
   >([]);
 
   useIsomorphicLayoutEffect(() => {
@@ -200,32 +244,36 @@ export function useMachine<
 
         if (currentState.actions.length) {
           const reactEffectActions = currentState.actions.filter(
-            (action): action is ReactActionObject<TContext, TEvent> => {
+            (
+              action
+            ): action is ReactActionObject<TContext, TEvent, TAction> => {
               return (
-                typeof action.exec === 'function' &&
+                typeof (action as any).exec === 'function' &&
                 '__effect' in
-                  (action as ReactActionObject<TContext, TEvent>).exec
+                  (action as ReactActionObject<TContext, TEvent, TAction>).exec
               );
             }
           );
 
           const [effectActions, layoutEffectActions] = partition(
             reactEffectActions,
-            (action): action is ReactActionObject<TContext, TEvent> => {
+            (
+              action
+            ): action is ReactActionObject<TContext, TEvent, TAction> => {
               return action.exec.__effect === ReactEffectType.Effect;
             }
           );
 
           effectActionsRef.current.push(
-            ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
+            ...effectActions.map<ActionStateTuple<TContext, TEvent, TAction>>(
               (effectAction) => [effectAction, currentState]
             )
           );
 
           layoutEffectActionsRef.current.push(
-            ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
-              (layoutEffectAction) => [layoutEffectAction, currentState]
-            )
+            ...layoutEffectActions.map<
+              ActionStateTuple<TContext, TEvent, TAction>
+            >((layoutEffectAction) => [layoutEffectAction, currentState])
           );
         }
       })

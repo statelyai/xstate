@@ -29,7 +29,7 @@ export type DirectedGraphEdge = JSONSerializable<
     source: StateNode;
     target: StateNode;
     label: DirectedGraphLabel;
-    transition: TransitionDefinition<any, any>;
+    transition: TransitionDefinition<any, any, any>;
   },
   {
     source: string;
