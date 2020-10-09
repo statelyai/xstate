@@ -132,6 +132,9 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [Finite State Machines in React JS using XState JS](https://dev.to/soorajsnblaze333/finite-state-machines-in-react-js-using-xstate-36ho) by [Sooraj](https://dev.to/soorajsnblaze333)
 - [▶️ Managing UI Complexity with Statecharts (playlist)](https://www.youtube.com/playlist?list=PLsVj0cy-DbErFraf3KeAUbzVl-OKyBZ0-)
 - [How State Machines Saved Our Bacon 🥓](https://www.ianjones.us/xstate-saves-our-bacon) by [Ian Jones](https://www.ianjones.us/)
+- [Refactoring a useReducer to XState, Part 1](https://swizec.com/blog/refactoring-a-usereducer-to-xstate-pt1-codewithswiz-11/) by [@swizec](https://swizec.com)
+- [▶️ XState and React](https://www.youtube.com/watch?v=pclR8Q5mbNI) on [Leniolabs](https://www.youtube.com/channel/UCcRg2Au0LLtEcakG9fg6VXg)
+  - [CodeSandbox example](https://codesandbox.io/s/small-sea-t5mce?file=/pages/index.js/)
 
 ## Exercises
 
