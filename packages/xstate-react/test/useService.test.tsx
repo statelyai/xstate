@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
 import { Machine, assign, interpret, Interpreter } from 'xstate';
@@ -7,19 +7,26 @@ import { render, cleanup, fireEvent, act } from '@testing-library/react';
 afterEach(cleanup);
 
 describe('useService hook', () => {
-  const counterMachine = Machine<{ count: number }>({
-    id: 'counter',
-    initial: 'active',
-    context: { count: 0 },
-    states: {
-      active: {
-        on: {
-          INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
-          SOMETHING: { actions: 'doSomething' }
+  const counterMachine = Machine<{ count: number }>(
+    {
+      id: 'counter',
+      initial: 'active',
+      context: { count: 0 },
+      states: {
+        active: {
+          on: {
+            INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
+            SOMETHING: { actions: 'doSomething' }
+          }
         }
       }
+    },
+    {
+      actions: {
+        doSomething: () => {}
+      }
     }
-  });
+  );
 
   it('should share a single service instance', () => {
     const counterService = interpret(counterMachine).start();
@@ -51,55 +58,6 @@ describe('useService hook', () => {
 
     countEls.forEach((countEl) => {
       expect(countEl.textContent).toBe('1');
-    });
-  });
-
-  it('service actions should be configurable', () => {
-    const counterService = interpret(counterMachine).start();
-
-    const Counter = () => {
-      const [state, send] = useService(counterService);
-      const [otherState, setOtherState] = useState('');
-
-      useEffect(() => {
-        counterService.execute(state, {
-          doSomething: () => setOtherState('test')
-        });
-      }, [state]);
-
-      return (
-        <>
-          <button data-testid="button" onClick={(_) => send('SOMETHING')} />
-          <div data-testid="count">{state.context.count}</div>
-          <div data-testid="other">{otherState}</div>
-        </>
-      );
-    };
-
-    const { getAllByTestId } = render(
-      <>
-        <Counter />
-        <Counter />
-      </>
-    );
-
-    const countEls = getAllByTestId('count');
-    const buttonEls = getAllByTestId('button');
-
-    expect(countEls.length).toBe(2);
-
-    countEls.forEach((countEl) => {
-      expect(countEl.textContent).toBe('0');
-    });
-
-    buttonEls.forEach((buttonEl) => {
-      fireEvent.click(buttonEl);
-    });
-
-    const otherEls = getAllByTestId('other');
-
-    otherEls.forEach((otherEl) => {
-      expect(otherEl.textContent).toBe('test');
     });
   });
 
@@ -172,5 +130,55 @@ describe('useService hook', () => {
     expect(countEl.textContent).toBe('0');
     fireEvent.click(incButton);
     expect(countEl.textContent).toBe('1');
+  });
+
+  it('should throw if provided an actor instead of a service', (done) => {
+    const Test = () => {
+      expect(() => {
+        useService({
+          send: () => {
+            /* ... */
+          }
+        } as any);
+      }).toThrowErrorMatchingInlineSnapshot(
+        `"Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead."`
+      );
+      done();
+
+      return null;
+    };
+
+    render(<Test />);
+  });
+
+  it('should render the final state', () => {
+    const service = interpret(
+      Machine({
+        initial: 'first',
+        states: {
+          first: {
+            on: {
+              NEXT: {
+                target: 'last'
+              }
+            }
+          },
+          last: {
+            type: 'final'
+          }
+        }
+      })
+    ).start();
+
+    service.send({ type: 'NEXT' });
+
+    const Test = () => {
+      const [state] = useService(service);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('last');
   });
 });

@@ -20,7 +20,7 @@ module.exports = {
       { text: 'API', link: 'https://xstate.js.org/api' },
       { text: 'Visualizer', link: 'https://xstate.js.org/viz' },
       { text: 'Chat', link: 'https://gitter.im/statecharts/statecharts' },
-      { text: 'Community', link: 'https://spectrum.chat/statecharts' }
+      { text: 'Community', link: 'https://github.com/davidkpiano/xstate/discussions' }
     ],
     sidebar: [
       {
@@ -29,6 +29,7 @@ module.exports = {
           '/about/concepts',
           '/about/goals',
           '/about/showcase',
+          '/about/resources',
           '/about/tutorials'
         ]
       },
@@ -91,7 +92,8 @@ module.exports = {
           'packages/xstate-graph/',
           'packages/xstate-fsm/',
           'packages/xstate-test/',
-          'packages/xstate-immer/'
+          'packages/xstate-immer/',
+          'packages/xstate-inspect/'
         ]
       },
       {

@@ -1,8 +1,10 @@
 import * as React from 'react';
 import { useMachine } from '../src';
 import { createMachine, sendParent, Actor, assign, spawn } from 'xstate';
-import { render, cleanup } from '@testing-library/react';
+import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useActor } from '../src/useActor';
+import { ActorRefLike } from '../src/types';
+import { useState } from 'react';
 
 afterEach(cleanup);
 
@@ -204,5 +206,76 @@ describe('useActor', () => {
         <Test />
       </React.StrictMode>
     );
+  });
+
+  it('actor should provide snapshot value immediately', () => {
+    const simpleActor: ActorRefLike<any, number> = {
+      send: () => {
+        /* ... */
+      },
+      latestValue: 42,
+      subscribe: () => {
+        return {
+          unsubscribe: () => {
+            /* ... */
+          }
+        };
+      }
+    };
+
+    const Test = () => {
+      const [state] = useActor(
+        simpleActor,
+        (a) => (a as typeof simpleActor).latestValue
+      );
+
+      return <div data-testid="state">{state}</div>;
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+
+    expect(div.textContent).toEqual('42');
+  });
+
+  it('should update snapshot value when actor changes', () => {
+    const createSimpleActor = (value: number): ActorRefLike<any, number> => ({
+      send: () => {
+        /* ... */
+      },
+      latestValue: value,
+      subscribe: () => {
+        return {
+          unsubscribe: () => {
+            /* ... */
+          }
+        };
+      }
+    });
+
+    const Test = () => {
+      const [actor, setActor] = useState(createSimpleActor(42));
+      const [state] = useActor(actor, (a) => (a as typeof actor).latestValue);
+
+      return (
+        <>
+          <div data-testid="state">{state}</div>
+          <button
+            data-testid="button"
+            onClick={() => setActor(createSimpleActor(100))}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    const div = getByTestId('state');
+    const button = getByTestId('button');
+
+    expect(div.textContent).toEqual('42');
+    fireEvent.click(button);
+    expect(div.textContent).toEqual('100');
   });
 });

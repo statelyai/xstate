@@ -15,6 +15,7 @@ import {
   ActionMeta,
   StateNode
 } from 'xstate';
+import { MaybeLazy } from './types';
 import useConstant from './useConstant';
 import { partition } from './utils';
 
@@ -104,7 +105,7 @@ export function useMachine<
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  getMachine: MaybeLazy<StateMachine<TContext, any, TEvent, TTypestate>>,
   options: Partial<InterpreterOptions> &
     Partial<UseMachineOptions<TContext, TEvent>> &
     Partial<MachineOptions<TContext, TEvent>> = {}
@@ -113,7 +114,14 @@ export function useMachine<
   Interpreter<TContext, any, TEvent, TTypestate>['send'],
   Interpreter<TContext, any, TEvent, TTypestate>
 ] {
-  if (process.env.NODE_ENV !== 'production') {
+  const machine = useConstant(() => {
+    return typeof getMachine === 'function' ? getMachine() : getMachine;
+  });
+
+  if (
+    process.env.NODE_ENV !== 'production' &&
+    typeof getMachine !== 'function'
+  ) {
     const [initialMachine] = useState(machine);
 
     if (machine !== initialMachine) {

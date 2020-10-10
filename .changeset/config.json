@@ -10,7 +10,6 @@
   "baseBranch": "master",
   "ignore": [
     "@xstate/analytics",
-    "@xstate/react",
     "@xstate/scxml",
     "@xstate/viz",
     "@xstate/viz-example"

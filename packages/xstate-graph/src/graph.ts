@@ -13,7 +13,9 @@ import {
   StatePaths,
   AdjacencyMap,
   Segments,
-  ValueAdjMapOptions
+  ValueAdjMapOptions,
+  DirectedGraphEdge,
+  DirectedGraphNode
 } from './types';
 
 export function toEventObject<TEvent extends EventObject>(
@@ -45,6 +47,18 @@ export function getStateNodes(
   }, []);
 
   return nodes;
+}
+
+export function getChildren(stateNode: StateNode): StateNode[] {
+  if (!stateNode.states) {
+    return [];
+  }
+
+  const children = Object.keys(stateNode.states).map((key) => {
+    return stateNode.states[key];
+  });
+
+  return children;
 }
 
 export function serializeState<TContext>(state: State<TContext, any>): string {
@@ -318,4 +332,45 @@ export function getSimplePathsAsArray<
 ): Array<StatePaths<TContext, TEvent>> {
   const result = getSimplePaths(machine, options);
   return keys(result).map((key) => result[key]);
+}
+
+export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
+  const edges: DirectedGraphEdge[] = flatten(
+    stateNode.transitions.map((t, transitionIndex) => {
+      const targets = t.target ? t.target : [stateNode];
+
+      return targets.map((target, targetIndex) => {
+        const edge: DirectedGraphEdge = {
+          id: `${stateNode.id}:${transitionIndex}:${targetIndex}`,
+          source: stateNode,
+          target,
+          transition: t,
+          label: {
+            text: t.eventType,
+            toJSON: () => ({ text: t.eventType })
+          },
+          toJSON: () => {
+            const { label } = edge;
+
+            return { source: stateNode.id, target: target.id, label };
+          }
+        };
+
+        return edge;
+      });
+    })
+  );
+
+  const graph = {
+    id: stateNode.id,
+    stateNode,
+    children: getChildren(stateNode).map((sn) => toDirectedGraph(sn)),
+    edges,
+    toJSON: () => {
+      const { id, children, edges: graphEdges } = graph;
+      return { id, children, edges: graphEdges };
+    }
+  };
+
+  return graph;
 }

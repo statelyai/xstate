@@ -1,6 +1,6 @@
 {
   "name": "@xstate/react",
-  "version": "1.0.0-rc.6",
+  "version": "1.0.1",
   "description": "XState tools for React",
   "keywords": [
     "state",
@@ -16,6 +16,7 @@
   "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react#readme",
   "license": "MIT",
   "main": "lib/index.js",
+  "module": "es/index.js",
   "types": "lib/index.d.ts",
   "sideEffects": false,
   "directories": {
@@ -24,7 +25,9 @@
   },
   "files": [
     "lib/**/*.js",
-    "lib/**/*.d.ts"
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
   ],
   "repository": {
     "type": "git",
@@ -32,7 +35,7 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
-    "build": "tsc",
+    "build": "tsc && tsc --outDir es --module es2015",
     "test": "jest",
     "prepublish": "npm run build && npm run test"
   },
@@ -62,14 +65,14 @@
     "@types/react": "^16.9.11",
     "@types/react-dom": "^16.9.4",
     "@xstate/fsm": "*",
-    "jest": "^24.8.0",
+    "jest": "^26.4.2",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",
     "react": "^16.12.0",
     "react-dom": "^16.12.0",
-    "ts-jest": "^24.1.9",
-    "typescript": "^3.9.7",
+    "ts-jest": "^26.4.0",
+    "typescript": "^4.0.3",
     "xstate": "*"
   }
 }
