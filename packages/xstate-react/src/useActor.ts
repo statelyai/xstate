@@ -1,90 +1,45 @@
-import { useState, useEffect, useMemo, useRef, useCallback } from 'react';
-import { ActorRef, Sender, ActorRefLike } from './types';
-import {
-  EventObject,
-  Interpreter,
-  AnyEventObject,
-  Subscribable,
-  InvokeDefinition
-} from 'xstate';
-import { fromService } from './useService';
-
-export interface Actor<
-  TContext = any,
-  TEvent extends EventObject = AnyEventObject
-> extends Subscribable<TContext> {
-  id: string;
-  send: (event: TEvent) => any; // TODO: change to void
-  stop?: () => any | undefined;
-  toJSON: () => {
-    id: string;
-  };
-  meta?: InvokeDefinition<TContext, TEvent>;
-  state?: any;
-  deferred?: boolean;
-}
-
-function resolveActor(
-  actorLike:
-    | ActorRef<any, any>
-    | ActorRefLike<any, any>
-    | Interpreter<any, any>
-    | Actor
-): ActorRef<any, any> & { deferred?: boolean } {
-  if (actorLike instanceof Interpreter) {
-    return fromService(actorLike);
-  }
-
-  if (!('current' in actorLike)) {
-    return {
-      stop: () => {
-        /* do nothing */
-      },
-      ...actorLike,
-      subscribe: actorLike.subscribe as any, // TODO: fix (subscribe will work, just improperly typed)
-      name: actorLike.id!,
-      current: actorLike.state!
-    };
-  }
-
-  return actorLike;
-}
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { Sender, ActorRefLike } from './types';
+import { EventObject } from 'xstate';
 
 export function useActor<TEvent extends EventObject, TEmitted = any>(
-  actorLike: ActorRefLike<TEvent, TEmitted> | Actor
+  actorRef: ActorRefLike<TEvent, TEmitted>,
+  getSnapshot: (actor: typeof actorRef) => TEmitted = (a) =>
+    'state' in a ? a.state : 'current' in a ? a.current : (undefined as any)
 ): [TEmitted, Sender<TEvent>] {
-  const actor = useMemo(() => resolveActor(actorLike), [actorLike]);
-  const deferredEventsRef = useRef<EventObject[]>([]);
-  const [current, setCurrent] = useState(actor.current);
+  // const actor = useMemo(() => resolveActor(actorLike), [actorLike]);
+  const deferredEventsRef = useRef<TEvent[]>([]);
+  const [current, setCurrent] = useState(() => getSnapshot(actorRef));
 
   const send: Sender<TEvent> = useCallback(
     (event) => {
       // If the previous actor is a deferred actor,
       // queue the events so that they can be replayed
       // on the non-deferred actor.
-      if (actor.deferred) {
+      if ('deferred' in actorRef && actorRef.deferred) {
         deferredEventsRef.current.push(event);
       } else {
-        actor.send(event);
+        actorRef.send(event);
       }
     },
-    [actor]
+    [actorRef]
   );
 
   useEffect(() => {
-    const subscription = actor.subscribe(setCurrent);
+    setCurrent(getSnapshot(actorRef));
+    const subscription = actorRef.subscribe(setCurrent);
 
-    // Dequeue deferred events from the previous deferred actor
+    // Dequeue deferred events from the previous deferred actorRef
     while (deferredEventsRef.current.length > 0) {
       const deferredEvent = deferredEventsRef.current.shift()!;
 
-      actor.send(deferredEvent);
+      actorRef.send(deferredEvent);
     }
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [actor]);
+  }, [actorRef]);
 
   return [current, send];
 }

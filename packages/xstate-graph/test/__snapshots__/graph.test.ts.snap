@@ -6493,3 +6493,96 @@ Array [
   },
 ]
 `;
+
+exports[`@xstate/graph toDirectedGraph should represent a statechart as a directed graph 1`] = `
+Object {
+  "children": Array [
+    Object {
+      "children": Array [],
+      "edges": Array [
+        Object {
+          "label": Object {
+            "text": "TIMER",
+          },
+          "source": "light.green",
+          "target": "light.yellow",
+        },
+      ],
+      "id": "light.green",
+    },
+    Object {
+      "children": Array [],
+      "edges": Array [
+        Object {
+          "label": Object {
+            "text": "TIMER",
+          },
+          "source": "light.yellow",
+          "target": "light.red",
+        },
+      ],
+      "id": "light.yellow",
+    },
+    Object {
+      "children": Array [
+        Object {
+          "children": Array [],
+          "edges": Array [
+            Object {
+              "label": Object {
+                "text": "COUNTDOWN",
+              },
+              "source": "light.red.walk",
+              "target": "light.red.wait",
+            },
+          ],
+          "id": "light.red.walk",
+        },
+        Object {
+          "children": Array [],
+          "edges": Array [
+            Object {
+              "label": Object {
+                "text": "COUNTDOWN",
+              },
+              "source": "light.red.wait",
+              "target": "light.red.stop",
+            },
+          ],
+          "id": "light.red.wait",
+        },
+        Object {
+          "children": Array [],
+          "edges": Array [
+            Object {
+              "label": Object {
+                "text": "COUNTDOWN",
+              },
+              "source": "light.red.stop",
+              "target": "light.red.finished",
+            },
+          ],
+          "id": "light.red.stop",
+        },
+        Object {
+          "children": Array [],
+          "edges": Array [],
+          "id": "light.red.finished",
+        },
+      ],
+      "edges": Array [
+        Object {
+          "label": Object {
+            "text": "done.state.light.red",
+          },
+          "source": "light.red",
+          "target": "light.green",
+        },
+      ],
+      "id": "light.red",
+    },
+  ],
+  "edges": Array [],
+  "id": "light",
+}
+`;

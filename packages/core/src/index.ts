@@ -21,7 +21,7 @@ import {
   choose,
   pure
 } from './actions';
-import { interpret, Interpreter } from './interpreter';
+import { interpret, Interpreter, InterpreterStatus } from './interpreter';
 import { matchState } from './match';
 export { MachineNode } from './MachineNode';
 export { SimulatedClock } from './SimulatedClock';
@@ -58,6 +58,7 @@ export {
   forwardTo,
   interpret,
   Interpreter,
+  InterpreterStatus,
   matchState,
   doneInvoke,
   createMachine

@@ -4,7 +4,7 @@
   "description": "Finite State Machines and Statecharts for the Modern Web.",
   "workspaces": {
     "packages": [
-      "packages/!(xstate-dev)",
+      "packages/!(xstate-dev|xstate-inspect)",
       "packages/xstate-viz/example"
     ]
   },
@@ -56,7 +56,7 @@
     "@changesets/changelog-github": "^0.2.6",
     "@changesets/cli": "^2.9.1",
     "@manypkg/cli": "^0.13.0",
-    "@preconstruct/cli": "^1.1.7",
+    "@preconstruct/cli": "^1.1.27",
     "@types/jest": "^24.0.23",
     "@types/node": "^12.11.1",
     "@types/use-subscription": "^1.0.0",
@@ -65,10 +65,10 @@
     "cpy-cli": "^2.0.0",
     "gh-pages": "^2.0.1",
     "husky": "^3.1.0",
-    "jest": "^25.1.0",
+    "jest": "^26.4.2",
     "jest-config": "^25.1.0",
     "jest-regex-util": "^25.1.0",
-    "jest-watch-typeahead": "^0.4.1",
+    "jest-watch-typeahead": "^0.6.1",
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "lerna-alias": "3.0.3-0",
@@ -76,9 +76,11 @@
     "markdown-it-codesandbox-embed": "^0.1.0",
     "mermaid": "^8.2.3",
     "prettier": "^2.0.2",
+    "spawn-command": "0.0.2-1",
+    "ts-jest": "^26.4.0",
     "tslint": "^5.11.0",
     "typedoc": "^0.17.4",
-    "typescript": "^3.9.7",
+    "typescript": "^4.0.3",
     "vue-jest": "^3.0.6",
     "vuepress": "^1.2.0",
     "vuepress-plugin-export": "^0.2.0",
