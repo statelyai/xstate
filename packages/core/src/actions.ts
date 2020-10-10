@@ -90,19 +90,19 @@ export function toActionObject<
   } else {
     const registeredAction = actionMap?.[action.type];
 
-    if (!registeredAction) {
-      actionObject = { type: action.type };
-    } else if (isFunction(registeredAction)) {
+    if (isFunction(registeredAction)) {
       actionObject = {
         ...action,
         exec: registeredAction
       };
-    } else {
+    } else if (registeredAction) {
       actionObject = {
         ...registeredAction,
         ...action,
         type: registeredAction.type
       };
+    } else {
+      actionObject = action;
     }
   }
 

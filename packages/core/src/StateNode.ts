@@ -149,7 +149,7 @@ class StateNode<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > {
   /**
    * The relative key of the state node, which represents its location in the overall state value.

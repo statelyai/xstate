@@ -18,7 +18,11 @@ import {
   Typestate
 } from 'xstate';
 
-interface UseMachineOptions<TContext, TEvent extends EventObject> {
+interface UseMachineOptions<
+  TContext,
+  TEvent extends EventObject,
+  TAction extends { type: string }
+> {
   /**
    * If provided, will be merged with machine's `context`.
    */
@@ -27,22 +31,26 @@ interface UseMachineOptions<TContext, TEvent extends EventObject> {
    * The state to rehydrate the machine to. The machine will
    * start at this state instead of its `initialState`.
    */
-  state?: StateConfig<TContext, TEvent>;
+  state?: StateConfig<TContext, TEvent, TAction>;
 }
 
 export function useMachine<
   TContext,
   TEvent extends EventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = {
+    value: any;
+    context: TContext;
+  },
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(
-  machine: StateMachine<TContext, any, TEvent, TTypestate>,
+  machine: StateMachine<TContext, any, TEvent, TTypestate, TAction>,
   options: Partial<InterpreterOptions> &
-    Partial<UseMachineOptions<TContext, TEvent>> &
-    Partial<MachineOptions<TContext, TEvent>> = {}
+    Partial<UseMachineOptions<TContext, TEvent, TAction>> &
+    Partial<MachineOptions<TContext, TEvent, TAction>> = {}
 ): {
-  state: Ref<State<TContext, TEvent, any, TTypestate>>;
-  send: Interpreter<TContext, any, TEvent, TTypestate>['send'];
-  service: Interpreter<TContext, any, TEvent, TTypestate>;
+  state: Ref<State<TContext, TEvent, any, TTypestate, TAction>>;
+  send: Interpreter<TContext, any, TEvent, TTypestate, TAction>['send'];
+  service: Interpreter<TContext, any, TEvent, TTypestate, TAction>;
 } {
   const {
     context,

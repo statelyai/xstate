@@ -134,7 +134,7 @@ function createCond<
 function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(element: XMLElement): ActionObject<TContext, TEvent, TAction> {
   switch (element.name) {
     case 'raise': {
@@ -261,7 +261,7 @@ function mapAction<
 function mapActions<
   TContext extends object,
   TEvent extends EventObject = EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(elements: XMLElement[]): Array<ActionObject<TContext, TEvent, TAction>> {
   const mapped: Array<ActionObject<TContext, TEvent, TAction>> = [];
 

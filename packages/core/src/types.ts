@@ -113,7 +113,7 @@ export type Action<
   TEvent extends EventObject,
   TAction extends { type: string }
 > =
-  | TAction
+  | (TAction & { exec?: ActionFunction<TContext, TEvent, TAction> })
   | SimpleAction<TAction>
   | BuiltinAction<TContext, TEvent, TAction>
   | ActionFunction<TContext, TEvent, TAction>;
@@ -227,13 +227,13 @@ export interface TargetTransitionConfig<
 export type ConditionalTransitionConfig<
   TContext,
   TEvent extends EventObject = EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > = Array<TransitionConfig<TContext, TEvent, TAction>>;
 
 export type Transition<
   TContext,
   TEvent extends EventObject = EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > =
   | string
   | TransitionConfig<TContext, TEvent, TAction>
@@ -662,7 +662,7 @@ export interface StateNodeDefinition<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > {
   id: string;
   version: string | undefined;
@@ -687,7 +687,7 @@ export type AnyStateNodeDefinition = StateNodeDefinition<any, any, any>;
 export interface AtomicStateNodeConfig<
   TContext,
   TEvent extends EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > extends StateNodeConfig<TContext, StateSchema, TEvent, TAction> {
   initial?: undefined;
   parallel?: false | undefined;
@@ -767,7 +767,7 @@ export interface MachineConfig<
   TContext,
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > extends StateNodeConfig<TContext, TStateSchema, TEvent, TAction> {
   /**
    * The initial context (extended state)
@@ -799,7 +799,7 @@ export interface StateMachine<
   TStateSchema extends StateSchema,
   TEvent extends EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate, TAction> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent, any, TAction>['states'];
@@ -1124,7 +1124,7 @@ export interface SCXMLEventMeta<TEvent extends EventObject> {
 }
 
 export interface StateMeta<TContext, TEvent extends EventObject> {
-  state: State<TContext, TEvent>;
+  state: State<TContext, TEvent, any, any, any>;
   _event: SCXML.Event<TEvent>;
 }
 

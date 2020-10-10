@@ -2002,7 +2002,6 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -2340,7 +2339,6 @@ Object {
           "_sessionid": null,
           "actions": Array [
             Object {
-              "exec": undefined,
               "type": "startCountdown",
             },
           ],
@@ -2393,7 +2391,6 @@ Object {
       "_sessionid": null,
       "actions": Array [
         Object {
-          "exec": undefined,
           "type": "startCountdown",
         },
       ],
@@ -3065,7 +3062,6 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -3407,7 +3403,6 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -3479,7 +3474,6 @@ Object {
             "_sessionid": null,
             "actions": Array [
               Object {
-                "exec": undefined,
                 "type": "startCountdown",
               },
             ],
@@ -4475,7 +4469,6 @@ Object {
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -4813,7 +4806,6 @@ Object {
           "_sessionid": null,
           "actions": Array [
             Object {
-              "exec": undefined,
               "type": "startCountdown",
             },
           ],
@@ -4866,7 +4858,6 @@ Object {
       "_sessionid": null,
       "actions": Array [
         Object {
-          "exec": undefined,
           "type": "startCountdown",
         },
       ],
@@ -7467,7 +7458,6 @@ Array [
           "_sessionid": null,
           "actions": Array [
             Object {
-              "exec": undefined,
               "type": "startCountdown",
             },
           ],
@@ -7520,7 +7510,6 @@ Array [
       "_sessionid": null,
       "actions": Array [
         Object {
-          "exec": undefined,
           "type": "startCountdown",
         },
       ],
@@ -7766,7 +7755,6 @@ Array [
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -8107,7 +8095,6 @@ Array [
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -8449,7 +8436,6 @@ Array [
               "_sessionid": null,
               "actions": Array [
                 Object {
-                  "exec": undefined,
                   "type": "startCountdown",
                 },
               ],
@@ -8521,7 +8507,6 @@ Array [
             "_sessionid": null,
             "actions": Array [
               Object {
-                "exec": undefined,
                 "type": "startCountdown",
               },
             ],

@@ -53,7 +53,7 @@ export function isState<
     value: any;
     context: TContext;
   },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(
   state: object | string
 ): state is State<TContext, TEvent, TStateSchema, TTypestate, TAction> {
@@ -100,7 +100,7 @@ export class State<
     value: any;
     context: TContext;
   },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > {
   public value: StateValue;
   public context: TContext;
@@ -151,7 +151,7 @@ export class State<
   public static from<
     TC,
     TE extends EventObject = EventObject,
-    TA extends { type: string } = { type: string }
+    TA extends { type: string } = { type: string; [key: string]: any }
   >(
     stateValue: State<TC, TE, any, any, TA> | StateValue,
     context?: TC | undefined
@@ -203,7 +203,7 @@ export class State<
   public static create<
     TC,
     TE extends EventObject = EventObject,
-    TA extends { type: string } = { type: string }
+    TA extends { type: string } = { type: string; [key: string]: any }
   >(config: StateConfig<TC, TE, TA>): State<TC, TE, any, any, TA> {
     return new State(config);
   }
@@ -215,7 +215,7 @@ export class State<
   public static inert<
     TC,
     TE extends EventObject = EventObject,
-    TA extends { type: string } = { type: string }
+    TA extends { type: string } = { type: string; [key: string]: any }
   >(
     stateValue: State<TC, TE, any, any, TA> | StateValue,
     context: TC

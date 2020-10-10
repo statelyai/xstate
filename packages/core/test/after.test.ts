@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src';
+import { Machine, interpret, SendActionObject } from '../src';
 import { after, cancel, send, actionTypes } from '../src/actions';
 import { toSCXMLEvent } from '../src/utils';
 
@@ -199,7 +199,7 @@ describe('delayed transitions', () => {
       const { initialState } = delayExprMachine;
 
       const sendActions = initialState.actions.filter(
-        (a) => a.type === actionTypes.send
+        (a): a is SendActionObject<any, any> => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -215,7 +215,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
+        (a): a is SendActionObject<any, any> => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);
@@ -231,7 +231,7 @@ describe('delayed transitions', () => {
       });
 
       const sendActions = activeState.actions.filter(
-        (a) => a.type === actionTypes.send
+        (a): a is SendActionObject<any, any> => a.type === actionTypes.send
       );
 
       expect(sendActions.length).toBe(1);

@@ -27,7 +27,8 @@ import {
   Spawnable,
   Typestate,
   AnyEventObject,
-  ActionFunction
+  ActionFunction,
+  MachineOptions
 } from './types';
 import { State, bindActionToState, isState } from './State';
 import * as actionTypes from './actionTypes';
@@ -63,7 +64,7 @@ export type StateListener<
   TEvent extends EventObject,
   TStateSchema extends StateSchema<TContext> = any,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > = (
   state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
   event: TEvent
@@ -108,7 +109,7 @@ export class Interpreter<
     value: any;
     context: TContext;
   },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >
   implements
     Actor<State<TContext, TEvent, TStateSchema, TTypestate, TAction>, TEvent> {
@@ -258,10 +259,11 @@ export class Interpreter<
    * @param actionsConfig The action implementations to use
    */
   public execute(
-    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
+    actionsMap?: MachineOptions<TContext, TEvent, TAction>['actions']
   ): void {
     for (const action of state.actions) {
-      this.exec(action, state);
+      this.exec(action, state, actionsMap);
     }
   }
   private update(
@@ -753,20 +755,29 @@ export class Interpreter<
   }
   private exec(
     action: ActionObject<TContext, TEvent, TAction>,
-    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>
+    state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
+    actionsMap: MachineOptions<TContext, TEvent, TAction>['actions'] = this
+      .machine.options.actions
   ): void {
     const { context, _event } = state;
+    const actionOrExec =
+      'exec' in action
+        ? (action as {
+            exec: ActionFunction<TContext, TEvent, any>;
+          }).exec
+        : actionsMap?.[action.type];
 
-    if ('exec' in action) {
-      const refinedAction = action as {
-        exec: ActionFunction<TContext, TEvent, any>;
-      };
+    if (typeof actionOrExec === 'function') {
       try {
-        return refinedAction.exec(context, _event.data, {
-          action: refinedAction,
-          state: this.state,
-          _event
-        });
+        return (actionOrExec as ActionFunction<TContext, TEvent, any>)(
+          context,
+          _event.data,
+          {
+            action,
+            state: this.state,
+            _event
+          }
+        );
       } catch (err) {
         if (this.parent) {
           this.parent.send({
@@ -1309,7 +1320,7 @@ export function interpret<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = EventObject,
   TTypestate extends Typestate<TContext> = { value: any; context: TContext },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(
   machine: StateMachine<TContext, TStateSchema, TEvent, TTypestate, TAction>,
   options?: Partial<InterpreterOptions>

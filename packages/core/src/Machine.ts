@@ -55,7 +55,7 @@ export function createMachine<
     value: any;
     context: TContext;
   },
-  TAction extends { type: string } = { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 >(
   config: MachineConfig<TContext, any, TEvent, TAction>,
   options?: Partial<MachineOptions<TContext, TEvent, TAction>>

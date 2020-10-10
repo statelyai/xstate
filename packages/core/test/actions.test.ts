@@ -730,7 +730,7 @@ describe('actions config', () => {
     const { initialState } = anonMachine;
 
     initialState.actions.forEach((action) => {
-      if (action.exec) {
+      if ('exec' in action) {
         action.exec(
           initialState.context,
           { type: 'any' },
@@ -750,7 +750,7 @@ describe('actions config', () => {
     expect(inactiveState.actions.length).toBe(2);
 
     inactiveState.actions.forEach((action) => {
-      if (action.exec) {
+      if ('exec' in action) {
         action.exec(
           inactiveState.context,
           { type: 'EVENT' },
@@ -770,14 +770,14 @@ describe('actions config', () => {
 
 describe('action meta', () => {
   it('should provide the original action and state to the exec function', (done) => {
-    const testMachine = Machine(
+    const testMachine = createMachine(
       {
         id: 'test',
         initial: 'foo',
         states: {
           foo: {
             entry: {
-              type: 'entryAction',
+              type: 'entryAction' as const,
               value: 'something'
             }
           }
@@ -818,7 +818,7 @@ describe('purely defined actions', () => {
       idle: {
         on: {
           SINGLE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure<any, any, any>((ctx, e) => {
               if (ctx.items.length > 0) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -829,7 +829,7 @@ describe('purely defined actions', () => {
             })
           },
           NONE: {
-            actions: pure<any, any>((ctx, e) => {
+            actions: pure<any, any, any>((ctx, e) => {
               if (ctx.items.length > 5) {
                 return {
                   type: 'SINGLE_EVENT',
@@ -840,7 +840,7 @@ describe('purely defined actions', () => {
             })
           },
           EACH: {
-            actions: pure<any, any>((ctx) =>
+            actions: pure<any, any, any>((ctx) =>
               ctx.items.map((item, index) => ({
                 type: 'EVENT',
                 item,
@@ -1224,12 +1224,12 @@ describe('choose', () => {
     interface Ctx {
       answer?: number;
     }
-    interface Events {
+    interface NextEvent {
       type: 'NEXT';
       counter: number;
     }
 
-    const machine = createMachine<Ctx, Events>({
+    const machine = createMachine<Ctx, NextEvent>({
       context: {},
       initial: 'foo',
       states: {
@@ -1237,10 +1237,10 @@ describe('choose', () => {
           on: {
             NEXT: {
               target: 'bar',
-              actions: choose<Ctx, Events>([
+              actions: choose([
                 {
                   cond: (_, event) => event.counter > 100,
-                  actions: assign<Ctx>({ answer: 42 })
+                  actions: assign({ answer: 42 })
                 }
               ])
             }

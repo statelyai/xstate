@@ -188,7 +188,7 @@ export function has<T>(iterable: Iterable<T>, item: T): boolean {
 export function nextEvents<
   TC,
   TE extends EventObject,
-  TA extends { type: string } = { type: string }
+  TA extends { type: string } = { type: string; [key: string]: any }
 >(configuration: Array<StateNode<TC, any, TE, any, TA>>): Array<TE['type']> {
   return flatten([...new Set(configuration.map((sn) => sn.ownEvents))]);
 }
