@@ -1,8 +1,6 @@
 import {
   getEventType,
-  toStateValue,
   mapValues,
-  path,
   flatten,
   toArray,
   keys,
@@ -33,7 +31,6 @@ import {
   TransitionDefinitionMap,
   InitialTransitionDefinition
 } from './types';
-import { matchesState } from './utils';
 import { State } from './State';
 import * as actionTypes from './actionTypes';
 import { toActionObject } from './actions';
@@ -42,9 +39,7 @@ import {
   getDelayedTransitions,
   formatTransitions,
   getCandidates,
-  getStateNodeById,
-  evaluateGuard,
-  isStateId
+  evaluateGuard
 } from './stateUtils';
 import { MachineNode } from './MachineNode';
 import { STATE_DELIMITER } from './constants';
@@ -368,29 +363,13 @@ export class StateNode<
 
     let selectedTransition: TransitionDefinition<TContext, TEvent> | undefined;
 
-    const candidates =
+    const candidates: Array<TransitionDefinition<TContext, TEvent>> =
       this.__cache.candidates[eventName] ||
       (this.__cache.candidates[eventName] = getCandidates(this, eventName));
 
     for (const candidate of candidates) {
-      const { cond, in: stateIn } = candidate;
+      const { cond } = candidate;
       const resolvedContext = state.context;
-
-      const isInState = stateIn
-        ? isString(stateIn) && isStateId(stateIn)
-          ? // Check if in state by ID
-            state.matches(
-              toStateValue(
-                getStateNodeById(this, stateIn).path,
-                this.machine.delimiter
-              )
-            )
-          : // Check if in state by relative grandparent
-            matchesState(
-              toStateValue(stateIn, this.machine.delimiter),
-              path(this.path.slice(0, -2))(state.value)
-            )
-        : true;
 
       let guardPassed = false;
 
@@ -408,7 +387,7 @@ export class StateNode<
         );
       }
 
-      if (guardPassed && isInState) {
+      if (guardPassed) {
         actions.push(...candidate.actions);
         selectedTransition = candidate;
         break;

@@ -1,3 +1,4 @@
+import { stateIn } from '../src/guards';
 import { Machine, interpret } from '../src/index';
 import { invokeActivity } from '../src/invoke';
 
@@ -213,6 +214,7 @@ describe('transient activities', () => {
             }
           },
           AWAIT: {
+            id: 'AWAIT',
             invoke: ['AWAIT'],
             on: {
               '': 'A2'
@@ -236,13 +238,11 @@ describe('transient activities', () => {
         states: {
           B1: {
             invoke: ['B1'],
+            always: {
+              target: 'B2',
+              cond: stateIn('#AWAIT')
+            },
             on: {
-              '': [
-                {
-                  in: 'A.AWAIT',
-                  target: 'B2'
-                }
-              ],
               B: 'B2'
             }
           },

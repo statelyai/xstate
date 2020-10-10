@@ -1,6 +1,6 @@
 import { EventObject, StateValue, GuardPredicate } from './types';
 import { isStateId } from './stateUtils';
-import { isString } from 'util';
+import { isString } from './utils';
 
 export function stateIn<TContext, TEvent extends EventObject>(
   stateValue: StateValue

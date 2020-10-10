@@ -267,7 +267,7 @@ export const isStateId = (str: string) => str[0] === STATE_IDENTIFIER;
 export function getCandidates<TEvent extends EventObject>(
   stateNode: StateNode<any, TEvent>,
   eventName: TEvent['type'] | NullEvent['type'] | '*'
-) {
+): Array<TransitionDefinition<any, TEvent>> {
   const transient = eventName === NULL_EVENT;
   const candidates = stateNode.transitions.filter((transition) => {
     const sameEventType = transition.eventType === eventName;
@@ -275,7 +275,7 @@ export function getCandidates<TEvent extends EventObject>(
     return transient
       ? sameEventType
       : sameEventType || transition.eventType === WILDCARD;
-  }) as any;
+  });
 
   return candidates;
 }
