@@ -150,4 +150,35 @@ describe('useService hook', () => {
 
     render(<Test />);
   });
+
+  it('should render the final state', () => {
+    const service = interpret(
+      Machine({
+        initial: 'first',
+        states: {
+          first: {
+            on: {
+              NEXT: {
+                target: 'last'
+              }
+            }
+          },
+          last: {
+            type: 'final'
+          }
+        }
+      })
+    ).start();
+
+    service.send({ type: 'NEXT' });
+
+    const Test = () => {
+      const [state] = useService(service);
+      return <>{state.value}</>;
+    };
+
+    const { container } = render(<Test />);
+
+    expect(container.textContent).toBe('last');
+  });
 });
