@@ -19,7 +19,7 @@ function getStateNodeId(stateNode: StateNode): string {
 interface TransitionConfig {
   target: string[];
   source: string;
-  actions: Array<ActionObject<any, any, any>>;
+  actions: Array<ActionObject>;
   cond: Guard<any, any> | undefined;
   eventType: string;
 }
@@ -29,8 +29,8 @@ interface StateNodeConfig {
   id: string;
   key: string;
   initial?: string;
-  entry: Array<ActionObject<any, any, any>>;
-  exit: Array<ActionObject<any, any, any>>;
+  entry: Array<ActionObject>;
+  exit: Array<ActionObject>;
   on: {
     [key: string]: TransitionConfig[];
   };

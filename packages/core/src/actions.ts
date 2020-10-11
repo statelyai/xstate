@@ -65,8 +65,8 @@ export function toActionObject<
 >(
   action: Action<TContext, TEvent, TAction>,
   actionMap?: ActionMap<TContext, TEvent, TAction>
-): ActionObject<TContext, TEvent, TAction> {
-  let actionObject: any;
+): ActionObject {
+  let actionObject: ActionObject;
 
   if (isFunction(action)) {
     actionObject = {
@@ -85,7 +85,7 @@ export function toActionObject<
         exec: registeredAction
       };
     } else {
-      actionObject = registeredAction;
+      actionObject = registeredAction as any;
     }
   } else {
     const registeredAction = actionMap?.[action.type];
@@ -122,7 +122,7 @@ export const toActionObjects = <
 >(
   action?: SingleOrArray<Action<TContext, TEvent, TAction>> | undefined,
   actionMap?: ActionMap<TContext, TEvent, TAction>
-): Array<ActionObject<TContext, TEvent, TAction>> => {
+): Array<ActionObject> => {
   if (!action) {
     return [];
   }
@@ -131,15 +131,14 @@ export const toActionObjects = <
   return actions.map((subAction) => toActionObject(subAction, actionMap));
 };
 
-export function toActivityDefinition<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityDefinition<TContext, TEvent> {
-  const actionObject = toActionObject(activity) as any;
+export function toActivityDefinition(
+  activity: string | ActivityDefinition
+): ActivityDefinition {
+  const actionObject = toActionObject(activity);
 
   return {
     id: isString(activity) ? activity : actionObject.id,
-    ...actionObject,
-    type: actionObject.type
+    ...actionObject
   };
 }
 
@@ -363,9 +362,9 @@ export const cancel = (sendId: string | number): CancelAction => {
  *
  * @param activity The activity to start.
  */
-export function start<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityActionObject<TContext, TEvent> {
+export function start(
+  activity: string | ActivityDefinition
+): ActivityActionObject {
   const activityDef = toActivityDefinition(activity);
 
   return {
@@ -379,9 +378,9 @@ export function start<TContext, TEvent extends EventObject>(
  *
  * @param activity The activity to stop.
  */
-export function stop<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityActionObject<TContext, TEvent> {
+export function stop(
+  activity: string | ActivityDefinition
+): ActivityActionObject {
   const activityDef = toActivityDefinition(activity);
 
   return {
@@ -560,8 +559,8 @@ export function resolveActions<
   currentState: State<TContext, TEvent, any, any, TAction> | undefined,
   currentContext: TContext,
   _event: SCXML.Event<TEvent>,
-  actions: Array<ActionObject<TContext, TEvent, TAction>>
-): [Array<ActionObject<TContext, TEvent, TAction>>, TContext] {
+  actions: Array<ActionObject>
+): [Array<ActionObject>, TContext] {
   const [assignActions, otherActions] = partition(
     actions,
     (action): action is AssignAction<TContext, TEvent> =>
@@ -663,7 +662,7 @@ export function resolveActions<
         default:
           return toActionObject(actionObject, machine.options.actions);
       }
-    }) as ActionObject<TContext, TEvent, TAction>[]
+    })
   );
   return [resolvedActions, updatedContext];
 }

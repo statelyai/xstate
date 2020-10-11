@@ -135,7 +135,7 @@ function mapAction<
   TContext extends object,
   TEvent extends EventObject = EventObject,
   TAction extends { type: string } = { type: string; [key: string]: any }
->(element: XMLElement): ActionObject<TContext, TEvent, TAction> {
+>(element: XMLElement): ActionObject {
   switch (element.name) {
     case 'raise': {
       return actions.raise<TContext, TEvent>(
@@ -258,12 +258,8 @@ function mapAction<
   }
 }
 
-function mapActions<
-  TContext extends object,
-  TEvent extends EventObject = EventObject,
-  TAction extends { type: string } = { type: string; [key: string]: any }
->(elements: XMLElement[]): Array<ActionObject<TContext, TEvent, TAction>> {
-  const mapped: Array<ActionObject<TContext, TEvent, TAction>> = [];
+function mapActions(elements: XMLElement[]): Array<ActionObject> {
+  const mapped: Array<ActionObject> = [];
 
   for (const element of elements) {
     if (element.type === 'comment') {

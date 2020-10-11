@@ -6,7 +6,6 @@ import {
   DefaultContext,
   ActionObject,
   StateSchema,
-  ActivityActionObject,
   SpecialTargets,
   ActionTypes,
   InvokeDefinition,
@@ -620,7 +619,7 @@ export class Interpreter<
     this.scheduler.schedule(() => {
       let nextState = this.state;
       let batchChanged = false;
-      const batchedActions: Array<ActionObject<TContext, TEvent, TAction>> = [];
+      const batchedActions: Array<ActionObject> = [];
       for (const event of events) {
         const _event = toSCXMLEvent(event);
 
@@ -631,9 +630,7 @@ export class Interpreter<
         });
 
         batchedActions.push(
-          ...(nextState.actions.map((a) =>
-            bindActionToState(a, nextState)
-          ) as Array<ActionObject<TContext, TEvent, TAction>>)
+          ...nextState.actions.map((a) => bindActionToState(a, nextState))
         );
 
         batchChanged = batchChanged || !!nextState.changed;
@@ -754,18 +751,14 @@ export class Interpreter<
     delete this.delayedEventsMap[sendId];
   }
   private exec(
-    action: ActionObject<TContext, TEvent, TAction>,
+    action: ActionObject,
     state: State<TContext, TEvent, TStateSchema, TTypestate, TAction>,
     actionsMap: MachineOptions<TContext, TEvent, TAction>['actions'] = this
       .machine.options.actions
   ): void {
     const { context, _event } = state;
     const actionOrExec =
-      'exec' in action
-        ? (action as {
-            exec: ActionFunction<TContext, TEvent, any>;
-          }).exec
-        : actionsMap?.[action.type];
+      'exec' in action ? action.exec : actionsMap?.[action.type];
 
     if (typeof actionOrExec === 'function') {
       try {
@@ -813,10 +806,11 @@ export class Interpreter<
 
         break;
       case actionTypes.start: {
-        const activity = ((action as any) as ActivityActionObject<
+        const activity = action.activity as InvokeDefinition<
           TContext,
-          TEvent
-        >).activity as InvokeDefinition<TContext, TEvent, TAction>;
+          TEvent,
+          TAction
+        >;
 
         // If the activity will be stopped right after it's started
         // (such as in transient states)
@@ -900,10 +894,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(
-          ((action as any) as ActivityActionObject<TContext, TEvent>).activity
-            .id
-        );
+        this.stopChild(action.activity.id);
         break;
       }
 
@@ -1183,7 +1174,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActivity(activity: ActivityDefinition<TContext, TEvent>): void {
+  private spawnActivity(activity: ActivityDefinition): void {
     const implementation =
       this.machine.options && this.machine.options.activities
         ? this.machine.options.activities[activity.type]

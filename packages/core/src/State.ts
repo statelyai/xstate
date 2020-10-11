@@ -10,8 +10,7 @@ import {
   SCXML,
   StateSchema,
   TransitionDefinition,
-  Typestate,
-  ActionFunction
+  Typestate
 } from './types';
 import { EMPTY_ACTIVITY_MAP } from './constants';
 import { matchesState, keys, isString } from './utils';
@@ -68,26 +67,20 @@ export function bindActionToState<
   TC,
   TE extends EventObject,
   TA extends { type: string }
->(
-  action: ActionObject<TC, TE, TA>,
-  state: State<TC, TE, any, any, TA>
-): ActionObject<TC, TE, TA> {
+>(action: ActionObject, state: State<TC, TE, any, any, TA>): ActionObject {
   const boundAction = {
     ...action,
     exec:
       'exec' in action
         ? () => {
-            const refinedAction = action as {
-              exec: ActionFunction<TC, TE, TA>;
-            };
-            return refinedAction.exec(state.context, state.event as TE, {
+            return action.exec(state.context, state.event, {
               action,
               state,
               _event: state._event
             });
           }
         : undefined
-  } as any;
+  };
 
   return boundAction;
 }
@@ -106,7 +99,7 @@ export class State<
   public context: TContext;
   public historyValue?: HistoryValue | undefined;
   public history?: State<TContext, TEvent, TStateSchema, TTypestate, TAction>;
-  public actions: Array<ActionObject<TContext, TEvent, TAction>> = [];
+  public actions: Array<ActionObject> = [];
   public activities: ActivityMap = EMPTY_ACTIVITY_MAP;
   public meta: any = {};
   public events: TEvent[] = [];

@@ -21,28 +21,10 @@ export interface AnyEventObject extends EventObject {
   [key: string]: any;
 }
 
-type ParametrizedAction<
-  TContext,
-  TEvent extends EventObject,
-  TAction extends { type: string }
-> = {
-  [K in TAction['type']]:
-    | BuiltinAction<TContext, TEvent, Extract<TAction, { type: K }>>
-    | {
-        type: K;
-        exec: ActionFunction<TContext, TEvent, Extract<TAction, { type: K }>>;
-      };
-}[TAction['type']];
-
-/**
- * The full definition of an action, with a string `type` and an
- * `exec` implementation function.
- */
-export type ActionObject<
-  TContext,
-  TEvent extends EventObject,
-  TAction extends { type: string }
-> = TAction | ParametrizedAction<TContext, TEvent, TAction>;
+export type ActionObject = {
+  type: string;
+  [key: string]: any;
+};
 
 export type DefaultContext = Record<string, any> | undefined;
 
@@ -241,19 +223,17 @@ export type Transition<
 
 export type DisposeActivityFunction = () => void;
 
-export type ActivityConfig<TContext, TEvent extends EventObject> = (
+export type ActivityConfig<TContext> = (
   ctx: TContext,
-  activity: ActivityDefinition<TContext, TEvent>
+  activity: ActivityDefinition
 ) => DisposeActivityFunction | void;
 
-export type Activity<TContext, TEvent extends EventObject> =
-  | string
-  | ActivityDefinition<TContext, TEvent>;
+export type Activity = string | ActivityDefinition;
 
-export interface ActivityDefinition<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent, any> {
+export interface ActivityDefinition {
   id: string;
   type: string;
+  [key: string]: any;
 }
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
@@ -302,7 +282,7 @@ export interface InvokeDefinition<
   TContext,
   TEvent extends EventObject,
   TAction extends { type: string }
-> extends ActivityDefinition<TContext, TEvent> {
+> extends ActivityDefinition {
   /**
    * The source of the machine to be invoked, or the machine itself.
    */
@@ -626,7 +606,7 @@ export interface StateNodeConfig<
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    */
-  activities?: SingleOrArray<Activity<TContext, TEvent>>;
+  activities?: SingleOrArray<Activity>;
   /**
    * @private
    */
@@ -674,9 +654,9 @@ export interface StateNodeDefinition<
   states: StatesDefinition<TContext, TStateSchema, TEvent, TAction>;
   on: TransitionDefinitionMap<TContext, TEvent, TAction>;
   transitions: Array<TransitionDefinition<TContext, TEvent, TAction>>;
-  entry: Array<ActionObject<TContext, TEvent, TAction>>;
-  exit: Array<ActionObject<TContext, TEvent, TAction>>;
-  activities: Array<ActivityDefinition<TContext, TEvent>>;
+  entry: Array<ActionObject>;
+  exit: Array<ActionObject>;
+  activities: Array<ActivityDefinition>;
   meta: any;
   order: number;
   data?: FinalStateNodeConfig<TContext, TEvent, TAction>['data'];
@@ -751,7 +731,7 @@ export interface MachineOptions<
 > {
   guards: Record<string, ConditionPredicate<TContext, TEvent>>;
   actions: ActionMap<TContext, TEvent, TAction>;
-  activities: Record<string, ActivityConfig<TContext, TEvent>>;
+  activities: Record<string, ActivityConfig<TContext>>;
   services: Record<string, ServiceConfig<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
   /**
@@ -820,7 +800,7 @@ export interface EntryExitStateArrays<TContext> {
 }
 
 export interface ActivityMap {
-  [activityKey: string]: ActivityDefinition<any, any> | false;
+  [activityKey: string]: ActivityDefinition | false;
 }
 
 // tslint:disable-next-line:class-name
@@ -837,7 +817,7 @@ export interface StateTransition<
    * The source state that preceded the transition.
    */
   source: State<TContext, any, any, any, TAction> | undefined;
-  actions: Array<ActionObject<TContext, TEvent, TAction>>;
+  actions: Array<ActionObject>;
 }
 
 export enum ActionTypes {
@@ -903,16 +883,16 @@ export interface NullEvent {
   type: ActionTypes.NullEvent;
 }
 
-export interface ActivityActionObject<TContext, TEvent extends EventObject> {
+export interface ActivityActionObject {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext, TEvent>;
+  activity: ActivityDefinition;
 }
 
 export interface InvokeActionObject<
   TContext,
   TEvent extends EventObject,
   TAction extends { type: string }
-> extends ActivityActionObject<TContext, TEvent> {
+> extends ActivityActionObject {
   activity: InvokeDefinition<TContext, TEvent, TAction>;
 }
 
@@ -1073,13 +1053,13 @@ export interface TransitionDefinition<
   meta?: Record<string, any>;
   target: Array<StateNode<TContext, any, TEvent, any, TAction>> | undefined;
   source: StateNode<TContext, any, TEvent, any, TAction>;
-  actions: Array<ActionObject<TContext, TEvent, TAction>>;
+  actions: Array<ActionObject>;
   cond?: Guard<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
-    actions: Array<ActionObject<TContext, TEvent, TAction>>;
+    actions: Array<ActionObject>;
     cond?: Guard<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
   };
@@ -1151,7 +1131,7 @@ export interface StateConfig<
   _sessionid: string | null;
   historyValue?: HistoryValue | undefined;
   history?: State<TContext, TEvent, any, any, TAction>;
-  actions?: Array<ActionObject<TContext, TEvent, TAction>>;
+  actions?: Array<ActionObject>;
   activities?: ActivityMap;
   meta?: any;
   events?: TEvent[];

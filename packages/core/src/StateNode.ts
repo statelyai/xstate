@@ -96,7 +96,6 @@ import {
 } from './stateUtils';
 import { Actor, createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
-import { ActivityActionObject } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -206,16 +205,16 @@ class StateNode<
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  public onEntry: Array<ActionObject<TContext, TEvent, TAction>>; // TODO: deprecate (entry)
+  public onEntry: Array<ActionObject>; // TODO: deprecate (entry)
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  public onExit: Array<ActionObject<TContext, TEvent, TAction>>; // TODO: deprecate (exit)
+  public onExit: Array<ActionObject>; // TODO: deprecate (exit)
   /**
    * The activities to be started upon entering the state node,
    * and stopped upon exiting the state node.
    */
-  public activities: Array<ActivityDefinition<TContext, TEvent>>;
+  public activities: Array<ActivityDefinition>;
   public strict: boolean;
   /**
    * The parent state node.
@@ -842,7 +841,7 @@ class StateNode<
     _event: SCXML.Event<TEvent>
   ): StateTransition<TContext, TEvent, TAction> | undefined {
     const eventName = _event.name;
-    const actions: Array<ActionObject<TContext, TEvent, TAction>> = [];
+    const actions: Array<ActionObject> = [];
 
     let nextStateNodes: Array<StateNode<
       TContext,
@@ -983,7 +982,7 @@ class StateNode<
     currentContext: TContext,
     _event: SCXML.Event<TEvent>,
     prevState?: State<TContext, any, any, any, TAction>
-  ): Array<ActionObject<TContext, TEvent, TAction>> {
+  ): Array<ActionObject> {
     const prevConfig = getConfiguration(
       [],
       prevState ? this.getStateNodes(prevState.value) : [this]
@@ -1064,9 +1063,7 @@ class StateNode<
             ...stateNode.onEntry
           ];
         })
-      ).concat(
-        doneEvents.map(raise) as Array<ActionObject<TContext, TEvent, TAction>>
-      ),
+      ).concat(doneEvents.map(raise) as Array<ActionObject>),
       flatten(
         Array.from(exitStates).map((stateNode) => [
           ...stateNode.onExit,
@@ -1078,7 +1075,7 @@ class StateNode<
     const actions = toActionObjects(
       exitActions.concat(transition.actions).concat(entryActions),
       this.machine.options.actions
-    ) as Array<ActionObject<TContext, TEvent, TAction>>;
+    ) as Array<ActionObject>;
 
     return actions;
   }
@@ -1205,20 +1202,10 @@ class StateNode<
     const activities = currentState ? { ...currentState.activities } : {};
     for (const action of actions) {
       if (action.type === actionTypes.start) {
-        const refinedAction = (action as any) as ActivityActionObject<
-          TContext,
-          TEvent
-        >;
-        activities[refinedAction.activity.id || refinedAction.activity.type] =
-          refinedAction.activity;
+        activities[action.activity.id || action.activity.type] =
+          action.activity;
       } else if (action.type === actionTypes.stop) {
-        const refinedAction = (action as any) as ActivityActionObject<
-          TContext,
-          TEvent
-        >;
-        activities[
-          refinedAction.activity.id || refinedAction.activity.type
-        ] = false;
+        activities[action.activity.id || action.activity.type] = false;
       }
     }
 
@@ -1246,8 +1233,7 @@ class StateNode<
     const invokeActions = (resolvedActions.filter((action) => {
       return (
         action.type === actionTypes.start &&
-        (action as ActivityDefinition<TContext, TEvent>).activity.type ===
-          actionTypes.invoke
+        action.activity.type === actionTypes.invoke
       );
     }) as any) as Array<InvokeActionObject<TContext, TEvent, TAction>>;
 
