@@ -757,6 +757,11 @@ export interface MachineConfig<
    * The machine's own version.
    */
   version?: string;
+
+  schema?: {
+    actions?: (action: TAction) => void;
+    events?: (action: TEvent) => void;
+  };
 }
 
 export interface ParallelMachineConfig<
