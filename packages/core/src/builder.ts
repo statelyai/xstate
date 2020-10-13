@@ -1,70 +1,130 @@
-import { Action, EventObject, MachineConfig, StateNodeConfig } from '.';
+import { Action, EventObject, StateNodeConfig } from '.';
+import { createMachine } from './Machine';
 
 interface MachineBuilder<TC, TE extends EventObject> {
   state: <T extends string>(
     key: T,
     fn?: (sb: StateNodeBuilder<TC, TE>) => void
   ) => void;
-  initial: <T extends string>(key: T) => void;
+  initialState: <T extends string>(
+    key: T,
+    fn?: (sb: StateNodeBuilder<TC, TE>) => void
+  ) => void;
 }
 
 interface StateNodeBuilder<TC, TE extends EventObject> {
   state: (key: string, fn?: (sb: StateNodeBuilder<TC, TE>) => void) => void;
-  initial: (key: string) => void;
+  initialState: (
+    key: string,
+    fn?: (sb: StateNodeBuilder<TC, TE>) => void
+  ) => void;
   entry: (action: Action<TC, TE>) => void;
   exit: (action: Action<TC, TE>) => void;
-  on: (eventType: string, target: string) => void;
+  on: (
+    eventType: TE['type'],
+    target: string | string[] | ((tb: TransitionBuilder<TC, TE>) => void)
+  ) => void;
 }
 
-interface TransitionBuilderConfig<TC, TE extends EventObject> {
-  target: string;
-  actions: Array<Action<TC, TE>>;
-}
-
-interface StateNodeBuilderConfig<TC, TE extends EventObject> {
+interface StateNodeBuilderConfig<TC, TE extends EventObject>
+  extends StateNodeConfig<TC, any, TE> {
   initial?: string;
+  key: string;
   type: StateNodeConfig<TC, any, TE>['type'];
   states: Record<string, StateNodeBuilderConfig<TC, TE>>;
   entry: Array<Action<TC, TE>>;
   exit: Array<Action<TC, TE>>;
+  // on: {
+  //   [key in TE['type']]?: Array<TransitionBuilderConfig<TC, TE>>;
+  // };
   on: {
-    [key in TE['type']]?: Array<TransitionBuilderConfig<TC, TE>>;
+    [K in TE['type']]?: Array<
+      TransitionBuilderConfig<TC, TE extends { type: K } ? TE : never>
+    >;
+  } & {
+    '*'?: Array<TransitionBuilderConfig<TC, TE>>;
   };
+}
+
+interface TransitionBuilderConfig<TC, TE extends EventObject> {
+  target: string[];
+  actions: Array<Action<TC, TE>>;
+}
+
+interface TransitionBuilder<TC, TE extends EventObject> {
+  action: (action: Action<TC, TE>) => void;
+  target: (target: string) => void;
+}
+
+interface MachineNodeBuilderConfig<TC, TE extends EventObject>
+  extends StateNodeBuilderConfig<TC, TE> {
+  id: string;
 }
 
 function createStateBuilder<TC, TE extends EventObject>(
   config: StateNodeBuilderConfig<TC, TE>
 ): StateNodeBuilder<TC, TE> {
-  const sb: StateNodeBuilder<TC, TE> = {
-    initial: (key) => {
-      config.initial = key;
-    },
-    state: (key, fn) => {
-      const childStateNodeConfig = {
-        type: 'atomic' as const,
-        states: {},
-        entry: [],
-        exit: [],
-        on: {}
-      };
-      config.states![key] = childStateNodeConfig;
+  const buildState = (key, fn) => {
+    if (config.type !== 'parallel') {
+      config.type = 'compound';
+    }
 
-      if (fn) {
-        fn(createStateBuilder(childStateNodeConfig));
-      }
+    const childStateNodeConfig = {
+      key,
+      type: 'atomic' as const,
+      states: {},
+      entry: [],
+      exit: [],
+      on: {}
+    };
+    config.states![key] = childStateNodeConfig;
+
+    if (fn) {
+      fn(createStateBuilder(childStateNodeConfig));
+    }
+  };
+
+  const sb: StateNodeBuilder<TC, TE> = {
+    initialState: (key, fn) => {
+      config.type = 'compound';
+      config.initial = key;
+      buildState(key, fn);
     },
+    state: buildState,
     entry: (action) => {
       config.entry.push(action);
     },
     exit: (action) => {
       config.exit.push(action);
     },
-    on: (eventType, target) => {
+    on: (eventType, targetOrBuilder) => {
       if (!config.on[eventType]) {
-        config.on[eventType] = [];
+        config.on[eventType] = [] as any;
       }
 
-      config.on[eventType]!.push({ target });
+      if (typeof targetOrBuilder === 'function') {
+        const transitionConfig: TransitionBuilderConfig<TC, TE> = {
+          target: [],
+          actions: []
+        };
+        const transitionBuilder: TransitionBuilder<TC, TE> = {
+          target: (target) => {
+            transitionConfig.target.push(target);
+          },
+          action: (action) => {
+            transitionConfig.actions.push(action);
+          }
+        };
+
+        targetOrBuilder(transitionBuilder);
+      } else {
+        const transitionConfig: TransitionBuilderConfig<TC, TE> = {
+          target: [],
+          actions: []
+        };
+
+        config.on[eventType]!.push(transitionConfig as any);
+      }
     }
   };
 
@@ -72,74 +132,30 @@ function createStateBuilder<TC, TE extends EventObject>(
 }
 
 function createMachineBuilder<TC, TE extends EventObject>(
-  config: Partial<MachineConfig<TC, any, TE>>
+  config: MachineNodeBuilderConfig<TC, TE>
 ): MachineBuilder<TC, TE> {
-  const mb: MachineBuilder<TC, TE> = {
-    initial: (key) => {
-      config.initial = key;
-    },
-    state: (key, fn) => {
-      const childStateConfig: StateNodeBuilderConfig<TC, TE> = {
-        type: 'atomic',
-        states: {},
-        entry: [],
-        exit: [],
-        on: {}
-      };
+  const snb = createStateBuilder(config);
 
-      config.states![key] = childStateConfig;
-
-      if (!fn) {
-        return;
-      }
-
-      const sb = createStateBuilder(childStateConfig);
-
-      fn(sb);
-    }
-  };
-
-  return mb;
+  return snb;
 }
 
-function buildMachine<TC, TE extends EventObject>(
+export function buildMachine<TC, TE extends EventObject>(
   machineKey: string,
   fn: (mb: MachineBuilder<TC, TE>) => void
 ) {
-  const config: Partial<MachineConfig<any, any, any>> = {
+  const config: MachineNodeBuilderConfig<TC, TE> = {
     id: machineKey,
-    states: {}
+    key: machineKey,
+    states: {},
+    type: 'compound',
+    entry: [],
+    exit: [],
+    on: {}
   };
 
   const mb = createMachineBuilder(config);
 
   fn(mb);
 
-  return config;
+  return createMachine(config);
 }
-
-const someMachine = buildMachine(
-  'something',
-  (machine: MachineBuilder<any, any>) => {
-    machine.initial('green');
-
-    machine.state('green', (state) => {
-      state.on('TIMER', 'yellow');
-    });
-
-    machine.state('yellow', (state) => {
-      state.on('TIMER', 'red');
-    });
-
-    machine.state('red', (state) => {
-      state.initial('walk');
-      state.state('walk', (walkState) => {
-        walkState.on('COUNTDOWN', 'wait');
-      });
-      state.state('wait', (waitState) => {
-        waitState.on('COUNTDOWN', 'stop');
-      });
-      state.state('stop');
-    });
-  }
-);
