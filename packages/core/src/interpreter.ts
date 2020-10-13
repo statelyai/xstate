@@ -249,6 +249,11 @@ export class Interpreter<
       this.execute(this.state);
     }
 
+    // Update children
+    this.children.forEach((child) => {
+      this.state.children[child.id] = child;
+    });
+
     // Dev tools
     if (this.devTools) {
       this.devTools.send(_event.data, state);
@@ -844,17 +849,14 @@ export class Interpreter<
             : serviceCreator;
 
           if (isPromiseLike(source)) {
-            this.state.children[id] = this.spawnPromise(
-              Promise.resolve(source),
-              id
-            );
+            this.spawnPromise(Promise.resolve(source), id);
           } else if (isFunction(source)) {
-            this.state.children[id] = this.spawnCallback(source, id);
+            this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
-            this.state.children[id] = this.spawnObservable(source, id);
+            this.spawnObservable(source, id);
           } else if (isMachine(source)) {
             // TODO: try/catch here
-            this.state.children[id] = this.spawnMachine(
+            this.spawnMachine(
               resolvedData ? source.withContext(resolvedData) : source,
               {
                 id,
@@ -896,12 +898,6 @@ export class Interpreter<
 
     return undefined;
   }
-  private removeChild(childId: string): void {
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    delete this.state.children[childId];
-  }
 
   private stopChild(childId: string): void {
     const child = this.children.get(childId);
@@ -909,7 +905,10 @@ export class Interpreter<
       return;
     }
 
-    this.removeChild(childId);
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    delete this.state.children[childId];
 
     if (isFunction(child.stop)) {
       child.stop();
@@ -973,7 +972,7 @@ export class Interpreter<
 
     childService
       .onDone((doneEvent) => {
-        this.removeChild(childService.id);
+        this.stopChild(childService.id);
         this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
       })
       .start();
@@ -986,7 +985,7 @@ export class Interpreter<
     promise.then(
       (response) => {
         if (!canceled) {
-          this.removeChild(id);
+          this.stopChild(id);
           this.send(
             toSCXMLEvent(doneInvoke(id, response) as any, { origin: id })
           );
@@ -994,7 +993,7 @@ export class Interpreter<
       },
       (errorData) => {
         if (!canceled) {
-          this.removeChild(id);
+          this.stopChild(id);
           const errorEvent = error(id, errorData);
           try {
             // Send "error.platform.id" to this (parent).
@@ -1121,11 +1120,11 @@ export class Interpreter<
         this.send(toSCXMLEvent(value, { origin: id }));
       },
       (err) => {
-        this.removeChild(id);
+        this.stopChild(id);
         this.send(toSCXMLEvent(error(id, err) as any, { origin: id }));
       },
       () => {
-        this.removeChild(id);
+        this.stopChild(id);
         this.send(toSCXMLEvent(doneInvoke(id) as any, { origin: id }));
       }
     );
