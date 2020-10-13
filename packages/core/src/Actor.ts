@@ -20,7 +20,7 @@ export interface Actor<
   toJSON: () => {
     id: string;
   };
-  meta?: InvokeDefinition<TContext, TEvent, any>;
+  meta?: InvokeDefinition<TContext, TEvent>;
   state?: any;
   deferred?: boolean;
 }
@@ -45,8 +45,8 @@ export function createNullActor(id: string): Actor {
  * @param invokeDefinition The meta information needed to invoke the actor.
  */
 export function createInvocableActor<TC, TE extends EventObject>(
-  invokeDefinition: InvokeDefinition<TC, TE, any>,
-  machine: StateMachine<TC, any, TE, any, any>,
+  invokeDefinition: InvokeDefinition<TC, TE>,
+  machine: StateMachine<TC, any, TE>,
   context: TC,
   _event: SCXML.Event<TE>
 ): Actor {

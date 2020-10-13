@@ -281,7 +281,7 @@ export type InvokeCreator<
 export interface InvokeDefinition<
   TContext,
   TEvent extends EventObject,
-  TAction extends { type: string }
+  TAction extends { type: string } = { type: string; [key: string]: any }
 > extends ActivityDefinition {
   /**
    * The source of the machine to be invoked, or the machine itself.
