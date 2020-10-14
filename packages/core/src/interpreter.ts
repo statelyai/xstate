@@ -905,14 +905,22 @@ export class Interpreter<
       return;
     }
 
-    this.children.delete(childId);
-    this.forwardTo.delete(childId);
-
-    delete this.state.children[childId];
+    this.removeChild(childId);
 
     if (isFunction(child.stop)) {
       child.stop();
     }
+  }
+  private removeChild(childId: string): void {
+    const child = this.children.get(childId);
+    if (!child) {
+      return;
+    }
+
+    this.children.delete(childId);
+    this.forwardTo.delete(childId);
+
+    delete this.state.children[childId];
   }
   public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
     if (isPromiseLike(entity)) {
@@ -976,6 +984,12 @@ export class Interpreter<
         this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
       })
       .start();
+
+    const originalStop = actor.stop.bind(actor);
+    actor.stop = () => {
+      this.removeChild(childService.id);
+      return originalStop();
+    };
 
     return actor;
   }
@@ -1045,6 +1059,7 @@ export class Interpreter<
       },
       stop: () => {
         canceled = true;
+        this.removeChild(id);
       },
       toJSON() {
         return { id };
@@ -1135,7 +1150,10 @@ export class Interpreter<
       subscribe: (next, handleError, complete) => {
         return source.subscribe(next, handleError, complete);
       },
-      stop: () => subscription.unsubscribe(),
+      stop: () => {
+        subscription.unsubscribe();
+        this.removeChild(id);
+      },
       toJSON() {
         return { id };
       }
