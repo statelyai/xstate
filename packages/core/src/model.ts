@@ -5,8 +5,8 @@ import { mapValues } from './utils';
 export function createModel<TContext, TEvent extends EventObject>(
   initialState: TContext
 ): {
-  context: TContext;
-  withUpdaters: <
+  context: TContext | (() => TContext);
+  withAssigners: <
     T extends {
       [key: string]:
         | Assigner<TContext, TEvent>
@@ -23,12 +23,12 @@ export function createModel<TContext, TEvent extends EventObject>(
 } {
   return {
     context: initialState,
-    withUpdaters: (assigners) => {
+    withAssigners: (assigners) => {
       return {
         context: initialState,
         actions: mapValues(assigners, (assignment) => {
           return assign(assignment);
-        }) as any
+        })
       };
     }
   };

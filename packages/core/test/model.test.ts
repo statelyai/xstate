@@ -3,10 +3,10 @@ import { createModel } from '../src/model';
 
 describe('createModel', () => {
   it('model.machine creates a machine that is updated', () => {
-    type UserEvent = {
+    interface UserEvent {
       type: 'updateName';
       value: string;
-    };
+    }
 
     interface UserContext {
       name: string;
@@ -16,20 +16,20 @@ describe('createModel', () => {
     const userModel = createModel<UserContext, UserEvent>({
       name: 'David',
       age: 30
-    }).withUpdaters({
-      updateName: {
-        name: (_, e: UserEvent) => e.value
+    }).withAssigners({
+      assignName: {
+        name: (_, e) => e.value
       }
     });
 
     const machine = createMachine<typeof userModel['context'], UserEvent>({
-      context: userModel.context,
+      context: () => userModel.context,
       initial: 'active',
       states: {
         active: {
           on: {
             updateName: {
-              actions: userModel.actions.updateName
+              actions: userModel.actions.assignName
             }
           }
         }
