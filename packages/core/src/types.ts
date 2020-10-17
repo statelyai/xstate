@@ -69,7 +69,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
 ) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
+  guard?: Condition<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
 
@@ -880,7 +880,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  conds: Array<ChooseConditon<TContext, TEvent>>;
+  guards: Array<ChooseConditon<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>

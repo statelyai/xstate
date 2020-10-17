@@ -1671,9 +1671,10 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           break;
         case actionTypes.choose: {
           const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = chooseAction.conds.find((condition) => {
+          const matchedActions = chooseAction.guards.find((condition) => {
             const guard =
-              condition.cond && toGuard(condition.cond, machine.options.guards);
+              condition.guard &&
+              toGuard(condition.guard, machine.options.guards);
             return (
               !guard ||
               evaluateGuard(
