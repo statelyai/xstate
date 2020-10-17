@@ -1,6 +1,7 @@
 import { Machine, createMachine, interpret, State } from '../src/index';
 import { assign, raise } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
+import { stateIn } from '../src/guards';
 
 const greetingContext = { hour: 10 };
 const greetingMachine = Machine<typeof greetingContext>({
@@ -211,7 +212,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'A4',
-                  in: 'B.B3'
+                  guard: stateIn({ B: 'B3' })
                 }
               }
             },
@@ -231,7 +232,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'B3',
-                  in: 'A.A2'
+                  guard: stateIn({ A: 'A2' })
                 }
               }
             },
@@ -239,7 +240,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'B4',
-                  in: 'A.A3'
+                  guard: stateIn({ A: 'A3' })
                 }
               }
             },
@@ -272,7 +273,7 @@ describe('transient states (eventless transitions)', () => {
             A3: {
               always: {
                 target: 'A4',
-                in: 'B.B3'
+                guard: stateIn({ B: 'B3' })
               }
             },
             A4: {}
@@ -290,13 +291,13 @@ describe('transient states (eventless transitions)', () => {
             B2: {
               always: {
                 target: 'B3',
-                in: 'A.A2'
+                guard: stateIn({ A: 'A2' })
               }
             },
             B3: {
               always: {
                 target: 'B4',
-                in: 'A.A3'
+                guard: stateIn({ A: 'A3' })
               }
             },
             B4: {}
@@ -332,7 +333,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'B2',
-                  guard: (_xs, _e, { state: s }) => s.matches('A.A2')
+                  guard: stateIn({ A: 'A2' })
                 }
               }
             },
@@ -346,7 +347,7 @@ describe('transient states (eventless transitions)', () => {
               on: {
                 '': {
                   target: 'C2',
-                  in: 'A.A2'
+                  guard: stateIn({ A: 'A2' })
                 }
               }
             },
@@ -373,7 +374,7 @@ describe('transient states (eventless transitions)', () => {
                 A: 'A2'
               }
             },
-            A2: {}
+            A2: { id: 'A2' }
           }
         },
         B: {
@@ -382,7 +383,7 @@ describe('transient states (eventless transitions)', () => {
             B1: {
               always: {
                 target: 'B2',
-                guard: (_xs, _e, { state: s }) => s.matches('A.A2')
+                guard: stateIn({ A: 'A2' })
               }
             },
             B2: {}
@@ -394,7 +395,7 @@ describe('transient states (eventless transitions)', () => {
             C1: {
               always: {
                 target: 'C2',
-                in: 'A.A2'
+                guard: stateIn('#A2')
               }
             },
             C2: {}

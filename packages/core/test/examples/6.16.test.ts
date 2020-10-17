@@ -1,3 +1,4 @@
+import { stateIn } from '../../src/guards';
 import { Machine } from '../../src/index';
 import { testAll } from '../utils';
 
@@ -12,7 +13,7 @@ describe('Example 6.16', () => {
             on: {
               2: {
                 target: 'D',
-                in: 'B.E'
+                guard: stateIn('#E')
               }
             }
           },
@@ -22,7 +23,7 @@ describe('Example 6.16', () => {
       B: {
         initial: 'F',
         states: {
-          E: { on: { 5: 'G' } },
+          E: { id: 'E', on: { 5: 'G' } },
           F: { on: { 1: 'E' } },
           G: { on: { 3: 'F' } }
         }

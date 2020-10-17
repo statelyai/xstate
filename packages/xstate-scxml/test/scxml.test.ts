@@ -240,7 +240,6 @@ xdescribe('transition to SCXML', () => {
               target: 'next',
               internal: true,
               guard: () => true,
-              in: '#test',
               actions: ['foo', 'bar']
             }
           }

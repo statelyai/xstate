@@ -9,10 +9,6 @@ const machine = Machine({
       states: {
         a1: {
           on: {
-            EVENT1: {
-              target: 'a2',
-              in: 'b.b2'
-            },
             EVENT2: {
               target: 'a2',
               guard: stateIn({ b: 'b2' })
@@ -23,7 +19,9 @@ const machine = Machine({
             }
           }
         },
-        a2: {}
+        a2: {
+          id: 'a_a2'
+        }
       }
     },
     b: {
@@ -33,7 +31,7 @@ const machine = Machine({
           on: {
             EVENT: {
               target: 'b2',
-              in: 'a.a2'
+              guard: stateIn('#a_a2')
             }
           }
         },
@@ -46,7 +44,7 @@ const machine = Machine({
               states: {
                 foo1: {
                   on: {
-                    EVENT_DEEP: { target: 'foo2', in: 'bar.bar1' }
+                    EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
                   }
                 },
                 foo2: {}
@@ -55,7 +53,9 @@ const machine = Machine({
             bar: {
               initial: 'bar1',
               states: {
-                bar1: {},
+                bar1: {
+                  id: 'bar1'
+                },
                 bar2: {}
               }
             }
@@ -104,7 +104,7 @@ describe('transition "in" check', () => {
             }
           }
         },
-        'EVENT1'
+        'EVENT2'
       ).value
     ).toEqual({
       a: 'a2',
