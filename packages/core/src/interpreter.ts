@@ -1248,7 +1248,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): Interpreter<TC, any, TE>;
+): Actor<State<TC, TE>, TE>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
