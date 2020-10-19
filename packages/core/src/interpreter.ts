@@ -249,6 +249,11 @@ export class Interpreter<
       this.execute(this.state);
     }
 
+    // Update children
+    this.children.forEach((child) => {
+      this.state.children[child.id] = child;
+    });
+
     // Dev tools
     if (this.devTools) {
       this.devTools.send(_event.data, state);
@@ -844,17 +849,14 @@ export class Interpreter<
             : serviceCreator;
 
           if (isPromiseLike(source)) {
-            this.state.children[id] = this.spawnPromise(
-              Promise.resolve(source),
-              id
-            );
+            this.spawnPromise(Promise.resolve(source), id);
           } else if (isFunction(source)) {
-            this.state.children[id] = this.spawnCallback(source, id);
+            this.spawnCallback(source, id);
           } else if (isObservable<TEvent>(source)) {
-            this.state.children[id] = this.spawnObservable(source, id);
+            this.spawnObservable(source, id);
           } else if (isMachine(source)) {
             // TODO: try/catch here
-            this.state.children[id] = this.spawnMachine(
+            this.spawnMachine(
               resolvedData ? source.withContext(resolvedData) : source,
               {
                 id,
@@ -896,6 +898,7 @@ export class Interpreter<
 
     return undefined;
   }
+
   private removeChild(childId: string): void {
     this.children.delete(childId);
     this.forwardTo.delete(childId);
@@ -1248,7 +1251,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): Interpreter<TC, any, TE>;
+): Actor<State<TC, TE>, TE>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
