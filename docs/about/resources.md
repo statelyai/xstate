@@ -136,6 +136,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ XState and React](https://www.youtube.com/watch?v=pclR8Q5mbNI) on [Leniolabs](https://www.youtube.com/channel/UCcRg2Au0LLtEcakG9fg6VXg)
   - [CodeSandbox example](https://codesandbox.io/s/small-sea-t5mce?file=/pages/index.js/)
 - [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
+- [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
 
 ## Exercises
 
