@@ -1357,6 +1357,7 @@ describe('choose', () => {
   // https://github.com/davidkpiano/xstate/issues/1109
   it('exit actions should be called when invoked machine reaches final state', (done) => {
     let exitCalled = false;
+    let childExitCalled = false;
     const childMachine = Machine({
       exit: () => {
         exitCalled = true;
@@ -1364,7 +1365,10 @@ describe('choose', () => {
       initial: 'a',
       states: {
         a: {
-          type: 'final'
+          type: 'final',
+          exit: () => {
+            childExitCalled = true;
+          }
         }
       }
     });
@@ -1387,6 +1391,7 @@ describe('choose', () => {
     interpret(parentMachine)
       .onDone(() => {
         expect(exitCalled).toBeTruthy();
+        expect(childExitCalled).toBeTruthy();
         done();
       })
       .start();
