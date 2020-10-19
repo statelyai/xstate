@@ -171,12 +171,14 @@ export function useMachine<
     ];
   });
 
-  const [state, setState] = useState(() => {
-    // Always read the initial state to properly initialize the machine
-    // https://github.com/davidkpiano/xstate/issues/1334
-    const { initialState } = resolvedMachine;
-    return rehydratedState ? State.create(rehydratedState) : initialState;
-  });
+  const [state, setState] = useState<State<TContext, TEvent, any, TTypestate>>(
+    () => {
+      // Always read the initial state to properly initialize the machine
+      // https://github.com/davidkpiano/xstate/issues/1334
+      const { initialState } = resolvedMachine;
+      return rehydratedState ? State.create(rehydratedState) : initialState;
+    }
+  );
 
   const effectActionsRef = useRef<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
@@ -232,7 +234,16 @@ export function useMachine<
           );
         }
       })
-      .start(rehydratedState ? State.create(rehydratedState) : undefined);
+      .start(
+        rehydratedState
+          ? (State.create(rehydratedState) as State<
+              TContext,
+              TEvent,
+              any,
+              TTypestate
+            >)
+          : undefined
+      );
 
     return () => {
       service.stop();
