@@ -8,6 +8,7 @@ import {
 import { pure, sendParent, log, choose } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
 import { ActorRef } from '../src';
+import { InvokeSourceDefinition } from '../dist/xstate.cjs';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -1488,7 +1489,7 @@ describe('choose', () => {
       states: {
         active: {
           invoke: {
-            src: childMachine,
+            src: invokeMachine(childMachine),
             onDone: 'finished'
           }
         },
