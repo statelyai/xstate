@@ -121,7 +121,7 @@ describe('interpreter', () => {
 
     // https://github.com/davidkpiano/xstate/issues/1174
     it('executes actions from a restored state', (done) => {
-      const lightMachine = Machine(
+      const machine = Machine(
         {
           id: 'light',
           initial: 'green',
@@ -158,15 +158,45 @@ describe('interpreter', () => {
       );
 
       const currentState = 'green';
-      const nextState = lightMachine.transition(currentState, 'TIMER');
+      const nextState = machine.transition(currentState, 'TIMER');
 
       // saves state and recreate it
       const recreated = JSON.parse(JSON.stringify(nextState));
       const previousState = State.create(recreated);
-      const resolvedState = lightMachine.resolveState(previousState);
+      const resolvedState = machine.resolveState(previousState);
 
-      const service = interpret(lightMachine);
+      const service = interpret(machine);
       service.start(resolvedState);
+    });
+
+    // https://github.com/davidkpiano/xstate/issues/564
+    it('contains the fully resolved state when restoring from a partial state', (done) => {
+      const machine = Machine<{ key: undefined | string }>({
+        id: 'flow',
+        initial: 'step1',
+        context: { key: undefined },
+        states: {
+          step1: {
+            on: {
+              NEXT: 'step2'
+            }
+          },
+          step2: {
+            meta: {
+              name: 'step2'
+            }
+          }
+        }
+      });
+
+      const service = interpret(
+        machine.withContext({ key: 'value' })
+      ).onTransition((state) => {
+        expect(state.context.key).toEqual('value');
+        done();
+      });
+
+      service.start('step2');
     });
   });
 
