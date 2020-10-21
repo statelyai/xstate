@@ -57,6 +57,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import * as serviceScope from './serviceScope';
+import { StopActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -880,7 +881,7 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.activity.id);
+        this.stopChild((action as StopActionObject).activity.id);
         break;
       }
 
