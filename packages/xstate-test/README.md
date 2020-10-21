@@ -222,4 +222,4 @@ Executes each step in `testPath.segments` by:
 
 And finally, verifying that the SUT is in the target `testPath.state`.
 
-NOTE: If your model has nested states, the `meta.test` method for each parent state is also executed when veryifing the SUT is in the target `testPath.state`
+NOTE: If your model has nested states, the `meta.test` method for each parent state of that nested state is also executed when verifying that the SUT is in that nested state.
