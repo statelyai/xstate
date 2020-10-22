@@ -1,15 +1,10 @@
-import { Action, EventObject, StateNodeConfig } from '.';
+import { Action, EventObject, StateNodeConfig, TransitionConfig } from '.';
 import { createMachine } from './Machine';
+import { toArray } from './utils';
 
-interface MachineBuilder<TC, TE extends EventObject> {
-  state: <T extends string>(
-    key: T,
-    fn?: (sb: StateNodeBuilder<TC, TE>) => void
-  ) => void;
-  initialState: <T extends string>(
-    key: T,
-    fn?: (sb: StateNodeBuilder<TC, TE>) => void
-  ) => void;
+interface MachineBuilder<TC, TE extends EventObject>
+  extends StateNodeBuilder<TC, TE> {
+  context: (context: TC) => void;
 }
 
 interface StateNodeBuilder<TC, TE extends EventObject> {
@@ -22,6 +17,10 @@ interface StateNodeBuilder<TC, TE extends EventObject> {
   exit: (action: Action<TC, TE>) => void;
   on: (
     eventType: TE['type'],
+    target: string | string[] | ((tb: TransitionBuilder<TC, TE>) => void)
+  ) => void;
+  after: (
+    delay: string | number,
     target: string | string[] | ((tb: TransitionBuilder<TC, TE>) => void)
   ) => void;
 }
@@ -44,6 +43,7 @@ interface StateNodeBuilderConfig<TC, TE extends EventObject>
   } & {
     '*'?: Array<TransitionBuilderConfig<TC, TE>>;
   };
+  after: Record<string | number, Array<TransitionConfig<TC, TE>>>;
 }
 
 interface TransitionBuilderConfig<TC, TE extends EventObject> {
@@ -56,31 +56,33 @@ interface TransitionBuilder<TC, TE extends EventObject> {
   target: (target: string) => void;
 }
 
-interface MachineNodeBuilderConfig<TC, TE extends EventObject>
+interface MachineBuilderConfig<TC, TE extends EventObject>
   extends StateNodeBuilderConfig<TC, TE> {
   id: string;
+  context: TC;
 }
 
-function createStateBuilder<TC, TE extends EventObject>(
+function createStateNodeBuilder<TC, TE extends EventObject>(
   config: StateNodeBuilderConfig<TC, TE>
 ): StateNodeBuilder<TC, TE> {
-  const buildState = (key, fn) => {
+  const buildState: StateNodeBuilder<TC, TE>['state'] = (key, fn) => {
     if (config.type !== 'parallel') {
       config.type = 'compound';
     }
 
-    const childStateNodeConfig = {
+    const childStateNodeConfig: StateNodeBuilderConfig<TC, TE> = {
       key,
       type: 'atomic' as const,
       states: {},
       entry: [],
       exit: [],
-      on: {}
+      on: {},
+      after: {}
     };
     config.states![key] = childStateNodeConfig;
 
     if (fn) {
-      fn(createStateBuilder(childStateNodeConfig));
+      fn(createStateNodeBuilder(childStateNodeConfig));
     }
   };
 
@@ -117,13 +119,37 @@ function createStateBuilder<TC, TE extends EventObject>(
         };
 
         targetOrBuilder(transitionBuilder);
+
+        config.on[eventType]!.push(transitionConfig as any); // TODO: fix
       } else {
+        const transitionConfig: TransitionBuilderConfig<TC, TE> = {
+          target: toArray(targetOrBuilder),
+          actions: []
+        };
+
+        config.on[eventType]!.push(transitionConfig as any); // TODO: fix
+      }
+    },
+    after: (delay, targetOrBuilder) => {
+      config.after[delay] = config.after[delay] || [];
+
+      if (typeof targetOrBuilder === 'function') {
         const transitionConfig: TransitionBuilderConfig<TC, TE> = {
           target: [],
           actions: []
         };
+        const transitionBuilder: TransitionBuilder<TC, TE> = {
+          target: (target) => {
+            transitionConfig.target.push(target);
+          },
+          action: (action) => {
+            transitionConfig.actions.push(action);
+          }
+        };
 
-        config.on[eventType]!.push(transitionConfig as any);
+        targetOrBuilder(transitionBuilder);
+
+        config.after[delay].push(transitionConfig);
       }
     }
   };
@@ -132,25 +158,30 @@ function createStateBuilder<TC, TE extends EventObject>(
 }
 
 function createMachineBuilder<TC, TE extends EventObject>(
-  config: MachineNodeBuilderConfig<TC, TE>
+  config: MachineBuilderConfig<TC, TE>
 ): MachineBuilder<TC, TE> {
-  const snb = createStateBuilder(config);
+  const machineBuilder: MachineBuilder<TC, TE> = {
+    ...createStateNodeBuilder(config),
+    context: (context) => (config.context = context)
+  };
 
-  return snb;
+  return machineBuilder;
 }
 
 export function buildMachine<TC, TE extends EventObject>(
   machineKey: string,
   fn: (mb: MachineBuilder<TC, TE>) => void
 ) {
-  const config: MachineNodeBuilderConfig<TC, TE> = {
+  const config: MachineBuilderConfig<TC, TE> = {
     id: machineKey,
     key: machineKey,
     states: {},
     type: 'compound',
     entry: [],
     exit: [],
-    on: {}
+    on: {},
+    after: {},
+    context: null as any
   };
 
   const mb = createMachineBuilder(config);
