@@ -17,6 +17,9 @@
     "es/**/*.js",
     "es/**/*.d.ts"
   ],
+  "exports": {
+    "import": "./es/index.js"
+  },
   "keywords": [
     "statechart",
     "state machine",
