@@ -221,3 +221,5 @@ Executes each step in `testPath.segments` by:
 2. Executing the event for `segment.event`
 
 And finally, verifying that the SUT is in the target `testPath.state`.
+
+NOTE: If your model has nested states, the `meta.test` method for each parent state of that nested state is also executed when verifying that the SUT is in that nested state.
