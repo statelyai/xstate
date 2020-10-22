@@ -157,23 +157,25 @@ export function useMachine<
       services,
       delays
     };
-    const resolvedMachine = machine.withConfig(machineConfig, {
+    const machineWithConfig = machine.withConfig(machineConfig, {
       ...machine.context,
       ...context
     } as TContext);
 
     return [
-      resolvedMachine,
-      interpret(resolvedMachine, { deferEvents: true, ...interpreterOptions })
+      machineWithConfig,
+      interpret(machineWithConfig, { deferEvents: true, ...interpreterOptions })
     ];
   });
 
-  const [state, setState] = useState(() => {
-    // Always read the initial state to properly initialize the machine
-    // https://github.com/davidkpiano/xstate/issues/1334
-    const { initialState } = resolvedMachine;
-    return rehydratedState ? State.create(rehydratedState) : initialState;
-  });
+  const [state, setState] = useState<State<TContext, TEvent, any, TTypestate>>(
+    () => {
+      // Always read the initial state to properly initialize the machine
+      // https://github.com/davidkpiano/xstate/issues/1334
+      const { initialState } = resolvedMachine;
+      return rehydratedState ? State.create(rehydratedState) : initialState;
+    }
+  );
 
   const effectActionsRef = useRef<
     Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>

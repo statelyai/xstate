@@ -41,7 +41,7 @@ const glassMachine = Machine(
         always: {
             target: 'full',
             cond: 'glassIsFull'
-        }
+        },
         on: {
           FILL: {
             target: 'filling',
@@ -65,7 +65,7 @@ The current context is referenced on the `State` as `state.context`:
 const nextState = glassMachine.transition(glassMachine.initialState, 'FILL');
 
 nextState.context;
-// => { count: 1 }
+// => { amount: 1 }
 ```
 
 ## Initial Context

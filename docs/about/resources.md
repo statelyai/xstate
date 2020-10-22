@@ -131,3 +131,13 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Reducing state complexity with XState](https://www.youtube.com/watch?v=CpxL-4oIZPw) by [Kishore](www.github.com/pkishoez)
 - [Finite State Machines in React JS using XState JS](https://dev.to/soorajsnblaze333/finite-state-machines-in-react-js-using-xstate-36ho) by [Sooraj](https://dev.to/soorajsnblaze333)
 - [▶️ Managing UI Complexity with Statecharts (playlist)](https://www.youtube.com/playlist?list=PLsVj0cy-DbErFraf3KeAUbzVl-OKyBZ0-)
+- [How State Machines Saved Our Bacon 🥓](https://www.ianjones.us/xstate-saves-our-bacon) by [Ian Jones](https://www.ianjones.us/)
+- [Refactoring a useReducer to XState, Part 1](https://swizec.com/blog/refactoring-a-usereducer-to-xstate-pt1-codewithswiz-11/) by [@swizec](https://swizec.com)
+- [▶️ XState and React](https://www.youtube.com/watch?v=pclR8Q5mbNI) on [Leniolabs](https://www.youtube.com/channel/UCcRg2Au0LLtEcakG9fg6VXg)
+  - [CodeSandbox example](https://codesandbox.io/s/small-sea-t5mce?file=/pages/index.js/)
+- [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
+- [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
+
+## Exercises
+
+- [XState Brain Teaser #1 - Auth Flow](https://dev.to/mpocock1/xstate-brain-teaser-1-auth-flow-2jhl) by [Matt Pocock](https://twitter.com/mpocock1)
