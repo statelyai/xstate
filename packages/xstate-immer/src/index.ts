@@ -8,7 +8,8 @@ import {
 import { produce, Draft } from 'immer';
 
 export type ImmerAssigner<TContext, TEvent extends EventObject> = (
-  context: Draft<TContext>,
+  context: TContext,
+  draft: Draft<TContext>,
   event: TEvent,
   meta: AssignMeta<TContext, TEvent>
 ) => void;
@@ -22,7 +23,10 @@ function immerAssign<TContext, TEvent extends EventObject = EventObject>(
   recipe: ImmerAssigner<TContext, TEvent>
 ): AssignAction<TContext, TEvent> {
   return xstateAssign((context, event, meta) => {
-    return produce(context, (draft) => void recipe(draft, event, meta));
+    return produce(
+      context,
+      (draft) => void recipe(context, draft, event, meta)
+    );
   });
 }
 
