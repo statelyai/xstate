@@ -16,9 +16,8 @@ import {
   act
 } from '@testing-library/react';
 import { useState } from 'react';
-import { invokePromise, invokeCallback } from 'xstate/invoke';
+import { invokePromise, invokeCallback, invokeMachine } from 'xstate/invoke';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
-import { invokeMachine } from 'xstate/src/invoke';
 
 afterEach(cleanup);
 

@@ -1798,5 +1798,33 @@ describe('interpreter', () => {
 
       service.start();
     });
+
+    it('state.children should reference spawned actors', (done) => {
+      const childMachine = Machine({
+        initial: 'idle',
+        states: {
+          idle: {}
+        }
+      });
+
+      const formMachine = createMachine<any>({
+        id: 'form',
+        initial: 'idle',
+        context: {},
+        entry: assign({
+          firstNameRef: (_, __, { spawn }) => spawn.from(childMachine, 'child')
+        }),
+        states: {
+          idle: {}
+        }
+      });
+
+      interpret(formMachine)
+        .onTransition((state) => {
+          expect(state.children).toHaveProperty('child');
+          done();
+        })
+        .start();
+    });
   });
 });

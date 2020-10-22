@@ -4,7 +4,7 @@ import { useMachine } from '../src';
 import { createMachine, sendParent, assign } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useActor } from '../src/useActor';
-import { invokeMachine } from 'xstate/src/invoke';
+import { invokeMachine } from 'xstate/invoke';
 import { ActorRef, ActorRefLike } from '../src/types';
 
 afterEach(cleanup);
