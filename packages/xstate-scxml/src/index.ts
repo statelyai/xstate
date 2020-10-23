@@ -62,7 +62,7 @@ export function transitionToSCXML(
     name: 'transition',
     attributes: cleanAttributes({
       event: transition.eventType,
-      guard: transition.guard
+      guard: transition.guard?.predicate
         ? functionToExpr(transition.guard.predicate)
         : undefined,
       target: (transition.target || [])

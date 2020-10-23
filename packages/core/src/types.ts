@@ -163,14 +163,13 @@ export interface GuardDefinition<TContext, TEvent extends EventObject> {
   type: string;
   children?: Array<GuardDefinition<TContext, TEvent>>;
   predicate?: GuardPredicate<TContext, TEvent>;
-  params: AnyGuardObject;
+  params: { [key: string]: any };
 }
 
 export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
   type: 'xstate.boolean';
   children: Array<Guard<TContext, TEvent>>;
   params: {
-    type: 'xstate.boolean';
     op: 'and' | 'or' | 'not';
   };
 }
@@ -179,7 +178,6 @@ export interface BooleanGuardDefinition<TContext, TEvent extends EventObject>
   extends GuardDefinition<TContext, TEvent> {
   type: 'xstate.boolean';
   params: {
-    type: 'xstate.boolean';
     op: 'and' | 'or' | 'not';
   };
 }
