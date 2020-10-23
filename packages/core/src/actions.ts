@@ -33,7 +33,8 @@ import {
   ExprWithMeta,
   ChooseConditon,
   ChooseAction,
-  AnyEventObject
+  AnyEventObject,
+  Expr
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -54,6 +55,7 @@ import {
 import { State } from './State';
 import { StateNode } from './StateNode';
 import { IS_PRODUCTION } from './environment';
+import { StopAction, StopActionObject } from '.';
 
 export { actionTypes };
 
@@ -386,18 +388,44 @@ export function start<TContext, TEvent extends EventObject>(
 /**
  * Stops an activity.
  *
- * @param activity The activity to stop.
+ * @param actorRef The activity to stop.
  */
 export function stop<TContext, TEvent extends EventObject>(
-  activity: string | ActivityDefinition<TContext, TEvent>
-): ActivityActionObject<TContext, TEvent> {
-  const activityDef = toActivityDefinition(activity);
+  actorRef:
+    | string
+    | ActivityDefinition<TContext, TEvent>
+    | Expr<TContext, TEvent, string | { id: string }>
+): StopAction<TContext, TEvent> {
+  const activity = isFunction(actorRef)
+    ? actorRef
+    : toActivityDefinition(actorRef);
 
   return {
     type: ActionTypes.Stop,
-    activity: activityDef,
+    activity,
     exec: undefined
   };
+}
+
+export function resolveStop<TContext, TEvent extends EventObject>(
+  action: StopAction<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>
+): StopActionObject {
+  const actorRefOrString = isFunction(action.activity)
+    ? action.activity(context, _event.data)
+    : action.activity;
+  const resolvedActorRef =
+    typeof actorRefOrString === 'string'
+      ? { id: actorRefOrString }
+      : actorRefOrString;
+
+  const actionObject = {
+    type: ActionTypes.Stop as const,
+    activity: resolvedActorRef
+  };
+
+  return actionObject;
 }
 
 /**
@@ -643,6 +671,13 @@ export function resolveActions<TContext, TEvent extends EventObject>(
           );
           updatedContext = resolved[1];
           return resolved[0];
+        }
+        case actionTypes.stop: {
+          return resolveStop(
+            actionObject as StopAction<TContext, TEvent>,
+            updatedContext,
+            _event
+          );
         }
         default:
           return toActionObject(actionObject, machine.options.actions);
