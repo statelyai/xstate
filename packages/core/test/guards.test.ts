@@ -1,4 +1,3 @@
-import { DefaultGuardObject } from '../src/types';
 import { Machine, interpret, State, createMachine } from '../src';
 import { DEFAULT_GUARD_TYPE } from '../src/constants';
 import { and, not, or } from '../src/guards';
@@ -283,7 +282,7 @@ describe('custom guards', () => {
     {
       guards: {
         custom: (ctx, e: Extract<Events, { type: 'EVENT' }>, meta) => {
-          const { prop, compare, op } = meta.cond as any; // TODO: fix
+          const { prop, compare, op } = meta.guard.params;
           if (op === 'greaterThan') {
             return ctx[prop] + e.value > compare;
           }
@@ -355,15 +354,17 @@ describe('referencing guards', () => {
 
   it('guard predicates should be able to be referenced from a function', () => {
     expect(functionGuard.guard!.predicate).toBeDefined();
-    expect(functionGuard.guard!.name).toEqual('guardFn');
+    expect(functionGuard.guard!.type).toEqual('guardFn');
   });
 
   it('guard predicates should be able to be referenced from an object', () => {
     expect(objectGuard.guard).toBeDefined();
-    expect(objectGuard.guard).toEqual({
-      type: 'object',
-      foo: 'bar'
-    });
+    expect(objectGuard.guard).toEqual(
+      expect.objectContaining({
+        type: 'object',
+        params: expect.objectContaining({ foo: 'bar' })
+      })
+    );
   });
 
   it('should throw for guards with missing predicates', () => {
@@ -419,7 +420,7 @@ describe('guards with child guards', () => {
               EVENT: {
                 target: 'b',
                 guard: {
-                  type: DEFAULT_GUARD_TYPE,
+                  type: 'testGuard',
                   name: 'any',
                   children: [
                     {
@@ -429,16 +430,17 @@ describe('guards with child guards', () => {
                     },
                     { type: 'customGuard' }
                   ],
-                  predicate: (_, __, { cond }) => {
-                    expect(cond.children).toHaveLength(2);
+                  predicate: (_, __, { guard }) => {
+                    expect(guard.children).toHaveLength(2);
                     expect(
-                      cond.children.find(
-                        (guard) => guard.type === 'customGuard'
+                      guard.children?.find(
+                        (childGuard) => childGuard.type === 'customGuard'
                       )?.predicate
                     ).toBeInstanceOf(Function);
+
                     return true;
                   }
-                } as DefaultGuardObject<any, any>
+                }
               }
             }
           },

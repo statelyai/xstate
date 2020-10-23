@@ -5,24 +5,20 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  Condition,
+  GuardConfig,
   Subscribable,
-  ConditionPredicate,
+  GuardPredicate,
   SCXML,
   StateLike,
   TransitionConfig,
   TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
-  Guard,
+  GuardDefinition,
   BehaviorCreator,
   InvokeSourceDefinition
 } from './types';
-import {
-  STATE_DELIMITER,
-  DEFAULT_GUARD_TYPE,
-  TARGETLESS_KEY
-} from './constants';
+import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig, SCXMLErrorEvent } from '.';
@@ -328,37 +324,36 @@ export function isString(value: any): value is string {
 }
 
 export function toGuard<TContext, TEvent extends EventObject>(
-  condition: Condition<TContext, TEvent>,
-  guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
-): Guard<TContext, TEvent> {
-  if (isString(condition)) {
+  guardConfig: GuardConfig<TContext, TEvent>,
+  guardMap?: Record<string, GuardPredicate<TContext, TEvent>>
+): GuardDefinition<TContext, TEvent> {
+  if (isString(guardConfig)) {
     return {
-      type: condition,
-      predicate: guardMap ? guardMap[condition] : undefined
+      type: guardConfig,
+      predicate: guardMap ? guardMap[guardConfig] : undefined,
+      params: { type: guardConfig }
     };
   }
 
-  if (isFunction(condition)) {
+  if (isFunction(guardConfig)) {
     return {
-      type: DEFAULT_GUARD_TYPE,
-      name: condition.name,
-      predicate: condition
-    };
-  }
-
-  if (condition.type === DEFAULT_GUARD_TYPE && condition.children?.length) {
-    return {
-      ...condition,
-      children: condition.children.map((child) => toGuard(child, guardMap))
-    };
-  }
-
-  return guardMap && guardMap[condition.type]
-    ? {
-        ...condition,
-        predicate: guardMap[condition.type]
+      type: guardConfig.name,
+      predicate: guardConfig,
+      params: {
+        type: guardConfig.name,
+        name: guardConfig.name
       }
-    : condition;
+    };
+  }
+
+  return {
+    type: guardConfig.type,
+    params: guardConfig.params || guardConfig,
+    children: guardConfig.children?.map((childGuard) =>
+      toGuard(childGuard, guardMap)
+    ),
+    predicate: guardConfig.predicate || guardMap?.[guardConfig.type]
+  };
 }
 
 export function isObservable<T>(value: any): value is Subscribable<T> {

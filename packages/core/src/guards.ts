@@ -2,8 +2,9 @@ import {
   EventObject,
   StateValue,
   DefaultGuardObject,
-  Condition,
+  GuardPredicate,
   BooleanGuardObject,
+  BooleanGuardDefinition,
   Guard,
   GuardDefinition
 } from './types';
@@ -28,31 +29,31 @@ export function stateIn<TContext, TEvent extends EventObject>(
 }
 
 export function not<TContext, TEvent extends EventObject>(
-  condition: Condition<TContext, TEvent>
-): BooleanGuardObject<TContext, TEvent> {
+  condition: GuardPredicate<TContext, TEvent>
+): BooleanGuardDefinition<TContext, TEvent> {
   return {
-    type: DEFAULT_GUARD_TYPE,
-    op: 'not',
+    type: 'xstate.boolean',
+    params: { type: 'xstate.boolean', op: 'not' },
     children: [toGuard(condition)]
   };
 }
 
 export function and<TContext, TEvent extends EventObject>(
-  ...conditions: Array<Condition<TContext, TEvent>>
+  ...conditions: Array<GuardPredicate<TContext, TEvent>>
 ): BooleanGuardObject<TContext, TEvent> {
   return {
-    type: DEFAULT_GUARD_TYPE,
-    op: 'and',
+    type: 'xstate.boolean',
+    params: { type: 'xstate.boolean', op: 'and' },
     children: conditions.map((guard) => toGuard(guard))
   };
 }
 
 export function or<TContext, TEvent extends EventObject>(
-  ...conditions: Array<Condition<TContext, TEvent>>
+  ...conditions: Array<GuardPredicate<TContext, TEvent>>
 ): BooleanGuardObject<TContext, TEvent> {
   return {
-    type: DEFAULT_GUARD_TYPE,
-    op: 'or',
+    type: 'xstate.boolean',
+    params: { type: 'xstate.boolean', op: 'or' },
     children: conditions.map((guard) => toGuard(guard))
   };
 }

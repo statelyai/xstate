@@ -69,7 +69,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
 ) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
-  guard?: Condition<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
 
@@ -116,7 +116,7 @@ export type ExtractStateValue<
           >;
         });
 
-export type ConditionPredicate<TContext, TEvent extends EventObject> = (
+export type GuardPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: GuardMeta<TContext, TEvent>
@@ -124,19 +124,25 @@ export type ConditionPredicate<TContext, TEvent extends EventObject> = (
 
 export type DefaultGuardType = 'xstate.guard';
 
+export type Guard<TContext, TEvent extends EventObject> =
+  | DefaultGuardObject<TContext, TEvent>
+  | BooleanGuardObject<TContext, TEvent>
+  | AnyGuardObject;
+
 export interface DefaultGuardObject<TContext, TEvent extends EventObject> {
   type: DefaultGuardType;
-  name: string | undefined;
+  params?: { [key: string]: any };
   /**
    * Nested guards
    */
   children?: Array<Guard<TContext, TEvent>>;
-  predicate: ConditionPredicate<TContext, TEvent>;
+  predicate: GuardPredicate<TContext, TEvent>;
 }
 
-export type Guard<TContext, TEvent extends EventObject> =
-  | DefaultGuardObject<TContext, TEvent>
-  | AnyGuardObject;
+export interface AnyGuardObject {
+  type: string;
+  [key: string]: any;
+}
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
@@ -144,15 +150,10 @@ export interface GuardMeta<TContext, TEvent extends EventObject>
   guard: GuardDefinition<TContext, TEvent>;
 }
 
-export type Condition<TContext, TEvent extends EventObject> =
+export type GuardConfig<TContext, TEvent extends EventObject> =
   | string
-  | ConditionPredicate<TContext, TEvent>
+  | GuardPredicate<TContext, TEvent>
   | Guard<TContext, TEvent>;
-
-export interface AnyGuardObject {
-  type: string;
-  [key: string]: any;
-}
 
 export type GuardObject<TContext, TEvent extends EventObject> =
   | AnyGuardObject
@@ -161,20 +162,26 @@ export type GuardObject<TContext, TEvent extends EventObject> =
 export interface GuardDefinition<TContext, TEvent extends EventObject> {
   type: string;
   children?: Array<GuardDefinition<TContext, TEvent>>;
-  predicate?: ConditionPredicate<TContext, TEvent>;
+  predicate?: GuardPredicate<TContext, TEvent>;
   params: AnyGuardObject;
 }
 
 export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
-  type: DefaultGuardType;
-  op: 'and' | 'or' | 'not';
+  type: 'xstate.boolean';
   children: Array<Guard<TContext, TEvent>>;
+  params: {
+    type: 'xstate.boolean';
+    op: 'and' | 'or' | 'not';
+  };
 }
 
 export interface BooleanGuardDefinition<TContext, TEvent extends EventObject>
   extends GuardDefinition<TContext, TEvent> {
-  type: DefaultGuardType;
-  op: 'and' | 'or' | 'not';
+  type: 'xstate.boolean';
+  params: {
+    type: 'xstate.boolean';
+    op: 'and' | 'or' | 'not';
+  };
 }
 
 export type TransitionTarget<
@@ -187,7 +194,7 @@ export type TransitionTargets<TContext> = Array<
 >;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  guard?: Condition<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -602,7 +609,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | DelayExpr<TContext, TEvent>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
-  guards: Record<string, ConditionPredicate<TContext, TEvent>>;
+  guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   behaviors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
@@ -888,13 +895,13 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
-  guard?: Guard<TContext, TEvent>;
+  guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: Array<ActionObject<TContext, TEvent>>;
-    cond?: Guard<TContext, TEvent>;
+    guard?: GuardDefinition<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
   };
 }
@@ -931,7 +938,7 @@ export interface Edge<
   event: TEventType;
   source: StateNode<TContext, TEvent>;
   target: StateNode<TContext, TEvent>;
-  cond?: Condition<TContext, TEvent & { type: TEventType }>;
+  cond?: GuardConfig<TContext, TEvent & { type: TEventType }>;
   actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
   transition: TransitionDefinition<TContext, TEvent>;

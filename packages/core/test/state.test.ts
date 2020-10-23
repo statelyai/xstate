@@ -521,7 +521,7 @@ describe('State', () => {
       ).toContainEqual(
         expect.objectContaining({
           eventType: 'TO_TWO_MAYBE',
-          guard: expect.objectContaining({ name: 'maybe' })
+          guard: expect.objectContaining({ type: 'maybe' })
         })
       );
     });

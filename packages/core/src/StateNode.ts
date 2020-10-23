@@ -376,11 +376,17 @@ export class StateNode<
       try {
         guardPassed =
           !guard ||
-          evaluateGuard(this.machine, guard, resolvedContext, _event, state);
+          evaluateGuard<TContext, TEvent>(
+            this.machine,
+            guard,
+            resolvedContext,
+            _event,
+            state
+          );
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${
-            guard!.name || guard!.type
+            guard!.type
           }' in transition for event '${eventName}' in state node '${
             this.id
           }':\n${err.message}`

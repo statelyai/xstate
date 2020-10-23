@@ -30,7 +30,7 @@ import {
   SingleOrArray,
   Typestate,
   DelayExpr,
-  Guard,
+  GuardDefinition,
   SCXML,
   GuardMeta,
   Transitions,
@@ -52,7 +52,7 @@ import {
   StopActionObject,
   AnyEventObject,
   ActorRef,
-  ConditionPredicate
+  GuardPredicate
 } from './types';
 import { State } from './State';
 import {
@@ -83,7 +83,6 @@ import {
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
-import { toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -732,7 +731,7 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
   machine: MachineNode<TContext, TEvent>,
-  guard: Guard<TContext, TEvent>,
+  guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
   state: State<TContext, TEvent>
@@ -741,32 +740,27 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     cond: guard,
-    guard: toGuardDefinition(guard),
+    guard,
     _event
   };
 
-  // if (guard.type === DEFAULT_GUARD_TYPE) {
-  //   return (guard as GuardPredicate<TContext, TEvent>).predicate(
-  //     context,
-  //     _event.data,
-  //     guardMeta
-  //   );
-  // }
-
-  const defaultPredicate: ConditionPredicate<TContext, TEvent> = (
+  const defaultPredicate: GuardPredicate<TContext, TEvent> = (
     _,
     __,
     meta
   ): boolean => {
-    const cond = meta.cond;
+    const cond = meta.guard;
 
-    if ('op' in cond) {
-      const { children, op } = cond as BooleanGuardDefinition<TContext, TEvent>;
+    if (guard.type === 'xstate.boolean') {
+      const {
+        children,
+        params: { op }
+      } = guard as BooleanGuardDefinition<TContext, TEvent>;
 
       switch (op) {
         case 'and':
-          return !!children?.every((child) => {
-            return evaluateGuard(machine, child, context, _event, state);
+          return !!children?.every((childGuard) => {
+            return evaluateGuard(machine, childGuard, context, _event, state);
           });
         case 'not':
           const childGuard = children![0]!;
@@ -780,12 +774,14 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
           return false;
       }
     } else {
-      return cond.predicate?.(context, _event.data, guardMeta);
+      return !!cond.predicate?.(context, _event.data, guardMeta);
     }
   };
 
   const predicate =
-    guard.type === DEFAULT_GUARD_TYPE ? defaultPredicate : guards[guard.type];
+    guard.type === DEFAULT_GUARD_TYPE || guard.type === 'xstate.boolean'
+      ? guard.predicate || defaultPredicate
+      : guards[guard.type] || guard.predicate;
 
   if (!predicate) {
     throw new Error(
