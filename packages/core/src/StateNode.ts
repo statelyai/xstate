@@ -38,9 +38,9 @@ import { formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
-  getCandidates,
-  evaluateGuard
+  getCandidates
 } from './stateUtils';
+import { evaluateGuard } from './guards';
 import { MachineNode } from './MachineNode';
 import { STATE_DELIMITER } from './constants';
 

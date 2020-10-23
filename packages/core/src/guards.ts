@@ -1,13 +1,16 @@
 import {
   EventObject,
   StateValue,
-  BooleanGuardObject,
   BooleanGuardDefinition,
   GuardConfig,
-  GuardDefinition
+  GuardDefinition,
+  GuardMeta,
+  SCXML
 } from './types';
 import { isStateId } from './stateUtils';
 import { isString, toGuard } from './utils';
+import { MachineNode } from './MachineNode';
+import { State } from './State';
 
 export function stateIn<TContext, TEvent extends EventObject>(
   stateValue: StateValue
@@ -31,26 +34,73 @@ export function not<TContext, TEvent extends EventObject>(
   return {
     type: 'xstate.boolean',
     params: { op: 'not' },
-    children: [toGuard(guard)]
+    children: [toGuard(guard)],
+    predicate: (ctx, e, meta) => {
+      return !meta.guard.children![0].predicate?.(ctx, e, {
+        ...meta,
+        guard: meta.guard.children![0]
+      });
+    }
   };
 }
 
 export function and<TContext, TEvent extends EventObject>(
   ...guards: Array<GuardConfig<TContext, TEvent>>
-): BooleanGuardObject<TContext, TEvent> {
+): BooleanGuardDefinition<TContext, TEvent> {
   return {
     type: 'xstate.boolean',
     params: { op: 'and' },
-    children: guards.map((guard) => toGuard(guard))
+    children: guards.map((guard) => toGuard(guard)),
+    predicate: (ctx, e, meta) => {
+      return meta.guard.children!.every((childGuard) => {
+        return childGuard.predicate?.(ctx, e, {
+          ...meta,
+          guard: childGuard
+        });
+      });
+    }
   };
 }
 
 export function or<TContext, TEvent extends EventObject>(
   ...guards: Array<GuardConfig<TContext, TEvent>>
-): BooleanGuardObject<TContext, TEvent> {
+): BooleanGuardDefinition<TContext, TEvent> {
   return {
     type: 'xstate.boolean',
     params: { op: 'or' },
-    children: guards.map((guard) => toGuard(guard))
+    children: guards.map((guard) => toGuard(guard)),
+    predicate: (ctx, e, meta) => {
+      return meta.guard.children!.some((childGuard) => {
+        return childGuard.predicate?.(ctx, e, {
+          ...meta,
+          guard: childGuard
+        });
+      });
+    }
   };
+}
+
+export function evaluateGuard<TContext, TEvent extends EventObject>(
+  machine: MachineNode<TContext, TEvent>,
+  guard: GuardDefinition<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+): boolean {
+  const { guards } = machine.options;
+  const guardMeta: GuardMeta<TContext, TEvent> = {
+    state,
+    guard,
+    _event
+  };
+
+  const predicate = guards[guard.type] || guard.predicate;
+
+  if (!predicate) {
+    throw new Error(
+      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
+    );
+  }
+
+  return predicate(context, _event.data, guardMeta);
 }

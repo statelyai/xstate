@@ -1,10 +1,4 @@
-import {
-  EventObject,
-  StateNode,
-  StateValue,
-  InvokeActionObject,
-  BooleanGuardDefinition
-} from '.';
+import { EventObject, StateNode, StateValue, InvokeActionObject } from '.';
 import {
   keys,
   flatten,
@@ -30,9 +24,7 @@ import {
   SingleOrArray,
   Typestate,
   DelayExpr,
-  GuardDefinition,
   SCXML,
-  GuardMeta,
   Transitions,
   ActionObject,
   StateValueMap,
@@ -51,8 +43,7 @@ import {
   ChooseAction,
   StopActionObject,
   AnyEventObject,
-  ActorRef,
-  GuardPredicate
+  ActorRef
 } from './types';
 import { State } from './State';
 import {
@@ -74,15 +65,11 @@ import {
   invoke
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import {
-  DEFAULT_GUARD_TYPE,
-  STATE_IDENTIFIER,
-  NULL_EVENT,
-  WILDCARD
-} from './constants';
+import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
+import { evaluateGuard } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -727,68 +714,6 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
       return allSubStateNodes.concat(subStateNodes);
     }, [] as Array<StateNode<TContext, TEvent>>)
   );
-}
-
-export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
-  guard: GuardDefinition<TContext, TEvent>,
-  context: TContext,
-  _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
-): boolean {
-  const { guards } = machine.options;
-  const guardMeta: GuardMeta<TContext, TEvent> = {
-    state,
-    guard,
-    _event
-  };
-
-  const defaultPredicate: GuardPredicate<TContext, TEvent> = (
-    _,
-    __,
-    meta
-  ): boolean => {
-    const cond = meta.guard;
-
-    if (guard.type === 'xstate.boolean') {
-      const {
-        children,
-        params: { op }
-      } = guard as BooleanGuardDefinition<TContext, TEvent>;
-
-      switch (op) {
-        case 'and':
-          return !!children?.every((childGuard) => {
-            return evaluateGuard(machine, childGuard, context, _event, state);
-          });
-        case 'not':
-          const childGuard = children![0]!;
-
-          return !evaluateGuard(machine, childGuard, context, _event, state);
-        case 'or':
-          return !!children?.some((child) => {
-            return evaluateGuard(machine, child, context, _event, state);
-          });
-        default:
-          return false;
-      }
-    } else {
-      return !!cond.predicate?.(context, _event.data, guardMeta);
-    }
-  };
-
-  const predicate =
-    guard.type === DEFAULT_GUARD_TYPE || guard.type === 'xstate.boolean'
-      ? guard.predicate || defaultPredicate
-      : guards[guard.type] || guard.predicate;
-
-  if (!predicate) {
-    throw new Error(
-      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
-    );
-  }
-
-  return predicate(context, _event.data, guardMeta);
 }
 
 export function transitionLeafNode<TContext, TEvent extends EventObject>(
