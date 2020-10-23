@@ -146,7 +146,6 @@ export interface AnyGuardObject {
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
-  cond: Guard<TContext, TEvent>;
   guard: GuardDefinition<TContext, TEvent>;
 }
 
@@ -168,7 +167,7 @@ export interface GuardDefinition<TContext, TEvent extends EventObject> {
 
 export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
   type: 'xstate.boolean';
-  children: Array<Guard<TContext, TEvent>>;
+  children: Array<GuardConfig<TContext, TEvent>>;
   params: {
     op: 'and' | 'or' | 'not';
   };

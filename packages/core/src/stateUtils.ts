@@ -739,7 +739,6 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   const { guards } = machine.options;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
-    cond: guard,
     guard,
     _event
   };
