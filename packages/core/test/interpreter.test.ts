@@ -1995,9 +1995,6 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
           expect(state.children).toHaveProperty('promiseChild');
           expect(state.children).toHaveProperty('observableChild');
 
-          // state.children.machineChild.stop?.();
-          // state.children.promiseChild.stop?.();
-          // state.children.observableChild.stop?.();
           service.send('NEXT');
         }
       });
