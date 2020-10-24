@@ -35,9 +35,11 @@ inspect({
 3. Add `{ devTools: true }` to any interpreted machines you want to visualize:
 
 ```js
+import { interpret } from 'xstate';
+import { inspect } from '@xstate/inspect';
 // ...
 
-const service = inspect(someMachine, { devTools: true });
+const service = interpret(someMachine, { devTools: true });
 ```
 
 ## Inspect Options
@@ -53,7 +55,7 @@ inspect({
 inspect();
 ```
 
-The options passed to `inspect(options)` are as follows:
+**Arguments:** the `options` object passed to `inspect(options)` with the following optional properties:
 
 - `iframe` (function or iframe `Element` or `false`) - resolves to the `iframe` element to display the inspector in. If this is set to `iframe: false`, then a popup window will be used instead.
 
@@ -76,3 +78,7 @@ The options passed to `inspect(options)` are as follows:
   ```
 
 - `url` (string) - the URL of the inspector to connect to. By default, the inspector is running on `http://statecharts.io/inspect`.
+
+**Returns:** an inspector object with the following properties:
+
+- `disconnect` (function) - a function that disconnects the inspector and cleans up any listeners.

@@ -4,9 +4,10 @@ import {
   Machine,
   interpret,
   assign,
-  Interpreter,
   spawn,
-  createMachine
+  createMachine,
+  Actor,
+  Interpreter
 } from 'xstate';
 import { useService, useMachine } from '../src';
 
@@ -16,7 +17,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<Interpreter<TodoCtx>>;
+      todos: Array<Actor<any, any>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -55,7 +56,9 @@ describe('useService', () => {
     const Todo = ({ index }: { index: number }) => {
       const [current] = useService(service);
       const todoRef = current.context.todos[index];
-      const [todoCurrent] = useService(todoRef);
+      const [todoCurrent] = useService(
+        todoRef as Interpreter<TodoCtx, any, any>
+      );
       return <>{todoCurrent.context.completed}</>;
     };
 

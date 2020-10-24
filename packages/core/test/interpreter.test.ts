@@ -13,7 +13,7 @@ import {
   createMachine
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise } from '../src/actions';
+import { log, actionTypes, raise, stop } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -1908,6 +1908,96 @@ Event: {\\"type\\":\\"SOME_EVENT\\"}"
         });
 
       service.start();
+    });
+
+    it('state.children should reference spawned actors', (done) => {
+      const childMachine = Machine({
+        initial: 'idle',
+        states: {
+          idle: {}
+        }
+      });
+
+      const formMachine = createMachine<any>({
+        id: 'form',
+        initial: 'idle',
+        context: {},
+        entry: assign({
+          firstNameRef: () => spawn(childMachine, 'child')
+        }),
+        states: {
+          idle: {}
+        }
+      });
+
+      interpret(formMachine)
+        .onTransition((state) => {
+          expect(state.children).toHaveProperty('child');
+          done();
+        })
+        .start();
+    });
+
+    it('stopped spawned actors should be cleaned up in parent', (done) => {
+      const childMachine = Machine({
+        initial: 'idle',
+        states: {
+          idle: {}
+        }
+      });
+
+      const parentMachine = createMachine<any>({
+        id: 'form',
+        initial: 'present',
+        context: {},
+        entry: assign({
+          machineRef: () => spawn(childMachine, 'machineChild'),
+          promiseRef: () =>
+            spawn(
+              new Promise(() => {
+                // ...
+              }),
+              'promiseChild'
+            ),
+          observableRef: () => spawn(interval(1000), 'observableChild')
+        }),
+        states: {
+          present: {
+            on: {
+              NEXT: {
+                target: 'gone',
+                actions: [
+                  stop((ctx) => ctx.machineRef),
+                  stop((ctx) => ctx.promiseRef),
+                  stop((ctx) => ctx.observableRef)
+                ]
+              }
+            }
+          },
+          gone: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parentMachine)
+        .onDone(() => {
+          expect(service.children.get('machineChild')).toBeUndefined();
+          expect(service.children.get('promiseChild')).toBeUndefined();
+          expect(service.children.get('observableChild')).toBeUndefined();
+          done();
+        })
+        .start();
+
+      service.subscribe((state) => {
+        if (state.matches('present')) {
+          expect(state.children).toHaveProperty('machineChild');
+          expect(state.children).toHaveProperty('promiseChild');
+          expect(state.children).toHaveProperty('observableChild');
+
+          service.send('NEXT');
+        }
+      });
     });
   });
 });

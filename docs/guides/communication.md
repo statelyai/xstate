@@ -23,7 +23,7 @@ An invocation is defined in a state node's configuration with the `invoke` prope
   - a function that returns a "callback handler"
   - a function that returns an observable
   - a string, which refers to any of the 4 listed options defined in this machine's `options.services`
-  - <Badge text="4.12"> an invoke source object, which contains the source string in `{ type: src }`, as well as any other metadata.
+  - <Badge text="4.12" /> an invoke source object, which contains the source string in `{ type: src }`, as well as any other metadata.
 - `id` - the unique identifier for the invoked service
 - `onDone` - (optional) the [transition](./transitions.md) to be taken when:
   - the child machine reaches its [final state](./final.md), or

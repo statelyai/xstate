@@ -325,7 +325,7 @@ Just like transitions, transient transitions can be specified as a single transi
 
 Null events are always "sent" for every transition, internal or external.
 
-## Eventless Transitions <Badge text="4.11+" />
+## Eventless ("Always") Transitions <Badge text="4.11+" />
 
 An eventless transition is a transition that is **always taken** when the machine is in the state where it is defined, and when its `cond` guard evaluates to `true`. They are always checked when the state is first entered, before handling any other events. Eventless transitions are defined on the `always` property of the state node:
 
