@@ -321,8 +321,6 @@ class StateNode<
       );
     }
 
-    this.initial = this.config.initial;
-
     this.states = (this.config.states
       ? mapValues(
           this.config.states,
@@ -339,6 +337,16 @@ class StateNode<
           }
         )
       : EMPTY_OBJECT) as StateNodesConfig<TContext, TStateSchema, TEvent>;
+
+    this.initial = this.config.initial;
+
+    if (this.type === 'compound' && !this.initial) {
+      throw new Error(
+        `No initial state specified for compound state node "#${
+          this.id
+        }". Try adding { initial: "${Object.keys(this.states)[0]}" }`
+      );
+    }
 
     // Document order
     let order = 0;

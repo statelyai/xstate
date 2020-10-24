@@ -124,9 +124,11 @@ describe('State node IDs', () => {
         },
         bar: {
           id: 'bar',
+          initial: 'baz',
           states: {
             baz: {},
             qux: {
+              initial: 'quux',
               states: {
                 quux: {
                   id: '#bar.qux.quux'

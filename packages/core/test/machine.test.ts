@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src/index';
+import { Machine, interpret, createMachine } from '../src/index';
 import { State } from '../src/State';
 
 const pedestrianStates = {
@@ -113,6 +113,23 @@ describe('machine', () => {
 
     it('should return the initial state', () => {
       expect(lightMachine.initialState.value).toEqual('green');
+    });
+
+    // https://github.com/davidkpiano/xstate/issues/674
+    it('should throw if initial state is missing in a compound state', () => {
+      expect(() => {
+        createMachine({
+          initial: 'first',
+          states: {
+            first: {
+              states: {
+                second: {},
+                third: {}
+              }
+            }
+          }
+        });
+      }).toThrow();
     });
   });
 
@@ -299,6 +316,7 @@ describe('machine', () => {
       const versionMachine = Machine({
         id: 'version',
         version: '1.0.4',
+        initial: 'foo',
         states: {
           foo: {
             id: 'foo'
