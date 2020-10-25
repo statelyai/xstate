@@ -356,15 +356,17 @@ export function toDirectedGraph(stateNode: StateNode): DirectedGraphNode {
           target,
           transition: t,
           label: {
-            text: t.eventType,
-            toJSON: () => ({ text: t.eventType })
-          },
-          toJSON: () => {
+            text: t.eventType
+          }
+        };
+
+        Object.defineProperty(edge, 'toJSON', {
+          value: () => {
             const { label } = edge;
 
             return { source: stateNode.id, target: target.id, label };
           }
-        };
+        });
 
         return edge;
       });
