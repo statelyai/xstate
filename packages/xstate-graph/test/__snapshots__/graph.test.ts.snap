@@ -2671,6 +2671,507 @@ Object {
 }
 `;
 
+exports[`@xstate/graph getShortestPathsAsArray() should return an array of shortest paths to all states: shortest paths array 1`] = `
+Array [
+  Object {
+    "paths": Array [
+      Object {
+        "segments": Array [],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "xstate.init",
+            },
+            "name": "xstate.init",
+            "type": "external",
+          },
+          "_sessionid": null,
+          "actions": Array [],
+          "activities": Object {},
+          "changed": undefined,
+          "children": Object {},
+          "context": undefined,
+          "done": false,
+          "event": Object {
+            "type": "xstate.init",
+          },
+          "events": Array [],
+          "history": undefined,
+          "historyValue": undefined,
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "a",
+        },
+        "weight": 0,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "xstate.init",
+        },
+        "name": "xstate.init",
+        "type": "external",
+      },
+      "_sessionid": null,
+      "actions": Array [],
+      "activities": Object {},
+      "changed": undefined,
+      "children": Object {},
+      "context": undefined,
+      "done": false,
+      "event": Object {
+        "type": "xstate.init",
+      },
+      "events": Array [],
+      "history": undefined,
+      "historyValue": undefined,
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "a",
+    },
+  },
+  Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "LONG",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "xstate.init",
+                },
+                "name": "xstate.init",
+                "type": "external",
+              },
+              "_sessionid": null,
+              "actions": Array [],
+              "activities": Object {},
+              "changed": undefined,
+              "children": Object {},
+              "context": undefined,
+              "done": false,
+              "event": Object {
+                "type": "xstate.init",
+              },
+              "events": Array [],
+              "history": undefined,
+              "historyValue": undefined,
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "a",
+            },
+          },
+        ],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "LONG",
+            },
+            "name": "LONG",
+            "type": "external",
+          },
+          "_sessionid": null,
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "children": Object {},
+          "context": undefined,
+          "done": false,
+          "event": Object {
+            "type": "LONG",
+          },
+          "events": Array [],
+          "historyValue": Object {
+            "current": "b",
+            "states": Object {
+              "a": undefined,
+              "b": undefined,
+              "c": undefined,
+              "d": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "b",
+        },
+        "weight": 1,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "LONG",
+        },
+        "name": "LONG",
+        "type": "external",
+      },
+      "_sessionid": null,
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "children": Object {},
+      "context": undefined,
+      "done": false,
+      "event": Object {
+        "type": "LONG",
+      },
+      "events": Array [],
+      "historyValue": Object {
+        "current": "b",
+        "states": Object {
+          "a": undefined,
+          "b": undefined,
+          "c": undefined,
+          "d": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "b",
+    },
+  },
+  Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "SHORT",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "xstate.init",
+                },
+                "name": "xstate.init",
+                "type": "external",
+              },
+              "_sessionid": null,
+              "actions": Array [],
+              "activities": Object {},
+              "changed": undefined,
+              "children": Object {},
+              "context": undefined,
+              "done": false,
+              "event": Object {
+                "type": "xstate.init",
+              },
+              "events": Array [],
+              "history": undefined,
+              "historyValue": undefined,
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "a",
+            },
+          },
+        ],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "NEXT",
+            },
+            "name": "NEXT",
+            "type": "external",
+          },
+          "_sessionid": null,
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "children": Object {},
+          "context": undefined,
+          "done": false,
+          "event": Object {
+            "type": "NEXT",
+          },
+          "events": Array [],
+          "history": Object {
+            "_event": Object {
+              "$$type": "scxml",
+              "data": Object {
+                "type": "NEXT",
+              },
+              "name": "NEXT",
+              "type": "external",
+            },
+            "_sessionid": null,
+            "actions": Array [],
+            "activities": Object {},
+            "changed": true,
+            "children": Object {},
+            "context": undefined,
+            "done": false,
+            "event": Object {
+              "type": "NEXT",
+            },
+            "events": Array [],
+            "historyValue": Object {
+              "current": "c",
+              "states": Object {
+                "a": undefined,
+                "b": undefined,
+                "c": undefined,
+                "d": undefined,
+              },
+            },
+            "matches": [Function],
+            "meta": Object {},
+            "toStrings": [Function],
+            "value": "c",
+          },
+          "historyValue": Object {
+            "current": "d",
+            "states": Object {
+              "a": undefined,
+              "b": undefined,
+              "c": undefined,
+              "d": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "d",
+        },
+        "weight": 1,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "NEXT",
+        },
+        "name": "NEXT",
+        "type": "external",
+      },
+      "_sessionid": null,
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "children": Object {},
+      "context": undefined,
+      "done": false,
+      "event": Object {
+        "type": "NEXT",
+      },
+      "events": Array [],
+      "history": Object {
+        "_event": Object {
+          "$$type": "scxml",
+          "data": Object {
+            "type": "NEXT",
+          },
+          "name": "NEXT",
+          "type": "external",
+        },
+        "_sessionid": null,
+        "actions": Array [],
+        "activities": Object {},
+        "changed": true,
+        "children": Object {},
+        "context": undefined,
+        "done": false,
+        "event": Object {
+          "type": "NEXT",
+        },
+        "events": Array [],
+        "historyValue": Object {
+          "current": "c",
+          "states": Object {
+            "a": undefined,
+            "b": undefined,
+            "c": undefined,
+            "d": undefined,
+          },
+        },
+        "matches": [Function],
+        "meta": Object {},
+        "toStrings": [Function],
+        "value": "c",
+      },
+      "historyValue": Object {
+        "current": "d",
+        "states": Object {
+          "a": undefined,
+          "b": undefined,
+          "c": undefined,
+          "d": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "d",
+    },
+  },
+  Object {
+    "paths": Array [
+      Object {
+        "segments": Array [
+          Object {
+            "event": Object {
+              "type": "LONG",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "xstate.init",
+                },
+                "name": "xstate.init",
+                "type": "external",
+              },
+              "_sessionid": null,
+              "actions": Array [],
+              "activities": Object {},
+              "changed": undefined,
+              "children": Object {},
+              "context": undefined,
+              "done": false,
+              "event": Object {
+                "type": "xstate.init",
+              },
+              "events": Array [],
+              "history": undefined,
+              "historyValue": undefined,
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "a",
+            },
+          },
+          Object {
+            "event": Object {
+              "type": "NEXT",
+            },
+            "state": Object {
+              "_event": Object {
+                "$$type": "scxml",
+                "data": Object {
+                  "type": "LONG",
+                },
+                "name": "LONG",
+                "type": "external",
+              },
+              "_sessionid": null,
+              "actions": Array [],
+              "activities": Object {},
+              "changed": true,
+              "children": Object {},
+              "context": undefined,
+              "done": false,
+              "event": Object {
+                "type": "LONG",
+              },
+              "events": Array [],
+              "historyValue": Object {
+                "current": "b",
+                "states": Object {
+                  "a": undefined,
+                  "b": undefined,
+                  "c": undefined,
+                  "d": undefined,
+                },
+              },
+              "matches": [Function],
+              "meta": Object {},
+              "toStrings": [Function],
+              "value": "b",
+            },
+          },
+        ],
+        "state": Object {
+          "_event": Object {
+            "$$type": "scxml",
+            "data": Object {
+              "type": "NEXT",
+            },
+            "name": "NEXT",
+            "type": "external",
+          },
+          "_sessionid": null,
+          "actions": Array [],
+          "activities": Object {},
+          "changed": true,
+          "children": Object {},
+          "context": undefined,
+          "done": false,
+          "event": Object {
+            "type": "NEXT",
+          },
+          "events": Array [],
+          "historyValue": Object {
+            "current": "c",
+            "states": Object {
+              "a": undefined,
+              "b": undefined,
+              "c": undefined,
+              "d": undefined,
+            },
+          },
+          "matches": [Function],
+          "meta": Object {},
+          "toStrings": [Function],
+          "value": "c",
+        },
+        "weight": 2,
+      },
+    ],
+    "state": Object {
+      "_event": Object {
+        "$$type": "scxml",
+        "data": Object {
+          "type": "NEXT",
+        },
+        "name": "NEXT",
+        "type": "external",
+      },
+      "_sessionid": null,
+      "actions": Array [],
+      "activities": Object {},
+      "changed": true,
+      "children": Object {},
+      "context": undefined,
+      "done": false,
+      "event": Object {
+        "type": "NEXT",
+      },
+      "events": Array [],
+      "historyValue": Object {
+        "current": "c",
+        "states": Object {
+          "a": undefined,
+          "b": undefined,
+          "c": undefined,
+          "d": undefined,
+        },
+      },
+      "matches": [Function],
+      "meta": Object {},
+      "toStrings": [Function],
+      "value": "c",
+    },
+  },
+]
+`;
+
 exports[`@xstate/graph getSimplePaths() should return a mapping of arrays of simple paths to all states: simple paths 1`] = `
 Object {
   "\\"green\\"": Object {

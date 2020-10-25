@@ -5,7 +5,11 @@ import {
   getShortestPaths,
   toDirectedGraph
 } from '../src/index';
-import { getSimplePathsAsArray, getAdjacencyMap } from '../src/graph';
+import {
+  getSimplePathsAsArray,
+  getAdjacencyMap,
+  getShortestPathsAsArray
+} from '../src/graph';
 import { assign } from 'xstate';
 
 describe('@xstate/graph', () => {
@@ -203,6 +207,33 @@ describe('@xstate/graph', () => {
       );
 
       expect(paths).toMatchSnapshot('shortest paths conditional');
+    });
+  });
+
+  describe('getShortestPathsAsArray()', () => {
+    it('should return an array of shortest paths to all states', () => {
+      const testMachine = createMachine({
+        initial: 'a',
+        states: {
+          a: {
+            on: {
+              LONG: 'b',
+              SHORT: 'd'
+            }
+          },
+          b: {
+            on: { NEXT: 'c' }
+          },
+          c: {
+            on: { NEXT: 'd' }
+          },
+          d: {}
+        }
+      });
+      const pathsArray = getShortestPathsAsArray(testMachine);
+
+      expect(Array.isArray(pathsArray)).toBeTruthy();
+      expect(pathsArray).toMatchSnapshot('shortest paths array');
     });
   });
 

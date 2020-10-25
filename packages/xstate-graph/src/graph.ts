@@ -247,6 +247,17 @@ export function getShortestPaths<
   return statePathMap;
 }
 
+export function getShortestPathsAsArray<
+  TContext = DefaultContext,
+  TEvent extends EventObject = EventObject
+>(
+  machine: StateNode<TContext, any, TEvent>,
+  options?: ValueAdjMapOptions<TContext, TEvent>
+): Array<StatePaths<TContext, TEvent>> {
+  const result = getShortestPaths(machine, options);
+  return keys(result).map((key) => result[key]);
+}
+
 export function getSimplePaths<
   TContext = DefaultContext,
   TEvent extends EventObject = EventObject
@@ -265,7 +276,6 @@ export function getSimplePaths<
     return EMPTY_MAP;
   }
 
-  // @ts-ignore - excessively deep
   const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
   const stateMap = new Map<string, State<TContext, TEvent>>();
   const visited = new Set();
