@@ -1,0 +1,51 @@
+{
+  "name": "@xstate/inspect",
+  "version": "0.1.1",
+  "description": "XState inspection utilities",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state machine",
+    "visualizer",
+    "viz"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect#readme",
+  "license": "MIT",
+  "main": "lib/index.js",
+  "module": "es/index.js",
+  "types": "lib/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "lib/**/*.js",
+    "lib/**/*.d.ts",
+    "es/**/*.js",
+    "es/**/*.d.ts"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {
+    "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
+    "test": "jest --passWithNoTests",
+    "build": "tsc && tsc --outDir es --module es2015",
+    "watch": "tsc -w --module es2015",
+    "prepublish": "npm run build"
+  },
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "devDependencies": {
+    "@types/ws": "^7.2.6",
+    "ws": "^7.3.1",
+    "xstate": "*",
+    "typescript": "^4.0.2"
+  },
+  "peerDependencies": {
+    "ws": "^7.3.1"
+  },
+  "dependencies": {}
+}

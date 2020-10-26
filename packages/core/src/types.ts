@@ -796,7 +796,7 @@ export interface NullEvent {
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext, TEvent>;
+  activity: ActivityDefinition<TContext, TEvent> | undefined;
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
@@ -854,6 +854,20 @@ export interface SendActionObject<
   event: TSentEvent;
   delay?: number;
   id: string | number;
+}
+
+export interface StopAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Stop;
+  activity:
+    | string
+    | { id: string }
+    | Expr<TContext, TEvent, string | { id: string }>;
+}
+
+export interface StopActionObject {
+  type: ActionTypes.Stop;
+  activity: { id: string };
 }
 
 export type Expr<TContext, TEvent extends EventObject, T> = (

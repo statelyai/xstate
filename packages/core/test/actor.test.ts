@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, Interpreter } from '../src';
+import { Machine, spawn, interpret } from '../src';
 import {
   assign,
   send,
@@ -101,7 +101,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Interpreter<any, any>;
+    server?: Actor<any, any>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -662,7 +662,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Interpreter<any, any>;
+        ref?: Actor<any, any>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -707,7 +707,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: Actor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -757,7 +757,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Interpreter<any, any>;
+          ref?: Actor<any, any>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({

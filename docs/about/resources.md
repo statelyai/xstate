@@ -104,7 +104,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [Hello XState Part 3: Writing my first state machines (and washing my hands)](https://dev.to/ekafyi/hello-xstate-part-3-writing-my-first-state-machines-and-washing-my-hands-for-20-seconds-23p) -[CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://codesandbox.io/u/JamieMason)
 - [▶️ The Actor Model | XState part 1](https://www.youtube.com/watch?v=4CLdNeetVHw) by [@bisvarup](https://bisvarup.me/)
   - [CodeSandbox example](https://codesandbox.io/s/ancient-framework-bvw61?file=/src/App.js)
-- [Intro: XState and State Machiens (React)](https://medium.com/@d_danailov/intro-sstate-and-state-machines-react-3b873a6a713d) by [Dimitar Danailov](https://medium.com/@d_danailov)
+- [Intro: XState and State Machines (React)](https://medium.com/@d_danailov/intro-sstate-and-state-machines-react-3b873a6a713d) by [Dimitar Danailov](https://medium.com/@d_danailov)
 - [▶️ Learning XState with Lauren](https://www.youtube.com/watch?v=h5H1ZmjMDE4) on Lauren Learns Things
 - [XState, React, and TypeScript - how to get it working](https://dev.to/mpocock1/xstate-react-and-typescript-how-to-get-it-working-4p18) by [Matt Pocock](https://dev.to/mpocock1)
 - [XState Pizza Wizard!](https://www.youtube.com/watch?v=JauJhGTBFsc) by [Jack Herrington](https://github.com/jherr)
@@ -131,3 +131,14 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ Reducing state complexity with XState](https://www.youtube.com/watch?v=CpxL-4oIZPw) by [Kishore](www.github.com/pkishoez)
 - [Finite State Machines in React JS using XState JS](https://dev.to/soorajsnblaze333/finite-state-machines-in-react-js-using-xstate-36ho) by [Sooraj](https://dev.to/soorajsnblaze333)
 - [▶️ Managing UI Complexity with Statecharts (playlist)](https://www.youtube.com/playlist?list=PLsVj0cy-DbErFraf3KeAUbzVl-OKyBZ0-)
+- [How State Machines Saved Our Bacon 🥓](https://www.ianjones.us/xstate-saves-our-bacon) by [Ian Jones](https://www.ianjones.us/)
+- [Refactoring a useReducer to XState, Part 1](https://swizec.com/blog/refactoring-a-usereducer-to-xstate-pt1-codewithswiz-11/) by [@swizec](https://swizec.com)
+- [▶️ XState and React](https://www.youtube.com/watch?v=pclR8Q5mbNI) on [Leniolabs](https://www.youtube.com/channel/UCcRg2Au0LLtEcakG9fg6VXg)
+  - [CodeSandbox example](https://codesandbox.io/s/small-sea-t5mce?file=/pages/index.js/)
+- [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
+- [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
+- [XState and State Machines in VueJS](https://www.youtube.com/watch?v=8y9wUwJvdGs) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
+
+## Exercises
+
+- [XState Brain Teaser #1 - Auth Flow](https://dev.to/mpocock1/xstate-brain-teaser-1-auth-flow-2jhl) by [Matt Pocock](https://twitter.com/mpocock1)
