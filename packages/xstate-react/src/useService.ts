@@ -1,7 +1,8 @@
-import { useMemo } from 'react';
-import { EventObject, State, Interpreter, Typestate, Sender } from 'xstate';
+import { useEffect, useMemo, useRef } from 'react';
+import { EventObject, State, Interpreter, Typestate } from 'xstate';
 import { useActor } from './useActor';
-import { ActorRef } from './types';
+import { ActorRef, PayloadSender } from './types';
+import useConstant from './useConstant';
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>
@@ -32,11 +33,26 @@ export function useService<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: Interpreter<TContext, any, TEvent, TTypestate>
-): [State<TContext, TEvent, any, TTypestate>, Sender<TEvent>] {
+): [State<TContext, TEvent, any, TTypestate>, PayloadSender<TEvent>] {
   const serviceActor = useMemo(() => fromService(service), [service]);
 
-  return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
+  // Using a ref ensures that the constant `sender` always sends the event
+  // to the latest (possibly changed) `service.send` method.
+  const senderRef = useRef(service.send);
+  useEffect(() => {
+    senderRef.current = service.send;
+  }, [service.send]);
+  const sender = useConstant(
+    () =>
+      ((event, payload) => {
+        senderRef.current(event, payload);
+      }) as PayloadSender<TEvent>
+  );
+
+  const [state] = useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
     serviceActor,
     (actor) => (actor as typeof serviceActor).current
   );
+
+  return [state, sender];
 }

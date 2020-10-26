@@ -46,3 +46,8 @@ export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
 }
 
 export type MaybeLazy<T> = T | (() => T);
+
+export interface PayloadSender<TEvent extends EventObject> {
+  (event: TEvent | TEvent['type']): void;
+  (event: TEvent['type'], payload: Omit<TEvent, 'type'>): void;
+}

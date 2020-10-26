@@ -198,6 +198,7 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
 }
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
+
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
