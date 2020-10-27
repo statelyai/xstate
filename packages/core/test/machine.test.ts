@@ -1,5 +1,6 @@
 import { Machine, interpret } from '../src/index';
 import { State } from '../src/State';
+import { createSchema } from '../src/schema';
 
 const pedestrianStates = {
   initial: 'walk',
@@ -26,9 +27,21 @@ interface LightStateSchema {
   };
 }
 
-const lightMachine = Machine<undefined, LightStateSchema>({
+type LightStateEvents =
+  | {
+      type: 'TIMER';
+    }
+  | { type: 'POWER_OUTAGE' }
+  | { type: 'FORBIDDEN_EVENT' }
+  | { type: 'PED_COUNTDOWN' };
+
+const lightMachine = Machine({
   key: 'light',
   initial: 'green',
+  schema: {
+    states: createSchema<LightStateSchema>(),
+    events: createSchema<LightStateEvents>()
+  },
   states: {
     green: {
       on: {
@@ -59,6 +72,9 @@ const configMachine = Machine(
     initial: 'foo',
     context: {
       foo: 'bar'
+    },
+    schema: {
+      events: createSchema<{ type: 'EVENT' }>()
     },
     states: {
       foo: {

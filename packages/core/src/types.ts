@@ -647,6 +647,15 @@ export interface MachineConfig<
    */
   context?: TContext | (() => TContext);
   /**
+   * Describes the events that this machine accepts.
+   *
+   * **NOTE:** This is TypeScript-only.;
+   */
+  schema?: {
+    states?: TStateSchema;
+    events?: TEvent;
+  };
+  /**
    * The machine's own version.
    */
   version?: string;
