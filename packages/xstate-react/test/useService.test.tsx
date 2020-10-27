@@ -158,7 +158,7 @@ describe('useService hook', () => {
 
   it('should render the final state', () => {
     const service = interpret(
-      Machine({
+      Machine<any, { type: 'NEXT' }>({
         initial: 'first',
         states: {
           first: {
@@ -175,7 +175,7 @@ describe('useService hook', () => {
       })
     ).start();
 
-    service.send({ type: 'NEXT' });
+    service.send('NEXT');
 
     const Test = () => {
       const [state] = useService(service);

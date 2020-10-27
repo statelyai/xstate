@@ -47,7 +47,14 @@ export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
 
 export type MaybeLazy<T> = T | (() => T);
 
+type OnlyIfExact<A, B, C> = A extends B ? (B extends A ? C : never) : never;
 export interface PayloadSender<TEvent extends EventObject> {
-  (event: TEvent | TEvent['type']): void;
-  (event: TEvent['type'], payload: Omit<TEvent, 'type'>): void;
+  (event: TEvent): void;
+  <K extends TEvent['type']>(
+    event: K & OnlyIfExact<{ type: K }, Extract<TEvent, { type: K }>, K>
+  ): void;
+  <K extends TEvent['type']>(
+    event: K,
+    payload: Omit<Extract<TEvent, { type: K }>, 'type'>
+  ): void;
 }
