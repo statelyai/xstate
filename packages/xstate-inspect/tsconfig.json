@@ -4,8 +4,7 @@
   "compilerOptions": {
     "outDir": "./lib",
     "rootDir": "./src",
-    "target": "es5",
-    "module": "CommonJS"
+    "target": "es5"
   },
   "references": [
     {
