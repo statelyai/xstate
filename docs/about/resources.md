@@ -138,6 +138,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
 - [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
 - [XState and State Machines in VueJS](https://www.youtube.com/watch?v=8y9wUwJvdGs) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
+- [Tes en Línea: React, TypeScript, XState, fp-ts & CSS Grid (esp)](https://medium.com/codingedgar/tes-en-l%C3%ADnea-react-typescript-xstate-fp-ts-css-grid-esp-1373236189d1) by [Edgar Rodriguez](https://medium.com/@codingedgar)
 
 ## Exercises
 
