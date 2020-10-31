@@ -142,7 +142,11 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [Supervising XState Machines with Redux](https://dev.to/rjdestigter/supervising-xstate-machines-with-redux-277d) by [John de Stigter](https://dev.to/rjdestigter)
 - [Working with non-user asynchronous events in model based tests with XState](https://dev.to/rjdestigter/working-with-non-user-asynchronous-events-in-model-based-tests-with-xstate-58ek) by [John de Stigter](https://dev.to/rjdestigter)
 - [Model based UI tests with XState, Cypress, Puppeteer & more](https://dev.to/rjdestigter/model-based-ui-tests-with-xstate-cypress-puppeteer-more-268d) by [John de Stigter](https://dev.to/rjdestigter)
-- [Thoughts on State Management with XState and ReactJS(https://dev.to/rjdestigter/thoughts-on-state-management-with-xstate-and-reactjs-3d19) by [John de Stigter](https://dev.to/rjdestigter)
+- [Thoughts on State Management with XState and ReactJS](https://dev.to/rjdestigter/thoughts-on-state-management-with-xstate-and-reactjs-3d19) by [John de Stigter](https://dev.to/rjdestigter)
+- [▶️ Tutorial of C++ Code Generator for XState State Machine engine](https://www.youtube.com/watch?v=DnuJFUR1SgA) by [Andrew Shuvalov](https://www.youtube.com/channel/UCHFfZT1QM-vnqSZKtrT0e6g)
+  - [▶️ Part 2](https://www.youtube.com/watch?v=8TTfRrmNu0s)
+  - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
+  - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
 
 ## Exercises
 
