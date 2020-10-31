@@ -36,7 +36,8 @@ import {
   InvokeActionObject,
   StopActionObject,
   AnyEventObject,
-  ActorRef
+  ActorRef,
+  Expr
 } from './types';
 import * as actionTypes from './actionTypes';
 import {
@@ -47,6 +48,7 @@ import {
   toSCXMLEvent,
   isArray
 } from './utils';
+import { StopAction } from '.';
 
 export { actionTypes };
 
@@ -382,13 +384,34 @@ export function invoke<TContext, TEvent extends EventObject>(
 /**
  * Stops an actor.
  *
- * @param actorRef The `ActorRef` instance or its ID
+ * @param actorRef The activity to stop.
  */
-export function stop(actorRef: string | ActorRef<any>): StopActionObject {
+export function stop<TContext, TEvent extends EventObject>(
+  actorRef: string | Expr<TContext, TEvent, ActorRef<any>>
+): StopAction<TContext, TEvent> {
+  const activity = isFunction(actorRef) ? actorRef : actorRef;
+
   return {
     type: ActionTypes.Stop,
-    actor: actorRef
+    actor: activity
   };
+}
+
+export function resolveStop<TContext, TEvent extends EventObject>(
+  action: StopAction<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>
+): StopActionObject {
+  const actorRefOrString = isFunction(action.actor)
+    ? action.actor(context, _event.data)
+    : action.actor;
+
+  const actionObject = {
+    type: ActionTypes.Stop as const,
+    actor: actorRefOrString
+  };
+
+  return actionObject;
 }
 
 /**

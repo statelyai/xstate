@@ -724,6 +724,10 @@ export interface InvokeActionObject {
   exec?: undefined;
 }
 
+export interface StopAction<TC, TE extends EventObject> {
+  type: ActionTypes.Stop;
+  actor: string | ActorRef<any> | Expr<TC, TE, ActorRef<any>>;
+}
 export interface StopActionObject {
   type: ActionTypes.Stop;
   actor: string | ActorRef<any>;

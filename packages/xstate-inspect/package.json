@@ -1,0 +1,46 @@
+{
+  "name": "@xstate/inspect",
+  "version": "0.1.1",
+  "description": "XState inspection utilities",
+  "keywords": [
+    "state",
+    "machine",
+    "statechart",
+    "scxml",
+    "state machine",
+    "visualizer",
+    "viz"
+  ],
+  "author": "David Khourshid <davidkpiano@gmail.com>",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect#readme",
+  "license": "MIT",
+  "main": "dist/inspect.cjs.js",
+  "module": "dist/inspect.esm.js",
+  "types": "lib/index.d.ts",
+  "sideEffects": false,
+  "files": [
+    "dist"
+  ],
+  "repository": {
+    "type": "git",
+    "url": "git+ssh://git@github.com/davidkpiano/xstate.git"
+  },
+  "scripts": {},
+  "bugs": {
+    "url": "https://github.com/davidkpiano/xstate/issues"
+  },
+  "devDependencies": {
+    "@types/ws": "^7.2.6",
+    "rollup": "^1.26.3",
+    "rollup-plugin-typescript2": "^0.25.2",
+    "typescript": "^4.0.3",
+    "ws": "^7.3.1",
+    "xstate": "*"
+  },
+  "peerDependencies": {
+    "ws": "^7.3.1"
+  },
+  "dependencies": {
+    "xstate": "^4.9.1"
+  }
+}

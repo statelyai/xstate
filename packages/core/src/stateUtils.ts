@@ -62,7 +62,8 @@ import {
   resolveLog,
   resolveCancel,
   toActionObject,
-  invoke
+  invoke,
+  resolveStop
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
@@ -1650,6 +1651,14 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               } as any) // TODO: fix
             });
           }
+          break;
+        case actionTypes.stop:
+          const stopAction = resolveStop(
+            actionObject as StopActionObject,
+            context,
+            _event
+          );
+          resActions.push(stopAction);
           break;
         default:
           resActions.push(

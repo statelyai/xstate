@@ -13,7 +13,7 @@ import {
   createMachine
 } from '../src';
 import { State } from '../src/State';
-import { log, actionTypes, raise } from '../src/actions';
+import { log, actionTypes, raise, stop } from '../src/actions';
 import { isObservable } from '../src/utils';
 import { interval, from } from 'rxjs';
 import { map } from 'rxjs/operators';
@@ -1825,6 +1825,70 @@ describe('interpreter', () => {
           done();
         })
         .start();
+    });
+
+    it('stopped spawned actors should be cleaned up in parent', (done) => {
+      const childMachine = Machine({
+        initial: 'idle',
+        states: {
+          idle: {}
+        }
+      });
+
+      const parentMachine = createMachine<any>({
+        id: 'form',
+        initial: 'present',
+        context: {},
+        entry: assign({
+          machineRef: (_, __, { spawn }) =>
+            spawn.from(childMachine, 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn.from(
+              new Promise(() => {
+                // ...
+              }),
+              'promiseChild'
+            ),
+          observableRef: (_, __, { spawn }) =>
+            spawn.from(interval(1000), 'observableChild')
+        }),
+        states: {
+          present: {
+            on: {
+              NEXT: {
+                target: 'gone',
+                actions: [
+                  stop((ctx: any) => ctx.machineRef),
+                  stop((ctx: any) => ctx.promiseRef),
+                  stop((ctx: any) => ctx.observableRef)
+                ]
+              }
+            }
+          },
+          gone: {
+            type: 'final'
+          }
+        }
+      });
+
+      const service = interpret(parentMachine)
+        .onDone(() => {
+          expect(service.children.get('machineChild')).toBeUndefined();
+          expect(service.children.get('promiseChild')).toBeUndefined();
+          expect(service.children.get('observableChild')).toBeUndefined();
+          done();
+        })
+        .start();
+
+      service.subscribe((state) => {
+        if (state.matches('present')) {
+          expect(state.children).toHaveProperty('machineChild');
+          expect(state.children).toHaveProperty('promiseChild');
+          expect(state.children).toHaveProperty('observableChild');
+
+          service.send('NEXT');
+        }
+      });
     });
   });
 });

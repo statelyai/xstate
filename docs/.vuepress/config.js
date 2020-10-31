@@ -60,6 +60,7 @@ module.exports = {
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
+          '/guides/testing',
           '/guides/typescript'
         ]
       },
