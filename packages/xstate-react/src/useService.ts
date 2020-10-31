@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef } from 'react';
+import { useMemo, useRef } from 'react';
 import {
   EventObject,
   State,
@@ -6,6 +6,7 @@ import {
   Typestate,
   PayloadSender
 } from 'xstate';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { useActor } from './useActor';
 import { ActorRef } from './types';
 import useConstant from './useConstant';
@@ -45,7 +46,7 @@ export function useService<
   // Using a ref ensures that the constant `sender` always sends the event
   // to the latest (possibly changed) `service.send` method.
   const senderRef = useRef(service.send);
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     senderRef.current = service.send;
   }, [service.send]);
   const sender = useConstant(

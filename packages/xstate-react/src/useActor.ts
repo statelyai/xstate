@@ -1,4 +1,5 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useRef } from 'react';
+import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { Sender, ActorRefLike } from './types';
 import { EventObject, Actor } from 'xstate';
 import useConstant from './useConstant';
@@ -24,7 +25,7 @@ export function useActor<TEvent extends EventObject, TEmitted = any>(
     }
   });
 
-  useEffect(() => {
+  useIsomorphicLayoutEffect(() => {
     actorRefRef.current = actorRef;
     setCurrent(getSnapshot(actorRef));
     const subscription = actorRef.subscribe(setCurrent);
