@@ -30,6 +30,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 - [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
 - [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
+- [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
 
