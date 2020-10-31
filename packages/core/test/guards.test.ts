@@ -130,6 +130,42 @@ describe('guard conditions', () => {
   it('should throw if string transition is not defined', () => {
     expect(() => lightMachine.transition('red', 'BAD_COND')).toThrow();
   });
+
+  it('errors from guards in invoke.onError transition should show correct error', (done) => {
+    const machine = Machine({
+      id: 'machine',
+      initial: 'active',
+      strict: true,
+      states: {
+        active: {
+          invoke: {
+            id: 'willThrow',
+            src: () => Promise.reject(),
+            onDone: 'complete',
+            onError: [
+              {
+                target: 'active',
+                cond: () => {
+                  throw new Error('test');
+                }
+              },
+              { target: 'error' }
+            ]
+          }
+        },
+        error: {},
+        complete: {}
+      }
+    });
+
+    const service = interpret(machine).onError((err) => {
+      expect(err.message).toContain('machine.active');
+      expect(err.message).toContain('test');
+      done();
+    });
+
+    service.start();
+  });
 });
 
 describe('guard conditions', () => {

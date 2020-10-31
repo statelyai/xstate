@@ -619,11 +619,15 @@ export function normalizeTarget<TContext, TEvent extends EventObject>(
 }
 
 export function reportUnhandledExceptionOnInvocation(
-  originalError: any,
-  currentError: any,
+  originalError: unknown,
+  currentError: Error,
   id: string
 ) {
   if (!IS_PRODUCTION) {
+    if (!(originalError instanceof Error)) {
+      return;
+    }
+
     const originalStackTrace = originalError.stack
       ? ` Stacktrace was '${originalError.stack}'`
       : '';

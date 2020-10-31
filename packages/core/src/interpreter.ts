@@ -78,6 +78,8 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
   event: TEvent
 ) => void;
 
+export type ErrorListener = (error: Error) => void;
+
 export type Listener = () => void;
 
 export interface Clock {
@@ -98,6 +100,12 @@ export enum InterpreterStatus {
   Running,
   Stopped
 }
+
+const defaultErrorHandler = (err: Error) => {
+  if (!IS_PRODUCTION) {
+    console.error(err);
+  }
+};
 
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
@@ -147,6 +155,7 @@ export class Interpreter<
   private doneListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
+  private errorListeners: Set<ErrorListener> = new Set([defaultErrorHandler]);
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
@@ -424,6 +433,26 @@ export class Interpreter<
     return this;
   }
   /**
+   * Adds an error listener that is notified when an unhandled error occurs.
+   * @param errorListener The error listener
+   */
+  public onError(
+    errorListener: ErrorListener
+  ): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
+    this.errorListeners.add(errorListener);
+    return this;
+  }
+  private handleError(errorData: unknown): void {
+    const error =
+      errorData instanceof Error ? errorData : new Error(errorData as any);
+
+    if (this.errorListeners.size === 0) {
+      throw error;
+    }
+
+    this.errorListeners.forEach((errorListener) => errorListener(error));
+  }
+  /**
    * Removes a listener.
    * @param listener The listener to remove
    */
@@ -487,20 +516,17 @@ export class Interpreter<
    * This will also notify the `onStop` listeners.
    */
   public stop(): Interpreter<TContext, TStateSchema, TEvent, TTypestate> {
-    for (const listener of this.listeners) {
-      this.listeners.delete(listener);
-    }
+    this.listeners.clear();
+
     for (const listener of this.stopListeners) {
       // call listener, then remove
       listener();
       this.stopListeners.delete(listener);
     }
-    for (const listener of this.contextListeners) {
-      this.contextListeners.delete(listener);
-    }
-    for (const listener of this.doneListeners) {
-      this.doneListeners.delete(listener);
-    }
+
+    this.contextListeners.clear();
+    this.doneListeners.clear();
+    this.errorListeners.clear();
 
     // Stop all children
     this.children.forEach((child) => {
@@ -1010,8 +1036,12 @@ export class Interpreter<
           try {
             // Send "error.platform.id" to this (parent).
             this.send(toSCXMLEvent(errorEvent as any, { origin: id }));
-          } catch (error) {
-            reportUnhandledExceptionOnInvocation(errorData, error, id);
+          } catch (errorFromSend) {
+            if (this.machine.strict) {
+              this.handleError(errorFromSend);
+            }
+
+            reportUnhandledExceptionOnInvocation(errorData, errorFromSend, id);
             if (this.devTools) {
               this.devTools.send(errorEvent, this.state);
             }
