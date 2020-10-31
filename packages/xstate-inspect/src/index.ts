@@ -5,9 +5,48 @@ import {
   interpret,
   SCXML,
   EventObject,
-  EventData
+  EventData,
+  Event
 } from 'xstate';
-import { toSCXMLEvent, toEventObject } from 'xstate/lib/utils';
+
+function isSCXMLEvent<TEvent extends EventObject>(
+  event: Event<TEvent> | SCXML.Event<TEvent>
+): event is SCXML.Event<TEvent> {
+  return (
+    !(typeof event === 'string') &&
+    '$$type' in event &&
+    event.$$type === 'scxml'
+  );
+}
+
+function toEventObject<TEvent extends EventObject>(
+  event: Event<TEvent>
+): TEvent {
+  if (typeof event === 'string') {
+    return { type: event } as TEvent;
+  }
+
+  return event;
+}
+
+export function toSCXMLEvent<TEvent extends EventObject>(
+  event: Event<TEvent> | SCXML.Event<TEvent>,
+  scxmlEvent?: Partial<SCXML.Event<TEvent>>
+): SCXML.Event<TEvent> {
+  if (isSCXMLEvent(event)) {
+    return event as SCXML.Event<TEvent>;
+  }
+
+  const eventObject = toEventObject(event as Event<TEvent>);
+
+  return {
+    name: eventObject.type,
+    data: eventObject,
+    $$type: 'scxml',
+    type: 'external',
+    ...scxmlEvent
+  };
+}
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 

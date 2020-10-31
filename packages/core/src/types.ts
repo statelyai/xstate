@@ -689,6 +689,10 @@ export interface InvokeActionObject {
   exec?: undefined;
 }
 
+export interface StopAction<TC, TE extends EventObject> {
+  type: ActionTypes.Stop;
+  actor: string | ActorRef<any> | Expr<TC, TE, ActorRef<any>>;
+}
 export interface StopActionObject {
   type: ActionTypes.Stop;
   actor: string | ActorRef<any>;
@@ -747,20 +751,6 @@ export interface SendActionObject<
   event: TSentEvent;
   delay?: number;
   id: string | number;
-}
-
-export interface StopAction<TContext, TEvent extends EventObject>
-  extends ActionObject<TContext, TEvent> {
-  type: ActionTypes.Stop;
-  activity:
-    | string
-    | { id: string }
-    | Expr<TContext, TEvent, string | { id: string }>;
-}
-
-export interface StopActionObject {
-  type: ActionTypes.Stop;
-  activity: { id: string };
 }
 
 export type Expr<TContext, TEvent extends EventObject, T> = (

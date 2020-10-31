@@ -44,6 +44,7 @@ import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
 import { createActorRefFromInvokeAction } from './invoke';
+import { StopActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -728,7 +729,13 @@ export class Interpreter<
         break;
       }
       case actionTypes.stop: {
-        this.stopChild(action.ref);
+        const { actor } = action as StopActionObject;
+        const actorRef =
+          typeof actor === 'string' ? this.children.get(actor) : actor;
+
+        if (actorRef) {
+          this.stopChild(actorRef.name);
+        }
         break;
       }
 

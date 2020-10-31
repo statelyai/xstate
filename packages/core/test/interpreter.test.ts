@@ -1840,15 +1840,17 @@ describe('interpreter', () => {
         initial: 'present',
         context: {},
         entry: assign({
-          machineRef: () => spawn(childMachine, 'machineChild'),
-          promiseRef: () =>
-            spawn(
+          machineRef: (_, __, { spawn }) =>
+            spawn.from(childMachine, 'machineChild'),
+          promiseRef: (_, __, { spawn }) =>
+            spawn.from(
               new Promise(() => {
                 // ...
               }),
               'promiseChild'
             ),
-          observableRef: () => spawn(interval(1000), 'observableChild')
+          observableRef: (_, __, { spawn }) =>
+            spawn.from(interval(1000), 'observableChild')
         }),
         states: {
           present: {
@@ -1856,9 +1858,9 @@ describe('interpreter', () => {
               NEXT: {
                 target: 'gone',
                 actions: [
-                  stop((ctx) => ctx.machineRef),
-                  stop((ctx) => ctx.promiseRef),
-                  stop((ctx) => ctx.observableRef)
+                  stop((ctx: any) => ctx.machineRef),
+                  stop((ctx: any) => ctx.promiseRef),
+                  stop((ctx: any) => ctx.observableRef)
                 ]
               }
             }
