@@ -19,7 +19,7 @@ export function fromService<
   const { machine } = service as Interpreter<TContext, TEvent, any, TTypestate>;
   return {
     send: service.send.bind(service),
-    subscribe: service.subscribe.bind(service),
+    subscribe: (cb) => service.subscribe((state) => cb(state)),
     stop: service.stop!,
     // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
     current:

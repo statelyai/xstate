@@ -749,6 +749,20 @@ export interface SendActionObject<
   id: string | number;
 }
 
+export interface StopAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Stop;
+  activity:
+    | string
+    | { id: string }
+    | Expr<TContext, TEvent, string | { id: string }>;
+}
+
+export interface StopActionObject {
+  type: ActionTypes.Stop;
+  activity: { id: string };
+}
+
 export type Expr<TContext, TEvent extends EventObject, T> = (
   context: TContext,
   event: TEvent
