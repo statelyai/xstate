@@ -1,7 +1,13 @@
 import { useEffect, useMemo, useRef } from 'react';
-import { EventObject, State, Interpreter, Typestate } from 'xstate';
+import {
+  EventObject,
+  State,
+  Interpreter,
+  Typestate,
+  PayloadSender
+} from 'xstate';
 import { useActor } from './useActor';
-import { ActorRef, PayloadSender } from './types';
+import { ActorRef } from './types';
 import useConstant from './useConstant';
 
 export function fromService<TContext, TEvent extends EventObject>(
