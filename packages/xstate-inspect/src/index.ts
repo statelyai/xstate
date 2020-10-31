@@ -5,7 +5,6 @@ import {
   interpret,
   SCXML,
   EventObject,
-  EventData,
   Event
 } from 'xstate';
 
@@ -134,7 +133,9 @@ export const inspectMachine = createMachine<{
           actions: (_, e) => {
             const { event } = e;
             const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-            const service = serviceMap.get(scxmlEventObject.origin!);
+            const service = scxmlEventObject.origin
+              ? serviceMap.get(scxmlEventObject.origin.name)
+              : undefined;
             service?.send(JSON.parse(event));
           }
         },
@@ -252,14 +253,11 @@ export function inspect(
     // while the sent one is being processed, which throws the order off
     const originalSend = service.send.bind(service);
 
-    service.send = function inspectSend(
-      event: EventObject,
-      payload?: EventData
-    ) {
+    service.send = function inspectSend(event: EventObject, payload?: any) {
       inspectService.send({
         type: 'service.event',
         event: JSON.stringify(
-          toSCXMLEvent(toEventObject(event as EventObject, payload))
+          toSCXMLEvent(toEventObject(event as EventObject), payload)
         ),
         sessionId: service.sessionId
       });
