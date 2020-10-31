@@ -38,9 +38,6 @@
     "xstate": "*"
   },
   "peerDependencies": {
-    "ws": "^7.3.1"
-  },
-  "dependencies": {
-    "xstate": "^4.9.1"
+    "xstate": "^4.13.0"
   }
 }
