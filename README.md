@@ -84,10 +84,10 @@ toggleService.send('TOGGLE');
 import { createMachine, interpret, assign } from 'xstate';
 
 const fetchMachine = createMachine({
-  id: 'SWAPI',
+  id: 'Dog API',
   initial: 'idle',
   context: {
-    user: null
+    dog: null
   },
   states: {
     idle: {
@@ -97,13 +97,13 @@ const fetchMachine = createMachine({
     },
     loading: {
       invoke: {
-        id: 'fetchLuke',
-        src: (context, event) =>
-          fetch('https://swapi.dev/api/people/1').then((res) => res.json()),
+        id: 'fetchDog',
+        src: (context, event) => fetch('https://dog.ceo/api/breeds/image/random')
+          .then(data => data.json()),
         onDone: {
           target: 'resolved',
           actions: assign({
-            user: (_, event) => event.data
+            dog: (_, event) => event.data
           })
         },
         onError: 'rejected'
@@ -123,11 +123,11 @@ const fetchMachine = createMachine({
   }
 });
 
-const swService = interpret(fetchMachine)
+const dogService = interpret(fetchMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-swService.send('FETCH');
+dogService.send('FETCH');
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
