@@ -115,3 +115,10 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   stateSerializer: (state: State<TContext, any>) => string;
   eventSerializer: (event: TEvent) => string;
 }
+
+// https://en.wikipedia.org/wiki/Finite-state_transducer
+export interface FST<TState, TInput extends EventObject> {
+  transition: (state: TState, input: TInput) => TState;
+  initialState: TState;
+  events: Array<TInput['type']>;
+}
