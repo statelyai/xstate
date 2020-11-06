@@ -548,7 +548,7 @@ describe('not() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: not(and(not('truthy'), 'truthy'))
+                guard: not(and([not('truthy'), 'truthy']))
               }
             }
           },
@@ -578,10 +578,7 @@ describe('and() guard', () => {
           on: {
             EVENT: {
               target: 'b',
-              guard: and(
-                () => true,
-                () => 1 + 1 === 2
-              )
+              guard: and([() => true, () => 1 + 1 === 2])
             }
           }
         },
@@ -603,7 +600,7 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: and('truthy')
+                guard: and(['truthy', 'truthy'])
               }
             }
           },
@@ -631,10 +628,10 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: and(
+                guard: and([
                   { type: 'greaterThan10', value: 11 },
                   { type: 'greaterThan10', value: 50 }
-                )
+                ])
               }
             }
           },
@@ -664,11 +661,11 @@ describe('and() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: and(
+                guard: and([
                   () => true,
                   not('falsy'),
-                  and(not('falsy'), 'truthy')
-                )
+                  and([not('falsy'), 'truthy'])
+                ])
               }
             }
           },
@@ -698,10 +695,7 @@ describe('or() guard', () => {
           on: {
             EVENT: {
               target: 'b',
-              guard: or(
-                () => false,
-                () => 1 + 1 === 2
-              )
+              guard: or([() => false, () => 1 + 1 === 2])
             }
           }
         },
@@ -723,7 +717,7 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: or('falsy', 'truthy')
+                guard: or(['falsy', 'truthy'])
               }
             }
           },
@@ -752,10 +746,10 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: or(
+                guard: or([
                   { type: 'greaterThan10', value: 4 },
                   { type: 'greaterThan10', value: 50 }
-                )
+                ])
               }
             }
           },
@@ -786,11 +780,11 @@ describe('or() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: or(
+                guard: or([
                   () => false,
                   not('truthy'),
-                  and(not('falsy'), 'truthy')
-                )
+                  and([not('falsy'), 'truthy'])
+                ])
               }
             }
           },

@@ -45,7 +45,7 @@ export function not<TContext, TEvent extends EventObject>(
 }
 
 export function and<TContext, TEvent extends EventObject>(
-  ...guards: Array<GuardConfig<TContext, TEvent>>
+  guards: Array<GuardConfig<TContext, TEvent>>
 ): BooleanGuardDefinition<TContext, TEvent> {
   return {
     type: 'xstate.boolean',
@@ -63,7 +63,7 @@ export function and<TContext, TEvent extends EventObject>(
 }
 
 export function or<TContext, TEvent extends EventObject>(
-  ...guards: Array<GuardConfig<TContext, TEvent>>
+  guards: Array<GuardConfig<TContext, TEvent>>
 ): BooleanGuardDefinition<TContext, TEvent> {
   return {
     type: 'xstate.boolean',
