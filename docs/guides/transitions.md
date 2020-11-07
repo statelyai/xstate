@@ -396,17 +396,21 @@ gameService.send('AWARD_POINTS');
 
 ### Eventless vs. wildcard transitions
 
-- [Wildcard transitions](https://xstate.js.org/docs/guides/transitions.html#wildcard-descriptors) are not checked on entering state nodes. Eventless transitions are. Guards for eventless transitions are evaluated before doing anything else (even before evaluating guards of entry actions).
+- [Wildcard transitions](#wildcard-descriptors) are not checked on entering state nodes. Eventless transitions are. Guards for eventless transitions are evaluated before doing anything else (even before evaluating guards of entry actions).
 - Re-evaluation of eventless transitions is triggered by any actionable event. Re-evaluation of wildcard transitions is triggered only by an event not matched by explicit event descriptors.
 
 ::: warning
+
 It is possible to create infinite loops if eventless transitions are misused.
 Eventless transitions should be defined either with `target`, `cond` + `target`, `cond` + `actions`, or `cond` + `target` + `actions`. Target, if declared, should be different than the current state node. Eventless transitions with no `target` nor `cond` will cause an infinite loop. Transitions with `cond` and `actions` may run into an infinite loop if its `cond` guard keeps returning `true`.
+
 :::
 
 ::: tip
+
 When eventless transitions are checked, their guards are evaluated repeatedly until all of them return false, or a transition with target is validated. Every time some guard evaluates to `true` during this process, its associated actions are going to be executed once. Thus it is possible that during a single microtask some transitions without targets are executed multiple times.
 This contrasts with common transitions, where always maximum one transition can be taken.
+
 :::
 
 ## Forbidden Transitions
