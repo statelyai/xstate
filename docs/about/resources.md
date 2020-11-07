@@ -138,6 +138,18 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
 - [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
 - [XState and State Machines in VueJS](https://www.youtube.com/watch?v=8y9wUwJvdGs) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
+- [Tes en Línea: React, TypeScript, XState, fp-ts & CSS Grid (esp)](https://medium.com/codingedgar/tes-en-l%C3%ADnea-react-typescript-xstate-fp-ts-css-grid-esp-1373236189d1) by [Edgar Rodriguez](https://medium.com/@codingedgar)
+- [Supervising XState Machines with Redux](https://dev.to/rjdestigter/supervising-xstate-machines-with-redux-277d) by [John de Stigter](https://dev.to/rjdestigter)
+- [Working with non-user asynchronous events in model based tests with XState](https://dev.to/rjdestigter/working-with-non-user-asynchronous-events-in-model-based-tests-with-xstate-58ek) by [John de Stigter](https://dev.to/rjdestigter)
+- [Model based UI tests with XState, Cypress, Puppeteer & more](https://dev.to/rjdestigter/model-based-ui-tests-with-xstate-cypress-puppeteer-more-268d) by [John de Stigter](https://dev.to/rjdestigter)
+- [Thoughts on State Management with XState and ReactJS](https://dev.to/rjdestigter/thoughts-on-state-management-with-xstate-and-reactjs-3d19) by [John de Stigter](https://dev.to/rjdestigter)
+- [▶️ Tutorial of C++ Code Generator for XState State Machine engine](https://www.youtube.com/watch?v=DnuJFUR1SgA) by [Andrew Shuvalov](https://www.youtube.com/channel/UCHFfZT1QM-vnqSZKtrT0e6g)
+  - [▶️ Part 2](https://www.youtube.com/watch?v=8TTfRrmNu0s)
+  - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
+  - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
+- [State Machines Workshop with XState](https://github.com/ooade/state-machines-workshop) by [Ademola (@ooade)](https://github.com/ooade)
+- [▶️ Finite State Machines in Vue 3](https://www.youtube.com/watch?v=fT9p9CCSrn8) by [Sarah Dayan](https://twitter.com/frontstuff_io)
+- [▶️ Frontend is Rocket Science - How to use XState in Vue 3 Now!](https://www.youtube.com/watch?v=wRktleOGKS4) by [Aleksej Dix](https://twitter.com/aleksejdix)
 
 ## Exercises
 
