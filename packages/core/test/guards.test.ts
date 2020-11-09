@@ -1,7 +1,6 @@
 import { Machine, interpret, State, createMachine } from '../src';
 import { DEFAULT_GUARD_TYPE } from '../src/constants';
 import { and, not, or } from '../src/guards';
-import { assertGuard, GuardWithParams } from '../src/assert';
 
 describe('guard conditions', () => {
   interface LightMachineCtx {
@@ -411,6 +410,8 @@ describe('guards - other', () => {
 
 describe('guards with child guards', () => {
   it('guards can contain child guards', () => {
+    expect.assertions(3);
+
     const machine = createMachine(
       {
         initial: 'a',
@@ -759,7 +760,6 @@ describe('or() guard', () => {
       {
         guards: {
           greaterThan10: (_, __, { guard }) => {
-            assertGuard<GuardWithParams<{ value: number }>>(guard);
             return guard.params.value > 10;
           }
         }
