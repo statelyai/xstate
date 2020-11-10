@@ -147,6 +147,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [▶️ Part 2](https://www.youtube.com/watch?v=8TTfRrmNu0s)
   - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
   - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
+- [React context without context, using XState – CodeWithSwiz 14, 15](https://swizec.com/blog/react-context-without-context-using-xstate-codewithswiz-14-15) by [@swizec](https://swizec.com)
 
 ## Exercises
 
