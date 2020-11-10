@@ -37,7 +37,7 @@ export function useService<
 
   const [state] = useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
     serviceActor,
-    (actor) => (actor as typeof serviceActor).current
+    (actor) => (actor as typeof serviceActor).current!
   );
 
   return [state, service.send];

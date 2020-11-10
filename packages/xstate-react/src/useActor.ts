@@ -1,12 +1,16 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { Sender, ActorRefLike } from './types';
-import { EventObject, Actor } from 'xstate';
+import { EventObject } from 'xstate';
 import useConstant from './useConstant';
 
-export function useActor<TEvent extends EventObject, TEmitted = any>(
-  actorRef: ActorRefLike<TEvent, TEmitted> | Actor,
-  getSnapshot: (actor: typeof actorRef) => TEmitted = (a) =>
+export function useActor<
+  TEvent extends EventObject,
+  TEmitted = unknown,
+  TActor extends ActorRefLike<TEvent, TEmitted> = ActorRefLike<TEvent, TEmitted>
+>(
+  actorRef: TActor & ActorRefLike<TEvent, TEmitted>,
+  getSnapshot: (actor: TActor) => TEmitted = (a) =>
     'state' in a ? a.state : (undefined as any)
 ): [TEmitted, Sender<TEvent>] {
   const actorRefRef = useRef(actorRef);

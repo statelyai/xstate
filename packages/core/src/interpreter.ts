@@ -20,7 +20,6 @@ import {
   SingleOrArray,
   Subscribable,
   DoneEvent,
-  Unsubscribable,
   MachineOptions,
   ActionFunctionMap,
   SCXML,
@@ -49,7 +48,8 @@ import {
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
   symbolObservable,
-  toInvokeSource
+  toInvokeSource,
+  toObserver
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor, createDeferredActor } from './Actor';
@@ -57,7 +57,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import { StopActionObject } from '.';
+import { StopActionObject, Subscription } from '.';
 
 export type StateListener<
   TContext,
@@ -324,19 +324,19 @@ export class Interpreter<
   }
   public subscribe(
     observer: Observer<State<TContext, TEvent, any, TTypestate>>
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListener?: (state: State<TContext, TEvent, any, TTypestate>) => void,
     errorListener?: (error: any) => void,
     completeListener?: () => void
-  ): Unsubscribable;
+  ): Subscription;
   public subscribe(
     nextListenerOrObserver?:
       | ((state: State<TContext, TEvent, any, TTypestate>) => void)
       | Observer<State<TContext, TEvent, any, TTypestate>>,
     _?: (error: any) => void, // TODO: error listener
     completeListener?: () => void
-  ): Unsubscribable {
+  ): Subscription {
     if (!nextListenerOrObserver) {
       return { unsubscribe: () => void 0 };
     }
@@ -1027,27 +1027,29 @@ export class Interpreter<
       }
     );
 
-    const actor = {
+    const actor: Actor<T, never> = {
       id,
       send: () => void 0,
-      subscribe: (next, handleError, complete) => {
+      subscribe: (next, handleError?, complete?) => {
+        const observer = toObserver(next, handleError, complete);
+
         let unsubscribed = false;
         promise.then(
           (response) => {
             if (unsubscribed) {
               return;
             }
-            next && next(response);
+            observer.next(response);
             if (unsubscribed) {
               return;
             }
-            complete && complete();
+            observer.complete();
           },
           (err) => {
             if (unsubscribed) {
               return;
             }
-            handleError(err);
+            observer.error(err);
           }
         );
 
@@ -1141,10 +1143,10 @@ export class Interpreter<
       }
     );
 
-    const actor = {
+    const actor: Actor = {
       id,
       send: () => void 0,
-      subscribe: (next, handleError, complete) => {
+      subscribe: (next, handleError?, complete?) => {
         return source.subscribe(next, handleError, complete);
       },
       stop: () => subscription.unsubscribe(),

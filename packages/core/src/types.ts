@@ -1221,21 +1221,23 @@ export namespace SCXML {
 }
 
 // Taken from RxJS
-export interface Unsubscribable {
-  unsubscribe(): void;
-}
-export interface Subscribable<T> {
-  subscribe(
-    next?: (value: T) => void,
-    error?: (error: any) => void,
-    complete?: () => void
-  ): Unsubscribable;
-}
-
 export interface Observer<T> {
   next: (value: T) => void;
   error: (err: any) => void;
   complete: () => void;
+}
+
+export interface Subscription {
+  unsubscribe(): void;
+}
+
+export interface Subscribable<T> {
+  subscribe(observer: Observer<T>): Subscription;
+  subscribe(
+    next: (value: T) => void,
+    error?: (error: any) => void,
+    complete?: () => void
+  ): Subscription;
 }
 
 export type Spawnable =

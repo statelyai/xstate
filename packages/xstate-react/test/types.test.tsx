@@ -1,15 +1,8 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import {
-  Machine,
-  interpret,
-  assign,
-  spawn,
-  createMachine,
-  Actor,
-  Interpreter
-} from 'xstate';
-import { useService, useMachine } from '../src';
+import { Machine, interpret, assign, spawn, createMachine } from 'xstate';
+import { useService, useMachine, useActor } from '../src';
+import { ActorRefFrom } from '../src/types';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -17,7 +10,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<Actor<any, any>>;
+      todos: Array<ActorRefFrom<typeof todoMachine>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -56,9 +49,7 @@ describe('useService', () => {
     const Todo = ({ index }: { index: number }) => {
       const [current] = useService(service);
       const todoRef = current.context.todos[index];
-      const [todoCurrent] = useService(
-        todoRef as Interpreter<TodoCtx, any, any>
-      );
+      const [todoCurrent] = useActor(todoRef);
       return <>{todoCurrent.context.completed}</>;
     };
 

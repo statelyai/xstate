@@ -1,4 +1,4 @@
-import { EventObject } from 'xstate';
+import { EventObject, State, StateMachine } from 'xstate';
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
@@ -29,12 +29,13 @@ export interface Subscribable<T> {
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
-  stop: () => void;
+  start?: () => void;
+  stop?: () => void;
   /**
    * The most recently emitted value.
    */
-  current: TEmitted;
-  name: string;
+  current?: TEmitted;
+  name?: string;
 }
 
 // Compatibility with V4
@@ -44,6 +45,12 @@ export interface ActorRefLike<TEvent extends EventObject, TEmitted = any>
   stop?: () => void;
   [key: string]: any;
 }
+
+export type ActorRefFrom<
+  T extends StateMachine<any, any, any>
+> = T extends StateMachine<infer TContext, any, infer TEvent>
+  ? ActorRef<TEvent, State<TContext, TEvent>>
+  : never;
 
 export type MaybeLazy<T> = T | (() => T);
 
