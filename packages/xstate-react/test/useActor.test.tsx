@@ -279,4 +279,64 @@ describe('useActor', () => {
     fireEvent.click(button);
     expect(div.textContent).toEqual('100');
   });
+
+  it('send() should be stable', (done) => {
+    jest.useFakeTimers();
+    const fakeSubscribe = () => {
+      return {
+        unsubscribe: () => {
+          /* ... */
+        }
+      };
+    };
+    const noop = () => {
+      /* ... */
+    };
+    const firstActor: ActorRefLike<any> = {
+      send: noop,
+      subscribe: fakeSubscribe
+    };
+    const lastActor: ActorRefLike<any> = {
+      send: () => {
+        done();
+      },
+      subscribe: fakeSubscribe
+    };
+
+    const Test = () => {
+      const [actor, setActor] = useState(firstActor);
+      const [, send] = useActor(actor);
+
+      React.useEffect(() => {
+        setTimeout(() => {
+          // The `send` here is closed-in
+          send('anything');
+        }, 10);
+      }, []); // Intentionally omit `send` from dependency array
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => setActor(lastActor)}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    // At this point, `send` refers to the first (noop) actor
+
+    const button = getByTestId('button');
+    fireEvent.click(button);
+
+    // At this point, `send` refers to the last actor
+
+    jest.advanceTimersByTime(20);
+
+    // The effect will call the closed-in `send`, which originally
+    // was the reference to the first actor. Now that `send` is stable,
+    // it will always refer to the latest actor.
+  });
 });

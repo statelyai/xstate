@@ -1138,7 +1138,7 @@ describe('interpreter', () => {
         })
         .start();
 
-      countService.send(['INC', 'INC', { type: 'INC' }, 'INC']);
+      countService.batch(['INC', 'INC', { type: 'INC' }, 'INC']);
     });
 
     it('state changed property should be true if any intermediate state is changed', (done) => {
@@ -1155,7 +1155,7 @@ describe('interpreter', () => {
         })
         .start();
 
-      countService.send(['INC', 'bar']);
+      countService.batch(['INC', 'bar']);
     });
 
     it('state changed property should be false if no intermediate state is changed', (done) => {
@@ -1171,7 +1171,7 @@ describe('interpreter', () => {
         })
         .start();
 
-      countService.send(['foo', 'bar']);
+      countService.batch(['foo', 'bar']);
     });
 
     it('state changed property should be true if a subsequent send call changes the state', (done) => {
@@ -1187,8 +1187,8 @@ describe('interpreter', () => {
         })
         .start();
 
-      countService.send(['ODD']);
-      countService.send(['EVEN']);
+      countService.batch(['ODD']);
+      countService.batch(['EVEN']);
     });
 
     it('state changed property should be false if a subsequent send call did not actually change the state', (done) => {
@@ -1204,8 +1204,8 @@ describe('interpreter', () => {
         })
         .start();
 
-      countService.send(['ODD']);
-      countService.send(['ODD']);
+      countService.batch(['ODD']);
+      countService.batch(['ODD']);
     });
   });
 
