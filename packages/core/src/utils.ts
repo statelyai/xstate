@@ -383,10 +383,11 @@ export const uniqueId = (() => {
 })();
 
 export function toEventObject<TEvent extends EventObject>(
-  event: Event<TEvent>
+  event: Event<TEvent>,
+  payload?: Record<string, any>
 ): TEvent {
   if (isString(event)) {
-    return { type: event } as TEvent;
+    return { type: event, ...payload } as TEvent;
   }
 
   return event;

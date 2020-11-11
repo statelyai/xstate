@@ -160,7 +160,7 @@ describe('spawning machines', () => {
       })
       .start();
 
-    service.send([{ type: 'ADD', id: 42 }]);
+    service.batch([{ type: 'ADD', id: 42 }]);
     service.send({ type: 'SET_COMPLETE', id: 42 });
   });
 

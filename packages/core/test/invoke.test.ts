@@ -468,9 +468,9 @@ describe('invoke', () => {
       })
       .start();
 
-    service.send(['START']);
-    service.send(['INCREMENT']);
-    service.send(['INCREMENT', 'INCREMENT']);
+    service.batch(['START']);
+    service.batch(['INCREMENT']);
+    service.batch(['INCREMENT', 'INCREMENT']);
   });
 
   it('should start services (explicit machine, invoke = config)', (done) => {

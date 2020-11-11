@@ -10,7 +10,6 @@ import {
   SendActionObject,
   StateValue,
   InterpreterOptions,
-  SingleOrArray,
   DoneEvent,
   Subscription,
   MachineOptions,
@@ -35,7 +34,8 @@ import {
   isFunction,
   toSCXMLEvent,
   symbolObservable,
-  isSCXMLErrorEvent
+  isSCXMLErrorEvent,
+  toEventObject
 } from './utils';
 import { Scheduler } from './scheduler';
 import { isActorRef, fromService } from './Actor';
@@ -44,7 +44,7 @@ import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
 import { createActorRefFromInvokeAction } from './invoke';
-import { StopActionObject } from '.';
+import { PayloadSender, StopActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -455,15 +455,14 @@ export class Interpreter<
    *
    * @param event The event(s) to send
    */
-  public send = (
-    event: SingleOrArray<Event<TEvent>> | SCXML.Event<TEvent>
-  ): void => {
+  public send: PayloadSender<TEvent> = (event, payload?): void => {
     if (isArray(event)) {
       this.batch(event);
       return;
     }
 
-    const _event = toSCXMLEvent(event);
+    const eventObject = toEventObject(event, payload);
+    const _event = toSCXMLEvent(eventObject);
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
@@ -504,7 +503,7 @@ export class Interpreter<
     });
   };
 
-  private batch(events: Array<TEvent | TEvent['type']>): void {
+  public batch(events: Array<TEvent | TEvent['type']>): void {
     if (
       this.status === InterpreterStatus.NotStarted &&
       this.options.deferEvents
