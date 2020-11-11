@@ -13,7 +13,8 @@
     "dist",
     "actions",
     "invoke",
-    "behavior"
+    "behavior",
+    "guards"
   ],
   "keywords": [
     "statechart",

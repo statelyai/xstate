@@ -1,4 +1,4 @@
-import { StateNode, ActionObject, Guard, InvokeDefinition } from './';
+import { StateNode, ActionObject, GuardObject, InvokeDefinition } from './';
 import { mapValues, isFunction } from './utils';
 
 interface JSONFunction {
@@ -20,7 +20,7 @@ interface TransitionConfig {
   target: string[];
   source: string;
   actions: Array<ActionObject<any, any>>;
-  guard: Guard<any, any> | undefined;
+  guard: GuardObject<any, any> | undefined;
   eventType: string;
 }
 

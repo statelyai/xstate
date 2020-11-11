@@ -5,16 +5,13 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  GuardConfig,
   Subscribable,
-  GuardPredicate,
   SCXML,
   StateLike,
   TransitionConfig,
   TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
-  GuardDefinition,
   BehaviorCreator,
   InvokeSourceDefinition
 } from './types';
