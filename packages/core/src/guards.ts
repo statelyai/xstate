@@ -88,14 +88,13 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   _event: SCXML.Event<TEvent>,
   state: State<TContext, TEvent>
 ): boolean {
-  const { guards } = machine.options;
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,
     _event
   };
 
-  const predicate = guards[guard.type] || guard.predicate;
+  const predicate = guard.predicate;
 
   if (!predicate) {
     throw new Error(
@@ -108,12 +107,12 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
 
 export function toGuard<TContext, TEvent extends EventObject>(
   guardConfig: GuardConfig<TContext, TEvent>,
-  guardMap?: Record<string, GuardPredicate<TContext, TEvent>>
+  getPredicate?: (guardType: string) => GuardPredicate<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
   if (isString(guardConfig)) {
     return {
       type: guardConfig,
-      predicate: guardMap ? guardMap[guardConfig] : undefined,
+      predicate: getPredicate?.(guardConfig) || undefined,
       params: { type: guardConfig }
     };
   }
@@ -133,8 +132,8 @@ export function toGuard<TContext, TEvent extends EventObject>(
     type: guardConfig.type,
     params: guardConfig.params || guardConfig,
     children: guardConfig.children?.map((childGuard) =>
-      toGuard(childGuard, guardMap)
+      toGuard(childGuard, getPredicate)
     ),
-    predicate: guardConfig.predicate || guardMap?.[guardConfig.type]
+    predicate: guardConfig.predicate || getPredicate?.(guardConfig.type)
   };
 }

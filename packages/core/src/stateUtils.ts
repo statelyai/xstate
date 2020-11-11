@@ -343,7 +343,7 @@ export function formatTransition<TContext, TEvent extends EventObject>(
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
     guard: transitionConfig.guard
-      ? toGuard(transitionConfig.guard, guards)
+      ? toGuard(transitionConfig.guard, (guardType) => guards[guardType])
       : undefined,
     target,
     source: stateNode,
@@ -1594,7 +1594,10 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           const matchedActions = chooseAction.guards.find((condition) => {
             const guard =
               condition.guard &&
-              toGuard(condition.guard, machine.options.guards);
+              toGuard(
+                condition.guard,
+                (guardType) => machine.options.guards[guardType]
+              );
             return (
               !guard ||
               evaluateGuard(
