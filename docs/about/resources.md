@@ -18,6 +18,17 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [Egghead - Construct Sturdy UIs with XState](https://egghead.io/courses/construct-sturdy-uis-with-xstate) by [Isaac Mann](https://twitter.com/MannIsaac)
 - [XState Guide](https://bradwoods.io/guides/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
 
+## Podcasts
+
+- [🎙 (React Podcast) 5: Finite State Machines with David Khourshid](https://reactpodcast.com/episodes/5)
+- [🎙 (React Podcast) 83: David Khourshid on XState, Statecharts, and the Future of Designer—Coder Collaboration](https://reactpodcast.com/episodes/83)
+- [🎙 (Full Stack Radio) 130: David Khourshid - Building Better UI Components with State Machines](https://fullstackradio.com/130)
+- [🎙 (Chats with Kent) Make Your Apps Resilient Using Finite State Machines With David Khourshid](https://kentcdodds.com/chats-with-kent-podcast/seasons/01/episodes/make-your-apps-resilient-finite-state-machines-with-david-khourshid)
+- [🎙 (React Round-Up) 069: The State Machines in React with David Khourshid](https://devchat.tv/react-round-up/rru-069-the-state-machines-in-react-with-david-khourshid/)
+- [🎙 (ShopTalk Show) 327: Working with State Machines with Jon Bellah and David Khourshid](https://shoptalkshow.com/327-working-state-machines/)
+- [🎙 (Egghead.io Podcast) 11: Introduction To State Machines And XState With Kyle Shevlin](https://egghead.io/podcasts/introduction-to-state-machines-and-xstate-with-kyle-shevlin)
+- [🎙 (Syntax.FM) 206: State Machines, CSS and Animations with David K Piano](https://syntax.fm/show/206/state-machines-css-and-animations-with-david-k-piano)
+
 ## Articles and Videos
 
 - [XState - a TypeScript state machine with a lot of features](http://realfiction.net/2019/01/30/xstate-a-typescript-state-machine-with-a-lot-of-features) by Frank Quednau
@@ -104,7 +115,7 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [Hello XState Part 3: Writing my first state machines (and washing my hands)](https://dev.to/ekafyi/hello-xstate-part-3-writing-my-first-state-machines-and-washing-my-hands-for-20-seconds-23p) -[CodeSandbox - XState Login & Sign Up Forms](https://codesandbox.io/s/xstate-login-sign-up-forms-yzzoc) by [Jamie Mason](https://codesandbox.io/u/JamieMason)
 - [▶️ The Actor Model | XState part 1](https://www.youtube.com/watch?v=4CLdNeetVHw) by [@bisvarup](https://bisvarup.me/)
   - [CodeSandbox example](https://codesandbox.io/s/ancient-framework-bvw61?file=/src/App.js)
-- [Intro: XState and State Machiens (React)](https://medium.com/@d_danailov/intro-sstate-and-state-machines-react-3b873a6a713d) by [Dimitar Danailov](https://medium.com/@d_danailov)
+- [Intro: XState and State Machines (React)](https://medium.com/@d_danailov/intro-sstate-and-state-machines-react-3b873a6a713d) by [Dimitar Danailov](https://medium.com/@d_danailov)
 - [▶️ Learning XState with Lauren](https://www.youtube.com/watch?v=h5H1ZmjMDE4) on Lauren Learns Things
 - [XState, React, and TypeScript - how to get it working](https://dev.to/mpocock1/xstate-react-and-typescript-how-to-get-it-working-4p18) by [Matt Pocock](https://dev.to/mpocock1)
 - [XState Pizza Wizard!](https://www.youtube.com/watch?v=JauJhGTBFsc) by [Jack Herrington](https://github.com/jherr)
@@ -136,6 +147,20 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [▶️ XState and React](https://www.youtube.com/watch?v=pclR8Q5mbNI) on [Leniolabs](https://www.youtube.com/channel/UCcRg2Au0LLtEcakG9fg6VXg)
   - [CodeSandbox example](https://codesandbox.io/s/small-sea-t5mce?file=/pages/index.js/)
 - [How to write tests for XState](https://swizec.com/blog/how-to-write-tests-for-xstate-codewithswiz-12/) by [@swizec](https://swizec.com)
+- [Create-React-App Template with XState](https://github.com/kwdowik/cra-template-xstate) by [Kacper Wdowik](https://github.com/kwdowik)
+- [XState and State Machines in VueJS](https://www.youtube.com/watch?v=8y9wUwJvdGs) by [Constantin Druc](https://www.youtube.com/channel/UCsMdRMBnxIVO0K_YS0KHiMA)
+- [Tes en Línea: React, TypeScript, XState, fp-ts & CSS Grid (esp)](https://medium.com/codingedgar/tes-en-l%C3%ADnea-react-typescript-xstate-fp-ts-css-grid-esp-1373236189d1) by [Edgar Rodriguez](https://medium.com/@codingedgar)
+- [Supervising XState Machines with Redux](https://dev.to/rjdestigter/supervising-xstate-machines-with-redux-277d) by [John de Stigter](https://dev.to/rjdestigter)
+- [Working with non-user asynchronous events in model based tests with XState](https://dev.to/rjdestigter/working-with-non-user-asynchronous-events-in-model-based-tests-with-xstate-58ek) by [John de Stigter](https://dev.to/rjdestigter)
+- [Model based UI tests with XState, Cypress, Puppeteer & more](https://dev.to/rjdestigter/model-based-ui-tests-with-xstate-cypress-puppeteer-more-268d) by [John de Stigter](https://dev.to/rjdestigter)
+- [Thoughts on State Management with XState and ReactJS](https://dev.to/rjdestigter/thoughts-on-state-management-with-xstate-and-reactjs-3d19) by [John de Stigter](https://dev.to/rjdestigter)
+- [▶️ Tutorial of C++ Code Generator for XState State Machine engine](https://www.youtube.com/watch?v=DnuJFUR1SgA) by [Andrew Shuvalov](https://www.youtube.com/channel/UCHFfZT1QM-vnqSZKtrT0e6g)
+  - [▶️ Part 2](https://www.youtube.com/watch?v=8TTfRrmNu0s)
+  - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
+  - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
+- [State Machines Workshop with XState](https://github.com/ooade/state-machines-workshop) by [Ademola (@ooade)](https://github.com/ooade)
+- [▶️ Finite State Machines in Vue 3](https://www.youtube.com/watch?v=fT9p9CCSrn8) by [Sarah Dayan](https://twitter.com/frontstuff_io)
+- [▶️ Frontend is Rocket Science - How to use XState in Vue 3 Now!](https://www.youtube.com/watch?v=wRktleOGKS4) by [Aleksej Dix](https://twitter.com/aleksejdix)
 
 ## Exercises
 

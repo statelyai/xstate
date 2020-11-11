@@ -1184,7 +1184,7 @@ class StateNode<
     const invokeActions = resolvedActions.filter((action) => {
       return (
         action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity.type ===
+        (action as ActivityActionObject<TContext, TEvent>).activity?.type ===
           actionTypes.invoke
       );
     }) as Array<InvokeActionObject<TContext, TEvent>>;
