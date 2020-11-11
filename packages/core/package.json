@@ -51,7 +51,8 @@
       ".",
       "actions",
       "invoke",
-      "behavior"
+      "behavior",
+      "guards"
     ]
   }
 }
