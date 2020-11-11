@@ -1,7 +1,7 @@
 import { useMemo } from 'react';
 import { EventObject, State, Interpreter, Typestate } from 'xstate';
 import { useActor } from './useActor';
-import { ActorRef } from './types';
+import { ActorRef, PayloadSender } from './types';
 
 export function fromService<
   TContext,
@@ -36,14 +36,13 @@ export function useService<
   TTypestate extends Typestate<TContext> = { value: any; context: TContext }
 >(
   service: Interpreter<TContext, TEvent, any, TTypestate>
-): [
-  State<TContext, TEvent, any, TTypestate>,
-  (event: TEvent | TEvent['type']) => void
-] {
+): [State<TContext, TEvent, any, TTypestate>, PayloadSender<TEvent>] {
   const serviceActor = useMemo(() => fromService(service), [service]);
 
-  return useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
+  const [state] = useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
     serviceActor,
     (actor) => (actor as typeof serviceActor).current
   );
+
+  return [state, service.send];
 }

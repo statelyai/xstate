@@ -85,7 +85,9 @@ module.exports = {
           '/recipes/react',
           '/recipes/vue',
           '/recipes/rxjs',
-          '/recipes/ember'
+          '/recipes/ember',
+          '/recipes/stencil',
+          '/recipes/svelte'
         ]
       },
       {
