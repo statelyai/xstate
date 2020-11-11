@@ -8,7 +8,6 @@ import {
   isArray,
   isFunction,
   isString,
-  toGuard,
   toTransitionConfigArray,
   normalizeTarget,
   toStateValue,
@@ -70,7 +69,7 @@ import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
-import { evaluateGuard } from './guards';
+import { evaluateGuard, toGuard } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 

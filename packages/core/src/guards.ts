@@ -5,10 +5,11 @@ import {
   GuardConfig,
   GuardDefinition,
   GuardMeta,
-  SCXML
+  SCXML,
+  GuardPredicate
 } from './types';
 import { isStateId } from './stateUtils';
-import { isString, toGuard } from './utils';
+import { isFunction, isString } from './utils';
 import { MachineNode } from './MachineNode';
 import { State } from './State';
 
@@ -103,4 +104,37 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   }
 
   return predicate(context, _event.data, guardMeta);
+}
+
+export function toGuard<TContext, TEvent extends EventObject>(
+  guardConfig: GuardConfig<TContext, TEvent>,
+  guardMap?: Record<string, GuardPredicate<TContext, TEvent>>
+): GuardDefinition<TContext, TEvent> {
+  if (isString(guardConfig)) {
+    return {
+      type: guardConfig,
+      predicate: guardMap ? guardMap[guardConfig] : undefined,
+      params: { type: guardConfig }
+    };
+  }
+
+  if (isFunction(guardConfig)) {
+    return {
+      type: guardConfig.name,
+      predicate: guardConfig,
+      params: {
+        type: guardConfig.name,
+        name: guardConfig.name
+      }
+    };
+  }
+
+  return {
+    type: guardConfig.type,
+    params: guardConfig.params || guardConfig,
+    children: guardConfig.children?.map((childGuard) =>
+      toGuard(childGuard, guardMap)
+    ),
+    predicate: guardConfig.predicate || guardMap?.[guardConfig.type]
+  };
 }
