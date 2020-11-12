@@ -9,7 +9,7 @@
 import { PropType } from 'vue';
 import { useService } from '../src';
 import { Interpreter } from 'xstate';
-import { watchEffect } from '@vue/composition-api';
+import { watchEffect } from 'vue';
 
 export default {
   props: {

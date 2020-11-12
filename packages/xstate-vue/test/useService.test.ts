@@ -1,14 +1,8 @@
 import { render, fireEvent, cleanup, wait } from '@testing-library/vue';
 import { Machine, assign, interpret } from 'xstate';
-// import { mount, createLocalVue } from '@vue/test-utils';
-import VueCompositionApi from '@vue/composition-api';
 import UseService from './UseService.vue';
 
 afterEach(cleanup);
-
-const renderWithCompositionApi = (component, options?) =>
-  // @ts-ignore
-  render(component, options, (vue) => vue.use(VueCompositionApi));
 
 describe('useService composable function', () => {
   const counterMachine = Machine<{ count: number }>({
@@ -39,7 +33,7 @@ describe('useService composable function', () => {
       props: ['service']
     };
 
-    const { getAllByTestId } = renderWithCompositionApi(twoServices, {
+    const { getAllByTestId } = render(twoServices, {
       propsData: { service: counterService }
     });
 
@@ -60,7 +54,7 @@ describe('useService composable function', () => {
     const counterService1 = interpret(counterMachine, { id: 'c1' }).start();
     const counterService2 = interpret(counterMachine, { id: 'c2' }).start();
 
-    const { getByTestId, updateProps } = renderWithCompositionApi(UseService, {
+    const { getByTestId, updateProps } = render(UseService, {
       props: { service: counterService1 }
     });
 
