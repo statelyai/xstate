@@ -9,7 +9,7 @@
     "build": "parcel build index.html"
   },
   "dependencies": {
-    "@xstate/react": "^1.0.0",
+    "@xstate/react": "^1.0.2",
     "react-app-polyfill": "^1.0.0"
   },
   "devDependencies": {

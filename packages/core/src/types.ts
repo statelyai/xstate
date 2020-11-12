@@ -198,6 +198,35 @@ export interface ActivityDefinition<TContext, TEvent extends EventObject>
 }
 
 export type Sender<TEvent extends EventObject> = (event: Event<TEvent>) => void;
+
+type ExcludeType<A> = { [K in Exclude<keyof A, 'type'>]: A[K] };
+
+type ExtractExtraParameters<A, T> = A extends { type: T }
+  ? ExcludeType<A>
+  : never;
+
+type ExtractSimple<A> = A extends any
+  ? {} extends ExcludeType<A>
+    ? A
+    : never
+  : never;
+
+type NeverIfEmpty<T> = {} extends T ? never : T;
+
+export interface PayloadSender<TEvent extends EventObject> {
+  /**
+   * Send an event object or just the event type, if the event has no other payload
+   */
+  (event: TEvent | ExtractSimple<TEvent>['type']): void;
+  /**
+   * Send an event type and its payload
+   */
+  <K extends TEvent['type']>(
+    eventType: K,
+    payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
+  ): void;
+}
+
 export type Receiver<TEvent extends EventObject> = (
   listener: (event: TEvent) => void
 ) => void;
@@ -796,7 +825,7 @@ export interface NullEvent {
 export interface ActivityActionObject<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Start | ActionTypes.Stop;
-  activity: ActivityDefinition<TContext, TEvent>;
+  activity: ActivityDefinition<TContext, TEvent> | undefined;
   exec: ActionFunction<TContext, TEvent> | undefined;
 }
 
@@ -854,6 +883,20 @@ export interface SendActionObject<
   event: TSentEvent;
   delay?: number;
   id: string | number;
+}
+
+export interface StopAction<TContext, TEvent extends EventObject>
+  extends ActionObject<TContext, TEvent> {
+  type: ActionTypes.Stop;
+  activity:
+    | string
+    | { id: string }
+    | Expr<TContext, TEvent, string | { id: string }>;
+}
+
+export interface StopActionObject {
+  type: ActionTypes.Stop;
+  activity: { id: string };
 }
 
 export type Expr<TContext, TEvent extends EventObject, T> = (

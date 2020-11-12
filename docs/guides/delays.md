@@ -315,7 +315,7 @@ states: {
     on: {
       [after(1000, 'light.green')]: {
         target: 'yellow',
-        cond: 'traffcIsLight'
+        cond: 'trafficIsLight'
       },
       [after(2000, 'light.green')]: {
         target: 'yellow'
