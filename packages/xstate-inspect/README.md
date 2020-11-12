@@ -82,3 +82,17 @@ inspect();
 **Returns:** an inspector object with the following properties:
 
 - `disconnect` (function) - a function that disconnects the inspector and cleans up any listeners.
+
+## FAQs
+
+- How do I run the inspector in a NextJS app?
+
+  Ensure that the inspector code only runs on the client, rather than the server:
+
+  ```js
+  if (typeof window !== 'undefined') {
+    inspect({
+      /* options */
+    });
+  }
+  ```

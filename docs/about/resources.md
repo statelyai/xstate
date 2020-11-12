@@ -18,6 +18,17 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
 - [Egghead - Construct Sturdy UIs with XState](https://egghead.io/courses/construct-sturdy-uis-with-xstate) by [Isaac Mann](https://twitter.com/MannIsaac)
 - [XState Guide](https://bradwoods.io/guides/xstate) by [Brad Woods](https://twitter.com/bradwoodsio)
 
+## Podcasts
+
+- [🎙 (React Podcast) 5: Finite State Machines with David Khourshid](https://reactpodcast.com/episodes/5)
+- [🎙 (React Podcast) 83: David Khourshid on XState, Statecharts, and the Future of Designer—Coder Collaboration](https://reactpodcast.com/episodes/83)
+- [🎙 (Full Stack Radio) 130: David Khourshid - Building Better UI Components with State Machines](https://fullstackradio.com/130)
+- [🎙 (Chats with Kent) Make Your Apps Resilient Using Finite State Machines With David Khourshid](https://kentcdodds.com/chats-with-kent-podcast/seasons/01/episodes/make-your-apps-resilient-finite-state-machines-with-david-khourshid)
+- [🎙 (React Round-Up) 069: The State Machines in React with David Khourshid](https://devchat.tv/react-round-up/rru-069-the-state-machines-in-react-with-david-khourshid/)
+- [🎙 (ShopTalk Show) 327: Working with State Machines with Jon Bellah and David Khourshid](https://shoptalkshow.com/327-working-state-machines/)
+- [🎙 (Egghead.io Podcast) 11: Introduction To State Machines And XState With Kyle Shevlin](https://egghead.io/podcasts/introduction-to-state-machines-and-xstate-with-kyle-shevlin)
+- [🎙 (Syntax.FM) 206: State Machines, CSS and Animations with David K Piano](https://syntax.fm/show/206/state-machines-css-and-animations-with-david-k-piano)
+
 ## Articles and Videos
 
 - [XState - a TypeScript state machine with a lot of features](http://realfiction.net/2019/01/30/xstate-a-typescript-state-machine-with-a-lot-of-features) by Frank Quednau
@@ -148,6 +159,9 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
   - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
 - [React context without context, using XState – CodeWithSwiz 14, 15](https://swizec.com/blog/react-context-without-context-using-xstate-codewithswiz-14-15) by [@swizec](https://swizec.com)
+- [State Machines Workshop with XState](https://github.com/ooade/state-machines-workshop) by [Ademola (@ooade)](https://github.com/ooade)
+- [▶️ Finite State Machines in Vue 3](https://www.youtube.com/watch?v=fT9p9CCSrn8) by [Sarah Dayan](https://twitter.com/frontstuff_io)
+- [▶️ Frontend is Rocket Science - How to use XState in Vue 3 Now!](https://www.youtube.com/watch?v=wRktleOGKS4) by [Aleksej Dix](https://twitter.com/aleksejdix)
 
 ## Exercises
 
