@@ -1,12 +1,15 @@
-import { createMachine } from '../src';
+import { createMachine, ExtractEvent } from '../src';
 import { createModel } from '../src/model';
 
 describe('createModel', () => {
   it('model.machine creates a machine that is updated', () => {
-    interface UserEvent {
-      type: 'updateName';
-      value: string;
-    }
+    type UserEvent =
+      | {
+          type: 'updateName';
+          value: string;
+        }
+      | { type: 'updateAge'; value: number }
+      | { type: 'anotherEvent' };
 
     interface UserContext {
       name: string;
@@ -18,7 +21,12 @@ describe('createModel', () => {
       age: 30
     }).withAssigners({
       assignName: {
-        name: (_, e) => e.value
+        name: (_, event: ExtractEvent<UserEvent, 'updateName'>) => event.value
+      },
+      updateAge: (_, event: ExtractEvent<UserEvent, 'updateAge'>) => {
+        return {
+          age: event.value
+        };
       }
     });
 
@@ -30,6 +38,9 @@ describe('createModel', () => {
           on: {
             updateName: {
               actions: userModel.actions.assignName
+            },
+            updateAge: {
+              actions: userModel.actions.updateAge
             }
           }
         }

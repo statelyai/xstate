@@ -15,7 +15,11 @@ export interface ContextModel<TC, TE extends EventObject> {
     assigners: T
   ) => ContextModel<TC, TE> & {
     actions: {
-      [K in keyof T]: AssignAction<TC, TE>;
+      [K in keyof T]: T[K] extends Assigner<TC, infer E>
+        ? AssignAction<TC, E>
+        : T[K] extends PropertyAssigner<TC, infer E>
+        ? AssignAction<TC, E>
+        : never;
     };
   };
 }
@@ -32,11 +36,7 @@ export function createModel<TContext, TEvent extends EventObject>(
         actions: mapValues(assigners, (assignment) => {
           return assign(assignment);
         })
-      } as ContextModel<TContext, TEvent> & {
-        actions: {
-          [K in keyof typeof assigners]: AssignAction<TContext, TEvent>;
-        };
-      };
+      } as any;
     }
   };
 
