@@ -4,7 +4,8 @@ import {
   StatePathsMap,
   ValueAdjMapOptions,
   StatePathsMapFST,
-  SegmentsFST
+  SegmentsFST,
+  ValueAdjMapOptionsFST
 } from './types';
 import { getAdjacencyMapFST, nextEventsGetter } from './adjacency';
 import {
@@ -35,14 +36,14 @@ export function getSimplePaths<
     nextEventsGetter(machine, optionsWithDefaults.events as any)
   );
 
-  const paths = getSimplePathsFST(fst, optionsWithDefaults);
+  const paths = getSimplePathsFST(fst, optionsWithDefaults as any);
 
   return paths;
 }
 
 export function getSimplePathsFST<TState, Tinput>(
   fst: FST<TState, Tinput>,
-  options?: Partial<ValueAdjMapOptions<any, any>>
+  options?: Partial<ValueAdjMapOptionsFST<TState, Tinput>>
 ): StatePathsMapFST<TState, Tinput> {
   const optionsWithDefaults = {
     ...defaultValueAdjMapOptions,

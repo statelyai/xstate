@@ -13,7 +13,7 @@ import {
   DirectedGraphEdge,
   DirectedGraphNode
 } from './types';
-import { getSimplePaths } from './getSimplePaths';
+import { getSimplePaths } from './simplePaths';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>

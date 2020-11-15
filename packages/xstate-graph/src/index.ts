@@ -4,7 +4,7 @@ import {
   serializeState,
   toDirectedGraph
 } from './graph';
-import { getSimplePaths } from './getSimplePaths';
+import { getSimplePaths } from './simplePaths';
 import { getShortestPaths } from './shortestPaths';
 
 export {

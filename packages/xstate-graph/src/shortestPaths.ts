@@ -1,6 +1,11 @@
 import { DefaultContext, EventObject, StateMachine } from 'xstate';
 import { isMachine, keys } from 'xstate/lib/utils';
-import { StatePathsMap, StatePathsMapFST, ValueAdjMapOptions } from './types';
+import {
+  StatePathsMap,
+  StatePathsMapFST,
+  ValueAdjMapOptions,
+  ValueAdjMapOptionsFST
+} from './types';
 import { getAdjacencyMapFST, nextEventsGetter } from './adjacency';
 import {
   EMPTY_MAP,
@@ -32,21 +37,21 @@ export function getShortestPaths<
     nextEventsGetter(machine, optionsWithDefaults.events as any)
   );
 
-  const statePathMap = getShortestPathsFST(fst, optionsWithDefaults);
+  const statePathMap = getShortestPathsFST(fst, optionsWithDefaults as any);
 
   return statePathMap;
 }
 
 export function getShortestPathsFST<TState, TInput>(
   fst: FST<TState, TInput>,
-  options?: Partial<ValueAdjMapOptions<any, any>>
+  options?: Partial<ValueAdjMapOptionsFST<TState, TInput>>
 ): StatePathsMapFST<TState, TInput> {
   const optionsWithDefaults = {
     events: {},
     stateSerializer: serializeState,
     eventSerializer: serializeEvent,
     ...options
-  } as ValueAdjMapOptions<any, any>;
+  } as any;
 
   const adjacency = getAdjacencyMapFST<TState, TInput>(
     fst,

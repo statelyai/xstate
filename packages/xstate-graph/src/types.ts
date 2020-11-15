@@ -169,3 +169,10 @@ export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
   stateSerializer: (state: State<TContext, any>) => string;
   eventSerializer: (event: TEvent) => string;
 }
+
+export interface ValueAdjMapOptionsFST<TState, TInput> {
+  events: { [key: string]: TInput[] };
+  filter: (state: TState) => boolean;
+  stateSerializer: (state: TState) => string;
+  eventSerializer: (event: TInput) => string;
+}
