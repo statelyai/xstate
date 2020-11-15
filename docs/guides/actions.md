@@ -351,29 +351,29 @@ const raiseActionDemo = Machine({
     entry: {
       on: {
         STEP: {
-          target: 'middle',
+          target: 'middle'
         },
         RAISE: {
           target: 'middle',
           // immediately invoke the NEXT event for 'middle'
           actions: raise('NEXT')
-        },
-      },
+        }
+      }
     },
     middle: {
       on: {
         NEXT: 'last'
-      },
+      }
     },
     last: {
       on: {
         RESET: 'entry'
-      },
-    },
-  },
-})
-
+      }
+    }
+  }
+});
 ```
+
 Click on both `STEP` and `RAISE` events in the [visualizer](https://xstate.js.org/viz/?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
 
 ## Respond Action <Badge text="4.7+" />
