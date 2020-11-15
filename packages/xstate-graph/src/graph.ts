@@ -6,16 +6,14 @@ import {
   EventObject,
   StateMachine
 } from 'xstate';
-import { flatten, isMachine, keys } from 'xstate/lib/utils';
+import { flatten, keys } from 'xstate/lib/utils';
 import {
-  StatePathsMap,
   StatePaths,
-  Segments,
   ValueAdjMapOptions,
   DirectedGraphEdge,
   DirectedGraphNode
 } from './types';
-import { getAdjacencyMap } from './adjacency';
+import { getSimplePaths } from './getSimplePaths';
 
 export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
@@ -85,82 +83,6 @@ export const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
   stateSerializer: serializeState,
   eventSerializer: serializeEvent
 };
-
-export function getSimplePaths<
-  TContext = DefaultContext,
-  TEvent extends EventObject = EventObject
->(
-  machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
-): StatePathsMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
-  };
-
-  const { stateSerializer } = optionsWithDefaults;
-
-  if (isMachine(machine) && !machine.states) {
-    return EMPTY_MAP;
-  }
-
-  // @ts-ignore - excessively deep
-  const adjacency = getAdjacencyMap(machine, optionsWithDefaults);
-  const stateMap = new Map<string, State<TContext, TEvent>>();
-  const visited = new Set();
-  const path: Segments<TContext, TEvent> = [];
-  const paths: StatePathsMap<TContext, TEvent> = {};
-
-  function util(fromState: State<TContext, TEvent>, toStateSerial: string) {
-    const fromStateSerial = stateSerializer(fromState);
-    visited.add(fromStateSerial);
-
-    if (fromStateSerial === toStateSerial) {
-      if (!paths[toStateSerial]) {
-        paths[toStateSerial] = {
-          state: stateMap.get(toStateSerial)!,
-          paths: []
-        };
-      }
-      paths[toStateSerial].paths.push({
-        state: fromState,
-        weight: path.length,
-        segments: [...path]
-      });
-    } else {
-      for (const subEvent of keys(adjacency[fromStateSerial])) {
-        const nextSegment = adjacency[fromStateSerial][subEvent];
-
-        if (!nextSegment) {
-          continue;
-        }
-
-        const nextStateSerial = stateSerializer(nextSegment.state);
-        stateMap.set(nextStateSerial, nextSegment.state);
-
-        if (!visited.has(nextStateSerial)) {
-          path.push({
-            state: stateMap.get(fromStateSerial)!,
-            event: deserializeEventString(subEvent)
-          });
-          util(nextSegment.state, toStateSerial);
-        }
-      }
-    }
-
-    path.pop();
-    visited.delete(fromStateSerial);
-  }
-
-  const initialStateSerial = stateSerializer(machine.initialState);
-  stateMap.set(initialStateSerial, machine.initialState);
-
-  for (const nextStateSerial of keys(adjacency)) {
-    util(machine.initialState, nextStateSerial);
-  }
-
-  return paths;
-}
 
 export function getSimplePathsAsArray<
   TContext = DefaultContext,
