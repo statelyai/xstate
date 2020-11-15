@@ -1,11 +1,11 @@
 import {
   getStateNodes,
   getSimplePaths,
-  getShortestPaths,
   serializeEvent,
   serializeState,
   toDirectedGraph
 } from './graph';
+import { getShortestPaths } from './shortestPaths';
 
 export {
   getStateNodes,
