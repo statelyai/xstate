@@ -18,7 +18,7 @@ const [state, send] = useMachine(someMachine, {
 - New hook: `useMachineSelector(...)`, which enables you to apply a `selector` function to get part of (and/or transform) the machine's `state`:
 
 ```js
-const [fullName, send] = useMachine(
+const [fullName, send] = useMachineSelector(
   userMachine,
   (state) => `${state.context.firstName} ${state.context.lastName}`
 );
