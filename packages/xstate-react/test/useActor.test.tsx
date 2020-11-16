@@ -216,7 +216,7 @@ describe('useActor', () => {
 
       const { actorRef } = state.context;
 
-      return actorRef ? <ChildTest actor={actorRef} /> : null;
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
