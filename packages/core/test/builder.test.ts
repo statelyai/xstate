@@ -36,4 +36,49 @@ describe('builder', () => {
       lightMachine.transition('red', 'COUNTDOWN').matches({ red: 'wait' })
     ).toBeTruthy();
   });
+
+  it('works with entry actions', () => {
+    const testMachine = buildMachine('test', (m) => {
+      m.initialState('inactive', (s) => {
+        s.on('NEXT', 'active');
+      });
+      m.state('active', (s) => {
+        s.entry('someAction');
+      });
+    });
+
+    const activeState = testMachine.transition(undefined, 'NEXT');
+
+    expect(activeState.actions.map((a) => a.type)).toEqual(['someAction']);
+  });
+
+  it('works with exit actions', () => {
+    const testMachine = buildMachine('test', (m) => {
+      m.initialState('inactive', (s) => {
+        s.on('NEXT', 'active');
+        s.exit('someAction');
+      });
+      m.state('active');
+    });
+
+    const activeState = testMachine.transition(undefined, 'NEXT');
+
+    expect(activeState.actions.map((a) => a.type)).toEqual(['someAction']);
+  });
+
+  it('works with transition actions', () => {
+    const testMachine = buildMachine('test', (m) => {
+      m.initialState('inactive', (s) => {
+        s.on('NEXT', (t) => {
+          t.action('someAction');
+          t.target('active');
+        });
+      });
+      m.state('active');
+    });
+
+    const activeState = testMachine.transition(undefined, 'NEXT');
+
+    expect(activeState.actions.map((a) => a.type)).toEqual(['someAction']);
+  });
 });

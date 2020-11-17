@@ -7,6 +7,11 @@ interface MachineBuilder<TC, TE extends EventObject>
   context: (context: TC) => void;
 }
 
+type TransitionBuilderTarget<TC, TE extends EventObject> =
+  | string
+  | string[]
+  | ((tb: TransitionBuilder<TC, TE>) => void);
+
 interface StateNodeBuilder<TC, TE extends EventObject> {
   state: (key: string, fn?: (sb: StateNodeBuilder<TC, TE>) => void) => void;
   initialState: (
@@ -15,13 +20,10 @@ interface StateNodeBuilder<TC, TE extends EventObject> {
   ) => void;
   entry: (action: Action<TC, TE>) => void;
   exit: (action: Action<TC, TE>) => void;
-  on: (
-    eventType: TE['type'],
-    target: string | string[] | ((tb: TransitionBuilder<TC, TE>) => void)
-  ) => void;
+  on: (eventType: TE['type'], target: TransitionBuilderTarget<TC, TE>) => void;
   after: (
     delay: string | number,
-    target: string | string[] | ((tb: TransitionBuilder<TC, TE>) => void)
+    target: TransitionBuilderTarget<TC, TE>
   ) => void;
 }
 
@@ -103,24 +105,27 @@ function createStateNodeBuilder<TC, TE extends EventObject>(
       if (!config.on[eventType]) {
         config.on[eventType] = [] as any;
       }
+      const defaultTransitionConfig: TransitionBuilderConfig<TC, TE> = {
+        target: [],
+        actions: []
+      };
+      const transitionConfigs: Array<TransitionBuilderConfig<TC, TE>> = [
+        defaultTransitionConfig
+      ];
 
       if (typeof targetOrBuilder === 'function') {
-        const transitionConfig: TransitionBuilderConfig<TC, TE> = {
-          target: [],
-          actions: []
-        };
         const transitionBuilder: TransitionBuilder<TC, TE> = {
           target: (target) => {
-            transitionConfig.target.push(target);
+            defaultTransitionConfig.target.push(target);
           },
           action: (action) => {
-            transitionConfig.actions.push(action);
+            defaultTransitionConfig.actions.push(action);
           }
         };
 
         targetOrBuilder(transitionBuilder);
 
-        config.on[eventType]!.push(transitionConfig as any); // TODO: fix
+        config.on[eventType]!.push(defaultTransitionConfig as any); // TODO: fix
       } else {
         const transitionConfig: TransitionBuilderConfig<TC, TE> = {
           target: toArray(targetOrBuilder),
