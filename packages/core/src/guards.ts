@@ -6,12 +6,30 @@ import {
   GuardDefinition,
   GuardMeta,
   SCXML,
-  GuardPredicate
+  GuardPredicate,
+  GuardObject
 } from './types';
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
 import { MachineNode } from './MachineNode';
 import { State } from './State';
+
+export class Guard<TContext, TEvent extends EventObject>
+  implements GuardDefinition<TContext, TEvent> {
+  public type: string;
+  public params: { [key: string]: any } = {};
+  public predicate: GuardDefinition<TContext, TEvent>['predicate'];
+  public children: GuardDefinition<TContext, TEvent>['children'];
+
+  constructor(config: GuardObject<TContext, TEvent>) {
+    this.type = config.type;
+    this.params = config.params || {};
+    this.predicate = config.predicate;
+    this.children = (config.children as Array<
+      GuardConfig<TContext, TEvent>
+    >)?.map((childGuard) => toGuardDefinition(childGuard));
+  }
+}
 
 export function stateIn<TContext, TEvent extends EventObject>(
   stateValue: StateValue
@@ -35,7 +53,7 @@ export function not<TContext, TEvent extends EventObject>(
   return {
     type: 'xstate.boolean',
     params: { op: 'not' },
-    children: [toGuard(guard)],
+    children: [toGuardDefinition(guard)],
     predicate: (ctx, e, meta) => {
       return !meta.guard.children![0].predicate?.(ctx, e, {
         ...meta,
@@ -51,7 +69,7 @@ export function and<TContext, TEvent extends EventObject>(
   return {
     type: 'xstate.boolean',
     params: { op: 'and' },
-    children: guards.map((guard) => toGuard(guard)),
+    children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, e, meta) => {
       return meta.guard.children!.every((childGuard) => {
         return childGuard.predicate?.(ctx, e, {
@@ -69,7 +87,7 @@ export function or<TContext, TEvent extends EventObject>(
   return {
     type: 'xstate.boolean',
     params: { op: 'or' },
-    children: guards.map((guard) => toGuard(guard)),
+    children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, e, meta) => {
       return meta.guard.children!.some((childGuard) => {
         return childGuard.predicate?.(ctx, e, {
@@ -105,7 +123,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   return predicate(context, _event.data, guardMeta);
 }
 
-export function toGuard<TContext, TEvent extends EventObject>(
+export function toGuardDefinition<TContext, TEvent extends EventObject>(
   guardConfig: GuardConfig<TContext, TEvent>,
   getPredicate?: (guardType: string) => GuardPredicate<TContext, TEvent>
 ): GuardDefinition<TContext, TEvent> {
@@ -131,9 +149,10 @@ export function toGuard<TContext, TEvent extends EventObject>(
   return {
     type: guardConfig.type,
     params: guardConfig.params || guardConfig,
-    children: guardConfig.children?.map((childGuard) =>
-      toGuard(childGuard, getPredicate)
-    ),
-    predicate: guardConfig.predicate || getPredicate?.(guardConfig.type)
+    children: (guardConfig.children as Array<
+      GuardConfig<TContext, TEvent>
+    >)?.map((childGuard) => toGuardDefinition(childGuard, getPredicate)),
+    predicate:
+      getPredicate?.(guardConfig.type) || (guardConfig as any).predicate
   };
 }

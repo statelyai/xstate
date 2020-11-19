@@ -69,7 +69,7 @@ import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
-import { evaluateGuard, toGuard } from './guards';
+import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -343,7 +343,10 @@ export function formatTransition<TContext, TEvent extends EventObject>(
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
     guard: transitionConfig.guard
-      ? toGuard(transitionConfig.guard, (guardType) => guards[guardType])
+      ? toGuardDefinition(
+          transitionConfig.guard,
+          (guardType) => guards[guardType]
+        )
       : undefined,
     target,
     source: stateNode,
@@ -1594,7 +1597,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           const matchedActions = chooseAction.guards.find((condition) => {
             const guard =
               condition.guard &&
-              toGuard(
+              toGuardDefinition(
                 condition.guard,
                 (guardType) => machine.options.guards[guardType]
               );

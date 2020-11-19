@@ -122,21 +122,14 @@ export type GuardPredicate<TContext, TEvent extends EventObject> = (
   meta: GuardMeta<TContext, TEvent>
 ) => boolean;
 
-export type DefaultGuardType = 'xstate.guard';
-
 export interface DefaultGuardObject<TContext, TEvent extends EventObject> {
-  type: DefaultGuardType;
+  type: string;
   params?: { [key: string]: any };
   /**
    * Nested guards
    */
   children?: Array<GuardObject<TContext, TEvent>>;
-  predicate: GuardPredicate<TContext, TEvent>;
-}
-
-export interface AnyGuardObject {
-  type: string;
-  [key: string]: any;
+  predicate?: GuardPredicate<TContext, TEvent>;
 }
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
@@ -150,9 +143,8 @@ export type GuardConfig<TContext, TEvent extends EventObject> =
   | GuardObject<TContext, TEvent>;
 
 export type GuardObject<TContext, TEvent extends EventObject> =
-  | AnyGuardObject
-  | DefaultGuardObject<TContext, TEvent>
-  | BooleanGuardObject<TContext, TEvent>;
+  | BooleanGuardObject<TContext, TEvent>
+  | DefaultGuardObject<TContext, TEvent>;
 
 export interface GuardDefinition<TContext, TEvent extends EventObject> {
   type: string;
@@ -167,6 +159,7 @@ export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
   params: {
     op: 'and' | 'or' | 'not';
   };
+  predicate: undefined;
 }
 
 export interface BooleanGuardDefinition<TContext, TEvent extends EventObject>

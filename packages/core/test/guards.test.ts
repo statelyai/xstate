@@ -1,5 +1,4 @@
 import { Machine, interpret, State, createMachine } from '../src';
-import { DEFAULT_GUARD_TYPE } from '../src/constants';
 import { and, not, or } from '../src/guards';
 
 describe('guard conditions', () => {
@@ -268,9 +267,7 @@ describe('custom guards', () => {
               target: 'active',
               guard: {
                 type: 'custom',
-                prop: 'count',
-                op: 'greaterThan',
-                compare: 3
+                params: { prop: 'count', op: 'greaterThan', compare: 3 }
               }
             }
           }
@@ -328,7 +325,7 @@ describe('referencing guards', () => {
               {
                 guard: {
                   type: 'object',
-                  foo: 'bar'
+                  params: { foo: 'bar' }
                 }
               }
             ]
@@ -422,11 +419,9 @@ describe('guards with child guards', () => {
                 target: 'b',
                 guard: {
                   type: 'testGuard',
-                  name: 'any',
                   children: [
                     {
-                      type: DEFAULT_GUARD_TYPE,
-                      name: 'defaultGuard',
+                      type: 'customGuard',
                       predicate: () => true
                     },
                     { type: 'customGuard' }
@@ -519,7 +514,7 @@ describe('not() guard', () => {
             on: {
               EVENT: {
                 target: 'b',
-                guard: not({ type: 'greaterThan10', value: 5 })
+                guard: not({ type: 'greaterThan10', params: { value: 5 } })
               }
             }
           },
@@ -630,8 +625,8 @@ describe('and() guard', () => {
               EVENT: {
                 target: 'b',
                 guard: and([
-                  { type: 'greaterThan10', value: 11 },
-                  { type: 'greaterThan10', value: 50 }
+                  { type: 'greaterThan10', params: { value: 11 } },
+                  { type: 'greaterThan10', params: { value: 50 } }
                 ])
               }
             }
@@ -748,8 +743,8 @@ describe('or() guard', () => {
               EVENT: {
                 target: 'b',
                 guard: or([
-                  { type: 'greaterThan10', value: 4 },
-                  { type: 'greaterThan10', value: 50 }
+                  { type: 'greaterThan10', params: { value: 4 } },
+                  { type: 'greaterThan10', params: { value: 50 } }
                 ])
               }
             }
