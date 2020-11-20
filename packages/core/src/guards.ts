@@ -6,30 +6,11 @@ import {
   GuardDefinition,
   GuardMeta,
   SCXML,
-  GuardPredicate,
-  GuardObject
+  GuardPredicate
 } from './types';
 import { isStateId } from './stateUtils';
 import { isFunction, isString } from './utils';
-import { MachineNode } from './MachineNode';
 import { State } from './State';
-
-export class Guard<TContext, TEvent extends EventObject>
-  implements GuardDefinition<TContext, TEvent> {
-  public type: string;
-  public params: { [key: string]: any } = {};
-  public predicate: GuardDefinition<TContext, TEvent>['predicate'];
-  public children: GuardDefinition<TContext, TEvent>['children'];
-
-  constructor(config: GuardObject<TContext, TEvent>) {
-    this.type = config.type;
-    this.params = config.params || {};
-    this.predicate = config.predicate;
-    this.children = (config.children as Array<
-      GuardConfig<TContext, TEvent>
-    >)?.map((childGuard) => toGuardDefinition(childGuard));
-  }
-}
 
 export function stateIn<TContext, TEvent extends EventObject>(
   stateValue: StateValue
@@ -100,7 +81,6 @@ export function or<TContext, TEvent extends EventObject>(
 }
 
 export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
   guard: GuardDefinition<TContext, TEvent>,
   context: TContext,
   _event: SCXML.Event<TEvent>,
@@ -115,9 +95,7 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   const predicate = guard.predicate;
 
   if (!predicate) {
-    throw new Error(
-      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
-    );
+    throw new Error(`Guard '${guard.type}' is not implemented.'.`);
   }
 
   return predicate(context, _event.data, guardMeta);

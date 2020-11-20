@@ -1352,8 +1352,7 @@ export function microstep<TContext, TEvent extends EventObject>(
 }
 
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent>,
-  machine: MachineNode<TContext, TEvent>
+  state: State<TContext, TEvent>
 ): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<TransitionDefinition<
     TContext,
@@ -1371,7 +1370,6 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
           t.eventType === NULL_EVENT &&
           (t.guard === undefined ||
             evaluateGuard<TContext, TEvent>(
-              machine,
               t.guard,
               state.context,
               toSCXMLEvent(NULL_EVENT as Event<TEvent>),
@@ -1499,7 +1497,7 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
 
-  const isTransient = selectEventlessTransitions(nextState, machine).length;
+  const isTransient = selectEventlessTransitions(nextState).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({
@@ -1603,13 +1601,7 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
               );
             return (
               !guard ||
-              evaluateGuard(
-                machine,
-                guard,
-                context,
-                _event,
-                currentState as any
-              )
+              evaluateGuard(guard, context, _event, currentState as any)
             );
           })?.actions;
 

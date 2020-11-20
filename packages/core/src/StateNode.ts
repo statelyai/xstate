@@ -377,7 +377,6 @@ export class StateNode<
         guardPassed =
           !guard ||
           evaluateGuard<TContext, TEvent>(
-            this.machine,
             guard,
             resolvedContext,
             _event,
