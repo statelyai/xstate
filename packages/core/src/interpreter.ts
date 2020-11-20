@@ -987,6 +987,9 @@ export class Interpreter<
         this.removeChild(childService.id);
         this.send(toSCXMLEvent(doneEvent as any, { origin: childService.id }));
       })
+      .onStop(() => {
+        this.removeChild(childService.id);
+      })
       .start();
 
     return actor;
@@ -1057,6 +1060,7 @@ export class Interpreter<
       },
       stop: () => {
         canceled = true;
+        this.removeChild(id);
       },
       toJSON() {
         return { id };
@@ -1147,7 +1151,10 @@ export class Interpreter<
       subscribe: (next, handleError, complete) => {
         return source.subscribe(next, handleError, complete);
       },
-      stop: () => subscription.unsubscribe(),
+      stop: () => {
+        subscription.unsubscribe();
+        this.removeChild(id);
+      },
       toJSON() {
         return { id };
       }
