@@ -1,7 +1,6 @@
 import { StateNode } from './StateNode';
 import { State } from './State';
 import { Interpreter, Clock } from './interpreter';
-import { Actor } from './Actor';
 
 export type EventType = string;
 export type ActionType = string;
@@ -401,7 +400,7 @@ export interface InvokeSourceDefinition {
   type: string;
 }
 
-export type InvokeConfig<TContext, TEvent extends EventObject> = {
+export interface InvokeConfig<TContext, TEvent extends EventObject> {
   /**
    * The unique identifier for the invoked machine. If not specified, this
    * will be the machine's own `id`, or the URL (from `src`).
@@ -446,7 +445,7 @@ export type InvokeConfig<TContext, TEvent extends EventObject> = {
   onError?:
     | string
     | SingleOrArray<TransitionConfig<TContext, DoneInvokeEvent<any>>>;
-};
+}
 
 export interface StateNodeConfig<
   TContext,
@@ -865,8 +864,8 @@ export interface SendAction<
   to:
     | string
     | number
-    | Actor
-    | ExprWithMeta<TContext, TEvent, string | number | Actor>
+    | ActorRef<any>
+    | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>
     | undefined;
   event: TSentEvent | SendExpr<TContext, TEvent, TSentEvent>;
   delay?: number | string | DelayExpr<TContext, TEvent>;
@@ -878,7 +877,7 @@ export interface SendActionObject<
   TEvent extends EventObject,
   TSentEvent extends EventObject = AnyEventObject
 > extends SendAction<TContext, TEvent, TSentEvent> {
-  to: string | number | Actor | undefined;
+  to: string | number | ActorRef<any> | undefined;
   _event: SCXML.Event<TSentEvent>;
   event: TSentEvent;
   delay?: number;
@@ -924,7 +923,7 @@ export enum SpecialTargets {
 export interface SendActionOptions<TContext, TEvent extends EventObject> {
   id?: string | number;
   delay?: number | string | DelayExpr<TContext, TEvent>;
-  to?: string | ExprWithMeta<TContext, TEvent, string | number | Actor>;
+  to?: string | ExprWithMeta<TContext, TEvent, string | number | ActorRef<any>>;
 }
 
 export interface CancelAction extends ActionObject<any, any> {
@@ -1115,7 +1114,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   events?: TEvent[];
   configuration: Array<StateNode<TContext, any, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, Actor>;
+  children: Record<string, ActorRef<any>>;
   done?: boolean;
 }
 
@@ -1245,3 +1244,15 @@ export type Spawnable =
   | Promise<any>
   | InvokeCallback
   | Subscribable<any>;
+
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+  [key: string]: any;
+}
+
+export type ActorRefFrom<
+  T extends StateMachine<any, any, any>
+> = T extends StateMachine<infer TContext, any, infer TEvent>
+  ? ActorRef<TEvent, State<TContext, TEvent>>
+  : never;

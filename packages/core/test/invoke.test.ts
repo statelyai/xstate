@@ -2427,7 +2427,7 @@ describe('services option', () => {
 
             expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise((res) => {
+            return new Promise<void>((res) => {
               res();
             });
           }

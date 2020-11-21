@@ -57,7 +57,7 @@ import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import { StopActionObject, Subscription } from '.';
+import { ActorRef, StopActionObject, Subscription } from '.';
 
 export type StateListener<
   TContext,
@@ -162,7 +162,7 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, Actor> = new Map();
+  public children: Map<string | number, ActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -252,7 +252,8 @@ export class Interpreter<
 
     // Update children
     this.children.forEach((child) => {
-      this.state.children[child.id] = child;
+      const name = 'id' in child ? child.id : '';
+      this.state.children[name] = child;
     });
 
     // Dev tools
@@ -647,7 +648,7 @@ export class Interpreter<
 
   private sendTo = (
     event: SCXML.Event<AnyEventObject>,
-    to: string | number | Actor
+    to: string | number | ActorRef<any>
   ) => {
     const isParent =
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
@@ -926,7 +927,11 @@ export class Interpreter<
       child.stop();
     }
   }
-  public spawn(entity: Spawnable, name: string, options?: SpawnOptions): Actor {
+  public spawn(
+    entity: Spawnable,
+    name: string,
+    options?: SpawnOptions
+  ): ActorRef<any> {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
@@ -950,7 +955,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): Interpreter<TChildContext, TChildStateSchema, TChildEvent> {
+  ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -971,12 +976,12 @@ export class Interpreter<
       });
     }
 
-    const actor = childService;
+    const actor = childService as ActorRef<
+      TChildEvent,
+      State<TChildContext, TChildEvent>
+    >;
 
-    this.children.set(
-      childService.id,
-      actor as Actor<State<TChildContext, TChildEvent>, TChildEvent>
-    );
+    this.children.set(childService.id, actor);
 
     if (resolvedOptions.autoForward) {
       this.forwardTo.add(childService.id);
@@ -1159,7 +1164,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends Actor>(actor: T): T {
+  private spawnActor<T extends ActorRef<any>>(actor: T): T {
     this.children.set(actor.id, actor);
 
     return actor;
@@ -1261,15 +1266,15 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): Actor<State<TC, TE>, TE>;
+): ActorRef<TE, State<TC, TE>>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor;
+): ActorRef<any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): Actor {
+): ActorRef<any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {
