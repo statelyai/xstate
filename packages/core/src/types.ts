@@ -132,9 +132,17 @@ export interface DefaultGuardObject<TContext, TEvent extends EventObject> {
   predicate?: GuardPredicate<TContext, TEvent>;
 }
 
+export type GuardEvaluator<TContext, TEvent extends EventObject> = (
+  guard: GuardDefinition<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+) => boolean;
+
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
   guard: GuardDefinition<TContext, TEvent>;
+  evaluate: GuardEvaluator<TContext, TEvent>;
 }
 
 export type GuardConfig<TContext, TEvent extends EventObject> =

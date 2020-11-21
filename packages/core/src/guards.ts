@@ -35,11 +35,13 @@ export function not<TContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'not' },
     children: [toGuardDefinition(guard)],
-    predicate: (ctx, e, meta) => {
-      return !meta.guard.children![0].predicate?.(ctx, e, {
-        ...meta,
-        guard: meta.guard.children![0]
-      });
+    predicate: (ctx, _, meta) => {
+      return !meta.evaluate(
+        meta.guard.children![0],
+        ctx,
+        meta._event,
+        meta.state
+      );
     }
   };
 }
@@ -51,12 +53,9 @@ export function and<TContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'and' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, e, meta) => {
+    predicate: (ctx, _, meta) => {
       return meta.guard.children!.every((childGuard) => {
-        return childGuard.predicate?.(ctx, e, {
-          ...meta,
-          guard: childGuard
-        });
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -71,10 +70,7 @@ export function or<TContext, TEvent extends EventObject>(
     children: guards.map((guard) => toGuardDefinition(guard)),
     predicate: (ctx, e, meta) => {
       return meta.guard.children!.some((childGuard) => {
-        return childGuard.predicate?.(ctx, e, {
-          ...meta,
-          guard: childGuard
-        });
+        return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
     }
   };
@@ -89,7 +85,8 @@ export function evaluateGuard<TContext, TEvent extends EventObject>(
   const guardMeta: GuardMeta<TContext, TEvent> = {
     state,
     guard,
-    _event
+    _event,
+    evaluate: evaluateGuard
   };
 
   const predicate = guard.predicate;
