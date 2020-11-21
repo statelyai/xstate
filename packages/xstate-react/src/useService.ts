@@ -1,11 +1,13 @@
 import { useMemo } from 'react';
-import { EventObject, State, Interpreter, Typestate } from 'xstate';
+import { EventObject, State, Interpreter, Typestate, ActorRef } from 'xstate';
 import { useActor } from './useActor';
-import { ActorRef, PayloadSender } from './types';
+import { PayloadSender } from './types';
 
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, any, TEvent>
-): ActorRef<TEvent, State<TContext, TEvent>> {
+): ActorRef<TEvent, State<TContext, TEvent>> & {
+  current: State<TContext, TEvent>;
+} {
   if (process.env.NODE_ENV !== 'production' && !('machine' in service)) {
     throw new Error(
       `Attempted to use an actor-like object instead of a service in the useService() hook. Please use the useActor() hook instead.`
@@ -37,7 +39,7 @@ export function useService<
 
   const [state] = useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
     serviceActor,
-    (actor) => (actor as typeof serviceActor).current!
+    (actor) => actor.current
   );
 
   return [state, service.send];

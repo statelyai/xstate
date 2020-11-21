@@ -1,8 +1,14 @@
 import * as React from 'react';
 import { render } from '@testing-library/react';
-import { Machine, interpret, assign, spawn, createMachine } from 'xstate';
+import {
+  Machine,
+  interpret,
+  assign,
+  spawn,
+  createMachine,
+  ActorRefFrom
+} from 'xstate';
 import { useService, useMachine, useActor } from '../src';
-import { ActorRefFrom } from '../src/types';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -164,9 +170,6 @@ describe('useMachine', () => {
     }
 
     function Element({ myActor }: Props) {
-      /**
-       * This is the most important part. I can't live without typed current and send.
-       */
       const [current, send] = useActor(myActor);
 
       return (
