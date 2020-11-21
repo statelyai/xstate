@@ -600,7 +600,7 @@ describe('actors', () => {
     });
 
     it('should sync spawned actor state when { sync: true }', () => {
-      return new Promise((res) => {
+      return new Promise<void>((res) => {
         const service = interpret(parentMachine, {
           id: 'a-service'
         }).onTransition((s) => {
@@ -613,7 +613,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state when { sync: false }', () => {
-      return new Promise((res, rej) => {
+      return new Promise<void>((res, rej) => {
         const service = interpret(parentMachine, {
           id: 'b-service'
         }).onTransition((s) => {
@@ -631,7 +631,7 @@ describe('actors', () => {
     });
 
     it('should not sync spawned actor state (default)', () => {
-      return new Promise((res, rej) => {
+      return new Promise<void>((res, rej) => {
         const service = interpret(parentMachine, {
           id: 'c-service'
         }).onTransition((s) => {
