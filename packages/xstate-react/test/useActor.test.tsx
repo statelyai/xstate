@@ -1,9 +1,15 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, assign, spawn } from 'xstate';
+import {
+  createMachine,
+  sendParent,
+  assign,
+  spawn,
+  ActorRef,
+  ActorRefFrom
+} from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useActor } from '../src/useActor';
-import { ActorRefFrom, ActorRefLike } from '../src/types';
 import { useState } from 'react';
 
 afterEach(cleanup);
@@ -227,7 +233,7 @@ describe('useActor', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor: ActorRefLike<any, number> & { latestValue: number } = {
+    const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       send: () => {
         /* ... */
       },
@@ -257,7 +263,7 @@ describe('useActor', () => {
   it('should update snapshot value when actor changes', () => {
     const createSimpleActor = (
       value: number
-    ): ActorRefLike<any, number> & { latestValue: number } => ({
+    ): ActorRef<any, number> & { latestValue: number } => ({
       send: () => {
         /* ... */
       },
@@ -308,11 +314,11 @@ describe('useActor', () => {
     const noop = () => {
       /* ... */
     };
-    const firstActor: ActorRefLike<any> = {
+    const firstActor: ActorRef<any> = {
       send: noop,
       subscribe: fakeSubscribe
     };
-    const lastActor: ActorRefLike<any> = {
+    const lastActor: ActorRef<any> = {
       send: () => {
         done();
       },
