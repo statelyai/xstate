@@ -1040,7 +1040,7 @@ export class Interpreter<
       }
     );
 
-    const actor: Actor<T, never> = {
+    const actor: SpawnedActorRef<never, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
