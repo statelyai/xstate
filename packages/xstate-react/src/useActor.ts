@@ -4,6 +4,18 @@ import { Sender } from './types';
 import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
+function isActorWithState<T extends ActorRef<any>>(
+  actorRef: T
+): actorRef is T & { state: any } {
+  return 'state' in actorRef;
+}
+
+function isDeferredActor<T extends ActorRef<any>>(
+  actorRef: T
+): actorRef is T & { deferred: boolean } {
+  return 'deferred' in actorRef;
+}
+
 export function useActor<
   TEvent extends EventObject,
   TEmitted = unknown,
@@ -11,7 +23,7 @@ export function useActor<
 >(
   actorRef: TActor & ActorRef<TEvent, TEmitted>,
   getSnapshot: (actor: TActor) => TEmitted = (a) =>
-    'state' in a ? a.state : (undefined as any)
+    isActorWithState(a) ? a.state : (undefined as any)
 ): [TEmitted, Sender<TEvent>] {
   const actorRefRef = useRef(actorRef);
   const deferredEventsRef = useRef<TEvent[]>([]);
@@ -22,7 +34,7 @@ export function useActor<
     // If the previous actor is a deferred actor,
     // queue the events so that they can be replayed
     // on the non-deferred actor.
-    if ('deferred' in currentActorRef && currentActorRef.deferred) {
+    if (isDeferredActor(currentActorRef) && currentActorRef.deferred) {
       deferredEventsRef.current.push(event);
     } else {
       currentActorRef.send(event);

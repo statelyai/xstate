@@ -49,15 +49,22 @@ import {
   reportUnhandledExceptionOnInvocation,
   symbolObservable,
   toInvokeSource,
-  toObserver
+  toObserver,
+  isActor
 } from './utils';
 import { Scheduler } from './scheduler';
-import { Actor, isActor, createDeferredActor } from './Actor';
+import { Actor, isSpawnedActor, createDeferredActor } from './Actor';
 import { isInFinalState } from './stateUtils';
 import { registry } from './registry';
 import { registerService } from './devTools';
 import * as serviceScope from './serviceScope';
-import { ActorRef, StopActionObject, Subscription } from '.';
+import {
+  ActorRef,
+  ActorRefFrom,
+  SpawnedActorRef,
+  StopActionObject,
+  Subscription
+} from '.';
 
 export type StateListener<
   TContext,
@@ -162,7 +169,7 @@ export class Interpreter<
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, ActorRef<any>> = new Map();
+  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   // Dev Tools
@@ -654,9 +661,11 @@ export class Interpreter<
       this.parent && (to === SpecialTargets.Parent || this.parent.id === to);
     const target = isParent
       ? this.parent
-      : isActor(to)
+      : isString(to)
+      ? this.children.get(to as string) || registry.get(to as string)
+      : isActor(to) || isSpawnedActor(to)
       ? to
-      : this.children.get(to) || registry.get(to as string);
+      : undefined;
 
     if (!target) {
       if (!isParent) {
@@ -936,7 +945,7 @@ export class Interpreter<
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
       return this.spawnCallback(entity as InvokeCallback, name);
-    } else if (isActor(entity)) {
+    } else if (isSpawnedActor(entity)) {
       return this.spawnActor(entity);
     } else if (isObservable<TEvent>(entity)) {
       return this.spawnObservable(entity, name);
@@ -955,7 +964,7 @@ export class Interpreter<
   >(
     machine: StateMachine<TChildContext, TChildStateSchema, TChildEvent>,
     options: { id?: string; autoForward?: boolean; sync?: boolean } = {}
-  ): ActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
+  ): SpawnedActorRef<TChildEvent, State<TChildContext, TChildEvent>> {
     const childService = new Interpreter(machine, {
       ...this.options, // inherit options from this interpreter
       parent: this,
@@ -976,10 +985,7 @@ export class Interpreter<
       });
     }
 
-    const actor = childService as ActorRef<
-      TChildEvent,
-      State<TChildContext, TChildEvent>
-    >;
+    const actor = childService;
 
     this.children.set(childService.id, actor);
 
@@ -1164,7 +1170,7 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnActor<T extends ActorRef<any>>(actor: T): T {
+  private spawnActor<T extends SpawnedActorRef<any>>(actor: T): T {
     this.children.set(actor.id, actor);
 
     return actor;
@@ -1266,7 +1272,7 @@ const resolveSpawnOptions = (nameOrOptions?: string | SpawnOptions) => {
 export function spawn<TC, TE extends EventObject>(
   entity: StateMachine<TC, any, TE>,
   nameOrOptions?: string | SpawnOptions
-): ActorRef<TE, State<TC, TE>>;
+): ActorRefFrom<StateMachine<TC, any, TE>>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions

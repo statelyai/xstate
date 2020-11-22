@@ -1248,11 +1248,19 @@ export type Spawnable =
 export interface ActorRef<TEvent extends EventObject, TEmitted = any>
   extends Subscribable<TEmitted> {
   send: Sender<TEvent>;
-  [key: string]: any;
+}
+
+export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
+  extends ActorRef<TEvent, TEmitted> {
+  id: string;
+  stop?: () => void;
+  toJSON?: () => any;
 }
 
 export type ActorRefFrom<
   T extends StateMachine<any, any, any>
-> = T extends StateMachine<infer TContext, any, infer TEvent>
-  ? ActorRef<TEvent, State<TContext, TEvent>>
+> = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
+  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+      state: State<TContext, TEvent, any, TTypestate>;
+    }
   : never;

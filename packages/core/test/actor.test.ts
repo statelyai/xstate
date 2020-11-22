@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret, ActorRef } from '../src';
+import { Machine, spawn, interpret, ActorRef, ActorRefFrom } from '../src';
 import {
   assign,
   send,
@@ -661,7 +661,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: ActorRef<any>;
+        ref?: ActorRefFrom<typeof syncChildMachine>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -706,7 +706,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -756,7 +756,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<never>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
