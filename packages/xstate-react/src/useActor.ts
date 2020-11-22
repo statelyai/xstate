@@ -44,7 +44,7 @@ export function useActor<
   useIsomorphicLayoutEffect(() => {
     actorRefRef.current = actorRef;
     setCurrent(getSnapshot(actorRef));
-    const subscription = actorRef.subscribe(setCurrent);
+    const subscription = actorRef.subscribe((emitted) => setCurrent(emitted));
 
     // Dequeue deferred events from the previous deferred actorRef
     while (deferredEventsRef.current.length > 0) {
