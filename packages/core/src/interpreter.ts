@@ -662,7 +662,7 @@ export class Interpreter<
       ? this.parent
       : isString(to)
       ? this.children.get(to as string) || registry.get(to as string)
-      : isActor(to) || isSpawnedActor(to)
+      : isActor(to)
       ? to
       : undefined;
 
