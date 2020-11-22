@@ -259,8 +259,7 @@ export class Interpreter<
 
     // Update children
     this.children.forEach((child) => {
-      const name = 'id' in child ? child.id : '';
-      this.state.children[name] = child;
+      this.state.children[child.id] = child;
     });
 
     // Dev tools
@@ -940,7 +939,7 @@ export class Interpreter<
     entity: Spawnable,
     name: string,
     options?: SpawnOptions
-  ): ActorRef<any> {
+  ): SpawnedActorRef<any> {
     if (isPromiseLike(entity)) {
       return this.spawnPromise(Promise.resolve(entity), name);
     } else if (isFunction(entity)) {
@@ -1002,7 +1001,10 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnPromise<T>(promise: Promise<T>, id: string): Actor<T, never> {
+  private spawnPromise<T>(
+    promise: Promise<T>,
+    id: string
+  ): SpawnedActorRef<never, T> {
     let canceled = false;
 
     promise.then(
@@ -1080,7 +1082,10 @@ export class Interpreter<
 
     return actor;
   }
-  private spawnCallback(callback: InvokeCallback, id: string): Actor {
+  private spawnCallback(
+    callback: InvokeCallback,
+    id: string
+  ): SpawnedActorRef<any> {
     let canceled = false;
     const receivers = new Set<(e: EventObject) => void>();
     const listeners = new Set<(e: EventObject) => void>();
@@ -1139,7 +1144,7 @@ export class Interpreter<
   private spawnObservable<T extends TEvent>(
     source: Subscribable<T>,
     id: string
-  ): Actor {
+  ): SpawnedActorRef<any, T> {
     const subscription = source.subscribe(
       (value) => {
         this.send(toSCXMLEvent(value, { origin: id }));
@@ -1154,7 +1159,7 @@ export class Interpreter<
       }
     );
 
-    const actor: Actor = {
+    const actor: SpawnedActorRef<any, T> = {
       id,
       send: () => void 0,
       subscribe: (next, handleError?, complete?) => {
@@ -1276,11 +1281,11 @@ export function spawn<TC, TE extends EventObject>(
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): ActorRef<any>;
+): SpawnedActorRef<any>;
 export function spawn(
   entity: Spawnable,
   nameOrOptions?: string | SpawnOptions
-): ActorRef<any> {
+): SpawnedActorRef<any> {
   const resolvedOptions = resolveSpawnOptions(nameOrOptions);
 
   return serviceScope.consume((service) => {

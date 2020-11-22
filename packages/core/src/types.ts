@@ -1260,7 +1260,7 @@ export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
 export type ActorRefFrom<
   T extends StateMachine<any, any, any>
 > = T extends StateMachine<infer TContext, any, infer TEvent, infer TTypestate>
-  ? ActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
+  ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>> & {
       state: State<TContext, TEvent, any, TTypestate>;
     }
   : never;
