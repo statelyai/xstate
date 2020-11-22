@@ -49,7 +49,11 @@ describe('useActor', () => {
     const Test = () => {
       const [state] = useMachine(machine);
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -106,7 +110,11 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
