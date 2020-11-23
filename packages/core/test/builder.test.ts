@@ -71,7 +71,8 @@ describe('builder', () => {
       m.initialState('inactive', (s) => {
         s.on('NEXT', (t) => {
           t.action('someAction');
-          t.target('active');
+
+          return 'active';
         });
       });
       m.state('active');
@@ -80,5 +81,19 @@ describe('builder', () => {
     const activeState = testMachine.transition(undefined, 'NEXT');
 
     expect(activeState.actions.map((a) => a.type)).toEqual(['someAction']);
+  });
+
+  it('works with guarded transitions', () => {
+    const testMachine = buildMachine('test', (m) => {
+      m.initialState('inactive', (s) => {
+        s.on('EVENT', (t) => t.when(() => false, 'active'));
+      });
+
+      m.state('active');
+    });
+
+    const activeState = testMachine.transition(undefined, 'NEXT');
+
+    expect(activeState.matches('inactive')).toBeTruthy();
   });
 });

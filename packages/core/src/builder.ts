@@ -1,6 +1,13 @@
-import { Action, EventObject, StateNodeConfig, TransitionConfig } from '.';
+import {
+  Action,
+  Condition,
+  EventObject,
+  Guard,
+  StateNodeConfig,
+  TransitionConfig
+} from '.';
 import { createMachine } from './Machine';
-import { toArray } from './utils';
+import { toArray, toGuard } from './utils';
 
 interface MachineBuilder<TC, TE extends EventObject>
   extends StateNodeBuilder<TC, TE> {
@@ -10,7 +17,7 @@ interface MachineBuilder<TC, TE extends EventObject>
 type TransitionBuilderTarget<TC, TE extends EventObject> =
   | string
   | string[]
-  | ((tb: TransitionBuilder<TC, TE>) => void);
+  | ((tb: TransitionBuilder<TC, TE>) => string | string[] | undefined | void);
 
 interface StateNodeBuilder<TC, TE extends EventObject> {
   state: (key: string, fn?: (sb: StateNodeBuilder<TC, TE>) => void) => void;
@@ -51,11 +58,15 @@ interface StateNodeBuilderConfig<TC, TE extends EventObject>
 interface TransitionBuilderConfig<TC, TE extends EventObject> {
   target: string[];
   actions: Array<Action<TC, TE>>;
+  guard?: Guard<TC, TE>;
 }
 
 interface TransitionBuilder<TC, TE extends EventObject> {
   action: (action: Action<TC, TE>) => void;
-  target: (target: string) => void;
+  when: (
+    guard: Condition<TC, TE>,
+    targetOrBuilder: TransitionBuilderTarget<TC, TE>
+  ) => void;
 }
 
 interface MachineBuilderConfig<TC, TE extends EventObject>
@@ -105,35 +116,46 @@ function createStateNodeBuilder<TC, TE extends EventObject>(
       if (!config.on[eventType]) {
         config.on[eventType] = [] as any;
       }
+
       const defaultTransitionConfig: TransitionBuilderConfig<TC, TE> = {
         target: [],
         actions: []
       };
-      const transitionConfigs: Array<TransitionBuilderConfig<TC, TE>> = [
-        defaultTransitionConfig
-      ];
+      // const transitionConfigs: Array<TransitionBuilderConfig<TC, TE>> = [
+      //   defaultTransitionConfig
+      // ];
 
-      if (typeof targetOrBuilder === 'function') {
-        const transitionBuilder: TransitionBuilder<TC, TE> = {
-          target: (target) => {
-            defaultTransitionConfig.target.push(target);
-          },
-          action: (action) => {
-            defaultTransitionConfig.actions.push(action);
-          }
-        };
+      function foo(tob: TransitionBuilderTarget<TC, TE>) {
+        if (typeof tob === 'function') {
+          const transitionBuilder: TransitionBuilder<TC, TE> = {
+            action: (action) => {
+              defaultTransitionConfig.actions.push(action);
+            },
+            when: (guard, subTargetOrBuilder) => {
+              defaultTransitionConfig.guard = toGuard(guard);
 
-        targetOrBuilder(transitionBuilder);
+              foo(subTargetOrBuilder);
+            }
+          };
 
-        config.on[eventType]!.push(defaultTransitionConfig as any); // TODO: fix
-      } else {
-        const transitionConfig: TransitionBuilderConfig<TC, TE> = {
-          target: toArray(targetOrBuilder),
-          actions: []
-        };
+          const target = tob(transitionBuilder);
 
-        config.on[eventType]!.push(transitionConfig as any); // TODO: fix
+          const targets = target === undefined ? [] : toArray(target);
+
+          defaultTransitionConfig.target = targets;
+
+          config.on[eventType]!.push(defaultTransitionConfig as any); // TODO: fix
+        } else {
+          const transitionConfig: TransitionBuilderConfig<TC, TE> = {
+            target: toArray(tob),
+            actions: []
+          };
+
+          config.on[eventType]!.push(transitionConfig as any); // TODO: fix
+        }
       }
+
+      foo(targetOrBuilder);
     },
     after: (delay, targetOrBuilder) => {
       config.after[delay] = config.after[delay] || [];
@@ -144,15 +166,19 @@ function createStateNodeBuilder<TC, TE extends EventObject>(
           actions: []
         };
         const transitionBuilder: TransitionBuilder<TC, TE> = {
-          target: (target) => {
-            transitionConfig.target.push(target);
-          },
           action: (action) => {
             transitionConfig.actions.push(action);
+          },
+          // @ts-ignore
+          when: (guard, subTargetOrBuilder) => {
+            // void
           }
         };
 
-        targetOrBuilder(transitionBuilder);
+        const target = targetOrBuilder(transitionBuilder);
+        const targets = target === undefined ? [] : toArray(target);
+
+        transitionConfig.target = targets;
 
         config.after[delay].push(transitionConfig);
       }
