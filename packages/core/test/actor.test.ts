@@ -228,7 +228,6 @@ describe('spawning callbacks', () => {
           entry: assign({
             callbackRef: (_, __, { spawn }) =>
               spawn.from((cb, receive) => {
-                console.log('hey there');
                 receive((event) => {
                   if (event.type === 'START') {
                     setTimeout(() => {

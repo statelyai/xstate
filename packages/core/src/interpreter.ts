@@ -721,7 +721,6 @@ export class Interpreter<
 
             actorRef.subscribe({
               error: (e) => {
-                console.log('from subscribe:', e);
                 this.stop();
               },
               complete: () => {
