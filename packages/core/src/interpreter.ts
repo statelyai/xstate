@@ -720,7 +720,8 @@ export class Interpreter<
             this.state.children[id] = actorRef;
 
             actorRef.subscribe({
-              error: (e) => {
+              error: () => {
+                // TODO: handle error
                 this.stop();
               },
               complete: () => {
