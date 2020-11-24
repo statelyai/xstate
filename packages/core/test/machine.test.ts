@@ -1,4 +1,4 @@
-import { Machine, interpret } from '../src/index';
+import { createMachine, interpret } from '../src/index';
 import { State } from '../src/State';
 import { createSchema } from '../src/schema';
 
@@ -35,7 +35,7 @@ type LightStateEvents =
   | { type: 'FORBIDDEN_EVENT' }
   | { type: 'PED_COUNTDOWN' };
 
-const lightMachine = Machine({
+const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   schema: {
@@ -66,7 +66,7 @@ const lightMachine = Machine({
   }
 });
 
-const configMachine = Machine(
+const configMachine = createMachine(
   {
     id: 'config',
     initial: 'foo',
@@ -142,7 +142,7 @@ describe('machine', () => {
 
   describe('machine.config', () => {
     it('state node config should reference original machine config', () => {
-      const machine = Machine({
+      const machine = createMachine({
         initial: 'one',
         states: {
           one: {
@@ -224,8 +224,8 @@ describe('machine', () => {
     };
 
     it('context from a function should be lazily evaluated', () => {
-      const testMachine1 = Machine(testMachineConfig);
-      const testMachine2 = Machine(testMachineConfig);
+      const testMachine1 = createMachine(testMachineConfig);
+      const testMachine2 = createMachine(testMachineConfig);
 
       expect(testMachine1.initialState.context).not.toBe(
         testMachine2.initialState.context
@@ -242,7 +242,7 @@ describe('machine', () => {
   });
 
   describe('machine.resolveState()', () => {
-    const resolveMachine = Machine({
+    const resolveMachine = createMachine({
       id: 'resolve',
       initial: 'foo',
       states: {
@@ -302,7 +302,7 @@ describe('machine', () => {
 
   describe('versioning', () => {
     it('should allow a version to be specified', () => {
-      const versionMachine = Machine({
+      const versionMachine = createMachine({
         id: 'version',
         version: '1.0.4',
         states: {}
@@ -312,7 +312,7 @@ describe('machine', () => {
     });
 
     it('should show the version on state nodes', () => {
-      const versionMachine = Machine({
+      const versionMachine = createMachine({
         id: 'version',
         version: '1.0.4',
         states: {
@@ -330,7 +330,7 @@ describe('machine', () => {
 
   describe('id', () => {
     it('should represent the ID', () => {
-      const idMachine = Machine({
+      const idMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }
@@ -340,7 +340,7 @@ describe('machine', () => {
     });
 
     it('should represent the ID (state node)', () => {
-      const idMachine = Machine({
+      const idMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: {
@@ -354,7 +354,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided', () => {
-      const noIDMachine = Machine({
+      const noIDMachine = createMachine({
         key: 'some-key',
         initial: 'idle',
         states: { idle: {} }
@@ -364,7 +364,7 @@ describe('machine', () => {
     });
 
     it('should use the key as the ID if no ID is provided (state node)', () => {
-      const noStateNodeIDMachine = Machine({
+      const noStateNodeIDMachine = createMachine({
         id: 'some-id',
         initial: 'idle',
         states: { idle: {} }

@@ -1,5 +1,6 @@
 import { Machine, assign, createMachine, interpret } from '../src/index';
 import { raise } from '../src/actions';
+import { createSchema } from '../src/schema';
 
 function noop(_x) {
   return;
@@ -34,59 +35,123 @@ describe('StateSchema', () => {
     elapsed: number;
   }
 
-  const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
-    key: 'light',
-    initial: 'green',
-    meta: { interval: 1000 },
-    context: { elapsed: 0 },
-    states: {
-      green: {
-        id: 'green',
-        meta: { name: 'greenLight' },
-        on: {
-          TIMER: 'yellow',
-          POWER_OUTAGE: 'red'
-        }
-      },
-      yellow: {
-        on: {
-          TIMER: 'red',
-          POWER_OUTAGE: 'red'
-        }
-      },
-      red: {
-        on: {
-          TIMER: 'green',
-          POWER_OUTAGE: 'red'
+  it('should work with a StateSchema defined', () => {
+    const lightMachine = Machine<LightContext, LightStateSchema, LightEvent>({
+      key: 'light',
+      initial: 'green',
+      meta: { interval: 1000 },
+      context: { elapsed: 0 },
+      states: {
+        green: {
+          id: 'green',
+          meta: { name: 'greenLight' },
+          on: {
+            TIMER: 'yellow',
+            POWER_OUTAGE: 'red'
+          }
         },
-        initial: 'walk',
-        states: {
-          walk: {
-            on: {
-              PED_COUNTDOWN: 'wait'
-            }
+        yellow: {
+          on: {
+            TIMER: 'red',
+            POWER_OUTAGE: 'red'
+          }
+        },
+        red: {
+          on: {
+            TIMER: 'green',
+            POWER_OUTAGE: 'red'
           },
-          wait: {
-            on: {
-              PED_COUNTDOWN: {
-                target: 'stop',
-                cond: (ctx, e: { type: 'PED_COUNTDOWN'; duration: number }) => {
-                  return e.duration === 0 && ctx.elapsed > 0;
+          initial: 'walk',
+          states: {
+            walk: {
+              on: {
+                PED_COUNTDOWN: 'wait'
+              }
+            },
+            wait: {
+              on: {
+                PED_COUNTDOWN: {
+                  target: 'stop',
+                  cond: (
+                    ctx,
+                    e: { type: 'PED_COUNTDOWN'; duration: number }
+                  ) => {
+                    return e.duration === 0 && ctx.elapsed > 0;
+                  }
                 }
               }
+            },
+            stop: {
+              always: { target: '#green' }
             }
-          },
-          stop: {
-            always: { target: '#green' }
           }
         }
       }
-    }
+    });
+
+    noop(lightMachine);
+    expect(true).toBeTruthy();
   });
 
-  noop(lightMachine);
+  it('should work with a StateSchema defined inline', () => {
+    const lightMachine = Machine({
+      key: 'light',
+      schema: {
+        events: createSchema<LightEvent>(),
+        states: createSchema<LightStateSchema>()
+      },
+      initial: 'green',
+      meta: { interval: 1000 },
+      context: { elapsed: 0 } as LightContext,
+      states: {
+        green: {
+          id: 'green',
+          meta: { name: 'greenLight' },
+          on: {
+            TIMER: 'yellow',
+            POWER_OUTAGE: 'red'
+          }
+        },
+        yellow: {
+          on: {
+            TIMER: 'red',
+            POWER_OUTAGE: 'red'
+          }
+        },
+        red: {
+          on: {
+            TIMER: 'green',
+            POWER_OUTAGE: 'red'
+          },
+          initial: 'walk',
+          states: {
+            walk: {
+              on: {
+                PED_COUNTDOWN: 'wait'
+              }
+            },
+            wait: {
+              on: {
+                PED_COUNTDOWN: {
+                  target: 'stop',
+                  cond: (
+                    ctx,
+                    e: { type: 'PED_COUNTDOWN'; duration: number }
+                  ) => {
+                    return e.duration === 0 && ctx.elapsed > 0;
+                  }
+                }
+              }
+            },
+            stop: {
+              always: { target: '#green' }
+            }
+          }
+        }
+      }
+    });
 
-  it('should work with a StateSchema defined', () => {
+    noop(lightMachine);
     expect(true).toBeTruthy();
   });
 });
