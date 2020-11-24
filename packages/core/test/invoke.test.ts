@@ -962,42 +962,44 @@ describe('invoke', () => {
         service.start();
       });
 
-      it.skip(
-        'should be invoked with a promise factory and ' +
-          'stop on unhandled onError target when on strict mode',
-        (done) => {
-          const doneSpy = jest.fn();
+      // tslint:disable-next-line:max-line-length
+      it('should be invoked with a promise factory and stop on unhandled onError target when on strict mode', (done) => {
+        const doneSpy = jest.fn();
 
-          const promiseMachine = Machine({
-            id: 'invokePromise',
-            initial: 'pending',
-            strict: true,
-            states: {
-              pending: {
-                invoke: {
-                  src: invokePromise(() =>
-                    createPromise(() => {
-                      throw new Error('test');
-                    })
-                  ),
-                  onDone: 'success'
-                }
-              },
-              success: {
-                type: 'final'
+        const promiseMachine = Machine({
+          id: 'invokePromise',
+          initial: 'pending',
+          strict: true,
+          states: {
+            pending: {
+              invoke: {
+                src: invokePromise(() =>
+                  createPromise(() => {
+                    throw new Error('test');
+                  })
+                ),
+                onDone: 'success'
               }
+            },
+            success: {
+              type: 'final'
             }
-          });
+          }
+        });
 
-          interpret(promiseMachine)
-            .onDone(doneSpy)
-            .onStop(() => {
-              expect(doneSpy).not.toHaveBeenCalled();
-              done();
-            })
-            .start();
-        }
-      );
+        interpret(promiseMachine)
+          .onDone(doneSpy)
+          .onError((err) => {
+            // TODO: determine if err should be the full SCXML error event
+            expect(err).toBeInstanceOf(Error);
+            expect(err.message).toBe('test');
+          })
+          .onStop(() => {
+            expect(doneSpy).not.toHaveBeenCalled();
+            done();
+          })
+          .start();
+      });
 
       it('should be invoked with a promise factory and resolve through onDone for compound state nodes', (done) => {
         const promiseMachine = Machine({
@@ -2235,7 +2237,9 @@ describe('invoke', () => {
                   active: {
                     invoke: {
                       id: 'active',
-                      src: invokeCallback(() => () => {})
+                      src: invokeCallback(() => () => {
+                        /* ... */
+                      })
                     },
                     on: {
                       NEXT: {
@@ -2430,7 +2434,7 @@ describe('services option', () => {
 
             expect(data).toEqual({ newCount: 84, staticVal: 'hello' });
 
-            return new Promise((res) => {
+            return new Promise<void>((res) => {
               res();
             });
           })

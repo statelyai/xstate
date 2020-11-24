@@ -348,6 +348,7 @@ export class Interpreter<
         listener(errorEvent.data.data);
       });
     } else {
+      this.stop();
       throw errorEvent.data.data;
     }
   }
@@ -514,8 +515,8 @@ export class Interpreter<
           false,
           `${events.length} event(s) were sent to uninitialized service "${
             this.machine.id
-          }" and are deferred. Make sure .start() is called for this service.\nEvent: ${JSON.stringify(
-            event
+          }" and are deferred. Make sure .start()  is called for this service.\nEvents: ${JSON.stringify(
+            events
           )}`
         );
       }
@@ -717,6 +718,16 @@ export class Interpreter<
 
             this.children.set(id, actorRef);
             this.state.children[id] = actorRef;
+
+            actorRef.subscribe({
+              error: (e) => {
+                console.log('from subscribe:', e);
+                this.stop();
+              },
+              complete: () => {
+                /* ... */
+              }
+            });
 
             actorRef.start();
           }
