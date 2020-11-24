@@ -165,6 +165,8 @@ export function createPromiseBehavior<T, TEvent extends EventObject>(
                   toSCXMLEvent(errorEvent, { origin: actorContext.self })
                 );
 
+                console.log('received error', errorData);
+
                 observers.forEach((observer) => {
                   observer.error?.(errorData);
                 });

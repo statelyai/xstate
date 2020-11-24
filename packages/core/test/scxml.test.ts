@@ -350,7 +350,7 @@ interface SCIONTest {
 }
 
 async function runW3TestToCompletion(machine: MachineNode): Promise<void> {
-  await new Promise((resolve, reject) => {
+  await new Promise<void>((resolve, reject) => {
     let nextState: State<any>;
 
     interpret(machine)
