@@ -57,3 +57,11 @@ export interface PayloadSender<TEvent extends EventObject> {
     payload: NeverIfEmpty<ExtractExtraParameters<TEvent, K>>
   ): void;
 }
+
+// TODO: use ActorRef from XState core instead.
+// Kept here because of breaking change/versioning concern:
+// https://github.com/davidkpiano/xstate/pull/1622#discussion_r528309213
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+}
