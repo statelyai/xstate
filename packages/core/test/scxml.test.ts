@@ -455,7 +455,6 @@ describe('scxml', () => {
         try {
           await runTestToCompletion(machine, scxmlTest);
         } catch (e) {
-          // console.log(testName);
           console.log(JSON.stringify(machine.config, null, 2));
           throw e;
         }
