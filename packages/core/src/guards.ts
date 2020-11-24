@@ -68,7 +68,7 @@ export function or<TContext, TEvent extends EventObject>(
     type: 'xstate.boolean',
     params: { op: 'or' },
     children: guards.map((guard) => toGuardDefinition(guard)),
-    predicate: (ctx, e, meta) => {
+    predicate: (ctx, _, meta) => {
       return meta.guard.children!.some((childGuard) => {
         return meta.evaluate(childGuard, ctx, meta._event, meta.state);
       });
