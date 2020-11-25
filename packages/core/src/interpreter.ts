@@ -235,6 +235,7 @@ export class Interpreter<
       this.exec(action, state, actionsConfig);
     }
   }
+
   private update(
     state: State<TContext, TEvent, TStateSchema, TTypestate>,
     _event: SCXML.Event<TEvent>
@@ -281,13 +282,6 @@ export class Interpreter<
     const isDone = isInFinalState(state.configuration || [], this.machine);
 
     if (this.state.configuration && isDone) {
-      // exit interpreter procedure: https://www.w3.org/TR/scxml/#exitInterpreter
-      this.state.configuration.forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, state);
-        }
-      });
-
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (sn) => sn.type === 'final' && sn.parent === this.machine
@@ -501,6 +495,12 @@ export class Interpreter<
     for (const listener of this.doneListeners) {
       this.doneListeners.delete(listener);
     }
+
+    this.state.configuration.forEach((stateNode) => {
+      for (const action of stateNode.definition.exit) {
+        this.exec(action, this.state);
+      }
+    });
 
     // Stop all children
     this.children.forEach((child) => {
