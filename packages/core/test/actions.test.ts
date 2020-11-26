@@ -1445,3 +1445,32 @@ describe('sendParent', () => {
     expect(child).toBeTruthy();
   });
 });
+
+describe('action errors', () => {
+  it('errors from actions should be caught in interpreter.onError()', (done) => {
+    const testMachine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            EVENT: {
+              actions: () => {
+                throw new Error('example action error');
+              }
+            }
+          }
+        }
+      }
+    });
+
+    const service = interpret(testMachine).onError((err) => {
+      expect(err).toBeInstanceOf(Error);
+      expect(err.message).toMatchInlineSnapshot(`"example action error"`);
+      done();
+    });
+
+    service.start();
+
+    service.send('EVENT');
+  });
+});

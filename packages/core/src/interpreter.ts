@@ -436,15 +436,18 @@ export class Interpreter<
     this.errorListeners.add(errorListener);
     return this;
   }
+
   private handleError(errorData: unknown): void {
-    const error =
+    const errorInstance =
       errorData instanceof Error ? errorData : new Error(errorData as any);
 
     if (this.errorListeners.size === 0) {
-      throw error;
+      throw errorInstance;
     }
 
-    this.errorListeners.forEach((errorListener) => errorListener(error));
+    this.errorListeners.forEach((errorListener) =>
+      errorListener(errorInstance)
+    );
   }
   /**
    * Removes a listener.
@@ -792,13 +795,10 @@ export class Interpreter<
         });
       } catch (err) {
         if (this.parent) {
-          this.parent.send({
-            type: 'xstate.error',
-            data: err
-          } as EventObject);
+          this.parent.send(error(this.id, err));
         }
 
-        throw err;
+        this.handleError(err);
       }
     }
 
