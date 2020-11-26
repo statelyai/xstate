@@ -18,6 +18,7 @@ import {
 } from '@testing-library/react';
 import { useState } from 'react';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
+import { DoneEventObject } from 'xstate/src';
 
 afterEach(cleanup);
 
@@ -25,7 +26,10 @@ describe('useMachine hook', () => {
   const context = {
     data: undefined
   };
-  const fetchMachine = Machine<typeof context>({
+  const fetchMachine = Machine<
+    typeof context,
+    { type: 'FETCH' } | DoneEventObject
+  >({
     id: 'fetch',
     initial: 'idle',
     context,
@@ -220,7 +224,7 @@ describe('useMachine hook', () => {
   });
 
   it('actions should not have stale data', async (done) => {
-    const toggleMachine = Machine({
+    const toggleMachine = Machine<any, { type: 'TOGGLE' }>({
       initial: 'inactive',
       states: {
         inactive: {
@@ -344,7 +348,7 @@ describe('useMachine hook', () => {
   it('should capture all actions', (done) => {
     let count = 0;
 
-    const machine = createMachine({
+    const machine = createMachine<any, { type: 'EVENT' }>({
       initial: 'active',
       states: {
         active: {
@@ -569,7 +573,7 @@ describe('useMachine (strict mode)', () => {
   });
 
   it('child component should be able to send an event to a parent immediately in an effect', (done) => {
-    const machine = createMachine({
+    const machine = createMachine<any, { type: 'FINISH' }>({
       initial: 'active',
       states: {
         active: {
@@ -653,7 +657,7 @@ describe('useMachine (strict mode)', () => {
   it('delayed transitions should work when initializing from a rehydrated state', () => {
     jest.useFakeTimers();
     try {
-      const testMachine = Machine({
+      const testMachine = Machine<any, { type: 'START' }>({
         id: 'app',
         initial: 'idle',
         states: {
