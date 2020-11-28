@@ -978,6 +978,9 @@ describe('invoke', () => {
 
         interpret(promiseMachine)
           .onDone(doneSpy)
+          .onError((err) => {
+            expect(err.message).toBe('test');
+          })
           .onStop(() => {
             expect(doneSpy).not.toHaveBeenCalled();
             done();

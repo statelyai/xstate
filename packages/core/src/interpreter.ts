@@ -101,12 +101,6 @@ export enum InterpreterStatus {
   Stopped
 }
 
-const defaultErrorHandler = (err: Error) => {
-  if (!IS_PRODUCTION) {
-    console.error(err);
-  }
-};
-
 export class Interpreter<
   // tslint:disable-next-line:max-classes-per-file
   TContext,
@@ -155,7 +149,7 @@ export class Interpreter<
   private doneListeners: Set<EventListener> = new Set();
   private eventListeners: Set<EventListener> = new Set();
   private sendListeners: Set<EventListener> = new Set();
-  private errorListeners: Set<ErrorListener> = new Set([defaultErrorHandler]);
+  private errorListeners: Set<ErrorListener> = new Set();
   private logger: (...args: any[]) => void;
   /**
    * Whether the service is started.
