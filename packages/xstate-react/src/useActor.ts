@@ -23,6 +23,10 @@ type EmittedOfActorRef<
   TActor extends ActorRef<any, any>
 > = TActor extends ActorRef<any, infer TEmitted> ? TEmitted : never;
 
+const noop = () => {
+  /* ... */
+};
+
 export function useActor<
   TActor extends ActorRef<any, any> = ActorRef<any, any>
 >(
@@ -49,7 +53,11 @@ export function useActor<
   useIsomorphicLayoutEffect(() => {
     actorRefRef.current = actorRef;
     setCurrent(getSnapshot(actorRef));
-    const subscription = actorRef.subscribe((emitted) => setCurrent(emitted));
+    const subscription = actorRef.subscribe({
+      next: (emitted) => setCurrent(emitted),
+      error: noop,
+      complete: noop
+    });
 
     // Dequeue deferred events from the previous deferred actorRef
     while (deferredEventsRef.current.length > 0) {
