@@ -15,13 +15,11 @@ export function useService<
     );
   }
 
-  const [state] = useActor<TEvent, State<TContext, TEvent, any, TTypestate>>(
-    service,
-    () =>
-      // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
-      ('status' in service ? service.status : (service as any)._status) !== 0
-        ? service.state
-        : service.machine.initialState
+  const [state] = useActor(service, () =>
+    // TODO: remove compat lines in a new major, replace literal number with InterpreterStatus then as well
+    ('status' in service ? service.status : (service as any)._status) !== 0
+      ? service.state
+      : service.machine.initialState
   );
 
   return [state, service.send];
