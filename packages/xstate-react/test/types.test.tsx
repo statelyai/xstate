@@ -171,10 +171,14 @@ describe('useMachine', () => {
 
     function Element({ myActor }: Props) {
       const [current, send] = useActor(myActor);
+      const bar: number = current.context.bar;
+
+      // @ts-expect-error
+      send({ type: 'WHATEVER' });
 
       return (
         <>
-          {current.context.bar}
+          {bar}
           <div onClick={() => send({ type: 'FOO', data: 1 })}>click</div>
         </>
       );
