@@ -257,7 +257,7 @@ Every transition above is external and will have its `exit` and `entry` actions 
 ## Transient Transitions
 
 ::: warning
-The empty string syntax (`{ on: { '': ... } }`) will be deprecated in version 5. The new `always` syntax in version 4.11+ should be preferred. See below section on [eventless transitions](#eventless-transitions), which are the same as transient transitions.
+The empty string syntax (`{ on: { '': ... } }`) will be deprecated in version 5. The new `always` syntax in version 4.11+ should be preferred. See below section on [eventless transitions](#eventless-always-transitions), which are the same as transient transitions.
 :::
 
 A transient transition is a transition that is enabled by a [null event](./events.md#null-events). In other words, it is a transition that is _immediately_ taken (i.e., without a triggering event) as long as any conditions are met:
@@ -327,7 +327,12 @@ Null events are always "sent" for every transition, internal or external.
 
 ## Eventless ("Always") Transitions <Badge text="4.11+" />
 
-An eventless transition is a transition that is **always taken** when the machine is in the state where it is defined, and when its `cond` guard evaluates to `true`. They are always checked when the state is first entered, before handling any other events. Eventless transitions are defined on the `always` property of the state node:
+An eventless transition is a transition that is **always taken** when the machine is in the state where it is defined, and when its `cond` guard evaluates to `true`. They are checked:
+
+- immediately when the state node is entered
+- every time the machine receives an actionable event (regardless of whether the event triggers internal or external transition)
+
+Eventless transitions are defined on the `always` property of the state node:
 
 ```js {13-16}
 const gameMachine = Machine(
@@ -341,7 +346,8 @@ const gameMachine = Machine(
       playing: {
         // Eventless transition
         // Will transition to either 'win' or 'lose' immediately upon
-        // (re)entering 'playing' state if the condition is met.
+        // entering 'playing' state or receiving AWARD_POINTS event
+        // if the condition is met.
         always: [
           { target: 'win', cond: 'didPlayerWin' },
           { target: 'lose', cond: 'didPlayerLose' }
@@ -388,8 +394,23 @@ gameService.send('AWARD_POINTS');
 // => 'win'
 ```
 
+### Eventless vs. wildcard transitions
+
+- [Wildcard transitions](#wildcard-descriptors) are not checked on entering state nodes. Eventless transitions are. Guards for eventless transitions are evaluated before doing anything else (even before evaluating guards of entry actions).
+- Re-evaluation of eventless transitions is triggered by any actionable event. Re-evaluation of wildcard transitions is triggered only by an event not matched by explicit event descriptors.
+
+::: warning
+
+It is possible to create infinite loops if eventless transitions are misused.
+Eventless transitions should be defined either with `target`, `cond` + `target`, `cond` + `actions`, or `cond` + `target` + `actions`. Target, if declared, should be different than the current state node. Eventless transitions with no `target` nor `cond` will cause an infinite loop. Transitions with `cond` and `actions` may run into an infinite loop if its `cond` guard keeps returning `true`.
+
+:::
+
 ::: tip
-Eventless transitions are usually defined with a `cond` guard and/or a `target` that is different than the current state node. If neither the guard nor the target are added, you risk an infinite loop, as the state will keep re-entering itself and executing the same eventless transition!
+
+When eventless transitions are checked, their guards are evaluated repeatedly until all of them return false, or a transition with target is validated. Every time some guard evaluates to `true` during this process, its associated actions are going to be executed once. Thus it is possible that during a single microtask some transitions without targets are executed multiple times.
+This contrasts with common transitions, where always maximum one transition can be taken.
+
 :::
 
 ## Forbidden Transitions

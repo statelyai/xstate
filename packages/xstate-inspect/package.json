@@ -1,17 +1,18 @@
 {
-  "name": "@xstate/graph",
-  "version": "1.2.0",
-  "description": "XState graph utilities",
+  "name": "@xstate/inspect",
+  "version": "0.2.0",
+  "description": "XState inspection utilities",
   "keywords": [
     "state",
     "machine",
     "statechart",
     "scxml",
-    "state",
-    "graph"
+    "state machine",
+    "visualizer",
+    "viz"
   ],
   "author": "David Khourshid <davidkpiano@gmail.com>",
-  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test#readme",
+  "homepage": "https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect#readme",
   "license": "MIT",
   "main": "lib/index.js",
   "module": "es/index.js",
@@ -29,22 +30,23 @@
   },
   "scripts": {
     "clean": "rm -rf dist lib es tsconfig.tsbuildinfo",
-    "build": "tsc && tsc --outDir es --module es2015",
-    "test": "jest",
-    "prepublish": "npm run build && npm run test"
+    "test": "jest --passWithNoTests",
+    "build": "rollup -c",
+    "prepublish": "npm run build"
   },
   "bugs": {
     "url": "https://github.com/davidkpiano/xstate/issues"
   },
-  "peerDependencies": {
-    "xstate": "^4.9.0"
-  },
   "devDependencies": {
-    "jest": "^26.4.2",
-    "lerna-alias": "3.0.3-0",
-    "ts-jest": "^26.4.0",
+    "@types/ws": "^7.2.6",
+    "rollup": "^1.26.3",
+    "rollup-plugin-typescript2": "^0.25.2",
     "typescript": "^4.1.2",
+    "ws": "^7.3.1",
     "xstate": "*"
+  },
+  "peerDependencies": {
+    "ws": "^7.3.1"
   },
   "dependencies": {}
 }
