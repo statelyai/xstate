@@ -624,7 +624,7 @@ export function reportUnhandledExceptionOnInvocation(
   id: string
 ) {
   if (!IS_PRODUCTION) {
-    if (!(originalError instanceof Error)) {
+    if (!isError(originalError)) {
       return;
     }
 
@@ -691,4 +691,8 @@ export function toInvokeSource(
   }
 
   return src;
+}
+
+export function isError(error: any): error is Error {
+  return typeof error === 'object' && 'stack' in error && 'message' in error;
 }

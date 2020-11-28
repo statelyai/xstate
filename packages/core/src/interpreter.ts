@@ -49,7 +49,8 @@ import {
   toSCXMLEvent,
   reportUnhandledExceptionOnInvocation,
   symbolObservable,
-  toInvokeSource
+  toInvokeSource,
+  isError
 } from './utils';
 import { Scheduler } from './scheduler';
 import { Actor, isActor, createDeferredActor } from './Actor';
@@ -432,8 +433,9 @@ export class Interpreter<
   }
 
   private handleError(errorData: unknown): void {
-    const errorInstance =
-      errorData instanceof Error ? errorData : new Error(errorData as any);
+    const errorInstance = isError(errorData)
+      ? errorData
+      : new Error(errorData as any);
 
     if (this.errorListeners.size === 0) {
       throw errorInstance;
