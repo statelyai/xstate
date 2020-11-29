@@ -193,6 +193,23 @@ describe('machine', () => {
       //   foo: 'different'
       // });
     });
+
+    // https://github.com/davidkpiano/xstate/issues/674
+    it('should throw if initial state is missing in a compound state', () => {
+      expect(() => {
+        createMachine({
+          initial: 'first',
+          states: {
+            first: {
+              states: {
+                second: {},
+                third: {}
+              }
+            }
+          }
+        });
+      }).toThrow();
+    });
   });
 
   describe('machine.withContext', () => {

@@ -193,6 +193,16 @@ export class StateNode<
         )
       : EMPTY_OBJECT) as StateNodesConfig<TContext, TEvent, TStateSchema>;
 
+    if (this.type === 'compound' && !this.config.initial) {
+      throw new Error(
+        `No initial state specified for compound state node "#${
+          this.id
+        }". Try adding { initial: "${
+          Object.keys(this.states)[0]
+        }" } to the state config.`
+      );
+    }
+
     // History config
     this.history =
       this.config.history === true ? 'shallow' : this.config.history || false;
