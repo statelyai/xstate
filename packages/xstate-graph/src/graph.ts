@@ -176,7 +176,6 @@ export function getShortestPaths<
   options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
-    // return EMPTY_MAP;
     return EMPTY_MAP;
   }
   const optionsWithDefaults = getValueAdjMapOptions(options);
