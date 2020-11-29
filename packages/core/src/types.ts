@@ -1011,6 +1011,7 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
     actions: Array<ActionObject<TContext, TEvent>>;
     cond?: Guard<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
+    meta?: Record<string, any>;
   };
 }
 

@@ -1,5 +1,11 @@
 # xstate
 
+## 4.14.1
+
+### Patch Changes
+
+- [`02c76350`](https://github.com/davidkpiano/xstate/commit/02c763504da0808eeb281587981a5baf8ba884a1) [#1656](https://github.com/davidkpiano/xstate/pull/1656) Thanks [@Andarist](https://github.com/Andarist)! - Exit actions will now be properly called when a service gets canceled by calling its `stop` method.
+
 ## 4.14.0
 
 ### Minor Changes
@@ -8,7 +14,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -246,10 +252,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
