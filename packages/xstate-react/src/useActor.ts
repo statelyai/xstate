@@ -1,7 +1,7 @@
 import { useState, useRef } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import { Sender } from './types';
-import { ActorRef } from 'xstate';
+import { ActorRef, EventObject } from 'xstate';
 import useConstant from './useConstant';
 
 function isActorWithState<T extends ActorRef<any>>(
@@ -27,18 +27,24 @@ const noop = () => {
   /* ... */
 };
 
-export function useActor<
-  TActor extends ActorRef<any, any> = ActorRef<any, any>
->(
+export function useActor<TActor extends ActorRef<any, any>>(
   actorRef: TActor,
-  getSnapshot: (actor: TActor) => EmittedOfActorRef<TActor> = (a: TActor) =>
-    isActorWithState(a) ? a.state : (undefined as any)
-): [EmittedOfActorRef<TActor>, Sender<EventOfActorRef<TActor>>] {
+  getSnapshot?: (actor: TActor) => EmittedOfActorRef<TActor>
+): [EmittedOfActorRef<TActor>, Sender<EventOfActorRef<TActor>>];
+export function useActor<TEvent extends EventObject, TEmitted>(
+  actorRef: ActorRef<TEvent, TEmitted>,
+  getSnapshot?: (actor: ActorRef<TEvent, TEmitted>) => TEmitted
+): [TEmitted, Sender<TEvent>];
+export function useActor(
+  actorRef: ActorRef<EventObject, unknown>,
+  getSnapshot: (actor: ActorRef<EventObject, unknown>) => unknown = (a) =>
+    isActorWithState(a) ? a.state : undefined
+): [unknown, Sender<EventObject>] {
   const actorRefRef = useRef(actorRef);
-  const deferredEventsRef = useRef<Array<EventOfActorRef<TActor>>>([]);
+  const deferredEventsRef = useRef<Array<EventObject>>([]);
   const [current, setCurrent] = useState(() => getSnapshot(actorRef));
 
-  const send: Sender<EventOfActorRef<TActor>> = useConstant(() => (event) => {
+  const send: Sender<EventObject> = useConstant(() => (event) => {
     const currentActorRef = actorRefRef.current;
     // If the previous actor is a deferred actor,
     // queue the events so that they can be replayed
