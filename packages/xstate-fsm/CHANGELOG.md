@@ -1,5 +1,11 @@
 # @xstate/fsm
 
+## 1.5.2
+
+### Patch Changes
+
+- [`8b670653`](https://github.com/davidkpiano/xstate/commit/8b6706538ae6e5ac275b68cc4686801458bddaf8) [#1661](https://github.com/davidkpiano/xstate/pull/1661) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with initial `assign` actions not being resolved and thus context not being updated by them.
+
 ## 1.5.1
 
 ### Patch Changes
