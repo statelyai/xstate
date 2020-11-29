@@ -217,13 +217,6 @@ export class Interpreter<
     const isDone = isInFinalState(state.configuration || [], this.machine);
 
     if (this.state.configuration && isDone) {
-      // exit interpreter procedure: https://www.w3.org/TR/scxml/#exitInterpreter
-      this.state.configuration.forEach((stateNode) => {
-        for (const action of stateNode.definition.exit) {
-          this.exec(action, state);
-        }
-      });
-
       // get final child state node
       const finalChildStateNode = state.configuration.find(
         (stateNode) =>
@@ -427,6 +420,12 @@ export class Interpreter<
     }
     this.stopListeners.clear();
     this.doneListeners.clear();
+
+    this.state.configuration.forEach((stateNode) => {
+      for (const action of stateNode.definition.exit) {
+        this.exec(action, this.state);
+      }
+    });
 
     // Stop all children
     this.children.forEach((child) => {

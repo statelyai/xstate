@@ -23,7 +23,7 @@ export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
-    return { type: event } as TEvent;
+    return ({ type: event } as unknown) as TEvent;
   }
 
   return event;
@@ -81,30 +81,34 @@ export function deserializeEventString<TEvent extends EventObject>(
   return JSON.parse(eventString) as TEvent;
 }
 
-const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
+const defaultValueAdjMapOptions: Required<ValueAdjMapOptions<any, any>> = {
   events: {},
   filter: () => true,
   stateSerializer: serializeState,
   eventSerializer: serializeEvent
 };
 
+function getValueAdjMapOptions<TContext, TEvent extends EventObject>(
+  options?: ValueAdjMapOptions<TContext, TEvent>
+): Required<ValueAdjMapOptions<TContext, TEvent>> {
+  return {
+    ...(defaultValueAdjMapOptions as Required<
+      ValueAdjMapOptions<TContext, TEvent>
+    >),
+    ...options
+  };
+}
+
 export function getAdjacencyMap<
   TContext = DefaultContext,
   TEvent extends EventObject = AnyEventObject
 >(
-  node: MachineNode<TContext, TEvent> | MachineNode<TContext, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
+  node: MachineNode<TContext, TEvent>,
+  options?: ValueAdjMapOptions<TContext, TEvent>
 ): AdjacencyMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+  const optionsWithDefaults = getValueAdjMapOptions(options);
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
-  const events = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
-  for (const event of node.events) {
-    events[event] = [event];
-  }
-  Object.assign(events, optionsWithDefaults.events);
+  const { events } = optionsWithDefaults;
 
   const adjacency: AdjacencyMap<TContext, TEvent> = {};
 
@@ -119,7 +123,19 @@ export function getAdjacencyMap<
     adjacency[stateHash] = {};
 
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map((nextEvent) => events[nextEvent] || [])
+      nextEvents.map((nextEvent) => {
+        const getNextEvents = events[nextEvent];
+
+        if (!getNextEvents) {
+          return [{ type: nextEvent }];
+        }
+
+        if (typeof getNextEvents === 'function') {
+          return getNextEvents(state);
+        }
+
+        return getNextEvents;
+      })
     ).map((event) => toEventObject(event));
 
     for (const event of potentialEvents) {
@@ -158,18 +174,12 @@ export function getShortestPaths<
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
+  options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
   if (!machine.states) {
-    // return EMPTY_MAP;
     return EMPTY_MAP;
   }
-  const optionsWithDefaults = {
-    events: {},
-    stateSerializer: serializeState,
-    eventSerializer: serializeEvent,
-    ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+  const optionsWithDefaults = getValueAdjMapOptions(options);
 
   const adjacency = getAdjacencyMap<TContext, TEvent>(
     machine,
@@ -253,12 +263,9 @@ export function getSimplePaths<
   TEvent extends EventObject = EventObject
 >(
   machine: MachineNode<TContext, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
+  options?: ValueAdjMapOptions<TContext, TEvent>
 ): StatePathsMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
-  };
+  const optionsWithDefaults = getValueAdjMapOptions(options);
 
   const { stateSerializer } = optionsWithDefaults;
 

@@ -76,6 +76,43 @@ describe('@xstate/fsm', () => {
     expect(initialState.value).toEqual('green');
     expect(initialState.actions).toEqual([{ type: 'enterGreen' }]);
   });
+  it('should have initial context updated by initial assign actions', () => {
+    const { initialState } = createMachine({
+      initial: 'init',
+      context: {
+        count: 0
+      },
+      states: {
+        init: {
+          entry: assign({
+            count: () => 1
+          })
+        }
+      }
+    });
+
+    expect(initialState.context).toEqual({ count: 1 });
+  });
+  it('should have initial actions computed without assign actions', () => {
+    const { initialState } = createMachine({
+      initial: 'init',
+      context: {
+        count: 0
+      },
+      states: {
+        init: {
+          entry: [
+            { type: 'foo' },
+            assign({
+              count: () => 1
+            })
+          ]
+        }
+      }
+    });
+
+    expect(initialState.actions).toEqual([{ type: 'foo' }]);
+  });
   it('should transition correctly', () => {
     const nextState = lightFSM.transition('green', 'TIMER');
     expect(nextState.value).toEqual('yellow');

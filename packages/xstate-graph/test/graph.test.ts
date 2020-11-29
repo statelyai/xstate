@@ -349,6 +349,39 @@ describe('@xstate/graph', () => {
 
       expect(adj).toHaveProperty('"full" | {"count":5}');
     });
+
+    it('should get events via function', () => {
+      const machine = createMachine<
+        { count: number },
+        { type: 'EVENT'; value: number }
+      >({
+        initial: 'first',
+        context: {
+          count: 0
+        },
+        states: {
+          first: {
+            on: {
+              EVENT: {
+                target: 'second',
+                actions: assign({
+                  count: (_, event) => event.value
+                })
+              }
+            }
+          },
+          second: {}
+        }
+      });
+
+      const adj = getAdjacencyMap(machine, {
+        events: {
+          EVENT: (state) => [{ type: 'EVENT', value: state.context.count + 10 }]
+        }
+      });
+
+      expect(adj).toHaveProperty('"second" | {"count":10}');
+    });
   });
 
   describe('toDirectedGraph', () => {
