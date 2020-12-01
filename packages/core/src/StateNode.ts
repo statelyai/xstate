@@ -95,8 +95,9 @@ import {
   isInFinalState,
   isLeafNode
 } from './stateUtils';
-import { Actor, createInvocableActor } from './Actor';
+import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { ActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -1202,7 +1203,7 @@ class StateNode<
       },
       currentState
         ? { ...currentState.children }
-        : ({} as Record<string, Actor>)
+        : ({} as Record<string, ActorRef<any>>)
     );
 
     const resolvedConfiguration = resolvedStateValue
