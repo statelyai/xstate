@@ -76,6 +76,42 @@ function createUnchangedState<
   };
 }
 
+function handleActions<
+  TContext extends object,
+  TEvent extends EventObject = EventObject
+>(
+  actions: Array<StateMachine.ActionObject<TContext, TEvent>>,
+  context: TContext,
+  eventObject: TEvent
+): [Array<StateMachine.ActionObject<TContext, TEvent>>, TContext, boolean] {
+  let nextContext = context;
+  let assigned = false;
+
+  const nonAssignActions = actions.filter((action) => {
+    if (action.type === ASSIGN_ACTION) {
+      assigned = true;
+      let tmpContext = Object.assign({}, nextContext);
+
+      if (typeof action.assignment === 'function') {
+        tmpContext = action.assignment(nextContext, eventObject);
+      } else {
+        Object.keys(action.assignment).forEach((key) => {
+          tmpContext[key] =
+            typeof action.assignment[key] === 'function'
+              ? action.assignment[key](nextContext, eventObject)
+              : action.assignment[key];
+        });
+      }
+
+      nextContext = tmpContext;
+      return false;
+    }
+    return true;
+  });
+
+  return [nonAssignActions, nextContext, assigned];
+}
+
 export function createMachine<
   TContext extends object,
   TEvent extends EventObject = EventObject,
@@ -95,15 +131,21 @@ export function createMachine<
     });
   }
 
+  const [initialActions, initialContext] = handleActions(
+    toArray(fsmConfig.states[fsmConfig.initial].entry).map((action) =>
+      toActionObject(action, options.actions)
+    ),
+    fsmConfig.context!,
+    INIT_EVENT as TEvent
+  );
+
   const machine = {
     config: fsmConfig,
     _options: options,
     initialState: {
       value: fsmConfig.initial,
-      actions: toArray(
-        fsmConfig.states[fsmConfig.initial].entry
-      ).map((action) => toActionObject(action, options.actions)),
-      context: fsmConfig.context!,
+      actions: initialActions,
+      context: initialContext,
       matches: createMatcher(fsmConfig.initial)
     },
     transition: (
@@ -140,44 +182,27 @@ export function createMachine<
               ? { target: transition }
               : transition;
 
-          let nextContext = context;
-
           if (cond(context, eventObject)) {
             const nextStateConfig = fsmConfig.states[target];
-            let assigned = false;
             const allActions = ([] as any[])
               .concat(stateConfig.exit, actions, nextStateConfig.entry)
               .filter((a) => a)
               .map<StateMachine.ActionObject<TContext, TEvent>>((action) =>
                 toActionObject(action, (machine as any)._options.actions)
-              )
-              .filter((action) => {
-                if (action.type === ASSIGN_ACTION) {
-                  assigned = true;
-                  let tmpContext = Object.assign({}, nextContext);
+              );
 
-                  if (typeof action.assignment === 'function') {
-                    tmpContext = action.assignment(nextContext, eventObject);
-                  } else {
-                    Object.keys(action.assignment).forEach((key) => {
-                      tmpContext[key] =
-                        typeof action.assignment[key] === 'function'
-                          ? action.assignment[key](nextContext, eventObject)
-                          : action.assignment[key];
-                    });
-                  }
-
-                  nextContext = tmpContext;
-                  return false;
-                }
-                return true;
-              });
+            const [nonAssignActions, nextContext, assigned] = handleActions(
+              allActions,
+              context,
+              eventObject
+            );
 
             return {
               value: target,
               context: nextContext,
-              actions: allActions,
-              changed: target !== value || allActions.length > 0 || assigned,
+              actions: nonAssignActions,
+              changed:
+                target !== value || nonAssignActions.length > 0 || assigned,
               matches: createMatcher(target)
             };
           }

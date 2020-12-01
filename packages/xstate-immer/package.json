@@ -43,7 +43,7 @@
   "devDependencies": {
     "immer": "^6.0.8",
     "lerna-alias": "3.0.3-0",
-    "typescript": "^4.0.3",
+    "typescript": "^4.1.2",
     "xstate": "*"
   }
 }

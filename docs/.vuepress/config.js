@@ -60,6 +60,7 @@ module.exports = {
           '/guides/history',
           '/guides/ids',
           '/guides/interpretation',
+          '/guides/testing',
           '/guides/typescript'
         ]
       },
@@ -84,7 +85,9 @@ module.exports = {
           '/recipes/react',
           '/recipes/vue',
           '/recipes/rxjs',
-          '/recipes/ember'
+          '/recipes/ember',
+          '/recipes/stencil',
+          '/recipes/svelte'
         ]
       },
       {

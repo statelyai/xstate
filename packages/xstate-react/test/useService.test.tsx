@@ -1,13 +1,16 @@
 import { useState } from 'react';
 import * as React from 'react';
 import { useService, useMachine } from '../src';
-import { Machine, assign, interpret, Interpreter } from 'xstate';
+import { Machine, assign, interpret, Interpreter, createMachine } from 'xstate';
 import { render, cleanup, fireEvent, act } from '@testing-library/react';
 
 afterEach(cleanup);
 
 describe('useService hook', () => {
-  const counterMachine = Machine<{ count: number }>(
+  const counterMachine = Machine<
+    { count: number },
+    { type: 'INC' } | { type: 'SOMETHING' }
+  >(
     {
       id: 'counter',
       initial: 'active',
@@ -23,7 +26,9 @@ describe('useService hook', () => {
     },
     {
       actions: {
-        doSomething: () => {}
+        doSomething: () => {
+          /* do nothing */
+        }
       }
     }
   );
@@ -153,7 +158,7 @@ describe('useService hook', () => {
 
   it('should render the final state', () => {
     const service = interpret(
-      Machine({
+      Machine<any, { type: 'NEXT' }>({
         initial: 'first',
         states: {
           first: {
@@ -170,7 +175,7 @@ describe('useService hook', () => {
       })
     ).start();
 
-    service.send({ type: 'NEXT' });
+    service.send('NEXT');
 
     const Test = () => {
       const [state] = useService(service);
@@ -180,5 +185,51 @@ describe('useService hook', () => {
     const { container } = render(<Test />);
 
     expect(container.textContent).toBe('last');
+  });
+
+  it('service should accept the 2-argument variant', () => {
+    const service = interpret(
+      createMachine<any, { type: 'EVENT'; value: number }>({
+        initial: 'first',
+        states: {
+          first: {
+            on: {
+              EVENT: {
+                target: 'second',
+                cond: (_, e) => e.value === 42
+              }
+            }
+          },
+          second: {}
+        }
+      })
+    ).start();
+
+    const Test = () => {
+      const [state, send] = useService(service);
+
+      return (
+        <>
+          <div data-testid="value">{state.value}</div>
+          <button
+            data-testid="button"
+            onClick={() => send('EVENT', { value: 42 })}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(
+      <React.StrictMode>
+        <Test />
+      </React.StrictMode>
+    );
+
+    const button = getByTestId('button');
+    const value = getByTestId('value');
+
+    fireEvent.click(button);
+
+    expect(value.textContent).toBe('second');
   });
 });

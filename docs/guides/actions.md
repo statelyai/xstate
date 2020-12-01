@@ -344,34 +344,37 @@ The `raise()` action creator queues an event to the statechart, in the internal 
 import { Machine, actions } from 'xstate';
 const { raise } = actions;
 
-const stubbornMachine = Machine({
-  id: 'stubborn',
-  initial: 'inactive',
+const raiseActionDemo = Machine({
+  id: 'raisedmo',
+  initial: 'entry',
   states: {
-    inactive: {
+    entry: {
       on: {
-        TOGGLE: {
-          target: 'active',
-          // immediately consume the TOGGLE event
-          actions: raise('TOGGLE')
+        STEP: {
+          target: 'middle'
+        },
+        RAISE: {
+          target: 'middle',
+          // immediately invoke the NEXT event for 'middle'
+          actions: raise('NEXT')
         }
       }
     },
-    active: {
+    middle: {
       on: {
-        TOGGLE: 'inactive'
+        NEXT: 'last'
+      }
+    },
+    last: {
+      on: {
+        RESET: 'entry'
       }
     }
   }
 });
-
-const nextState = stubbornMachine.transition('inactive', 'TOGGLE');
-
-nextState.value;
-// => 'inactive'
-nextState.actions;
-// => []
 ```
+
+Click on both `STEP` and `RAISE` events in the [visualizer](https://xstate.js.org/viz/?gist=fd763ff2c161b172f719891e2544d428) to see the difference.
 
 ## Respond Action <Badge text="4.7+" />
 
