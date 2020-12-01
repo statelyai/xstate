@@ -13,7 +13,8 @@ import {
   NullEvent,
   SingleOrArray,
   BehaviorCreator,
-  InvokeSourceDefinition
+  InvokeSourceDefinition,
+  Observer
 } from './types';
 import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
@@ -491,4 +492,22 @@ export function toInvokeSource(
   }
 
   return src;
+}
+
+export function toObserver<T>(
+  nextHandler: Observer<T> | ((value: T) => void),
+  errorHandler?: (error: any) => void,
+  completionHandler?: () => void
+): Observer<T> {
+  if (typeof nextHandler === 'object') {
+    return nextHandler;
+  }
+
+  const noop = () => void 0;
+
+  return {
+    next: nextHandler,
+    error: errorHandler || noop,
+    complete: completionHandler || noop
+  };
 }

@@ -44,7 +44,7 @@
     "jsdom": "^14.0.0",
     "jsdom-global": "^3.0.2",
     "pkg-up": "^3.1.0",
-    "rxjs": "^6.5.1"
+    "rxjs": "^6.6.3"
   },
   "preconstruct": {
     "umdName": "XState",

@@ -9,13 +9,13 @@ import {
   TransitionDefinition,
   Typestate,
   HistoryValue,
-  NullEvent,
-  ActorRef
+  NullEvent
 } from './types';
 import { matchesState, keys, isString } from './utils';
 import { StateNode } from './StateNode';
 import { nextEvents } from './stateUtils';
 import { initEvent } from './actions';
+import { SpawnedActorRef } from '../dist/xstate.cjs';
 
 export function isState<
   TContext,
@@ -97,7 +97,7 @@ export class State<
   /**
    * An object mapping actor IDs to spawned actors/invoked behaviors.
    */
-  public children: Record<string, ActorRef<any>>;
+  public children: Record<string, SpawnedActorRef<any>>;
   /**
    * Creates a new State instance for the given `stateValue` and `context`.
    * @param stateValue

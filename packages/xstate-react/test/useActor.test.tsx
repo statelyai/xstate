@@ -1,11 +1,11 @@
 import * as React from 'react';
 import { useState } from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, assign } from 'xstate';
+import { createMachine, sendParent, assign, ActorRefFrom } from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useActor } from '../src/useActor';
 import { invokeMachine } from 'xstate/invoke';
-import { ActorRef, ActorRefLike } from '../src/types';
+import { ActorRef } from '../src/types';
 
 afterEach(cleanup);
 
@@ -29,7 +29,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -42,7 +44,11 @@ describe('useActor', () => {
     const Test = () => {
       const [state] = useMachine(machine);
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -78,7 +84,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -97,7 +105,11 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -115,7 +127,12 @@ describe('useActor', () => {
         active: {}
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+
+    interface Ctx {
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }
+
+    const machine = createMachine<Ctx>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -129,7 +146,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -141,8 +160,9 @@ describe('useActor', () => {
 
     const Test = () => {
       const [state] = useMachine(machine);
+      const { actorRef } = state.context;
 
-      return <ChildTest actor={state.context.actorRef} />;
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -164,7 +184,9 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+    const machine = createMachine<{
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -180,7 +202,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: ActorRef<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -199,7 +223,9 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.context.actorRef} />;
+      const { actorRef } = state.context;
+
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -210,7 +236,7 @@ describe('useActor', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor: ActorRefLike<any, number> = {
+    const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       send: () => {
         /* ... */
       },
@@ -225,10 +251,7 @@ describe('useActor', () => {
     };
 
     const Test = () => {
-      const [state] = useActor(
-        simpleActor,
-        (a) => (a as typeof simpleActor).latestValue
-      );
+      const [state] = useActor(simpleActor, (a) => a.latestValue);
 
       return <div data-testid="state">{state}</div>;
     };
@@ -241,7 +264,9 @@ describe('useActor', () => {
   });
 
   it('should update snapshot value when actor changes', () => {
-    const createSimpleActor = (value: number): ActorRefLike<any, number> => ({
+    const createSimpleActor = (
+      value: number
+    ): ActorRef<any, number> & { latestValue: number } => ({
       send: () => {
         /* ... */
       },
@@ -257,7 +282,7 @@ describe('useActor', () => {
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
-      const [state] = useActor(actor, (a) => (a as typeof actor).latestValue);
+      const [state] = useActor(actor, (a) => a.latestValue);
 
       return (
         <>
@@ -292,11 +317,11 @@ describe('useActor', () => {
     const noop = () => {
       /* ... */
     };
-    const firstActor: ActorRefLike<any> = {
+    const firstActor: ActorRef<any> = {
       send: noop,
       subscribe: fakeSubscribe
     };
-    const lastActor: ActorRefLike<any> = {
+    const lastActor: ActorRef<any> = {
       send: () => {
         done();
       },
@@ -310,7 +335,7 @@ describe('useActor', () => {
       React.useEffect(() => {
         setTimeout(() => {
           // The `send` here is closed-in
-          send('anything');
+          send({ type: 'anything' });
         }, 10);
       }, []); // Intentionally omit `send` from dependency array
 

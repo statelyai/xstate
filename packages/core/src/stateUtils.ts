@@ -66,7 +66,7 @@ import {
 } from './actions';
 import { IS_PRODUCTION } from './environment';
 import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
-import { isActorRef } from './Actor';
+import { isSpawnedActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
 import { evaluateGuard, toGuardDefinition } from './guards';
@@ -1442,15 +1442,15 @@ export function resolveMicroTransition<
   for (const action of resolved.actions) {
     if (action.type === actionTypes.stop) {
       const { actor: ref } = action as StopActionObject;
-      if (isActorRef(ref)) {
-        ref.stop();
+      if (isSpawnedActorRef(ref)) {
+        ref.stop?.();
         delete children[ref.name];
       } else {
-        const actorRef = children[ref];
+        const actorRef = children[ref as string];
         if (actorRef) {
-          actorRef.stop();
+          actorRef.stop?.();
         }
-        delete children[ref];
+        delete children[ref as string];
       }
     }
   }

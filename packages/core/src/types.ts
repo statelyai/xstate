@@ -51,13 +51,19 @@ export interface ActionMeta<TContext, TEvent extends EventObject>
   _event: SCXML.Event<TEvent>;
 }
 
+export type Spawner = <T extends Behavior<any, any>>(
+  behavior: T,
+  name?: string
+) => T extends Behavior<infer TActorEvent, infer TActorEmitted>
+  ? SpawnedActorRef<TActorEvent, TActorEmitted>
+  : never;
+
 export interface AssignMeta<TContext, TEvent extends EventObject> {
   state?: State<TContext, TEvent>;
   action: AssignAction<TContext, TEvent>;
   _event: SCXML.Event<TEvent>;
   self?: ActorRef<TEvent>;
-  spawn: {
-    (behavior: Behavior<any, any>, name?: string): ActorRef<any>;
+  spawn: Spawner & {
     from: <T extends Spawnable>(entity: T, name?: string) => ActorRefFrom<T>;
   };
 }
@@ -1049,7 +1055,7 @@ export interface StateConfig<TContext, TEvent extends EventObject> {
   meta?: any;
   configuration: Array<StateNode<TContext, TEvent>>;
   transitions: Array<TransitionDefinition<TContext, TEvent>>;
-  children: Record<string, ActorRef<any>>;
+  children: Record<string, SpawnedActorRef<any>>;
   done?: boolean;
 }
 
@@ -1179,19 +1185,25 @@ export type Spawnable =
   | Subscribable<any>;
 
 // Taken from RxJS
+export type Observer<T> =
+  | {
+      next: (value: T) => void;
+      error?: (err: any) => void;
+      complete?: () => void;
+    }
+  | {
+      next?: (value: T) => void;
+      error: (err: any) => void;
+      complete?: () => void;
+    }
+  | {
+      next?: (value: T) => void;
+      error?: (err: any) => void;
+      complete: () => void;
+    };
+
 export interface Subscription {
   unsubscribe(): void;
-}
-
-export interface Observer<T> {
-  // Sends the next value in the sequence
-  next?: (value: T) => void;
-
-  // Sends the sequence error
-  error?: (errorValue: any) => void;
-
-  // Sends the completion notification
-  complete: () => void;
 }
 
 export interface Subscribable<T> {
@@ -1203,6 +1215,11 @@ export interface Subscribable<T> {
   ): Subscription;
 }
 
+export interface ActorRef<TEvent extends EventObject, TEmitted = any>
+  extends Subscribable<TEmitted> {
+  send: Sender<TEvent>;
+}
+
 export interface ActorLike<TCurrent, TEvent extends EventObject>
   extends Subscribable<TCurrent> {
   send: Sender<TEvent>;
@@ -1210,23 +1227,21 @@ export interface ActorLike<TCurrent, TEvent extends EventObject>
 
 export type Sender<TEvent extends EventObject> = (event: TEvent) => void;
 
-export interface ActorRef<TEvent extends EventObject, TEmitted = any>
-  extends Subscribable<TEmitted> {
-  send: Sender<TEvent>;
-  start: () => ActorRef<TEvent>;
-  stop: () => void;
-  /**
-   * The most recently emitted value.
-   */
-  current: TEmitted;
+export interface SpawnedActorRef<TEvent extends EventObject, TEmitted = any>
+  extends ActorRef<TEvent, TEmitted> {
   name: string;
+  start?: () => void;
+  stop?: () => void;
+  toJSON?: () => any;
 }
 
 export type ActorRefFrom<T extends Spawnable> = T extends MachineNode<
-  infer TC,
-  infer TE
+  infer TContext,
+  infer TEvent,
+  any,
+  infer TTypestate
 >
-  ? ActorRef<TE, State<TC, TE>>
+  ? SpawnedActorRef<TEvent, State<TContext, TEvent, any, TTypestate>>
   : ActorRef<any, any>; // TODO: expand
 
 export type DevToolsAdapter = (service: AnyInterpreter) => void;

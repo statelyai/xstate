@@ -5,7 +5,8 @@ import {
   interpret,
   SCXML,
   EventObject,
-  Event
+  Event,
+  SpawnedActorRef
 } from 'xstate';
 
 function isSCXMLEvent<TEvent extends EventObject>(
@@ -134,7 +135,9 @@ export const inspectMachine = createMachine<{
             const { event } = e;
             const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
             const service = scxmlEventObject.origin
-              ? serviceMap.get(scxmlEventObject.origin.name)
+              ? serviceMap.get(
+                  (scxmlEventObject.origin as SpawnedActorRef<any>).name
+                )
               : undefined;
             service?.send(JSON.parse(event));
           }
