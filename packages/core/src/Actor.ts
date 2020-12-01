@@ -4,7 +4,8 @@ import {
   SCXML,
   InvokeCallback,
   InterpreterOptions,
-  ActorRef
+  ActorRef,
+  SpawnedActorRef
 } from './types';
 import { MachineNode } from './MachineNode';
 import { Interpreter } from './interpreter';
@@ -29,6 +30,10 @@ const nullSubscription = {
 
 export function isActorRef(item: any): item is ActorRef<any> {
   return !!item && typeof item === 'object' && typeof item.send === 'function';
+}
+
+export function isSpawnedActorRef(item: any): item is SpawnedActorRef<any> {
+  return isActorRef(item) && 'name' in item;
 }
 
 export function fromObservable<T extends EventObject>(
@@ -79,7 +84,7 @@ export function fromMachine<TContext, TEvent extends EventObject>(
 export function fromService<TContext, TEvent extends EventObject>(
   service: Interpreter<TContext, TEvent>,
   name: string = registry.bookId()
-): ActorRef<TEvent> {
+): SpawnedActorRef<TEvent> {
   return new ObservableActorRef(createServiceBehavior(service), name);
 }
 
@@ -135,4 +140,8 @@ export class Actor<TEvent extends EventObject, TEmitted> {
     }
     this.processingStatus = ProcessingStatus.NotProcessing;
   }
+}
+
+export function isSpawnedActor(item: any): item is SpawnedActorRef<any> {
+  return isActorRef(item) && 'id' in item;
 }

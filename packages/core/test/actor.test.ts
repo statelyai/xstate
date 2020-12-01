@@ -1,4 +1,10 @@
-import { Machine, interpret, createMachine, ActorRef } from '../src';
+import {
+  Machine,
+  interpret,
+  createMachine,
+  ActorRef,
+  ActorRefFrom
+} from '../src';
 import {
   assign,
   send,
@@ -85,7 +91,7 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = Machine({
+  const serverMachine = Machine<any, PingPongEvent>({
     id: 'server',
     initial: 'waitPing',
     states: {
@@ -104,7 +110,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: ActorRef<any>;
+    server?: ActorRef<PingPongEvent>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -361,7 +367,8 @@ describe('communicating with spawned actors', () => {
     parentService.start();
   });
 
-  it('should be able to communicate with arbitrary actors if sessionId is known', (done) => {
+  // TODO: This is an invalid use-case; consider removing
+  it.skip('should be able to communicate with arbitrary actors if sessionId is known', (done) => {
     const existingMachine = Machine({
       initial: 'inactive',
       states: {
@@ -677,7 +684,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: ActorRef<any>;
+        ref?: ActorRefFrom<typeof syncChildMachine>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -726,7 +733,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -782,7 +789,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: ActorRef<any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({

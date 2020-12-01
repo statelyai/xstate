@@ -10,7 +10,7 @@ import {
   ActorRef,
   ActorRefFrom
 } from './types';
-import { State } from '.';
+import { SpawnedActorRef, State } from '.';
 import { ObservableActorRef } from './ObservableActorRef';
 import { isFunction, keys } from './utils';
 import { createBehaviorFrom, Behavior } from './behavior';
@@ -35,7 +35,12 @@ export function updateContext<TContext, TEvent extends EventObject>(
     ? assignActions.reduce((acc, assignAction) => {
         const { assignment } = assignAction as AssignAction<TContext, TEvent>;
 
-        const spawner = (behavior: Behavior<any, any>, name: string) => {
+        const spawner = <T extends Behavior<any, any>>(
+          behavior: T,
+          name: string
+        ): T extends Behavior<infer TE, infer TEmitted>
+          ? SpawnedActorRef<TE, TEmitted>
+          : never => {
           const actorRef = new ObservableActorRef(behavior, name);
 
           capturedActions.push({
@@ -44,7 +49,7 @@ export function updateContext<TContext, TEvent extends EventObject>(
             id: name
           });
 
-          return actorRef;
+          return actorRef as any; // TODO: fix
         };
 
         spawner.from = <T extends Spawnable>(

@@ -24,6 +24,7 @@ import { actionTypes } from './actions';
 import { isActorRef } from './Actor';
 import { ObservableActorRef } from './ObservableActorRef';
 import { IS_PRODUCTION } from './environment';
+import { SpawnedActorRef } from '.';
 
 export const DEFAULT_SPAWN_OPTIONS = { sync: false };
 
@@ -108,7 +109,7 @@ export function createActorRefFromInvokeAction<
   invokeAction: InvokeActionObject,
   machine: MachineNode<TContext, TEvent>,
   parentRef?: ActorRef<any>
-): ActorRef<any> | undefined {
+): SpawnedActorRef<any> | undefined {
   const { id, data, src } = invokeAction;
   const { _event, context } = state;
 
@@ -122,10 +123,10 @@ export function createActorRefFromInvokeAction<
     return undefined;
   }
 
-  let actorRef: ActorRef<any>;
+  let actorRef: SpawnedActorRef<any>;
 
   if (isActorRef(src)) {
-    actorRef = src;
+    actorRef = src as SpawnedActorRef<any>;
   } else {
     const behaviorCreator: BehaviorCreator<TContext, TEvent> | undefined =
       machine.options.behaviors[src.type];

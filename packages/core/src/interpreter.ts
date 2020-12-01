@@ -44,7 +44,7 @@ import { registry } from './registry';
 import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
 import { createActorRefFromInvokeAction } from './invoke';
-import { PayloadSender, StopActionObject } from '.';
+import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
 
 export type StateListener<
   TContext,
@@ -122,13 +122,13 @@ export class Interpreter<
   // Actor Ref
   public parent?: ActorRef<any>;
   public id: string;
-  public ref: ActorRef<TEvent>;
+  public ref: SpawnedActorRef<TEvent>;
 
   /**
    * The globally unique process ID for this invocation.
    */
   public sessionId: string;
-  public children: Map<string | number, ActorRef<any>> = new Map();
+  public children: Map<string | number, SpawnedActorRef<any>> = new Map();
   private forwardTo: Set<string> = new Set();
 
   /**
@@ -561,7 +561,7 @@ export class Interpreter<
       ? this.parent
       : isActorRef(to)
       ? to
-      : this.children.get(to) || registry.get(to as string);
+      : this.children.get(to);
 
     if (!target) {
       if (!isParent) {
@@ -728,7 +728,7 @@ export class Interpreter<
               }
             });
 
-            actorRef.start();
+            actorRef.start?.();
           }
         } catch (err) {
           this.send(error(id, err));
@@ -743,7 +743,7 @@ export class Interpreter<
           typeof actor === 'string' ? this.children.get(actor) : actor;
 
         if (actorRef) {
-          this.stopChild(actorRef.name);
+          this.stopChild((actorRef as SpawnedActorRef<any>).name); // TODO: fix
         }
         break;
       }

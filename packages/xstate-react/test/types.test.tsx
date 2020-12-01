@@ -5,11 +5,9 @@ import {
   interpret,
   assign,
   createMachine,
-  State,
-  ActorRef
+  ActorRefFrom
 } from 'xstate';
-import { useService, useMachine } from '../src';
-import { useActor } from '../src/useActor';
+import { useService, useMachine, useActor } from '../src';
 
 describe('useService', () => {
   it('should accept spawned machine', () => {
@@ -17,7 +15,7 @@ describe('useService', () => {
       completed: boolean;
     }
     interface TodosCtx {
-      todos: Array<ActorRef<any, State<TodoCtx, any>>>;
+      todos: Array<ActorRefFrom<typeof todoMachine>>;
     }
 
     const todoMachine = Machine<TodoCtx>({
@@ -128,5 +126,77 @@ describe('useMachine', () => {
     };
 
     render(<YesNo />);
+  });
+
+  // Example from: https://github.com/davidkpiano/xstate/discussions/1534
+  it('spawned actors should be typed correctly', () => {
+    const child = createMachine<{ bar: number }, { type: 'FOO'; data: number }>(
+      {
+        id: 'myActor',
+        context: {
+          bar: 1
+        },
+        initial: 'ready',
+        states: {
+          ready: {}
+        }
+      }
+    );
+
+    const m = createMachine<{ actor: ActorRefFrom<typeof child> | null }>(
+      {
+        initial: 'ready',
+        context: {
+          actor: null
+        },
+        states: {
+          ready: {
+            entry: 'spawnActor'
+          }
+        }
+      },
+      {
+        actions: {
+          spawnActor: assign({
+            actor: (_, __, { spawn }) => spawn.from(child)
+          })
+        }
+      }
+    );
+
+    interface Props {
+      myActor: ActorRefFrom<typeof child>;
+    }
+
+    function Element({ myActor }: Props) {
+      const [current, send] = useActor(myActor);
+      const bar: number = current.context.bar;
+
+      // @ts-expect-error
+      send({ type: 'WHATEVER' });
+
+      return (
+        <>
+          {bar}
+          <div onClick={() => send({ type: 'FOO', data: 1 })}>click</div>
+        </>
+      );
+    }
+
+    function App() {
+      const [current] = useMachine(m);
+
+      if (!current.context.actor) {
+        return null;
+      }
+
+      return <Element myActor={current.context.actor} />;
+    }
+
+    const noop = (_val: any) => {
+      /* ... */
+    };
+
+    noop(App);
   });
 });
