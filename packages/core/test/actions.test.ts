@@ -1017,7 +1017,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent('SUCCESS'),
-              cond: (_, e) => e.value === 42
+              guard: (_, e) => e.value === 42
             }
           }
         }
@@ -1062,7 +1062,7 @@ describe('forwardTo()', () => {
           on: {
             EVENT: {
               actions: sendParent('SUCCESS'),
-              cond: (_, e) => e.value === 42
+              guard: (_, e) => e.value === 42
             }
           }
         }
@@ -1159,7 +1159,7 @@ describe('choose', () => {
       states: {
         foo: {
           entry: choose([
-            { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
+            { guard: () => true, actions: assign<Ctx>({ answer: 42 }) }
           ])
         }
       }
@@ -1184,7 +1184,7 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              cond: () => true,
+              guard: () => true,
               actions: [() => (executed = true), assign<Ctx>({ answer: 42 })]
             }
           ])
@@ -1211,10 +1211,10 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              cond: () => false,
+              guard: () => false,
               actions: assign<Ctx>({ shouldNotAppear: true })
             },
-            { cond: () => true, actions: assign<Ctx>({ answer: 42 }) }
+            { guard: () => true, actions: assign<Ctx>({ answer: 42 }) }
           ])
         }
       }
@@ -1238,7 +1238,7 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              cond: () => false,
+              guard: () => false,
               actions: assign<Ctx>({ shouldNotAppear: true })
             },
             { actions: assign<Ctx>({ answer: 42 }) }
@@ -1270,17 +1270,17 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              cond: () => true,
+              guard: () => true,
               actions: [
                 assign<Ctx>({ firstLevel: true }),
                 choose([
                   {
-                    cond: () => true,
+                    guard: () => true,
                     actions: [
                       assign<Ctx>({ secondLevel: true }),
                       choose([
                         {
-                          cond: () => true,
+                          guard: () => true,
                           actions: [assign<Ctx>({ thirdLevel: true })]
                         }
                       ])
@@ -1317,7 +1317,7 @@ describe('choose', () => {
         foo: {
           entry: choose([
             {
-              cond: (ctx) => ctx.counter > 100,
+              guard: (ctx) => ctx.counter > 100,
               actions: assign<Ctx>({ answer: 42 })
             }
           ])
@@ -1349,7 +1349,7 @@ describe('choose', () => {
               target: 'bar',
               actions: choose<Ctx, Events>([
                 {
-                  cond: (_, event) => event.counter > 100,
+                  guard: (_, event) => event.counter > 100,
                   actions: assign<Ctx>({ answer: 42 })
                 }
               ])
@@ -1384,7 +1384,7 @@ describe('choose', () => {
             answering: {
               entry: choose([
                 {
-                  cond: (_, __, { state }) => state.matches('bar'),
+                  guard: (_, __, { state }) => state.matches('bar'),
                   actions: assign<Ctx>({ answer: 42 })
                 }
               ])
@@ -1412,7 +1412,7 @@ describe('choose', () => {
         initial: 'foo',
         states: {
           foo: {
-            entry: choose([{ cond: 'worstGuard', actions: 'revealAnswer' }])
+            entry: choose([{ guard: 'worstGuard', actions: 'revealAnswer' }])
           }
         }
       },
@@ -1453,7 +1453,7 @@ describe('choose', () => {
         actions: {
           revealAnswer: assign<Ctx>({ answer: 42 }),
           conditionallyRevealAnswer: choose([
-            { cond: 'worstGuard', actions: 'revealAnswer' }
+            { guard: 'worstGuard', actions: 'revealAnswer' }
           ])
         }
       }

@@ -28,7 +28,7 @@ const finalMachine = Machine({
             }
           },
           onDone: {
-            cond: (_, e) => e.data.signal === 'stop',
+            guard: (_, e) => e.data.signal === 'stop',
             actions: 'stopCrosswalk1'
           }
         },

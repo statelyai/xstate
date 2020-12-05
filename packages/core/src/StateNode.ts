@@ -38,9 +38,9 @@ import { formatInitialTransition } from './stateUtils';
 import {
   getDelayedTransitions,
   formatTransitions,
-  getCandidates,
-  evaluateGuard
+  getCandidates
 } from './stateUtils';
+import { evaluateGuard } from './guards';
 import { MachineNode } from './MachineNode';
 import { STATE_DELIMITER } from './constants';
 
@@ -378,19 +378,24 @@ export class StateNode<
       (this.__cache.candidates[eventName] = getCandidates(this, eventName));
 
     for (const candidate of candidates) {
-      const { cond } = candidate;
+      const { guard } = candidate;
       const resolvedContext = state.context;
 
       let guardPassed = false;
 
       try {
         guardPassed =
-          !cond ||
-          evaluateGuard(this.machine, cond, resolvedContext, _event, state);
+          !guard ||
+          evaluateGuard<TContext, TEvent>(
+            guard,
+            resolvedContext,
+            _event,
+            state
+          );
       } catch (err) {
         throw new Error(
           `Unable to evaluate guard '${
-            cond!.name || cond!.type
+            guard!.type
           }' in transition for event '${eventName}' in state node '${
             this.id
           }':\n${err.message}`

@@ -11,11 +11,11 @@ const machine = Machine({
           on: {
             EVENT2: {
               target: 'a2',
-              cond: stateIn({ b: 'b2' })
+              guard: stateIn({ b: 'b2' })
             },
             EVENT3: {
               target: 'a2',
-              cond: stateIn('#b_b2')
+              guard: stateIn('#b_b2')
             }
           }
         },
@@ -31,7 +31,7 @@ const machine = Machine({
           on: {
             EVENT: {
               target: 'b2',
-              cond: stateIn('#a_a2')
+              guard: stateIn('#a_a2')
             }
           }
         },
@@ -44,7 +44,7 @@ const machine = Machine({
               states: {
                 foo1: {
                   on: {
-                    EVENT_DEEP: { target: 'foo2', cond: stateIn('#bar1') }
+                    EVENT_DEEP: { target: 'foo2', guard: stateIn('#bar1') }
                   }
                 },
                 foo2: {}
@@ -83,7 +83,7 @@ const lightMachine = Machine({
         TIMER: [
           {
             target: 'green',
-            cond: stateIn({ red: 'stop' })
+            guard: stateIn({ red: 'stop' })
           }
         ]
       }

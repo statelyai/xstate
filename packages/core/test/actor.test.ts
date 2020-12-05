@@ -203,7 +203,7 @@ describe('spawning promises', () => {
           on: {
             [doneInvoke('my-promise')]: {
               target: 'success',
-              cond: (_, e) => e.data === 'response'
+              guard: (_, e) => e.data === 'response'
             }
           }
         },
@@ -297,7 +297,7 @@ describe('spawning observables', () => {
           on: {
             INT: {
               target: 'success',
-              cond: (_, e) => e.value === 5
+              guard: (_, e) => e.value === 5
             }
           }
         },
@@ -367,8 +367,7 @@ describe('communicating with spawned actors', () => {
     parentService.start();
   });
 
-  // TODO: This is an invalid use-case; consider removing
-  it.skip('should be able to communicate with arbitrary actors if sessionId is known', (done) => {
+  it('should be able to communicate with arbitrary actors', (done) => {
     const existingMachine = Machine({
       initial: 'inactive',
       states: {
@@ -390,7 +389,7 @@ describe('communicating with spawned actors', () => {
       },
       states: {
         pending: {
-          entry: send('ACTIVATE', { to: existingService.sessionId }),
+          entry: send('ACTIVATE', { to: () => existingService }),
           on: {
             'EXISTING.DONE': 'success'
           },

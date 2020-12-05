@@ -11,7 +11,7 @@ const factorialMachine = Machine<{ n: number; fac: number }>({
         ITERATE: [
           {
             target: 'iteration',
-            cond: (xs) => xs.n > 0,
+            guard: (xs) => xs.n > 0,
             actions: [
               assign({
                 fac: (xs) => xs.n * xs.fac,
@@ -39,11 +39,11 @@ const testMachine = Machine<{ count: number }>({
         ADD: [
           {
             target: 'one',
-            cond: (xs) => xs.count === 1
+            guard: (xs) => xs.count === 1
           },
           {
             target: 'init',
-            cond: (xs) => xs.count % 2 === 0,
+            guard: (xs) => xs.count % 2 === 0,
             actions: [
               assign({
                 count: (xs) => xs.count / 2

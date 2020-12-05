@@ -47,13 +47,18 @@ export declare namespace StateMachine {
     assignment: Assigner<TContext, TEvent> | PropertyAssigner<TContext, TEvent>;
   }
 
+  export interface TransitionObject<
+    TContext extends object,
+    TEvent extends EventObject
+  > {
+    target?: string;
+    actions?: SingleOrArray<Action<TContext, TEvent>>;
+    guard?: (context: TContext, event: TEvent) => boolean;
+  }
+
   export type Transition<TContext extends object, TEvent extends EventObject> =
     | string
-    | {
-        target?: string;
-        actions?: SingleOrArray<Action<TContext, TEvent>>;
-        cond?: (context: TContext, event: TEvent) => boolean;
-      };
+    | TransitionObject<TContext, TEvent>;
   export interface State<
     TContext extends object,
     TEvent extends EventObject,

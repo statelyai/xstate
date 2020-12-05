@@ -239,7 +239,7 @@ xdescribe('transition to SCXML', () => {
             SOME_EVENT: {
               target: 'next',
               internal: true,
-              cond: () => true,
+              guard: () => true,
               actions: ['foo', 'bar']
             }
           }

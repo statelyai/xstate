@@ -36,7 +36,7 @@ const machine = Machine<any, Events>({
         TO_TWO: 'two',
         TO_TWO_MAYBE: {
           target: 'two',
-          cond: function maybe() {
+          guard: function maybe() {
             return true;
           }
         },
@@ -227,7 +227,7 @@ describe('State', () => {
               CHANGE: [
                 {
                   target: '.valid',
-                  cond: () => true
+                  guard: () => true
                 },
                 {
                   target: '.invalid'
@@ -521,7 +521,7 @@ describe('State', () => {
       ).toContainEqual(
         expect.objectContaining({
           eventType: 'TO_TWO_MAYBE',
-          cond: expect.objectContaining({ name: 'maybe' })
+          guard: expect.objectContaining({ type: 'maybe' })
         })
       );
     });

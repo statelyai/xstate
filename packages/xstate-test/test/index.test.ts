@@ -41,7 +41,7 @@ const dieHardMachine = Machine<DieHardContext>(
         on: {
           '': {
             target: 'success',
-            cond: 'weHave4Gallons'
+            guard: 'weHave4Gallons'
           },
           POUR_3_TO_5: {
             actions: pour3to5
@@ -417,7 +417,7 @@ describe('events', () => {
             SUBMIT: [
               {
                 target: 'thanks',
-                cond: (_, e) => !!e.value.length
+                guard: (_, e) => !!e.value.length
               },
               {
                 target: '.invalid'

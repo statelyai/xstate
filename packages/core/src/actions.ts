@@ -555,10 +555,10 @@ export function escalate<
 }
 
 export function choose<TContext, TEvent extends EventObject>(
-  conds: Array<ChooseConditon<TContext, TEvent>>
+  guards: Array<ChooseConditon<TContext, TEvent>>
 ): ChooseAction<TContext, TEvent> {
   return {
     type: ActionTypes.Choose,
-    conds
+    guards
   };
 }

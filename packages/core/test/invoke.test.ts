@@ -40,7 +40,7 @@ const fetchMachine = Machine<{ userId: string | undefined }>({
       on: {
         RESOLVE: {
           target: 'success',
-          cond: (ctx) => ctx.userId !== undefined
+          guard: (ctx) => ctx.userId !== undefined
         }
       }
     },
@@ -76,7 +76,7 @@ const fetcherMachine = Machine({
         },
         onDone: {
           target: 'received',
-          cond: (_, e) => {
+          guard: (_, e) => {
             // Should receive { user: { name: 'David' } } as event data
             return e.data.user.name === 'David';
           }
@@ -119,7 +119,7 @@ const intervalMachine = Machine<{
       },
       always: {
         target: 'finished',
-        cond: (ctx) => ctx.count === 3
+        guard: (ctx) => ctx.count === 3
       },
       on: {
         INC: { actions: assign({ count: (ctx) => ctx.count + 1 }) },
@@ -167,7 +167,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'stop',
-              cond: (ctx) => ctx.count === 2
+              guard: (ctx) => ctx.count === 2
             },
             on: {
               INC: {
@@ -235,7 +235,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'stop',
-              cond: (ctx) => ctx.count === -3
+              guard: (ctx) => ctx.count === -3
             },
             on: {
               DEC: { actions: assign({ count: (ctx) => ctx.count - 1 }) },
@@ -285,7 +285,7 @@ describe('invoke', () => {
             INCREMENT: [
               {
                 target: 'done',
-                cond: (ctx) => {
+                guard: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
                 }
@@ -386,7 +386,7 @@ describe('invoke', () => {
             INCREMENT: [
               {
                 target: 'done',
-                cond: (ctx) => {
+                guard: (ctx) => {
                   actual.push('child got INCREMENT');
                   return ctx.count >= 2;
                 }
@@ -514,7 +514,7 @@ describe('invoke', () => {
           on: {
             SUCCESS: {
               target: 'success',
-              cond: (_, e) => {
+              guard: (_, e) => {
                 return e.data === 42;
               }
             }
@@ -565,7 +565,7 @@ describe('invoke', () => {
       on: {
         SUCCESS: {
           target: 'success',
-          cond: (_, e) => {
+          guard: (_, e) => {
             return e.data === 42;
           }
         }
@@ -832,7 +832,7 @@ describe('invoke', () => {
                   src: invokeMachine(pongMachine),
                   onDone: {
                     target: 'success',
-                    cond: (_, e) => e.data.secret === 'pingpong'
+                    guard: (_, e) => e.data.secret === 'pingpong'
                   }
                 }
               },
@@ -903,7 +903,7 @@ describe('invoke', () => {
               ),
               onDone: {
                 target: 'success',
-                cond: (ctx, e) => {
+                guard: (ctx, e) => {
                   return e.data === ctx.id;
                 }
               },
@@ -1313,7 +1313,7 @@ describe('invoke', () => {
               on: {
                 CALLBACK: {
                   target: 'last',
-                  cond: (_, e) => e.data === 42
+                  guard: (_, e) => e.data === 42
                 }
               }
             },
@@ -1559,7 +1559,7 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                cond: (_, e) => {
+                guard: (_, e) => {
                   return e.data instanceof Error && e.data.message === 'test';
                 }
               }
@@ -1616,7 +1616,7 @@ describe('invoke', () => {
               }),
               onError: {
                 target: 'failed',
-                cond: (_, e) => {
+                guard: (_, e) => {
                   return e.data instanceof Error && e.data.message === 'test';
                 }
               }
@@ -1691,7 +1691,7 @@ describe('invoke', () => {
                   }),
                   onError: {
                     target: 'failed',
-                    cond: () => {
+                    guard: () => {
                       errorHandlersCalled++;
                       return false;
                     }
@@ -1705,7 +1705,7 @@ describe('invoke', () => {
                   }),
                   onError: {
                     target: 'failed',
-                    cond: () => {
+                    guard: () => {
                       errorHandlersCalled++;
                       return false;
                     }
@@ -1845,7 +1845,7 @@ describe('invoke', () => {
             },
             always: {
               target: 'counted',
-              cond: (ctx) => ctx.count === 5
+              guard: (ctx) => ctx.count === 5
             },
             on: {
               COUNT: { actions: assign({ count: (_, e) => e.value }) }
@@ -1895,7 +1895,7 @@ describe('invoke', () => {
               ),
               onDone: {
                 target: 'counted',
-                cond: (ctx) => ctx.count === 4
+                guard: (ctx) => ctx.count === 4
               }
             },
             on: {
@@ -1947,7 +1947,7 @@ describe('invoke', () => {
               ),
               onError: {
                 target: 'success',
-                cond: (ctx, e) => {
+                guard: (ctx, e) => {
                   expect(e.data.message).toEqual('some error');
                   return ctx.count === 4 && e.data.message === 'some error';
                 }
@@ -2304,7 +2304,7 @@ describe('invoke', () => {
               src: invokeMachine(child),
               onError: {
                 target: 'two',
-                cond: (_, event) => event.data === 'oops'
+                guard: (_, event) => event.data === 'oops'
               }
             }
           },
@@ -2346,7 +2346,7 @@ describe('invoke', () => {
               src: invokeMachine(child),
               onError: {
                 target: 'two',
-                cond: (_, event) => {
+                guard: (_, event) => {
                   expect(event.data).toEqual(42);
                   return true;
                 }

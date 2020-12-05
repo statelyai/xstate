@@ -306,7 +306,7 @@ describe('useService hook', () => {
             on: {
               EVENT: {
                 target: 'second',
-                cond: (_, e) => e.value === 42
+                guard: (_, e) => e.value === 42
               }
             }
           },

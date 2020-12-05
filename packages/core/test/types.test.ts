@@ -70,7 +70,10 @@ describe('StateSchema', () => {
             on: {
               PED_COUNTDOWN: {
                 target: 'stop',
-                cond: (ctx, e: { type: 'PED_COUNTDOWN'; duration: number }) => {
+                guard: (
+                  ctx,
+                  e: { type: 'PED_COUNTDOWN'; duration: number }
+                ) => {
                   return e.duration === 0 && ctx.elapsed > 0;
                 }
               }
@@ -244,23 +247,23 @@ describe('Raise events', () => {
                 actions: raise<GreetingContext, { type: 'ALOHA' }>({
                   type: 'ALOHA'
                 }),
-                cond: (_ctx, ev) => !!ev.aloha
+                guard: (_ctx, ev) => !!ev.aloha
               },
               {
                 actions: raise<GreetingContext, { type: 'MORNING' }>({
                   type: 'MORNING'
                 }),
-                cond: (ctx) => ctx.hour < 12
+                guard: (ctx) => ctx.hour < 12
               },
               {
                 actions: raise<GreetingContext, GreetingEvent>({
                   type: 'AFTERNOON'
                 }),
-                cond: (ctx) => ctx.hour < 18
+                guard: (ctx) => ctx.hour < 18
               },
               {
                 actions: raise({ type: 'EVENING' }),
-                cond: (ctx) => ctx.hour < 22
+                guard: (ctx) => ctx.hour < 22
               }
             ]
           }

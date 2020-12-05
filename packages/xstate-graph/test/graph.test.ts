@@ -77,14 +77,14 @@ describe('@xstate/graph', () => {
           EVENT: [
             {
               target: 'foo',
-              cond: (_, e) => e.id === 'foo'
+              guard: (_, e) => e.id === 'foo'
             },
             { target: 'bar' }
           ],
           STATE: [
             {
               target: 'foo',
-              cond: (s) => s.id === 'foo'
+              guard: (s) => s.id === 'foo'
             },
             { target: 'bar' }
           ]
@@ -262,7 +262,7 @@ describe('@xstate/graph', () => {
           start: {
             always: {
               target: 'finish',
-              cond: (ctx) => ctx.count === 3
+              guard: (ctx) => ctx.count === 3
             },
             on: {
               INC: {
@@ -314,7 +314,7 @@ describe('@xstate/graph', () => {
           empty: {
             always: {
               target: 'full',
-              cond: (ctx) => ctx.count === 5
+              guard: (ctx) => ctx.count === 5
             },
             on: {
               INC: {

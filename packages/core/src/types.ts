@@ -75,7 +75,7 @@ export type ActionFunction<TContext, TEvent extends EventObject> = (
 ) => void;
 
 export interface ChooseConditon<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TEvent>;
   actions: Actions<TContext, TEvent>;
 }
 
@@ -122,35 +122,67 @@ export type ExtractStateValue<
           >;
         });
 
-export type ConditionPredicate<TContext, TEvent extends EventObject> = (
+export type GuardPredicate<TContext, TEvent extends EventObject> = (
   context: TContext,
   event: TEvent,
   meta: GuardMeta<TContext, TEvent>
 ) => boolean;
 
-export type DefaultGuardType = 'xstate.guard';
-
-export interface GuardPredicate<TContext, TEvent extends EventObject> {
-  type: DefaultGuardType;
-  name: string | undefined;
-  predicate: ConditionPredicate<TContext, TEvent>;
+export interface DefaultGuardObject<TContext, TEvent extends EventObject> {
+  type: string;
+  params?: { [key: string]: any };
+  /**
+   * Nested guards
+   */
+  children?: Array<GuardObject<TContext, TEvent>>;
+  predicate?: GuardPredicate<TContext, TEvent>;
 }
 
-export type Guard<TContext, TEvent extends EventObject> =
-  | GuardPredicate<TContext, TEvent>
-  | (Record<string, any> & {
-      type: string;
-    });
+export type GuardEvaluator<TContext, TEvent extends EventObject> = (
+  guard: GuardDefinition<TContext, TEvent>,
+  context: TContext,
+  _event: SCXML.Event<TEvent>,
+  state: State<TContext, TEvent>
+) => boolean;
 
 export interface GuardMeta<TContext, TEvent extends EventObject>
   extends StateMeta<TContext, TEvent> {
-  cond: Guard<TContext, TEvent>;
+  guard: GuardDefinition<TContext, TEvent>;
+  evaluate: GuardEvaluator<TContext, TEvent>;
 }
 
-export type Condition<TContext, TEvent extends EventObject> =
+export type GuardConfig<TContext, TEvent extends EventObject> =
   | string
-  | ConditionPredicate<TContext, TEvent>
-  | Guard<TContext, TEvent>;
+  | GuardPredicate<TContext, TEvent>
+  | GuardObject<TContext, TEvent>;
+
+export type GuardObject<TContext, TEvent extends EventObject> =
+  | BooleanGuardObject<TContext, TEvent>
+  | DefaultGuardObject<TContext, TEvent>;
+
+export interface GuardDefinition<TContext, TEvent extends EventObject> {
+  type: string;
+  children?: Array<GuardDefinition<TContext, TEvent>>;
+  predicate?: GuardPredicate<TContext, TEvent>;
+  params: { [key: string]: any };
+}
+
+export interface BooleanGuardObject<TContext, TEvent extends EventObject> {
+  type: 'xstate.boolean';
+  children: Array<GuardConfig<TContext, TEvent>>;
+  params: {
+    op: 'and' | 'or' | 'not';
+  };
+  predicate: undefined;
+}
+
+export interface BooleanGuardDefinition<TContext, TEvent extends EventObject>
+  extends GuardDefinition<TContext, TEvent> {
+  type: 'xstate.boolean';
+  params: {
+    op: 'and' | 'or' | 'not';
+  };
+}
 
 export type TransitionTarget<
   TContext,
@@ -162,7 +194,7 @@ export type TransitionTargets<TContext> = Array<
 >;
 
 export interface TransitionConfig<TContext, TEvent extends EventObject> {
-  cond?: Condition<TContext, TEvent>;
+  guard?: GuardConfig<TContext, TEvent>;
   actions?: Actions<TContext, TEvent>;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -181,7 +213,7 @@ export type ConditionalTransitionConfig<
 
 export interface InitialTransitionConfig<TContext, TEvent extends EventObject>
   extends TransitionConfig<TContext, TEvent> {
-  cond?: never;
+  guard?: never;
   target: TransitionTarget<TContext, TEvent>;
 }
 
@@ -605,7 +637,7 @@ export type DelayConfig<TContext, TEvent extends EventObject> =
   | DelayExpr<TContext, TEvent>;
 
 export interface MachineOptions<TContext, TEvent extends EventObject> {
-  guards: Record<string, ConditionPredicate<TContext, TEvent>>;
+  guards: Record<string, GuardPredicate<TContext, TEvent>>;
   actions: ActionFunctionMap<TContext, TEvent>;
   behaviors: Record<string, BehaviorCreator<TContext, TEvent>>;
   delays: DelayFunctionMap<TContext, TEvent>;
@@ -887,7 +919,7 @@ export interface PureAction<TContext, TEvent extends EventObject>
 export interface ChooseAction<TContext, TEvent extends EventObject>
   extends ActionObject<TContext, TEvent> {
   type: ActionTypes.Choose;
-  conds: Array<ChooseConditon<TContext, TEvent>>;
+  guards: Array<ChooseConditon<TContext, TEvent>>;
 }
 
 export interface TransitionDefinition<TContext, TEvent extends EventObject>
@@ -895,13 +927,13 @@ export interface TransitionDefinition<TContext, TEvent extends EventObject>
   target: Array<StateNode<TContext, TEvent>> | undefined;
   source: StateNode<TContext, TEvent>;
   actions: Array<ActionObject<TContext, TEvent>>;
-  cond?: Guard<TContext, TEvent>;
+  guard?: GuardDefinition<TContext, TEvent>;
   eventType: TEvent['type'] | NullEvent['type'] | '*';
   toJSON: () => {
     target: string[] | undefined;
     source: string;
     actions: Array<ActionObject<TContext, TEvent>>;
-    cond?: Guard<TContext, TEvent>;
+    guard?: GuardDefinition<TContext, TEvent>;
     eventType: TEvent['type'] | NullEvent['type'] | '*';
     meta?: Record<string, any>;
   };
@@ -912,7 +944,7 @@ export interface InitialTransitionDefinition<
   TEvent extends EventObject
 > extends TransitionDefinition<TContext, TEvent> {
   target: Array<StateNode<TContext, TEvent>>;
-  cond?: never;
+  guard?: never;
 }
 
 export type TransitionDefinitionMap<TContext, TEvent extends EventObject> = {
@@ -939,7 +971,7 @@ export interface Edge<
   event: TEventType;
   source: StateNode<TContext, TEvent>;
   target: StateNode<TContext, TEvent>;
-  cond?: Condition<TContext, TEvent & { type: TEventType }>;
+  cond?: GuardConfig<TContext, TEvent & { type: TEventType }>;
   actions: Array<Action<TContext, TEvent>>;
   meta?: MetaObject;
   transition: TransitionDefinition<TContext, TEvent>;

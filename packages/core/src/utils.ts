@@ -5,25 +5,18 @@ import {
   PropertyMapper,
   Mapper,
   EventType,
-  Condition,
   Subscribable,
-  ConditionPredicate,
   SCXML,
   StateLike,
   TransitionConfig,
   TransitionConfigTarget,
   NullEvent,
   SingleOrArray,
-  Guard,
   BehaviorCreator,
   InvokeSourceDefinition,
   Observer
 } from './types';
-import {
-  STATE_DELIMITER,
-  DEFAULT_GUARD_TYPE,
-  TARGETLESS_KEY
-} from './constants';
+import { STATE_DELIMITER, TARGETLESS_KEY } from './constants';
 import { IS_PRODUCTION } from './environment';
 import { StateNode } from './StateNode';
 import { InvokeConfig, SCXMLErrorEvent } from '.';
@@ -326,33 +319,6 @@ export function isFunction(value: any): value is Function {
 
 export function isString(value: any): value is string {
   return typeof value === 'string';
-}
-
-export function toGuard<TContext, TEvent extends EventObject>(
-  condition?: Condition<TContext, TEvent>,
-  guardMap?: Record<string, ConditionPredicate<TContext, TEvent>>
-): Guard<TContext, TEvent> | undefined {
-  if (!condition) {
-    return undefined;
-  }
-
-  if (isString(condition)) {
-    return {
-      type: DEFAULT_GUARD_TYPE,
-      name: condition,
-      predicate: guardMap ? guardMap[condition] : undefined
-    };
-  }
-
-  if (isFunction(condition)) {
-    return {
-      type: DEFAULT_GUARD_TYPE,
-      name: condition.name,
-      predicate: condition
-    };
-  }
-
-  return condition;
 }
 
 export function isObservable<T>(value: any): value is Subscribable<T> {

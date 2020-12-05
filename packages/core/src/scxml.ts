@@ -12,7 +12,7 @@ import { mapValues, keys, isString, flatten } from './utils';
 import * as actions from './actions';
 import { invokeMachine } from './invoke';
 import { MachineNode } from './MachineNode';
-import { stateIn, stateNotIn } from './guards';
+import { not, stateIn } from './guards';
 
 function getAttribute(
   element: XMLElement,
@@ -125,12 +125,12 @@ const evaluateExecutableContent = <
   return fn(context, meta._event);
 };
 
-function createCond<
+function createGuard<
   TContext extends object,
   TEvent extends EventObject = EventObject
->(cond: string) {
+>(guard: string) {
   return (context: TContext, _event: TEvent, meta) => {
-    return evaluateExecutableContent(context, _event, meta, `return ${cond};`);
+    return evaluateExecutableContent(context, _event, meta, `return ${guard};`);
   };
 }
 
@@ -230,10 +230,10 @@ function mapAction<
       );
     }
     case 'if': {
-      const conds: ChooseConditon<TContext, TEvent>[] = [];
+      const conds: Array<ChooseConditon<TContext, TEvent>> = [];
 
       let current: ChooseConditon<TContext, TEvent> = {
-        cond: createCond(element.attributes!.cond as string),
+        guard: createGuard(element.attributes!.cond as string),
         actions: []
       };
 
@@ -246,7 +246,7 @@ function mapAction<
           case 'elseif':
             conds.push(current);
             current = {
-              cond: createCond(el.attributes!.cond as string),
+              guard: createGuard(el.attributes!.cond as string),
               actions: []
             };
             break;
@@ -387,31 +387,31 @@ function toConfig(
           const targets = getAttribute(value, 'target');
           const internal = getAttribute(value, 'type') === 'internal';
 
-          let condObject = {};
+          let guardObject = {};
 
           if (value.attributes?.cond) {
-            const cond = value.attributes!.cond;
-            if ((cond as string).startsWith('In')) {
-              const inMatch = (cond as string).trim().match(/^In\('(.*)'\)/);
+            const guard = value.attributes!.cond;
+            if ((guard as string).startsWith('In')) {
+              const inMatch = (guard as string).trim().match(/^In\('(.*)'\)/);
 
               if (inMatch) {
-                condObject = {
-                  cond: stateIn(`#${inMatch[1]}`)
+                guardObject = {
+                  guard: stateIn(`#${inMatch[1]}`)
                 };
               }
-            } else if ((cond as string).startsWith('!In')) {
-              const notInMatch = (cond as string)
+            } else if ((guard as string).startsWith('!In')) {
+              const notInMatch = (guard as string)
                 .trim()
                 .match(/^!In\('(.*)'\)/);
 
               if (notInMatch) {
-                condObject = {
-                  cond: stateNotIn(`#${notInMatch[1]}`)
+                guardObject = {
+                  guard: not(stateIn(`#${notInMatch[1]}`))
                 };
               }
             } else {
-              condObject = {
-                cond: createCond(value.attributes!.cond as string)
+              guardObject = {
+                guard: createGuard(value.attributes!.cond as string)
               };
             }
           }
@@ -420,7 +420,7 @@ function toConfig(
             event,
             target: getTargets(targets),
             ...(value.elements ? executableContent(value.elements) : undefined),
-            ...condObject,
+            ...guardObject,
             internal
           };
         });

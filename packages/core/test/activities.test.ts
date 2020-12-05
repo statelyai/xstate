@@ -48,9 +48,7 @@ describe('activities with guarded transitions', () => {
           },
           B: {
             invoke: ['B_ACTIVITY'],
-            on: {
-              '': [{ cond: () => false, target: 'A' }]
-            }
+            always: [{ guard: () => false, target: 'A' }]
           }
         }
       },
@@ -240,7 +238,7 @@ describe('transient activities', () => {
             invoke: ['B1'],
             always: {
               target: 'B2',
-              cond: stateIn('#AWAIT')
+              guard: stateIn('#AWAIT')
             },
             on: {
               B: 'B2'

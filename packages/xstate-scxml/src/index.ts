@@ -62,8 +62,8 @@ export function transitionToSCXML(
     name: 'transition',
     attributes: cleanAttributes({
       event: transition.eventType,
-      cond: transition.cond
-        ? functionToExpr(transition.cond.predicate)
+      guard: transition.guard?.predicate
+        ? functionToExpr(transition.guard.predicate)
         : undefined,
       target: (transition.target || [])
         .map((stateNode) => stateNode.id)

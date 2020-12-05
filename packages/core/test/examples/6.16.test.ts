@@ -13,7 +13,7 @@ describe('Example 6.16', () => {
             on: {
               2: {
                 target: 'D',
-                cond: stateIn('#E')
+                guard: stateIn('#E')
               }
             }
           },

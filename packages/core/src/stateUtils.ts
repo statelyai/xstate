@@ -8,7 +8,6 @@ import {
   isArray,
   isFunction,
   isString,
-  toGuard,
   toTransitionConfigArray,
   normalizeTarget,
   toStateValue,
@@ -24,10 +23,7 @@ import {
   SingleOrArray,
   Typestate,
   DelayExpr,
-  Guard,
   SCXML,
-  GuardMeta,
-  GuardPredicate,
   Transitions,
   ActionObject,
   StateValueMap,
@@ -69,15 +65,11 @@ import {
   resolveStop
 } from './actions';
 import { IS_PRODUCTION } from './environment';
-import {
-  DEFAULT_GUARD_TYPE,
-  STATE_IDENTIFIER,
-  NULL_EVENT,
-  WILDCARD
-} from './constants';
+import { STATE_IDENTIFIER, NULL_EVENT, WILDCARD } from './constants';
 import { isSpawnedActorRef } from './Actor';
 import { MachineNode } from './MachineNode';
 import { createActorRefFromInvokeAction } from './invoke';
+import { evaluateGuard, toGuardDefinition } from './guards';
 
 type Configuration<TC, TE extends EventObject> = Iterable<StateNode<TC, TE>>;
 
@@ -350,7 +342,12 @@ export function formatTransition<TContext, TEvent extends EventObject>(
   const transition = {
     ...transitionConfig,
     actions: toActionObjects(toArray(transitionConfig.actions)),
-    cond: toGuard(transitionConfig.cond, guards),
+    guard: transitionConfig.guard
+      ? toGuardDefinition(
+          transitionConfig.guard,
+          (guardType) => guards[guardType]
+        )
+      : undefined,
     target,
     source: stateNode,
     internal,
@@ -720,39 +717,6 @@ export function getStateNodes<TContext, TEvent extends EventObject>(
       return allSubStateNodes.concat(subStateNodes);
     }, [] as Array<StateNode<TContext, TEvent>>)
   );
-}
-
-export function evaluateGuard<TContext, TEvent extends EventObject>(
-  machine: MachineNode<TContext, TEvent>,
-  guard: Guard<TContext, TEvent>,
-  context: TContext,
-  _event: SCXML.Event<TEvent>,
-  state: State<TContext, TEvent>
-): boolean {
-  const { guards } = machine.options;
-  const guardMeta: GuardMeta<TContext, TEvent> = {
-    state,
-    cond: guard,
-    _event
-  };
-
-  if (guard.type === DEFAULT_GUARD_TYPE) {
-    return (guard as GuardPredicate<TContext, TEvent>).predicate(
-      context,
-      _event.data,
-      guardMeta
-    );
-  }
-
-  const condFn = guards[guard.type];
-
-  if (!condFn) {
-    throw new Error(
-      `Guard '${guard.type}' is not implemented on machine '${machine.id}'.`
-    );
-  }
-
-  return condFn(context, _event.data, guardMeta);
 }
 
 export function transitionLeafNode<TContext, TEvent extends EventObject>(
@@ -1388,8 +1352,7 @@ export function microstep<TContext, TEvent extends EventObject>(
 }
 
 function selectEventlessTransitions<TContext, TEvent extends EventObject>(
-  state: State<TContext, TEvent>,
-  machine: MachineNode<TContext, TEvent>
+  state: State<TContext, TEvent>
 ): Transitions<TContext, TEvent> {
   const enabledTransitions: Set<TransitionDefinition<
     TContext,
@@ -1405,10 +1368,9 @@ function selectEventlessTransitions<TContext, TEvent extends EventObject>(
       for (const t of s.transitions) {
         if (
           t.eventType === NULL_EVENT &&
-          (t.cond === undefined ||
+          (t.guard === undefined ||
             evaluateGuard<TContext, TEvent>(
-              machine,
-              t.cond,
+              t.guard,
               state.context,
               toSCXMLEvent(NULL_EVENT as Event<TEvent>),
               state
@@ -1535,7 +1497,7 @@ export function resolveMicroTransition<
       context !== currentContext;
   nextState._internalQueue = resolved.internalQueue;
 
-  const isTransient = selectEventlessTransitions(nextState, machine).length;
+  const isTransient = selectEventlessTransitions(nextState).length;
 
   if (isTransient) {
     nextState._internalQueue.unshift({
@@ -1629,18 +1591,17 @@ function resolveActionsAndContext<TContext, TEvent extends EventObject>(
           );
           break;
         case actionTypes.choose: {
-          const ChooseAction = actionObject as ChooseAction<TContext, TEvent>;
-          const matchedActions = ChooseAction.conds.find((condition) => {
-            const guard = toGuard(condition.cond, machine.options.guards);
+          const chooseAction = actionObject as ChooseAction<TContext, TEvent>;
+          const matchedActions = chooseAction.guards.find((condition) => {
+            const guard =
+              condition.guard &&
+              toGuardDefinition(
+                condition.guard,
+                (guardType) => machine.options.guards[guardType]
+              );
             return (
               !guard ||
-              evaluateGuard(
-                machine,
-                guard,
-                context,
-                _event,
-                currentState as any
-              )
+              evaluateGuard(guard, context, _event, currentState as any)
             );
           })?.actions;
 

@@ -130,7 +130,7 @@ describe('delayed transitions', () => {
             1500: [
               {
                 target: 'Y',
-                cond: () => true
+                guard: () => true
               },
               {
                 target: 'Z'
