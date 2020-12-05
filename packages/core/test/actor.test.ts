@@ -1,4 +1,4 @@
-import { Machine, spawn, interpret } from '../src';
+import { Machine, spawn, interpret, ActorRef, ActorRefFrom } from '../src';
 import {
   assign,
   send,
@@ -8,7 +8,6 @@ import {
   sendUpdate,
   respond
 } from '../src/actions';
-import { Actor } from '../src/Actor';
 import { interval } from 'rxjs';
 import { map } from 'rxjs/operators';
 
@@ -27,7 +26,7 @@ describe('spawning machines', () => {
   });
 
   const context = {
-    todoRefs: {} as Record<string, Actor>
+    todoRefs: {} as Record<string, ActorRef<any>>
   };
 
   type TodoEvent =
@@ -82,7 +81,7 @@ describe('spawning machines', () => {
     | { type: 'PONG' }
     | { type: 'SUCCESS' };
 
-  const serverMachine = Machine({
+  const serverMachine = Machine<any, PingPongEvent>({
     id: 'server',
     initial: 'waitPing',
     states: {
@@ -101,7 +100,7 @@ describe('spawning machines', () => {
   });
 
   interface ClientContext {
-    server?: Actor<any, any>;
+    server?: ActorRef<PingPongEvent>;
   }
 
   const clientMachine = Machine<ClientContext, PingPongEvent>({
@@ -439,7 +438,7 @@ describe('actors', () => {
   });
 
   it('should spawn null actors if not used within a service', () => {
-    const nullActorMachine = Machine<{ ref?: Actor }>({
+    const nullActorMachine = Machine<{ ref?: ActorRef<any> }>({
       initial: 'foo',
       context: { ref: undefined },
       states: {
@@ -506,7 +505,7 @@ describe('actors', () => {
     it('should not forward events to a spawned actor when { autoForward: false }', () => {
       let pongCounter = 0;
 
-      const machine = Machine<{ counter: number; serverRef?: Actor }>({
+      const machine = Machine<{ counter: number; serverRef?: ActorRef<any> }>({
         id: 'client',
         context: { counter: 0, serverRef: undefined },
         initial: 'initial',
@@ -662,7 +661,7 @@ describe('actors', () => {
       });
 
       interface SyncMachineContext {
-        ref?: Actor<any, any>;
+        ref?: ActorRefFrom<typeof syncChildMachine>;
       }
 
       const syncMachine = Machine<SyncMachineContext>({
@@ -707,7 +706,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor<any, any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
@@ -757,7 +756,7 @@ describe('actors', () => {
         });
 
         interface SyncMachineContext {
-          ref?: Actor<any, any>;
+          ref?: ActorRefFrom<typeof syncChildMachine>;
         }
 
         const syncMachine = Machine<SyncMachineContext>({
