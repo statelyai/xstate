@@ -246,6 +246,10 @@ class StateNode<
 
   public options: MachineOptions<TContext, TEvent>;
 
+  public schema?: {
+    events?: TEvent;
+  };
+
   public __xstatenode: true = true;
 
   private __cache = {
@@ -310,6 +314,11 @@ class StateNode<
         : this.config.history
         ? 'history'
         : 'atomic');
+    this.schema = (this.config as MachineConfig<
+      TContext,
+      TStateSchema,
+      TEvent
+    >).schema;
 
     if (!IS_PRODUCTION) {
       warn(

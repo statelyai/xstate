@@ -680,7 +680,6 @@ export interface MachineConfig<
    * **NOTE:** This is TypeScript-only.;
    */
   schema?: {
-    states?: TStateSchema;
     events?: TEvent;
   };
   /**
@@ -714,6 +713,8 @@ export interface HistoryStateNode<TContext> extends StateNode<TContext> {
   target: StateValue | undefined;
 }
 
+export type SchemaValidator<T> = (value: any) => value is T;
+
 export interface StateMachine<
   TContext,
   TStateSchema extends StateSchema,
@@ -722,6 +723,9 @@ export interface StateMachine<
 > extends StateNode<TContext, TStateSchema, TEvent, TTypestate> {
   id: string;
   states: StateNode<TContext, TStateSchema, TEvent>['states'];
+  schema?: {
+    events?: TEvent;
+  };
 }
 
 export type StateFrom<

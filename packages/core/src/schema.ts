@@ -1,3 +1,3 @@
-export function createSchema<TSchema>(): TSchema {
-  return (null as any) as TSchema;
+export function createSchema<TSchema>(value?: any): TSchema {
+  return (value as any) as TSchema;
 }

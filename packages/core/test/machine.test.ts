@@ -19,14 +19,6 @@ const pedestrianStates = {
   }
 };
 
-interface LightStateSchema {
-  states: {
-    green: any;
-    yellow: any;
-    red: any;
-  };
-}
-
 type LightStateEvents =
   | {
       type: 'TIMER';
@@ -39,7 +31,6 @@ const lightMachine = createMachine({
   key: 'light',
   initial: 'green',
   schema: {
-    states: createSchema<LightStateSchema>(),
     events: createSchema<LightStateEvents>()
   },
   states: {

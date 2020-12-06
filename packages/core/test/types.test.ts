@@ -97,8 +97,7 @@ describe('StateSchema', () => {
     const lightMachine = Machine({
       key: 'light',
       schema: {
-        events: createSchema<LightEvent>(),
-        states: createSchema<LightStateSchema>()
+        events: createSchema<LightEvent>()
       },
       initial: 'green',
       meta: { interval: 1000 },
