@@ -15,13 +15,9 @@ export interface XStateDevInterface {
   services: Set<Interpreter<any>>;
 }
 
-declare global {
-  var __xstate__: XStateDevInterface;
-}
-
 function getDevTools(): XStateDevInterface | undefined {
-  if (!!window.__xstate__) {
-    return window.__xstate__;
+  if (!!(window as any).__xstate__) {
+    return (window as any).__xstate__;
   }
 
   return undefined;
