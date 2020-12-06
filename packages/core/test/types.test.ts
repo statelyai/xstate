@@ -93,7 +93,7 @@ describe('StateSchema', () => {
     expect(true).toBeTruthy();
   });
 
-  it('should work with a StateSchema defined inline', () => {
+  it('should work with an event schema defined inline', () => {
     const lightMachine = Machine({
       key: 'light',
       schema: {
