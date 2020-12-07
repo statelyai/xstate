@@ -124,10 +124,10 @@ export class Interpreter<
     deferEvents: true,
     clock: {
       setTimeout: (fn, ms) => {
-        return global.setTimeout.call(null, fn, ms);
+        return setTimeout(fn, ms);
       },
       clearTimeout: (id) => {
-        return global.clearTimeout.call(null, id);
+        return clearTimeout(id);
       }
     },
     logger: global.console.log.bind(console),
