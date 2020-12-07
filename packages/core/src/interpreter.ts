@@ -127,7 +127,7 @@ export class Interpreter<
         return setTimeout(fn, ms);
       },
       clearTimeout: (id) => {
-        return global.clearTimeout.call(global, id);
+        return clearTimeout(id);
       }
     },
     logger: global.console.log.bind(console),
