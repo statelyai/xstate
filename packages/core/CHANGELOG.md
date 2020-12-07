@@ -1,5 +1,48 @@
 # xstate
 
+## 4.15.0
+
+### Minor Changes
+
+- [`6596d0ba`](https://github.com/davidkpiano/xstate/commit/6596d0ba163341fc43d214b48115536cb4815b68) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` (e.g., `SpawnedActorRef`) rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types:
+
+  ```diff
+  import {
+  - Actor
+  + ActorRef
+  } from 'xstate';
+
+  // ...
+
+  interface SomeContext {
+  - server?: Actor;
+  + server?: ActorRef<ServerEvent>;
+  }
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```diff
+  import {
+    createMachine,
+  - Actor
+  + ActorRefFrom
+  } from 'xstate';
+
+  const serverMachine = createMachine<ServerContext, ServerEvent>({
+    // ...
+  });
+
+  interface SomeContext {
+  - server?: Actor; // difficult to type
+  + server?: ActorRefFrom<typeof serverMachine>;
+  }
+  ```
+
+### Patch Changes
+
+- [`75a91b07`](https://github.com/davidkpiano/xstate/commit/75a91b078a10a86f13edc9eec3ac1d6246607002) [#1692](https://github.com/davidkpiano/xstate/pull/1692) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with history state entering a wrong state if the most recent visit in its parent has been caused by a transient transition.
+
 ## 4.14.1
 
 ### Patch Changes
