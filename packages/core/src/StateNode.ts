@@ -95,8 +95,9 @@ import {
   isInFinalState,
   isLeafNode
 } from './stateUtils';
-import { Actor, createInvocableActor } from './Actor';
+import { createInvocableActor } from './Actor';
 import { toInvokeDefinition } from './invokeUtils';
+import { ActorRef } from '.';
 
 const NULL_EVENT = '';
 const STATE_IDENTIFIER = '#';
@@ -1184,7 +1185,7 @@ class StateNode<
     const invokeActions = resolvedActions.filter((action) => {
       return (
         action.type === actionTypes.start &&
-        (action as ActivityActionObject<TContext, TEvent>).activity.type ===
+        (action as ActivityActionObject<TContext, TEvent>).activity?.type ===
           actionTypes.invoke
       );
     }) as Array<InvokeActionObject<TContext, TEvent>>;
@@ -1202,7 +1203,7 @@ class StateNode<
       },
       currentState
         ? { ...currentState.children }
-        : ({} as Record<string, Actor>)
+        : ({} as Record<string, ActorRef<any>>)
     );
 
     const resolvedConfiguration = resolvedStateValue
@@ -1311,7 +1312,6 @@ class StateNode<
     maybeNextState.changed = changed;
 
     // Preserve original history after raised events
-    maybeNextState.historyValue = nextState.historyValue;
     maybeNextState.history = history;
 
     return maybeNextState;

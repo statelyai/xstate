@@ -1,9 +1,15 @@
 import * as React from 'react';
 import { useMachine } from '../src';
-import { createMachine, sendParent, Actor, assign, spawn } from 'xstate';
+import {
+  createMachine,
+  sendParent,
+  assign,
+  spawn,
+  ActorRef,
+  ActorRefFrom
+} from 'xstate';
 import { render, cleanup, fireEvent } from '@testing-library/react';
 import { useActor } from '../src/useActor';
-import { ActorRefLike } from '../src/types';
 import { useState } from 'react';
 
 afterEach(cleanup);
@@ -28,7 +34,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -41,7 +49,11 @@ describe('useActor', () => {
     const Test = () => {
       const [state] = useMachine(machine);
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -77,7 +89,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -96,7 +110,11 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.children.child} />;
+      return (
+        <ChildTest
+          actor={state.children.child as ActorRefFrom<typeof childMachine>}
+        />
+      );
     };
 
     render(
@@ -114,7 +132,12 @@ describe('useActor', () => {
         active: {}
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+
+    interface Ctx {
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }
+
+    const machine = createMachine<Ctx>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -128,7 +151,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -140,8 +165,9 @@ describe('useActor', () => {
 
     const Test = () => {
       const [state] = useMachine(machine);
+      const { actorRef } = state.context;
 
-      return <ChildTest actor={state.context.actorRef} />;
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -163,7 +189,9 @@ describe('useActor', () => {
         }
       }
     });
-    const machine = createMachine<{ actorRef: any }>({
+    const machine = createMachine<{
+      actorRef?: ActorRefFrom<typeof childMachine>;
+    }>({
       initial: 'active',
       context: {
         actorRef: undefined
@@ -179,7 +207,9 @@ describe('useActor', () => {
       }
     });
 
-    const ChildTest: React.FC<{ actor: Actor<any> }> = ({ actor }) => {
+    const ChildTest: React.FC<{ actor: ActorRefFrom<typeof childMachine> }> = ({
+      actor
+    }) => {
       const [state, send] = useActor(actor);
 
       expect(state.value).toEqual('active');
@@ -198,7 +228,9 @@ describe('useActor', () => {
         done();
       }
 
-      return <ChildTest actor={state.context.actorRef} />;
+      const { actorRef } = state.context;
+
+      return <ChildTest actor={actorRef!} />;
     };
 
     render(
@@ -209,7 +241,7 @@ describe('useActor', () => {
   });
 
   it('actor should provide snapshot value immediately', () => {
-    const simpleActor: ActorRefLike<any, number> = {
+    const simpleActor: ActorRef<any, number> & { latestValue: number } = {
       send: () => {
         /* ... */
       },
@@ -224,10 +256,7 @@ describe('useActor', () => {
     };
 
     const Test = () => {
-      const [state] = useActor(
-        simpleActor,
-        (a) => (a as typeof simpleActor).latestValue
-      );
+      const [state] = useActor(simpleActor, (a) => a.latestValue);
 
       return <div data-testid="state">{state}</div>;
     };
@@ -240,7 +269,9 @@ describe('useActor', () => {
   });
 
   it('should update snapshot value when actor changes', () => {
-    const createSimpleActor = (value: number): ActorRefLike<any, number> => ({
+    const createSimpleActor = (
+      value: number
+    ): ActorRef<any, number> & { latestValue: number } => ({
       send: () => {
         /* ... */
       },
@@ -256,7 +287,7 @@ describe('useActor', () => {
 
     const Test = () => {
       const [actor, setActor] = useState(createSimpleActor(42));
-      const [state] = useActor(actor, (a) => (a as typeof actor).latestValue);
+      const [state] = useActor(actor, (a) => a.latestValue);
 
       return (
         <>
@@ -277,5 +308,65 @@ describe('useActor', () => {
     expect(div.textContent).toEqual('42');
     fireEvent.click(button);
     expect(div.textContent).toEqual('100');
+  });
+
+  it('send() should be stable', (done) => {
+    jest.useFakeTimers();
+    const fakeSubscribe = () => {
+      return {
+        unsubscribe: () => {
+          /* ... */
+        }
+      };
+    };
+    const noop = () => {
+      /* ... */
+    };
+    const firstActor: ActorRef<any> = {
+      send: noop,
+      subscribe: fakeSubscribe
+    };
+    const lastActor: ActorRef<any> = {
+      send: () => {
+        done();
+      },
+      subscribe: fakeSubscribe
+    };
+
+    const Test = () => {
+      const [actor, setActor] = useState(firstActor);
+      const [, send] = useActor(actor);
+
+      React.useEffect(() => {
+        setTimeout(() => {
+          // The `send` here is closed-in
+          send({ type: 'anything' });
+        }, 10);
+      }, []); // Intentionally omit `send` from dependency array
+
+      return (
+        <>
+          <button
+            data-testid="button"
+            onClick={() => setActor(lastActor)}
+          ></button>
+        </>
+      );
+    };
+
+    const { getByTestId } = render(<Test />);
+
+    // At this point, `send` refers to the first (noop) actor
+
+    const button = getByTestId('button');
+    fireEvent.click(button);
+
+    // At this point, `send` refers to the last actor
+
+    jest.advanceTimersByTime(20);
+
+    // The effect will call the closed-in `send`, which originally
+    // was the reference to the first actor. Now that `send` is stable,
+    // it will always refer to the latest actor.
   });
 });
