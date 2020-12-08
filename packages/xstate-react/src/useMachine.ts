@@ -94,6 +94,29 @@ function flushArray<T>(arr: T[]): T[] {
   return flushed;
 }
 
+function pushEffects(
+  initial,
+  current,
+  scheduledEffectActions,
+  scheduledLayoutEffectActions
+) {
+  if (initial) {
+    current[1].push(...scheduledEffectActions);
+    current[2].push(...scheduledLayoutEffectActions);
+    return current;
+  }
+  const [
+    currentState,
+    currentEffectActions,
+    currentLayoutEffectActions
+  ] = current;
+  return [
+    currentState,
+    currentEffectActions.concat(scheduledEffectActions),
+    currentLayoutEffectActions.concat(scheduledLayoutEffectActions)
+  ];
+}
+
 export type UseMachineOptions<
   TContext,
   TEvent extends EventObject,
@@ -204,6 +227,7 @@ export function useMachine<
   });
 
   useIsomorphicLayoutEffect(() => {
+    let initial = true;
     service
       .onTransition((currentState) => {
         // Only change the current state if:
@@ -254,21 +278,20 @@ export function useMachine<
               ActionStateTuple<TContext, TEvent>
             >((layoutEffectAction) => [layoutEffectAction, currentState]);
 
-            setState(
-              ([
-                currentState,
-                currentEffectActions,
-                currentLayoutEffectActions
-              ]) => [
-                currentState,
-                currentEffectActions.concat(scheduledEffectActions),
-                currentLayoutEffectActions.concat(scheduledLayoutEffectActions)
-              ]
+            setState((current) =>
+              pushEffects(
+                initial,
+                current,
+                scheduledEffectActions,
+                scheduledLayoutEffectActions
+              )
             );
           }
         }
       })
       .start(rehydratedState ? State.create(rehydratedState) : undefined);
+
+    initial = false;
 
     return () => {
       service.stop();
