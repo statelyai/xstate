@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from 'react';
+import { useState, useEffect } from 'react';
 import useIsomorphicLayoutEffect from 'use-isomorphic-layout-effect';
 import {
   interpret,
@@ -86,6 +86,12 @@ function executeEffect<TContext, TEvent extends EventObject>(
   });
 
   originalExec();
+}
+
+function flushArray<T>(arr: T[]): T[] {
+  const flushed = [...arr];
+  arr.length = 0;
+  return flushed;
 }
 
 export type UseMachineOptions<
@@ -177,19 +183,25 @@ export function useMachine<
     ];
   });
 
-  const [state, setState] = useState(() => {
+  let [
+    [state, currentEffectActions, currentLayoutEffectActions],
+    setState
+  ] = useState<
+    [
+      State<TContext, TEvent>,
+      Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>,
+      Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
+    ]
+  >(() => {
     // Always read the initial state to properly initialize the machine
     // https://github.com/davidkpiano/xstate/issues/1334
     const { initialState } = resolvedMachine;
-    return rehydratedState ? State.create(rehydratedState) : initialState;
+    return [
+      rehydratedState ? State.create(rehydratedState) : initialState,
+      [],
+      []
+    ];
   });
-
-  const effectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
-  >([]);
-  const layoutEffectActionsRef = useRef<
-    Array<[ReactActionObject<TContext, TEvent>, State<TContext, TEvent>]>
-  >([]);
 
   useIsomorphicLayoutEffect(() => {
     service
@@ -208,7 +220,11 @@ export function useMachine<
           // Only change the state if it is not filtered out
           (!filter || filter?.(currentState, currentState.history!))
         ) {
-          setState(currentState);
+          setState(([, effectActions, layoutEffectActions]) => [
+            currentState,
+            effectActions,
+            layoutEffectActions
+          ]);
         }
 
         if (currentState.actions.length) {
@@ -229,17 +245,27 @@ export function useMachine<
             }
           );
 
-          effectActionsRef.current.push(
-            ...effectActions.map<ActionStateTuple<TContext, TEvent>>(
-              (effectAction) => [effectAction, currentState]
-            )
-          );
+          if (effectActions.length || layoutEffectActions.length) {
+            const scheduledEffectActions = effectActions.map<
+              ActionStateTuple<TContext, TEvent>
+            >((effectAction) => [effectAction, currentState]);
 
-          layoutEffectActionsRef.current.push(
-            ...layoutEffectActions.map<ActionStateTuple<TContext, TEvent>>(
-              (layoutEffectAction) => [layoutEffectAction, currentState]
-            )
-          );
+            const scheduledLayoutEffectActions = layoutEffectActions.map<
+              ActionStateTuple<TContext, TEvent>
+            >((layoutEffectAction) => [layoutEffectAction, currentState]);
+
+            setState(
+              ([
+                currentState,
+                currentEffectActions,
+                currentLayoutEffectActions
+              ]) => [
+                currentState,
+                currentEffectActions.concat(scheduledEffectActions),
+                currentLayoutEffectActions.concat(scheduledLayoutEffectActions)
+              ]
+            );
+          }
         }
       })
       .start(rehydratedState ? State.create(rehydratedState) : undefined);
@@ -264,23 +290,26 @@ export function useMachine<
   // but we don't want to receive warnings about useLayoutEffect being used on the server
   // so we have to use `useIsomorphicLayoutEffect` to silence those warnings
   useIsomorphicLayoutEffect(() => {
-    while (layoutEffectActionsRef.current.length) {
+    currentEffectActions = flushArray(currentEffectActions);
+    currentLayoutEffectActions = flushArray(currentLayoutEffectActions);
+
+    while (currentLayoutEffectActions.length) {
       const [
         layoutEffectAction,
         effectState
-      ] = layoutEffectActionsRef.current.shift()!;
+      ] = currentLayoutEffectActions.shift()!;
 
       executeEffect(layoutEffectAction, effectState);
     }
-  }, [state]); // https://github.com/davidkpiano/xstate/pull/1202#discussion_r429677773
+  });
 
   useEffect(() => {
-    while (effectActionsRef.current.length) {
-      const [effectAction, effectState] = effectActionsRef.current.shift()!;
+    while (currentEffectActions.length) {
+      const [effectAction, effectState] = currentEffectActions.shift()!;
 
       executeEffect(effectAction, effectState);
     }
-  }, [state]);
+  });
 
   return [state, service.send, service];
 }
