@@ -36,6 +36,6 @@ describe('@xstate/inspect', () => {
     // with the service. The built-in service listener is responsible for
     // stringifying the service's machine definition (which contains a circular structure)
     // and will throw an error if circular structures are not handled.
-    devTools.register(service);
+    expect(() => devTools.register(service)).not.toThrow();
   });
 });
