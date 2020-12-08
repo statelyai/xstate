@@ -87,7 +87,7 @@ export const createInspectMachine = (
               const { event } = e;
               const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
               const service = serviceMap.get(scxmlEventObject.origin!);
-              service?.send(JSON.parse(event));
+              service?.send(scxmlEventObject);
             }
           },
           unload: {
