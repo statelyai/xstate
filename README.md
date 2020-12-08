@@ -1,13 +1,15 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
+  <img src="https://user-images.githubusercontent.com/1093738/101542102-4e6fc400-3970-11eb-9f1f-39003195aa30.png" alt="XState" width="100"/>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
   <br />
   </a>
 </p>
+
+
 
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
