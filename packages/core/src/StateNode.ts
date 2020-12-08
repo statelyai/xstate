@@ -1321,7 +1321,6 @@ class StateNode<
     maybeNextState.changed = changed;
 
     // Preserve original history after raised events
-    maybeNextState.historyValue = nextState.historyValue;
     maybeNextState.history = history;
 
     return maybeNextState;
