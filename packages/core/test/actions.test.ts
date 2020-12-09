@@ -7,6 +7,7 @@ import {
   spawn
 } from '../src/index';
 import { pure, sendParent, log, choose } from '../src/actions';
+import { createSchema } from '../src/schema';
 
 describe('entry/exit actions', () => {
   const pedestrianStates = {
@@ -159,8 +160,25 @@ describe('entry/exit actions', () => {
     }
   });
 
-  const deepMachine = Machine({
+  type DeepMachineActions =
+    | { type: 'enter_a1' }
+    | { type: 'exit_a1' }
+    | { type: 'enter_a2' }
+    | { type: 'exit_a2' }
+    | { type: 'enter_a' }
+    | { type: 'enter_b' }
+    | { type: 'another_enter_b' }
+    | { type: 'enter_b1' }
+    | { type: 'exit_a' }
+    | { type: 'another_exit_a' }
+    | { type: 'exit_b' }
+    | { type: 'exit_b1' };
+
+  const deepMachine = createMachine({
     initial: 'a',
+    schema: {
+      actions: createSchema<DeepMachineActions>()
+    },
     states: {
       a: {
         initial: 'a1',

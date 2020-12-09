@@ -6,7 +6,8 @@ import {
   StateSchema,
   EventObject,
   AnyEventObject,
-  Typestate
+  Typestate,
+  ActionObject
 } from './types';
 import { StateNode } from './StateNode';
 
@@ -14,7 +15,7 @@ export function Machine<
   TContext = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, any, TEvent>,
+  config: MachineConfig<TContext, any, TEvent, ActionObject<TContext, TEvent>>,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
 ): StateMachine<TContext, any, TEvent>;
@@ -23,7 +24,12 @@ export function Machine<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  config: MachineConfig<
+    TContext,
+    TStateSchema,
+    TEvent,
+    ActionObject<TContext, TEvent>
+  >,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext?: TContext
 ): StateMachine<TContext, TStateSchema, TEvent>;
@@ -32,7 +38,12 @@ export function Machine<
   TStateSchema extends StateSchema = any,
   TEvent extends EventObject = AnyEventObject
 >(
-  config: MachineConfig<TContext, TStateSchema, TEvent>,
+  config: MachineConfig<
+    TContext,
+    TStateSchema,
+    TEvent,
+    ActionObject<TContext, TEvent>
+  >,
   options?: Partial<MachineOptions<TContext, TEvent>>,
   initialContext: TContext | (() => TContext) | undefined = config.context
 ): StateMachine<TContext, TStateSchema, TEvent> {
@@ -51,9 +62,13 @@ export function Machine<
 export function createMachine<
   TContext,
   TEvent extends EventObject = AnyEventObject,
-  TTypestate extends Typestate<TContext> = { value: any; context: TContext }
+  TTypestate extends Typestate<TContext> = { value: any; context: TContext },
+  TActions extends ActionObject<TContext, TEvent> = ActionObject<
+    TContext,
+    TEvent
+  >
 >(
-  config: MachineConfig<TContext, any, TEvent>,
+  config: MachineConfig<TContext, any, TEvent, TActions>,
   options?: Partial<MachineOptions<TContext, TEvent>>
 ): StateMachine<TContext, any, TEvent, TTypestate> {
   const resolvedInitialContext =
