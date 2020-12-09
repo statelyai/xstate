@@ -1396,6 +1396,31 @@ describe('choose', () => {
       })
       .start();
   });
+
+  it('exit actions should be called when stopping a machine', () => {
+    let exitCalled = false;
+    let childExitCalled = false;
+
+    const machine = Machine({
+      exit: () => {
+        exitCalled = true;
+      },
+      initial: 'a',
+      states: {
+        a: {
+          exit: () => {
+            childExitCalled = true;
+          }
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+    service.stop();
+
+    expect(exitCalled).toBeTruthy();
+    expect(childExitCalled).toBeTruthy();
+  });
 });
 
 describe('sendParent', () => {

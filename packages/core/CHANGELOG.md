@@ -1,5 +1,60 @@
 # xstate
 
+## 4.15.1
+
+### Patch Changes
+
+- [`8a8cfa32`](https://github.com/davidkpiano/xstate/commit/8a8cfa32d99aedf11f4af93ba56fa9ba68925c74) [#1704](https://github.com/davidkpiano/xstate/pull/1704) Thanks [@blimmer](https://github.com/blimmer)! - The default `clock` methods (`setTimeout` and `clearTimeout`) are now invoked properly with the global context preserved for those invocations which matter for some JS environments. More details can be found in the corresponding issue: [#1703](https://github.com/davidkpiano/xstate/issues/1703).
+
+## 4.15.0
+
+### Minor Changes
+
+- [`6596d0ba`](https://github.com/davidkpiano/xstate/commit/6596d0ba163341fc43d214b48115536cb4815b68) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` (e.g., `SpawnedActorRef`) rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types:
+
+  ```diff
+  import {
+  - Actor
+  + ActorRef
+  } from 'xstate';
+
+  // ...
+
+  interface SomeContext {
+  - server?: Actor;
+  + server?: ActorRef<ServerEvent>;
+  }
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```diff
+  import {
+    createMachine,
+  - Actor
+  + ActorRefFrom
+  } from 'xstate';
+
+  const serverMachine = createMachine<ServerContext, ServerEvent>({
+    // ...
+  });
+
+  interface SomeContext {
+  - server?: Actor; // difficult to type
+  + server?: ActorRefFrom<typeof serverMachine>;
+  }
+  ```
+
+### Patch Changes
+
+- [`75a91b07`](https://github.com/davidkpiano/xstate/commit/75a91b078a10a86f13edc9eec3ac1d6246607002) [#1692](https://github.com/davidkpiano/xstate/pull/1692) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with history state entering a wrong state if the most recent visit in its parent has been caused by a transient transition.
+
+## 4.14.1
+
+### Patch Changes
+
+- [`02c76350`](https://github.com/davidkpiano/xstate/commit/02c763504da0808eeb281587981a5baf8ba884a1) [#1656](https://github.com/davidkpiano/xstate/pull/1656) Thanks [@Andarist](https://github.com/Andarist)! - Exit actions will now be properly called when a service gets canceled by calling its `stop` method.
+
 ## 4.14.0
 
 ### Minor Changes
@@ -8,7 +63,7 @@
 
   ```js
   // ...
-  actions: stop((context) => context.someActor);
+  actions: stop(context => context.someActor);
   ```
 
 ### Patch Changes
@@ -246,10 +301,10 @@
   ```js
   entry: [
     choose([
-      { cond: (ctx) => ctx > 100, actions: raise('TOGGLE') },
+      { cond: ctx => ctx > 100, actions: raise('TOGGLE') },
       {
         cond: 'hasMagicBottle',
-        actions: [assign((ctx) => ({ counter: ctx.counter + 1 }))]
+        actions: [assign(ctx => ({ counter: ctx.counter + 1 }))]
       },
       { actions: ['fallbackAction'] }
     ])
