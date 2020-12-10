@@ -77,11 +77,9 @@ export type Actions<TContext, TEvent extends EventObject> = SingleOrArray<
   Action<TContext, TEvent>
 >;
 
-export type ActionsOf<
-  TContext,
-  TEvent extends EventObject,
-  TAction extends ActionObject<TContext, TEvent>
-> = SingleOrArray<TAction | TAction['type'] | ActionFunction<TContext, TEvent>>;
+export type ActionsOf<TAction extends ActionObject<any, any>> = SingleOrArray<
+  TAction | TAction['type'] | ActionFunction<any, any>
+>;
 
 export type StateKey = string | State<any>;
 
@@ -170,7 +168,7 @@ export interface TransitionConfig<
   >
 > {
   cond?: Condition<TContext, TEvent>;
-  actions?: ActionsOf<TContext, TEvent, TActions>;
+  actions?: ActionsOf<TActions>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;
@@ -411,9 +409,9 @@ type TransitionsConfigMap<
 > = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent extends { type: K } ? TEvent : never,
-    TActions &
-      ActionObject<TContext, TEvent extends { type: K } ? TEvent : never>
+    TEvent extends { type: K } ? TEvent : never
+    // TActions &
+    //   ActionObject<TContext, TEvent extends { type: K } ? TEvent : never>
     // TActions extends ActionObject<
     //   TContext,
     //   TEvent extends { type: K } ? TEvent : never
@@ -569,21 +567,21 @@ export interface StateNodeConfig<
    *
    * @deprecated Use `entry` instead.
    */
-  onEntry?: ActionsOf<TContext, TEvent, NoInfer<TActions>>; // TODO: deprecate
+  onEntry?: ActionsOf<NoInfer<TActions>>; // TODO: deprecate
   /**
    * The action(s) to be executed upon entering the state node.
    */
-  entry?: ActionsOf<TContext, TEvent, NoInfer<TActions>>;
+  entry?: ActionsOf<NoInfer<TActions>>;
   /**
    * The action(s) to be executed upon exiting the state node.
    *
    * @deprecated Use `exit` instead.
    */
-  onExit?: ActionsOf<TContext, TEvent, NoInfer<TActions>>; // TODO: deprecate
+  onExit?: ActionsOf<NoInfer<TActions>>; // TODO: deprecate
   /**
    * The action(s) to be executed upon exiting the state node.
    */
-  exit?: ActionsOf<TContext, TEvent, NoInfer<TActions>>;
+  exit?: ActionsOf<NoInfer<TActions>>;
   /**
    * The potential transition(s) to be taken upon reaching a final child state node.
    *
