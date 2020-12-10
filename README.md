@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
+  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
@@ -10,7 +10,6 @@
 </p>
 
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
-[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 <div class="blm-callout">

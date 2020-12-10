@@ -1,5 +1,53 @@
 # Changelog
 
+## 1.1.0
+
+### Minor Changes
+
+- [`89f9c27c`](https://github.com/davidkpiano/xstate/commit/89f9c27c453dc56bdfdf49c8ea1f0f87ff1f9b67) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types in React:
+
+  ```ts
+  import { ActorRef } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const Child: React.FC<{ actorRef: ActorRef<SomeEvent, SomeEmitted> }> = ({
+    actorRef
+  }) => {
+    // `state` is typed as `SomeEmitted`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(actorRef);
+
+    // . ..
+  };
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```ts
+  import { createMachine, ActorRefFrom } from 'xstate';
+  import { useActor } from '@xstate/react';
+
+  const someMachine = createMachine<SomeContext, SomeEvent>({
+    // ...
+  });
+
+  const Child: React.FC<{ someRef: ActorRefFrom<typeof someMachine> }> = ({
+    someRef
+  }) => {
+    // `state` is typed as `State<SomeContext, SomeEvent>`
+    // `send` can be called with `SomeEvent` values
+    const [state, send] = useActor(someRef);
+
+    // . ..
+  };
+  ```
+
+## 1.0.3
+
+### Patch Changes
+
+- [`27db2950`](https://github.com/davidkpiano/xstate/commit/27db295064d42cacb89ff10d55f39eb7609148e1) [#1636](https://github.com/davidkpiano/xstate/pull/1636) Thanks [@Andarist](https://github.com/Andarist)! - Allow React 17 in the specified peer dependency range.
+
 ## 1.0.2
 
 ### Patch Changes
@@ -49,7 +97,7 @@ All notable changes to this project will be documented in this file.
 - The `useActor` hook now takes a second argument: `getSnapshot` which is a function that should return the last emitted value:
 
   ```js
-  const [state, send] = useActor(someActor, actor => actor.current);
+  const [state, send] = useActor(someActor, (actor) => actor.current);
   ```
 
 ## [1.0.0-rc.6]

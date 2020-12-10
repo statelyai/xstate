@@ -9,6 +9,7 @@ import {
 } from './types';
 import { isMachine, mapContext, toInvokeSource } from './utils';
 import * as serviceScope from './serviceScope';
+import { ActorRef, SpawnedActorRef } from '.';
 
 export interface Actor<
   TContext = any,
@@ -87,10 +88,14 @@ export function createDeferredActor(
   return tempActor;
 }
 
-export function isActor(item: any): item is Actor {
+export function isActor(item: any): item is ActorRef<any> {
   try {
     return typeof item.send === 'function';
   } catch (e) {
     return false;
   }
+}
+
+export function isSpawnedActor(item: any): item is SpawnedActorRef<any> {
+  return isActor(item) && 'id' in item;
 }

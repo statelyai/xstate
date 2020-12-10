@@ -158,9 +158,11 @@ The workshop code examples are [open-sourced and available on GitHub](https://gi
   - [▶️ Part 2](https://www.youtube.com/watch?v=8TTfRrmNu0s)
   - [▶️ Part 3](https://www.youtube.com/watch?v=HoH68709Sq8)
   - [GitHub Project](https://github.com/shuvalov-mdb/xstate-cpp-generator)
+- [React context without context, using XState – CodeWithSwiz 14, 15](https://swizec.com/blog/react-context-without-context-using-xstate-codewithswiz-14-15) by [@swizec](https://swizec.com)
 - [State Machines Workshop with XState](https://github.com/ooade/state-machines-workshop) by [Ademola (@ooade)](https://github.com/ooade)
 - [▶️ Finite State Machines in Vue 3](https://www.youtube.com/watch?v=fT9p9CCSrn8) by [Sarah Dayan](https://twitter.com/frontstuff_io)
 - [▶️ Frontend is Rocket Science - How to use XState in Vue 3 Now!](https://www.youtube.com/watch?v=wRktleOGKS4) by [Aleksej Dix](https://twitter.com/aleksejdix)
+- [▶️ React Wednesdays: XState and JavaScript State Machines](https://www.youtube.com/watch?v=1TT2ymkYGyM)
 
 ## Exercises
 
