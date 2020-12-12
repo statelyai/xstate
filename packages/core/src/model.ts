@@ -1,44 +1,42 @@
-import { assign } from './actions';
-import { AssignAction, Assigner, EventObject, PropertyAssigner } from './types';
-import { mapValues } from './utils';
+import { ActionObject } from '.';
+import { EventObject } from './types';
 
 export interface ContextModel<TC, TE extends EventObject> {
-  context: TC | (() => TC);
+  context: TC;
   actions: {
-    [key: string]: Assigner<TC, TE> | PropertyAssigner<TC, TE>;
+    [key: string]: ActionObject<TC, TE>;
   };
-  withAssigners: <
+  withActions: <
     T extends {
-      [key: string]: Assigner<TC, TE> | PropertyAssigner<TC, TE>;
+      [key: string]: ActionObject<TC, TE>;
     }
   >(
-    assigners: T
+    actions: T
   ) => ContextModel<TC, TE> & {
-    actions: {
-      [K in keyof T]: T[K] extends Assigner<TC, infer E>
-        ? AssignAction<TC, E>
-        : T[K] extends PropertyAssigner<TC, infer E>
-        ? AssignAction<TC, E>
-        : never;
-    };
+    actions: T;
   };
 }
 
 export function createModel<TContext, TEvent extends EventObject>(
-  initialState: TContext | (() => TContext)
+  initialState: TContext
 ): ContextModel<TContext, TEvent> {
   const model: ContextModel<TContext, TEvent> = {
     context: initialState,
     actions: {},
-    withAssigners: (assigners) => {
+    withActions: (actions) => {
       return {
         ...model,
-        actions: mapValues(assigners, (assignment) => {
-          return assign(assignment);
-        })
-      } as any;
+        actions
+      };
     }
   };
 
   return model;
+}
+
+export function assertEvent<TE extends EventObject, TType extends TE['type']>(
+  event: TE,
+  type: TType
+): event is TE & { type: TType } {
+  return event.type === type;
 }
