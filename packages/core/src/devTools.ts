@@ -2,18 +2,22 @@ import { Interpreter } from '.';
 import { IS_PRODUCTION } from './environment';
 
 type AnyInterpreter = Interpreter<any, any, any>;
-interface DevInterface {
-  services: Set<AnyInterpreter>;
-  register(service: AnyInterpreter): void;
-  onRegister(listener: ServicesListener): void;
+type ServiceListener = (service: AnyInterpreter) => void;
+
+export interface XStateDevInterface {
+  register: (service: Interpreter<any>) => void;
+  unregister: (service: Interpreter<any>) => void;
+  onRegister: (
+    listener: ServiceListener
+  ) => {
+    unsubscribe: () => void;
+  };
+  services: Set<Interpreter<any>>;
 }
 
-type ServicesListener = (service: Set<AnyInterpreter>) => void;
-
-function getDevTools(): DevInterface | undefined {
-  const w = window as Window & { __xstate__?: DevInterface };
-  if (!!w.__xstate__) {
-    return w.__xstate__;
+function getDevTools(): XStateDevInterface | undefined {
+  if (!!(window as any).__xstate__) {
+    return (window as any).__xstate__;
   }
 
   return undefined;
