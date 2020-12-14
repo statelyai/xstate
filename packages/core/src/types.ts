@@ -173,9 +173,7 @@ export interface TransitionConfig<
   TEventType extends TEvent['type'] = TEvent['type']
 > {
   cond?: Condition<TContext, TEvent & { type: TEventType }>;
-  // actions?: Actions<TContext, TEvent & { type: TEventType }>;
-  actions?: RestrictedActions<TContext, TEvent, TEventType>;
-  // actions?: Actions<TContext, TEvent>;
+  actions?: Actions<TContext, TEvent & { type: TEventType }>;
   in?: StateValue;
   internal?: boolean;
   target?: TransitionTarget<TContext, TEvent>;

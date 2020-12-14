@@ -1,4 +1,10 @@
-import { ActionObject } from '.';
+import {
+  ActionObject,
+  AssignAction,
+  Assigner,
+  PropertyAssigner,
+  assign
+} from '.';
 import { EventObject } from './types';
 
 export interface ContextModel<TC, TE extends EventObject> {
@@ -6,15 +12,12 @@ export interface ContextModel<TC, TE extends EventObject> {
   actions: {
     [key: string]: ActionObject<TC, TE>;
   };
-  withActions: <
-    T extends {
-      [key: string]: ActionObject<TC, TE>;
-    }
-  >(
-    actions: T
-  ) => ContextModel<TC, TE> & {
-    actions: T;
-  };
+  assign: <TEventType extends TE['type'] = TE['type']>(
+    assigner:
+      | Assigner<TC, TE & { type: TEventType }>
+      | PropertyAssigner<TC, TE & { type: TEventType }>,
+    eventType?: TEventType
+  ) => AssignAction<TC, TE & { type: TEventType }>;
 }
 
 export function createModel<TContext, TEvent extends EventObject>(
@@ -23,12 +26,7 @@ export function createModel<TContext, TEvent extends EventObject>(
   const model: ContextModel<TContext, TEvent> = {
     context: initialState,
     actions: {},
-    withActions: (actions) => {
-      return {
-        ...model,
-        actions
-      };
-    }
+    assign
   };
 
   return model;
