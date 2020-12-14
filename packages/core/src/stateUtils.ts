@@ -481,6 +481,13 @@ export function formatInitialTransition<TContext, TEvent extends EventObject>(
       }
 
       if (!isDescendant(descStateNode, stateNode)) {
+        console.log(
+          descStateNode.parent === stateNode,
+          '<<<',
+          descStateNode,
+          '>>>',
+          stateNode
+        );
         throw new Error(
           `Invalid initial target: state node #${descStateNode.id} is not a descendant of #${stateNode.id}`
         );

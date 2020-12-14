@@ -38,7 +38,8 @@
     "xstate": "*"
   },
   "peerDependencies": {
-    "ws": "^7.3.1"
+    "ws": "^7.3.1",
+    "xstate": "^4.11.0"
   },
   "dependencies": {
     "fast-safe-stringify": "^2.0.7"

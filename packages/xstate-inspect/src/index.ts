@@ -15,7 +15,6 @@ export type ServiceListener = (service: Interpreter<any>) => void;
 type MaybeLazy<T> = T | (() => T);
 
 export interface InspectorOptions {
-  x;
   url: string;
   iframe: MaybeLazy<HTMLIFrameElement | null | false>;
   devTools: MaybeLazy<XStateDevInterface>;
@@ -86,7 +85,11 @@ export const createInspectMachine = (
             actions: (_, e) => {
               const { event } = e;
               const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin!);
+              const service =
+                typeof scxmlEventObject.origin! === 'string'
+                  ? serviceMap.get((scxmlEventObject.origin as any) as string) // v4
+                  : scxmlEventObject.origin!;
+
               service?.send(scxmlEventObject);
             }
           },
@@ -218,7 +221,7 @@ export function inspect(
       state: stringify(service.state || service.initialState),
       sessionId: service.sessionId,
       id: service.id,
-      parent: service.parent?.sessionId
+      parent: (service.parent as Interpreter<any>).sessionId
     });
 
     inspectService.send({
