@@ -1,5 +1,11 @@
 # xstate
 
+## 4.15.1
+
+### Patch Changes
+
+- [`8a8cfa32`](https://github.com/davidkpiano/xstate/commit/8a8cfa32d99aedf11f4af93ba56fa9ba68925c74) [#1704](https://github.com/davidkpiano/xstate/pull/1704) Thanks [@blimmer](https://github.com/blimmer)! - The default `clock` methods (`setTimeout` and `clearTimeout`) are now invoked properly with the global context preserved for those invocations which matter for some JS environments. More details can be found in the corresponding issue: [#1703](https://github.com/davidkpiano/xstate/issues/1703).
+
 ## 4.15.0
 
 ### Minor Changes

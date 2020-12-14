@@ -4,10 +4,20 @@ import { AnyInterpreter, DevToolsAdapter } from '../types';
 interface DevInterface {
   services: Set<AnyInterpreter>;
   register(service: AnyInterpreter): void;
-  onRegister(listener: ServicesListener): void;
+  onRegister(listener: ServiceListener): void;
 }
+type ServiceListener = (service: AnyInterpreter) => void;
 
-type ServicesListener = (service: Set<AnyInterpreter>) => void;
+export interface XStateDevInterface {
+  register: (service: AnyInterpreter) => void;
+  unregister: (service: AnyInterpreter) => void;
+  onRegister: (
+    listener: ServiceListener
+  ) => {
+    unsubscribe: () => void;
+  };
+  services: Set<AnyInterpreter>;
+}
 
 function getDevTools(): DevInterface | undefined {
   const w = globalThis;
