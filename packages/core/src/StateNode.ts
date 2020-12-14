@@ -145,6 +145,8 @@ export class StateNode<
     invoke: undefined as Array<InvokeDefinition<TContext, TEvent>> | undefined
   };
 
+  private __initial?: InitialTransitionDefinition<TContext, TEvent>;
+
   public idMap: Record<string, StateNode<TContext, TEvent>> = {};
 
   constructor(
@@ -350,7 +352,14 @@ export class StateNode<
   }
 
   public get initial(): InitialTransitionDefinition<TContext, TEvent> {
-    return formatInitialTransition(this, this.config.initial || []);
+    return (
+      this.__initial ||
+      ((this.__initial = formatInitialTransition(
+        this,
+        this.config.initial || []
+      )),
+      this.__initial)
+    );
   }
 
   /**
