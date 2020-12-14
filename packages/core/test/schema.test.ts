@@ -21,7 +21,7 @@ describe('event schema', () => {
       // @ts-expect-error
       entry: 'invalidAction',
       // @ts-expect-error
-      exit: 'invalidAction',
+      exit: ['someExit', 'invalidAction'],
       initial: 'active',
       states: {
         active: {
