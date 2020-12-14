@@ -21,6 +21,7 @@ describe('createModel', () => {
       age: 30
     });
 
+    // Example of an externally-defined assign action
     const assignName = userModel.assign(
       {
         name: (_, event) => {
