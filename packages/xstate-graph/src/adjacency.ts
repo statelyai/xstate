@@ -13,7 +13,7 @@ import { defaultValueAdjMapOptions, toEventObject } from './graph';
 
 export function nextEventsGetter<TContext, TEvent extends EventObject>(
   machine: StateMachine<TContext, any, TEvent>,
-  events: Record<TEvent['type'], Array<Event<TEvent>>>
+  events: ValueAdjMapOptions<TContext, TEvent>['events'] = {}
 ): (state: State<TContext, TEvent>) => TEvent[] {
   const allEvents = {} as Record<TEvent['type'], Array<Event<TEvent>>>;
   for (const event of machine.events) {
@@ -24,10 +24,33 @@ export function nextEventsGetter<TContext, TEvent extends EventObject>(
   return (state) => {
     const { nextEvents } = state;
     const potentialEvents = flatten<TEvent>(
-      nextEvents.map((nextEvent) => allEvents[nextEvent] || [])
+      nextEvents.map((nextEvent) => {
+        const getNextEvents = events[nextEvent];
+
+        if (!getNextEvents) {
+          return [{ type: nextEvent }];
+        }
+
+        if (typeof getNextEvents === 'function') {
+          return getNextEvents(state);
+        }
+
+        return getNextEvents;
+      })
     ).map((event) => toEventObject(event));
 
     return potentialEvents;
+  };
+}
+
+function getValueAdjMapOptions<TContext, TEvent extends EventObject>(
+  options?: ValueAdjMapOptions<TContext, TEvent>
+): Required<ValueAdjMapOptions<TContext, TEvent>> {
+  return {
+    ...(defaultValueAdjMapOptions as Required<
+      ValueAdjMapOptions<TContext, TEvent>
+    >),
+    ...options
   };
 }
 
@@ -36,12 +59,9 @@ export function getAdjacencyMap<
   TEvent extends EventObject = AnyEventObject
 >(
   machine: StateMachine<TContext, any, TEvent>,
-  options?: Partial<ValueAdjMapOptions<TContext, TEvent>>
+  options?: ValueAdjMapOptions<TContext, TEvent>
 ): AdjacencyMap<TContext, TEvent> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
-  } as ValueAdjMapOptions<TContext, TEvent>;
+  const optionsWithDefaults = getValueAdjMapOptions(options);
 
   const fst = machineToFST(
     machine,
@@ -57,10 +77,7 @@ export function getAdjacencyMapFST<TState, TInput>(
   fst: FST<TState, TInput>,
   options?: Partial<ValueAdjMapOptions<any, any>>
 ): AdjacencyMapFST<TState, TInput> {
-  const optionsWithDefaults = {
-    ...defaultValueAdjMapOptions,
-    ...options
-  } as ValueAdjMapOptions<any, any>;
+  const optionsWithDefaults = getValueAdjMapOptions(options);
   const { filter, stateSerializer, eventSerializer } = optionsWithDefaults;
 
   const adjacency: AdjacencyMapFST<TState, TInput> = {};
