@@ -34,7 +34,7 @@
   "scripts": {
     "clean": "rm -rf dist lib tsconfig.tsbuildinfo",
     "build": "tsc && rollup -c",
-    "test": "jest",
+    "test": "jest --env=jest-environment-jsdom-sixteen",
     "prepublish": "npm run build && npm run test"
   },
   "bugs": {
@@ -55,8 +55,9 @@
   },
   "devDependencies": {
     "@testing-library/jest-dom": "^4.2.4",
-    "@testing-library/vue": "^4.1.0",
-    "@vue/test-utils": "^1.0.0-beta.30",
+    "@testing-library/vue": "^6.3.1",
+    "@vue/compiler-sfc": "^3.0.4",
+    "@vue/test-utils": "^2.0.0-beta.12",
     "@xstate/fsm": "*",
     "babel-core": "^6.26.3",
     "jest": "^26.4.2",
@@ -66,8 +67,9 @@
     "rollup-plugin-typescript2": "^0.25.2",
     "ts-jest": "^26.4.0",
     "typescript": "^4.0.3",
-    "vue": "^3.0.0",
-    "vue-jest": "^3.0.5",
+    "vue": "^3.0.4",
+    "vue-jest": "^5.0.0-alpha.7",
+    "vue-loader": "^16.1.1",
     "xstate": "*"
   }
 }

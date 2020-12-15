@@ -1,15 +1,7 @@
-import {
-  render,
-  fireEvent,
-  waitForElement,
-  cleanup
-} from '@testing-library/vue';
+import { render, fireEvent, waitFor } from '@testing-library/vue';
 import UseMachine from './UseMachine.vue';
 import UseMachineNoExtraOptions from './UseMachine-no-extra-options.vue';
 import { Machine, assign, doneInvoke } from 'xstate';
-import { createLocalVue, mount } from '@vue/test-utils';
-
-afterEach(cleanup);
 
 describe('useMachine composition function', () => {
   const context = {
@@ -46,20 +38,20 @@ describe('useMachine composition function', () => {
     doneInvoke('fetchData', 'persisted data')
   );
   it('should work with a component ', async () => {
-    const { getByText, getByTestId } = render(UseMachine);
+    const { getByText, getByTestId } = render(UseMachine as any);
     const button = getByText('Fetch');
     fireEvent.click(button);
-    await waitForElement(() => getByText('Loading...'));
-    await waitForElement(() => getByText(/Success/));
+    await waitFor(() => getByText('Loading...'));
+    await waitFor(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('some data');
   });
 
   it('should work with a component with rehydrated state', async () => {
-    const { getByText, getByTestId } = render(UseMachine, {
-      propsData: { persistedState: persistedFetchState }
+    const { getByText, getByTestId } = render(UseMachine as any, {
+      props: { persistedState: persistedFetchState }
     });
-    await waitForElement(() => getByText(/Success/));
+    await waitFor(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
@@ -68,26 +60,17 @@ describe('useMachine composition function', () => {
     const persistedFetchStateConfig = JSON.parse(
       JSON.stringify(persistedFetchState)
     );
-    const { getByText, getByTestId } = render(UseMachine, {
-      propsData: { persistedState: persistedFetchStateConfig }
+    const { getByText, getByTestId } = render(UseMachine as any, {
+      props: { persistedState: persistedFetchStateConfig }
     });
-    await waitForElement(() => getByText(/Success/));
+    await waitFor(() => getByText(/Success/));
     const dataEl = getByTestId('data');
     expect(dataEl.textContent).toBe('persisted data');
   });
 
-  it('should provide the service and send function in the data object', async () => {
-    const localVue = createLocalVue();
-    const wrapper = mount(UseMachine, { localVue });
-    await wrapper.vm.$nextTick();
-    const { service, send } = wrapper.vm.$data;
-    expect(service).toBeDefined();
-    expect(typeof send).toBe('function');
-  });
-
   it('should not crash without optional `options` parameter being provided', async () => {
     expect(() => {
-      render(UseMachineNoExtraOptions);
+      render(UseMachineNoExtraOptions as any);
     }).not.toThrow();
   });
 });
