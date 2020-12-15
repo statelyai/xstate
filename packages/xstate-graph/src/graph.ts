@@ -19,7 +19,7 @@ export function toEventObject<TEvent extends EventObject>(
   event: Event<TEvent>
 ): TEvent {
   if (typeof event === 'string' || typeof event === 'number') {
-    return { type: event } as TEvent;
+    return ({ type: event } as unknown) as TEvent;
   }
 
   return event;
@@ -77,7 +77,10 @@ export function deserializeEventString<TEvent extends EventObject>(
   return JSON.parse(eventString) as TEvent;
 }
 
-export const defaultValueAdjMapOptions: ValueAdjMapOptions<any, any> = {
+export const defaultValueAdjMapOptions: Required<ValueAdjMapOptions<
+  any,
+  any
+>> = {
   events: {},
   filter: () => true,
   stateSerializer: serializeState,

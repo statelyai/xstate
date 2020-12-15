@@ -163,11 +163,20 @@ export type Segments<TContext, TEvent extends EventObject> = Array<
 
 export type SegmentsFST<TState, TInput> = Array<SegmentFST<TState, TInput>>;
 
+export type ExtractEvent<
+  TEvent extends EventObject,
+  TType extends TEvent['type']
+> = TEvent extends { type: TType } ? TEvent : never;
+
 export interface ValueAdjMapOptions<TContext, TEvent extends EventObject> {
-  events: { [K in TEvent['type']]?: Array<TEvent & { type: K }> };
-  filter: (state: State<TContext, any>) => boolean;
-  stateSerializer: (state: State<TContext, any>) => string;
-  eventSerializer: (event: TEvent) => string;
+  events?: {
+    [K in TEvent['type']]?:
+      | Array<ExtractEvent<TEvent, K>>
+      | ((state: State<TContext, TEvent>) => Array<ExtractEvent<TEvent, K>>);
+  };
+  filter?: (state: State<TContext, any>) => boolean;
+  stateSerializer?: (state: State<TContext, any>) => string;
+  eventSerializer?: (event: TEvent) => string;
 }
 
 export interface ValueAdjMapOptionsFST<TState, TInput> {

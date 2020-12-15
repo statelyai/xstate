@@ -7,7 +7,9 @@ import {
   EventObject,
   EventData
 } from 'xstate';
+import { XStateDevInterface } from 'xstate/lib/devTools';
 import { toSCXMLEvent, toEventObject } from 'xstate/lib/utils';
+import safeStringify from 'fast-safe-stringify';
 
 export type ServiceListener = (service: Interpreter<any>) => void;
 
@@ -16,30 +18,16 @@ type MaybeLazy<T> = T | (() => T);
 export interface InspectorOptions {
   url: string;
   iframe: MaybeLazy<HTMLIFrameElement | null | false>;
-}
-
-declare global {
-  interface Window {
-    __xstate__: {
-      register: (service: Interpreter<any>) => void;
-      unregister: (service: Interpreter<any>) => void;
-      onRegister: (
-        listener: ServiceListener
-      ) => {
-        unsubscribe: () => void;
-      };
-      services: Set<Interpreter<any>>;
-    };
-  }
+  devTools: MaybeLazy<XStateDevInterface>;
 }
 
 const serviceMap = new Map<string, Interpreter<any>>();
 
-export function createDevTools() {
+export function createDevTools(): XStateDevInterface {
   const services = new Set<Interpreter<any>>();
   const serviceListeners = new Set<ServiceListener>();
 
-  window.__xstate__ = {
+  return {
     services,
     register: (service) => {
       services.add(service);
@@ -68,80 +56,109 @@ export function createDevTools() {
   };
 }
 
-export const inspectMachine = createMachine<{
-  client?: any;
-}>({
-  initial: 'pendingConnection',
-  context: {
-    client: undefined
-  },
-  states: {
-    pendingConnection: {},
-    connected: {
-      on: {
-        'service.state': {
-          actions: (ctx, e) => ctx.client!.send(e)
-        },
-        'service.event': {
-          actions: (ctx, e) => ctx.client!.send(e)
-        },
-        'service.register': {
-          actions: (ctx, e) => ctx.client!.send(e)
-        },
-        'service.stop': {
-          actions: (ctx, e) => ctx.client!.send(e)
-        },
-        'xstate.event': {
-          actions: (_, e) => {
-            const { event } = e;
-            const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-            const service = serviceMap.get(scxmlEventObject.origin!);
-            service?.send(JSON.parse(event));
+export const createInspectMachine = (
+  devTools: XStateDevInterface = globalThis.__xstate__
+) =>
+  createMachine<{
+    client?: any;
+  }>({
+    initial: 'pendingConnection',
+    context: {
+      client: undefined
+    },
+    states: {
+      pendingConnection: {},
+      connected: {
+        on: {
+          'service.state': {
+            actions: (ctx, e) => ctx.client!.send(e)
+          },
+          'service.event': {
+            actions: (ctx, e) => ctx.client!.send(e)
+          },
+          'service.register': {
+            actions: (ctx, e) => ctx.client!.send(e)
+          },
+          'service.stop': {
+            actions: (ctx, e) => ctx.client!.send(e)
+          },
+          'xstate.event': {
+            actions: (_, e) => {
+              const { event } = e;
+              const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
+              const service = serviceMap.get(scxmlEventObject.origin!);
+              service?.send(scxmlEventObject);
+            }
+          },
+          unload: {
+            actions: (ctx) => {
+              ctx.client!.send({ type: 'xstate.disconnect' });
+            }
+          },
+          disconnect: 'disconnected'
+        }
+      },
+      disconnected: {
+        type: 'final'
+      }
+    },
+    on: {
+      'xstate.inspecting': {
+        target: '.connected',
+        actions: [
+          assign({ client: (_, e) => e.client }),
+          (ctx) => {
+            devTools.services.forEach((service) => {
+              ctx.client.send({
+                type: 'service.register',
+                machine: stringify(service.machine),
+                state: stringify(service.state || service.initialState),
+                sessionId: service.sessionId
+              });
+            });
           }
-        },
-        unload: {
-          actions: (ctx) => {
-            ctx.client!.send({ type: 'xstate.disconnect' });
-          }
-        },
-        disconnect: 'pendingConnection'
+        ]
       }
     }
-  },
-  on: {
-    'xstate.inspecting': {
-      target: '.connected',
-      actions: [
-        assign({ client: (_, e) => e.client }),
-        (ctx) => {
-          globalThis.__xstate__.services.forEach((service) => {
-            ctx.client.send({
-              type: 'service.register',
-              machine: JSON.stringify(service.machine),
-              state: JSON.stringify(service.state || service.initialState),
-              sessionId: service.sessionId
-            });
-          });
-        }
-      ]
-    }
-  }
-});
+  });
 
 const defaultInspectorOptions: InspectorOptions = {
   url: 'https://statecharts.io/inspect',
-  iframe: () => document.querySelector<HTMLIFrameElement>('iframe[data-xstate]')
+  iframe: () =>
+    document.querySelector<HTMLIFrameElement>('iframe[data-xstate]'),
+  devTools: () => {
+    const devTools = createDevTools();
+    globalThis.__xstate__ = devTools;
+    return devTools;
+  }
 };
+
+function getLazy<T>(value: MaybeLazy<T>): T {
+  return typeof value === 'function' ? (value as () => T)() : value;
+}
+
+function stringify(value: any): string {
+  try {
+    return JSON.stringify(value);
+  } catch (e) {
+    return safeStringify(value);
+  }
+}
 
 export function inspect(
   options?: Partial<InspectorOptions>
 ): {
+  send: (event: EventObject) => void;
+  /**
+   * Disconnects the inspector.
+   */
   disconnect: () => void;
 } {
-  createDevTools();
+  const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };
+  const resolvedDevTools = getLazy(devTools);
+  const resolvedIframe = getLazy(iframe);
 
-  const { iframe, url } = { ...defaultInspectorOptions, ...options };
-  const resolvedIframe = typeof iframe === 'function' ? iframe() : iframe;
+  const inspectMachine = createInspectMachine(resolvedDevTools);
 
   let targetWindow: Window | null | undefined;
 
@@ -152,7 +169,9 @@ export function inspect(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
 
-    return { disconnect: () => void 0 };
+    inspectService.send('disconnect');
+
+    return { send: () => void 0, disconnect: () => void 0 };
   }
 
   let client: any;
@@ -192,11 +211,11 @@ export function inspect(
     targetWindow = window.open(url, 'xstateinspector');
   }
 
-  globalThis.__xstate__.onRegister((service) => {
+  resolvedDevTools.onRegister((service) => {
     inspectService.send({
       type: 'service.register',
-      machine: JSON.stringify(service.machine),
-      state: JSON.stringify(service.state || service.initialState),
+      machine: stringify(service.machine),
+      state: stringify(service.state || service.initialState),
       sessionId: service.sessionId,
       id: service.id,
       parent: service.parent?.sessionId
@@ -204,7 +223,7 @@ export function inspect(
 
     inspectService.send({
       type: 'service.event',
-      event: JSON.stringify((service.state || service.initialState)._event),
+      event: stringify((service.state || service.initialState)._event),
       sessionId: service.sessionId
     });
 
@@ -219,7 +238,7 @@ export function inspect(
     ) {
       inspectService.send({
         type: 'service.event',
-        event: JSON.stringify(
+        event: stringify(
           toSCXMLEvent(toEventObject(event as EventObject, payload))
         ),
         sessionId: service.sessionId
@@ -231,7 +250,7 @@ export function inspect(
     service.subscribe((state) => {
       inspectService.send({
         type: 'service.state',
-        state: JSON.stringify(state),
+        state: stringify(state),
         sessionId: service.sessionId
       });
     });
@@ -253,6 +272,9 @@ export function inspect(
   }
 
   return {
+    send: (event) => {
+      inspectService.send(event);
+    },
     disconnect: () => {
       inspectService.send('disconnect');
       window.removeEventListener('message', messageHandler);

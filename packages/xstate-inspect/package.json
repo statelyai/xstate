@@ -1,6 +1,6 @@
 {
   "name": "@xstate/inspect",
-  "version": "0.2.0",
+  "version": "0.3.0",
   "description": "XState inspection utilities",
   "keywords": [
     "state",
@@ -41,12 +41,14 @@
     "@types/ws": "^7.2.6",
     "rollup": "^1.26.3",
     "rollup-plugin-typescript2": "^0.25.2",
-    "typescript": "^4.0.3",
+    "typescript": "^4.1.2",
     "ws": "^7.3.1",
     "xstate": "*"
   },
   "peerDependencies": {
     "ws": "^7.3.1"
   },
-  "dependencies": {}
+  "dependencies": {
+    "fast-safe-stringify": "^2.0.7"
+  }
 }
