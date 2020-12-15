@@ -45,6 +45,8 @@ import { MachineNode } from './MachineNode';
 import { devToolsAdapter } from './dev';
 import { createActorRefFromInvokeAction } from './invoke';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
+import { Behavior, stopSignal } from './behavior';
+import { ObservableActorRef } from './ObservableActorRef';
 
 export type StateListener<
   TContext,
@@ -62,11 +64,6 @@ export type EventListener<TEvent extends EventObject = EventObject> = (
 
 export type Listener = () => void;
 export type ErrorListener = (error: any) => void;
-
-export interface Clock {
-  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
-  clearTimeout(id: any): void;
-}
 
 export enum InterpreterStatus {
   NotStarted,
@@ -88,6 +85,57 @@ const defaultOptions: InterpreterOptions = ((global) => ({
   devTools: false
 }))(typeof window === 'undefined' ? global : window);
 
+export interface Clock {
+  setTimeout(fn: (...args: any[]) => void, timeout: number): any;
+  clearTimeout(id: any): void;
+}
+
+const ClockSymbol = Symbol('xstate.clock');
+
+type ClockMessage =
+  | { type: 'setTimeout'; id: string; timeout: number }
+  | { type: 'clearTimeout'; id: string };
+
+const createClockBehavior = (
+  parent: ActorRef<any>
+): Behavior<ClockMessage, undefined> => {
+  const map: Map<string, any> = new Map();
+
+  const b = {
+    receive: (_, event) => {
+      switch (event.type) {
+        case 'setTimeout':
+          const timeoutId = setTimeout(() => {
+            parent.send({ type: 'clock.timeoutDone', id: event.id });
+          }, event.timeout);
+          map.set(event.id, timeoutId);
+          parent.send({ type: 'clock.timeoutStarted', id: event.id });
+          break;
+
+        case 'clearTimeout':
+          clearTimeout(map.get(event.id));
+          break;
+        default:
+          break;
+      }
+
+      return b;
+    },
+    receiveSignal: (_, signal) => {
+      if (signal === stopSignal) {
+        for (const i of map.values()) {
+          clearTimeout(i);
+        }
+      }
+
+      return b;
+    },
+    initial: undefined
+  };
+
+  return b;
+};
+
 export class Interpreter<
   TContext,
   TEvent extends EventObject = EventObject,
@@ -102,11 +150,11 @@ export class Interpreter<
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
-  public clock: Clock;
+  public clock: SpawnedActorRef<ClockMessage, any>;
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
-  private delayedEventsMap: Record<string, number> = {};
+  private delayedEventsMap: Record<string, () => void> = {};
   private listeners: Set<
     StateListener<TContext, TEvent, TStateSchema, TTypestate>
   > = new Set();
@@ -152,7 +200,7 @@ export class Interpreter<
 
     this.id = resolvedId;
     this.logger = logger;
-    this.clock = clock;
+    this.clock = new ObservableActorRef(createClockBehavior(this), 'clock');
     this.parent = parent;
 
     this.options = resolvedOptions;
@@ -435,9 +483,8 @@ export class Interpreter<
     });
 
     // Cancel all delayed events
-    for (const key of keys(this.delayedEventsMap)) {
-      this.clock.clearTimeout(this.delayedEventsMap[key]);
-    }
+    this.clock.stop?.();
+    this.delayedEventsMap = {}; // TODO: use Map
 
     this.scheduler.clear();
     this.status = InterpreterStatus.Stopped;
@@ -461,8 +508,14 @@ export class Interpreter<
       return;
     }
 
-    const eventObject = toEventObject(event, payload);
+    const eventObject = toEventObject<TEvent>(event, payload);
     const _event = toSCXMLEvent(eventObject);
+
+    if (eventObject.type === 'clock.timeoutDone') {
+      this.scheduler.schedule(() => {
+        this.delayedEventsMap[(eventObject as any).id]?.();
+      });
+    }
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing
@@ -628,7 +681,13 @@ export class Interpreter<
     }
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
-    this.delayedEventsMap[sendAction.id] = this.clock.setTimeout(() => {
+    this.clock.send({
+      type: 'setTimeout',
+      id: sendAction.id + '',
+      timeout: sendAction.delay || 0
+    });
+
+    this.delayedEventsMap[sendAction.id] = () => {
       if (sendAction.to) {
         this.sendTo(sendAction._event, sendAction.to);
       } else {
@@ -636,10 +695,13 @@ export class Interpreter<
           (sendAction as SendActionObject<TContext, TEvent, TEvent>)._event
         );
       }
-    }, sendAction.delay as number);
+    };
   }
   private cancel(sendId: string | number): void {
-    this.clock.clearTimeout(this.delayedEventsMap[sendId]);
+    this.clock.send({
+      type: 'clearTimeout',
+      id: sendId + ''
+    });
     delete this.delayedEventsMap[sendId];
   }
   private exec(
