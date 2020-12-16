@@ -39,7 +39,7 @@ export function getShortestPaths<
 
   const statePathMap = getShortestPathsFST(fst, optionsWithDefaults as any);
 
-  return statePathMap;
+  return statePathMap as StatePathsMap<TContext, TEvent>;
 }
 
 export function getShortestPathsFST<TState, TInput>(

@@ -38,7 +38,7 @@ export function getSimplePaths<
 
   const paths = getSimplePathsFST(fst, optionsWithDefaults as any);
 
-  return paths;
+  return paths as StatePathsMap<TContext, TEvent>;
 }
 
 export function getSimplePathsFST<TState, Tinput>(

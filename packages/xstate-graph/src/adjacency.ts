@@ -70,7 +70,7 @@ export function getAdjacencyMap<
 
   const adjacency = getAdjacencyMapFST(fst, options);
 
-  return adjacency;
+  return adjacency as AdjacencyMap<TContext, TEvent>;
 }
 
 export function getAdjacencyMapFST<TState, TInput>(
