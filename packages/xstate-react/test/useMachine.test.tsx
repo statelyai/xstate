@@ -13,7 +13,8 @@ import {
   render,
   fireEvent,
   cleanup,
-  waitForElement
+  waitForElement,
+  act
 } from '@testing-library/react';
 import { useState } from 'react';
 import { asEffect, asLayoutEffect } from '../src/useMachine';
@@ -649,53 +650,78 @@ describe('useMachine (strict mode)', () => {
   });
 
   // https://github.com/davidkpiano/xstate/issues/1334
-  it('delayed transitions should work when initializing from a rehydrated state', (done) => {
-    const testMachine = Machine({
-      id: 'app',
-      initial: 'idle',
-      states: {
-        idle: {
-          on: {
-            START: 'doingStuff'
-          }
-        },
-        doingStuff: {
-          id: 'doingStuff',
-          after: {
-            100: 'idle'
+  it('delayed transitions should work when initializing from a rehydrated state', () => {
+    jest.useFakeTimers();
+    try {
+      const testMachine = Machine({
+        id: 'app',
+        initial: 'idle',
+        states: {
+          idle: {
+            on: {
+              START: 'doingStuff'
+            }
+          },
+          doingStuff: {
+            id: 'doingStuff',
+            after: {
+              100: 'idle'
+            }
           }
         }
-      }
-    });
-
-    const persistedState = JSON.stringify(testMachine.initialState);
-
-    let currentState;
-
-    const Test = () => {
-      const [state, send] = useMachine(testMachine, {
-        state: State.create(JSON.parse(persistedState))
       });
 
-      currentState = state;
+      const persistedState = JSON.stringify(testMachine.initialState);
 
-      React.useEffect(() => {
-        send('START');
-      }, []);
+      let currentState;
+
+      const Test = () => {
+        const [state, send] = useMachine(testMachine, {
+          state: State.create(JSON.parse(persistedState))
+        });
+
+        currentState = state;
+
+        return (
+          <button onClick={() => send('START')} data-testid="button"></button>
+        );
+      };
+
+      const { getByTestId } = render(
+        <React.StrictMode>
+          <Test />
+        </React.StrictMode>
+      );
+
+      const button = getByTestId('button');
+
+      fireEvent.click(button);
+      act(() => {
+        jest.advanceTimersByTime(110);
+      });
+
+      expect(currentState.matches('idle')).toBe(true);
+    } finally {
+      jest.useRealTimers();
+    }
+  });
+
+  it('should accept a lazily created machine', () => {
+    const App = () => {
+      const [state] = useMachine(() =>
+        createMachine({
+          initial: 'idle',
+          states: {
+            idle: {}
+          }
+        })
+      );
+
+      expect(state.matches('idle')).toBeTruthy();
 
       return null;
     };
 
-    render(
-      <React.StrictMode>
-        <Test />
-      </React.StrictMode>
-    );
-
-    setTimeout(() => {
-      if (currentState.matches('idle')) {
-        done();
-      }
-    }, 110);
+    render(<App />);
   });
 });
