@@ -29,6 +29,22 @@
 npm i xstate @xstate/react
 ```
 
+**Via CDN**
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react.min.js"></script>
+```
+
+By using the global variable `XStateReact`
+
+or
+
+```html
+<script src="https://unpkg.com/@xstate/react/dist/xstate-react.fsm.min.js"></script>
+```
+
+By using the global variable `XStateReactFSM`
+
 2. Import the `useMachine` hook:
 
 ```js
