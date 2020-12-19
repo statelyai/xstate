@@ -31,17 +31,7 @@ export default [
   createUmdConfig({
     name: 'XStateReact',
     input: 'src/index.ts',
-    output: 'dist/xstate-react.js'
-  }),
-  createUmdConfig({
-    name: 'XStateReact',
-    input: 'src/index.ts',
     output: 'dist/xstate-react.umd.min.js'
-  }),
-  createUmdConfig({
-    name: 'XStateReactFSM',
-    input: 'src/fsm.ts',
-    output: 'dist/xstate-react-fsm.js'
   }),
   createUmdConfig({
     name: 'XStateReactFSM',
