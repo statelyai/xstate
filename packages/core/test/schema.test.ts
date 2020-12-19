@@ -40,10 +40,9 @@ describe('event schema', () => {
           exit: { type: 'someExit' }
         },
         invalid: {
-          // @ts-expect-error
           on: {
             EVENT: {
-              actions: ['someAction', 'someInvalidAction']
+              actions: ['someAction', 'someInvalidAction'] // TODO: this should throw an error
             }
           }
         }

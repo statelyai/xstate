@@ -409,13 +409,7 @@ type TransitionsConfigMap<
 > = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent extends { type: K } ? TEvent : never,
-    TActions extends ActionObject<
-      TContext,
-      TEvent extends { type: K } ? TEvent : never
-    >
-      ? TActions
-      : never
+    TEvent extends { type: K } ? TEvent : never
   >;
 } & {
   ''?: TransitionConfigOrTarget<TContext, TEvent, TActions>;
