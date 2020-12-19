@@ -20,8 +20,7 @@ function createUmdConfig({ input, output: file, name }) {
       name,
       globals: {
         xstate: 'XState',
-        '@xstate/react': 'XStateReact',
-        '@react/composition-api': 'reactCompositionApi'
+        '@xstate/react': 'XStateReact'
       }
     },
     plugins: [createTSCofig(), terser({ include: [/^.+\.min\.js$/] })]
