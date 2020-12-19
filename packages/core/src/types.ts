@@ -165,9 +165,10 @@ export interface TransitionConfig<
   TActions extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
-  >
+  >,
+  TEventType extends TEvent['type'] = TEvent['type']
 > {
-  cond?: Condition<TContext, TEvent>;
+  cond?: Condition<TContext, TEvent & { type: TEventType }>;
   actions?: ActionsOf<TActions>;
   in?: StateValue;
   internal?: boolean;
@@ -393,10 +394,11 @@ export type TransitionConfigOrTarget<
   TActions extends ActionObject<TContext, TEvent> = ActionObject<
     TContext,
     TEvent
-  >
+  >,
+  TEventType extends TEvent['type'] = TEvent['type']
 > = SingleOrArray<
   | TransitionConfigTarget<TContext, TEvent>
-  | TransitionConfig<TContext, TEvent, TActions>
+  | TransitionConfig<TContext, TEvent, TActions, TEventType>
 >;
 
 type TransitionsConfigMap<
@@ -409,7 +411,9 @@ type TransitionsConfigMap<
 > = {
   [K in TEvent['type']]?: TransitionConfigOrTarget<
     TContext,
-    TEvent extends { type: K } ? TEvent : never
+    TEvent,
+    TActions,
+    K
   >;
 } & {
   ''?: TransitionConfigOrTarget<TContext, TEvent, TActions>;
