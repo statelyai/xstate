@@ -1,6 +1,6 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
-import replace from '@rollup/plugin-replace';
+import replace from 'rollup-plugin-replace';
 
 function createTSCofig() {
   return typescript({
