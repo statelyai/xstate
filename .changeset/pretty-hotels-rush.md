@@ -1,5 +1,5 @@
 ---
-'@xstate/react': minor
+'@xstate/react': patch
 ---
 
-'rollup-replace' replaces process.env.NODE_ENV declarations.
+Fixed an issue with `process` references not being removed correctly from the UMD bundles.
