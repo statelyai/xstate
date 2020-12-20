@@ -1,5 +1,6 @@
 import { terser } from 'rollup-plugin-terser';
 import typescript from 'rollup-plugin-typescript2';
+import replace from 'rollup-plugin-replace';
 
 function createTSCofig() {
   return typescript({
@@ -23,7 +24,13 @@ function createUmdConfig({ input, output: file, name }) {
         '@xstate/react': 'XStateReact'
       }
     },
-    plugins: [createTSCofig(), terser({ include: [/^.+\.min\.js$/] })]
+    plugins: [
+      replace({
+        'process.env.NODE_ENV': JSON.stringify('production')
+      }),
+      createTSCofig(),
+      terser({ include: [/^.+\.min\.js$/] })
+    ]
   };
 }
 
