@@ -6,6 +6,10 @@ The only gotcha is that you'll need this extra package.
 ```js
 npm install @rollup/plugin-replace --save-dev
 ```
+Import the new package in rollup.config.js
+```js
+import replace from "@rollup/plugin-replace";
+```
 Then add this to the plugins array in rollup.config.js.
 ```js
 replace({ 
