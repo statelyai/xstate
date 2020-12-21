@@ -31,8 +31,11 @@ describe('createModel', () => {
       'updateName'
     );
 
-    const machine = createMachine<typeof userModel['context'], UserEvent>({
-      context: userModel.context,
+    const machine = createMachine<
+      typeof userModel['initialContext'],
+      UserEvent
+    >({
+      context: userModel.initialContext,
       initial: 'active',
       states: {
         active: {
