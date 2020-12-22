@@ -3,13 +3,12 @@ import {
   interpret,
   EventObject,
   EventData,
-  ActorRef,
   Observer
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
 import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
-import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
-import type { InspectorOptions, ServiceListener } from './types';
+import { createInspectMachine } from './inspectMachine';
+import type { Inspector, InspectorOptions, ServiceListener } from './types';
 import { getLazy, stringify } from './utils';
 
 export const serviceMap = new Map<string, Interpreter<any>>();
@@ -57,13 +56,6 @@ const defaultInspectorOptions: InspectorOptions = {
     return devTools;
   }
 };
-
-export interface Inspector extends ActorRef<InspectMachineEvent> {
-  /**
-   * Disconnects the inspector.
-   */
-  disconnect: () => void;
-}
 
 export function inspect(options?: Partial<InspectorOptions>): Inspector {
   const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };

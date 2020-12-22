@@ -1,17 +1,15 @@
 import * as WebSocket from 'ws';
 import {
   ActorRef,
-  createMachine,
   EventData,
   EventObject,
   interpret,
-  Interpreter,
-  send
+  Interpreter
 } from 'xstate';
 import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
-import { Inspector } from '.';
 
 import { createInspectMachine } from './inspectMachine';
+import { Inspector } from './types';
 import { stringify } from './utils';
 
 const services = new Set<Interpreter<any>>();
@@ -56,11 +54,11 @@ export function inspect(options: ServerInspectorOptions): Inspector {
   ).start();
   let client: ActorRef<any>;
 
-  server.on('connection', function connection(ws) {
+  server.on('connection', function connection(wss) {
     client = {
       send: (event: any) => {
         server.clients.forEach((ws) => {
-          if (ws.readyState === WebSocket.OPEN) {
+          if (ws.readyState === ws.OPEN) {
             ws.send(JSON.stringify(event));
           }
         });
@@ -70,7 +68,7 @@ export function inspect(options: ServerInspectorOptions): Inspector {
       }
     };
 
-    ws.on('message', function incoming(message) {
+    wss.on('message', function incoming(message) {
       if (typeof message !== 'string') {
         return;
       }
@@ -162,48 +160,3 @@ export function inspect(options: ServerInspectorOptions): Inspector {
 
   return inspector;
 }
-
-inspect({
-  server: new WebSocket.Server({
-    port: 8888
-  })
-});
-
-const machine = createMachine({
-  initial: 'inactive',
-  invoke: {
-    id: 'ponger',
-    src: () => (cb, receive) => {
-      receive((event) => {
-        if (event.type === 'PING') {
-          cb(
-            toSCXMLEvent(
-              {
-                type: 'PONG',
-                arr: [1, 2, 3]
-              },
-              { origin: 'ponger' }
-            )
-          );
-        }
-      });
-    }
-  },
-  states: {
-    inactive: {
-      after: {
-        1000: 'active'
-      }
-    },
-    active: {
-      entry: send('PING', { to: 'ponger', delay: 1000 }),
-      on: {
-        PONG: 'inactive'
-      }
-    }
-  }
-});
-
-interpret(machine, { devTools: true })
-  .onTransition((s) => console.log(s.value))
-  .start();
