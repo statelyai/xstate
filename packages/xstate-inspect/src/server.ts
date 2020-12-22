@@ -1,19 +1,18 @@
-// @ts-nocheck
 import * as WebSocket from 'ws';
 import {
+  ActorRef,
   createMachine,
+  EventData,
+  EventObject,
   interpret,
   Interpreter,
-  send,
-  sendParent
+  send
 } from 'xstate';
-import { toSCXMLEvent } from 'xstate/lib/utils';
+import { toEventObject, toSCXMLEvent } from 'xstate/lib/utils';
+import { Inspector } from '.';
 
-import { inspectMachine } from './';
-
-const wss = new WebSocket.Server({
-  port: 8888
-});
+import { createInspectMachine } from './inspectMachine';
+import { stringify } from './utils';
 
 const services = new Set<Interpreter<any>>();
 const serviceMap = new Map<string, Interpreter<any>>();
@@ -45,52 +44,130 @@ function createDevTools() {
   };
 }
 
-export function inspectServer() {
-  createDevTools();
-  const inspectService = interpret(inspectMachine).start();
-  let client: any;
+interface ServerInspectorOptions {
+  server: WebSocket.Server;
+}
 
-  wss.on('connection', function connection(ws) {
+export function inspect(options: ServerInspectorOptions): Inspector {
+  const { server } = options;
+  createDevTools();
+  const inspectService = interpret(
+    createInspectMachine(globalThis.__xstate__)
+  ).start();
+  let client: ActorRef<any>;
+
+  server.on('connection', function connection(ws) {
     client = {
-      send: (e: any) => {
-        wss.clients.forEach((c) => {
-          if (c.readyState === WebSocket.OPEN) {
-            c.send(JSON.stringify(e));
+      send: (event: any) => {
+        server.clients.forEach((ws) => {
+          if (ws.readyState === WebSocket.OPEN) {
+            ws.send(JSON.stringify(event));
           }
         });
+      },
+      subscribe: () => {
+        return { unsubscribe: () => void 0 };
       }
     };
-    // console.log('connected', ws);
+
     ws.on('message', function incoming(message) {
+      if (typeof message !== 'string') {
+        return;
+      }
       const jsonMessage = JSON.parse(message);
       inspectService.send({
         ...jsonMessage,
         client
       });
     });
-
-    ws.send('something');
   });
 
-  globalThis.__xstate__.onRegister((service) => {
+  globalThis.__xstate__.onRegister((service: Interpreter<any>) => {
     inspectService.send({
       type: 'service.register',
       machine: JSON.stringify(service.machine),
       state: JSON.stringify(service.state || service.initialState),
-      id: service.id
+      id: service.id,
+      sessionId: service.sessionId
+    });
+
+    inspectService.send({
+      type: 'service.event',
+      event: stringify((service.state || service.initialState)._event),
+      sessionId: service.sessionId
+    });
+
+    // monkey-patch service.send so that we know when an event was sent
+    // to a service *before* it is processed, since other events might occur
+    // while the sent one is being processed, which throws the order off
+    const originalSend = service.send.bind(service);
+
+    service.send = function inspectSend(
+      event: EventObject,
+      payload?: EventData
+    ) {
+      inspectService.send({
+        type: 'service.event',
+        event: stringify(
+          toSCXMLEvent(toEventObject(event as EventObject, payload))
+        ),
+        sessionId: service.sessionId
+      });
+
+      return originalSend(event, payload);
+    };
+
+    service.subscribe((state) => {
+      inspectService.send({
+        type: 'service.state',
+        state: stringify(state),
+        sessionId: service.sessionId
+      });
+    });
+
+    service.onStop(() => {
+      inspectService.send({
+        type: 'service.stop',
+        sessionId: service.sessionId
+      });
     });
 
     service.subscribe((state) => {
       inspectService.send({
         type: 'service.state',
         state: JSON.stringify(state),
-        id: service.id
+        sessionId: service.sessionId
       });
     });
   });
+
+  const inspector: Inspector = {
+    send: (event) => {
+      inspectService.send(event);
+    },
+    subscribe: () => {
+      return {
+        unsubscribe: () => void 0
+      };
+    },
+    disconnect: () => {
+      server.close();
+      inspectService.stop();
+    }
+  };
+
+  server.on('close', () => {
+    inspectService.stop();
+  });
+
+  return inspector;
 }
 
-inspectServer();
+inspect({
+  server: new WebSocket.Server({
+    port: 8888
+  })
+});
 
 const machine = createMachine({
   initial: 'inactive',
@@ -127,8 +204,6 @@ const machine = createMachine({
   }
 });
 
-globalThis.window = globalThis;
-
 interpret(machine, { devTools: true })
-  .onTransition((s) => console.log(s.value, s._event))
+  .onTransition((s) => console.log(s.value))
   .start();

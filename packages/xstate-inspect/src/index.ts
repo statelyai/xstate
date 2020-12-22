@@ -1,27 +1,18 @@
 import {
   Interpreter,
-  createMachine,
-  assign,
   interpret,
-  SCXML,
   EventObject,
-  EventData
+  EventData,
+  ActorRef,
+  Observer
 } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
-import { toSCXMLEvent, toEventObject } from 'xstate/lib/utils';
-import safeStringify from 'fast-safe-stringify';
+import { toSCXMLEvent, toEventObject, toObserver } from 'xstate/lib/utils';
+import { createInspectMachine, InspectMachineEvent } from './inspectMachine';
+import type { InspectorOptions, ServiceListener } from './types';
+import { getLazy, stringify } from './utils';
 
-export type ServiceListener = (service: Interpreter<any>) => void;
-
-type MaybeLazy<T> = T | (() => T);
-
-export interface InspectorOptions {
-  url: string;
-  iframe: MaybeLazy<HTMLIFrameElement | null | false>;
-  devTools: MaybeLazy<XStateDevInterface>;
-}
-
-const serviceMap = new Map<string, Interpreter<any>>();
+export const serviceMap = new Map<string, Interpreter<any>>();
 
 export function createDevTools(): XStateDevInterface {
   const services = new Set<Interpreter<any>>();
@@ -56,72 +47,6 @@ export function createDevTools(): XStateDevInterface {
   };
 }
 
-export const createInspectMachine = (
-  devTools: XStateDevInterface = globalThis.__xstate__
-) =>
-  createMachine<{
-    client?: any;
-  }>({
-    initial: 'pendingConnection',
-    context: {
-      client: undefined
-    },
-    states: {
-      pendingConnection: {},
-      connected: {
-        on: {
-          'service.state': {
-            actions: (ctx, e) => ctx.client!.send(e)
-          },
-          'service.event': {
-            actions: (ctx, e) => ctx.client!.send(e)
-          },
-          'service.register': {
-            actions: (ctx, e) => ctx.client!.send(e)
-          },
-          'service.stop': {
-            actions: (ctx, e) => ctx.client!.send(e)
-          },
-          'xstate.event': {
-            actions: (_, e) => {
-              const { event } = e;
-              const scxmlEventObject = JSON.parse(event) as SCXML.Event<any>;
-              const service = serviceMap.get(scxmlEventObject.origin!);
-              service?.send(scxmlEventObject);
-            }
-          },
-          unload: {
-            actions: (ctx) => {
-              ctx.client!.send({ type: 'xstate.disconnect' });
-            }
-          },
-          disconnect: 'disconnected'
-        }
-      },
-      disconnected: {
-        type: 'final'
-      }
-    },
-    on: {
-      'xstate.inspecting': {
-        target: '.connected',
-        actions: [
-          assign({ client: (_, e) => e.client }),
-          (ctx) => {
-            devTools.services.forEach((service) => {
-              ctx.client.send({
-                type: 'service.register',
-                machine: stringify(service.machine),
-                state: stringify(service.state || service.initialState),
-                sessionId: service.sessionId
-              });
-            });
-          }
-        ]
-      }
-    }
-  });
-
 const defaultInspectorOptions: InspectorOptions = {
   url: 'https://statecharts.io/inspect',
   iframe: () =>
@@ -133,47 +58,36 @@ const defaultInspectorOptions: InspectorOptions = {
   }
 };
 
-function getLazy<T>(value: MaybeLazy<T>): T {
-  return typeof value === 'function' ? (value as () => T)() : value;
-}
-
-function stringify(value: any): string {
-  try {
-    return JSON.stringify(value);
-  } catch (e) {
-    return safeStringify(value);
-  }
-}
-
-export function inspect(
-  options?: Partial<InspectorOptions>
-): {
-  send: (event: EventObject) => void;
+export interface Inspector extends ActorRef<InspectMachineEvent> {
   /**
    * Disconnects the inspector.
    */
   disconnect: () => void;
-} {
+}
+
+export function inspect(options?: Partial<InspectorOptions>): Inspector {
   const { iframe, url, devTools } = { ...defaultInspectorOptions, ...options };
-  const resolvedDevTools = getLazy(devTools);
   const resolvedIframe = getLazy(iframe);
-
-  const inspectMachine = createInspectMachine(resolvedDevTools);
-
-  let targetWindow: Window | null | undefined;
-
-  const inspectService = interpret(inspectMachine).start();
 
   if (resolvedIframe === null) {
     console.warn(
       'No suitable <iframe> found to embed the inspector. Please pass an <iframe> element to `inspect(iframe)` or create an <iframe data-xstate></iframe> element.'
     );
 
-    inspectService.send('disconnect');
-
-    return { send: () => void 0, disconnect: () => void 0 };
+    return {
+      send: () => void 0,
+      subscribe: () => {
+        return { unsubscribe: () => void 0 };
+      },
+      disconnect: () => void 0
+    };
   }
 
+  const resolvedDevTools = getLazy(devTools);
+  const inspectMachine = createInspectMachine(resolvedDevTools);
+  const inspectService = interpret(inspectMachine).start();
+  const listeners = new Set<Observer<any>>();
+  let targetWindow: Window | null | undefined;
   let client: any;
 
   const messageHandler = (event) => {
@@ -275,9 +189,20 @@ export function inspect(
     send: (event) => {
       inspectService.send(event);
     },
+    subscribe: (next, onError, onComplete) => {
+      const observer = toObserver(next, onError, onComplete);
+
+      listeners.add(observer);
+
+      return {
+        unsubscribe: () => {
+          listeners.delete(observer);
+        }
+      };
+    },
     disconnect: () => {
       inspectService.send('disconnect');
       window.removeEventListener('message', messageHandler);
     }
-  };
+  } as Inspector;
 }

@@ -16,15 +16,15 @@ export interface XStateDevInterface {
 }
 
 function getDevTools(): XStateDevInterface | undefined {
-  if (!!(window as any).__xstate__) {
-    return (window as any).__xstate__;
+  if (!!globalThis.__xstate__) {
+    return globalThis.__xstate__;
   }
 
   return undefined;
 }
 
 export function registerService(service: AnyInterpreter) {
-  if (IS_PRODUCTION || typeof window === 'undefined') {
+  if (IS_PRODUCTION || typeof globalThis === 'undefined') {
     return;
   }
 
