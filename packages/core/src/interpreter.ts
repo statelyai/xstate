@@ -1095,7 +1095,7 @@ export class Interpreter<
       if (canceled) {
         return;
       }
-      this.send(e);
+      this.send(toSCXMLEvent(e, { origin: id }));
     };
 
     let callbackStop;
