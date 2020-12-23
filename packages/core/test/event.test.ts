@@ -3,7 +3,7 @@ import { respond, send } from '../src/actions';
 import { invokeMachine } from '../src/invoke';
 
 describe('SCXML events', () => {
-  it('should have the origin (id) from the sending service', (done) => {
+  it('should have the origin (id) from the sending machine service', (done) => {
     const childMachine = Machine({
       initial: 'active',
       states: {
@@ -41,6 +41,36 @@ describe('SCXML events', () => {
       .start();
   });
 
+  it('should have the origin (id) from the sending callback service', () => {
+    const machine = Machine<{ childOrigin?: string }>({
+      initial: 'active',
+      context: {},
+      states: {
+        active: {
+          invoke: {
+            id: 'callback_child',
+            src: () => (send) => send({ type: 'EVENT' })
+          },
+          on: {
+            EVENT: {
+              target: 'success',
+              actions: assign({
+                childOrigin: (_, __, { _event }) => _event.origin
+              })
+            }
+          }
+        },
+        success: {
+          type: 'final'
+        }
+      }
+    });
+
+    const service = interpret(machine).start();
+
+    expect(service.state.context.childOrigin).toBe('callback_child');
+  });
+
   it('respond() should be able to respond to sender', (done) => {
     const authServerMachine = Machine({
       initial: 'waitingForCode',
@@ -48,7 +78,9 @@ describe('SCXML events', () => {
         waitingForCode: {
           on: {
             CODE: {
-              actions: respond('TOKEN', { delay: 10 })
+              actions: respond('TOKEN', {
+                delay: 10
+              })
             }
           }
         }
@@ -66,7 +98,9 @@ describe('SCXML events', () => {
             id: 'auth-server',
             src: invokeMachine(authServerMachine)
           },
-          entry: send('CODE', { to: 'auth-server' }),
+          entry: send('CODE', {
+            to: 'auth-server'
+          }),
           on: {
             TOKEN: 'authorized'
           }
