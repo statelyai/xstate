@@ -1,6 +1,6 @@
 import { Machine, sendParent, interpret, assign } from '../src';
 import { respond, send } from '../src/actions';
-import { invokeMachine } from '../src/invoke';
+import { invokeCallback, invokeMachine } from '../src/invoke';
 
 describe('SCXML events', () => {
   it('should have the origin (id) from the sending machine service', (done) => {
@@ -49,13 +49,13 @@ describe('SCXML events', () => {
         active: {
           invoke: {
             id: 'callback_child',
-            src: () => (send) => send({ type: 'EVENT' })
+            src: invokeCallback(() => (sendBack) => sendBack({ type: 'EVENT' }))
           },
           on: {
             EVENT: {
               target: 'success',
               actions: assign({
-                childOrigin: (_, __, { _event }) => _event.origin
+                childOrigin: (_, __, { _event }) => _event.origin?.name
               })
             }
           }
@@ -124,10 +124,10 @@ interface SignInContext {
   password: string;
 }
 
-type ChangePassword = {
+interface ChangePassword {
   type: 'changePassword';
   password: string;
-};
+}
 
 const authMachine = Machine<SignInContext>(
   {
