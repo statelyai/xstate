@@ -1,26 +1,10 @@
-import { createMachine, assign, SCXML, ActorRef } from 'xstate';
+import { createMachine, assign, SCXML, ActorRef, Interpreter } from 'xstate';
 import { XStateDevInterface } from 'xstate/lib/devTools';
-import { serviceMap } from './index';
+import { ReceiverEvent } from './types';
 import { stringify } from './utils';
 
 export type InspectMachineEvent =
-  | {
-      type: 'service.state';
-
-      state: string;
-      sessionId: string;
-    }
-  | { type: 'service.event'; event: string; sessionId: string }
-  | {
-      type: 'service.register';
-      machine: string;
-      state: string;
-      id: string;
-      sessionId: string;
-      parent?: string;
-      source?: string;
-    }
-  | { type: 'service.stop'; sessionId: string }
+  | ReceiverEvent
   | { type: 'unload' }
   | { type: 'disconnect' }
   | { type: 'xstate.event'; event: string; service: string }
@@ -29,6 +13,8 @@ export type InspectMachineEvent =
 export function createInspectMachine(
   devTools: XStateDevInterface = globalThis.__xstate__
 ) {
+  const serviceMap = new Map<string, Interpreter<any, any, any>>();
+
   return createMachine<
     {
       client?: ActorRef<any>;

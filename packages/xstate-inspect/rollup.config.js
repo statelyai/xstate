@@ -36,5 +36,14 @@ export default [
         format: 'cjs'
       }
     ]
+  }),
+  createNpmConfig({
+    input: 'src/server.ts',
+    output: [
+      {
+        dir: 'lib',
+        format: 'cjs'
+      }
+    ]
   })
 ];
