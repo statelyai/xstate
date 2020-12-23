@@ -1,5 +1,11 @@
 # xstate
 
+## 4.15.2
+
+### Patch Changes
+
+- [`497c543d`](https://github.com/davidkpiano/xstate/commit/497c543d2980ea1a277b30b340a7bcd3dd0b3cb6) [#1766](https://github.com/davidkpiano/xstate/pull/1766) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with events received from callback actors not having the appropriate `_event.origin` set.
+
 ## 4.15.1
 
 ### Patch Changes
