@@ -1,6 +1,7 @@
 export {
   inspect,
   createWindowReceiver,
-  createWebSocketReceiver
+  createWebSocketReceiver,
+  createDevTools
 } from './browser';
 export * from './types';
