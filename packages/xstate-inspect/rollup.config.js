@@ -29,16 +29,7 @@ export default [
     ]
   }),
   createNpmConfig({
-    input: 'src/index.ts',
-    output: [
-      {
-        dir: 'lib',
-        format: 'cjs'
-      }
-    ]
-  }),
-  createNpmConfig({
-    input: 'src/server.ts',
+    input: ['src/index.ts', 'src/server.ts'],
     output: [
       {
         dir: 'lib',
