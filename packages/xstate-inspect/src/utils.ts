@@ -15,6 +15,10 @@ export function stringify(value: any): string {
 }
 
 export function isReceiverEvent(event: any): event is ReceiverEvent {
+  if (!event) {
+    return false;
+  }
+
   try {
     if (
       typeof event === 'object' &&
