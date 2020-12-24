@@ -1,7 +1,7 @@
 import * as WebSocket from 'ws';
 import { createMachine, interpret, send } from 'xstate';
 import { toSCXMLEvent } from 'xstate/src/utils';
-import { inspect } from '../src/server';
+import { inspect } from '@xstate/inspect/lib/server';
 
 inspect({
   server: new WebSocket.Server({
