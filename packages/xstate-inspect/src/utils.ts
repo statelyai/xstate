@@ -56,7 +56,6 @@ export function parseReceiverEvent(event: ReceiverEvent): ParsedReceiverEvent {
         ...event,
         state: parseState(event.state)
       };
-    case 'service.stop':
     default:
       return event;
   }
