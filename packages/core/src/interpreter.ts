@@ -29,7 +29,6 @@ import { IS_PRODUCTION } from './environment';
 import {
   mapContext,
   warn,
-  keys,
   isArray,
   isFunction,
   toSCXMLEvent,
@@ -47,6 +46,7 @@ import { createActorRefFromInvokeAction } from './invoke';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
 import { Behavior, stopSignal } from './behavior';
 import { ObservableActorRef } from './ObservableActorRef';
+import { ClockMessage, createClockBehavior } from './services/clock';
 
 export type StateListener<
   TContext,
@@ -73,14 +73,7 @@ export enum InterpreterStatus {
 
 const defaultOptions: InterpreterOptions = ((global) => ({
   deferEvents: true,
-  clock: {
-    setTimeout: (fn, ms) => {
-      return setTimeout(fn, ms);
-    },
-    clearTimeout: (id) => {
-      return clearTimeout(id);
-    }
-  },
+  clock: createClockBehavior,
   logger: global.console.log.bind(console),
   devTools: false
 }))(typeof window === 'undefined' ? global : window);
@@ -91,50 +84,6 @@ export interface Clock {
 }
 
 const ClockSymbol = Symbol('xstate.clock');
-
-type ClockMessage =
-  | { type: 'setTimeout'; id: string; timeout: number }
-  | { type: 'clearTimeout'; id: string };
-
-const createClockBehavior = (
-  parent: ActorRef<any>
-): Behavior<ClockMessage, undefined> => {
-  const map: Map<string, any> = new Map();
-
-  const b = {
-    receive: (_, event) => {
-      switch (event.type) {
-        case 'setTimeout':
-          const timeoutId = setTimeout(() => {
-            parent.send({ type: 'clock.timeoutDone', id: event.id });
-          }, event.timeout);
-          map.set(event.id, timeoutId);
-          parent.send({ type: 'clock.timeoutStarted', id: event.id });
-          break;
-
-        case 'clearTimeout':
-          clearTimeout(map.get(event.id));
-          break;
-        default:
-          break;
-      }
-
-      return b;
-    },
-    receiveSignal: (_, signal) => {
-      if (signal === stopSignal) {
-        for (const i of map.values()) {
-          clearTimeout(i);
-        }
-      }
-
-      return b;
-    },
-    initial: undefined
-  };
-
-  return b;
-};
 
 export class Interpreter<
   TContext,
@@ -150,7 +99,7 @@ export class Interpreter<
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
-  public clock: SpawnedActorRef<ClockMessage, any>;
+  public clock: SpawnedActorRef<ClockMessage | any, any>;
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
@@ -200,7 +149,18 @@ export class Interpreter<
 
     this.id = resolvedId;
     this.logger = logger;
-    this.clock = new ObservableActorRef(createClockBehavior(this), 'clock');
+    this.clock = new ObservableActorRef(
+      clock({
+        send: (event) => {
+          if (event.type === 'clock.timeoutDone') {
+            this.scheduler.schedule(() => {
+              this.delayedEventsMap[(event as any).id]?.();
+            });
+          }
+        }
+      }),
+      'clock'
+    );
     this.parent = parent;
 
     this.options = resolvedOptions;
@@ -510,12 +470,6 @@ export class Interpreter<
 
     const eventObject = toEventObject<TEvent>(event, payload);
     const _event = toSCXMLEvent(eventObject);
-
-    if (eventObject.type === 'clock.timeoutDone') {
-      this.scheduler.schedule(() => {
-        this.delayedEventsMap[(eventObject as any).id]?.();
-      });
-    }
 
     if (this.status === InterpreterStatus.Stopped) {
       // do nothing

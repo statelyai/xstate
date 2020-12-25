@@ -4,7 +4,7 @@ import * as pkgUp from 'pkg-up';
 
 import { toMachine } from '../src/scxml';
 import { interpret } from '../src/interpreter';
-import { SimulatedClock } from '../src/SimulatedClock';
+import { createSimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
@@ -387,7 +387,7 @@ async function runTestToCompletion(
   let nextState: State<any> = machine.initialState;
 
   const service = interpret(machine, {
-    clock: new SimulatedClock()
+    clock: createSimulatedClock
   })
     .onTransition((state) => {
       nextState = state;
@@ -407,7 +407,7 @@ async function runTestToCompletion(
       return;
     }
     if (after) {
-      (service.clock as SimulatedClock).increment(after);
+      service.clock.send({ type: 'increment', ms: after });
     }
     service.send(event.name);
 

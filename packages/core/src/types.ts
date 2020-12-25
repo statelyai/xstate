@@ -3,6 +3,7 @@ import { State } from './State';
 import { Clock, Interpreter } from './interpreter';
 import { MachineNode } from './MachineNode';
 import { Behavior } from './behavior';
+import { ClockMessage } from './services/clock';
 
 export type EventType = string;
 export type ActionType = string;
@@ -1068,7 +1069,7 @@ export interface StateSchema<TC = any> {
 }
 
 export interface InterpreterOptions {
-  clock: Clock;
+  clock: (parent: any) => Behavior<ClockMessage, undefined>;
   logger: (...args: any[]) => void;
   parent?: ActorRef<any>;
   /**

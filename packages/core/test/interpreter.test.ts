@@ -1,5 +1,5 @@
 import { interpret, Interpreter } from '../src/interpreter';
-import { SimulatedClock } from '../src/SimulatedClock';
+import { createSimulatedClock } from '../src/SimulatedClock';
 import { machine as idMachine } from './fixtures/id';
 import {
   Machine,
@@ -206,7 +206,7 @@ describe('interpreter', () => {
       let state: any;
 
       const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
+        clock: createSimulatedClock
       })
         .onTransition((s) => {
           state = s;
@@ -236,35 +236,35 @@ describe('interpreter', () => {
       };
 
       const service = interpret(lightMachine, {
-        clock: new SimulatedClock()
+        clock: createSimulatedClock
       }).onTransition(listener);
-      const clock = service.clock as SimulatedClock;
+      const clock = service.clock;
       service.start();
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates[0]!.value).toEqual('green');
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
-      clock.increment(5);
+      clock.send({ type: 'increment', ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
@@ -316,10 +316,8 @@ describe('interpreter', () => {
 
       let stopped = false;
 
-      const clock = new SimulatedClock();
-
       const delayExprService = interpret(delayExprMachine, {
-        clock
+        clock: createSimulatedClock
       })
         .onDone(() => {
           stopped = true;
@@ -331,11 +329,11 @@ describe('interpreter', () => {
         wait: 50
       });
 
-      clock.increment(101);
+      delayExprService.clock.send({ type: 'increment', ms: 101 });
 
       expect(stopped).toBe(false);
 
-      clock.increment(50);
+      delayExprService.clock.send({ type: 'increment', ms: 50 });
 
       expect(stopped).toBe(true);
     });
@@ -390,10 +388,8 @@ describe('interpreter', () => {
 
       let stopped = false;
 
-      const clock = new SimulatedClock();
-
       const delayExprService = interpret(delayExprMachine, {
-        clock
+        clock: createSimulatedClock
       })
         .onDone(() => {
           stopped = true;
@@ -405,17 +401,16 @@ describe('interpreter', () => {
         wait: 50
       });
 
-      clock.increment(101);
+      delayExprService.clock.send({ type: 'increment', ms: 101 });
 
       expect(stopped).toBe(false);
 
-      clock.increment(50);
+      delayExprService.clock.send({ type: 'increment', ms: 50 });
 
       expect(stopped).toBe(true);
     });
 
     it('can send an event after a delay (delayed transitions)', (done) => {
-      const clock = new SimulatedClock();
       const letterMachine = Machine(
         {
           id: 'letter',
@@ -478,7 +473,7 @@ describe('interpreter', () => {
 
       let state: any;
 
-      interpret(letterMachine, { clock })
+      const service = interpret(letterMachine, { clock: createSimulatedClock })
         .onTransition((s) => {
           state = s;
         })
@@ -488,15 +483,15 @@ describe('interpreter', () => {
         .start();
 
       expect(state.value).toEqual('a');
-      clock.increment(100);
+      service.clock.send({ type: 'increment', ms: 100 });
       expect(state.value).toEqual('b');
-      clock.increment(100 + 50);
+      service.clock.send({ type: 'increment', ms: 100 + 50 });
       expect(state.value).toEqual('c');
-      clock.increment(20);
+      service.clock.send({ type: 'increment', ms: 20 });
       expect(state.value).toEqual('d');
-      clock.increment(100 + 200);
+      service.clock.send({ type: 'increment', ms: 100 + 200 });
       expect(state.value).toEqual('e');
-      clock.increment(100 + 50);
+      service.clock.send({ type: 'increment', ms: 100 + 50 });
     });
   });
 
@@ -638,16 +633,16 @@ describe('interpreter', () => {
     const listener = (state) => (currentState = state);
 
     const service = interpret(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock
     }).onTransition(listener);
-    const clock = service.clock as SimulatedClock;
+    const clock = service.clock;
     service.start();
 
-    clock.increment(5);
+    clock.send({ type: 'increment', ms: 5 });
     service.send('KEEP_GOING');
 
     expect(currentState!.value).toEqual('green');
-    clock.increment(10);
+    clock.send({ type: 'increment', ms: 10 });
     expect(currentState!.value).toEqual('green');
   });
 
@@ -690,7 +685,7 @@ describe('interpreter', () => {
 
   it('should throw an error if an event is sent to an uninitialized interpreter if { deferEvents: false }', () => {
     const service = interpret(lightMachine, {
-      clock: new SimulatedClock(),
+      clock: createSimulatedClock,
       deferEvents: false
     });
 
@@ -705,7 +700,7 @@ describe('interpreter', () => {
 
   it('should not throw an error if an event is sent to an uninitialized interpreter if { deferEvents: true }', () => {
     const service = interpret(lightMachine, {
-      clock: new SimulatedClock(),
+      clock: createSimulatedClock,
       deferEvents: true
     });
 
@@ -718,7 +713,7 @@ describe('interpreter', () => {
 
   it('should not throw an error if an event is sent to an uninitialized interpreter (default options)', () => {
     const service = interpret(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock
     });
 
     expect(() => service.send('SOME_EVENT')).not.toThrow();
@@ -791,7 +786,7 @@ describe('interpreter', () => {
   it('should not update when stopped', () => {
     let state = lightMachine.initialState;
     const service = interpret(lightMachine, {
-      clock: new SimulatedClock()
+      clock: createSimulatedClock
     }).onTransition((s) => (state = s));
 
     service.start();

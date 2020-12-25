@@ -1,10 +1,19 @@
+import { Behavior, stopSignal } from './behavior';
 import { Clock } from './interpreter';
+import { ClockMessage } from './services/clock';
+import { ActorRef } from './types';
 
 export interface SimulatedClock extends Clock {
   start(speed: number): void;
   increment(ms: number): void;
   set(ms: number): void;
 }
+
+type SimulatedClockMessage =
+  | { type: 'setTimeout'; id: string; timeout: number }
+  | { type: 'clearTimeout'; id: string }
+  | { type: 'increment'; ms: number }
+  | { type: 'set'; ms: number };
 
 interface SimulatedTimeout {
   start: number;
@@ -59,4 +68,51 @@ export class SimulatedClock implements SimulatedClock {
     this._now += ms;
     this.flushTimeouts();
   }
+}
+
+export function createSimulatedClock(
+  parent: ActorRef<any>
+): Behavior<SimulatedClockMessage, undefined> {
+  const simulatedClock = new SimulatedClock();
+  const map: Map<string, any> = new Map();
+
+  const b: Behavior<SimulatedClockMessage, undefined> = {
+    receive: (_, event) => {
+      switch (event.type) {
+        case 'setTimeout':
+          const timeoutId = simulatedClock.setTimeout(() => {
+            parent.send({ type: 'clock.timeoutDone', id: event.id });
+          }, event.timeout);
+          map.set(event.id, timeoutId);
+          parent.send({ type: 'clock.timeoutStarted', id: event.id });
+          break;
+
+        case 'clearTimeout':
+          simulatedClock.clearTimeout(map.get(event.id));
+          break;
+        case 'increment':
+          simulatedClock.increment(event.ms);
+          break;
+        case 'set':
+          simulatedClock.set(event.ms);
+          break;
+        default:
+          break;
+      }
+
+      return b;
+    },
+    receiveSignal: (_, signal) => {
+      if (signal === stopSignal) {
+        for (const i of map.values()) {
+          simulatedClock.clearTimeout(i);
+        }
+      }
+
+      return b;
+    },
+    initial: undefined
+  };
+
+  return b;
 }
