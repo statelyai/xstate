@@ -1,5 +1,87 @@
 # xstate
 
+## 4.15.2
+
+### Patch Changes
+
+- [`497c543d`](https://github.com/davidkpiano/xstate/commit/497c543d2980ea1a277b30b340a7bcd3dd0b3cb6) [#1766](https://github.com/davidkpiano/xstate/pull/1766) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with events received from callback actors not having the appropriate `_event.origin` set.
+
+## 4.15.1
+
+### Patch Changes
+
+- [`8a8cfa32`](https://github.com/davidkpiano/xstate/commit/8a8cfa32d99aedf11f4af93ba56fa9ba68925c74) [#1704](https://github.com/davidkpiano/xstate/pull/1704) Thanks [@blimmer](https://github.com/blimmer)! - The default `clock` methods (`setTimeout` and `clearTimeout`) are now invoked properly with the global context preserved for those invocations which matter for some JS environments. More details can be found in the corresponding issue: [#1703](https://github.com/davidkpiano/xstate/issues/1703).
+
+## 4.15.0
+
+### Minor Changes
+
+- [`6596d0ba`](https://github.com/davidkpiano/xstate/commit/6596d0ba163341fc43d214b48115536cb4815b68) [#1622](https://github.com/davidkpiano/xstate/pull/1622) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Spawned/invoked actors and interpreters are now typed as extending `ActorRef` (e.g., `SpawnedActorRef`) rather than `Actor` or `Interpreter`. This unification of types should make it more straightforward to provide actor types:
+
+  ```diff
+  import {
+  - Actor
+  + ActorRef
+  } from 'xstate';
+
+  // ...
+
+  interface SomeContext {
+  - server?: Actor;
+  + server?: ActorRef<ServerEvent>;
+  }
+  ```
+
+  It's also easier to specify the type of a spawned/invoked machine with `ActorRefFrom`:
+
+  ```diff
+  import {
+    createMachine,
+  - Actor
+  + ActorRefFrom
+  } from 'xstate';
+
+  const serverMachine = createMachine<ServerContext, ServerEvent>({
+    // ...
+  });
+
+  interface SomeContext {
+  - server?: Actor; // difficult to type
+  + server?: ActorRefFrom<typeof serverMachine>;
+  }
+  ```
+
+### Patch Changes
+
+- [`75a91b07`](https://github.com/davidkpiano/xstate/commit/75a91b078a10a86f13edc9eec3ac1d6246607002) [#1692](https://github.com/davidkpiano/xstate/pull/1692) Thanks [@Andarist](https://github.com/Andarist)! - Fixed an issue with history state entering a wrong state if the most recent visit in its parent has been caused by a transient transition.
+
+## 4.14.1
+
+### Patch Changes
+
+- [`02c76350`](https://github.com/davidkpiano/xstate/commit/02c763504da0808eeb281587981a5baf8ba884a1) [#1656](https://github.com/davidkpiano/xstate/pull/1656) Thanks [@Andarist](https://github.com/Andarist)! - Exit actions will now be properly called when a service gets canceled by calling its `stop` method.
+
+## 4.14.0
+
+### Minor Changes
+
+- [`119db8fb`](https://github.com/davidkpiano/xstate/commit/119db8fbccd08f899e1275a502d8c4c51b5a130e) [#1577](https://github.com/davidkpiano/xstate/pull/1577) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Expressions can now be used in the `stop()` action creator:
+
+  ```js
+  // ...
+  actions: stop(context => context.someActor);
+  ```
+
+### Patch Changes
+
+- [`8c78e120`](https://github.com/davidkpiano/xstate/commit/8c78e1205a729d933e30db01cd4260d82352a9be) [#1570](https://github.com/davidkpiano/xstate/pull/1570) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The return type of `spawn(machine)` will now be `Actor<State<TContext, TEvent>, TEvent>`, which is a supertype of `Interpreter<...>`.
+
+* [`602687c2`](https://github.com/davidkpiano/xstate/commit/602687c235c56cca552c2d5a9d78adf224f522d8) [#1566](https://github.com/davidkpiano/xstate/pull/1566) Thanks [@davidkpiano](https://github.com/davidkpiano)! - Exit actions will now be properly called when an invoked machine reaches its final state. See [#1109](https://github.com/davidkpiano/xstate/issues/1109) for more details.
+
+- [`6e44d02a`](https://github.com/davidkpiano/xstate/commit/6e44d02ad03af4041046120dd6c975e3b5b3772a) [#1553](https://github.com/davidkpiano/xstate/pull/1553) Thanks [@davidkpiano](https://github.com/davidkpiano)! - The `state.children` property now properly shows all spawned and invoked actors. See [#795](https://github.com/davidkpiano/xstate/issues/795) for more details.
+
+* [`72b0880e`](https://github.com/davidkpiano/xstate/commit/72b0880e6444ae009adca72088872bb5c0760ce3) [#1504](https://github.com/davidkpiano/xstate/pull/1504) Thanks [@Andarist](https://github.com/Andarist)! - Added `status` property on the `Interpreter` - this can be used to differentiate not started, running and stopped interpreters. This property is best compared to values on the new `InterpreterStatus` export.
+
 ## 4.13.0
 
 ### Minor Changes

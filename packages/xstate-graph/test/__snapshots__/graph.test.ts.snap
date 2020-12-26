@@ -6410,7 +6410,7 @@ Object {
             "value": "start",
           },
           "historyValue": Object {
-            "current": "start",
+            "current": "finish",
             "states": Object {
               "finish": undefined,
               "start": undefined,
@@ -6485,7 +6485,7 @@ Object {
         "value": "start",
       },
       "historyValue": Object {
-        "current": "start",
+        "current": "finish",
         "states": Object {
           "finish": undefined,
           "start": undefined,

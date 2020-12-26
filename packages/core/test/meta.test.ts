@@ -1,4 +1,4 @@
-import { Machine } from '../src/index';
+import { createMachine, Machine } from '../src/index';
 
 describe('state meta data', () => {
   const pedestrianStates = {
@@ -97,5 +97,36 @@ describe('state meta data', () => {
         walkData: 'walk data'
       }
     });
+  });
+});
+
+describe('transition meta data', () => {
+  it('should show meta data in transitions', () => {
+    const machine = createMachine({
+      initial: 'inactive',
+      states: {
+        inactive: {
+          on: {
+            EVENT: {
+              target: 'active',
+              meta: {
+                description: 'Going from inactive to active'
+              }
+            }
+          }
+        },
+        active: {}
+      }
+    });
+
+    const nextState = machine.transition(undefined, 'EVENT');
+
+    expect(nextState.transitions.map((t) => t.meta)).toMatchInlineSnapshot(`
+      Array [
+        Object {
+          "description": "Going from inactive to active",
+        },
+      ]
+    `);
   });
 });

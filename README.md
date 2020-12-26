@@ -1,7 +1,7 @@
 <p align="center">
   <a href="https://xstate.js.org">
   <br />
-  <img src="https://i.imgur.com/FshbFOv.png" alt="XState" width="100"/>
+  <img src="https://user-images.githubusercontent.com/1093738/101672561-06aa7480-3a24-11eb-89d1-787fa7112138.png" alt="XState" width="150"/>
   <br />
     <sub><strong>JavaScript state machines and statecharts</strong></sub>
   <br />
@@ -9,8 +9,11 @@
   </a>
 </p>
 
+
+
+
+
 [![npm version](https://badge.fury.io/js/xstate.svg)](https://badge.fury.io/js/xstate)
-[![Statecharts gitter chat](https://badges.gitter.im/gitterHQ/gitter.png)](https://gitter.im/statecharts/statecharts)
 <img src="https://opencollective.com/xstate/tiers/backer/badge.svg?label=sponsors&color=brightgreen" />
 
 <div class="blm-callout">
@@ -29,7 +32,7 @@ JavaScript and TypeScript [finite state machines](https://en.wikipedia.org/wiki/
 - [📉 `@xstate/graph`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-graph) - Graph traversal utilities for XState
 - [⚛️ `@xstate/react`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-react) - React hooks and utilities for using XState in React applications
 - [💚 `@xstate/vue`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-vue) - Vue composition functions and utilities for using XState in Vue applications
-- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-based testing utilities for XState
+- [✅ `@xstate/test`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-test) - Model-Based-Testing utilities (using XState) for testing any software
 - [🔍 `@xstate/inspect`](https://github.com/davidkpiano/xstate/tree/master/packages/xstate-inspect) - Inspection utilities for XState
 
 ## Templates
@@ -84,10 +87,10 @@ toggleService.send('TOGGLE');
 import { createMachine, interpret, assign } from 'xstate';
 
 const fetchMachine = createMachine({
-  id: 'SWAPI',
+  id: 'Dog API',
   initial: 'idle',
   context: {
-    user: null
+    dog: null
   },
   states: {
     idle: {
@@ -97,13 +100,15 @@ const fetchMachine = createMachine({
     },
     loading: {
       invoke: {
-        id: 'fetchLuke',
+        id: 'fetchDog',
         src: (context, event) =>
-          fetch('https://swapi.dev/api/people/1').then((res) => res.json()),
+          fetch('https://dog.ceo/api/breeds/image/random').then((data) =>
+            data.json()
+          ),
         onDone: {
           target: 'resolved',
           actions: assign({
-            user: (_, event) => event.data
+            dog: (_, event) => event.data
           })
         },
         onError: 'rejected'
@@ -123,11 +128,11 @@ const fetchMachine = createMachine({
   }
 });
 
-const swService = interpret(fetchMachine)
+const dogService = interpret(fetchMachine)
   .onTransition((state) => console.log(state.value))
   .start();
 
-swService.send('FETCH');
+dogService.send('FETCH');
 ```
 
 <!-- START doctoc generated TOC please keep comment here to allow auto update -->
