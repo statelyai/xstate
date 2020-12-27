@@ -123,7 +123,7 @@ const testGroups = {
     // 'test0',
     // 'test1'
   ],
-  // 'send-data': ['send1'], // <content> conversion not implementd
+  'send-data': ['send1'],
   // 'send-idlocation': ['test0'],
   // 'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
@@ -145,7 +145,7 @@ const testGroups = {
     'test174.txml',
     'test175.txml',
     'test176.txml',
-    // 'test179.txml', // conversion of <content> in <send> not implemented yet
+    'test179.txml',
     // 'test183.txml', idlocation not implemented yet
     'test185.txml',
     'test186.txml',
@@ -418,8 +418,8 @@ async function runTestToCompletion(
 }
 
 describe('scxml', () => {
-  // const testGroupKeys = Object.keys(testGroups);
-  const testGroupKeys = ['w3c-ecma'];
+  const testGroupKeys = Object.keys(testGroups);
+  // const testGroupKeys = ['send-data'];
 
   testGroupKeys.forEach((testGroupName) => {
     const testNames = testGroups[testGroupName];
