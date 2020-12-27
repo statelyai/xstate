@@ -125,7 +125,7 @@ const testGroups = {
   ],
   'send-data': ['send1'],
   // 'send-idlocation': ['test0'],
-  // 'send-internal': ['test0'],
+  'send-internal': ['test0'],
   'targetless-transition': ['test0', 'test1', 'test2', 'test3'],
   'w3c-ecma': [
     'test144.txml',
