@@ -39,8 +39,8 @@
   },
   "devDependencies": {
     "@types/ws": "^7.2.6",
-    "rollup": "^1.26.3",
-    "rollup-plugin-typescript2": "^0.25.2",
+    "rollup": "^2.35.1",
+    "rollup-plugin-typescript2": "^0.29.0",
     "typescript": "^4.1.2",
     "ws": "^7.3.1",
     "xstate": "*"
