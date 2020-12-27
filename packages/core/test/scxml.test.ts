@@ -43,7 +43,7 @@ const testGroups = {
   error: [
     // 'error' // not implemented
   ],
-  forEach: ['test1'],
+  foreach: ['test1'],
   hierarchy: ['hier0', 'hier1', 'hier2'],
   'hierarchy+documentOrder': ['test0', 'test1'],
   history: [
