@@ -46,7 +46,12 @@ import { createActorRefFromInvokeAction } from './invoke';
 import { PayloadSender, SpawnedActorRef, StopActionObject } from '.';
 import { Behavior, stopSignal } from './behavior';
 import { ObservableActorRef } from './ObservableActorRef';
-import { ClockMessage, createClockBehavior } from './services/clock';
+import {
+  CLOCK_CLEAR_TIMEOUT,
+  ClockMessage,
+  createClockBehavior,
+  CLOCK_SET_TIMEOUT
+} from './services/clock';
 
 export type StateListener<
   TContext,
@@ -83,8 +88,6 @@ export interface Clock {
   clearTimeout(id: any): void;
 }
 
-const ClockSymbol = Symbol('xstate.clock');
-
 export class Interpreter<
   TContext,
   TEvent extends EventObject = EventObject,
@@ -99,7 +102,7 @@ export class Interpreter<
   /**
    * The clock that is responsible for setting and clearing timeouts, such as delayed events and transitions.
    */
-  public clock: SpawnedActorRef<ClockMessage | any, any>;
+  public clock: SpawnedActorRef<ClockMessage, any>;
   public options: Readonly<InterpreterOptions>;
 
   private scheduler: Scheduler = new Scheduler();
@@ -636,7 +639,7 @@ export class Interpreter<
   }
   private defer(sendAction: SendActionObject<TContext, TEvent>): void {
     this.clock.send({
-      type: 'setTimeout',
+      type: CLOCK_SET_TIMEOUT,
       id: sendAction.id + '',
       timeout: sendAction.delay || 0
     });
@@ -653,7 +656,7 @@ export class Interpreter<
   }
   private cancel(sendId: string | number): void {
     this.clock.send({
-      type: 'clearTimeout',
+      type: CLOCK_CLEAR_TIMEOUT,
       id: sendId + ''
     });
     delete this.delayedEventsMap[sendId];

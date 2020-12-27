@@ -8,6 +8,7 @@ import { createSimulatedClock } from '../src/SimulatedClock';
 import { State } from '../src';
 import { getStateNodes } from '../src/stateUtils';
 import { MachineNode } from '../src/MachineNode';
+import { CLOCK_INCREMENT } from '../src/services/clock';
 
 const TEST_FRAMEWORK = path.dirname(
   pkgUp.sync({
@@ -407,7 +408,7 @@ async function runTestToCompletion(
       return;
     }
     if (after) {
-      service.clock.send({ type: 'increment', ms: after });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: after });
     }
     service.send(event.name);
 

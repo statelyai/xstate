@@ -16,7 +16,7 @@ export interface EventObject {
   /**
    * The type of event that is sent.
    */
-  type: string;
+  type: string | symbol;
 }
 
 export interface AnyEventObject extends EventObject {

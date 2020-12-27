@@ -1,6 +1,13 @@
 import { Behavior, stopSignal } from './behavior';
 import { Clock } from './interpreter';
-import { ClockMessage } from './services/clock';
+import {
+  ClockMessage,
+  CLOCK_CLEAR_TIMEOUT,
+  CLOCK_INCREMENT,
+  CLOCK_SET,
+  CLOCK_SET_TIMEOUT,
+  createClockBehavior
+} from './services/clock';
 import { ActorRef } from './types';
 
 export interface SimulatedClock extends Clock {
@@ -8,12 +15,6 @@ export interface SimulatedClock extends Clock {
   increment(ms: number): void;
   set(ms: number): void;
 }
-
-type SimulatedClockMessage =
-  | { type: 'setTimeout'; id: string; timeout: number }
-  | { type: 'clearTimeout'; id: string }
-  | { type: 'increment'; ms: number }
-  | { type: 'set'; ms: number };
 
 interface SimulatedTimeout {
   start: number;
@@ -72,14 +73,15 @@ export class SimulatedClock implements SimulatedClock {
 
 export function createSimulatedClock(
   parent: ActorRef<any>
-): Behavior<SimulatedClockMessage, undefined> {
+): Behavior<ClockMessage, undefined> {
   const simulatedClock = new SimulatedClock();
+  // return createClockBehavior(parent, simulatedClock);
   const map: Map<string, any> = new Map();
 
-  const b: Behavior<SimulatedClockMessage, undefined> = {
+  const b: Behavior<ClockMessage, undefined> = {
     receive: (_, event) => {
       switch (event.type) {
-        case 'setTimeout':
+        case CLOCK_SET_TIMEOUT:
           const timeoutId = simulatedClock.setTimeout(() => {
             parent.send({ type: 'clock.timeoutDone', id: event.id });
           }, event.timeout);
@@ -87,13 +89,13 @@ export function createSimulatedClock(
           parent.send({ type: 'clock.timeoutStarted', id: event.id });
           break;
 
-        case 'clearTimeout':
+        case CLOCK_CLEAR_TIMEOUT:
           simulatedClock.clearTimeout(map.get(event.id));
           break;
-        case 'increment':
+        case CLOCK_INCREMENT:
           simulatedClock.increment(event.ms);
           break;
-        case 'set':
+        case CLOCK_SET:
           simulatedClock.set(event.ms);
           break;
         default:

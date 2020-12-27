@@ -23,6 +23,7 @@ import {
   invokePromise,
   invokeActivity
 } from '../src/invoke';
+import { CLOCK_INCREMENT } from '../src/services/clock';
 
 const lightMachine = Machine({
   id: 'light',
@@ -241,30 +242,30 @@ describe('interpreter', () => {
       const clock = service.clock;
       service.start();
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates[0]!.value).toEqual('green');
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual(['green', 'yellow']);
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
         'red'
       ]);
 
-      clock.send({ type: 'increment', ms: 5 });
+      clock.send({ type: CLOCK_INCREMENT, ms: 5 });
       expect(currentStates.map((s) => s.value)).toEqual([
         'green',
         'yellow',
@@ -329,11 +330,11 @@ describe('interpreter', () => {
         wait: 50
       });
 
-      delayExprService.clock.send({ type: 'increment', ms: 101 });
+      delayExprService.clock.send({ type: CLOCK_INCREMENT, ms: 101 });
 
       expect(stopped).toBe(false);
 
-      delayExprService.clock.send({ type: 'increment', ms: 50 });
+      delayExprService.clock.send({ type: CLOCK_INCREMENT, ms: 50 });
 
       expect(stopped).toBe(true);
     });
@@ -401,11 +402,11 @@ describe('interpreter', () => {
         wait: 50
       });
 
-      delayExprService.clock.send({ type: 'increment', ms: 101 });
+      delayExprService.clock.send({ type: CLOCK_INCREMENT, ms: 101 });
 
       expect(stopped).toBe(false);
 
-      delayExprService.clock.send({ type: 'increment', ms: 50 });
+      delayExprService.clock.send({ type: CLOCK_INCREMENT, ms: 50 });
 
       expect(stopped).toBe(true);
     });
@@ -483,15 +484,15 @@ describe('interpreter', () => {
         .start();
 
       expect(state.value).toEqual('a');
-      service.clock.send({ type: 'increment', ms: 100 });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: 100 });
       expect(state.value).toEqual('b');
-      service.clock.send({ type: 'increment', ms: 100 + 50 });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: 100 + 50 });
       expect(state.value).toEqual('c');
-      service.clock.send({ type: 'increment', ms: 20 });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: 20 });
       expect(state.value).toEqual('d');
-      service.clock.send({ type: 'increment', ms: 100 + 200 });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: 100 + 200 });
       expect(state.value).toEqual('e');
-      service.clock.send({ type: 'increment', ms: 100 + 50 });
+      service.clock.send({ type: CLOCK_INCREMENT, ms: 100 + 50 });
     });
   });
 
@@ -638,11 +639,11 @@ describe('interpreter', () => {
     const clock = service.clock;
     service.start();
 
-    clock.send({ type: 'increment', ms: 5 });
+    clock.send({ type: CLOCK_INCREMENT, ms: 5 });
     service.send('KEEP_GOING');
 
     expect(currentState!.value).toEqual('green');
-    clock.send({ type: 'increment', ms: 10 });
+    clock.send({ type: CLOCK_INCREMENT, ms: 10 });
     expect(currentState!.value).toEqual('green');
   });
 
